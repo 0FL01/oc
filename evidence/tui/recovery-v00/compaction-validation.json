@@ -1,0 +1,287 @@
+{
+  "campaigns": {
+    "manual": {
+      "comparisons": {
+        "DIFFERENT": 34
+      },
+      "sides": {
+        "upstream": {
+          "behavior": "PASS",
+          "requests": 11,
+          "summary_requests": 3,
+          "tools": 1,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            },
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            },
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            }
+          ],
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "safe_boundary_and_coalescing": true,
+          "failed_cancelled_restart_checkpoint_unchanged": true,
+          "nonempty_filesystem_preserved": true
+        },
+        "oc": {
+          "behavior": "PASS",
+          "requests": 11,
+          "summary_requests": 3,
+          "tools": 1,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "developer",
+                "user"
+              ],
+              "tools": 0
+            },
+            {
+              "roles": [
+                "developer",
+                "user"
+              ],
+              "tools": 0
+            },
+            {
+              "roles": [
+                "developer",
+                "user"
+              ],
+              "tools": 0
+            }
+          ],
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "safe_boundary_and_coalescing": true,
+          "failed_cancelled_restart_checkpoint_unchanged": true,
+          "nonempty_filesystem_preserved": true
+        }
+      }
+    },
+    "threshold": {
+      "comparisons": {
+        "DIFFERENT": 8,
+        "BLOCKED": 6
+      },
+      "sides": {
+        "upstream": {
+          "behavior": "PASS",
+          "requests": 6,
+          "summary_requests": 1,
+          "tools": 0,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            }
+          ],
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          }
+        },
+        "oc": {
+          "behavior": "FAILED",
+          "requests": 5,
+          "summary_requests": 0,
+          "tools": 0,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": -15,
+              "termination": "forced_stop"
+            }
+          ],
+          "request_shapes": [],
+          "production_gap": "Usage threshold ignored: real 23000-token anchor followed by uncompact next request."
+        }
+      }
+    },
+    "overflow": {
+      "comparisons": {
+        "DIFFERENT": 12
+      },
+      "sides": {
+        "upstream": {
+          "behavior": "PASS",
+          "requests": 7,
+          "summary_requests": 1,
+          "tools": 0,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            }
+          ],
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          }
+        },
+        "oc": {
+          "behavior": "PASS",
+          "requests": 7,
+          "summary_requests": 1,
+          "tools": 0,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "developer",
+                "user"
+              ],
+              "tools": 0
+            }
+          ],
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          }
+        }
+      }
+    }
+  },
+  "source_build_link": {
+    "overflow_build_attempt": "08",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "native_sha256": "af00c4e0b52155db98eba889e4cc113ce717cfc5b999b68ec3762e8b546473b7",
+    "manual_attempt": "10",
+    "production_source_inputs_equal": true
+  },
+  "status": "PASS_WITH_RECORDED_PRODUCTION_GAP"
+}

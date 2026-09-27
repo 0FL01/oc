@@ -1,0 +1,455 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-26T22:22:18.544Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "1480096bd7cac2d7ad5653ad5375970055449afc770f76627194f8c94e74a5d2",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "9fd56a26d4cf395c36917589561c2f0ef2fb56e0b464d79020d602b83344ad75",
+    "compaction.mjs": "261d6b74354a22b544a8c0d27fb0d273f2675eefbbf1ab3148024c9375b1b025",
+    "compaction_fixture.py": "1dd3dfd8c3dd44dfc57d77f3e1e1c6e801d09ac783a408050c63ef3fb8b7447a"
+  },
+  "fixture_sha256": "1adf69a09d389d2a51e82579f0b08f24d5c5394ee15137d36f7e1cd4ca01221a",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "b9760200c8c782b61382520fd5c2c6943fc6f7fe",
+    "tree": "d36f64ba1abf209fadc4871bc59328a252cb52ae",
+    "dirty_diff_sha256": "9b7e55f5d4befae4bdd78e4848f348fe16d9554c265ab4fcb642741109449f3d",
+    "source_manifest_sha256": "403acf8475da9cf787e403d987dc81bfadd86167052a35e5b186935dc23c4dc2",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "af00c4e0b52155db98eba889e4cc113ce717cfc5b999b68ec3762e8b546473b7",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "oc",
+      "status": "FAILED",
+      "reason": "page.evaluate: Target page, context or browser has been closed"
+    },
+    {
+      "status": "BLOCKED",
+      "reason": "page.evaluate: Target page, context or browser has been closed\n    at frame (/home/opencode/ai/oc/scripts/tui_capture/capture.mjs:424:62)\n    at async file:///home/opencode/ai/oc/scripts/tui_capture/capture.mjs:2782:42"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "compaction-home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "a067d4dc2aaf3a377917e037feee8f68322a5aed8d8b6b6f147d268870b11e8f",
+      "png_sha256": "3b44ef66ff150b34083d2b00b54ace432088cd28c4fbeb9eea0c5f273a286b33",
+      "render_sha256": "da202c32b1d115702d6b24f72d7b04d11498106795cf99b7f174da43e6c347d2",
+      "path": "upstream/compaction-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "compaction-seed-1",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "fd96ca87493e428c6984dd723adc15af535d694d2e0a3d1284cfe176c2378061",
+      "png_sha256": "4f8e2620d5c19416fbc09ec12d0f38b959c4e0c2359035aaeac3b3c56fd992a6",
+      "render_sha256": "2911fa651a1c58a28d86ba904777ad0503961bf208b17f139b541b3c4533eb85",
+      "path": "upstream/compaction-seed-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "compaction-seed-2",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2105ffc697352b94ea59e4ae8ff84d6ee7a418f33d98d0e115d8248f987c0f50",
+      "png_sha256": "7d4056dd43eef0be7da8157c26a8c6948eb4227636cd70f2bb05957c9bc30bcb",
+      "render_sha256": "87c0711adde16ffa4043b2384e6a8fb5f7f3473d13382d3c5c6628c26081c38f",
+      "path": "upstream/compaction-seed-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "compaction-seed-3",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "5165cd812069135f155d15f1b06ca1f4579a68f37af428a0e0c9c308e38668fa",
+      "png_sha256": "16402715316b4f4b1b8eec2c09eb5651e11679e12404a2df63aaadc0d100d61d",
+      "render_sha256": "1744d668ece966963e23d4f2165302aa94048b1b5d2af55091ae33c59306c078",
+      "path": "upstream/compaction-seed-3"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "compaction-held-tool",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "aec44427dd5010de5b391fc65b034f93c362644ef000ffc41feebbe718475559",
+      "png_sha256": "f686abd464660aa5bb1c6a283b5e3d53b1ba39b28bc65317ec441a643214cfa5",
+      "render_sha256": "cf4cb623dfb84ea1e26a38fbac0807cc79a29dfd48a4e361df70fa964b9a3243",
+      "path": "upstream/compaction-held-tool"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "compaction-queued",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f763f075afd4825bb4181b95b4067049675f884b54b6c3fc7c6549ba0e6731b0",
+      "png_sha256": "159941fd617c2dd865fa24d1f1456f6b25adb2c585c5f634eefd4b4b89caa11c",
+      "render_sha256": "6cf837e1e9c58b09c404f006fbb44ebb7f3fbce176766bb5b6bc186c41287453",
+      "path": "upstream/compaction-queued"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "compaction-queued-coalesced",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f09f0ee11add59825fe91880190e7e9204cdc414e81cf1d38948a2ac363d038c",
+      "png_sha256": "3b70015f8c20d6077b27c88eee2feb4db2b05daa2e94f05ffbbcd3d8223580bc",
+      "render_sha256": "7ab940d8f918d49d20ea19e00b5e29514cebe7260dd3bc651cac0aef18e12296",
+      "path": "upstream/compaction-queued-coalesced"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "compaction-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "8b172595c8dab2a2b410ed1f7a3a902e1079eeeb88cac434ce0d2e7499a761ef",
+      "png_sha256": "3b70015f8c20d6077b27c88eee2feb4db2b05daa2e94f05ffbbcd3d8223580bc",
+      "render_sha256": "828aa5f3b8df8b10841d678ba2ce915df8285883841268c871dad399fc8b131c",
+      "path": "upstream/compaction-failure"
+    },
+    {
+      "origin": "oc",
+      "scenario": "compaction-home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2252504f7380178182bddd46d75c515cbf728734fa20a02fed59dd98532a9e34",
+      "png_sha256": "f986aa130b4ae22f23500a88123cbd09c930f1c6756fab2ff1f6654604c5c079",
+      "render_sha256": "ba990aa297a5de8edcdab0fe1f067603c0589c93765d0ebb346647e4de32c9a6",
+      "path": "oc/compaction-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "compaction-seed-1",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "48d0b54e97565671afd861be1f815ace9b015a9bb36d19636f6866cd7192c522",
+      "png_sha256": "2ab1d6e46fc9a6fd21454b9773486f01a124a30e8039530d2e65f490b1c8dd06",
+      "render_sha256": "7232faa0265ba3c6890e2619469ee5e2a204861b18a8a8fd1e4b5878a381c89a",
+      "path": "oc/compaction-seed-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "compaction-seed-2",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "6308a3e75c0b9ed3b619466d78f6d135c2aeb4fff3bded9ac5192d5f284a76bc",
+      "png_sha256": "5412345b28bc7ab85057bee71af6648e1c03b57ad37d7161e35ad75bb09464e8",
+      "render_sha256": "8f6566f21336e519e9ea9c4154ad517a33f5c5b0cce1020fcdf6b51c214272ed",
+      "path": "oc/compaction-seed-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "compaction-seed-3",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f8be1e0858a9e8f48e6001a97197b3f0d469ae616212a47b5b7f27c95760edc6",
+      "png_sha256": "ab20a05b58c6a2833dc01ab4a2cd227f5e496d2f3ba531a93b0f53d2aeef8c57",
+      "render_sha256": "8ec98fdd1adaebbce738652ca195d805d3fc9c437ec6f05d08ab83f2802fdea7",
+      "path": "oc/compaction-seed-3"
+    },
+    {
+      "origin": "oc",
+      "scenario": "compaction-held-tool",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "cfc03f38a264c58254aad036b01c5a3106dfb0ef1c16e54acbc5a81727662491",
+      "png_sha256": "6a863244528217dbb7caa369eca029f978a4a48cc57003eac899ce02f6d705b5",
+      "render_sha256": "986507e02546fe21960fe5159631d547f653ef7aca6a86cc5d905dcd4203caa0",
+      "path": "oc/compaction-held-tool"
+    },
+    {
+      "origin": "oc",
+      "scenario": "compaction-queued",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "ac2565fb2f3f568afabe851ee858fe2b4b3a9575909ec69f12b0933140584566",
+      "png_sha256": "f78106d1789c6ba6b12eded8bfee3f10b2d8990b3b0055bf174a6db1fcdf0d56",
+      "render_sha256": "7d60b18faf51a56c2ae3e57e837335f0c6630d1ec349fde36724fcf67606fc01",
+      "path": "oc/compaction-queued"
+    },
+    {
+      "origin": "oc",
+      "scenario": "compaction-queued-coalesced",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "73acab645992d942cd1eb77f958bb6208cf7ec61250c101c99675a2200b107f3",
+      "png_sha256": "f78106d1789c6ba6b12eded8bfee3f10b2d8990b3b0055bf174a6db1fcdf0d56",
+      "render_sha256": "baba5c77737ca857cd866e7e6396a030e5b034e469e0116f1b76e63cb1cf2b38",
+      "path": "oc/compaction-queued-coalesced"
+    },
+    {
+      "origin": "oc",
+      "scenario": "compaction-running-1",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "da7b38767a8f7716877d5216b5705984330f1ece235a7d258311c8f0f08db127",
+      "png_sha256": "12dc99c9b7cacbcf2ffadeed38424824b8f49c326f6933ff5ac54f71e21fad5a",
+      "render_sha256": "42673324cf84f0ea8423cb8911d9fec6e338c9496e9f8f9bde6602b0f09e5e00",
+      "path": "oc/compaction-running-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "compaction-running-2",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "fdb01991d22b2a5889a657d09876ca2f0841b30238ce630d65c6db504c48292d",
+      "png_sha256": "12dc99c9b7cacbcf2ffadeed38424824b8f49c326f6933ff5ac54f71e21fad5a",
+      "render_sha256": "bec73c3e0957ed676a5a917f0a958f56ef9dcaea2d6086efc3710ca5a8edb407",
+      "path": "oc/compaction-running-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "compaction-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "e0241bd2041a9f8cefd43c9ed650fc9ca6fe4db384d654bd7e805b4b060292c9",
+      "png_sha256": "2ca3d8323817ad22a7dc9bdc883938a6be862caf2ef5e975095f248af83c88fe",
+      "render_sha256": "e6165e104a039b95c90ef163e5fe7a71ac4afecf1a9b06b7bed23c4a2232f43b",
+      "path": "oc/compaction-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "compaction-next",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c9a371e594adf735c77b497e4bcadb745ea7b2cbd77ca01aead4f516312a8cfb",
+      "png_sha256": "b626aa970c3049d5370bfa815a4a3fdfa7036854e5f189a1a6cfef07c04a4225",
+      "render_sha256": "82e145c9b9b50f9f1e94055018149c3bd17812a4b222ccc9accb00d6d619b555",
+      "path": "oc/compaction-next"
+    },
+    {
+      "origin": "oc",
+      "scenario": "compaction-failed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "aab4bb23aa4c0b9f89aea3cf8e7e8ecc24b80c9b1cce9eb728d41b7f547b9a8a",
+      "png_sha256": "145488567b7fa5b426c980a1e4e3b4cfa12485ed8d2afe609e872a80bbd7cc46",
+      "render_sha256": "75a75e1dbd4cc58bed1a5e41be4a40e0a076e325a6520d31bf2afeb8d758aa25",
+      "path": "oc/compaction-failed"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "compaction": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "FAILED",
+      "checks": [
+        {
+          "stage": "home",
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "seed-1",
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "seed-2",
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "seed-3",
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "before",
+          "snapshot": {
+            "kind": "compaction_snapshot",
+            "request_id": "before",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-01/upstream/home/data/opencode/opencode.db",
+                "tables": [
+                  "account_state",
+                  "account",
+                  "control_account",
+                  "credential",
+                  "event_sequence",
+                  "event",
+                  "kv",
+                  "permission",
+                  "project_directory",
+                  "project",
+                  "instruction_blob",
+                  "instruction_entry",
+                  "instruction_state",
+                  "session_inbox",
+                  "session_message",
+                  "session_pending",
+                  "session_v2",
+                  "workspace",
+                  "worktree",
+                  "migration"
+                ],
+                "data": {
+                  "session_message": [
+                    {
+                      "id": "msg_0dfd035bd0018lpJAfSan2nSdT",
+                      "session_id": "ses_f202fca45ffepVD3JkwESgKqlr",
+                      "type": "user",
+                      "seq": 4,
+                      "time_created": 1790461359678,
+                      "time_updated": 1790461359679,
+                      "data": "{\"time\":{\"created\":1790461359678},\"text\":\"VIS34 seed 1: preserve requirement R1; no filesystem changes.\",\"files\":[],\"agents\":[]}"
+                    },
+                    {
+                      "id": "msg_0dfd03653001pgoBJfNuhp3XiB",
+                      "session_id": "ses_f202fca45ffepVD3JkwESgKqlr",
+                      "type": "assistant",
+                      "seq": 7,
+                      "time_created": 1790461359705,
+                      "time_updated": 1790461359735,
+                      "data": "{\"time\":{\"created\":1790461359705,\"streamed\":1790461359732,\"completed\":1790461359734},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS34-ANSWER-1:\\nARCHIVE-1-000 requirement detail retained in raw history.\\nARCHIVE-1-001 requirement detail retained in raw history.\\nARCHIVE-1-002 requirement detail retained in raw history.\\nARCHIVE-1-003 requirement detail retained in raw history.\\nARCHIVE-1-004 requirement detail retained in raw history.\\nARCHIVE-1-005 requirement detail retained in raw history.\\nARCHIVE-1-006 requirement detail retained in raw history.\\nARCHIVE-1-007 requirement detail retained in raw history.\\nARCHIVE-1-008 requirement detail retained in raw history.\\nARCHIVE-1-009 requirement detail retained in raw history.\\nARCHIVE-1-010 requirement detail retained in raw history.\\nARCHIVE-1-011 requirement detail retained in raw history.\\nARCHIVE-1-012 requirement detail retained in raw history.\\nARCHIVE-1-013 requirement detail retained in raw history.\\nARCHIVE-1-014 requirement detail retained in raw history.\\nARCHIVE-1-015 requirement detail retained in raw history.\\nARCHIVE-1-016 requirement detail retained in raw history.\\nARCHIVE-1-017 requirement detail retained in raw history.\\nARCHIVE-1-018 requirement detail retained in raw history.\\nARCHIVE-1-019 requirement detail retained in raw history.\\nARCHIVE-1-020 requirement detail retained in raw history.\\nARCHIVE-1-021 requirement detail retained in raw history.\\nARCHIVE-1-022 requirement detail retained in raw history.\\nARCHIVE-1-023 requirement detail retained in raw history.\\nARCHIVE-1-024 requirement detail retained in raw history.\\nARCHIVE-1-025 requirement detail retained in raw history.\\nARCHIVE-1-026 requirement detail retained in raw history.\\nARCHIVE-1-027 requirement detail retained in raw history.\\nARCHIVE-1-028 requirement detail retained in raw history.\\nARCHIVE-1-029 requirement detail retained in raw history.\\nARCHIVE-1-030 requirement detail retained in raw history.\\nARCHIVE-1-031 requirement detail retained in raw history.\\nARCHIVE-1-032 requirement detail retained in raw history.\\nARCHIVE-1-033 requirement detail retained in raw history.\\nARCHIVE-1-034 requirement detail retained in raw history.\\nARCHIVE-1-035 requirement detail retained in raw history.\\nARCHIVE-1-036 requirement detail retained in raw history.\\nARCHIVE-1-037 requirement detail retained in raw history.\\nARCHIVE-1-038 requirement detail retained in raw history.\\nARCHIVE-1-039 requirement detail retained in raw history.\\nARCHIVE-1-040 requirement detail retained in raw history.\\nARCHIVE-1-041 requirement detail retained in raw history.\\nARCHIVE-1-042 requirement detail retained in raw history.\\nARCHIVE-1-043 requirement detail retained in raw history.\\nARCHIVE-1-044 requirement detail retained in raw history.\\nARCHIVE-1-045 requirement detail retained in raw history.\\nARCHIVE-1-046 requirement detail retained in raw history.\\nARCHIVE-1-047 requirement detail retained in raw history.\\nARCHIVE-1-048 requirement detail retained in raw history.\\nARCHIVE-1-049 requirement detail retained in raw history.\\nARCHIVE-1-050 requirement detail retained in raw history.\\nARCHIVE-1-051 requirement detail retained in raw history.\\nARCHIVE-1-052 requirement detail retained in raw history.\\nARCHIVE-1-053 requirement detail retained in raw history.\\nARCHIVE-1-054 requirement detail retained in raw history.\\nARCHIVE-1-055 requirement detail retained in raw history.\\nARCHIVE-1-056 requirement detail retained in raw history.\\nARCHIVE-1-057 requirement detail retained in raw history.\\nARCHIVE-1-058 requirement detail retained in raw history.\\nARCHIVE-1-059 requirement detail retained in raw history.\\nARCHIVE-1-060 requirement detail retained in raw history.\\nARCHIVE-1-061 requirement detail retained in raw history.\\nARCHIVE-1-062 requirement detail retained in raw history.\\nARCHIVE-1-063 requirement detail retained in raw history.\\nARCHIVE-1-064 requirement detail retained in raw history.\\nARCHIVE-1-065 requirement detail retained in raw history.\\nARCHIVE-1-066 requirement detail retained in raw history.\\nARCHIVE-1-067 requirement detail retained in raw history.\\nARCHIVE-1-068 requirement detail retained in raw history.\\nARCHIVE-1-069 requirement detail retained in raw history.\\nARCHIVE-1-070 requirement detail retained in raw history.\\nARCHIVE-1-071 requirement detail retained in raw history.\\nARCHIVE-1-072 requirement detail retained in raw history.\\nARCHIVE-1-073 requirement detail retained in raw history.\\nARCHIVE-1-074 requirement detail retained in raw history.\\nARCHIVE-1-075 requirement detail retained in raw history.\\nARCHIVE-1-076 requirement detail retained in raw history.\\nARCHIVE-1-077 requirement detail retained in raw history.\\nARCHIVE-1-078 requirement detail retained in raw history.\\nARCHIVE-1-079 requirement detail retained in raw history.\\nARCHIVE-1-080 requirement detail retained in raw history.\\nARCHIVE-1-081 requirement detail retained in raw history.\\nARCHIVE-1-082 requirement detail retained in raw history.\\nARCHIVE-1-083 requirement detail retained in raw history.\\nARCHIVE-1-084 requirement detail retained in raw history.\\nARCHIVE-1-085 requirement detail retained in raw history.\\nARCHIVE-1-086 requirement detail retained in raw history.\\nARCHIVE-1-087 requirement detail retained in raw history.\\nARCHIVE-1-088 requirement detail retained in raw history.\\nARCHIVE-1-089 requirement detail retained in raw history.\\nARCHIVE-1-090 requirement detail retained in raw history.\\nARCHIVE-1-091 requirement detail retained in raw history.\\nARCHIVE-1-092 requirement detail retained in raw history.\\nARCHIVE-1-093 requirement detail retained in raw history.\\nARCHIVE-1-094 requirement detail retained in raw history.\\nARCHIVE-1-095 requirement detail retained in raw history.\\nARCHIVE-1-096 requirement detail retained in raw history.\\nARCHIVE-1-097 requirement detail retained in raw history.\\nARCHIVE-1-098 requirement detail retained in raw history.\\nARCHIVE-1-099 requirement detail retained in raw history.\\nARCHIVE-1-100 requirement detail retained in raw history.\\nARCHIVE-1-101 requirement detail retained in raw history.\\nARCHIVE-1-102 requirement detail retained in raw history.\\nARCHIVE-1-103 requirement detail retained in raw history.\\nARCHIVE-1-104 requirement detail retained in raw history.\\nARCHIVE-1-105 requirement detail retained in raw history.\\nARCHIVE-1-106 requirement detail retained in raw history.\\nARCHIVE-1-107 requirement detail retained in raw history.\\nARCHIVE-1-108 requirement detail retained in raw history.\\nARCHIVE-1-109 requirement detail retained in raw history.\\nARCHIVE-1-110 requirement detail retained in raw history.\\nARCHIVE-1-111 requirement detail retained in raw history.\\nARCHIVE-1-112 requirement detail retained in raw history.\\nARCHIVE-1-113 requirement detail retained in raw history.\\nARCHIVE-1-114 requirement detail retained in raw history.\\nARCHIVE-1-115 requirement detail retained in raw history.\\nARCHIVE-1-116 requirement detail retained in raw history.\\nARCHIVE-1-117 requirement detail retained in raw history.\\nARCHIVE-1-118 requirement detail retained in raw history.\\nARCHIVE-1-119 requirement detail retained in raw history.\\n\",\"state\":{\"itemId\":\"msg_vis34_2\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis34_2\"},\"cost\":0,\"tokens\":{\"input\":6000,\"output\":1800,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+                    },
+                    {
+                      "id": "msg_0dfd0367a001aIYRRqXos1Lc4r",
+                      "session_id": "ses_f202fca45ffepVD3JkwESgKqlr",
+                      "type": "idle",
+                      "seq": 12,
+                      "time_created": 1790461359738,
+                      "time_updated": 1790461359739,
+                      "data": "{\"time\":{\"created\":1790461359738},\"outcome\":\"succeeded\"}"
+                    },
+                    {
+                      "id": "msg_0dfd03fc6001fA8oH37RMYUWaZ",
+                      "session_id": "ses_f202fca45ffepVD3JkwESgKqlr",
+                      "type": "user",
+                      "seq": 16,
+                      "time_created": 1790461362155,
+                      "time_updated": 1790461362156,
+                      "data": "{\"time\":{\"created\":1790461362155},\"text\":\"VIS34 seed 2: preserve requirement R2; no filesystem changes.\",\"files\":[],\"agents\":[]}"
+                    },
+                    {
+                      "id": "msg_0dfd03ff000130dQCm3EIodSib",
+                      "session_id": "ses_f202fca45ffepVD3JkwESgKqlr",
+                      "type": "assistant",
+                      "seq": 17,
+                      "time_created": 1790461362165,
+                      "time_updated": 1790461362205,
+                      "data": "{\"time\":{\"created\":1790461362165,\"streamed\":1790461362195,\"completed\":1790461362198},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS34-ANSWER-2:\\nARCHIVE-2-000 requirement detail retained in raw history.\\nARCHIVE-2-001 requirement detail retained in raw history.\\nARCHIVE-2-002 requirement detail retained in raw history.\\nARCHIVE-2-003 requirement detail retained in raw history.\\nARCHIVE-2-004 requirement detail retained in raw history.\\nARCHIVE-2-005 requirement detail retained in raw history.\\nARCHIVE-2-006 requirement detail retained in raw history.\\nARCHIVE-2-007 requirement detail retained in raw history.\\nARCHIVE-2-008 requirement detail retained in raw history.\\nARCHIVE-2-009 requirement detail retained in raw history.\\nARCHIVE-2-010 requirement detail retained in raw history.\\nARCHIVE-2-011 requirement detail retained in raw history.\\nARCHIVE-2-012 requirement detail retained in raw history.\\nARCHIVE-2-013 requirement detail retained in raw history.\\nARCHIVE-2-014 requirement detail retained in raw history.\\nARCHIVE-2-015 requirement detail retained in raw history.\\nARCHIVE-2-016 requirement detail retained in raw history.\\nARCHIVE-2-017 requirement detail retained in raw history.\\nARCHIVE-2-018 requirement detail retained in raw history.\\nARCHIVE-2-019 requirement detail retained in raw history.\\nARCHIVE-2-020 requirement detail retained in raw history.\\nARCHIVE-2-021 requirement detail retained in raw history.\\nARCHIVE-2-022 requirement detail retained in raw history.\\nARCHIVE-2-023 requirement detail retained in raw history.\\nARCHIVE-2-024 requirement detail retained in raw history.\\nARCHIVE-2-025 requirement detail retained in raw history.\\nARCHIVE-2-026 requirement detail retained in raw history.\\nARCHIVE-2-027 requirement detail retained in raw history.\\nARCHIVE-2-028 requirement detail retained in raw history.\\nARCHIVE-2-029 requirement detail retained in raw history.\\nARCHIVE-2-030 requirement detail retained in raw history.\\nARCHIVE-2-031 requirement detail retained in raw history.\\nARCHIVE-2-032 requirement detail retained in raw history.\\nARCHIVE-2-033 requirement detail retained in raw history.\\nARCHIVE-2-034 requirement detail retained in raw history.\\nARCHIVE-2-035 requirement detail retained in raw history.\\nARCHIVE-2-036 requirement detail retained in raw history.\\nARCHIVE-2-037 requirement detail retained in raw history.\\nARCHIVE-2-038 requirement detail retained in raw history.\\nARCHIVE-2-039 requirement detail retained in raw history.\\nARCHIVE-2-040 requirement detail retained in raw history.\\nARCHIVE-2-041 requirement detail retained in raw history.\\nARCHIVE-2-042 requirement detail retained in raw history.\\nARCHIVE-2-043 requirement detail retained in raw history.\\nARCHIVE-2-044 requirement detail retained in raw history.\\nARCHIVE-2-045 requirement detail retained in raw history.\\nARCHIVE-2-046 requirement detail retained in raw history.\\nARCHIVE-2-047 requirement detail retained in raw history.\\nARCHIVE-2-048 requirement detail retained in raw history.\\nARCHIVE-2-049 requirement detail retained in raw history.\\nARCHIVE-2-050 requirement detail retained in raw history.\\nARCHIVE-2-051 requirement detail retained in raw history.\\nARCHIVE-2-052 requirement detail retained in raw history.\\nARCHIVE-2-053 requirement detail retained in raw history.\\nARCHIVE-2-054 requirement detail retained in raw history.\\nARCHIVE-2-055 requirement detail retained in raw history.\\nARCHIVE-2-056 requirement detail retained in raw history.\\nARCHIVE-2-057 requirement detail retained in raw history.\\nARCHIVE-2-058 requirement detail retained in raw history.\\nARCHIVE-2-059 requirement detail retained in raw history.\\nARCHIVE-2-060 requirement detail retained in raw history.\\nARCHIVE-2-061 requirement detail retained in raw history.\\nARCHIVE-2-062 requirement detail retained in raw history.\\nARCHIVE-2-063 requirement detail retained in raw history.\\nARCHIVE-2-064 requirement detail retained in raw history.\\nARCHIVE-2-065 requirement detail retained in raw history.\\nARCHIVE-2-066 requirement detail retained in raw history.\\nARCHIVE-2-067 requirement detail retained in raw history.\\nARCHIVE-2-068 requirement detail retained in raw history.\\nARCHIVE-2-069 requirement detail retained in raw history.\\nARCHIVE-2-070 requirement detail retained in raw history.\\nARCHIVE-2-071 requirement detail retained in raw history.\\nARCHIVE-2-072 requirement detail retained in raw history.\\nARCHIVE-2-073 requirement detail retained in raw history.\\nARCHIVE-2-074 requirement detail retained in raw history.\\nARCHIVE-2-075 requirement detail retained in raw history.\\nARCHIVE-2-076 requirement detail retained in raw history.\\nARCHIVE-2-077 requirement detail retained in raw history.\\nARCHIVE-2-078 requirement detail retained in raw history.\\nARCHIVE-2-079 requirement detail retained in raw history.\\nARCHIVE-2-080 requirement detail retained in raw history.\\nARCHIVE-2-081 requirement detail retained in raw history.\\nARCHIVE-2-082 requirement detail retained in raw history.\\nARCHIVE-2-083 requirement detail retained in raw history.\\nARCHIVE-2-084 requirement detail retained in raw history.\\nARCHIVE-2-085 requirement detail retained in raw history.\\nARCHIVE-2-086 requirement detail retained in raw history.\\nARCHIVE-2-087 requirement detail retained in raw history.\\nARCHIVE-2-088 requirement detail retained in raw history.\\nARCHIVE-2-089 requirement detail retained in raw history.\\nARCHIVE-2-090 requirement detail retained in raw history.\\nARCHIVE-2-091 requirement detail retained in raw history.\\nARCHIVE-2-092 requirement detail retained in raw history.\\nARCHIVE-2-093 requirement detail retained in raw history.\\nARCHIVE-2-094 requirement detail retained in raw history.\\nARCHIVE-2-095 requirement detail retained in raw history.\\nARCHIVE-2-096 requirement detail retained in raw history.\\nARCHIVE-2-097 requirement detail retained in raw history.\\nARCHIVE-2-098 requirement detail retained in raw history.\\nARCHIVE-2-099 requirement detail retained in raw history.\\nARCHIVE-2-100 requirement detail retained in raw history.\\nARCHIVE-2-101 requirement detail retained in raw history.\\nARCHIVE-2-102 requirement detail retained in raw history.\\nARCHIVE-2-103 requirement detail retained in raw history.\\nARCHIVE-2-104 requirement detail retained in raw history.\\nARCHIVE-2-105 requirement detail retained in raw history.\\nARCHIVE-2-106 requirement detail retained in raw history.\\nARCHIVE-2-107 requirement detail retained in raw history.\\nARCHIVE-2-108 requirement detail retained in raw history.\\nARCHIVE-2-109 requirement detail retained in raw history.\\nARCHIVE-2-110 requirement detail retained in raw history.\\nARCHIVE-2-111 requirement detail retained in raw history.\\nARCHIVE-2-112 requirement detail retained in raw history.\\nARCHIVE-2-113 requirement detail retained in raw history.\\nARCHIVE-2-114 requirement detail retained in raw history.\\nARCHIVE-2-115 requirement detail retained in raw history.\\nARCHIVE-2-116 requirement detail retained in raw history.\\nARCHIVE-2-117 requirement detail retained in raw history.\\nARCHIVE-2-118 requirement detail retained in raw history.\\nARCHIVE-2-119 requirement detail retained in raw history.\\n\",\"state\":{\"itemId\":\"msg_vis34_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis34_3\"},\"cost\":0,\"tokens\":{\"input\":6000,\"output\":1800,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+                    },
+                    {
+                      "id": "msg_0dfd04020001OiUrZ6KHo8GwgB",
+                      "session_id": "ses_f202fca45ffepVD3JkwESgKqlr",
+                      "type": "idle",
+                      "seq": 22,
+                      "time_created": 1790461362208,
+                      "time_updated": 1790461362211,
+                      "data": "{\"time\":{\"created\":1790461362208},\"outcome\":\"succeeded\"}"
+                    },
+                    {
+                      "id": "msg_0dfd049f9001tz09tn5j0fa6kD",
+                      "session_id": "ses_f202fca45ffepVD3JkwESgKqlr",
+                      "type": "user",
+                      "seq": 26,
+                      "time_created": 1790461364761,
+                      "time_updated": 1790461364762,
+                      "data": "{\"time\":{\"created\":1790461364761},\"text\":\"VIS34 seed 3: preserve requirement R3; no filesystem changes.\",\"files\":[],\"agents\":[]}"
+                    },
+                    {
+                      "id": "msg_0dfd04a1e001N31LAk1HDO736B",
+                      "session_id": "ses_f202fca45ffepVD3JkwESgKqlr",
+                      "type": "assistant",
+                      "seq": 27,
+                      "time_created": 1790461364770,
+                      "time_updated": 1790461364793,
+                      "data": "{\"time\":{\"created\":1790461364770,\"streamed\":1790461364791,\"completed\":1790461364792},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS34-ANSWER-3:\\nARCHIVE-3-000 requirement detail retained in raw history.\\nARCHIVE-3-001 requirement detail retained in raw history.\\nARCHIVE-3-002 requirement detail retained in raw history.\\nARCHIVE-3-003 requirement detail retained in raw history.\\nARCHIVE-3-004 requirement detail retained in raw history.\\nARCHIVE-3-005 requirement detail retained in raw history.\\nARCHIVE-3-006 requirement detail retained in raw history.\\nARCHIVE-3-007 requirement detail retained in raw history.\\nARCHIVE-3-008 requirement detail retained in raw history.\\nARCHIVE-3-009 requirement detail retained in raw history.\\nARCHIVE-3-010 requirement detail retained in raw history.\\nARCHIVE-3-011 requirement detail retained in raw history.\\nARCHIVE-3-012 requirement detail retained in raw history.\\nARCHIVE-3-013 requirement detail retained in raw history.\\nARCHIVE-3-014 requirement detail retained in raw history.\\nARCHIVE-3-015 requirement detail retained in raw history.\\nARCHIVE-3-016 requirement detail retained in raw history.\\nARCHIVE-3-017 requirement detail retained in raw history.\\nARCHIVE-3-018 requirement detail retained in raw history.\\nARCHIVE-3-019 requirement detail retained in raw history.\\nARCHIVE-3-020 requirement detail retained in raw history.\\nARCHIVE-3-021 requirement detail retained in raw history.\\nARCHIVE-3-022 requirement detail retained in raw history.\\nARCHIVE-3-023 requirement detail retained in raw history.\\nARCHIVE-3-024 requirement detail retained in raw history.\\nARCHIVE-3-025 requirement detail retained in raw history.\\nARCHIVE-3-026 requirement detail retained in raw history.\\nARCHIVE-3-027 requirement detail retained in raw history.\\nARCHIVE-3-028 requirement detail retained in raw history.\\nARCHIVE-3-029 requirement detail retained in raw history.\\nARCHIVE-3-030 requirement detail retained in raw history.\\nARCHIVE-3-031 requirement detail retained in raw history.\\nARCHIVE-3-032 requirement detail retained in raw history.\\nARCHIVE-3-033 requirement detail retained in raw history.\\nARCHIVE-3-034 requirement detail retained in raw history.\\nARCHIVE-3-035 requirement detail retained in raw history.\\nARCHIVE-3-036 requirement detail retained in raw history.\\nARCHIVE-3-037 requirement detail retained in raw history.\\nARCHIVE-3-038 requirement detail retained in raw history.\\nARCHIVE-3-039 requirement detail retained in raw history.\\nARCHIVE-3-040 requirement detail retained in raw history.\\nARCHIVE-3-041 requirement detail retained in raw history.\\nARCHIVE-3-042 requirement detail retained in raw history.\\nARCHIVE-3-043 requirement detail retained in raw history.\\nARCHIVE-3-044 requirement detail retained in raw history.\\nARCHIVE-3-045 requirement detail retained in raw history.\\nARCHIVE-3-046 requirement detail retained in raw history.\\nARCHIVE-3-047 requirement detail retained in raw history.\\nARCHIVE-3-048 requirement detail retained in raw history.\\nARCHIVE-3-049 requirement detail retained in raw history.\\nARCHIVE-3-050 requirement detail retained in raw history.\\nARCHIVE-3-051 requirement detail retained in raw history.\\nARCHIVE-3-052 requirement detail retained in raw history.\\nARCHIVE-3-053 requirement detail retained in raw history.\\nARCHIVE-3-054 requirement detail retained in raw history.\\nARCHIVE-3-055 requirement detail retained in raw history.\\nARCHIVE-3-056 requirement detail retained in raw history.\\nARCHIVE-3-057 requirement detail retained in raw history.\\nARCHIVE-3-058 requirement detail retained in raw history.\\nARCHIVE-3-059 requirement detail retained in raw history.\\nARCHIVE-3-060 requirement detail retained in raw history.\\nARCHIVE-3-061 requirement detail retained in raw history.\\nARCHIVE-3-062 requirement detail retained in raw history.\\nARCHIVE-3-063 requirement detail retained in raw history.\\nARCHIVE-3-064 requirement detail retained in raw history.\\nARCHIVE-3-065 requirement detail retained in raw history.\\nARCHIVE-3-066 requirement detail retained in raw history.\\nARCHIVE-3-067 requirement detail retained in raw history.\\nARCHIVE-3-068 requirement detail retained in raw history.\\nARCHIVE-3-069 requirement detail retained in raw history.\\nARCHIVE-3-070 requirement detail retained in raw history.\\nARCHIVE-3-071 requirement detail retained in raw history.\\nARCHIVE-3-072 requirement detail retained in raw history.\\nARCHIVE-3-073 requirement detail retained in raw history.\\nARCHIVE-3-074 requirement detail retained in raw history.\\nARCHIVE-3-075 requirement detail retained in raw history.\\nARCHIVE-3-076 requirement detail retained in raw history.\\nARCHIVE-3-077 requirement detail retained in raw history.\\nARCHIVE-3-078 requirement detail retained in raw history.\\nARCHIVE-3-079 requirement detail retained in raw history.\\nARCHIVE-3-080 requirement detail retained in raw history.\\nARCHIVE-3-081 requirement detail retained in raw history.\\nARCHIVE-3-082 requirement detail retained in raw history.\\nARCHIVE-3-083 requirement detail retained in raw history.\\nARCHIVE-3-084 requirement detail retained in raw history.\\nARCHIVE-3-085 requirement detail retained in raw history.\\nARCHIVE-3-086 requirement detail retained in raw history.\\nARCHIVE-3-087 requirement detail retained in raw history.\\nARCHIVE-3-088 requirement detail retained in raw history.\\nARCHIVE-3-089 requirement detail retained in raw history.\\nARCHIVE-3-090 requirement detail retained in raw history.\\nARCHIVE-3-091 requirement detail retained in raw history.\\nARCHIVE-3-092 requirement detail retained in raw history.\\nARCHIVE-3-093 requirement detail retained in raw history.\\nARCHIVE-3-094 requirement detail retained in raw history.\\nARCHIVE-3-095 requirement detail retained in raw history.\\nARCHIVE-3-096 requirement detail retained in raw history.\\nARCHIVE-3-097 requirement detail retained in raw history.\\nARCHIVE-3-098 requirement detail retained in raw history.\\nARCHIVE-3-099 requirement detail retained in raw history.\\nARCHIVE-3-100 requirement detail retained in raw history.\\nARCHIVE-3-101 requirement detail retained in raw history.\\nARCHIVE-3-102 requirement detail retained in raw history.\\nARCHIVE-3-103 requirement detail retained in raw history.\\nARCHIVE-3-104 requirement detail retained in raw history.\\nARCHIVE-3-105 requirement detail retained in raw history.\\nARCHIVE-3-106 requirement detail retained in raw history.\\nARCHIVE-3-107 requirement detail retained in raw history.\\nARCHIVE-3-108 requirement detail retained in raw history.\\nARCHIVE-3-109 requirement detail retained in raw history.\\nARCHIVE-3-110 requirement detail retained in raw history.\\nARCHIVE-3-111 requirement detail retained in raw history.\\nARCHIVE-3-112 requirement detail retained in raw history.\\nARCHIVE-3-113 requirement detail retained in raw history.\\nARCHIVE-3-114 requirement detail retained in raw history.\\nARCHIVE-3-115 requirement detail retained in raw history.\\nARCHIVE-3-116 requirement detail retained in raw history.\\nARCHIVE-3-117 requirement detail retained in raw history.\\nARCHIVE-3-118 requirement detail retained in raw history.\\nARCHIVE-3-119 requirement detail retained in raw history.\\n\",\"state\":{\"itemId\":\"msg_vis34_4\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis34_4\"},\"cost\":0,\"tokens\":{\"input\":6000,\"output\":1800,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+                    },
+                    {
+                      "id": "msg_0dfd04a3b001EASTAPA4mYIEbX",
+                      "session_id": "ses_f202fca45ffepVD3JkwESgKqlr",
+                      "type": "idle",
+                      "seq": 32,
+                      "time_created": 1790461364795,
+                      "time_updated": 1790461364795,
+                      "data": "{\"time\":{\"created\":1790461364795},\"outcome\":\"succeeded\"}"
+                    }
+                  ],
+                  "session_inbox": []
+                }
+              }
+            ],
+            "project_files": {}
+          }
+        },
+        {
+          "stage": "held-tool",
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "queued",
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "queued-coalesced",
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "failure",
+          "reason": "Timed out waiting for running-1"
+        }
+      ],
+      "limitations": [
+        "No registered production provider-native capability; not exercised.",
+        "Automatic threshold/overflow and animated Braille cadence require separate qualification."
+      ],
+      "reason": "Timed out waiting for running-1"
+    }
+  },
+  "finished": "2026-09-26T22:24:18.006Z",
+  "exit_code": 2
+}

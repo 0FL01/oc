@@ -396,6 +396,8 @@ pub struct CatalogSnapshot {
 /// Presentation-only settings; no runtime policy or credentials.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct TuiChrome {
+    /// Ordered, value-free diagnostics from admitted configuration sources.
+    pub config_diagnostics: Vec<ConfigDiagnostic>,
     /// Canonical application Location, unknown in mock workers.
     pub location: Option<String>,
     /// Explicit debug.devtools override; absence uses the build channel.
@@ -414,8 +416,53 @@ pub struct TuiChrome {
     pub terminal_copy: Option<TerminalCopyMode>,
     /// Explicit config.animations; absence enables interface animations.
     pub animations: Option<bool>,
+    /// Explicit admitted CLI session.tps; absence uses the pinned default true.
+    pub session_tps: Option<bool>,
     /// Effective conversation bindings from the admitted Location configuration.
     pub conversation_shortcuts: ConversationShortcuts,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ConfigDiagnostic {
+    pub source: String,
+    pub field: Vec<String>,
+    pub kind: ConfigDiagnosticKind,
+    pub action: ConfigDiagnosticAction,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ConfigDiagnosticKind {
+    Unsupported,
+    Invalid,
+    Conflict,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ConfigDiagnosticAction {
+    Skip,
+    RetainNative,
+}
+impl ConfigDiagnostic {
+    pub fn message(&self) -> &'static str {
+        match self.kind {
+            ConfigDiagnosticKind::Unsupported => "omitted unsupported legacy setting",
+            ConfigDiagnosticKind::Invalid => "skipped malformed recognized value",
+            ConfigDiagnosticKind::Conflict => "retained native value over legacy value",
+        }
+    }
+}
+impl std::fmt::Display for ConfigDiagnostic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}: {}: {:?}/{:?}: {}",
+            self.source,
+            self.field.join("."),
+            self.kind,
+            self.action,
+            self.message()
+        )
+    }
 }
 
 /// Presentation-only key strings, ready for the UI's existing key parser.
@@ -573,6 +620,8 @@ pub struct FileSuggestionsSnapshot {
 /// contains user input or text from the underlying error.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StartupNotice {
+    /// Unsupported, invalid, or conflicting compaction settings were normalized.
+    CompactionConfig,
     /// Agent, skill or command definition could not be admitted.
     Definitions,
     /// A plugin marker was ignored without executing it.

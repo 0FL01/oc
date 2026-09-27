@@ -1,0 +1,40 @@
+   VIS34 compaction fixture      +                                                                                      
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  $ sleep 25                                                                                                         
+  ┃                                                                                                                     
+                                                                                                                        
+     VIS34-HELD-DONE                                                                                                    
+                                                                                                                        
+     MiMo-V2.6-Flash Free · 31.7s · 36734.7 tok/s                                                                       
+                                                                                                                        
+  ────────────────────────────────────────── Compaction · 1.2K in · 321 out ──────────────────────────────────────────  
+                                                                                                                        
+     Objective                                                                                                          
+     - VIS34-CHECKPOINT: preserve R1, R2, R3.                                                                           
+                                                                                                                        
+     Work State                                                                                                         
+     - Three seeded exchanges completed; filesystem unchanged.                                                          
+                                                                                                                        
+     Next Move                                                                                                          
+     1. Continue the user request without replaying tools.                                                              
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  VIS34 next: continue from checkpoint; no tools.                                                                    
+  ┃                                                                                                                     
+                                                                                                                        
+     VIS34-NEXT-DONE                                                                                                    
+                                                                                                                        
+     MiMo-V2.6-Flash Free · 76ms · 32142.9 tok/s                                                                        
+                                                                                                                        
+  ─────────────────────────────────────────────────── ✗ Compaction ───────────────────────────────────────────────────  
+                                                                                                                        
+     summary request failed or invalid response                                                                         
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃  MiMo-V2.6-Flash Free OpenCode Zen                                                                                  
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/openco…/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-09/project  7.8K (3%)  ctrl+p commands  
+                                                                                                                        

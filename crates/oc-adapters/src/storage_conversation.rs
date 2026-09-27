@@ -34,6 +34,12 @@ const TABLES: &[(&str, &str, &str)] = &[
         "key,value,updated_at",
         "substr(CAST(key AS BLOB),1,length(CAST('dcp.nudge.'||?1||char(0) AS BLOB)))=CAST('dcp.nudge.'||?1||char(0) AS BLOB)",
     ),
+    (
+        "session_checkpoint",
+        "session_id,boundary_message,summary,route,opaque,operation_id",
+        "session_id=?1",
+    ),
+    ("session_usage_anchor", "session_id,anchor", "session_id=?1"),
 ];
 
 fn unavailable(message: &str) -> StorageError {
@@ -269,7 +275,7 @@ impl Db {
         // Reconcile only changed/deleted rows. Unchanged objects AND validity
         // intervals survive restore, rather than copying a full reference set
         // whenever the boundary moves. Members are removed before parents.
-        for index in [1, 0, 2, 3, 4, 5] {
+        for index in [1, 0, 2, 3, 4, 5, 6, 7] {
             if !exists && index < 5 {
                 continue;
             }

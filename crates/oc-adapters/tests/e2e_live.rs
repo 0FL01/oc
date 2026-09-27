@@ -137,6 +137,8 @@ async fn live_workflow_harness() {
         &db,
         "work",
         oc_adapters::config::Generation {
+            compaction: Default::default(),
+            config_diagnostics: Vec::new(),
             animations: None,
             providers: BTreeMap::new(),
             mcp: BTreeMap::new(),
@@ -277,6 +279,8 @@ async fn live_workflow_harness() {
         &db,
         "work",
         oc_adapters::config::Generation {
+            compaction: Default::default(),
+            config_diagnostics: Vec::new(),
             animations: None,
             providers: BTreeMap::new(),
             mcp: BTreeMap::new(),

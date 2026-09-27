@@ -373,6 +373,8 @@ fn make_harness(permissions: BTreeMap<String, Permission>) -> (Harness, Generati
         .collect(),
     };
     let generation = Generation {
+        compaction: Default::default(),
+        config_diagnostics: Vec::new(),
         animations: None,
         providers: BTreeMap::new(),
         mcp: BTreeMap::new(),
@@ -1890,7 +1892,7 @@ async fn t47_admission_counts_tool_schemas_and_rechecks_tool_results() {
             &serde_json::json!({"path":"large.txt", "limit":4_000}),
         ) + &sse_completed();
         let (base, hits, _) = Fake::start_recording(vec![script], Duration::ZERO);
-        let report = runtime
+        let result = runtime
             .run_turn(params(
                 "s",
                 "read",
@@ -1898,8 +1900,20 @@ async fn t47_admission_counts_tool_schemas_and_rechecks_tool_results() {
                 provider_of(&base),
                 &NO_CANCEL,
             ))
-            .await
-            .unwrap();
+            .await;
+        if expected_calls == 0 {
+            // The irreducible request now includes tool schemas before durable
+            // admission or compaction spend, rather than failing a started turn.
+            assert!(
+                matches!(&result, Err(RuntimeError::InvalidArgs(message)) if message.contains("exceeds context"))
+            );
+            assert_eq!(*hits.lock().unwrap(), 0);
+            assert!(harness.db.read_history("s").unwrap().is_empty());
+            assert!(harness.db.compaction_history("s").unwrap().is_empty());
+            runtime.shutdown_mcp().await.unwrap();
+            continue;
+        }
+        let report = result.unwrap();
         assert_eq!(report.status, TurnStatus::Failed, "{report:?}");
         assert!(
             report
@@ -2842,6 +2856,8 @@ for line in sys.stdin:
 
     runtime
         .reload(Generation {
+            compaction: Default::default(),
+            config_diagnostics: Vec::new(),
             animations: None,
             providers: BTreeMap::new(),
             mcp: BTreeMap::new(),
@@ -3512,6 +3528,8 @@ async fn reload_applies_new_policy_and_guards_active_turn() {
     // Reload between turns publishes id 2 with read allowed.
     let id = runtime
         .reload(Generation {
+            compaction: Default::default(),
+            config_diagnostics: Vec::new(),
             animations: None,
             providers: BTreeMap::new(),
             mcp: BTreeMap::new(),
@@ -3547,6 +3565,8 @@ async fn reload_applies_new_policy_and_guards_active_turn() {
             tokio::time::sleep(Duration::from_millis(300)).await;
             runtime
                 .reload(Generation {
+                    compaction: Default::default(),
+                    config_diagnostics: Vec::new(),
                     animations: None,
                     providers: BTreeMap::new(),
                     mcp: BTreeMap::new(),
@@ -6078,7 +6098,8 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             | CoreEvent::TextDelta { .. }
             | CoreEvent::ToolCallStarted { .. }
             | CoreEvent::ToolCallFinished { .. }
-            | CoreEvent::TurnInterrupted { .. } => {}
+            | CoreEvent::TurnInterrupted { .. }
+            | CoreEvent::Compaction(_) => {}
         }
     };
     assert_eq!(reasoning, "**Planning**\n\n", "reasoning delta surfaces");
@@ -6410,7 +6431,8 @@ async fn dto_application_events_surface_tool_calls() {
             | CoreEvent::ReasoningDelta { .. }
             | CoreEvent::ReasoningItemEnded { .. }
             | CoreEvent::TurnUsage { .. }
-            | CoreEvent::TurnInterrupted { .. } => {}
+            | CoreEvent::TurnInterrupted { .. }
+            | CoreEvent::Compaction(_) => {}
         }
     }
     let (started_op, started_name, started_input) = started.expect("tool call started event");

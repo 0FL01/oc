@@ -1,0 +1,40 @@
+   VIS34 compaction fixture      +                                                                                      
+                                                                                                                        
+     Work State                                                                                                         
+                                                                                                                        
+     - Three seeded exchanges completed; filesystem unchanged.                                                          
+                                                                                                                        
+     Next Move                                                                                                          
+                                                                                                                        
+     1. Continue the user request without replaying tools.                                                              
+                                                                                                                        
+     VIS34-HELD-DONE                                                                                                    
+                                                                                                                        
+     Build · MiMo-V2.6-Flash Free · 31.8s · 33333.3 tok/s                                                               
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  VIS34 next: continue from checkpoint; no tools.                                                                    
+  ┃                                                                                                                     
+                                                                                                                        
+     VIS34-NEXT-DONE                                                                                                    
+                                                                                                                        
+     Build · MiMo-V2.6-Flash Free · 66ms · 40909.1 tok/s                                                                
+                                                                                                                        
+  ─────────────────────────────────────────────────── ✗ Compaction ───────────────────────────────────────────────────  
+                                                                                                                        
+     HTTP status 400: VIS34 bounded summary failure                                                                     
+                                                                                                                        
+  ────────────────────────────────────────────── Compaction · cancelled ──────────────────────────────────────────────  
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  1 message reverted                                                                                                 
+  ┃  ctrl+x r or /redo to restore                                                                                       
+  ┃                                                                                                                     
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  VIS34 restart: continue from persisted checkpoint; no tools.                                                       
+  ┃                                                                                                                     
+  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                                                          
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/openco…/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-15/project  7.8K (3%)  ctrl+p commands  
+                                                                                                                        

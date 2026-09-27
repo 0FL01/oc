@@ -129,6 +129,7 @@ pub(crate) struct MarkdownCache {
     indexes: VecDeque<IndexedPart>,
     index_bytes: usize,
     reasoning_heights: VecDeque<ReasoningHeight>,
+    footer_sources: VecDeque<(u64, usize)>,
     #[cfg(test)]
     parses: usize,
     #[cfg(test)]
@@ -136,6 +137,23 @@ pub(crate) struct MarkdownCache {
 }
 
 impl MarkdownCache {
+    fn footer_source<'a>(&mut self, text: &'a str) -> &'a str {
+        if !text.ends_with('\n') {
+            return text;
+        }
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        text.hash(&mut hasher);
+        let revision = hasher.finish();
+        if let Some((_, end)) = self.footer_sources.iter().find(|(key, _)| *key == revision) {
+            return &text[..*end];
+        }
+        let source = paragraph_before_footer(text);
+        self.footer_sources.push_back((revision, source.len()));
+        if self.footer_sources.len() > MAX_REASONING_HEIGHTS {
+            self.footer_sources.pop_front();
+        }
+        source
+    }
     fn reasoning_height(
         &mut self,
         part: (i64, usize),
@@ -360,6 +378,7 @@ impl MarkdownCache {
         self.bytes
             + self.index_bytes()
             + self.reasoning_heights.capacity() * std::mem::size_of::<ReasoningHeight>()
+            + self.footer_sources.capacity() * std::mem::size_of::<(u64, usize)>()
     }
 }
 
@@ -441,6 +460,9 @@ pub struct AssistantMeta {
     pub context_usage: Option<(u64, u64)>,
     /// Provider-active streaming time in milliseconds, when reported.
     pub streamed_ms: Option<u64>,
+    /// Current owner presentation setting; not durable turn/provider metadata.
+    /// Pinned config/index.tsx:309 defaults absence to true.
+    pub session_tps: Option<bool>,
     /// Upstream `error.message === "Step interrupted"`.
     pub interrupted: bool,
     /// Exact terminal state, when supplied by the owning application.
@@ -526,7 +548,7 @@ pub(crate) fn transcript_with_expansion(
         } else {
             out.extend(render_row(
                 row,
-                index,
+                (index, footer_follows(rows, index)),
                 theme,
                 width,
                 terminal_width,
@@ -861,14 +883,18 @@ fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option
 
 fn render_row(
     row: &HistoryRow,
-    index: usize,
+    identity: (usize, bool),
     theme: &Theme,
     width: u16,
     terminal_width: u16,
     agent_color: &impl Fn(Option<&str>) -> Color,
     cache: Option<&RefCell<MarkdownCache>>,
 ) -> Vec<Line> {
+    let (index, footer_after) = identity;
     let lines = match row.role.as_str() {
+        "compaction" | "compaction_failed" | "compaction_queued" => {
+            crate::compaction::block(row, theme, width)
+        }
         "reverted" => reverted_block(&row.text, row.agent.as_deref().unwrap_or(""), theme, width),
         "user" => {
             let mut lines = Vec::new();
@@ -880,9 +906,15 @@ fn render_row(
             lines.extend(user_block(row, theme, width, agent_color));
             lines
         }
-        "assistant" => {
-            assistant_block(row, index, theme, width, terminal_width, agent_color, cache)
-        }
+        "assistant" => assistant_block(
+            row,
+            (index, footer_after),
+            theme,
+            width,
+            terminal_width,
+            agent_color,
+            cache,
+        ),
         "tool" => {
             if let Some(card) = &row.tool {
                 let mut lines = vec![Line::plain("")];
@@ -929,14 +961,14 @@ fn sanitize_line(line: Line) -> Line {
 /// a huge user message never needs to become one Vec of rendered lines.
 fn visit_row_blocks(
     row: &HistoryRow,
-    identity: (usize, bool),
+    identity: (usize, bool, bool),
     theme: &Theme,
     widths: (u16, u16),
     agent_color: &impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
     mut emit: impl FnMut(Vec<Line>),
 ) {
-    let (index, live) = identity;
+    let (index, live, footer_after) = identity;
     let (width, terminal_width) = widths;
     if row.role == "reverted" {
         let mut lines = reverted_block(&row.text, row.agent.as_deref().unwrap_or(""), theme, width);
@@ -1009,7 +1041,7 @@ fn visit_row_blocks(
     if row.role == "assistant" && width > 0 {
         visit_assistant_indexed(
             row,
-            (index, live),
+            (index, live, footer_after),
             theme,
             (width, terminal_width),
             agent_color,
@@ -1020,7 +1052,7 @@ fn visit_row_blocks(
     }
     emit(render_row(
         row,
-        index,
+        (index, footer_after),
         theme,
         width,
         terminal_width,
@@ -1031,27 +1063,32 @@ fn visit_row_blocks(
 
 fn visit_assistant_indexed(
     row: &HistoryRow,
-    identity: (usize, bool),
+    identity: (usize, bool, bool),
     theme: &Theme,
     widths: (u16, u16),
     agent_color: &impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
     mut emit: impl FnMut(usize, bool, &mut dyn FnMut() -> Vec<Line>),
 ) {
-    let (index, live) = identity;
+    let (index, live, footer_after) = identity;
     let (width, terminal_width) = widths;
+    let text = if row.meta.is_some() || footer_after {
+        cache.borrow_mut().footer_source(&row.text)
+    } else {
+        &row.text
+    };
     if let Some(reasoning) = &row.reasoning {
         let lines = reasoning_lines(reasoning, theme, width);
         emit(lines.len(), false, &mut || lines.clone());
     }
-    if !row.text.trim().is_empty() {
+    if !text.trim().is_empty() {
         emit(1, false, &mut || vec![Line::plain("")]);
-        if live && row.text.len() > LIVE_MARKDOWN_BYTES {
+        if live && text.len() > LIVE_MARKDOWN_BYTES {
             let mut end = LIVE_MARKDOWN_BYTES;
-            while !row.text.is_char_boundary(end) {
+            while !text.is_char_boundary(end) {
                 end -= 1;
             }
-            let preview = &row.text[..end];
+            let preview = &text[..end];
             // The live preview stays bounded; a completed part is indexed in
             // full and can be scrolled, including the region past this limit.
             let height = estimated_lines(preview, width) + 1;
@@ -1064,19 +1101,19 @@ fn visit_assistant_indexed(
                 lines
             });
         } else {
-            let pages = cache.borrow_mut().pages((row.seq, index), &row.text, width);
+            let pages = cache.borrow_mut().pages((row.seq, index), text, width);
             for (number, page) in pages.into_iter().enumerate() {
                 let height = page.height;
                 emit(height, false, &mut || {
                     let mut source = String::new();
                     if let Some((start, end)) = page.table_header {
-                        source.push_str(&row.text[start..end]);
+                        source.push_str(&text[start..end]);
                     }
                     if let Some(open) = &page.fence {
                         source.push_str(open);
                         source.push('\n');
                     }
-                    let chunk = &row.text[page.start..page.end];
+                    let chunk = &text[page.start..page.end];
                     if let Some(segment) = &page.table_segment {
                         source.push_str(&segment.prefix);
                         source.push_str(chunk);
@@ -2102,7 +2139,7 @@ fn visible_transcript_indexed(
             }
             visit_assistant_indexed(
                 row,
-                (index, live_row == Some(index)),
+                (index, live_row == Some(index), footer_follows(rows, index)),
                 theme,
                 (width, terminal_width),
                 &agent_color,
@@ -2130,7 +2167,7 @@ fn visible_transcript_indexed(
             let mut margin = (row.role == "user" && index > 0) || row.role == "reverted";
             visit_row_blocks(
                 row,
-                (index, false),
+                (index, false, footer_follows(rows, index)),
                 theme,
                 (width, terminal_width),
                 &agent_color,
@@ -2230,7 +2267,7 @@ pub(crate) fn transcript_part_positions(
         } else if row.role == "assistant" && width > 0 {
             visit_assistant_indexed(
                 row,
-                (index, live_row == Some(index)),
+                (index, live_row == Some(index), footer_follows(rows, index)),
                 theme,
                 (width, terminal_width),
                 &agent_color,
@@ -2240,7 +2277,7 @@ pub(crate) fn transcript_part_positions(
         } else {
             visit_row_blocks(
                 row,
-                (index, false),
+                (index, false, footer_follows(rows, index)),
                 theme,
                 (width, terminal_width),
                 &agent_color,
@@ -2431,24 +2468,33 @@ fn chip_rows(chips: &[Chip], theme: &Theme, width: usize) -> Vec<Vec<Span>> {
 /// preceded by one empty row.
 fn assistant_block(
     row: &HistoryRow,
-    index: usize,
+    identity: (usize, bool),
     theme: &Theme,
     width: u16,
     terminal_width: u16,
     agent_color: &impl Fn(Option<&str>) -> Color,
     cache: Option<&RefCell<MarkdownCache>>,
 ) -> Vec<Line> {
+    let (index, footer_after) = identity;
+    let text = if row.meta.is_some() || footer_after {
+        match cache {
+            Some(cache) => cache.borrow_mut().footer_source(&row.text),
+            None => paragraph_before_footer(&row.text),
+        }
+    } else {
+        &row.text
+    };
     let mut out = Vec::new();
     if let Some(reasoning) = &row.reasoning {
         out.extend(reasoning_lines(reasoning, theme, width));
     }
-    if !row.text.trim().is_empty() {
+    if !text.trim().is_empty() {
         out.push(Line::plain(""));
         out.extend(match cache {
             Some(cache) => cache
                 .borrow_mut()
-                .render((row.seq, index, 0), &row.text, theme, width),
-            None => markdown_block(&row.text, theme, width),
+                .render((row.seq, index, 0), text, theme, width),
+            None => markdown_block(text, theme, width),
         });
     }
     if let Some(meta) = &row.meta
@@ -2464,6 +2510,51 @@ fn assistant_block(
         out.push(footer);
     }
     out
+}
+
+fn footer_follows(rows: &[HistoryRow], index: usize) -> bool {
+    let row = &rows[index];
+    rows.get(index + 1).is_some_and(|next| {
+        next.role == "assistant"
+            && next.seq == row.seq
+            && next.message_id == row.message_id
+            && next.text.is_empty()
+            && next.reasoning.is_none()
+            && next.meta.is_some()
+    })
+}
+
+/// Only normalize the structural LF of a completed terminal paragraph directly
+/// before its footer. TextPart uses content.trim() (message-parts.tsx:163), and
+/// SessionRowView supplies the footer's marginTop=1 (index.tsx:1435). Internal
+/// paragraph separators, explicit trailing blanks, headings, fences and lists
+/// retain their existing source. Both cache/index and full render use this same
+/// source slice, so their revisions and measured heights cannot disagree.
+fn paragraph_before_footer(text: &str) -> &str {
+    if !text.ends_with('\n') || text.ends_with("\n\n") {
+        return text;
+    }
+    let mut depth = 0usize;
+    let mut paragraph = false;
+    let mut options = Options::empty();
+    options.insert(Options::ENABLE_TABLES);
+    for event in Parser::new_ext(text, options) {
+        match event {
+            Event::Start(_) => depth += 1,
+            Event::End(end) => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    paragraph = end == TagEnd::Paragraph;
+                }
+            }
+            _ => {}
+        }
+    }
+    if paragraph {
+        &text[..text.len() - 1]
+    } else {
+        text
+    }
 }
 
 /// Reasoning header: hide mode is `SessionReasoningGroupView`
@@ -2718,7 +2809,7 @@ pub fn reasoning_title(text: &str) -> &str {
 
 /// Assistant text block (`message-parts.tsx:147-174`): markdown rendered at
 /// `paddingLeft=3` with `fg = markdown.text`.
-fn markdown_block(text: &str, theme: &Theme, width: u16) -> Vec<Line> {
+pub(crate) fn markdown_block(text: &str, theme: &Theme, width: u16) -> Vec<Line> {
     markdown_block_with_widths(text, theme, width, None)
 }
 
@@ -2728,6 +2819,23 @@ fn markdown_block_with_widths(
     width: u16,
     columns: Option<&[usize]>,
 ) -> Vec<Line> {
+    markdown_block_with_spacing(text, theme, width, columns, false)
+}
+
+/// CompactionMessage's streaming top-level Markdown renderer has a blank row
+/// after headings (pinned session/index.tsx:2133–2144; paired manual 12 rows18–28).
+/// Keep this mode local to compaction; ordinary message pagination is unchanged.
+pub(crate) fn compaction_markdown_block(text: &str, theme: &Theme, width: u16) -> Vec<Line> {
+    markdown_block_with_spacing(text, theme, width, None, true)
+}
+
+fn markdown_block_with_spacing(
+    text: &str,
+    theme: &Theme,
+    width: u16,
+    columns: Option<&[usize]>,
+    compaction_style: bool,
+) -> Vec<Line> {
     let inner = if width == 0 {
         usize::MAX
     } else {
@@ -2735,7 +2843,7 @@ fn markdown_block_with_widths(
     };
     let pad = Span::plain(" ".repeat(MESSAGE_PADDING));
     let mut out = Vec::new();
-    for line in markdown_at_width_with_columns(text, theme, inner, columns) {
+    for line in markdown_at_width_with_spacing(text, theme, inner, columns, compaction_style) {
         let mut spans = vec![pad.clone()];
         spans.extend(line.spans().iter().cloned());
         out.push(Line::new(spans));
@@ -2800,7 +2908,10 @@ fn footer_line(
     {
         push_field(Span::styled(Locale::duration(duration), muted), &mut spans);
     }
-    if let Some(tps) = tokens_per_second(meta) {
+    // Pinned session/index.tsx:1974–1975 gates only the throughput field.
+    if meta.session_tps.unwrap_or(true)
+        && let Some(tps) = tokens_per_second(meta)
+    {
         push_field(Span::styled(format!("{tps:.1} tok/s"), muted), &mut spans);
     }
     if meta.interrupted {
@@ -2886,6 +2997,16 @@ fn markdown_at_width_with_columns(
     width: usize,
     columns: Option<&[usize]>,
 ) -> Vec<Line> {
+    markdown_at_width_with_spacing(text, theme, width, columns, false)
+}
+
+fn markdown_at_width_with_spacing(
+    text: &str,
+    theme: &Theme,
+    width: usize,
+    columns: Option<&[usize]>,
+    compaction_style: bool,
+) -> Vec<Line> {
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
     let mut out = Vec::new();
@@ -2897,6 +3018,8 @@ fn markdown_at_width_with_columns(
     let mut previous_end = 0;
     let mut depth = 0usize;
     let mut truncated = false;
+    let mut after_heading = false;
+    let mut heading_font = Modifier::empty();
     for (event, range) in Parser::new_ext(text, options).into_offset_iter() {
         if out.len() >= MAX_MARKDOWN_ROWS {
             truncated = true;
@@ -2915,6 +3038,10 @@ fn markdown_at_width_with_columns(
                         .min((MAX_MARKDOWN_ROWS + 1).saturating_sub(out.len())),
                 ),
             );
+            if after_heading && out.last().is_some_and(|line| !line.plain_text().is_empty()) {
+                out.push(Line::plain(""));
+            }
+            after_heading = false;
         }
         match event {
             Event::Start(tag) => {
@@ -2948,7 +3075,16 @@ fn markdown_at_width_with_columns(
                             Some(n) => {
                                 let marker = format!("{n}. ");
                                 *n += 1;
-                                (marker, MarkdownToken::ListEnumeration)
+                                // Streaming Markdown resolves both marker forms
+                                // through markup.list (theme/v1.ts:362–367).
+                                (
+                                    marker,
+                                    if compaction_style {
+                                        MarkdownToken::ListItem
+                                    } else {
+                                        MarkdownToken::ListEnumeration
+                                    },
+                                )
                             }
                             None => ("- ".into(), MarkdownToken::ListItem),
                         };
@@ -2957,7 +3093,17 @@ fn markdown_at_width_with_columns(
                             Style::default().fg(theme.markdown(token)),
                         ));
                     }
-                    Tag::Heading { .. } => stack.push(MarkdownToken::Heading),
+                    Tag::Heading { level, .. } => {
+                        stack.push(MarkdownToken::Heading);
+                        // Pinned theme/v1.ts:297–346; scoped to the streaming
+                        // compaction renderer rather than unrelated messages.
+                        if compaction_style {
+                            heading_font = Modifier::BOLD;
+                            if *level == pulldown_cmark::HeadingLevel::H1 {
+                                heading_font |= Modifier::UNDERLINED;
+                            }
+                        }
+                    }
                     Tag::BlockQuote(_) => stack.push(MarkdownToken::BlockQuote),
                     Tag::Strong => stack.push(MarkdownToken::Strong),
                     Tag::Emphasis => stack.push(MarkdownToken::Emphasis),
@@ -3039,6 +3185,8 @@ fn markdown_at_width_with_columns(
                         }
                         if matches!(end, TagEnd::Heading(_)) {
                             stack.pop();
+                            after_heading = compaction_style && depth == 1;
+                            heading_font = Modifier::empty();
                         }
                     }
                     TagEnd::Strong
@@ -3076,7 +3224,9 @@ fn markdown_at_width_with_columns(
                     } else {
                         stack.last().copied().unwrap_or(MarkdownToken::Text)
                     };
-                    let mut style = Style::default().fg(theme.markdown(token));
+                    let mut style = Style::default()
+                        .fg(theme.markdown(token))
+                        .add_modifier(heading_font);
                     if stack.contains(&MarkdownToken::Strong) {
                         style = style.add_modifier(Modifier::BOLD);
                     }
@@ -3085,7 +3235,9 @@ fn markdown_at_width_with_columns(
             }
             Event::Code(value) => spans.push(Span::styled(
                 safe_text(&value),
-                Style::default().fg(theme.markdown(MarkdownToken::Code)),
+                Style::default()
+                    .fg(theme.markdown(MarkdownToken::Code))
+                    .add_modifier(heading_font),
             )),
             Event::SoftBreak | Event::HardBreak => {
                 if !spans.is_empty() {
@@ -5354,6 +5506,120 @@ mod tests {
         })
         .expect("footer");
         assert_eq!(banded.plain_text(), "   Build · ludka2/a · 50.0 tok/s");
+    }
+
+    #[test]
+    fn vis34_archive_paragraph_final_lf_has_one_footer_margin_full_cached_and_indexed() {
+        use oc_core::compaction::{
+            CompactionAnchor, CompactionReason, CompactionSnapshot, CompactionState,
+            CompactionUsage,
+        };
+        use ratatui::{layout::Rect, widgets::Widget};
+        let paint = |lines: &[Line]| {
+            let area = Rect::new(0, 0, 116, lines.len() as u16);
+            let mut buffer = Buffer::empty(area);
+            Paragraph::new(
+                lines
+                    .iter()
+                    .cloned()
+                    .map(Line::into_ratatui)
+                    .collect::<Vec<_>>(),
+            )
+            .render(area, &mut buffer);
+            buffer
+        };
+        // Actual provider body shape in compaction_fixture.py:66, paired
+        // threshold 21/22: ARCHIVE-3-113..119, one blank, then prior footer.
+        let body = format!(
+            "VIS34-ANSWER-3:\n{}",
+            (0..120)
+                .map(|n| format!("ARCHIVE-3-{n:03} requirement detail retained in raw history.\n"))
+                .collect::<String>()
+        );
+        let mut prior = assistant(&body);
+        prior.seq = 1;
+        prior.meta = Some(AssistantMeta {
+            model: Some("MiMo-V2.6-Flash Free".into()),
+            duration_ms: Some(28),
+            session_tps: Some(false),
+            ..Default::default()
+        });
+        let mut prompt = user("VIS34 next: continue from checkpoint; no tools.", vec![]);
+        prompt.seq = 2;
+        let checkpoint = crate::compaction::row(&CompactionSnapshot {
+            anchor: CompactionAnchor { message: prompt.message_id.as_ref().map(|id| id.0.clone()), ..Default::default() },
+            id: "checkpoint".into(), session: "s".into(), reason: CompactionReason::Automatic, state: CompactionState::Completed,
+            summary: "## Objective\n- VIS34-CHECKPOINT: preserve R1, R2, R3.\n\n## Work State\n- Three seeded exchanges completed; filesystem unchanged.\n\n## Next Move\n1. Continue the user request without replaying tools.\n".into(),
+            usage: Some(CompactionUsage { input_tokens: 1234, output_tokens: 321, cache_read_tokens: 0, cache_write_tokens: 0, reasoning_tokens: 0 }), provider_native: false, error: None,
+        }, 0, false);
+        let mut next = assistant("VIS34-NEXT-DONE");
+        next.seq = 3;
+        next.meta = Some(AssistantMeta {
+            model: Some("MiMo-V2.6-Flash Free".into()),
+            duration_ms: Some(4400),
+            session_tps: Some(false),
+            ..Default::default()
+        });
+        let theme = Theme::dark();
+        // Both live completion (body+footer) and replay (separate footer row).
+        for separated_footer in [false, true] {
+            let mut rows = vec![prior.clone()];
+            if separated_footer {
+                rows[0].meta = None;
+                let mut footer = assistant("");
+                footer.seq = 1;
+                footer.meta = prior.meta.clone();
+                rows.push(footer);
+            }
+            rows.extend([prompt.clone(), checkpoint.clone(), next.clone()]);
+            let full = transcript(&rows, theme, 116, 120, |_| theme.categorical_agents()[0]);
+            let last_archive = full
+                .iter()
+                .position(|line| line.plain_text().contains("ARCHIVE-3-119"))
+                .unwrap();
+            assert_eq!(full[last_archive + 1].plain_text(), "");
+            assert_eq!(
+                full[last_archive + 2].plain_text(),
+                "   Build · MiMo-V2.6-Flash Free · 28ms"
+            );
+            let cache = RefCell::new(MarkdownCache::default());
+            let cached = transcript_with_expansion(
+                &rows,
+                theme,
+                116,
+                120,
+                |_| theme.categorical_agents()[0],
+                Some(&cache),
+                &|_| false,
+            );
+            assert_eq!(cached, full);
+            let mut padded = vec![Line::plain("")];
+            padded.extend(full);
+            let indexed_cache = RefCell::new(MarkdownCache::default());
+            for pass in 0..2 {
+                let (visible, total) = visible_transcript_expanded(
+                    &rows,
+                    theme,
+                    (116, 120),
+                    (31, 0, None),
+                    |_| theme.categorical_agents()[0],
+                    &indexed_cache,
+                    &|_| false,
+                );
+                assert_eq!(total, padded.len(), "pass={pass}");
+                assert_eq!(
+                    paint(&visible),
+                    paint(&padded[padded.len() - 31..]),
+                    "all styled cells, pass={pass}"
+                );
+                assert!(visible[0].plain_text().contains("ARCHIVE-3-113"));
+                assert_eq!(visible[7].plain_text(), "");
+                assert_eq!(
+                    visible[8].plain_text(),
+                    "   Build · MiMo-V2.6-Flash Free · 28ms"
+                );
+            }
+        }
     }
 
     #[test]

@@ -1,0 +1,3979 @@
+{
+  "scope": "Full 120x40 styled cells; full decoded PNG comparator counts. Field counts overlap; no causal allocation or masking of dynamic cells.",
+  "campaigns": {
+    "18": {
+      "native_sha256": "56a004185a05853e74f8283f7afc7d5dd1bcacdd5b758231455dcf5d14692e70",
+      "frames": [
+        {
+          "scenario": "compaction-home",
+          "different_cells": 6,
+          "symbol_different": 6,
+          "style_only_different": 0,
+          "field_counts": {
+            "symbol": 6,
+            "fg": 1
+          },
+          "different_cells_by_row_1based": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            6,
+            0
+          ],
+          "different_pixels": 298,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-seed-1",
+          "different_cells": 105,
+          "symbol_different": 96,
+          "style_only_different": 9,
+          "field_counts": {
+            "symbol": 96,
+            "fg": 73
+          },
+          "different_cells_by_row_1based": [
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            0,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 4382,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-seed-2",
+          "different_cells": 106,
+          "symbol_different": 97,
+          "style_only_different": 9,
+          "field_counts": {
+            "symbol": 97,
+            "fg": 73
+          },
+          "different_cells_by_row_1based": [
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            0,
+            18,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 4526,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-seed-3",
+          "different_cells": 106,
+          "symbol_different": 97,
+          "style_only_different": 9,
+          "field_counts": {
+            "symbol": 97,
+            "fg": 73
+          },
+          "different_cells_by_row_1based": [
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            0,
+            18,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 4485,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-held-tool",
+          "different_cells": 120,
+          "symbol_different": 98,
+          "style_only_different": 22,
+          "field_counts": {
+            "fg": 95,
+            "symbol": 98
+          },
+          "different_cells_by_row_1based": [
+            3,
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            0,
+            18,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            3,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            12,
+            0
+          ],
+          "different_pixels": 4285,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [
+                27
+              ],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [
+                27
+              ],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-queued",
+          "different_cells": 939,
+          "symbol_different": 504,
+          "style_only_different": 435,
+          "field_counts": {
+            "fg": 535,
+            "symbol": 504,
+            "bg": 696
+          },
+          "different_cells_by_row_1based": [
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            35,
+            0,
+            116,
+            116,
+            0,
+            116,
+            1,
+            116,
+            2,
+            116,
+            116,
+            0,
+            115,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            12,
+            0
+          ],
+          "different_pixels": 101751,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [
+                23
+              ],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [
+                25
+              ],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-palette",
+          "different_cells": 937,
+          "symbol_different": 520,
+          "style_only_different": 417,
+          "field_counts": {
+            "symbol": 520,
+            "fg": 494,
+            "bg": 696
+          },
+          "different_cells_by_row_1based": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            19,
+            1,
+            1,
+            51,
+            30,
+            0,
+            116,
+            116,
+            0,
+            116,
+            1,
+            116,
+            0,
+            116,
+            116,
+            0,
+            114,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            8,
+            0
+          ],
+          "different_pixels": 102762,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [
+                23
+              ],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [
+                25
+              ],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-queued-coalesced",
+          "different_cells": 939,
+          "symbol_different": 504,
+          "style_only_different": 435,
+          "field_counts": {
+            "fg": 535,
+            "symbol": 504,
+            "bg": 696
+          },
+          "different_cells_by_row_1based": [
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            35,
+            0,
+            116,
+            116,
+            0,
+            116,
+            1,
+            116,
+            2,
+            116,
+            116,
+            0,
+            115,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            12,
+            0
+          ],
+          "different_pixels": 101751,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [
+                23
+              ],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [
+                25
+              ],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-running-1",
+          "different_cells": 823,
+          "symbol_different": 272,
+          "style_only_different": 551,
+          "field_counts": {
+            "fg": 302,
+            "symbol": 272,
+            "bg": 580
+          },
+          "different_cells_by_row_1based": [
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            57,
+            0,
+            116,
+            116,
+            116,
+            116,
+            63,
+            11,
+            116,
+            13,
+            29,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 86995,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [
+                26
+              ],
+              "VIS34-CHECKPOINT": [
+                28
+              ],
+              "Work State": [
+                30
+              ],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [
+                14
+              ],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [
+                26
+              ],
+              "VIS34-CHECKPOINT": [
+                28
+              ],
+              "Work State": [
+                30
+              ],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [
+                17
+              ],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-running-2",
+          "different_cells": 823,
+          "symbol_different": 272,
+          "style_only_different": 551,
+          "field_counts": {
+            "fg": 302,
+            "symbol": 272,
+            "bg": 580
+          },
+          "different_cells_by_row_1based": [
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            57,
+            0,
+            116,
+            116,
+            116,
+            116,
+            63,
+            11,
+            116,
+            13,
+            29,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 86995,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [
+                26
+              ],
+              "VIS34-CHECKPOINT": [
+                28
+              ],
+              "Work State": [
+                30
+              ],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [
+                14
+              ],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [
+                26
+              ],
+              "VIS34-CHECKPOINT": [
+                28
+              ],
+              "Work State": [
+                30
+              ],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [
+                17
+              ],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-completed",
+          "different_cells": 829,
+          "symbol_different": 277,
+          "style_only_different": 552,
+          "field_counts": {
+            "symbol": 277,
+            "fg": 315,
+            "bg": 580
+          },
+          "different_cells_by_row_1based": [
+            0,
+            57,
+            57,
+            0,
+            116,
+            116,
+            116,
+            116,
+            63,
+            11,
+            116,
+            13,
+            29,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 87055,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [
+                16
+              ],
+              "Objective": [
+                18
+              ],
+              "VIS34-CHECKPOINT": [
+                20
+              ],
+              "Work State": [
+                22
+              ],
+              "Three seeded": [
+                24
+              ],
+              "Next Move": [
+                26
+              ],
+              "Continue the user request": [
+                28
+              ],
+              "VIS34 held tool:": [
+                6
+              ],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [
+                30
+              ],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [
+                16
+              ],
+              "Objective": [
+                18
+              ],
+              "VIS34-CHECKPOINT": [
+                20
+              ],
+              "Work State": [
+                22
+              ],
+              "Three seeded": [
+                24
+              ],
+              "Next Move": [
+                26
+              ],
+              "Continue the user request": [
+                28
+              ],
+              "VIS34 held tool:": [
+                9
+              ],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [
+                30
+              ],
+              "VIS34-NEXT-DONE": []
+            }
+          },
+          "summary_divider_and_body_rows_16_through_29_different_cells": 0
+        },
+        {
+          "scenario": "compaction-next",
+          "different_cells": 205,
+          "symbol_different": 70,
+          "style_only_different": 135,
+          "field_counts": {
+            "fg": 88,
+            "symbol": 70,
+            "bg": 116
+          },
+          "different_cells_by_row_1based": [
+            0,
+            11,
+            116,
+            13,
+            29,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 18554,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [
+                8
+              ],
+              "Objective": [
+                10
+              ],
+              "VIS34-CHECKPOINT": [
+                12
+              ],
+              "Work State": [
+                14
+              ],
+              "Three seeded": [
+                16
+              ],
+              "Next Move": [
+                18
+              ],
+              "Continue the user request": [
+                20
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                27
+              ],
+              "VIS34-HELD-DONE": [
+                22
+              ],
+              "VIS34-NEXT-DONE": [
+                30
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [
+                8
+              ],
+              "Objective": [
+                10
+              ],
+              "VIS34-CHECKPOINT": [
+                12
+              ],
+              "Work State": [
+                14
+              ],
+              "Three seeded": [
+                16
+              ],
+              "Next Move": [
+                18
+              ],
+              "Continue the user request": [
+                20
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                27
+              ],
+              "VIS34-HELD-DONE": [
+                22
+              ],
+              "VIS34-NEXT-DONE": [
+                30
+              ]
+            }
+          }
+        },
+        {
+          "scenario": "compaction-failed",
+          "different_cells": 81,
+          "symbol_different": 71,
+          "style_only_different": 10,
+          "field_counts": {
+            "fg": 51,
+            "symbol": 71
+          },
+          "different_cells_by_row_1based": [
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            45,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 3252,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [
+                4
+              ],
+              "Objective": [
+                6
+              ],
+              "VIS34-CHECKPOINT": [
+                8
+              ],
+              "Work State": [
+                10
+              ],
+              "Three seeded": [
+                12
+              ],
+              "Next Move": [
+                14
+              ],
+              "Continue the user request": [
+                16
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                23
+              ],
+              "VIS34-HELD-DONE": [
+                18
+              ],
+              "VIS34-NEXT-DONE": [
+                26
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [
+                4
+              ],
+              "Objective": [
+                6
+              ],
+              "VIS34-CHECKPOINT": [
+                8
+              ],
+              "Work State": [
+                10
+              ],
+              "Three seeded": [
+                12
+              ],
+              "Next Move": [
+                14
+              ],
+              "Continue the user request": [
+                16
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                23
+              ],
+              "VIS34-HELD-DONE": [
+                18
+              ],
+              "VIS34-NEXT-DONE": [
+                26
+              ]
+            }
+          }
+        },
+        {
+          "scenario": "compaction-cancel-running",
+          "different_cells": 170,
+          "symbol_different": 158,
+          "style_only_different": 12,
+          "field_counts": {
+            "fg": 128,
+            "symbol": 158
+          },
+          "different_cells_by_row_1based": [
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            45,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            88,
+            0
+          ],
+          "different_pixels": 6885,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [
+                26
+              ],
+              "VIS34-CHECKPOINT": [
+                28
+              ],
+              "Work State": [
+                30
+              ],
+              "Three seeded": [
+                2
+              ],
+              "Next Move": [
+                4
+              ],
+              "Continue the user request": [
+                6
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                13
+              ],
+              "VIS34-HELD-DONE": [
+                8
+              ],
+              "VIS34-NEXT-DONE": [
+                16
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [
+                26
+              ],
+              "VIS34-CHECKPOINT": [
+                28
+              ],
+              "Work State": [
+                30
+              ],
+              "Three seeded": [
+                2
+              ],
+              "Next Move": [
+                4
+              ],
+              "Continue the user request": [
+                6
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                13
+              ],
+              "VIS34-HELD-DONE": [
+                8
+              ],
+              "VIS34-NEXT-DONE": [
+                16
+              ]
+            }
+          }
+        },
+        {
+          "scenario": "compaction-cancelled",
+          "different_cells": 79,
+          "symbol_different": 71,
+          "style_only_different": 8,
+          "field_counts": {
+            "symbol": 71,
+            "fg": 49
+          },
+          "different_cells_by_row_1based": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            45,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 3252,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [
+                2
+              ],
+              "Objective": [
+                4
+              ],
+              "VIS34-CHECKPOINT": [
+                6
+              ],
+              "Work State": [
+                8
+              ],
+              "Three seeded": [
+                10
+              ],
+              "Next Move": [
+                12
+              ],
+              "Continue the user request": [
+                14
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                21
+              ],
+              "VIS34-HELD-DONE": [
+                16
+              ],
+              "VIS34-NEXT-DONE": [
+                24
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [
+                2
+              ],
+              "Objective": [
+                4
+              ],
+              "VIS34-CHECKPOINT": [
+                6
+              ],
+              "Work State": [
+                8
+              ],
+              "Three seeded": [
+                10
+              ],
+              "Next Move": [
+                12
+              ],
+              "Continue the user request": [
+                14
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                21
+              ],
+              "VIS34-HELD-DONE": [
+                16
+              ],
+              "VIS34-NEXT-DONE": [
+                24
+              ]
+            }
+          }
+        },
+        {
+          "scenario": "compaction-reopened",
+          "different_cells": 79,
+          "symbol_different": 71,
+          "style_only_different": 8,
+          "field_counts": {
+            "symbol": 71,
+            "fg": 49
+          },
+          "different_cells_by_row_1based": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            45,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 3252,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [
+                2
+              ],
+              "Objective": [
+                4
+              ],
+              "VIS34-CHECKPOINT": [
+                6
+              ],
+              "Work State": [
+                8
+              ],
+              "Three seeded": [
+                10
+              ],
+              "Next Move": [
+                12
+              ],
+              "Continue the user request": [
+                14
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                21
+              ],
+              "VIS34-HELD-DONE": [
+                16
+              ],
+              "VIS34-NEXT-DONE": [
+                24
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [
+                2
+              ],
+              "Objective": [
+                4
+              ],
+              "VIS34-CHECKPOINT": [
+                6
+              ],
+              "Work State": [
+                8
+              ],
+              "Three seeded": [
+                10
+              ],
+              "Next Move": [
+                12
+              ],
+              "Continue the user request": [
+                14
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                21
+              ],
+              "VIS34-HELD-DONE": [
+                16
+              ],
+              "VIS34-NEXT-DONE": [
+                24
+              ]
+            }
+          }
+        },
+        {
+          "scenario": "compaction-restart-next",
+          "different_cells": 96,
+          "symbol_different": 85,
+          "style_only_different": 11,
+          "field_counts": {
+            "symbol": 85,
+            "fg": 65
+          },
+          "different_cells_by_row_1based": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            45,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 3813,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [
+                2
+              ],
+              "Next Move": [
+                4
+              ],
+              "Continue the user request": [
+                6
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                13
+              ],
+              "VIS34-HELD-DONE": [
+                8
+              ],
+              "VIS34-NEXT-DONE": [
+                16
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [
+                2
+              ],
+              "Next Move": [
+                4
+              ],
+              "Continue the user request": [
+                6
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                13
+              ],
+              "VIS34-HELD-DONE": [
+                8
+              ],
+              "VIS34-NEXT-DONE": [
+                16
+              ]
+            }
+          }
+        },
+        {
+          "scenario": "compaction-undo",
+          "different_cells": 436,
+          "symbol_different": 71,
+          "style_only_different": 365,
+          "field_counts": {
+            "symbol": 71,
+            "fg": 57,
+            "bg": 349
+          },
+          "different_cells_by_row_1based": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            115,
+            115,
+            115,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            45,
+            0,
+            0,
+            0,
+            3,
+            3,
+            3,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 49838,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [
+                3
+              ],
+              "Three seeded": [
+                5
+              ],
+              "Next Move": [
+                7
+              ],
+              "Continue the user request": [
+                9
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                16
+              ],
+              "VIS34-HELD-DONE": [
+                11
+              ],
+              "VIS34-NEXT-DONE": [
+                19
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [
+                3
+              ],
+              "Three seeded": [
+                5
+              ],
+              "Next Move": [
+                7
+              ],
+              "Continue the user request": [
+                9
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                16
+              ],
+              "VIS34-HELD-DONE": [
+                11
+              ],
+              "VIS34-NEXT-DONE": [
+                19
+              ]
+            }
+          }
+        },
+        {
+          "scenario": "compaction-redo",
+          "different_cells": 96,
+          "symbol_different": 85,
+          "style_only_different": 11,
+          "field_counts": {
+            "symbol": 85,
+            "fg": 65
+          },
+          "different_cells_by_row_1based": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            45,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 3813,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [
+                2
+              ],
+              "Next Move": [
+                4
+              ],
+              "Continue the user request": [
+                6
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                13
+              ],
+              "VIS34-HELD-DONE": [
+                8
+              ],
+              "VIS34-NEXT-DONE": [
+                16
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [
+                2
+              ],
+              "Next Move": [
+                4
+              ],
+              "Continue the user request": [
+                6
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                13
+              ],
+              "VIS34-HELD-DONE": [
+                8
+              ],
+              "VIS34-NEXT-DONE": [
+                16
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "19": {
+      "native_sha256": "56a004185a05853e74f8283f7afc7d5dd1bcacdd5b758231455dcf5d14692e70",
+      "frames": [
+        {
+          "scenario": "compaction-home",
+          "different_cells": 46,
+          "symbol_different": 43,
+          "style_only_different": 3,
+          "field_counts": {
+            "symbol": 43,
+            "fg": 24
+          },
+          "different_cells_by_row_1based": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            6,
+            0
+          ],
+          "different_pixels": 1834,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-seed-1",
+          "different_cells": 106,
+          "symbol_different": 97,
+          "style_only_different": 9,
+          "field_counts": {
+            "symbol": 97,
+            "fg": 73
+          },
+          "different_cells_by_row_1based": [
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            0,
+            18,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 4470,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-seed-2",
+          "different_cells": 106,
+          "symbol_different": 97,
+          "style_only_different": 9,
+          "field_counts": {
+            "symbol": 97,
+            "fg": 73
+          },
+          "different_cells_by_row_1based": [
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            0,
+            18,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 4514,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-seed-3",
+          "different_cells": 106,
+          "symbol_different": 97,
+          "style_only_different": 9,
+          "field_counts": {
+            "symbol": 97,
+            "fg": 73
+          },
+          "different_cells_by_row_1based": [
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            0,
+            18,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 4527,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-threshold-running",
+          "different_cells": 93,
+          "symbol_different": 82,
+          "style_only_different": 11,
+          "field_counts": {
+            "fg": 76,
+            "symbol": 82
+          },
+          "different_cells_by_row_1based": [
+            3,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            0,
+            18,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 3573,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [
+                26
+              ],
+              "VIS34-CHECKPOINT": [
+                28
+              ],
+              "Work State": [
+                30
+              ],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                21
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [
+                26
+              ],
+              "VIS34-CHECKPOINT": [
+                28
+              ],
+              "Work State": [
+                30
+              ],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                21
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-threshold-completed",
+          "different_cells": 97,
+          "symbol_different": 85,
+          "style_only_different": 12,
+          "field_counts": {
+            "symbol": 85,
+            "fg": 89
+          },
+          "different_cells_by_row_1based": [
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            0,
+            18,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            16,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 3477,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [
+                16
+              ],
+              "Objective": [
+                18
+              ],
+              "VIS34-CHECKPOINT": [
+                20
+              ],
+              "Work State": [
+                22
+              ],
+              "Three seeded": [
+                24
+              ],
+              "Next Move": [
+                26
+              ],
+              "Continue the user request": [
+                28
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                13
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                30
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [
+                16
+              ],
+              "Objective": [
+                18
+              ],
+              "VIS34-CHECKPOINT": [
+                20
+              ],
+              "Work State": [
+                22
+              ],
+              "Three seeded": [
+                24
+              ],
+              "Next Move": [
+                26
+              ],
+              "Continue the user request": [
+                28
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                13
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                30
+              ]
+            }
+          },
+          "summary_divider_and_body_rows_16_through_29_different_cells": 0
+        },
+        {
+          "scenario": "compaction-reopened",
+          "different_cells": 97,
+          "symbol_different": 85,
+          "style_only_different": 12,
+          "field_counts": {
+            "symbol": 85,
+            "fg": 89
+          },
+          "different_cells_by_row_1based": [
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            0,
+            18,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            16,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 3477,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [
+                16
+              ],
+              "Objective": [
+                18
+              ],
+              "VIS34-CHECKPOINT": [
+                20
+              ],
+              "Work State": [
+                22
+              ],
+              "Three seeded": [
+                24
+              ],
+              "Next Move": [
+                26
+              ],
+              "Continue the user request": [
+                28
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                13
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                30
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [
+                16
+              ],
+              "Objective": [
+                18
+              ],
+              "VIS34-CHECKPOINT": [
+                20
+              ],
+              "Work State": [
+                22
+              ],
+              "Three seeded": [
+                24
+              ],
+              "Next Move": [
+                26
+              ],
+              "Continue the user request": [
+                28
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                13
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                30
+              ]
+            }
+          }
+        },
+        {
+          "scenario": "compaction-restart-next",
+          "different_cells": 51,
+          "symbol_different": 42,
+          "style_only_different": 9,
+          "field_counts": {
+            "symbol": 42,
+            "fg": 48
+          },
+          "different_cells_by_row_1based": [
+            0,
+            18,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            16,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 1700,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [
+                8
+              ],
+              "Objective": [
+                10
+              ],
+              "VIS34-CHECKPOINT": [
+                12
+              ],
+              "Work State": [
+                14
+              ],
+              "Three seeded": [
+                16
+              ],
+              "Next Move": [
+                18
+              ],
+              "Continue the user request": [
+                20
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                5
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                22
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [
+                8
+              ],
+              "Objective": [
+                10
+              ],
+              "VIS34-CHECKPOINT": [
+                12
+              ],
+              "Work State": [
+                14
+              ],
+              "Three seeded": [
+                16
+              ],
+              "Next Move": [
+                18
+              ],
+              "Continue the user request": [
+                20
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                5
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                22
+              ]
+            }
+          }
+        },
+        {
+          "scenario": "compaction-undo",
+          "different_cells": 104,
+          "symbol_different": 80,
+          "style_only_different": 24,
+          "field_counts": {
+            "symbol": 80,
+            "fg": 97,
+            "bg": 4
+          },
+          "different_cells_by_row_1based": [
+            0,
+            1,
+            57,
+            0,
+            18,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            16,
+            0,
+            3,
+            3,
+            3,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 3533,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [
+                11
+              ],
+              "Objective": [
+                13
+              ],
+              "VIS34-CHECKPOINT": [
+                15
+              ],
+              "Work State": [
+                17
+              ],
+              "Three seeded": [
+                19
+              ],
+              "Next Move": [
+                21
+              ],
+              "Continue the user request": [
+                23
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                8
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                25
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [
+                11
+              ],
+              "Objective": [
+                13
+              ],
+              "VIS34-CHECKPOINT": [
+                15
+              ],
+              "Work State": [
+                17
+              ],
+              "Three seeded": [
+                19
+              ],
+              "Next Move": [
+                21
+              ],
+              "Continue the user request": [
+                23
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                8
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                25
+              ]
+            }
+          }
+        },
+        {
+          "scenario": "compaction-redo",
+          "different_cells": 51,
+          "symbol_different": 42,
+          "style_only_different": 9,
+          "field_counts": {
+            "symbol": 42,
+            "fg": 48
+          },
+          "different_cells_by_row_1based": [
+            0,
+            18,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            16,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 1700,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [
+                8
+              ],
+              "Objective": [
+                10
+              ],
+              "VIS34-CHECKPOINT": [
+                12
+              ],
+              "Work State": [
+                14
+              ],
+              "Three seeded": [
+                16
+              ],
+              "Next Move": [
+                18
+              ],
+              "Continue the user request": [
+                20
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                5
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                22
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [
+                8
+              ],
+              "Objective": [
+                10
+              ],
+              "VIS34-CHECKPOINT": [
+                12
+              ],
+              "Work State": [
+                14
+              ],
+              "Three seeded": [
+                16
+              ],
+              "Next Move": [
+                18
+              ],
+              "Continue the user request": [
+                20
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                5
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                22
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "20": {
+      "native_sha256": "56a004185a05853e74f8283f7afc7d5dd1bcacdd5b758231455dcf5d14692e70",
+      "frames": [
+        {
+          "scenario": "compaction-home",
+          "different_cells": 6,
+          "symbol_different": 6,
+          "style_only_different": 0,
+          "field_counts": {
+            "symbol": 6,
+            "fg": 1
+          },
+          "different_cells_by_row_1based": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            6,
+            0
+          ],
+          "different_pixels": 298,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-seed-1",
+          "different_cells": 105,
+          "symbol_different": 96,
+          "style_only_different": 9,
+          "field_counts": {
+            "symbol": 96,
+            "fg": 73
+          },
+          "different_cells_by_row_1based": [
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            0,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 4419,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-seed-2",
+          "different_cells": 109,
+          "symbol_different": 100,
+          "style_only_different": 9,
+          "field_counts": {
+            "symbol": 100,
+            "fg": 74
+          },
+          "different_cells_by_row_1based": [
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            0,
+            21,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 4629,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-seed-3",
+          "different_cells": 109,
+          "symbol_different": 100,
+          "style_only_different": 9,
+          "field_counts": {
+            "symbol": 100,
+            "fg": 74
+          },
+          "different_cells_by_row_1based": [
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            0,
+            21,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 4647,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [],
+              "VIS34-CHECKPOINT": [],
+              "Work State": [],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-overflow-running",
+          "different_cells": 96,
+          "symbol_different": 85,
+          "style_only_different": 11,
+          "field_counts": {
+            "fg": 77,
+            "symbol": 85
+          },
+          "different_cells_by_row_1based": [
+            3,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            0,
+            21,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 3693,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [],
+              "Objective": [
+                26
+              ],
+              "VIS34-CHECKPOINT": [
+                28
+              ],
+              "Work State": [
+                30
+              ],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                21
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            },
+            "oc": {
+              "Compaction · 1.2K": [],
+              "Objective": [
+                26
+              ],
+              "VIS34-CHECKPOINT": [
+                28
+              ],
+              "Work State": [
+                30
+              ],
+              "Three seeded": [],
+              "Next Move": [],
+              "Continue the user request": [],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                21
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": []
+            }
+          }
+        },
+        {
+          "scenario": "compaction-overflow-completed",
+          "different_cells": 100,
+          "symbol_different": 88,
+          "style_only_different": 12,
+          "field_counts": {
+            "symbol": 88,
+            "fg": 90
+          },
+          "different_cells_by_row_1based": [
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            0,
+            21,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            16,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 3593,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [
+                16
+              ],
+              "Objective": [
+                18
+              ],
+              "VIS34-CHECKPOINT": [
+                20
+              ],
+              "Work State": [
+                22
+              ],
+              "Three seeded": [
+                24
+              ],
+              "Next Move": [
+                26
+              ],
+              "Continue the user request": [
+                28
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                13
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                30
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [
+                16
+              ],
+              "Objective": [
+                18
+              ],
+              "VIS34-CHECKPOINT": [
+                20
+              ],
+              "Work State": [
+                22
+              ],
+              "Three seeded": [
+                24
+              ],
+              "Next Move": [
+                26
+              ],
+              "Continue the user request": [
+                28
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                13
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                30
+              ]
+            }
+          },
+          "summary_divider_and_body_rows_16_through_29_different_cells": 0
+        },
+        {
+          "scenario": "compaction-reopened",
+          "different_cells": 100,
+          "symbol_different": 88,
+          "style_only_different": 12,
+          "field_counts": {
+            "symbol": 88,
+            "fg": 90
+          },
+          "different_cells_by_row_1based": [
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            57,
+            0,
+            21,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            16,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 3593,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [
+                16
+              ],
+              "Objective": [
+                18
+              ],
+              "VIS34-CHECKPOINT": [
+                20
+              ],
+              "Work State": [
+                22
+              ],
+              "Three seeded": [
+                24
+              ],
+              "Next Move": [
+                26
+              ],
+              "Continue the user request": [
+                28
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                13
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                30
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [
+                16
+              ],
+              "Objective": [
+                18
+              ],
+              "VIS34-CHECKPOINT": [
+                20
+              ],
+              "Work State": [
+                22
+              ],
+              "Three seeded": [
+                24
+              ],
+              "Next Move": [
+                26
+              ],
+              "Continue the user request": [
+                28
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                13
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                30
+              ]
+            }
+          }
+        },
+        {
+          "scenario": "compaction-restart-next",
+          "different_cells": 55,
+          "symbol_different": 46,
+          "style_only_different": 9,
+          "field_counts": {
+            "symbol": 46,
+            "fg": 49
+          },
+          "different_cells_by_row_1based": [
+            0,
+            21,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            16,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            18,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 1903,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [
+                8
+              ],
+              "Objective": [
+                10
+              ],
+              "VIS34-CHECKPOINT": [
+                12
+              ],
+              "Work State": [
+                14
+              ],
+              "Three seeded": [
+                16
+              ],
+              "Next Move": [
+                18
+              ],
+              "Continue the user request": [
+                20
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                5
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                22
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [
+                8
+              ],
+              "Objective": [
+                10
+              ],
+              "VIS34-CHECKPOINT": [
+                12
+              ],
+              "Work State": [
+                14
+              ],
+              "Three seeded": [
+                16
+              ],
+              "Next Move": [
+                18
+              ],
+              "Continue the user request": [
+                20
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                5
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                22
+              ]
+            }
+          }
+        },
+        {
+          "scenario": "compaction-undo",
+          "different_cells": 107,
+          "symbol_different": 83,
+          "style_only_different": 24,
+          "field_counts": {
+            "symbol": 83,
+            "fg": 98,
+            "bg": 4
+          },
+          "different_cells_by_row_1based": [
+            0,
+            1,
+            57,
+            0,
+            21,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            16,
+            0,
+            3,
+            3,
+            3,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 3649,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [
+                11
+              ],
+              "Objective": [
+                13
+              ],
+              "VIS34-CHECKPOINT": [
+                15
+              ],
+              "Work State": [
+                17
+              ],
+              "Three seeded": [
+                19
+              ],
+              "Next Move": [
+                21
+              ],
+              "Continue the user request": [
+                23
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                8
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                25
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [
+                11
+              ],
+              "Objective": [
+                13
+              ],
+              "VIS34-CHECKPOINT": [
+                15
+              ],
+              "Work State": [
+                17
+              ],
+              "Three seeded": [
+                19
+              ],
+              "Next Move": [
+                21
+              ],
+              "Continue the user request": [
+                23
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                8
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                25
+              ]
+            }
+          }
+        },
+        {
+          "scenario": "compaction-redo",
+          "different_cells": 55,
+          "symbol_different": 46,
+          "style_only_different": 9,
+          "field_counts": {
+            "symbol": 46,
+            "fg": 49
+          },
+          "different_cells_by_row_1based": [
+            0,
+            21,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            16,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            18,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "different_pixels": 1903,
+          "pixels_checked": 647040,
+          "positions_1based": {
+            "upstream": {
+              "Compaction · 1.2K": [
+                8
+              ],
+              "Objective": [
+                10
+              ],
+              "VIS34-CHECKPOINT": [
+                12
+              ],
+              "Work State": [
+                14
+              ],
+              "Three seeded": [
+                16
+              ],
+              "Next Move": [
+                18
+              ],
+              "Continue the user request": [
+                20
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                5
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                22
+              ]
+            },
+            "oc": {
+              "Compaction · 1.2K": [
+                8
+              ],
+              "Objective": [
+                10
+              ],
+              "VIS34-CHECKPOINT": [
+                12
+              ],
+              "Work State": [
+                14
+              ],
+              "Three seeded": [
+                16
+              ],
+              "Next Move": [
+                18
+              ],
+              "Continue the user request": [
+                20
+              ],
+              "VIS34 held tool:": [],
+              "VIS34 next:": [
+                5
+              ],
+              "VIS34-HELD-DONE": [],
+              "VIS34-NEXT-DONE": [
+                22
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

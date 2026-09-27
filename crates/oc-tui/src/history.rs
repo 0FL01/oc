@@ -447,6 +447,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         output_tokens: turn.usage.map(|v| v.1),
         context_usage: turn.context_usage,
         streamed_ms: turn.streamed_ms,
+        session_tps: None,
         interrupted: turn.status == "cancelled",
         status: Some(turn.status.clone()),
         agent_color_index: turn.agent_color_index,

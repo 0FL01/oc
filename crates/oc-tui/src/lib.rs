@@ -40,3 +40,4 @@ pub(crate) fn truncate_utf8(text: &str, max: usize) -> &str {
     }
     &text[..end]
 }
+pub mod compaction;

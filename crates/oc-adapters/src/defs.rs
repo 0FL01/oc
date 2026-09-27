@@ -123,6 +123,23 @@ impl AgentDef {
     }
 }
 
+/// Pinned core/plugin/agent.ts default Build registration. Config transforms
+/// remain authoritative; this profile adds no model or permission override.
+pub(crate) fn builtin_build() -> AgentDef {
+    AgentDef {
+        id: "build".into(),
+        description: "The default agent. Executes tools based on configured permissions.".into(),
+        model: None,
+        variant: None,
+        body: String::new(),
+        permissions: BTreeMap::new(),
+        permission_rules: Default::default(),
+        hidden: false,
+        mode: Some("primary".into()),
+        origin: "builtin".into(),
+    }
+}
+
 /// Non-executable command (literal expansion only, via `expand_command`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommandDef {

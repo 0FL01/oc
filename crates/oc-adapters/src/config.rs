@@ -256,6 +256,8 @@ impl ConversationKeybinds {
 /// Effective immutable generation (T07 subset).
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Generation {
+    pub config_diagnostics: Vec<oc_core::queries::ConfigDiagnostic>,
+    pub compaction: crate::compaction::CompactionConfig,
     /// Explicit animation preference from the ordered config sources.
     pub animations: Option<bool>,
     /// Providers by id in sorted order.
@@ -598,6 +600,10 @@ fn assemble_with_reader(
     let mut terminal_copy = None;
     let mut animations_source = None;
     let mut animations = None;
+    let mut compaction = crate::compaction::CompactionConfig::default();
+    let mut compaction_source = None;
+    let mut config_diagnostics = Vec::new();
+    let mut compaction_provenance = BTreeMap::new();
 
     for source in sources {
         let value = parse_jsonc(&source.text, &source.path)?;
@@ -630,6 +636,23 @@ fn assemble_with_reader(
                 reason: "must be a boolean".to_string(),
             })?);
             animations_source = Some(source.path.clone());
+        }
+        if let Some(value) = obj.get("compaction") {
+            let (normalized, notes) = compaction.merge_from(&source.path, value);
+            config_diagnostics.extend(notes);
+            if let Some(normalized) = normalized {
+                compaction_source = Some(source.path.clone());
+                for (field, pointer) in [
+                    ("auto", "/auto"),
+                    ("keep.tokens", "/keep/tokens"),
+                    ("buffer", "/buffer"),
+                ] {
+                    if normalized.pointer(pointer).is_some() {
+                        compaction_provenance
+                            .insert(format!("compaction.{field}"), source.path.clone());
+                    }
+                }
+            }
         }
 
         if let Some(prov) = obj.get("provider") {
@@ -763,9 +786,15 @@ fn assemble_with_reader(
     if let Some(path) = animations_source {
         provenance.insert("animations".to_string(), path);
     }
+    if let Some(path) = compaction_source {
+        provenance.insert("compaction".into(), path);
+    }
+    provenance.extend(compaction_provenance);
 
     Ok((
         Generation {
+            config_diagnostics,
+            compaction,
             animations,
             providers: out_providers,
             mcp: out_mcp,

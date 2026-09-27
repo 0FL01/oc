@@ -1,0 +1,5934 @@
+{
+  "clock": "actual capture-process performance.now; raw PTY timestamps are bridge monotonic_ns",
+  "samples": [
+    {
+      "observed_ms": 72061.036001,
+      "row_1based": 24,
+      "cells": [
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⠼",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "C",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "o",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "m",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "p",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "a",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "c",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "t",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "i",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "o",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "n",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        }
+      ],
+      "text": "  ─────────────────────────────────────────────────── ⠼ Compaction ───────────────────────────────────────────────────  "
+    },
+    {
+      "observed_ms": 72315.199309,
+      "row_1based": 24,
+      "cells": [
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⠇",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "C",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "o",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "m",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "p",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "a",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "c",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "t",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "i",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "o",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "n",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        }
+      ],
+      "text": "  ─────────────────────────────────────────────────── ⠇ Compaction ───────────────────────────────────────────────────  "
+    },
+    {
+      "observed_ms": 72545.615329,
+      "row_1based": 24,
+      "cells": [
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⠹",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "C",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "o",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "m",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "p",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "a",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "c",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "t",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "i",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "o",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "n",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        }
+      ],
+      "text": "  ─────────────────────────────────────────────────── ⠹ Compaction ───────────────────────────────────────────────────  "
+    },
+    {
+      "observed_ms": 72797.087537,
+      "row_1based": 24,
+      "cells": [
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⠼",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "C",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "o",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "m",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "p",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "a",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "c",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "t",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "i",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "o",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "n",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        }
+      ],
+      "text": "  ─────────────────────────────────────────────────── ⠼ Compaction ───────────────────────────────────────────────────  "
+    },
+    {
+      "observed_ms": 73076.502596,
+      "row_1based": 24,
+      "cells": [
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⠇",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "C",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "o",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "m",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "p",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "a",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "c",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "t",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "i",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "o",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "n",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        }
+      ],
+      "text": "  ─────────────────────────────────────────────────── ⠇ Compaction ───────────────────────────────────────────────────  "
+    },
+    {
+      "observed_ms": 73307.176065,
+      "row_1based": 24,
+      "cells": [
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⠙",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "C",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "o",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "m",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "p",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "a",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "c",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "t",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "i",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "o",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "n",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        }
+      ],
+      "text": "  ─────────────────────────────────────────────────── ⠙ Compaction ───────────────────────────────────────────────────  "
+    },
+    {
+      "observed_ms": 73539.749575,
+      "row_1based": 24,
+      "cells": [
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⠼",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "C",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "o",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "m",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "p",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "a",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "c",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "t",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "i",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "o",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "n",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "─",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": " ",
+          "fg": "#ffffff",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        }
+      ],
+      "text": "  ─────────────────────────────────────────────────── ⠼ Compaction ───────────────────────────────────────────────────  "
+    }
+  ]
+}

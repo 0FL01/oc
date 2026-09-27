@@ -355,6 +355,8 @@ fn make_harness(data: tempfile::TempDir, project: tempfile::TempDir) -> Harness 
 
 fn generation() -> Generation {
     Generation {
+        compaction: Default::default(),
+        config_diagnostics: Vec::new(),
         animations: None,
         providers: BTreeMap::new(),
         mcp: BTreeMap::new(),

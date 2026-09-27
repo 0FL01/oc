@@ -2117,7 +2117,13 @@ fn query(
                     .prune_bound(&session.0)
                     .map_err(app_error)?
                     .map(|(_, seq)| seq)
-                    .unwrap_or(0);
+                    .unwrap_or(0)
+                    .max(
+                        db.session_checkpoint(&session.0)
+                            .map_err(app_error)?
+                            .map(|(seq, _)| seq)
+                            .unwrap_or(0),
+                    );
                 let active = db
                     .active_history(
                         &session.0,
@@ -2145,6 +2151,12 @@ fn query(
                     }
                     crate::runtime::estimate_tokens(&text)
                 };
+                let estimated_tokens = estimated_tokens.saturating_add(
+                    db.session_checkpoint(&session.0)
+                        .map_err(app_error)?
+                        .map(|(_, summary)| crate::runtime::estimate_tokens(&summary))
+                        .unwrap_or(0),
+                );
                 let selected = selection::for_turn(db, composition, effective, &session.0)?;
                 let model_context = composition
                     .catalog
@@ -2180,6 +2192,26 @@ fn query(
         InboxMsg::Compress { ack, .. } => {
             let _ = ack.send(Err(CoreError::TurnBusy));
         }
+        InboxMsg::CompactSession { session, ack } => {
+            let result = runtime
+                .queue_compaction(&session.0, oc_core::compaction::CompactionReason::Manual)
+                .map_err(app_error);
+            let _ = ack.send(result);
+        }
+        InboxMsg::CancelCompaction { session, ack } => {
+            let result = runtime
+                .open_session(&session.0)
+                .and_then(|_| runtime.cancel_compaction(&session.0))
+                .map_err(app_error);
+            let _ = ack.send(result);
+        }
+        InboxMsg::CompactionHistory { session, ack } => {
+            let result = runtime
+                .open_session(&session.0)
+                .map_err(app_error)
+                .and_then(|_| db.compaction_history(&session.0).map_err(app_error));
+            let _ = ack.send(result);
+        }
         InboxMsg::Shutdown => {}
     }
 }
@@ -2201,17 +2233,89 @@ async fn worker(
     title_rx: &mut mpsc::Receiver<AutomaticTitleResult>,
     title_work: &Mutex<AutomaticTitles>,
 ) -> Result<WorkerOutcome, String> {
+    runtime.set_compaction_events(events);
+    let mut pending_inputs = std::collections::VecDeque::new();
     'worker: loop {
-        let message = tokio::select! {
-            biased;
-            Some(result) = title_rx.recv() => {
-                commit_automatic_title(db, events, title_work, result);
-                continue;
+        if let Some(session) = runtime.pending_compaction() {
+            let selected = match selection::for_turn(db, composition, effective, &session) {
+                Ok(selected) => selected,
+                Err(_) => {
+                    runtime
+                        .refuse_compaction(&session)
+                        .map_err(|error| error.to_string())?;
+                    continue;
+                }
+            };
+            let operation = runtime.deliver_compaction(
+                &session,
+                &composition.catalog,
+                &selected.model_id,
+                selected.variant.as_deref(),
+                &composition.provider,
+            );
+            tokio::pin!(operation);
+            let mut shutdown = false;
+            let mut deferred = None;
+            loop {
+                tokio::select! {
+                    result = &mut operation => {
+                        if let Err(error) = result {
+                            // Delivery publishes a Failed lifecycle on recoverable
+                            // publication errors and releases ownership. Keep the
+                            // owner serving queries/new work only with that proof.
+                            let failed = db.compaction_history(&session)
+                                .map_err(|storage| storage.to_string())?
+                                .first().is_some_and(|snapshot| snapshot.state == oc_core::compaction::CompactionState::Failed);
+                            if !failed { return Err(error.to_string()); }
+                        }
+                        break;
+                    },
+                    command = inbox.recv(), if !shutdown => match command {
+                        None | Some(InboxMsg::Shutdown) => { shutdown=true; runtime.cancel_all_compactions(); }
+                        Some(command @ InboxMsg::ChangeConversation { .. }) => {
+                            runtime.cancel_all_compactions();
+                            if deferred.is_none() { deferred=Some(command); }
+                            else if let InboxMsg::ChangeConversation { ack,.. } = command { let _=ack.send(Err(CoreError::TurnBusy)); }
+                        }
+                        Some(command @ (InboxMsg::Submit { .. } | InboxMsg::SubmitFresh { .. })) if pending_inputs.len()<MAX_QUEUE_ITEMS => pending_inputs.push_back(command),
+                        Some(command) => query(db,runtime,composition,effective,registry,sessions,home_choices,location_epoch,suggestion_queue,title_work,command),
+                    }
+                }
             }
-            message = inbox.recv() => match message {
-                Some(message) => message,
-                None => break,
-            },
+            if let Some(command) = deferred {
+                query(
+                    db,
+                    runtime,
+                    composition,
+                    effective,
+                    registry,
+                    sessions,
+                    home_choices,
+                    location_epoch,
+                    suggestion_queue,
+                    title_work,
+                    command,
+                );
+            }
+            if shutdown {
+                break 'worker;
+            }
+            continue;
+        }
+        let message = if let Some(message) = pending_inputs.pop_front() {
+            message
+        } else {
+            tokio::select! {
+                biased;
+                Some(result) = title_rx.recv() => {
+                    commit_automatic_title(db, events, title_work, result);
+                    continue;
+                }
+                message = inbox.recv() => match message {
+                    Some(message) => message,
+                    None => break,
+                },
+            }
         };
         // A manual compress request is a real turn: the model drives the
         // compress tool exactly like an automatic nudge.
@@ -2260,7 +2364,10 @@ async fn worker(
                     }
                 }
             }
-            InboxMsg::Shutdown => break 'worker,
+            InboxMsg::Shutdown => {
+                runtime.cancel_all_compactions();
+                break 'worker;
+            }
             InboxMsg::CancelTitle { session, ack } => {
                 let result = if title_work
                     .lock()
@@ -2864,6 +2971,7 @@ async fn worker(
                                 None | Some(InboxMsg::Shutdown) => {
                                     shutdown = true;
                                     cancel.store(true, Ordering::Relaxed);
+                                    runtime.cancel_all_compactions();
                                 }
                                 Some(InboxMsg::CancelTitle { session: target, ack }) => {
                                     let result = if title_work.lock().expect("title work mutex").cancel(&target.0) {
@@ -2883,6 +2991,7 @@ async fn worker(
                                             title_work.lock().expect("title work mutex").cancel(&target.0);
                                         }
                                         cancel.store(true, Ordering::Relaxed);
+                                        runtime.cancel_all_compactions();
                                         conversation_change = Some(command);
                                     } else if let InboxMsg::ChangeConversation { ack, .. } = command {
                                         let _ = ack.send(Err(CoreError::TurnBusy));
@@ -3018,6 +3127,15 @@ async fn worker(
                 title_work,
                 message,
             ),
+        }
+    }
+    runtime.cancel_all_compactions();
+    for pending in pending_inputs {
+        match pending {
+            InboxMsg::Submit { ack, .. } | InboxMsg::SubmitFresh { ack, .. } => {
+                let _ = ack.send(Err(CoreError::Shutdown));
+            }
+            _ => unreachable!(),
         }
     }
     Ok(WorkerOutcome::Stop)

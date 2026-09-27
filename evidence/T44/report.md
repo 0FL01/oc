@@ -1,4 +1,33 @@
-# T44 — parity qualification remains open (2026-09-26)
+# T44 — parity qualification remains open (2026-09-27)
+
+Session compaction is implemented as a real owner operation distinct from DCP:
+manual slash/palette admission coalesces, delivers at a safe tool/LLM boundary,
+streams an actual summary and usage, installs a durable context checkpoint only
+after valid completion and preserves raw history, causal tool records and DCP.
+Automatic threshold uses actual primary usage plus subsequent content; known
+overflow rebuild is bounded per logical step. Undo/Redo and fork restore the
+historical checkpoint. Cancellation, schema-inclusive admission and lifecycle
+publication failures have independent regressions. Config normalization implements
+the newer b9760200 amendment: unsupported/invalid leaves are skipped with typed
+source/field/kind/action diagnostics; native keys win valid alias conflicts; defaults
+and ordered layers remain intact. Thirteen differential cases execute the unchanged
+pinned TS normalizer. Both debug and rebuilt release actual headless/TUI entry tests
+with `prune=true/false` pass without weakening other validation.
+
+Final serialized workspace/release/oracle gate **PASS**:
+`tool_0e0ac5a5c001YMn8ZMaXNoXIrZ`. Real paired source-built captures
+[`compaction-report.md`](../tui/recovery-v00/compaction-report.md) preserve all 23
+attempts, including earlier threshold/palette/spacing failures. Final manual,
+threshold and overflow behavior passes on both sides, with actual summary/main/tool
+counts and read-only raw-history/context/restart/workspace checks. The final explicit
+TPS-false threshold capture `compaction20260927-23` has zero archive-tail and
+compaction divider/body differences; its full completed frame still differs in
+three independently measured elapsed digits. All compared full frames remain
+DIFFERENT. Animated capture observes all ten Braille phases (median raw output
+interval 83.504ms original / 79.770ms native), not aligned phase parity. Production
+provider-native compaction is unsupported; its fake capability test is not live API
+support. **VIS34/V09 remain open.** Effective builtin Build and admitted TPS display
+are owner-derived, not invented UI labels; stored usage remains unchanged.
 
 The VIS31/VIS32 implementation replaces unconditional polling/redraw with bounded
 event-driven scheduling and real active deadlines, preserving scanner clock cadence.
@@ -82,7 +111,7 @@ Additional committed source `ae17373` aligns narrow Home footer and completed at
 
 For the **concurrent title** source slice, serialized workspace fmt, locked tests (zero failures), all-target Clippy `-D warnings`, locked build, docs/progress checks, capture JS/Python syntax and diff check **PASS**: `/home/opencode/.local/share/opencode/tool-output/tool_0da95f4fe001MFRpuvCuT6Lf82`. Prior short-Home gate: `/home/opencode/.local/share/opencode/tool-output/tool_0d9f9c9fa0017Tkc8g24VlrSNk`; prior Home footer gate: `/home/opencode/.local/share/opencode/tool-output/tool_0d9ed5ef0001ICIYpexUnLdJBu`. No code gate qualifies V09. Inherited untracked `.opencode/` was never inspected, modified or staged and prevents a literal clean-status V09 claim.
 
-**Current next work:** implement 4bee144 session compaction parity without removing DCP, then the newer owner apply_patch, permission approval and leader-pending presentation requirements. Continue exact-frame qualification, same-state public replay investigation and remaining high-refresh measurements without falsifying durations/version. T45 owns non-file mention exposure. A future owner decision may be needed for genuinely irreconcilable truthful identity on required wide Home frames; do not presume such a decision now, modify the acceptance contract, or claim `TUI_PARITY_VERIFIED` while any required exact comparison fails. The earlier block checkpoint `progress/M9/T44/0055.md` is superseded by resumed active T44; it was not rewritten.
+**Current next work:** deliver the verified compaction slice, then the owner apply_patch, permission approval and leader-pending presentation requirements. Continue exact-frame qualification, same-state public replay investigation and remaining high-refresh measurements without falsifying durations/version. T45 owns non-file mention exposure. A future owner decision may be needed for genuinely irreconcilable truthful identity on required wide Home frames; do not presume such a decision now, modify the acceptance contract, or claim `TUI_PARITY_VERIFIED` while any required exact comparison fails. The earlier block checkpoint `progress/M9/T44/0055.md` is superseded by resumed active T44; it was not rewritten.
 
 The historical first VIS10 foundation slice mapped painted user-message lines and hover shading. [`message-hover-20260926-01`](../tui/message-hover-20260926-01/report.md) observed the same normal-to-hover transition, with full frames DIFFERENT by two elapsed digits. At that checkpoint there was no menu or durable ID. The resumed implementation now carries durable owner IDs and real actions; see [current functional evidence](conversation-only-report.md). The earlier capture remains immutable and is not promoted to parity PASS.
 

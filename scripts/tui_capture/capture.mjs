@@ -12,6 +12,7 @@ import {probeBounded} from './bounded.mjs';
 import {probeWheel} from './wheel.mjs';
 import {probeSessions} from './sessions.mjs';
 import {probeRevertRedo} from './revert_redo.mjs';
+import {probeCompaction} from './compaction.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
@@ -19,6 +20,18 @@ const args = Object.fromEntries(process.argv.slice(2).map((v, i, a) => v.startsW
 const boundedMode = args['bounded-mode'];
 const sessionsInteraction = args['sessions-interaction'] === 'true';
 const revertRedo = args['revert-redo'] === 'true';
+const compaction = args.compaction === 'true';
+const compactionTrigger = args['compaction-trigger'] || 'manual';
+const compactionAnimation = args['compaction-animation'] === 'true';
+const compactionTps = args['compaction-tps'] === undefined ? null : args['compaction-tps'] === 'true';
+for(const key of ['compaction-animation','compaction-tps'])if(args[key]!==undefined&&(!compaction||!['true','false'].includes(args[key])))throw Error(`--${key} requires --compaction true and true|false`);
+if(compactionAnimation&&compactionTrigger!=='threshold')throw Error('--compaction-animation true requires the bounded threshold fixture');
+if(args['compaction-trigger'] && (!compaction || !['manual','threshold','overflow'].includes(compactionTrigger)))throw Error('--compaction-trigger requires --compaction true and manual|threshold|overflow');
+if(args.compaction !== undefined && !['true','false'].includes(args.compaction))throw Error('--compaction must be true or false');
+if(compaction && (args.geometry!=='true' || args.sidebar!=='hide' || args.sample!=='short' ||
+    Number(args.columns)!==120 || Number(args.rows)!==40 || !args.reference || !args.oc || args.session || args['seed-root'] || boundedMode ||
+    Object.entries(args).some(([k,v])=>v==='true'&&!['compaction','geometry','build-oc','compaction-animation','compaction-tps'].includes(k))))
+  throw Error('--compaction requires exclusive paired short 120x40 geometry sidebar hide');
 if(args['revert-redo'] !== undefined && !['true','false'].includes(args['revert-redo']))throw Error('--revert-redo must be true or false');
 if(revertRedo && (args.geometry!=='true' || args.sidebar!=='hide' || args.sample!=='short' ||
     Number(args.columns)!==120 || Number(args.rows)!==40 || !args.reference || !args.oc || args.session || args['seed-root'] ||
@@ -266,6 +279,7 @@ const json = (name, value) => fs.writeFileSync(path.join(output, name), JSON.str
 const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
 const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
+    ...(compaction ? {compaction:true,compaction_trigger:compactionTrigger,compaction_animation:compactionAnimation,compaction_tps:compactionTps,probe_sha256:sha(fs.readFileSync(path.join(here,'compaction.mjs'))),fixture_protocol_sha256:sha(fs.readFileSync(path.join(here,'compaction_fixture.py')))} : {}),
     ...(revertRedo ? {revert_redo:true,probe_sha256:sha(fs.readFileSync(path.join(here,'revert_redo.mjs')))} : {}),
     ...(boundedMode ? {bounded_mode:boundedMode,bounded_probe_sha256:sha(fs.readFileSync(path.join(here,boundedMode==='wheel'?'wheel.mjs':'bounded.mjs')))} : {}),
     ...(sessionsInteraction ? {sessions_interaction:true,sessions_probe_sha256:sha(fs.readFileSync(path.join(here,'sessions.mjs')))} : {}),
@@ -292,7 +306,7 @@ const sourceManifest = Object.fromEntries([...new Set(sourcePaths.stdout.split('
   .map(name => [name,sha(fs.readFileSync(path.join(repo,name)))]));
 json('source-manifest.json', sourceManifest);
 const lock = {schema_version: 1, started: new Date().toISOString(), runner_version: 1,
-    runner_hashes: Object.fromEntries(['capture.mjs','frontend.js','bridge.py',...(boundedMode==='wheel'?['wheel.mjs']:[]),...(revertRedo?['revert_redo.mjs']:[]),...(messageActions?['message_actions.mjs']:[]),...(sessionsInteraction?['sessions.mjs']:[])].map(n => [n, sha(fs.readFileSync(path.join(here,n)))])),
+    runner_hashes: Object.fromEntries(['capture.mjs','frontend.js','bridge.py',...(compaction?['compaction.mjs','compaction_fixture.py']:[]),...(boundedMode==='wheel'?['wheel.mjs']:[]),...(revertRedo?['revert_redo.mjs']:[]),...(messageActions?['message_actions.mjs']:[]),...(sessionsInteraction?['sessions.mjs']:[])].map(n => [n, sha(fs.readFileSync(path.join(here,n)))])),
   fixture_sha256: fixtureSha, fixture_files: fixtureFiles, oc: {commit, tree, dirty_diff_sha256: sha(diff),
     source_manifest_sha256: sha(canonical(sourceManifest))},
   sources: {upstream_commit: '2670273ff17da96f85c5826ced57aa1b368754fa'}, attempts: [], captures: []};
@@ -354,7 +368,8 @@ try {
     unicode_width_policy: '@xterm/addon-unicode11 0.9.0 (Unicode 11)',
     settings: {theme: 'opencode', mode: 'dark', sidebar: args.sidebar || 'auto', devtools: args.devtools === 'unset' ? null : args.devtools === 'true', tabs: args.tabs || 'horizontal',
       clock_policy: 'real application wall clock; fixed provider created_at; no masking or clock claim',
-        animations: scanner ? scannerAnimation : 'original supported animations=false; completed states only; terminal cursorBlink=false',
+          animations: compaction ? compactionAnimation : scanner ? scannerAnimation : 'original supported animations=false; completed states only; terminal cursorBlink=false',
+          ...(compaction ? {compaction_tps:compactionTps} : {}),
        ...(scanner ? {scanner_cancel:scannerCancel} : {}),
        ...(modelsInteraction ? {models_interaction:true,catalog_extension:'fixture-scroll-00..11'} : {})}};
   for (const origin of ['upstream','oc']) {
@@ -371,7 +386,8 @@ try {
       sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,
       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
           agent_profile: args['agent-profile'] === 'true', bounded_mode:boundedMode==='wheel'?'shell':boundedMode, wheel_probe:boundedMode==='wheel', metrics_path:path.join(dir,'scheduler.json'), sessions_interaction:sessionsInteraction,
-         revert_redo:revertRedo,
+           revert_redo:revertRedo, compaction, compaction_trigger:compactionTrigger,
+           ...(compaction ? {compaction_animation:compactionAnimation,compaction_tps:compactionTps,animations:compactionAnimation} : {}),
         sessions_resume:!!args['sessions-root'],
         sessions_campaign:args['sessions-campaign'] || 'legacy',
         sessions_prior_evidence:args['sessions-evidence'] ? path.resolve(args['sessions-evidence'],origin,'sessions-checks.json') : null,
@@ -406,7 +422,7 @@ try {
         const bytes=Buffer.from(event.data, 'base64');
         const n=event.generation || 0;
          chunks[n].push(bytes);
-         if(boundedMode==='wheel') {outputTimeline.push({at_ns:event.at_ns,received_ms:performance.now(),bytes:bytes.length,base64:event.data});fs.appendFileSync(path.join(dir,'output-timeline.jsonl'),JSON.stringify(outputTimeline.at(-1))+'\n');}
+         if(boundedMode==='wheel'||compactionAnimation) {outputTimeline.push({...(compactionAnimation?{generation:n}:{}),at_ns:event.at_ns,received_ms:performance.now(),bytes:bytes.length,base64:event.data});fs.appendFileSync(path.join(dir,'output-timeline.jsonl'),JSON.stringify(outputTimeline.at(-1))+'\n');}
         // Keep a diagnostic VT prefix if the capture process is interrupted
         // before the normal per-generation teardown writes its sealed copy.
         fs.appendFileSync(path.join(dir,'raw.vt'),bytes);
@@ -421,7 +437,7 @@ try {
         const f = await frame();
         const key = sha(JSON.stringify(f));
         stable = key===previous ? stable+1 : 0; previous=key;
-        if (predicate(f) && stable >= 4) return f;
+         if (predicate(f) && (stable >= 4 || (compactionAnimation && /^(DB |fixture control)/.test(label)))) return f;
         if (bridgeExit !== undefined) throw Error('Bridge exited '+bridgeExit+' waiting for '+label);
         await sleep(200);
       }
@@ -516,7 +532,16 @@ try {
          if(checks.status!=='PASS')result=1;
          json('capture.lock.json',lock);continue;
        }
-      if(spec.agent_profile && !initial.text.includes('Reader · MiMo-V2.6-Flash Free'))
+       if(compaction) {
+          const checks=await probeCompaction({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,trigger:compactionTrigger,animated:compactionAnimation,
+           control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
+           relaunch:async()=>{generation=1;chunks[1]=[];await page.evaluate(()=>{term.reset();term.clear();});
+             child.stdin.write(JSON.stringify({kind:'relaunch'})+'\n');}});
+         lock.compaction ??= {};lock.compaction[origin]=checks;
+         if(checks.status!=='PASS')result=1;
+         json('capture.lock.json',lock);continue;
+       }
+       if(spec.agent_profile && !initial.text.includes('Reader · MiMo-V2.6-Flash Free'))
         throw Error('Explicit paired profile is not selected in the initial prompt');
       if(args.geometry === 'true') await capture('home', initial, 'CAPTURED');
       const autocompleteChecks=[];
@@ -2799,7 +2824,15 @@ try {
       same:canonical(upstream)===canonical(native)};
   }
   lock.profile=profile;
-  lock.qualification = {
+  lock.qualification = compaction ? {
+    status:'DIAGNOSTIC_COMPACTION_ONLY',
+    trigger:compactionTrigger,
+    actual_requests:'Actual PTY main, title and differentiated summarizer Responses requests; full fake-provider wire recorded',
+    database:'Read-only SQLite mode=ro; no transcript import or mutation',
+     animation:compactionAnimation?'animations=true on both binaries; actual raw PTY timeline and live sampled Braille observations; paused full-grid/PNG phase may differ between binaries; cadence is observational':'animations=false on both binaries; running partial summary held at the real provider stream; Braille cadence unqualified',
+     session_tps_override:compactionTps,
+    unresolved:['Whole-frame grid and PNG differences remain visible','Provider-native compaction has no registered production capability','Release binary and full VIS34 configuration differential matrix not qualified by this capture']
+  } : {
     status: 'DIAGNOSTIC_BASELINES_ONLY',
     stable_state_predicate: 'Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response',
     requested_settings: profile.settings,

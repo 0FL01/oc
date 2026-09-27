@@ -134,6 +134,7 @@ pub enum TuiPanel {
 /// Work the panel asked the binary to apply through the application API.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PanelIntent {
+    CompactSession,
     ChangeConversation {
         action: oc_core::queries::ConversationAction,
     },
@@ -529,6 +530,10 @@ pub struct TuiState {
     session: Option<SessionId>,
     status: TuiStatus,
     scanner_frame: usize,
+    compactions: Vec<oc_core::compaction::CompactionSnapshot>,
+    compaction_at: Option<Instant>,
+    compaction_frame: usize,
+    compaction_turn_messages: std::collections::BTreeMap<String, String>,
     scanner_at: Option<Instant>,
     panel: TuiPanel,
     pub(crate) select: crate::dialog::SelectList,
@@ -699,6 +704,10 @@ impl TuiState {
             session,
             status: TuiStatus::Idle,
             scanner_frame: 0,
+            compactions: Vec::new(),
+            compaction_at: None,
+            compaction_frame: 0,
+            compaction_turn_messages: Default::default(),
             scanner_at: None,
             panel: TuiPanel::None,
             select: Default::default(),
@@ -1036,6 +1045,10 @@ impl TuiState {
     }
 
     pub fn set_session(&mut self, session: SessionId) {
+        self.compactions.clear();
+        self.compaction_turn_messages.clear();
+        self.compaction_at = None;
+        self.compaction_frame = 0;
         self.completion_anchor.get_mut().take();
         self.conversation_available = None;
         self.reverted = None;
@@ -1125,6 +1138,9 @@ impl TuiState {
             .and_then(|expiry| expiry.started.map(|at| at + expiry.remaining));
         [
             scanner,
+            self.compaction_at
+                .filter(|_| self.chrome.animations != Some(false))
+                .map(|at| at + Duration::from_millis(80)),
             toast,
             self.interrupt_armed_until,
             self.next_scroll_animation_deadline(),
@@ -1145,7 +1161,8 @@ impl TuiState {
         self.tick_toast(now);
         let scanner = self.tick_scanner(now);
         let wheel = self.tick_scroll_animation(now);
-        expired || scanner || wheel
+        let compaction = self.tick_compaction(now);
+        expired || scanner || wheel || compaction
     }
 
     fn reset_scanner(&mut self) {
@@ -1409,7 +1426,9 @@ impl TuiState {
         if self.session.is_none()
             && matches!(
                 action,
-                CommandAction::OpenCards | CommandAction::DcpCompress { .. }
+                CommandAction::OpenCards
+                    | CommandAction::DcpCompress { .. }
+                    | CommandAction::CompactSession
             )
         {
             return Some("no session yet");
@@ -1846,6 +1865,7 @@ impl TuiState {
             action,
             CommandAction::NewSession
                 | CommandAction::CloseTab
+                | CommandAction::CompactSession
                 | CommandAction::ReloadConfiguration
                 | CommandAction::UndoConversation
                 | CommandAction::RedoConversation
@@ -1895,7 +1915,109 @@ impl TuiState {
 
     /// True while a submission awaits acceptance or a turn streams.
     pub fn is_busy(&self) -> bool {
-        self.active_turn.is_some() || self.pending.is_some()
+        self.active_turn.is_some()
+            || self.pending.is_some()
+            || self.compactions.iter().any(crate::compaction::active)
+    }
+
+    /// Replace from the owner's conversation-filtered replay projection.
+    pub fn apply_compaction_history(
+        &mut self,
+        snapshots: Vec<oc_core::compaction::CompactionSnapshot>,
+    ) {
+        self.compactions = snapshots
+            .into_iter()
+            // The owner's bounded journal query returns newest-first.
+            .rev()
+            .filter(|s| self.session.as_ref().is_some_and(|id| id.0 == s.session))
+            .collect();
+        self.sync_compaction_clock();
+    }
+
+    pub fn apply_compaction(&mut self, snapshot: oc_core::compaction::CompactionSnapshot) {
+        if self
+            .session
+            .as_ref()
+            .is_none_or(|id| id.0 != snapshot.session)
+        {
+            return;
+        }
+        if let Some(current) = self.compactions.iter_mut().find(|s| s.id == snapshot.id) {
+            // Admission may arrive after a running/completed broadcast.
+            if !crate::compaction::active(current) && crate::compaction::active(&snapshot)
+                || current.state == oc_core::compaction::CompactionState::Running
+                    && snapshot.state == oc_core::compaction::CompactionState::Queued
+            {
+                return;
+            }
+            *current = snapshot;
+        } else {
+            self.compactions.push(snapshot);
+        }
+        if self.compactions.len() > 100 {
+            self.compactions.remove(0);
+        }
+        self.sync_compaction_clock();
+    }
+
+    /// Palette admission preserves the composer, including a literal `/compact` draft.
+    pub fn compaction_request_revision(&self) -> Option<u64> {
+        (self.panel != TuiPanel::Commands).then_some(self.input_revision)
+    }
+
+    pub fn compaction_admitted(
+        &mut self,
+        snapshot: oc_core::compaction::CompactionSnapshot,
+        revision: Option<u64>,
+    ) {
+        if self
+            .session
+            .as_ref()
+            .is_none_or(|id| id.0 != snapshot.session)
+        {
+            return;
+        }
+        if Some(self.input_revision) == revision
+            && dispatch(self.input.trim()) == Some(CommandAction::CompactSession)
+        {
+            self.input.clear();
+            self.editor.clear();
+            self.input_revision += 1;
+        }
+        if self.panel == TuiPanel::Commands {
+            self.close_panel();
+        }
+        self.apply_compaction(snapshot);
+    }
+
+    fn sync_compaction_clock(&mut self) {
+        if self
+            .compactions
+            .iter()
+            .any(|s| s.state == oc_core::compaction::CompactionState::Running)
+        {
+            self.compaction_at.get_or_insert_with(Instant::now);
+        } else {
+            self.compaction_at = None;
+            self.compaction_frame = 0;
+        }
+    }
+
+    fn tick_compaction(&mut self, now: Instant) -> bool {
+        if self.chrome.animations == Some(false) {
+            return false;
+        }
+        let Some(at) = self.compaction_at else {
+            return false;
+        };
+        let elapsed = now.saturating_duration_since(at).as_millis();
+        let steps = elapsed / 80;
+        if steps == 0 {
+            return false;
+        }
+        self.compaction_frame = (self.compaction_frame + (steps % 10) as usize) % 10;
+        self.compaction_at = now.checked_sub(Duration::from_millis((elapsed % 80) as u64));
+        true
     }
 
     /// Status note, if any (intent errors and hints; never chat history).
@@ -1910,6 +2032,7 @@ impl TuiState {
 
     /// Newest page becomes the whole window; scroll pins to the newest row.
     pub fn attach_page(&mut self, page: &HistoryPage) {
+        self.remember_compaction_turns(page);
         self.completion_anchor.get_mut().take();
         self.reverted = page.reverted.clone();
         self.clear_transcript_selection();
@@ -1929,6 +2052,7 @@ impl TuiState {
     /// resets use attach_page. Preserve a painted part, not a total-row delta:
     /// durable projection may replace synthetic parts and the paging window.
     pub fn refresh_completed_page(&mut self, page: &HistoryPage) {
+        self.remember_compaction_turns(page);
         let view = self.viewport.get().filter(|_| self.scroll > 0);
         let old_rows = self.transcript_rows();
         let mut anchor = None;
@@ -2044,6 +2168,7 @@ impl TuiState {
 
     /// Add an older page at the front of the window.
     pub fn prepend_page(&mut self, page: &HistoryPage) {
+        self.remember_compaction_turns(page);
         self.completion_anchor.get_mut().take();
         self.reverted = page.reverted.clone();
         self.scroll = self.display_scroll();
@@ -2055,6 +2180,7 @@ impl TuiState {
 
     /// Add a newer page at the back of the window.
     pub fn append_page(&mut self, page: &HistoryPage) {
+        self.remember_compaction_turns(page);
         self.reverted = page.reverted.clone();
         self.clear_transcript_selection();
         self.window.append_newer(page);
@@ -2724,6 +2850,7 @@ impl TuiState {
     /// A parked route may carry an older catalog. Route activation adopts the
     /// current view's last successful owner projection, not the parked value.
     pub fn sync_clipboard_mode_from(&mut self, current: &Self) {
+        self.chrome.session_tps = current.chrome.session_tps;
         self.set_conversation_shortcuts(
             Some(current.conversation_shortcut(true)),
             Some(current.conversation_shortcut(false)),
@@ -3467,7 +3594,83 @@ impl TuiState {
                 tool: None,
             });
         }
+        self.interleave_compactions(&mut rows);
+        // Apply current owner configuration to the render copy, including
+        // replayed/parked footer metadata. Retain every measured statistic in
+        // the history/live state. Indexed footers are generated outside the
+        // Markdown body cache, so config changes cannot reuse a stale footer.
+        for row in &mut rows {
+            if let Some(meta) = &mut row.meta {
+                meta.session_tps = self.chrome.session_tps;
+            }
+        }
         rows
+    }
+
+    fn interleave_compactions(&self, rows: &mut Vec<HistoryRow>) {
+        // Traverse newest first so multiple checkpoints sharing one anchor stay ordered.
+        for snapshot in self.compactions.iter().rev() {
+            let anchor = &snapshot.anchor;
+            let at = [
+                anchor.tool.as_ref().and_then(|tool| {
+                    rows.iter()
+                        .rposition(|r| r.tool.as_ref().is_some_and(|card| &card.op == tool))
+                }),
+                anchor.message.as_ref().and_then(|message| {
+                    rows.iter()
+                        .rposition(|r| r.message_id.as_ref().is_some_and(|id| &id.0 == message))
+                }),
+            ]
+            .into_iter()
+            .flatten()
+            .max()
+            // A turn can acquire continuation text after this checkpoint. Its
+            // replay message is a fallback, never a replacement for an exact
+            // tool/message boundary (OC2 compaction20260927-10 completed frame).
+            .or_else(|| {
+                anchor
+                    .turn
+                    .as_ref()
+                    .and_then(|turn| self.compaction_turn_messages.get(turn))
+                    .and_then(|message| {
+                        rows.iter()
+                            .rposition(|r| r.message_id.as_ref().is_some_and(|id| &id.0 == message))
+                    })
+            });
+            let position = if let Some(at) = at {
+                at + 1
+            } else if anchor.message.is_none()
+                && anchor.tool.is_none()
+                && anchor.turn.is_none()
+                && !self.window.has_older()
+            {
+                0
+            } else if crate::compaction::active(snapshot) && !self.window.has_newer() {
+                rows.len()
+            } else {
+                continue;
+            };
+            rows.insert(
+                position,
+                crate::compaction::row(
+                    snapshot,
+                    self.compaction_frame,
+                    self.chrome.animations != Some(false),
+                ),
+            );
+        }
+    }
+
+    fn remember_compaction_turns(&mut self, page: &HistoryPage) {
+        for message in &page.rows {
+            if let Some(turn) = &message.turn {
+                self.compaction_turn_messages
+                    .insert(turn.id.clone(), message.id.0.clone());
+            }
+        }
+        while self.compaction_turn_messages.len() > crate::history::WINDOW_ROWS {
+            self.compaction_turn_messages.pop_first();
+        }
     }
 
     /// Styled transcript lines wrapped to the content-box `width`
@@ -4602,7 +4805,9 @@ impl TuiState {
                     // Pending submission cancellation retains its existing
                     // safety semantics. Once a turn is accepted, the focused
                     // prompt follows the original's two-Esc interrupt guard.
-                    if self.status == TuiStatus::Streaming && self.active_turn.is_some() {
+                    if self.active_turn.is_some()
+                        || self.compactions.iter().any(crate::compaction::active)
+                    {
                         let now = Instant::now();
                         if self.interrupt_armed_until.is_none_or(|until| now >= until) {
                             self.interrupt_armed_until = now.checked_add(Duration::from_secs(5));
@@ -4625,6 +4830,18 @@ impl TuiState {
                             ..KeyOutcome::default()
                         };
                     };
+                    let compaction = self.compactions.iter().any(crate::compaction::active);
+                    if compaction {
+                        if let Err(error) = self.app.cancel_compaction(session.clone()).await {
+                            return KeyOutcome {
+                                note: Some(format!("cancel: {error}")),
+                                ..KeyOutcome::default()
+                            };
+                        }
+                        if self.active_turn.is_none() && self.pending.is_none() {
+                            return KeyOutcome::default();
+                        }
+                    }
                     match self.app.cancel(session).await {
                         Ok(()) => KeyOutcome::default(),
                         Err(error) => KeyOutcome {
@@ -5024,6 +5241,13 @@ impl TuiState {
                 ..KeyOutcome::default()
             };
         }
+        if action == CommandAction::CompactSession {
+            // Retain palette search/cursor and composer until owner admission.
+            return KeyOutcome {
+                intent: Some(PanelIntent::CompactSession),
+                ..KeyOutcome::default()
+            };
+        }
         if self.regenerate_pending.is_some()
             && matches!(action, CommandAction::RenameSession { title: None })
         {
@@ -5162,6 +5386,9 @@ impl TuiState {
             CommandAction::DcpCompress { focus } => {
                 self.panel = TuiPanel::Dcp;
                 outcome.intent = Some(PanelIntent::Compress { focus });
+            }
+            CommandAction::CompactSession => {
+                unreachable!("compaction is returned before modal reset");
             }
         }
         self.sync_modal_cursor();
@@ -6046,6 +6273,7 @@ impl TuiState {
             output_tokens: usage.map(|usage| usage.output_tokens),
             context_usage: None,
             streamed_ms: usage.map(|usage| usage.streamed_ms),
+            session_tps: None,
             interrupted,
             status: self.live_terminal_status.take(),
             agent_color_index: self.live_agent_color_index,
@@ -6356,6 +6584,7 @@ impl ScriptDriver {
             let event = tokio::time::timeout(timeout, self.rx.recv()).await;
             state.poll_submission();
             match event {
+                Ok(Ok(CoreEvent::Compaction(snapshot))) => state.apply_compaction(snapshot),
                 Ok(Ok(CoreEvent::SessionTitleUpdated { session, title })) => {
                     if state.attached_session() == Some(&session) {
                         state.session_title = Some(title);
@@ -6497,6 +6726,103 @@ mod tests {
             seq,
             role,
             text: text.to_string(),
+        }
+    }
+
+    #[tokio::test]
+    async fn vis34_session_tps_is_current_presentation_for_finished_and_replayed_footers() {
+        use oc_core::queries::HistoryTurn;
+        let (app, _, _) = CoreApp::channel(8);
+        let mut state = TuiState::new(app, sid("tps"));
+        let turn = WorkerTurnId("measured-turn".into());
+        state.active_turn = Some(turn.clone());
+        state.active_agent = Some("build".into());
+        state.live_model_label = Some("Measured model".into());
+        state.apply_delta(&turn, "## actual body\n\nretained text");
+        state.apply_usage(&turn, 1000, 200, 4000);
+        state.apply_finished(&turn, "## actual body\n\nretained text", 1500);
+        state.apply_compaction(oc_core::compaction::CompactionSnapshot {
+            anchor: Default::default(),
+            id: "checkpoint".into(),
+            session: "tps".into(),
+            reason: oc_core::compaction::CompactionReason::Manual,
+            state: oc_core::compaction::CompactionState::Completed,
+            summary: "retained checkpoint".into(),
+            provider_native: false,
+            error: None,
+            usage: Some(oc_core::compaction::CompactionUsage {
+                input_tokens: 123,
+                output_tokens: 45,
+                cache_read_tokens: 0,
+                cache_write_tokens: 0,
+                reasoning_tokens: 0,
+            }),
+        });
+        let mut answer = msg(2, Role::Assistant, "## actual body\n\nretained text");
+        answer.turn = Some(HistoryTurn {
+            id: turn.0.clone(),
+            status: "completed".into(),
+            model_label: "Measured model".into(),
+            agent: Some("build".into()),
+            duration_ms: Some(1500),
+            streamed_ms: Some(4000),
+            usage: Some((1000, 200)),
+            ..Default::default()
+        });
+        for replay in [false, true] {
+            if replay {
+                state.attach_page(&page(vec![answer.clone()], 1, false, false));
+            }
+            let stored = state
+                .history()
+                .rows()
+                .iter()
+                .find_map(|row| row.meta.clone())
+                .unwrap();
+            for (location, flag) in [
+                ("/A", None),
+                ("/A", Some(false)),
+                ("/A", Some(true)),
+                ("/B", Some(false)),
+                ("/A", None),
+            ] {
+                let mut owner = snapshot();
+                owner.chrome.location = Some(location.into());
+                owner.chrome.session_tps = flag;
+                state.apply_catalog(owner);
+                let full = state.transcript_lines(80, 80);
+                let (indexed, _) = state.visible_transcript(80, 80, 40);
+                for lines in [full, indexed] {
+                    let text = lines
+                        .iter()
+                        .map(crate::styled::Line::plain_text)
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    assert!(text.contains("Build · Measured model · 1.5s"), "{text}");
+                    assert!(
+                        text.contains("Compaction · 123 in · 45 out"),
+                        "TPS setting cannot hide compaction usage: {text}"
+                    );
+                    assert_eq!(
+                        text.contains("50.0 tok/s"),
+                        flag.unwrap_or(true),
+                        "replay={replay} location={location} {text}"
+                    );
+                }
+                assert_eq!(
+                    state
+                        .history()
+                        .rows()
+                        .iter()
+                        .find_map(|row| row.meta.as_ref())
+                        .unwrap(),
+                    &stored,
+                    "presentation does not erase stored measurements"
+                );
+            }
+            assert_eq!(stored.input_tokens, Some(1000));
+            assert_eq!(stored.output_tokens, Some(200));
+            assert_eq!(stored.streamed_ms, Some(4000));
         }
     }
 

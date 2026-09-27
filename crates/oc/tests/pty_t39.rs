@@ -47,6 +47,8 @@ const REASONING_STEPS_FIRST: &str = "**Inspecting**\n\nPTY_STEPS_FIRST_BODY_6148
 const REASONING_STEPS_SECOND: &str = "**Verifying**\n\nPTY_STEPS_SECOND_BODY_7349";
 const REASONING_STEPS_ANSWER: &str = "PTY_STEPS_FINAL_1625";
 const REASONING_STEPS_OPAQUE: &str = "PTY_STEPS_ENCRYPTED_NEVER_RENDER_8972";
+// Effective owner primary for fixtures without an explicit default_agent.
+const DEFAULT_AGENT: &str = "build";
 
 /// Scripted native Responses peer plus isolated HOME/config.
 struct Fixture {
@@ -2961,7 +2963,7 @@ fn v04_raw_sgr_mouse_backdrop_search_variant_and_actual_model() {
     assert!(contains(&output, b"\x1b[?1006l"), "SGR capture restored");
     let db = oc_adapters::storage::Db::open(pty.data_dir()).unwrap();
     assert_eq!(
-        saved_selection(&db, &fixture, "v04-mouse", "")["variant"],
+        saved_selection(&db, &fixture, "v04-mouse", DEFAULT_AGENT)["variant"],
         "fast"
     );
     assert_eq!(
@@ -3223,7 +3225,7 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
         assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
         let before = {
             let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
-            saved_selection(&db, &fixture, "retired", "")
+            saved_selection(&db, &fixture, "retired", DEFAULT_AGENT)
         };
         assert_eq!(before, serde_json::json!({"id":ALT_MODEL,"variant":"fast"}));
         if retired_model {
@@ -3276,7 +3278,7 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
         assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
         let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
         assert_eq!(
-            saved_selection(&db, &fixture, "retired", ""),
+            saved_selection(&db, &fixture, "retired", DEFAULT_AGENT),
             before,
             "read and refused submit do not rewrite prefs"
         );
@@ -3305,7 +3307,7 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
         assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
         let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
         assert_eq!(
-            saved_selection(&db, &fixture, "retired", ""),
+            saved_selection(&db, &fixture, "retired", DEFAULT_AGENT),
             serde_json::json!({"id":if retired_model {MODEL} else {ALT_MODEL},"variant":null})
         );
     }
@@ -3336,9 +3338,15 @@ async fn v04_legacy_headless_api_supersedes_older_scoped_session_drafts() {
             .await
             .unwrap();
     app.create_session(session.clone()).await.unwrap();
-    app.session_selection(session.clone(), false, Action::Current)
-        .await
-        .unwrap();
+    assert_eq!(
+        app.session_selection(session.clone(), false, Action::Current)
+            .await
+            .unwrap()
+            .agent_id
+            .as_deref(),
+        Some(DEFAULT_AGENT),
+        "assert the real owner identity used by scoped preference keys"
+    );
     app.session_selection(session.clone(), false, Action::Model(ALT_MODEL.into()))
         .await
         .unwrap();
@@ -3450,7 +3458,7 @@ async fn v04_legacy_headless_api_supersedes_older_scoped_session_drafts() {
     guard.join().await.unwrap();
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
     assert_eq!(
-        saved_selection(&db, &fixture, &session.0, ""),
+        saved_selection(&db, &fixture, &session.0, DEFAULT_AGENT),
         serde_json::json!({"id":ALT_MODEL,"variant":"fast"}),
         "legacy API does not erase old scoped records"
     );
@@ -3626,7 +3634,7 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
     assert!(status.success() && contains(&out, ALT_LEAVE) && pty.restored());
     {
         let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
-        let saved = saved_selection(&db, &fixture, "v04-modal", "");
+        let saved = saved_selection(&db, &fixture, "v04-modal", DEFAULT_AGENT);
         assert_eq!(saved["id"], "modal-29");
         assert_eq!(
             saved["variant"], "none",
@@ -3675,7 +3683,7 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
     let (status, out) = pty.wait_exit(DEADLINE);
     assert!(status.success() && contains(&out, ALT_LEAVE) && pty.restored());
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
-    let selection = saved_selection(&db, &fixture, "v04-modal", "");
+    let selection = saved_selection(&db, &fixture, "v04-modal", DEFAULT_AGENT);
     assert_eq!(selection["id"], "modal-29");
     assert_eq!(selection["variant"], serde_json::Value::Null);
     assert!(
@@ -4095,7 +4103,7 @@ fn v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle
         }
     }
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
-    let saved = saved_selection(&db, &fixture, "v04-new", "");
+    let saved = saved_selection(&db, &fixture, "v04-new", DEFAULT_AGENT);
     let draft_key = format!(
         "tui.selection.draft:{}",
         serde_json::json!([
@@ -4107,7 +4115,7 @@ fn v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle
                 .unwrap()
                 .to_string_lossy(),
             "fixture",
-            ""
+            DEFAULT_AGENT
         ])
     );
     let draft: serde_json::Value =
@@ -4375,7 +4383,9 @@ fn aud29_pty_panels_change_runtime_state() {
     pty.send(b"/agents\r");
     wait_screen_row(&pty, "Select agent", DEADLINE);
     wait_screen_row(&pty, "t39agent", DEADLINE);
-    pty.send(b"\r");
+    // Built-in primaries are real picker rows; select the intended definition
+    // by its ID rather than depending on the previous one-row inventory.
+    pty.send(b"t39agent\r");
     wait_screen_row(&pty, "T39agent ·", DEADLINE);
     dismissed(&pty, "Select agent");
     assert!(

@@ -1,0 +1,1094 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/upstream/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/upstream/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/upstream/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/upstream/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/upstream/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/upstream/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"share\": \"disabled\", \"update\": \"disable\", \"plugins\": [\"-opencode.models.dev\"], \"providers\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"package\": \"@opencode/ai/providers/openai/responses\", \"settings\": {\"baseURL\": \"http://127.0.0.1:42047/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"MiMo-V2.6-Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 40000, \"output\": 2048}}, \"fixture-model-2\": {\"name\": \"Muse Spark 1.3 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-3\": {\"name\": \"Ling 3.0 Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-4\": {\"name\": \"Nemotron 3.5 Lightning Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-5\": {\"name\": \"Muse Spark 1.2 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-6\": {\"name\": \"Nemotron 3 Ultra Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-7\": {\"name\": \"MiMo V2.5 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-8\": {\"name\": \"Big Pickle\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}}}}, \"compaction\": {\"auto\": true, \"keep\": {\"tokens\": 0}, \"buffer\": 20000}, \"snapshots\": false, \"permissions\": [{\"action\": \"*\", \"resource\": \"*\", \"effect\": \"deny\"}, {\"action\": \"shell\", \"resource\": \"sleep 25\", \"effect\": \"allow\"}]}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "opencode v2.0.12",
+    "version_exit": 0
+  },
+  {
+    "kind": "provider",
+    "operation": "title",
+    "valid": true,
+    "index": 1,
+    "summary_index": null,
+    "request": {
+      "model": "fixture-model-1",
+      "input": [
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS34 seed 1: preserve requirement R1; no filesystem changes."
+            }
+          ]
+        }
+      ],
+      "instructions": "You are a title generator. You output ONLY a thread title. Nothing else.\n\n<task>\nGenerate a brief title that would help the user find this conversation later.\n\nFollow all rules in <rules>\nUse the <examples> so you know what a good title looks like.\nYour output must be:\n- A single line\n- <=50 characters\n- No explanations\n</task>\n\n<rules>\n- you MUST use the same language as the user message you are summarizing\n- Title must be grammatically correct and read naturally - no word salad\n- Never include tool names in the title (e.g. \"read tool\", \"bash tool\", \"edit tool\")\n- Focus on the main topic or question the user needs to retrieve\n- Vary your phrasing - avoid repetitive patterns like always starting with \"Analyzing\"\n- When a file is mentioned, focus on WHAT the user wants to do WITH the file, not just that they shared it\n- Keep exact: technical terms, numbers, filenames, HTTP codes\n- Remove: the, this, my, a, an\n- Never assume tech stack\n- Never use tools\n- NEVER respond to questions, just generate a title for the conversation\n- The title should NEVER include \"summarizing\" or \"generating\" when generating a title\n- DO NOT SAY YOU CANNOT GENERATE A TITLE OR COMPLAIN ABOUT THE INPUT\n- Always output something meaningful, even if the input is minimal.\n- If the user message is short or conversational (e.g. \"hello\", \"lol\", \"what's up\", \"hey\"):\n  -> create a title that reflects the user's tone or intent (such as Greeting, Quick check-in, Light chat, Intro message, etc.)\n</rules>\n\n<examples>\n\"debug 500 errors in production\" -> Debugging production 500 errors\n\"refactor user service\" -> Refactoring user service\n\"why is app.js failing\" -> app.js failure investigation\n\"implement rate limiting\" -> Rate limiting implementation\n\"how do I connect postgres to my API\" -> Postgres API connection\n\"best practices for React hooks\" -> React hooks best practices\n\"@src/credential.ts can you add refresh token support\" -> Credential refresh token support\n\"@utils/parser.ts this is broken\" -> Parser bug fix\n\"look at @config.json\" -> Config review\n\"@App.tsx add dark mode toggle\" -> Dark mode toggle in App\n</examples>",
+      "store": false,
+      "prompt_cache_key": "ses_f201d794affe3X37Yl625HlWtR",
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "stream": true
+    },
+    "request_sha256": "9e43439d8c905962a630a0ce2d8fadb9a958fd6027c1bb26de3cc0aa06b3fcd2",
+    "path": "/v1/responses",
+    "roles": [
+      "user"
+    ],
+    "registered_tools": []
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "title",
+    "index": 1,
+    "summary_index": null,
+    "usage": {
+      "input_tokens": 6000,
+      "output_tokens": 1800,
+      "total_tokens": 7800,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    }
+  },
+  {
+    "kind": "provider",
+    "operation": "transcript",
+    "valid": true,
+    "index": 2,
+    "summary_index": null,
+    "request": {
+      "model": "fixture-model-1",
+      "input": [
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS34 seed 1: preserve requirement R1; no filesystem changes."
+            }
+          ]
+        }
+      ],
+      "instructions": "You are an AI agent running in OpenCode, a coding agent harness. Help the user accomplish their goals using the tools you have available.\n\n# Harness\n- Responses are rendered as GitHub-flavored Markdown.\n- `<system-reminder>` blocks are harness instructions, not user-authored content. Read and follow them.\n- Prefer parallelizing independent tool calls.\n- Prefer dedicated tools over shell commands; fall back to the shell when a tool cannot do what you need.\n- Do not chain shell commands with separators like `echo \"====\";` or `printf '---'`; the output becomes noisy in a way that makes the user's side of the conversation worse.\n\n# Communication\n- Use clear file paths when referring to files.\n- Keep responses clear and concise, and avoid unnecessary technical jargon.\n\n# Working in codebases\n- Keep changes consistent with the structure, naming, style, and patterns of the surrounding code.\n- Treat unfamiliar files or changes as potential user work and investigate before deleting or overwriting them.\n\n# Your Model\n- Name: MiMo-V2.6-Flash Free\n- Provider ID: fixture\n- Model ID: fixture-model-1\nHere is some useful information about the environment you are running in:\n<env>\n  Current conversation session ID: ses_f201d794affe3X37Yl625HlWtR\n  Working directory: /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/project\n  Workspace root folder: /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/project\n  Is directory a git repo: no\n  Platform: linux\n  Prefer /tmp/opencode over generic system temporary directories such as /tmp; it is pre-created and approved for external access.\n</env>\n\nToday's date: Sat Sep 26 2026\nWhen you create a worktree outside the current working directory and intend to use it as your primary working directory, consider using `execute` to call `tools.opencode.session_move` and make the worktree the session's working directory.",
+      "tools": [
+        {
+          "type": "function",
+          "name": "shell",
+          "description": "Execute a shell command and return its output. Commands run on Linux using sh. Quote file paths containing spaces or special characters. Prefer dedicated tools over shell commands when possible. When output is large, the full result is saved to a file and a truncated preview is returned. Rely on automatic truncation unless filtering the output is more useful. Commands accept an optional timeout, background commands have no timeout by default. Background commands return immediately, and you will be notified when they complete.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": "string",
+                "description": "Shell command string to execute"
+              },
+              "workdir": {
+                "type": "string",
+                "description": "Working directory to execute the command in. Defaults to the current working directory. When possible, avoid changing directories in the command and set the working directory here instead."
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Timeout in milliseconds. Set to 0 to disable the timeout. Defaults to 120000 for foreground commands. Background commands have no timeout by default."
+              },
+              "background": {
+                "type": "boolean",
+                "description": "Run the command in the background and return immediately (useful for dev servers and long-running builds). You do not need to use '&' at the end of the command when using this parameter. You will be notified when it completes. DO NOT poll for completion."
+              }
+            },
+            "required": [
+              "command"
+            ],
+            "additionalProperties": false
+          },
+          "strict": false
+        }
+      ],
+      "store": false,
+      "prompt_cache_key": "ses_f201d794affe3X37Yl625HlWtR",
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "stream": true
+    },
+    "request_sha256": "9058e1d379649d4b307b7a786910a9be1ae0c4b56af366b92c13c8319353847a",
+    "path": "/v1/responses",
+    "roles": [
+      "user"
+    ],
+    "registered_tools": [
+      "shell"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "index": 2,
+    "summary_index": null,
+    "usage": {
+      "input_tokens": 6000,
+      "output_tokens": 1800,
+      "total_tokens": 7800,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    }
+  },
+  {
+    "kind": "provider",
+    "operation": "transcript",
+    "valid": true,
+    "index": 3,
+    "summary_index": null,
+    "request": {
+      "model": "fixture-model-1",
+      "input": [
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS34 seed 1: preserve requirement R1; no filesystem changes."
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "id": "msg_vis34_2",
+          "role": "assistant",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "VIS34-ANSWER-1:\nARCHIVE-1-000 requirement detail retained in raw history.\nARCHIVE-1-001 requirement detail retained in raw history.\nARCHIVE-1-002 requirement detail retained in raw history.\nARCHIVE-1-003 requirement detail retained in raw history.\nARCHIVE-1-004 requirement detail retained in raw history.\nARCHIVE-1-005 requirement detail retained in raw history.\nARCHIVE-1-006 requirement detail retained in raw history.\nARCHIVE-1-007 requirement detail retained in raw history.\nARCHIVE-1-008 requirement detail retained in raw history.\nARCHIVE-1-009 requirement detail retained in raw history.\nARCHIVE-1-010 requirement detail retained in raw history.\nARCHIVE-1-011 requirement detail retained in raw history.\nARCHIVE-1-012 requirement detail retained in raw history.\nARCHIVE-1-013 requirement detail retained in raw history.\nARCHIVE-1-014 requirement detail retained in raw history.\nARCHIVE-1-015 requirement detail retained in raw history.\nARCHIVE-1-016 requirement detail retained in raw history.\nARCHIVE-1-017 requirement detail retained in raw history.\nARCHIVE-1-018 requirement detail retained in raw history.\nARCHIVE-1-019 requirement detail retained in raw history.\nARCHIVE-1-020 requirement detail retained in raw history.\nARCHIVE-1-021 requirement detail retained in raw history.\nARCHIVE-1-022 requirement detail retained in raw history.\nARCHIVE-1-023 requirement detail retained in raw history.\nARCHIVE-1-024 requirement detail retained in raw history.\nARCHIVE-1-025 requirement detail retained in raw history.\nARCHIVE-1-026 requirement detail retained in raw history.\nARCHIVE-1-027 requirement detail retained in raw history.\nARCHIVE-1-028 requirement detail retained in raw history.\nARCHIVE-1-029 requirement detail retained in raw history.\nARCHIVE-1-030 requirement detail retained in raw history.\nARCHIVE-1-031 requirement detail retained in raw history.\nARCHIVE-1-032 requirement detail retained in raw history.\nARCHIVE-1-033 requirement detail retained in raw history.\nARCHIVE-1-034 requirement detail retained in raw history.\nARCHIVE-1-035 requirement detail retained in raw history.\nARCHIVE-1-036 requirement detail retained in raw history.\nARCHIVE-1-037 requirement detail retained in raw history.\nARCHIVE-1-038 requirement detail retained in raw history.\nARCHIVE-1-039 requirement detail retained in raw history.\nARCHIVE-1-040 requirement detail retained in raw history.\nARCHIVE-1-041 requirement detail retained in raw history.\nARCHIVE-1-042 requirement detail retained in raw history.\nARCHIVE-1-043 requirement detail retained in raw history.\nARCHIVE-1-044 requirement detail retained in raw history.\nARCHIVE-1-045 requirement detail retained in raw history.\nARCHIVE-1-046 requirement detail retained in raw history.\nARCHIVE-1-047 requirement detail retained in raw history.\nARCHIVE-1-048 requirement detail retained in raw history.\nARCHIVE-1-049 requirement detail retained in raw history.\nARCHIVE-1-050 requirement detail retained in raw history.\nARCHIVE-1-051 requirement detail retained in raw history.\nARCHIVE-1-052 requirement detail retained in raw history.\nARCHIVE-1-053 requirement detail retained in raw history.\nARCHIVE-1-054 requirement detail retained in raw history.\nARCHIVE-1-055 requirement detail retained in raw history.\nARCHIVE-1-056 requirement detail retained in raw history.\nARCHIVE-1-057 requirement detail retained in raw history.\nARCHIVE-1-058 requirement detail retained in raw history.\nARCHIVE-1-059 requirement detail retained in raw history.\nARCHIVE-1-060 requirement detail retained in raw history.\nARCHIVE-1-061 requirement detail retained in raw history.\nARCHIVE-1-062 requirement detail retained in raw history.\nARCHIVE-1-063 requirement detail retained in raw history.\nARCHIVE-1-064 requirement detail retained in raw history.\nARCHIVE-1-065 requirement detail retained in raw history.\nARCHIVE-1-066 requirement detail retained in raw history.\nARCHIVE-1-067 requirement detail retained in raw history.\nARCHIVE-1-068 requirement detail retained in raw history.\nARCHIVE-1-069 requirement detail retained in raw history.\nARCHIVE-1-070 requirement detail retained in raw history.\nARCHIVE-1-071 requirement detail retained in raw history.\nARCHIVE-1-072 requirement detail retained in raw history.\nARCHIVE-1-073 requirement detail retained in raw history.\nARCHIVE-1-074 requirement detail retained in raw history.\nARCHIVE-1-075 requirement detail retained in raw history.\nARCHIVE-1-076 requirement detail retained in raw history.\nARCHIVE-1-077 requirement detail retained in raw history.\nARCHIVE-1-078 requirement detail retained in raw history.\nARCHIVE-1-079 requirement detail retained in raw history.\nARCHIVE-1-080 requirement detail retained in raw history.\nARCHIVE-1-081 requirement detail retained in raw history.\nARCHIVE-1-082 requirement detail retained in raw history.\nARCHIVE-1-083 requirement detail retained in raw history.\nARCHIVE-1-084 requirement detail retained in raw history.\nARCHIVE-1-085 requirement detail retained in raw history.\nARCHIVE-1-086 requirement detail retained in raw history.\nARCHIVE-1-087 requirement detail retained in raw history.\nARCHIVE-1-088 requirement detail retained in raw history.\nARCHIVE-1-089 requirement detail retained in raw history.\nARCHIVE-1-090 requirement detail retained in raw history.\nARCHIVE-1-091 requirement detail retained in raw history.\nARCHIVE-1-092 requirement detail retained in raw history.\nARCHIVE-1-093 requirement detail retained in raw history.\nARCHIVE-1-094 requirement detail retained in raw history.\nARCHIVE-1-095 requirement detail retained in raw history.\nARCHIVE-1-096 requirement detail retained in raw history.\nARCHIVE-1-097 requirement detail retained in raw history.\nARCHIVE-1-098 requirement detail retained in raw history.\nARCHIVE-1-099 requirement detail retained in raw history.\nARCHIVE-1-100 requirement detail retained in raw history.\nARCHIVE-1-101 requirement detail retained in raw history.\nARCHIVE-1-102 requirement detail retained in raw history.\nARCHIVE-1-103 requirement detail retained in raw history.\nARCHIVE-1-104 requirement detail retained in raw history.\nARCHIVE-1-105 requirement detail retained in raw history.\nARCHIVE-1-106 requirement detail retained in raw history.\nARCHIVE-1-107 requirement detail retained in raw history.\nARCHIVE-1-108 requirement detail retained in raw history.\nARCHIVE-1-109 requirement detail retained in raw history.\nARCHIVE-1-110 requirement detail retained in raw history.\nARCHIVE-1-111 requirement detail retained in raw history.\nARCHIVE-1-112 requirement detail retained in raw history.\nARCHIVE-1-113 requirement detail retained in raw history.\nARCHIVE-1-114 requirement detail retained in raw history.\nARCHIVE-1-115 requirement detail retained in raw history.\nARCHIVE-1-116 requirement detail retained in raw history.\nARCHIVE-1-117 requirement detail retained in raw history.\nARCHIVE-1-118 requirement detail retained in raw history.\nARCHIVE-1-119 requirement detail retained in raw history.\n"
+            }
+          ],
+          "status": "completed"
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS34 seed 2: preserve requirement R2; no filesystem changes."
+            }
+          ]
+        }
+      ],
+      "instructions": "You are an AI agent running in OpenCode, a coding agent harness. Help the user accomplish their goals using the tools you have available.\n\n# Harness\n- Responses are rendered as GitHub-flavored Markdown.\n- `<system-reminder>` blocks are harness instructions, not user-authored content. Read and follow them.\n- Prefer parallelizing independent tool calls.\n- Prefer dedicated tools over shell commands; fall back to the shell when a tool cannot do what you need.\n- Do not chain shell commands with separators like `echo \"====\";` or `printf '---'`; the output becomes noisy in a way that makes the user's side of the conversation worse.\n\n# Communication\n- Use clear file paths when referring to files.\n- Keep responses clear and concise, and avoid unnecessary technical jargon.\n\n# Working in codebases\n- Keep changes consistent with the structure, naming, style, and patterns of the surrounding code.\n- Treat unfamiliar files or changes as potential user work and investigate before deleting or overwriting them.\n\n# Your Model\n- Name: MiMo-V2.6-Flash Free\n- Provider ID: fixture\n- Model ID: fixture-model-1\nHere is some useful information about the environment you are running in:\n<env>\n  Current conversation session ID: ses_f201d794affe3X37Yl625HlWtR\n  Working directory: /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/project\n  Workspace root folder: /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/project\n  Is directory a git repo: no\n  Platform: linux\n  Prefer /tmp/opencode over generic system temporary directories such as /tmp; it is pre-created and approved for external access.\n</env>\n\nToday's date: Sat Sep 26 2026\nWhen you create a worktree outside the current working directory and intend to use it as your primary working directory, consider using `execute` to call `tools.opencode.session_move` and make the worktree the session's working directory.",
+      "tools": [
+        {
+          "type": "function",
+          "name": "shell",
+          "description": "Execute a shell command and return its output. Commands run on Linux using sh. Quote file paths containing spaces or special characters. Prefer dedicated tools over shell commands when possible. When output is large, the full result is saved to a file and a truncated preview is returned. Rely on automatic truncation unless filtering the output is more useful. Commands accept an optional timeout, background commands have no timeout by default. Background commands return immediately, and you will be notified when they complete.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": "string",
+                "description": "Shell command string to execute"
+              },
+              "workdir": {
+                "type": "string",
+                "description": "Working directory to execute the command in. Defaults to the current working directory. When possible, avoid changing directories in the command and set the working directory here instead."
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Timeout in milliseconds. Set to 0 to disable the timeout. Defaults to 120000 for foreground commands. Background commands have no timeout by default."
+              },
+              "background": {
+                "type": "boolean",
+                "description": "Run the command in the background and return immediately (useful for dev servers and long-running builds). You do not need to use '&' at the end of the command when using this parameter. You will be notified when it completes. DO NOT poll for completion."
+              }
+            },
+            "required": [
+              "command"
+            ],
+            "additionalProperties": false
+          },
+          "strict": false
+        }
+      ],
+      "store": false,
+      "prompt_cache_key": "ses_f201d794affe3X37Yl625HlWtR",
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "stream": true
+    },
+    "request_sha256": "2e57b747a0a3b88d375200600012f9e7708d6b847ec83bad855933d256f003e4",
+    "path": "/v1/responses",
+    "roles": [
+      "user",
+      "assistant",
+      "user"
+    ],
+    "registered_tools": [
+      "shell"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "index": 3,
+    "summary_index": null,
+    "usage": {
+      "input_tokens": 6000,
+      "output_tokens": 1800,
+      "total_tokens": 7800,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    }
+  },
+  {
+    "kind": "provider",
+    "operation": "transcript",
+    "valid": true,
+    "index": 4,
+    "summary_index": null,
+    "request": {
+      "model": "fixture-model-1",
+      "input": [
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS34 seed 1: preserve requirement R1; no filesystem changes."
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "id": "msg_vis34_2",
+          "role": "assistant",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "VIS34-ANSWER-1:\nARCHIVE-1-000 requirement detail retained in raw history.\nARCHIVE-1-001 requirement detail retained in raw history.\nARCHIVE-1-002 requirement detail retained in raw history.\nARCHIVE-1-003 requirement detail retained in raw history.\nARCHIVE-1-004 requirement detail retained in raw history.\nARCHIVE-1-005 requirement detail retained in raw history.\nARCHIVE-1-006 requirement detail retained in raw history.\nARCHIVE-1-007 requirement detail retained in raw history.\nARCHIVE-1-008 requirement detail retained in raw history.\nARCHIVE-1-009 requirement detail retained in raw history.\nARCHIVE-1-010 requirement detail retained in raw history.\nARCHIVE-1-011 requirement detail retained in raw history.\nARCHIVE-1-012 requirement detail retained in raw history.\nARCHIVE-1-013 requirement detail retained in raw history.\nARCHIVE-1-014 requirement detail retained in raw history.\nARCHIVE-1-015 requirement detail retained in raw history.\nARCHIVE-1-016 requirement detail retained in raw history.\nARCHIVE-1-017 requirement detail retained in raw history.\nARCHIVE-1-018 requirement detail retained in raw history.\nARCHIVE-1-019 requirement detail retained in raw history.\nARCHIVE-1-020 requirement detail retained in raw history.\nARCHIVE-1-021 requirement detail retained in raw history.\nARCHIVE-1-022 requirement detail retained in raw history.\nARCHIVE-1-023 requirement detail retained in raw history.\nARCHIVE-1-024 requirement detail retained in raw history.\nARCHIVE-1-025 requirement detail retained in raw history.\nARCHIVE-1-026 requirement detail retained in raw history.\nARCHIVE-1-027 requirement detail retained in raw history.\nARCHIVE-1-028 requirement detail retained in raw history.\nARCHIVE-1-029 requirement detail retained in raw history.\nARCHIVE-1-030 requirement detail retained in raw history.\nARCHIVE-1-031 requirement detail retained in raw history.\nARCHIVE-1-032 requirement detail retained in raw history.\nARCHIVE-1-033 requirement detail retained in raw history.\nARCHIVE-1-034 requirement detail retained in raw history.\nARCHIVE-1-035 requirement detail retained in raw history.\nARCHIVE-1-036 requirement detail retained in raw history.\nARCHIVE-1-037 requirement detail retained in raw history.\nARCHIVE-1-038 requirement detail retained in raw history.\nARCHIVE-1-039 requirement detail retained in raw history.\nARCHIVE-1-040 requirement detail retained in raw history.\nARCHIVE-1-041 requirement detail retained in raw history.\nARCHIVE-1-042 requirement detail retained in raw history.\nARCHIVE-1-043 requirement detail retained in raw history.\nARCHIVE-1-044 requirement detail retained in raw history.\nARCHIVE-1-045 requirement detail retained in raw history.\nARCHIVE-1-046 requirement detail retained in raw history.\nARCHIVE-1-047 requirement detail retained in raw history.\nARCHIVE-1-048 requirement detail retained in raw history.\nARCHIVE-1-049 requirement detail retained in raw history.\nARCHIVE-1-050 requirement detail retained in raw history.\nARCHIVE-1-051 requirement detail retained in raw history.\nARCHIVE-1-052 requirement detail retained in raw history.\nARCHIVE-1-053 requirement detail retained in raw history.\nARCHIVE-1-054 requirement detail retained in raw history.\nARCHIVE-1-055 requirement detail retained in raw history.\nARCHIVE-1-056 requirement detail retained in raw history.\nARCHIVE-1-057 requirement detail retained in raw history.\nARCHIVE-1-058 requirement detail retained in raw history.\nARCHIVE-1-059 requirement detail retained in raw history.\nARCHIVE-1-060 requirement detail retained in raw history.\nARCHIVE-1-061 requirement detail retained in raw history.\nARCHIVE-1-062 requirement detail retained in raw history.\nARCHIVE-1-063 requirement detail retained in raw history.\nARCHIVE-1-064 requirement detail retained in raw history.\nARCHIVE-1-065 requirement detail retained in raw history.\nARCHIVE-1-066 requirement detail retained in raw history.\nARCHIVE-1-067 requirement detail retained in raw history.\nARCHIVE-1-068 requirement detail retained in raw history.\nARCHIVE-1-069 requirement detail retained in raw history.\nARCHIVE-1-070 requirement detail retained in raw history.\nARCHIVE-1-071 requirement detail retained in raw history.\nARCHIVE-1-072 requirement detail retained in raw history.\nARCHIVE-1-073 requirement detail retained in raw history.\nARCHIVE-1-074 requirement detail retained in raw history.\nARCHIVE-1-075 requirement detail retained in raw history.\nARCHIVE-1-076 requirement detail retained in raw history.\nARCHIVE-1-077 requirement detail retained in raw history.\nARCHIVE-1-078 requirement detail retained in raw history.\nARCHIVE-1-079 requirement detail retained in raw history.\nARCHIVE-1-080 requirement detail retained in raw history.\nARCHIVE-1-081 requirement detail retained in raw history.\nARCHIVE-1-082 requirement detail retained in raw history.\nARCHIVE-1-083 requirement detail retained in raw history.\nARCHIVE-1-084 requirement detail retained in raw history.\nARCHIVE-1-085 requirement detail retained in raw history.\nARCHIVE-1-086 requirement detail retained in raw history.\nARCHIVE-1-087 requirement detail retained in raw history.\nARCHIVE-1-088 requirement detail retained in raw history.\nARCHIVE-1-089 requirement detail retained in raw history.\nARCHIVE-1-090 requirement detail retained in raw history.\nARCHIVE-1-091 requirement detail retained in raw history.\nARCHIVE-1-092 requirement detail retained in raw history.\nARCHIVE-1-093 requirement detail retained in raw history.\nARCHIVE-1-094 requirement detail retained in raw history.\nARCHIVE-1-095 requirement detail retained in raw history.\nARCHIVE-1-096 requirement detail retained in raw history.\nARCHIVE-1-097 requirement detail retained in raw history.\nARCHIVE-1-098 requirement detail retained in raw history.\nARCHIVE-1-099 requirement detail retained in raw history.\nARCHIVE-1-100 requirement detail retained in raw history.\nARCHIVE-1-101 requirement detail retained in raw history.\nARCHIVE-1-102 requirement detail retained in raw history.\nARCHIVE-1-103 requirement detail retained in raw history.\nARCHIVE-1-104 requirement detail retained in raw history.\nARCHIVE-1-105 requirement detail retained in raw history.\nARCHIVE-1-106 requirement detail retained in raw history.\nARCHIVE-1-107 requirement detail retained in raw history.\nARCHIVE-1-108 requirement detail retained in raw history.\nARCHIVE-1-109 requirement detail retained in raw history.\nARCHIVE-1-110 requirement detail retained in raw history.\nARCHIVE-1-111 requirement detail retained in raw history.\nARCHIVE-1-112 requirement detail retained in raw history.\nARCHIVE-1-113 requirement detail retained in raw history.\nARCHIVE-1-114 requirement detail retained in raw history.\nARCHIVE-1-115 requirement detail retained in raw history.\nARCHIVE-1-116 requirement detail retained in raw history.\nARCHIVE-1-117 requirement detail retained in raw history.\nARCHIVE-1-118 requirement detail retained in raw history.\nARCHIVE-1-119 requirement detail retained in raw history.\n"
+            }
+          ],
+          "status": "completed"
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS34 seed 2: preserve requirement R2; no filesystem changes."
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "id": "msg_vis34_3",
+          "role": "assistant",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "VIS34-ANSWER-2:\nARCHIVE-2-000 requirement detail retained in raw history.\nARCHIVE-2-001 requirement detail retained in raw history.\nARCHIVE-2-002 requirement detail retained in raw history.\nARCHIVE-2-003 requirement detail retained in raw history.\nARCHIVE-2-004 requirement detail retained in raw history.\nARCHIVE-2-005 requirement detail retained in raw history.\nARCHIVE-2-006 requirement detail retained in raw history.\nARCHIVE-2-007 requirement detail retained in raw history.\nARCHIVE-2-008 requirement detail retained in raw history.\nARCHIVE-2-009 requirement detail retained in raw history.\nARCHIVE-2-010 requirement detail retained in raw history.\nARCHIVE-2-011 requirement detail retained in raw history.\nARCHIVE-2-012 requirement detail retained in raw history.\nARCHIVE-2-013 requirement detail retained in raw history.\nARCHIVE-2-014 requirement detail retained in raw history.\nARCHIVE-2-015 requirement detail retained in raw history.\nARCHIVE-2-016 requirement detail retained in raw history.\nARCHIVE-2-017 requirement detail retained in raw history.\nARCHIVE-2-018 requirement detail retained in raw history.\nARCHIVE-2-019 requirement detail retained in raw history.\nARCHIVE-2-020 requirement detail retained in raw history.\nARCHIVE-2-021 requirement detail retained in raw history.\nARCHIVE-2-022 requirement detail retained in raw history.\nARCHIVE-2-023 requirement detail retained in raw history.\nARCHIVE-2-024 requirement detail retained in raw history.\nARCHIVE-2-025 requirement detail retained in raw history.\nARCHIVE-2-026 requirement detail retained in raw history.\nARCHIVE-2-027 requirement detail retained in raw history.\nARCHIVE-2-028 requirement detail retained in raw history.\nARCHIVE-2-029 requirement detail retained in raw history.\nARCHIVE-2-030 requirement detail retained in raw history.\nARCHIVE-2-031 requirement detail retained in raw history.\nARCHIVE-2-032 requirement detail retained in raw history.\nARCHIVE-2-033 requirement detail retained in raw history.\nARCHIVE-2-034 requirement detail retained in raw history.\nARCHIVE-2-035 requirement detail retained in raw history.\nARCHIVE-2-036 requirement detail retained in raw history.\nARCHIVE-2-037 requirement detail retained in raw history.\nARCHIVE-2-038 requirement detail retained in raw history.\nARCHIVE-2-039 requirement detail retained in raw history.\nARCHIVE-2-040 requirement detail retained in raw history.\nARCHIVE-2-041 requirement detail retained in raw history.\nARCHIVE-2-042 requirement detail retained in raw history.\nARCHIVE-2-043 requirement detail retained in raw history.\nARCHIVE-2-044 requirement detail retained in raw history.\nARCHIVE-2-045 requirement detail retained in raw history.\nARCHIVE-2-046 requirement detail retained in raw history.\nARCHIVE-2-047 requirement detail retained in raw history.\nARCHIVE-2-048 requirement detail retained in raw history.\nARCHIVE-2-049 requirement detail retained in raw history.\nARCHIVE-2-050 requirement detail retained in raw history.\nARCHIVE-2-051 requirement detail retained in raw history.\nARCHIVE-2-052 requirement detail retained in raw history.\nARCHIVE-2-053 requirement detail retained in raw history.\nARCHIVE-2-054 requirement detail retained in raw history.\nARCHIVE-2-055 requirement detail retained in raw history.\nARCHIVE-2-056 requirement detail retained in raw history.\nARCHIVE-2-057 requirement detail retained in raw history.\nARCHIVE-2-058 requirement detail retained in raw history.\nARCHIVE-2-059 requirement detail retained in raw history.\nARCHIVE-2-060 requirement detail retained in raw history.\nARCHIVE-2-061 requirement detail retained in raw history.\nARCHIVE-2-062 requirement detail retained in raw history.\nARCHIVE-2-063 requirement detail retained in raw history.\nARCHIVE-2-064 requirement detail retained in raw history.\nARCHIVE-2-065 requirement detail retained in raw history.\nARCHIVE-2-066 requirement detail retained in raw history.\nARCHIVE-2-067 requirement detail retained in raw history.\nARCHIVE-2-068 requirement detail retained in raw history.\nARCHIVE-2-069 requirement detail retained in raw history.\nARCHIVE-2-070 requirement detail retained in raw history.\nARCHIVE-2-071 requirement detail retained in raw history.\nARCHIVE-2-072 requirement detail retained in raw history.\nARCHIVE-2-073 requirement detail retained in raw history.\nARCHIVE-2-074 requirement detail retained in raw history.\nARCHIVE-2-075 requirement detail retained in raw history.\nARCHIVE-2-076 requirement detail retained in raw history.\nARCHIVE-2-077 requirement detail retained in raw history.\nARCHIVE-2-078 requirement detail retained in raw history.\nARCHIVE-2-079 requirement detail retained in raw history.\nARCHIVE-2-080 requirement detail retained in raw history.\nARCHIVE-2-081 requirement detail retained in raw history.\nARCHIVE-2-082 requirement detail retained in raw history.\nARCHIVE-2-083 requirement detail retained in raw history.\nARCHIVE-2-084 requirement detail retained in raw history.\nARCHIVE-2-085 requirement detail retained in raw history.\nARCHIVE-2-086 requirement detail retained in raw history.\nARCHIVE-2-087 requirement detail retained in raw history.\nARCHIVE-2-088 requirement detail retained in raw history.\nARCHIVE-2-089 requirement detail retained in raw history.\nARCHIVE-2-090 requirement detail retained in raw history.\nARCHIVE-2-091 requirement detail retained in raw history.\nARCHIVE-2-092 requirement detail retained in raw history.\nARCHIVE-2-093 requirement detail retained in raw history.\nARCHIVE-2-094 requirement detail retained in raw history.\nARCHIVE-2-095 requirement detail retained in raw history.\nARCHIVE-2-096 requirement detail retained in raw history.\nARCHIVE-2-097 requirement detail retained in raw history.\nARCHIVE-2-098 requirement detail retained in raw history.\nARCHIVE-2-099 requirement detail retained in raw history.\nARCHIVE-2-100 requirement detail retained in raw history.\nARCHIVE-2-101 requirement detail retained in raw history.\nARCHIVE-2-102 requirement detail retained in raw history.\nARCHIVE-2-103 requirement detail retained in raw history.\nARCHIVE-2-104 requirement detail retained in raw history.\nARCHIVE-2-105 requirement detail retained in raw history.\nARCHIVE-2-106 requirement detail retained in raw history.\nARCHIVE-2-107 requirement detail retained in raw history.\nARCHIVE-2-108 requirement detail retained in raw history.\nARCHIVE-2-109 requirement detail retained in raw history.\nARCHIVE-2-110 requirement detail retained in raw history.\nARCHIVE-2-111 requirement detail retained in raw history.\nARCHIVE-2-112 requirement detail retained in raw history.\nARCHIVE-2-113 requirement detail retained in raw history.\nARCHIVE-2-114 requirement detail retained in raw history.\nARCHIVE-2-115 requirement detail retained in raw history.\nARCHIVE-2-116 requirement detail retained in raw history.\nARCHIVE-2-117 requirement detail retained in raw history.\nARCHIVE-2-118 requirement detail retained in raw history.\nARCHIVE-2-119 requirement detail retained in raw history.\n"
+            }
+          ],
+          "status": "completed"
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS34 seed 3: preserve requirement R3; no filesystem changes."
+            }
+          ]
+        }
+      ],
+      "instructions": "You are an AI agent running in OpenCode, a coding agent harness. Help the user accomplish their goals using the tools you have available.\n\n# Harness\n- Responses are rendered as GitHub-flavored Markdown.\n- `<system-reminder>` blocks are harness instructions, not user-authored content. Read and follow them.\n- Prefer parallelizing independent tool calls.\n- Prefer dedicated tools over shell commands; fall back to the shell when a tool cannot do what you need.\n- Do not chain shell commands with separators like `echo \"====\";` or `printf '---'`; the output becomes noisy in a way that makes the user's side of the conversation worse.\n\n# Communication\n- Use clear file paths when referring to files.\n- Keep responses clear and concise, and avoid unnecessary technical jargon.\n\n# Working in codebases\n- Keep changes consistent with the structure, naming, style, and patterns of the surrounding code.\n- Treat unfamiliar files or changes as potential user work and investigate before deleting or overwriting them.\n\n# Your Model\n- Name: MiMo-V2.6-Flash Free\n- Provider ID: fixture\n- Model ID: fixture-model-1\nHere is some useful information about the environment you are running in:\n<env>\n  Current conversation session ID: ses_f201d794affe3X37Yl625HlWtR\n  Working directory: /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/project\n  Workspace root folder: /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/project\n  Is directory a git repo: no\n  Platform: linux\n  Prefer /tmp/opencode over generic system temporary directories such as /tmp; it is pre-created and approved for external access.\n</env>\n\nToday's date: Sat Sep 26 2026\nWhen you create a worktree outside the current working directory and intend to use it as your primary working directory, consider using `execute` to call `tools.opencode.session_move` and make the worktree the session's working directory.",
+      "tools": [
+        {
+          "type": "function",
+          "name": "shell",
+          "description": "Execute a shell command and return its output. Commands run on Linux using sh. Quote file paths containing spaces or special characters. Prefer dedicated tools over shell commands when possible. When output is large, the full result is saved to a file and a truncated preview is returned. Rely on automatic truncation unless filtering the output is more useful. Commands accept an optional timeout, background commands have no timeout by default. Background commands return immediately, and you will be notified when they complete.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": "string",
+                "description": "Shell command string to execute"
+              },
+              "workdir": {
+                "type": "string",
+                "description": "Working directory to execute the command in. Defaults to the current working directory. When possible, avoid changing directories in the command and set the working directory here instead."
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Timeout in milliseconds. Set to 0 to disable the timeout. Defaults to 120000 for foreground commands. Background commands have no timeout by default."
+              },
+              "background": {
+                "type": "boolean",
+                "description": "Run the command in the background and return immediately (useful for dev servers and long-running builds). You do not need to use '&' at the end of the command when using this parameter. You will be notified when it completes. DO NOT poll for completion."
+              }
+            },
+            "required": [
+              "command"
+            ],
+            "additionalProperties": false
+          },
+          "strict": false
+        }
+      ],
+      "store": false,
+      "prompt_cache_key": "ses_f201d794affe3X37Yl625HlWtR",
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "stream": true
+    },
+    "request_sha256": "5afd2c892a2f9ec0173fc125f081f3538ff35482959c2ad7c2fedc665d7eb06b",
+    "path": "/v1/responses",
+    "roles": [
+      "user",
+      "assistant",
+      "user",
+      "assistant",
+      "user"
+    ],
+    "registered_tools": [
+      "shell"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "index": 4,
+    "summary_index": null,
+    "usage": {
+      "input_tokens": 23000,
+      "output_tokens": 1800,
+      "total_tokens": 24800,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    }
+  },
+  {
+    "kind": "compaction_snapshot",
+    "request_id": "before",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/upstream/home/data/opencode/opencode.db",
+        "tables": [
+          "account_state",
+          "account",
+          "control_account",
+          "credential",
+          "event_sequence",
+          "event",
+          "kv",
+          "permission",
+          "project_directory",
+          "project",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree",
+          "migration"
+        ],
+        "data": {
+          "session_message": [
+            {
+              "id": "msg_0dfe286b9001wvsjPMYI0wrOOI",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "user",
+              "seq": 4,
+              "time_created": 1790462560041,
+              "time_updated": 1790462560043,
+              "data": "{\"time\":{\"created\":1790462560041},\"text\":\"VIS34 seed 1: preserve requirement R1; no filesystem changes.\",\"files\":[],\"agents\":[]}"
+            },
+            {
+              "id": "msg_0dfe28741001E0CLD7gU7zqXvS",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "assistant",
+              "seq": 7,
+              "time_created": 1790462560071,
+              "time_updated": 1790462560094,
+              "data": "{\"time\":{\"created\":1790462560071,\"streamed\":1790462560092,\"completed\":1790462560093},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS34-ANSWER-1:\\nARCHIVE-1-000 requirement detail retained in raw history.\\nARCHIVE-1-001 requirement detail retained in raw history.\\nARCHIVE-1-002 requirement detail retained in raw history.\\nARCHIVE-1-003 requirement detail retained in raw history.\\nARCHIVE-1-004 requirement detail retained in raw history.\\nARCHIVE-1-005 requirement detail retained in raw history.\\nARCHIVE-1-006 requirement detail retained in raw history.\\nARCHIVE-1-007 requirement detail retained in raw history.\\nARCHIVE-1-008 requirement detail retained in raw history.\\nARCHIVE-1-009 requirement detail retained in raw history.\\nARCHIVE-1-010 requirement detail retained in raw history.\\nARCHIVE-1-011 requirement detail retained in raw history.\\nARCHIVE-1-012 requirement detail retained in raw history.\\nARCHIVE-1-013 requirement detail retained in raw history.\\nARCHIVE-1-014 requirement detail retained in raw history.\\nARCHIVE-1-015 requirement detail retained in raw history.\\nARCHIVE-1-016 requirement detail retained in raw history.\\nARCHIVE-1-017 requirement detail retained in raw history.\\nARCHIVE-1-018 requirement detail retained in raw history.\\nARCHIVE-1-019 requirement detail retained in raw history.\\nARCHIVE-1-020 requirement detail retained in raw history.\\nARCHIVE-1-021 requirement detail retained in raw history.\\nARCHIVE-1-022 requirement detail retained in raw history.\\nARCHIVE-1-023 requirement detail retained in raw history.\\nARCHIVE-1-024 requirement detail retained in raw history.\\nARCHIVE-1-025 requirement detail retained in raw history.\\nARCHIVE-1-026 requirement detail retained in raw history.\\nARCHIVE-1-027 requirement detail retained in raw history.\\nARCHIVE-1-028 requirement detail retained in raw history.\\nARCHIVE-1-029 requirement detail retained in raw history.\\nARCHIVE-1-030 requirement detail retained in raw history.\\nARCHIVE-1-031 requirement detail retained in raw history.\\nARCHIVE-1-032 requirement detail retained in raw history.\\nARCHIVE-1-033 requirement detail retained in raw history.\\nARCHIVE-1-034 requirement detail retained in raw history.\\nARCHIVE-1-035 requirement detail retained in raw history.\\nARCHIVE-1-036 requirement detail retained in raw history.\\nARCHIVE-1-037 requirement detail retained in raw history.\\nARCHIVE-1-038 requirement detail retained in raw history.\\nARCHIVE-1-039 requirement detail retained in raw history.\\nARCHIVE-1-040 requirement detail retained in raw history.\\nARCHIVE-1-041 requirement detail retained in raw history.\\nARCHIVE-1-042 requirement detail retained in raw history.\\nARCHIVE-1-043 requirement detail retained in raw history.\\nARCHIVE-1-044 requirement detail retained in raw history.\\nARCHIVE-1-045 requirement detail retained in raw history.\\nARCHIVE-1-046 requirement detail retained in raw history.\\nARCHIVE-1-047 requirement detail retained in raw history.\\nARCHIVE-1-048 requirement detail retained in raw history.\\nARCHIVE-1-049 requirement detail retained in raw history.\\nARCHIVE-1-050 requirement detail retained in raw history.\\nARCHIVE-1-051 requirement detail retained in raw history.\\nARCHIVE-1-052 requirement detail retained in raw history.\\nARCHIVE-1-053 requirement detail retained in raw history.\\nARCHIVE-1-054 requirement detail retained in raw history.\\nARCHIVE-1-055 requirement detail retained in raw history.\\nARCHIVE-1-056 requirement detail retained in raw history.\\nARCHIVE-1-057 requirement detail retained in raw history.\\nARCHIVE-1-058 requirement detail retained in raw history.\\nARCHIVE-1-059 requirement detail retained in raw history.\\nARCHIVE-1-060 requirement detail retained in raw history.\\nARCHIVE-1-061 requirement detail retained in raw history.\\nARCHIVE-1-062 requirement detail retained in raw history.\\nARCHIVE-1-063 requirement detail retained in raw history.\\nARCHIVE-1-064 requirement detail retained in raw history.\\nARCHIVE-1-065 requirement detail retained in raw history.\\nARCHIVE-1-066 requirement detail retained in raw history.\\nARCHIVE-1-067 requirement detail retained in raw history.\\nARCHIVE-1-068 requirement detail retained in raw history.\\nARCHIVE-1-069 requirement detail retained in raw history.\\nARCHIVE-1-070 requirement detail retained in raw history.\\nARCHIVE-1-071 requirement detail retained in raw history.\\nARCHIVE-1-072 requirement detail retained in raw history.\\nARCHIVE-1-073 requirement detail retained in raw history.\\nARCHIVE-1-074 requirement detail retained in raw history.\\nARCHIVE-1-075 requirement detail retained in raw history.\\nARCHIVE-1-076 requirement detail retained in raw history.\\nARCHIVE-1-077 requirement detail retained in raw history.\\nARCHIVE-1-078 requirement detail retained in raw history.\\nARCHIVE-1-079 requirement detail retained in raw history.\\nARCHIVE-1-080 requirement detail retained in raw history.\\nARCHIVE-1-081 requirement detail retained in raw history.\\nARCHIVE-1-082 requirement detail retained in raw history.\\nARCHIVE-1-083 requirement detail retained in raw history.\\nARCHIVE-1-084 requirement detail retained in raw history.\\nARCHIVE-1-085 requirement detail retained in raw history.\\nARCHIVE-1-086 requirement detail retained in raw history.\\nARCHIVE-1-087 requirement detail retained in raw history.\\nARCHIVE-1-088 requirement detail retained in raw history.\\nARCHIVE-1-089 requirement detail retained in raw history.\\nARCHIVE-1-090 requirement detail retained in raw history.\\nARCHIVE-1-091 requirement detail retained in raw history.\\nARCHIVE-1-092 requirement detail retained in raw history.\\nARCHIVE-1-093 requirement detail retained in raw history.\\nARCHIVE-1-094 requirement detail retained in raw history.\\nARCHIVE-1-095 requirement detail retained in raw history.\\nARCHIVE-1-096 requirement detail retained in raw history.\\nARCHIVE-1-097 requirement detail retained in raw history.\\nARCHIVE-1-098 requirement detail retained in raw history.\\nARCHIVE-1-099 requirement detail retained in raw history.\\nARCHIVE-1-100 requirement detail retained in raw history.\\nARCHIVE-1-101 requirement detail retained in raw history.\\nARCHIVE-1-102 requirement detail retained in raw history.\\nARCHIVE-1-103 requirement detail retained in raw history.\\nARCHIVE-1-104 requirement detail retained in raw history.\\nARCHIVE-1-105 requirement detail retained in raw history.\\nARCHIVE-1-106 requirement detail retained in raw history.\\nARCHIVE-1-107 requirement detail retained in raw history.\\nARCHIVE-1-108 requirement detail retained in raw history.\\nARCHIVE-1-109 requirement detail retained in raw history.\\nARCHIVE-1-110 requirement detail retained in raw history.\\nARCHIVE-1-111 requirement detail retained in raw history.\\nARCHIVE-1-112 requirement detail retained in raw history.\\nARCHIVE-1-113 requirement detail retained in raw history.\\nARCHIVE-1-114 requirement detail retained in raw history.\\nARCHIVE-1-115 requirement detail retained in raw history.\\nARCHIVE-1-116 requirement detail retained in raw history.\\nARCHIVE-1-117 requirement detail retained in raw history.\\nARCHIVE-1-118 requirement detail retained in raw history.\\nARCHIVE-1-119 requirement detail retained in raw history.\\n\",\"state\":{\"itemId\":\"msg_vis34_2\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis34_2\"},\"cost\":0,\"tokens\":{\"input\":6000,\"output\":1800,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+            },
+            {
+              "id": "msg_0dfe287610010dEB7JICLtZ8RX",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "idle",
+              "seq": 12,
+              "time_created": 1790462560097,
+              "time_updated": 1790462560097,
+              "data": "{\"time\":{\"created\":1790462560097},\"outcome\":\"succeeded\"}"
+            },
+            {
+              "id": "msg_0dfe290ef001EH3ett1eA926Co",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "user",
+              "seq": 16,
+              "time_created": 1790462562564,
+              "time_updated": 1790462562565,
+              "data": "{\"time\":{\"created\":1790462562564},\"text\":\"VIS34 seed 2: preserve requirement R2; no filesystem changes.\",\"files\":[],\"agents\":[]}"
+            },
+            {
+              "id": "msg_0dfe2910c001SAS762vbeo3I3R",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "assistant",
+              "seq": 17,
+              "time_created": 1790462562581,
+              "time_updated": 1790462562601,
+              "data": "{\"time\":{\"created\":1790462562581,\"streamed\":1790462562599,\"completed\":1790462562601},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS34-ANSWER-2:\\nARCHIVE-2-000 requirement detail retained in raw history.\\nARCHIVE-2-001 requirement detail retained in raw history.\\nARCHIVE-2-002 requirement detail retained in raw history.\\nARCHIVE-2-003 requirement detail retained in raw history.\\nARCHIVE-2-004 requirement detail retained in raw history.\\nARCHIVE-2-005 requirement detail retained in raw history.\\nARCHIVE-2-006 requirement detail retained in raw history.\\nARCHIVE-2-007 requirement detail retained in raw history.\\nARCHIVE-2-008 requirement detail retained in raw history.\\nARCHIVE-2-009 requirement detail retained in raw history.\\nARCHIVE-2-010 requirement detail retained in raw history.\\nARCHIVE-2-011 requirement detail retained in raw history.\\nARCHIVE-2-012 requirement detail retained in raw history.\\nARCHIVE-2-013 requirement detail retained in raw history.\\nARCHIVE-2-014 requirement detail retained in raw history.\\nARCHIVE-2-015 requirement detail retained in raw history.\\nARCHIVE-2-016 requirement detail retained in raw history.\\nARCHIVE-2-017 requirement detail retained in raw history.\\nARCHIVE-2-018 requirement detail retained in raw history.\\nARCHIVE-2-019 requirement detail retained in raw history.\\nARCHIVE-2-020 requirement detail retained in raw history.\\nARCHIVE-2-021 requirement detail retained in raw history.\\nARCHIVE-2-022 requirement detail retained in raw history.\\nARCHIVE-2-023 requirement detail retained in raw history.\\nARCHIVE-2-024 requirement detail retained in raw history.\\nARCHIVE-2-025 requirement detail retained in raw history.\\nARCHIVE-2-026 requirement detail retained in raw history.\\nARCHIVE-2-027 requirement detail retained in raw history.\\nARCHIVE-2-028 requirement detail retained in raw history.\\nARCHIVE-2-029 requirement detail retained in raw history.\\nARCHIVE-2-030 requirement detail retained in raw history.\\nARCHIVE-2-031 requirement detail retained in raw history.\\nARCHIVE-2-032 requirement detail retained in raw history.\\nARCHIVE-2-033 requirement detail retained in raw history.\\nARCHIVE-2-034 requirement detail retained in raw history.\\nARCHIVE-2-035 requirement detail retained in raw history.\\nARCHIVE-2-036 requirement detail retained in raw history.\\nARCHIVE-2-037 requirement detail retained in raw history.\\nARCHIVE-2-038 requirement detail retained in raw history.\\nARCHIVE-2-039 requirement detail retained in raw history.\\nARCHIVE-2-040 requirement detail retained in raw history.\\nARCHIVE-2-041 requirement detail retained in raw history.\\nARCHIVE-2-042 requirement detail retained in raw history.\\nARCHIVE-2-043 requirement detail retained in raw history.\\nARCHIVE-2-044 requirement detail retained in raw history.\\nARCHIVE-2-045 requirement detail retained in raw history.\\nARCHIVE-2-046 requirement detail retained in raw history.\\nARCHIVE-2-047 requirement detail retained in raw history.\\nARCHIVE-2-048 requirement detail retained in raw history.\\nARCHIVE-2-049 requirement detail retained in raw history.\\nARCHIVE-2-050 requirement detail retained in raw history.\\nARCHIVE-2-051 requirement detail retained in raw history.\\nARCHIVE-2-052 requirement detail retained in raw history.\\nARCHIVE-2-053 requirement detail retained in raw history.\\nARCHIVE-2-054 requirement detail retained in raw history.\\nARCHIVE-2-055 requirement detail retained in raw history.\\nARCHIVE-2-056 requirement detail retained in raw history.\\nARCHIVE-2-057 requirement detail retained in raw history.\\nARCHIVE-2-058 requirement detail retained in raw history.\\nARCHIVE-2-059 requirement detail retained in raw history.\\nARCHIVE-2-060 requirement detail retained in raw history.\\nARCHIVE-2-061 requirement detail retained in raw history.\\nARCHIVE-2-062 requirement detail retained in raw history.\\nARCHIVE-2-063 requirement detail retained in raw history.\\nARCHIVE-2-064 requirement detail retained in raw history.\\nARCHIVE-2-065 requirement detail retained in raw history.\\nARCHIVE-2-066 requirement detail retained in raw history.\\nARCHIVE-2-067 requirement detail retained in raw history.\\nARCHIVE-2-068 requirement detail retained in raw history.\\nARCHIVE-2-069 requirement detail retained in raw history.\\nARCHIVE-2-070 requirement detail retained in raw history.\\nARCHIVE-2-071 requirement detail retained in raw history.\\nARCHIVE-2-072 requirement detail retained in raw history.\\nARCHIVE-2-073 requirement detail retained in raw history.\\nARCHIVE-2-074 requirement detail retained in raw history.\\nARCHIVE-2-075 requirement detail retained in raw history.\\nARCHIVE-2-076 requirement detail retained in raw history.\\nARCHIVE-2-077 requirement detail retained in raw history.\\nARCHIVE-2-078 requirement detail retained in raw history.\\nARCHIVE-2-079 requirement detail retained in raw history.\\nARCHIVE-2-080 requirement detail retained in raw history.\\nARCHIVE-2-081 requirement detail retained in raw history.\\nARCHIVE-2-082 requirement detail retained in raw history.\\nARCHIVE-2-083 requirement detail retained in raw history.\\nARCHIVE-2-084 requirement detail retained in raw history.\\nARCHIVE-2-085 requirement detail retained in raw history.\\nARCHIVE-2-086 requirement detail retained in raw history.\\nARCHIVE-2-087 requirement detail retained in raw history.\\nARCHIVE-2-088 requirement detail retained in raw history.\\nARCHIVE-2-089 requirement detail retained in raw history.\\nARCHIVE-2-090 requirement detail retained in raw history.\\nARCHIVE-2-091 requirement detail retained in raw history.\\nARCHIVE-2-092 requirement detail retained in raw history.\\nARCHIVE-2-093 requirement detail retained in raw history.\\nARCHIVE-2-094 requirement detail retained in raw history.\\nARCHIVE-2-095 requirement detail retained in raw history.\\nARCHIVE-2-096 requirement detail retained in raw history.\\nARCHIVE-2-097 requirement detail retained in raw history.\\nARCHIVE-2-098 requirement detail retained in raw history.\\nARCHIVE-2-099 requirement detail retained in raw history.\\nARCHIVE-2-100 requirement detail retained in raw history.\\nARCHIVE-2-101 requirement detail retained in raw history.\\nARCHIVE-2-102 requirement detail retained in raw history.\\nARCHIVE-2-103 requirement detail retained in raw history.\\nARCHIVE-2-104 requirement detail retained in raw history.\\nARCHIVE-2-105 requirement detail retained in raw history.\\nARCHIVE-2-106 requirement detail retained in raw history.\\nARCHIVE-2-107 requirement detail retained in raw history.\\nARCHIVE-2-108 requirement detail retained in raw history.\\nARCHIVE-2-109 requirement detail retained in raw history.\\nARCHIVE-2-110 requirement detail retained in raw history.\\nARCHIVE-2-111 requirement detail retained in raw history.\\nARCHIVE-2-112 requirement detail retained in raw history.\\nARCHIVE-2-113 requirement detail retained in raw history.\\nARCHIVE-2-114 requirement detail retained in raw history.\\nARCHIVE-2-115 requirement detail retained in raw history.\\nARCHIVE-2-116 requirement detail retained in raw history.\\nARCHIVE-2-117 requirement detail retained in raw history.\\nARCHIVE-2-118 requirement detail retained in raw history.\\nARCHIVE-2-119 requirement detail retained in raw history.\\n\",\"state\":{\"itemId\":\"msg_vis34_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis34_3\"},\"cost\":0,\"tokens\":{\"input\":6000,\"output\":1800,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+            },
+            {
+              "id": "msg_0dfe2912b001WgoINWZ7tG7ntL",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "idle",
+              "seq": 22,
+              "time_created": 1790462562603,
+              "time_updated": 1790462562604,
+              "data": "{\"time\":{\"created\":1790462562603},\"outcome\":\"succeeded\"}"
+            },
+            {
+              "id": "msg_0dfe29ad5001DgjBLZ2YAGFgIH",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "user",
+              "seq": 26,
+              "time_created": 1790462565102,
+              "time_updated": 1790462565103,
+              "data": "{\"time\":{\"created\":1790462565102},\"text\":\"VIS34 seed 3: preserve requirement R3; no filesystem changes.\",\"files\":[],\"agents\":[]}"
+            },
+            {
+              "id": "msg_0dfe29af400127DX0CSrUrin5k",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "assistant",
+              "seq": 27,
+              "time_created": 1790462565112,
+              "time_updated": 1790462565156,
+              "data": "{\"time\":{\"created\":1790462565112,\"streamed\":1790462565153,\"completed\":1790462565155},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS34-ANSWER-3:\\nARCHIVE-3-000 requirement detail retained in raw history.\\nARCHIVE-3-001 requirement detail retained in raw history.\\nARCHIVE-3-002 requirement detail retained in raw history.\\nARCHIVE-3-003 requirement detail retained in raw history.\\nARCHIVE-3-004 requirement detail retained in raw history.\\nARCHIVE-3-005 requirement detail retained in raw history.\\nARCHIVE-3-006 requirement detail retained in raw history.\\nARCHIVE-3-007 requirement detail retained in raw history.\\nARCHIVE-3-008 requirement detail retained in raw history.\\nARCHIVE-3-009 requirement detail retained in raw history.\\nARCHIVE-3-010 requirement detail retained in raw history.\\nARCHIVE-3-011 requirement detail retained in raw history.\\nARCHIVE-3-012 requirement detail retained in raw history.\\nARCHIVE-3-013 requirement detail retained in raw history.\\nARCHIVE-3-014 requirement detail retained in raw history.\\nARCHIVE-3-015 requirement detail retained in raw history.\\nARCHIVE-3-016 requirement detail retained in raw history.\\nARCHIVE-3-017 requirement detail retained in raw history.\\nARCHIVE-3-018 requirement detail retained in raw history.\\nARCHIVE-3-019 requirement detail retained in raw history.\\nARCHIVE-3-020 requirement detail retained in raw history.\\nARCHIVE-3-021 requirement detail retained in raw history.\\nARCHIVE-3-022 requirement detail retained in raw history.\\nARCHIVE-3-023 requirement detail retained in raw history.\\nARCHIVE-3-024 requirement detail retained in raw history.\\nARCHIVE-3-025 requirement detail retained in raw history.\\nARCHIVE-3-026 requirement detail retained in raw history.\\nARCHIVE-3-027 requirement detail retained in raw history.\\nARCHIVE-3-028 requirement detail retained in raw history.\\nARCHIVE-3-029 requirement detail retained in raw history.\\nARCHIVE-3-030 requirement detail retained in raw history.\\nARCHIVE-3-031 requirement detail retained in raw history.\\nARCHIVE-3-032 requirement detail retained in raw history.\\nARCHIVE-3-033 requirement detail retained in raw history.\\nARCHIVE-3-034 requirement detail retained in raw history.\\nARCHIVE-3-035 requirement detail retained in raw history.\\nARCHIVE-3-036 requirement detail retained in raw history.\\nARCHIVE-3-037 requirement detail retained in raw history.\\nARCHIVE-3-038 requirement detail retained in raw history.\\nARCHIVE-3-039 requirement detail retained in raw history.\\nARCHIVE-3-040 requirement detail retained in raw history.\\nARCHIVE-3-041 requirement detail retained in raw history.\\nARCHIVE-3-042 requirement detail retained in raw history.\\nARCHIVE-3-043 requirement detail retained in raw history.\\nARCHIVE-3-044 requirement detail retained in raw history.\\nARCHIVE-3-045 requirement detail retained in raw history.\\nARCHIVE-3-046 requirement detail retained in raw history.\\nARCHIVE-3-047 requirement detail retained in raw history.\\nARCHIVE-3-048 requirement detail retained in raw history.\\nARCHIVE-3-049 requirement detail retained in raw history.\\nARCHIVE-3-050 requirement detail retained in raw history.\\nARCHIVE-3-051 requirement detail retained in raw history.\\nARCHIVE-3-052 requirement detail retained in raw history.\\nARCHIVE-3-053 requirement detail retained in raw history.\\nARCHIVE-3-054 requirement detail retained in raw history.\\nARCHIVE-3-055 requirement detail retained in raw history.\\nARCHIVE-3-056 requirement detail retained in raw history.\\nARCHIVE-3-057 requirement detail retained in raw history.\\nARCHIVE-3-058 requirement detail retained in raw history.\\nARCHIVE-3-059 requirement detail retained in raw history.\\nARCHIVE-3-060 requirement detail retained in raw history.\\nARCHIVE-3-061 requirement detail retained in raw history.\\nARCHIVE-3-062 requirement detail retained in raw history.\\nARCHIVE-3-063 requirement detail retained in raw history.\\nARCHIVE-3-064 requirement detail retained in raw history.\\nARCHIVE-3-065 requirement detail retained in raw history.\\nARCHIVE-3-066 requirement detail retained in raw history.\\nARCHIVE-3-067 requirement detail retained in raw history.\\nARCHIVE-3-068 requirement detail retained in raw history.\\nARCHIVE-3-069 requirement detail retained in raw history.\\nARCHIVE-3-070 requirement detail retained in raw history.\\nARCHIVE-3-071 requirement detail retained in raw history.\\nARCHIVE-3-072 requirement detail retained in raw history.\\nARCHIVE-3-073 requirement detail retained in raw history.\\nARCHIVE-3-074 requirement detail retained in raw history.\\nARCHIVE-3-075 requirement detail retained in raw history.\\nARCHIVE-3-076 requirement detail retained in raw history.\\nARCHIVE-3-077 requirement detail retained in raw history.\\nARCHIVE-3-078 requirement detail retained in raw history.\\nARCHIVE-3-079 requirement detail retained in raw history.\\nARCHIVE-3-080 requirement detail retained in raw history.\\nARCHIVE-3-081 requirement detail retained in raw history.\\nARCHIVE-3-082 requirement detail retained in raw history.\\nARCHIVE-3-083 requirement detail retained in raw history.\\nARCHIVE-3-084 requirement detail retained in raw history.\\nARCHIVE-3-085 requirement detail retained in raw history.\\nARCHIVE-3-086 requirement detail retained in raw history.\\nARCHIVE-3-087 requirement detail retained in raw history.\\nARCHIVE-3-088 requirement detail retained in raw history.\\nARCHIVE-3-089 requirement detail retained in raw history.\\nARCHIVE-3-090 requirement detail retained in raw history.\\nARCHIVE-3-091 requirement detail retained in raw history.\\nARCHIVE-3-092 requirement detail retained in raw history.\\nARCHIVE-3-093 requirement detail retained in raw history.\\nARCHIVE-3-094 requirement detail retained in raw history.\\nARCHIVE-3-095 requirement detail retained in raw history.\\nARCHIVE-3-096 requirement detail retained in raw history.\\nARCHIVE-3-097 requirement detail retained in raw history.\\nARCHIVE-3-098 requirement detail retained in raw history.\\nARCHIVE-3-099 requirement detail retained in raw history.\\nARCHIVE-3-100 requirement detail retained in raw history.\\nARCHIVE-3-101 requirement detail retained in raw history.\\nARCHIVE-3-102 requirement detail retained in raw history.\\nARCHIVE-3-103 requirement detail retained in raw history.\\nARCHIVE-3-104 requirement detail retained in raw history.\\nARCHIVE-3-105 requirement detail retained in raw history.\\nARCHIVE-3-106 requirement detail retained in raw history.\\nARCHIVE-3-107 requirement detail retained in raw history.\\nARCHIVE-3-108 requirement detail retained in raw history.\\nARCHIVE-3-109 requirement detail retained in raw history.\\nARCHIVE-3-110 requirement detail retained in raw history.\\nARCHIVE-3-111 requirement detail retained in raw history.\\nARCHIVE-3-112 requirement detail retained in raw history.\\nARCHIVE-3-113 requirement detail retained in raw history.\\nARCHIVE-3-114 requirement detail retained in raw history.\\nARCHIVE-3-115 requirement detail retained in raw history.\\nARCHIVE-3-116 requirement detail retained in raw history.\\nARCHIVE-3-117 requirement detail retained in raw history.\\nARCHIVE-3-118 requirement detail retained in raw history.\\nARCHIVE-3-119 requirement detail retained in raw history.\\n\",\"state\":{\"itemId\":\"msg_vis34_4\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis34_4\"},\"cost\":0,\"tokens\":{\"input\":23000,\"output\":1800,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+            },
+            {
+              "id": "msg_0dfe29b28001FR6u1iqw4hUKus",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "idle",
+              "seq": 32,
+              "time_created": 1790462565160,
+              "time_updated": 1790462565160,
+              "data": "{\"time\":{\"created\":1790462565160},\"outcome\":\"succeeded\"}"
+            }
+          ],
+          "session_inbox": []
+        }
+      }
+    ],
+    "project_files": {}
+  },
+  {
+    "kind": "provider",
+    "operation": "compaction",
+    "valid": true,
+    "index": 5,
+    "summary_index": 1,
+    "request": {
+      "model": "fixture-model-1",
+      "input": [
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS34 seed 1: preserve requirement R1; no filesystem changes."
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "id": "msg_vis34_2",
+          "role": "assistant",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "VIS34-ANSWER-1:\nARCHIVE-1-000 requirement detail retained in raw history.\nARCHIVE-1-001 requirement detail retained in raw history.\nARCHIVE-1-002 requirement detail retained in raw history.\nARCHIVE-1-003 requirement detail retained in raw history.\nARCHIVE-1-004 requirement detail retained in raw history.\nARCHIVE-1-005 requirement detail retained in raw history.\nARCHIVE-1-006 requirement detail retained in raw history.\nARCHIVE-1-007 requirement detail retained in raw history.\nARCHIVE-1-008 requirement detail retained in raw history.\nARCHIVE-1-009 requirement detail retained in raw history.\nARCHIVE-1-010 requirement detail retained in raw history.\nARCHIVE-1-011 requirement detail retained in raw history.\nARCHIVE-1-012 requirement detail retained in raw history.\nARCHIVE-1-013 requirement detail retained in raw history.\nARCHIVE-1-014 requirement detail retained in raw history.\nARCHIVE-1-015 requirement detail retained in raw history.\nARCHIVE-1-016 requirement detail retained in raw history.\nARCHIVE-1-017 requirement detail retained in raw history.\nARCHIVE-1-018 requirement detail retained in raw history.\nARCHIVE-1-019 requirement detail retained in raw history.\nARCHIVE-1-020 requirement detail retained in raw history.\nARCHIVE-1-021 requirement detail retained in raw history.\nARCHIVE-1-022 requirement detail retained in raw history.\nARCHIVE-1-023 requirement detail retained in raw history.\nARCHIVE-1-024 requirement detail retained in raw history.\nARCHIVE-1-025 requirement detail retained in raw history.\nARCHIVE-1-026 requirement detail retained in raw history.\nARCHIVE-1-027 requirement detail retained in raw history.\nARCHIVE-1-028 requirement detail retained in raw history.\nARCHIVE-1-029 requirement detail retained in raw history.\nARCHIVE-1-030 requirement detail retained in raw history.\nARCHIVE-1-031 requirement detail retained in raw history.\nARCHIVE-1-032 requirement detail retained in raw history.\nARCHIVE-1-033 requirement detail retained in raw history.\nARCHIVE-1-034 requirement detail retained in raw history.\nARCHIVE-1-035 requirement detail retained in raw history.\nARCHIVE-1-036 requirement detail retained in raw history.\nARCHIVE-1-037 requirement detail retained in raw history.\nARCHIVE-1-038 requirement detail retained in raw history.\nARCHIVE-1-039 requirement detail retained in raw history.\nARCHIVE-1-040 requirement detail retained in raw history.\nARCHIVE-1-041 requirement detail retained in raw history.\nARCHIVE-1-042 requirement detail retained in raw history.\nARCHIVE-1-043 requirement detail retained in raw history.\nARCHIVE-1-044 requirement detail retained in raw history.\nARCHIVE-1-045 requirement detail retained in raw history.\nARCHIVE-1-046 requirement detail retained in raw history.\nARCHIVE-1-047 requirement detail retained in raw history.\nARCHIVE-1-048 requirement detail retained in raw history.\nARCHIVE-1-049 requirement detail retained in raw history.\nARCHIVE-1-050 requirement detail retained in raw history.\nARCHIVE-1-051 requirement detail retained in raw history.\nARCHIVE-1-052 requirement detail retained in raw history.\nARCHIVE-1-053 requirement detail retained in raw history.\nARCHIVE-1-054 requirement detail retained in raw history.\nARCHIVE-1-055 requirement detail retained in raw history.\nARCHIVE-1-056 requirement detail retained in raw history.\nARCHIVE-1-057 requirement detail retained in raw history.\nARCHIVE-1-058 requirement detail retained in raw history.\nARCHIVE-1-059 requirement detail retained in raw history.\nARCHIVE-1-060 requirement detail retained in raw history.\nARCHIVE-1-061 requirement detail retained in raw history.\nARCHIVE-1-062 requirement detail retained in raw history.\nARCHIVE-1-063 requirement detail retained in raw history.\nARCHIVE-1-064 requirement detail retained in raw history.\nARCHIVE-1-065 requirement detail retained in raw history.\nARCHIVE-1-066 requirement detail retained in raw history.\nARCHIVE-1-067 requirement detail retained in raw history.\nARCHIVE-1-068 requirement detail retained in raw history.\nARCHIVE-1-069 requirement detail retained in raw history.\nARCHIVE-1-070 requirement detail retained in raw history.\nARCHIVE-1-071 requirement detail retained in raw history.\nARCHIVE-1-072 requirement detail retained in raw history.\nARCHIVE-1-073 requirement detail retained in raw history.\nARCHIVE-1-074 requirement detail retained in raw history.\nARCHIVE-1-075 requirement detail retained in raw history.\nARCHIVE-1-076 requirement detail retained in raw history.\nARCHIVE-1-077 requirement detail retained in raw history.\nARCHIVE-1-078 requirement detail retained in raw history.\nARCHIVE-1-079 requirement detail retained in raw history.\nARCHIVE-1-080 requirement detail retained in raw history.\nARCHIVE-1-081 requirement detail retained in raw history.\nARCHIVE-1-082 requirement detail retained in raw history.\nARCHIVE-1-083 requirement detail retained in raw history.\nARCHIVE-1-084 requirement detail retained in raw history.\nARCHIVE-1-085 requirement detail retained in raw history.\nARCHIVE-1-086 requirement detail retained in raw history.\nARCHIVE-1-087 requirement detail retained in raw history.\nARCHIVE-1-088 requirement detail retained in raw history.\nARCHIVE-1-089 requirement detail retained in raw history.\nARCHIVE-1-090 requirement detail retained in raw history.\nARCHIVE-1-091 requirement detail retained in raw history.\nARCHIVE-1-092 requirement detail retained in raw history.\nARCHIVE-1-093 requirement detail retained in raw history.\nARCHIVE-1-094 requirement detail retained in raw history.\nARCHIVE-1-095 requirement detail retained in raw history.\nARCHIVE-1-096 requirement detail retained in raw history.\nARCHIVE-1-097 requirement detail retained in raw history.\nARCHIVE-1-098 requirement detail retained in raw history.\nARCHIVE-1-099 requirement detail retained in raw history.\nARCHIVE-1-100 requirement detail retained in raw history.\nARCHIVE-1-101 requirement detail retained in raw history.\nARCHIVE-1-102 requirement detail retained in raw history.\nARCHIVE-1-103 requirement detail retained in raw history.\nARCHIVE-1-104 requirement detail retained in raw history.\nARCHIVE-1-105 requirement detail retained in raw history.\nARCHIVE-1-106 requirement detail retained in raw history.\nARCHIVE-1-107 requirement detail retained in raw history.\nARCHIVE-1-108 requirement detail retained in raw history.\nARCHIVE-1-109 requirement detail retained in raw history.\nARCHIVE-1-110 requirement detail retained in raw history.\nARCHIVE-1-111 requirement detail retained in raw history.\nARCHIVE-1-112 requirement detail retained in raw history.\nARCHIVE-1-113 requirement detail retained in raw history.\nARCHIVE-1-114 requirement detail retained in raw history.\nARCHIVE-1-115 requirement detail retained in raw history.\nARCHIVE-1-116 requirement detail retained in raw history.\nARCHIVE-1-117 requirement detail retained in raw history.\nARCHIVE-1-118 requirement detail retained in raw history.\nARCHIVE-1-119 requirement detail retained in raw history.\n"
+            }
+          ],
+          "status": "completed"
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS34 seed 2: preserve requirement R2; no filesystem changes."
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "id": "msg_vis34_3",
+          "role": "assistant",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "VIS34-ANSWER-2:\nARCHIVE-2-000 requirement detail retained in raw history.\nARCHIVE-2-001 requirement detail retained in raw history.\nARCHIVE-2-002 requirement detail retained in raw history.\nARCHIVE-2-003 requirement detail retained in raw history.\nARCHIVE-2-004 requirement detail retained in raw history.\nARCHIVE-2-005 requirement detail retained in raw history.\nARCHIVE-2-006 requirement detail retained in raw history.\nARCHIVE-2-007 requirement detail retained in raw history.\nARCHIVE-2-008 requirement detail retained in raw history.\nARCHIVE-2-009 requirement detail retained in raw history.\nARCHIVE-2-010 requirement detail retained in raw history.\nARCHIVE-2-011 requirement detail retained in raw history.\nARCHIVE-2-012 requirement detail retained in raw history.\nARCHIVE-2-013 requirement detail retained in raw history.\nARCHIVE-2-014 requirement detail retained in raw history.\nARCHIVE-2-015 requirement detail retained in raw history.\nARCHIVE-2-016 requirement detail retained in raw history.\nARCHIVE-2-017 requirement detail retained in raw history.\nARCHIVE-2-018 requirement detail retained in raw history.\nARCHIVE-2-019 requirement detail retained in raw history.\nARCHIVE-2-020 requirement detail retained in raw history.\nARCHIVE-2-021 requirement detail retained in raw history.\nARCHIVE-2-022 requirement detail retained in raw history.\nARCHIVE-2-023 requirement detail retained in raw history.\nARCHIVE-2-024 requirement detail retained in raw history.\nARCHIVE-2-025 requirement detail retained in raw history.\nARCHIVE-2-026 requirement detail retained in raw history.\nARCHIVE-2-027 requirement detail retained in raw history.\nARCHIVE-2-028 requirement detail retained in raw history.\nARCHIVE-2-029 requirement detail retained in raw history.\nARCHIVE-2-030 requirement detail retained in raw history.\nARCHIVE-2-031 requirement detail retained in raw history.\nARCHIVE-2-032 requirement detail retained in raw history.\nARCHIVE-2-033 requirement detail retained in raw history.\nARCHIVE-2-034 requirement detail retained in raw history.\nARCHIVE-2-035 requirement detail retained in raw history.\nARCHIVE-2-036 requirement detail retained in raw history.\nARCHIVE-2-037 requirement detail retained in raw history.\nARCHIVE-2-038 requirement detail retained in raw history.\nARCHIVE-2-039 requirement detail retained in raw history.\nARCHIVE-2-040 requirement detail retained in raw history.\nARCHIVE-2-041 requirement detail retained in raw history.\nARCHIVE-2-042 requirement detail retained in raw history.\nARCHIVE-2-043 requirement detail retained in raw history.\nARCHIVE-2-044 requirement detail retained in raw history.\nARCHIVE-2-045 requirement detail retained in raw history.\nARCHIVE-2-046 requirement detail retained in raw history.\nARCHIVE-2-047 requirement detail retained in raw history.\nARCHIVE-2-048 requirement detail retained in raw history.\nARCHIVE-2-049 requirement detail retained in raw history.\nARCHIVE-2-050 requirement detail retained in raw history.\nARCHIVE-2-051 requirement detail retained in raw history.\nARCHIVE-2-052 requirement detail retained in raw history.\nARCHIVE-2-053 requirement detail retained in raw history.\nARCHIVE-2-054 requirement detail retained in raw history.\nARCHIVE-2-055 requirement detail retained in raw history.\nARCHIVE-2-056 requirement detail retained in raw history.\nARCHIVE-2-057 requirement detail retained in raw history.\nARCHIVE-2-058 requirement detail retained in raw history.\nARCHIVE-2-059 requirement detail retained in raw history.\nARCHIVE-2-060 requirement detail retained in raw history.\nARCHIVE-2-061 requirement detail retained in raw history.\nARCHIVE-2-062 requirement detail retained in raw history.\nARCHIVE-2-063 requirement detail retained in raw history.\nARCHIVE-2-064 requirement detail retained in raw history.\nARCHIVE-2-065 requirement detail retained in raw history.\nARCHIVE-2-066 requirement detail retained in raw history.\nARCHIVE-2-067 requirement detail retained in raw history.\nARCHIVE-2-068 requirement detail retained in raw history.\nARCHIVE-2-069 requirement detail retained in raw history.\nARCHIVE-2-070 requirement detail retained in raw history.\nARCHIVE-2-071 requirement detail retained in raw history.\nARCHIVE-2-072 requirement detail retained in raw history.\nARCHIVE-2-073 requirement detail retained in raw history.\nARCHIVE-2-074 requirement detail retained in raw history.\nARCHIVE-2-075 requirement detail retained in raw history.\nARCHIVE-2-076 requirement detail retained in raw history.\nARCHIVE-2-077 requirement detail retained in raw history.\nARCHIVE-2-078 requirement detail retained in raw history.\nARCHIVE-2-079 requirement detail retained in raw history.\nARCHIVE-2-080 requirement detail retained in raw history.\nARCHIVE-2-081 requirement detail retained in raw history.\nARCHIVE-2-082 requirement detail retained in raw history.\nARCHIVE-2-083 requirement detail retained in raw history.\nARCHIVE-2-084 requirement detail retained in raw history.\nARCHIVE-2-085 requirement detail retained in raw history.\nARCHIVE-2-086 requirement detail retained in raw history.\nARCHIVE-2-087 requirement detail retained in raw history.\nARCHIVE-2-088 requirement detail retained in raw history.\nARCHIVE-2-089 requirement detail retained in raw history.\nARCHIVE-2-090 requirement detail retained in raw history.\nARCHIVE-2-091 requirement detail retained in raw history.\nARCHIVE-2-092 requirement detail retained in raw history.\nARCHIVE-2-093 requirement detail retained in raw history.\nARCHIVE-2-094 requirement detail retained in raw history.\nARCHIVE-2-095 requirement detail retained in raw history.\nARCHIVE-2-096 requirement detail retained in raw history.\nARCHIVE-2-097 requirement detail retained in raw history.\nARCHIVE-2-098 requirement detail retained in raw history.\nARCHIVE-2-099 requirement detail retained in raw history.\nARCHIVE-2-100 requirement detail retained in raw history.\nARCHIVE-2-101 requirement detail retained in raw history.\nARCHIVE-2-102 requirement detail retained in raw history.\nARCHIVE-2-103 requirement detail retained in raw history.\nARCHIVE-2-104 requirement detail retained in raw history.\nARCHIVE-2-105 requirement detail retained in raw history.\nARCHIVE-2-106 requirement detail retained in raw history.\nARCHIVE-2-107 requirement detail retained in raw history.\nARCHIVE-2-108 requirement detail retained in raw history.\nARCHIVE-2-109 requirement detail retained in raw history.\nARCHIVE-2-110 requirement detail retained in raw history.\nARCHIVE-2-111 requirement detail retained in raw history.\nARCHIVE-2-112 requirement detail retained in raw history.\nARCHIVE-2-113 requirement detail retained in raw history.\nARCHIVE-2-114 requirement detail retained in raw history.\nARCHIVE-2-115 requirement detail retained in raw history.\nARCHIVE-2-116 requirement detail retained in raw history.\nARCHIVE-2-117 requirement detail retained in raw history.\nARCHIVE-2-118 requirement detail retained in raw history.\nARCHIVE-2-119 requirement detail retained in raw history.\n"
+            }
+          ],
+          "status": "completed"
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS34 seed 3: preserve requirement R3; no filesystem changes."
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "id": "msg_vis34_4",
+          "role": "assistant",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "VIS34-ANSWER-3:\nARCHIVE-3-000 requirement detail retained in raw history.\nARCHIVE-3-001 requirement detail retained in raw history.\nARCHIVE-3-002 requirement detail retained in raw history.\nARCHIVE-3-003 requirement detail retained in raw history.\nARCHIVE-3-004 requirement detail retained in raw history.\nARCHIVE-3-005 requirement detail retained in raw history.\nARCHIVE-3-006 requirement detail retained in raw history.\nARCHIVE-3-007 requirement detail retained in raw history.\nARCHIVE-3-008 requirement detail retained in raw history.\nARCHIVE-3-009 requirement detail retained in raw history.\nARCHIVE-3-010 requirement detail retained in raw history.\nARCHIVE-3-011 requirement detail retained in raw history.\nARCHIVE-3-012 requirement detail retained in raw history.\nARCHIVE-3-013 requirement detail retained in raw history.\nARCHIVE-3-014 requirement detail retained in raw history.\nARCHIVE-3-015 requirement detail retained in raw history.\nARCHIVE-3-016 requirement detail retained in raw history.\nARCHIVE-3-017 requirement detail retained in raw history.\nARCHIVE-3-018 requirement detail retained in raw history.\nARCHIVE-3-019 requirement detail retained in raw history.\nARCHIVE-3-020 requirement detail retained in raw history.\nARCHIVE-3-021 requirement detail retained in raw history.\nARCHIVE-3-022 requirement detail retained in raw history.\nARCHIVE-3-023 requirement detail retained in raw history.\nARCHIVE-3-024 requirement detail retained in raw history.\nARCHIVE-3-025 requirement detail retained in raw history.\nARCHIVE-3-026 requirement detail retained in raw history.\nARCHIVE-3-027 requirement detail retained in raw history.\nARCHIVE-3-028 requirement detail retained in raw history.\nARCHIVE-3-029 requirement detail retained in raw history.\nARCHIVE-3-030 requirement detail retained in raw history.\nARCHIVE-3-031 requirement detail retained in raw history.\nARCHIVE-3-032 requirement detail retained in raw history.\nARCHIVE-3-033 requirement detail retained in raw history.\nARCHIVE-3-034 requirement detail retained in raw history.\nARCHIVE-3-035 requirement detail retained in raw history.\nARCHIVE-3-036 requirement detail retained in raw history.\nARCHIVE-3-037 requirement detail retained in raw history.\nARCHIVE-3-038 requirement detail retained in raw history.\nARCHIVE-3-039 requirement detail retained in raw history.\nARCHIVE-3-040 requirement detail retained in raw history.\nARCHIVE-3-041 requirement detail retained in raw history.\nARCHIVE-3-042 requirement detail retained in raw history.\nARCHIVE-3-043 requirement detail retained in raw history.\nARCHIVE-3-044 requirement detail retained in raw history.\nARCHIVE-3-045 requirement detail retained in raw history.\nARCHIVE-3-046 requirement detail retained in raw history.\nARCHIVE-3-047 requirement detail retained in raw history.\nARCHIVE-3-048 requirement detail retained in raw history.\nARCHIVE-3-049 requirement detail retained in raw history.\nARCHIVE-3-050 requirement detail retained in raw history.\nARCHIVE-3-051 requirement detail retained in raw history.\nARCHIVE-3-052 requirement detail retained in raw history.\nARCHIVE-3-053 requirement detail retained in raw history.\nARCHIVE-3-054 requirement detail retained in raw history.\nARCHIVE-3-055 requirement detail retained in raw history.\nARCHIVE-3-056 requirement detail retained in raw history.\nARCHIVE-3-057 requirement detail retained in raw history.\nARCHIVE-3-058 requirement detail retained in raw history.\nARCHIVE-3-059 requirement detail retained in raw history.\nARCHIVE-3-060 requirement detail retained in raw history.\nARCHIVE-3-061 requirement detail retained in raw history.\nARCHIVE-3-062 requirement detail retained in raw history.\nARCHIVE-3-063 requirement detail retained in raw history.\nARCHIVE-3-064 requirement detail retained in raw history.\nARCHIVE-3-065 requirement detail retained in raw history.\nARCHIVE-3-066 requirement detail retained in raw history.\nARCHIVE-3-067 requirement detail retained in raw history.\nARCHIVE-3-068 requirement detail retained in raw history.\nARCHIVE-3-069 requirement detail retained in raw history.\nARCHIVE-3-070 requirement detail retained in raw history.\nARCHIVE-3-071 requirement detail retained in raw history.\nARCHIVE-3-072 requirement detail retained in raw history.\nARCHIVE-3-073 requirement detail retained in raw history.\nARCHIVE-3-074 requirement detail retained in raw history.\nARCHIVE-3-075 requirement detail retained in raw history.\nARCHIVE-3-076 requirement detail retained in raw history.\nARCHIVE-3-077 requirement detail retained in raw history.\nARCHIVE-3-078 requirement detail retained in raw history.\nARCHIVE-3-079 requirement detail retained in raw history.\nARCHIVE-3-080 requirement detail retained in raw history.\nARCHIVE-3-081 requirement detail retained in raw history.\nARCHIVE-3-082 requirement detail retained in raw history.\nARCHIVE-3-083 requirement detail retained in raw history.\nARCHIVE-3-084 requirement detail retained in raw history.\nARCHIVE-3-085 requirement detail retained in raw history.\nARCHIVE-3-086 requirement detail retained in raw history.\nARCHIVE-3-087 requirement detail retained in raw history.\nARCHIVE-3-088 requirement detail retained in raw history.\nARCHIVE-3-089 requirement detail retained in raw history.\nARCHIVE-3-090 requirement detail retained in raw history.\nARCHIVE-3-091 requirement detail retained in raw history.\nARCHIVE-3-092 requirement detail retained in raw history.\nARCHIVE-3-093 requirement detail retained in raw history.\nARCHIVE-3-094 requirement detail retained in raw history.\nARCHIVE-3-095 requirement detail retained in raw history.\nARCHIVE-3-096 requirement detail retained in raw history.\nARCHIVE-3-097 requirement detail retained in raw history.\nARCHIVE-3-098 requirement detail retained in raw history.\nARCHIVE-3-099 requirement detail retained in raw history.\nARCHIVE-3-100 requirement detail retained in raw history.\nARCHIVE-3-101 requirement detail retained in raw history.\nARCHIVE-3-102 requirement detail retained in raw history.\nARCHIVE-3-103 requirement detail retained in raw history.\nARCHIVE-3-104 requirement detail retained in raw history.\nARCHIVE-3-105 requirement detail retained in raw history.\nARCHIVE-3-106 requirement detail retained in raw history.\nARCHIVE-3-107 requirement detail retained in raw history.\nARCHIVE-3-108 requirement detail retained in raw history.\nARCHIVE-3-109 requirement detail retained in raw history.\nARCHIVE-3-110 requirement detail retained in raw history.\nARCHIVE-3-111 requirement detail retained in raw history.\nARCHIVE-3-112 requirement detail retained in raw history.\nARCHIVE-3-113 requirement detail retained in raw history.\nARCHIVE-3-114 requirement detail retained in raw history.\nARCHIVE-3-115 requirement detail retained in raw history.\nARCHIVE-3-116 requirement detail retained in raw history.\nARCHIVE-3-117 requirement detail retained in raw history.\nARCHIVE-3-118 requirement detail retained in raw history.\nARCHIVE-3-119 requirement detail retained in raw history.\n"
+            }
+          ],
+          "status": "completed"
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "You MUST summarize the conversation above into a structured summary that will be given to another agent to resume the work.\n\nSummarize only what the user and the assistant said and did. Leave out instructions and setup the assistant was given rather than told by the user: repository conventions, instruction files such as AGENTS.md, and environment details like the session ID. The next agent receives current versions of all of these separately.\n\nYou MUST use this format for your response (you may omit sections that aren't applicable). Do not include the <template> tags in your response.\n<template>\n## Objective\n- [one or two brief sentences describing what the user is trying to accomplish]\n\n## Requirements\n- [constraints, preferences, requirements, and scope boundaries stated by the user, or \"(none)\"]\n\n## Decisions\n- [decisions already made and why, or \"(none)\"]\n\n## Work State\nBreak the objective into smaller goals and report which are completed, which are being worked on, and which are blocked.\n### Completed\n- [goals that have been completed; otherwise \"(none)\"]\n\n### Active\n- [goals currently being worked on; otherwise \"(none)\"]\n\n### Blocked\n- [anything blocking progress, and why; otherwise \"(none)\"]\n\n## Next Move\n1. [ordered list of next actions, or \"(none)\"]\n\n## Relevant Files\nList the files and directories, other than the current working directory, that another agent would need to open to continue this work. Include at most 15, most important first. Do not list every file that was read or changed. Include paths outside the current working directory when relevant. If none, write \"(none)\".\n- `[file or directory path]`: [brief reason it matters]\n\n## Important Context\n- [facts the next agent cannot continue without and cannot easily find on its own; or \"(none)\"]\n</template>\n\nRules:\n- Keep each section concise. Use terse, single-line bullets, not prose paragraphs or nested lists.\n- Prefer short references over detailed restatement. It is fine to leave out information the next agent can recover from the code or the files listed above.\n- Preserve exact file paths, symbols, commands, error strings, URLs, and identifiers.\n- Carry forward only user questions or requests that remain unanswered or require further action. Do not repeat ones that newer history has answered or resolved. Preserve exact wording when carrying one forward.\n- Preserve consequential workflow state, including whether changes are uncommitted, committed, pushed, under review, or merged.\n- Do not mention the summary process or that context was compacted.\n\nDo not continue the task or call tools.\n\nReturn only the structured summary in the requested format. Do not include a preamble, explanation, or other commentary."
+            }
+          ]
+        }
+      ],
+      "instructions": "You are an AI agent running in OpenCode, a coding agent harness. Help the user accomplish their goals using the tools you have available.\n\n# Harness\n- Responses are rendered as GitHub-flavored Markdown.\n- `<system-reminder>` blocks are harness instructions, not user-authored content. Read and follow them.\n- Prefer parallelizing independent tool calls.\n- Prefer dedicated tools over shell commands; fall back to the shell when a tool cannot do what you need.\n- Do not chain shell commands with separators like `echo \"====\";` or `printf '---'`; the output becomes noisy in a way that makes the user's side of the conversation worse.\n\n# Communication\n- Use clear file paths when referring to files.\n- Keep responses clear and concise, and avoid unnecessary technical jargon.\n\n# Working in codebases\n- Keep changes consistent with the structure, naming, style, and patterns of the surrounding code.\n- Treat unfamiliar files or changes as potential user work and investigate before deleting or overwriting them.\n\n# Your Model\n- Name: MiMo-V2.6-Flash Free\n- Provider ID: fixture\n- Model ID: fixture-model-1\nHere is some useful information about the environment you are running in:\n<env>\n  Current conversation session ID: ses_f201d794affe3X37Yl625HlWtR\n  Working directory: /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/project\n  Workspace root folder: /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/project\n  Is directory a git repo: no\n  Platform: linux\n  Prefer /tmp/opencode over generic system temporary directories such as /tmp; it is pre-created and approved for external access.\n</env>\n\nToday's date: Sat Sep 26 2026\nWhen you create a worktree outside the current working directory and intend to use it as your primary working directory, consider using `execute` to call `tools.opencode.session_move` and make the worktree the session's working directory.",
+      "tools": [
+        {
+          "type": "function",
+          "name": "shell",
+          "description": "Execute a shell command and return its output. Commands run on Linux using sh. Quote file paths containing spaces or special characters. Prefer dedicated tools over shell commands when possible. When output is large, the full result is saved to a file and a truncated preview is returned. Rely on automatic truncation unless filtering the output is more useful. Commands accept an optional timeout, background commands have no timeout by default. Background commands return immediately, and you will be notified when they complete.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": "string",
+                "description": "Shell command string to execute"
+              },
+              "workdir": {
+                "type": "string",
+                "description": "Working directory to execute the command in. Defaults to the current working directory. When possible, avoid changing directories in the command and set the working directory here instead."
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Timeout in milliseconds. Set to 0 to disable the timeout. Defaults to 120000 for foreground commands. Background commands have no timeout by default."
+              },
+              "background": {
+                "type": "boolean",
+                "description": "Run the command in the background and return immediately (useful for dev servers and long-running builds). You do not need to use '&' at the end of the command when using this parameter. You will be notified when it completes. DO NOT poll for completion."
+              }
+            },
+            "required": [
+              "command"
+            ],
+            "additionalProperties": false
+          },
+          "strict": false
+        }
+      ],
+      "store": false,
+      "prompt_cache_key": "ses_f201d794affe3X37Yl625HlWtR",
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "stream": true
+    },
+    "request_sha256": "d50d9ebbdf5824611b2682948bb01a03cb1cbe668f20be9c311f747fb953acf6",
+    "path": "/v1/responses",
+    "roles": [
+      "user",
+      "assistant",
+      "user",
+      "assistant",
+      "user",
+      "assistant",
+      "user"
+    ],
+    "registered_tools": [
+      "shell"
+    ]
+  },
+  {
+    "kind": "compaction_stream_held",
+    "summary_index": 1,
+    "behavior": "complete",
+    "timeout_seconds": 30
+  },
+  {
+    "kind": "compaction_snapshot",
+    "request_id": "threshold-running",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/upstream/home/data/opencode/opencode.db",
+        "tables": [
+          "account_state",
+          "account",
+          "control_account",
+          "credential",
+          "event_sequence",
+          "event",
+          "kv",
+          "permission",
+          "project_directory",
+          "project",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree",
+          "migration"
+        ],
+        "data": {
+          "session_message": [
+            {
+              "id": "msg_0dfe286b9001wvsjPMYI0wrOOI",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "user",
+              "seq": 4,
+              "time_created": 1790462560041,
+              "time_updated": 1790462560043,
+              "data": "{\"time\":{\"created\":1790462560041},\"text\":\"VIS34 seed 1: preserve requirement R1; no filesystem changes.\",\"files\":[],\"agents\":[]}"
+            },
+            {
+              "id": "msg_0dfe28741001E0CLD7gU7zqXvS",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "assistant",
+              "seq": 7,
+              "time_created": 1790462560071,
+              "time_updated": 1790462560094,
+              "data": "{\"time\":{\"created\":1790462560071,\"streamed\":1790462560092,\"completed\":1790462560093},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS34-ANSWER-1:\\nARCHIVE-1-000 requirement detail retained in raw history.\\nARCHIVE-1-001 requirement detail retained in raw history.\\nARCHIVE-1-002 requirement detail retained in raw history.\\nARCHIVE-1-003 requirement detail retained in raw history.\\nARCHIVE-1-004 requirement detail retained in raw history.\\nARCHIVE-1-005 requirement detail retained in raw history.\\nARCHIVE-1-006 requirement detail retained in raw history.\\nARCHIVE-1-007 requirement detail retained in raw history.\\nARCHIVE-1-008 requirement detail retained in raw history.\\nARCHIVE-1-009 requirement detail retained in raw history.\\nARCHIVE-1-010 requirement detail retained in raw history.\\nARCHIVE-1-011 requirement detail retained in raw history.\\nARCHIVE-1-012 requirement detail retained in raw history.\\nARCHIVE-1-013 requirement detail retained in raw history.\\nARCHIVE-1-014 requirement detail retained in raw history.\\nARCHIVE-1-015 requirement detail retained in raw history.\\nARCHIVE-1-016 requirement detail retained in raw history.\\nARCHIVE-1-017 requirement detail retained in raw history.\\nARCHIVE-1-018 requirement detail retained in raw history.\\nARCHIVE-1-019 requirement detail retained in raw history.\\nARCHIVE-1-020 requirement detail retained in raw history.\\nARCHIVE-1-021 requirement detail retained in raw history.\\nARCHIVE-1-022 requirement detail retained in raw history.\\nARCHIVE-1-023 requirement detail retained in raw history.\\nARCHIVE-1-024 requirement detail retained in raw history.\\nARCHIVE-1-025 requirement detail retained in raw history.\\nARCHIVE-1-026 requirement detail retained in raw history.\\nARCHIVE-1-027 requirement detail retained in raw history.\\nARCHIVE-1-028 requirement detail retained in raw history.\\nARCHIVE-1-029 requirement detail retained in raw history.\\nARCHIVE-1-030 requirement detail retained in raw history.\\nARCHIVE-1-031 requirement detail retained in raw history.\\nARCHIVE-1-032 requirement detail retained in raw history.\\nARCHIVE-1-033 requirement detail retained in raw history.\\nARCHIVE-1-034 requirement detail retained in raw history.\\nARCHIVE-1-035 requirement detail retained in raw history.\\nARCHIVE-1-036 requirement detail retained in raw history.\\nARCHIVE-1-037 requirement detail retained in raw history.\\nARCHIVE-1-038 requirement detail retained in raw history.\\nARCHIVE-1-039 requirement detail retained in raw history.\\nARCHIVE-1-040 requirement detail retained in raw history.\\nARCHIVE-1-041 requirement detail retained in raw history.\\nARCHIVE-1-042 requirement detail retained in raw history.\\nARCHIVE-1-043 requirement detail retained in raw history.\\nARCHIVE-1-044 requirement detail retained in raw history.\\nARCHIVE-1-045 requirement detail retained in raw history.\\nARCHIVE-1-046 requirement detail retained in raw history.\\nARCHIVE-1-047 requirement detail retained in raw history.\\nARCHIVE-1-048 requirement detail retained in raw history.\\nARCHIVE-1-049 requirement detail retained in raw history.\\nARCHIVE-1-050 requirement detail retained in raw history.\\nARCHIVE-1-051 requirement detail retained in raw history.\\nARCHIVE-1-052 requirement detail retained in raw history.\\nARCHIVE-1-053 requirement detail retained in raw history.\\nARCHIVE-1-054 requirement detail retained in raw history.\\nARCHIVE-1-055 requirement detail retained in raw history.\\nARCHIVE-1-056 requirement detail retained in raw history.\\nARCHIVE-1-057 requirement detail retained in raw history.\\nARCHIVE-1-058 requirement detail retained in raw history.\\nARCHIVE-1-059 requirement detail retained in raw history.\\nARCHIVE-1-060 requirement detail retained in raw history.\\nARCHIVE-1-061 requirement detail retained in raw history.\\nARCHIVE-1-062 requirement detail retained in raw history.\\nARCHIVE-1-063 requirement detail retained in raw history.\\nARCHIVE-1-064 requirement detail retained in raw history.\\nARCHIVE-1-065 requirement detail retained in raw history.\\nARCHIVE-1-066 requirement detail retained in raw history.\\nARCHIVE-1-067 requirement detail retained in raw history.\\nARCHIVE-1-068 requirement detail retained in raw history.\\nARCHIVE-1-069 requirement detail retained in raw history.\\nARCHIVE-1-070 requirement detail retained in raw history.\\nARCHIVE-1-071 requirement detail retained in raw history.\\nARCHIVE-1-072 requirement detail retained in raw history.\\nARCHIVE-1-073 requirement detail retained in raw history.\\nARCHIVE-1-074 requirement detail retained in raw history.\\nARCHIVE-1-075 requirement detail retained in raw history.\\nARCHIVE-1-076 requirement detail retained in raw history.\\nARCHIVE-1-077 requirement detail retained in raw history.\\nARCHIVE-1-078 requirement detail retained in raw history.\\nARCHIVE-1-079 requirement detail retained in raw history.\\nARCHIVE-1-080 requirement detail retained in raw history.\\nARCHIVE-1-081 requirement detail retained in raw history.\\nARCHIVE-1-082 requirement detail retained in raw history.\\nARCHIVE-1-083 requirement detail retained in raw history.\\nARCHIVE-1-084 requirement detail retained in raw history.\\nARCHIVE-1-085 requirement detail retained in raw history.\\nARCHIVE-1-086 requirement detail retained in raw history.\\nARCHIVE-1-087 requirement detail retained in raw history.\\nARCHIVE-1-088 requirement detail retained in raw history.\\nARCHIVE-1-089 requirement detail retained in raw history.\\nARCHIVE-1-090 requirement detail retained in raw history.\\nARCHIVE-1-091 requirement detail retained in raw history.\\nARCHIVE-1-092 requirement detail retained in raw history.\\nARCHIVE-1-093 requirement detail retained in raw history.\\nARCHIVE-1-094 requirement detail retained in raw history.\\nARCHIVE-1-095 requirement detail retained in raw history.\\nARCHIVE-1-096 requirement detail retained in raw history.\\nARCHIVE-1-097 requirement detail retained in raw history.\\nARCHIVE-1-098 requirement detail retained in raw history.\\nARCHIVE-1-099 requirement detail retained in raw history.\\nARCHIVE-1-100 requirement detail retained in raw history.\\nARCHIVE-1-101 requirement detail retained in raw history.\\nARCHIVE-1-102 requirement detail retained in raw history.\\nARCHIVE-1-103 requirement detail retained in raw history.\\nARCHIVE-1-104 requirement detail retained in raw history.\\nARCHIVE-1-105 requirement detail retained in raw history.\\nARCHIVE-1-106 requirement detail retained in raw history.\\nARCHIVE-1-107 requirement detail retained in raw history.\\nARCHIVE-1-108 requirement detail retained in raw history.\\nARCHIVE-1-109 requirement detail retained in raw history.\\nARCHIVE-1-110 requirement detail retained in raw history.\\nARCHIVE-1-111 requirement detail retained in raw history.\\nARCHIVE-1-112 requirement detail retained in raw history.\\nARCHIVE-1-113 requirement detail retained in raw history.\\nARCHIVE-1-114 requirement detail retained in raw history.\\nARCHIVE-1-115 requirement detail retained in raw history.\\nARCHIVE-1-116 requirement detail retained in raw history.\\nARCHIVE-1-117 requirement detail retained in raw history.\\nARCHIVE-1-118 requirement detail retained in raw history.\\nARCHIVE-1-119 requirement detail retained in raw history.\\n\",\"state\":{\"itemId\":\"msg_vis34_2\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis34_2\"},\"cost\":0,\"tokens\":{\"input\":6000,\"output\":1800,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+            },
+            {
+              "id": "msg_0dfe287610010dEB7JICLtZ8RX",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "idle",
+              "seq": 12,
+              "time_created": 1790462560097,
+              "time_updated": 1790462560097,
+              "data": "{\"time\":{\"created\":1790462560097},\"outcome\":\"succeeded\"}"
+            },
+            {
+              "id": "msg_0dfe290ef001EH3ett1eA926Co",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "user",
+              "seq": 16,
+              "time_created": 1790462562564,
+              "time_updated": 1790462562565,
+              "data": "{\"time\":{\"created\":1790462562564},\"text\":\"VIS34 seed 2: preserve requirement R2; no filesystem changes.\",\"files\":[],\"agents\":[]}"
+            },
+            {
+              "id": "msg_0dfe2910c001SAS762vbeo3I3R",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "assistant",
+              "seq": 17,
+              "time_created": 1790462562581,
+              "time_updated": 1790462562601,
+              "data": "{\"time\":{\"created\":1790462562581,\"streamed\":1790462562599,\"completed\":1790462562601},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS34-ANSWER-2:\\nARCHIVE-2-000 requirement detail retained in raw history.\\nARCHIVE-2-001 requirement detail retained in raw history.\\nARCHIVE-2-002 requirement detail retained in raw history.\\nARCHIVE-2-003 requirement detail retained in raw history.\\nARCHIVE-2-004 requirement detail retained in raw history.\\nARCHIVE-2-005 requirement detail retained in raw history.\\nARCHIVE-2-006 requirement detail retained in raw history.\\nARCHIVE-2-007 requirement detail retained in raw history.\\nARCHIVE-2-008 requirement detail retained in raw history.\\nARCHIVE-2-009 requirement detail retained in raw history.\\nARCHIVE-2-010 requirement detail retained in raw history.\\nARCHIVE-2-011 requirement detail retained in raw history.\\nARCHIVE-2-012 requirement detail retained in raw history.\\nARCHIVE-2-013 requirement detail retained in raw history.\\nARCHIVE-2-014 requirement detail retained in raw history.\\nARCHIVE-2-015 requirement detail retained in raw history.\\nARCHIVE-2-016 requirement detail retained in raw history.\\nARCHIVE-2-017 requirement detail retained in raw history.\\nARCHIVE-2-018 requirement detail retained in raw history.\\nARCHIVE-2-019 requirement detail retained in raw history.\\nARCHIVE-2-020 requirement detail retained in raw history.\\nARCHIVE-2-021 requirement detail retained in raw history.\\nARCHIVE-2-022 requirement detail retained in raw history.\\nARCHIVE-2-023 requirement detail retained in raw history.\\nARCHIVE-2-024 requirement detail retained in raw history.\\nARCHIVE-2-025 requirement detail retained in raw history.\\nARCHIVE-2-026 requirement detail retained in raw history.\\nARCHIVE-2-027 requirement detail retained in raw history.\\nARCHIVE-2-028 requirement detail retained in raw history.\\nARCHIVE-2-029 requirement detail retained in raw history.\\nARCHIVE-2-030 requirement detail retained in raw history.\\nARCHIVE-2-031 requirement detail retained in raw history.\\nARCHIVE-2-032 requirement detail retained in raw history.\\nARCHIVE-2-033 requirement detail retained in raw history.\\nARCHIVE-2-034 requirement detail retained in raw history.\\nARCHIVE-2-035 requirement detail retained in raw history.\\nARCHIVE-2-036 requirement detail retained in raw history.\\nARCHIVE-2-037 requirement detail retained in raw history.\\nARCHIVE-2-038 requirement detail retained in raw history.\\nARCHIVE-2-039 requirement detail retained in raw history.\\nARCHIVE-2-040 requirement detail retained in raw history.\\nARCHIVE-2-041 requirement detail retained in raw history.\\nARCHIVE-2-042 requirement detail retained in raw history.\\nARCHIVE-2-043 requirement detail retained in raw history.\\nARCHIVE-2-044 requirement detail retained in raw history.\\nARCHIVE-2-045 requirement detail retained in raw history.\\nARCHIVE-2-046 requirement detail retained in raw history.\\nARCHIVE-2-047 requirement detail retained in raw history.\\nARCHIVE-2-048 requirement detail retained in raw history.\\nARCHIVE-2-049 requirement detail retained in raw history.\\nARCHIVE-2-050 requirement detail retained in raw history.\\nARCHIVE-2-051 requirement detail retained in raw history.\\nARCHIVE-2-052 requirement detail retained in raw history.\\nARCHIVE-2-053 requirement detail retained in raw history.\\nARCHIVE-2-054 requirement detail retained in raw history.\\nARCHIVE-2-055 requirement detail retained in raw history.\\nARCHIVE-2-056 requirement detail retained in raw history.\\nARCHIVE-2-057 requirement detail retained in raw history.\\nARCHIVE-2-058 requirement detail retained in raw history.\\nARCHIVE-2-059 requirement detail retained in raw history.\\nARCHIVE-2-060 requirement detail retained in raw history.\\nARCHIVE-2-061 requirement detail retained in raw history.\\nARCHIVE-2-062 requirement detail retained in raw history.\\nARCHIVE-2-063 requirement detail retained in raw history.\\nARCHIVE-2-064 requirement detail retained in raw history.\\nARCHIVE-2-065 requirement detail retained in raw history.\\nARCHIVE-2-066 requirement detail retained in raw history.\\nARCHIVE-2-067 requirement detail retained in raw history.\\nARCHIVE-2-068 requirement detail retained in raw history.\\nARCHIVE-2-069 requirement detail retained in raw history.\\nARCHIVE-2-070 requirement detail retained in raw history.\\nARCHIVE-2-071 requirement detail retained in raw history.\\nARCHIVE-2-072 requirement detail retained in raw history.\\nARCHIVE-2-073 requirement detail retained in raw history.\\nARCHIVE-2-074 requirement detail retained in raw history.\\nARCHIVE-2-075 requirement detail retained in raw history.\\nARCHIVE-2-076 requirement detail retained in raw history.\\nARCHIVE-2-077 requirement detail retained in raw history.\\nARCHIVE-2-078 requirement detail retained in raw history.\\nARCHIVE-2-079 requirement detail retained in raw history.\\nARCHIVE-2-080 requirement detail retained in raw history.\\nARCHIVE-2-081 requirement detail retained in raw history.\\nARCHIVE-2-082 requirement detail retained in raw history.\\nARCHIVE-2-083 requirement detail retained in raw history.\\nARCHIVE-2-084 requirement detail retained in raw history.\\nARCHIVE-2-085 requirement detail retained in raw history.\\nARCHIVE-2-086 requirement detail retained in raw history.\\nARCHIVE-2-087 requirement detail retained in raw history.\\nARCHIVE-2-088 requirement detail retained in raw history.\\nARCHIVE-2-089 requirement detail retained in raw history.\\nARCHIVE-2-090 requirement detail retained in raw history.\\nARCHIVE-2-091 requirement detail retained in raw history.\\nARCHIVE-2-092 requirement detail retained in raw history.\\nARCHIVE-2-093 requirement detail retained in raw history.\\nARCHIVE-2-094 requirement detail retained in raw history.\\nARCHIVE-2-095 requirement detail retained in raw history.\\nARCHIVE-2-096 requirement detail retained in raw history.\\nARCHIVE-2-097 requirement detail retained in raw history.\\nARCHIVE-2-098 requirement detail retained in raw history.\\nARCHIVE-2-099 requirement detail retained in raw history.\\nARCHIVE-2-100 requirement detail retained in raw history.\\nARCHIVE-2-101 requirement detail retained in raw history.\\nARCHIVE-2-102 requirement detail retained in raw history.\\nARCHIVE-2-103 requirement detail retained in raw history.\\nARCHIVE-2-104 requirement detail retained in raw history.\\nARCHIVE-2-105 requirement detail retained in raw history.\\nARCHIVE-2-106 requirement detail retained in raw history.\\nARCHIVE-2-107 requirement detail retained in raw history.\\nARCHIVE-2-108 requirement detail retained in raw history.\\nARCHIVE-2-109 requirement detail retained in raw history.\\nARCHIVE-2-110 requirement detail retained in raw history.\\nARCHIVE-2-111 requirement detail retained in raw history.\\nARCHIVE-2-112 requirement detail retained in raw history.\\nARCHIVE-2-113 requirement detail retained in raw history.\\nARCHIVE-2-114 requirement detail retained in raw history.\\nARCHIVE-2-115 requirement detail retained in raw history.\\nARCHIVE-2-116 requirement detail retained in raw history.\\nARCHIVE-2-117 requirement detail retained in raw history.\\nARCHIVE-2-118 requirement detail retained in raw history.\\nARCHIVE-2-119 requirement detail retained in raw history.\\n\",\"state\":{\"itemId\":\"msg_vis34_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis34_3\"},\"cost\":0,\"tokens\":{\"input\":6000,\"output\":1800,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+            },
+            {
+              "id": "msg_0dfe2912b001WgoINWZ7tG7ntL",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "idle",
+              "seq": 22,
+              "time_created": 1790462562603,
+              "time_updated": 1790462562604,
+              "data": "{\"time\":{\"created\":1790462562603},\"outcome\":\"succeeded\"}"
+            },
+            {
+              "id": "msg_0dfe29ad5001DgjBLZ2YAGFgIH",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "user",
+              "seq": 26,
+              "time_created": 1790462565102,
+              "time_updated": 1790462565103,
+              "data": "{\"time\":{\"created\":1790462565102},\"text\":\"VIS34 seed 3: preserve requirement R3; no filesystem changes.\",\"files\":[],\"agents\":[]}"
+            },
+            {
+              "id": "msg_0dfe29af400127DX0CSrUrin5k",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "assistant",
+              "seq": 27,
+              "time_created": 1790462565112,
+              "time_updated": 1790462565156,
+              "data": "{\"time\":{\"created\":1790462565112,\"streamed\":1790462565153,\"completed\":1790462565155},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS34-ANSWER-3:\\nARCHIVE-3-000 requirement detail retained in raw history.\\nARCHIVE-3-001 requirement detail retained in raw history.\\nARCHIVE-3-002 requirement detail retained in raw history.\\nARCHIVE-3-003 requirement detail retained in raw history.\\nARCHIVE-3-004 requirement detail retained in raw history.\\nARCHIVE-3-005 requirement detail retained in raw history.\\nARCHIVE-3-006 requirement detail retained in raw history.\\nARCHIVE-3-007 requirement detail retained in raw history.\\nARCHIVE-3-008 requirement detail retained in raw history.\\nARCHIVE-3-009 requirement detail retained in raw history.\\nARCHIVE-3-010 requirement detail retained in raw history.\\nARCHIVE-3-011 requirement detail retained in raw history.\\nARCHIVE-3-012 requirement detail retained in raw history.\\nARCHIVE-3-013 requirement detail retained in raw history.\\nARCHIVE-3-014 requirement detail retained in raw history.\\nARCHIVE-3-015 requirement detail retained in raw history.\\nARCHIVE-3-016 requirement detail retained in raw history.\\nARCHIVE-3-017 requirement detail retained in raw history.\\nARCHIVE-3-018 requirement detail retained in raw history.\\nARCHIVE-3-019 requirement detail retained in raw history.\\nARCHIVE-3-020 requirement detail retained in raw history.\\nARCHIVE-3-021 requirement detail retained in raw history.\\nARCHIVE-3-022 requirement detail retained in raw history.\\nARCHIVE-3-023 requirement detail retained in raw history.\\nARCHIVE-3-024 requirement detail retained in raw history.\\nARCHIVE-3-025 requirement detail retained in raw history.\\nARCHIVE-3-026 requirement detail retained in raw history.\\nARCHIVE-3-027 requirement detail retained in raw history.\\nARCHIVE-3-028 requirement detail retained in raw history.\\nARCHIVE-3-029 requirement detail retained in raw history.\\nARCHIVE-3-030 requirement detail retained in raw history.\\nARCHIVE-3-031 requirement detail retained in raw history.\\nARCHIVE-3-032 requirement detail retained in raw history.\\nARCHIVE-3-033 requirement detail retained in raw history.\\nARCHIVE-3-034 requirement detail retained in raw history.\\nARCHIVE-3-035 requirement detail retained in raw history.\\nARCHIVE-3-036 requirement detail retained in raw history.\\nARCHIVE-3-037 requirement detail retained in raw history.\\nARCHIVE-3-038 requirement detail retained in raw history.\\nARCHIVE-3-039 requirement detail retained in raw history.\\nARCHIVE-3-040 requirement detail retained in raw history.\\nARCHIVE-3-041 requirement detail retained in raw history.\\nARCHIVE-3-042 requirement detail retained in raw history.\\nARCHIVE-3-043 requirement detail retained in raw history.\\nARCHIVE-3-044 requirement detail retained in raw history.\\nARCHIVE-3-045 requirement detail retained in raw history.\\nARCHIVE-3-046 requirement detail retained in raw history.\\nARCHIVE-3-047 requirement detail retained in raw history.\\nARCHIVE-3-048 requirement detail retained in raw history.\\nARCHIVE-3-049 requirement detail retained in raw history.\\nARCHIVE-3-050 requirement detail retained in raw history.\\nARCHIVE-3-051 requirement detail retained in raw history.\\nARCHIVE-3-052 requirement detail retained in raw history.\\nARCHIVE-3-053 requirement detail retained in raw history.\\nARCHIVE-3-054 requirement detail retained in raw history.\\nARCHIVE-3-055 requirement detail retained in raw history.\\nARCHIVE-3-056 requirement detail retained in raw history.\\nARCHIVE-3-057 requirement detail retained in raw history.\\nARCHIVE-3-058 requirement detail retained in raw history.\\nARCHIVE-3-059 requirement detail retained in raw history.\\nARCHIVE-3-060 requirement detail retained in raw history.\\nARCHIVE-3-061 requirement detail retained in raw history.\\nARCHIVE-3-062 requirement detail retained in raw history.\\nARCHIVE-3-063 requirement detail retained in raw history.\\nARCHIVE-3-064 requirement detail retained in raw history.\\nARCHIVE-3-065 requirement detail retained in raw history.\\nARCHIVE-3-066 requirement detail retained in raw history.\\nARCHIVE-3-067 requirement detail retained in raw history.\\nARCHIVE-3-068 requirement detail retained in raw history.\\nARCHIVE-3-069 requirement detail retained in raw history.\\nARCHIVE-3-070 requirement detail retained in raw history.\\nARCHIVE-3-071 requirement detail retained in raw history.\\nARCHIVE-3-072 requirement detail retained in raw history.\\nARCHIVE-3-073 requirement detail retained in raw history.\\nARCHIVE-3-074 requirement detail retained in raw history.\\nARCHIVE-3-075 requirement detail retained in raw history.\\nARCHIVE-3-076 requirement detail retained in raw history.\\nARCHIVE-3-077 requirement detail retained in raw history.\\nARCHIVE-3-078 requirement detail retained in raw history.\\nARCHIVE-3-079 requirement detail retained in raw history.\\nARCHIVE-3-080 requirement detail retained in raw history.\\nARCHIVE-3-081 requirement detail retained in raw history.\\nARCHIVE-3-082 requirement detail retained in raw history.\\nARCHIVE-3-083 requirement detail retained in raw history.\\nARCHIVE-3-084 requirement detail retained in raw history.\\nARCHIVE-3-085 requirement detail retained in raw history.\\nARCHIVE-3-086 requirement detail retained in raw history.\\nARCHIVE-3-087 requirement detail retained in raw history.\\nARCHIVE-3-088 requirement detail retained in raw history.\\nARCHIVE-3-089 requirement detail retained in raw history.\\nARCHIVE-3-090 requirement detail retained in raw history.\\nARCHIVE-3-091 requirement detail retained in raw history.\\nARCHIVE-3-092 requirement detail retained in raw history.\\nARCHIVE-3-093 requirement detail retained in raw history.\\nARCHIVE-3-094 requirement detail retained in raw history.\\nARCHIVE-3-095 requirement detail retained in raw history.\\nARCHIVE-3-096 requirement detail retained in raw history.\\nARCHIVE-3-097 requirement detail retained in raw history.\\nARCHIVE-3-098 requirement detail retained in raw history.\\nARCHIVE-3-099 requirement detail retained in raw history.\\nARCHIVE-3-100 requirement detail retained in raw history.\\nARCHIVE-3-101 requirement detail retained in raw history.\\nARCHIVE-3-102 requirement detail retained in raw history.\\nARCHIVE-3-103 requirement detail retained in raw history.\\nARCHIVE-3-104 requirement detail retained in raw history.\\nARCHIVE-3-105 requirement detail retained in raw history.\\nARCHIVE-3-106 requirement detail retained in raw history.\\nARCHIVE-3-107 requirement detail retained in raw history.\\nARCHIVE-3-108 requirement detail retained in raw history.\\nARCHIVE-3-109 requirement detail retained in raw history.\\nARCHIVE-3-110 requirement detail retained in raw history.\\nARCHIVE-3-111 requirement detail retained in raw history.\\nARCHIVE-3-112 requirement detail retained in raw history.\\nARCHIVE-3-113 requirement detail retained in raw history.\\nARCHIVE-3-114 requirement detail retained in raw history.\\nARCHIVE-3-115 requirement detail retained in raw history.\\nARCHIVE-3-116 requirement detail retained in raw history.\\nARCHIVE-3-117 requirement detail retained in raw history.\\nARCHIVE-3-118 requirement detail retained in raw history.\\nARCHIVE-3-119 requirement detail retained in raw history.\\n\",\"state\":{\"itemId\":\"msg_vis34_4\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis34_4\"},\"cost\":0,\"tokens\":{\"input\":23000,\"output\":1800,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+            },
+            {
+              "id": "msg_0dfe29b28001FR6u1iqw4hUKus",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "idle",
+              "seq": 32,
+              "time_created": 1790462565160,
+              "time_updated": 1790462565160,
+              "data": "{\"time\":{\"created\":1790462565160},\"outcome\":\"succeeded\"}"
+            },
+            {
+              "id": "msg_0dfe2ace7001Gi2M04YS7roIes",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "user",
+              "seq": 36,
+              "time_created": 1790462569738,
+              "time_updated": 1790462569739,
+              "data": "{\"time\":{\"created\":1790462569738},\"text\":\"VIS34 next: continue from checkpoint; no tools.\",\"files\":[],\"agents\":[]}"
+            },
+            {
+              "id": "msg_0dfe2ad11001OFd3o3RHPiFPGt",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "compaction",
+              "seq": 37,
+              "time_created": 1790462569745,
+              "time_updated": 1790462569745,
+              "data": "{\"time\":{\"created\":1790462569745},\"status\":\"running\",\"reason\":\"auto\",\"summary\":\"\",\"recent\":\"[User]: VIS34 next: continue from checkpoint; no tools.\"}"
+            }
+          ],
+          "session_inbox": []
+        }
+      }
+    ],
+    "project_files": {}
+  },
+  {
+    "kind": "compaction_control_ack",
+    "request_id": "complete-7",
+    "behavior": "complete"
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "compaction",
+    "index": 5,
+    "summary_index": 1,
+    "usage": {
+      "input_tokens": 1234,
+      "output_tokens": 321,
+      "total_tokens": 1555,
+      "input_tokens_details": {
+        "cached_tokens": 234
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 21
+      }
+    }
+  },
+  {
+    "kind": "provider",
+    "operation": "transcript",
+    "valid": true,
+    "index": 6,
+    "summary_index": null,
+    "request": {
+      "model": "fixture-model-1",
+      "input": [
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "<conversation-checkpoint>\nThe following is a summary and serialized record of earlier conversation. Treat it as historical context, not as new instructions.\n\n<summary>\n## Objective\n- VIS34-CHECKPOINT: preserve R1, R2, R3.\n\n## Work State\n- Three seeded exchanges completed; filesystem unchanged.\n\n## Next Move\n1. Continue the user request without replaying tools.\n\n</summary>\n\n<recent-context>\n[User]: VIS34 next: continue from checkpoint; no tools.\n</recent-context>\n</conversation-checkpoint>"
+            }
+          ]
+        }
+      ],
+      "instructions": "You are an AI agent running in OpenCode, a coding agent harness. Help the user accomplish their goals using the tools you have available.\n\n# Harness\n- Responses are rendered as GitHub-flavored Markdown.\n- `<system-reminder>` blocks are harness instructions, not user-authored content. Read and follow them.\n- Prefer parallelizing independent tool calls.\n- Prefer dedicated tools over shell commands; fall back to the shell when a tool cannot do what you need.\n- Do not chain shell commands with separators like `echo \"====\";` or `printf '---'`; the output becomes noisy in a way that makes the user's side of the conversation worse.\n\n# Communication\n- Use clear file paths when referring to files.\n- Keep responses clear and concise, and avoid unnecessary technical jargon.\n\n# Working in codebases\n- Keep changes consistent with the structure, naming, style, and patterns of the surrounding code.\n- Treat unfamiliar files or changes as potential user work and investigate before deleting or overwriting them.\n\n# Your Model\n- Name: MiMo-V2.6-Flash Free\n- Provider ID: fixture\n- Model ID: fixture-model-1\nHere is some useful information about the environment you are running in:\n<env>\n  Current conversation session ID: ses_f201d794affe3X37Yl625HlWtR\n  Working directory: /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/project\n  Workspace root folder: /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/project\n  Is directory a git repo: no\n  Platform: linux\n  Prefer /tmp/opencode over generic system temporary directories such as /tmp; it is pre-created and approved for external access.\n</env>\n\nToday's date: Sat Sep 26 2026\nWhen you create a worktree outside the current working directory and intend to use it as your primary working directory, consider using `execute` to call `tools.opencode.session_move` and make the worktree the session's working directory.",
+      "tools": [
+        {
+          "type": "function",
+          "name": "shell",
+          "description": "Execute a shell command and return its output. Commands run on Linux using sh. Quote file paths containing spaces or special characters. Prefer dedicated tools over shell commands when possible. When output is large, the full result is saved to a file and a truncated preview is returned. Rely on automatic truncation unless filtering the output is more useful. Commands accept an optional timeout, background commands have no timeout by default. Background commands return immediately, and you will be notified when they complete.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": "string",
+                "description": "Shell command string to execute"
+              },
+              "workdir": {
+                "type": "string",
+                "description": "Working directory to execute the command in. Defaults to the current working directory. When possible, avoid changing directories in the command and set the working directory here instead."
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Timeout in milliseconds. Set to 0 to disable the timeout. Defaults to 120000 for foreground commands. Background commands have no timeout by default."
+              },
+              "background": {
+                "type": "boolean",
+                "description": "Run the command in the background and return immediately (useful for dev servers and long-running builds). You do not need to use '&' at the end of the command when using this parameter. You will be notified when it completes. DO NOT poll for completion."
+              }
+            },
+            "required": [
+              "command"
+            ],
+            "additionalProperties": false
+          },
+          "strict": false
+        }
+      ],
+      "store": false,
+      "prompt_cache_key": "ses_f201d794affe3X37Yl625HlWtR",
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "stream": true
+    },
+    "request_sha256": "9b912ad7dd18c204a3b02ad2a798c26cb1c080e0b17d1555ca8ac1d324439171",
+    "path": "/v1/responses",
+    "roles": [
+      "user"
+    ],
+    "registered_tools": [
+      "shell"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "index": 6,
+    "summary_index": null,
+    "usage": {
+      "input_tokens": 6000,
+      "output_tokens": 1800,
+      "total_tokens": 7800,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    }
+  },
+  {
+    "kind": "compaction_snapshot",
+    "request_id": "threshold-completed",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-07/upstream/home/data/opencode/opencode.db",
+        "tables": [
+          "account_state",
+          "account",
+          "control_account",
+          "credential",
+          "event_sequence",
+          "event",
+          "kv",
+          "permission",
+          "project_directory",
+          "project",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree",
+          "migration"
+        ],
+        "data": {
+          "session_message": [
+            {
+              "id": "msg_0dfe286b9001wvsjPMYI0wrOOI",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "user",
+              "seq": 4,
+              "time_created": 1790462560041,
+              "time_updated": 1790462560043,
+              "data": "{\"time\":{\"created\":1790462560041},\"text\":\"VIS34 seed 1: preserve requirement R1; no filesystem changes.\",\"files\":[],\"agents\":[]}"
+            },
+            {
+              "id": "msg_0dfe28741001E0CLD7gU7zqXvS",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "assistant",
+              "seq": 7,
+              "time_created": 1790462560071,
+              "time_updated": 1790462560094,
+              "data": "{\"time\":{\"created\":1790462560071,\"streamed\":1790462560092,\"completed\":1790462560093},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS34-ANSWER-1:\\nARCHIVE-1-000 requirement detail retained in raw history.\\nARCHIVE-1-001 requirement detail retained in raw history.\\nARCHIVE-1-002 requirement detail retained in raw history.\\nARCHIVE-1-003 requirement detail retained in raw history.\\nARCHIVE-1-004 requirement detail retained in raw history.\\nARCHIVE-1-005 requirement detail retained in raw history.\\nARCHIVE-1-006 requirement detail retained in raw history.\\nARCHIVE-1-007 requirement detail retained in raw history.\\nARCHIVE-1-008 requirement detail retained in raw history.\\nARCHIVE-1-009 requirement detail retained in raw history.\\nARCHIVE-1-010 requirement detail retained in raw history.\\nARCHIVE-1-011 requirement detail retained in raw history.\\nARCHIVE-1-012 requirement detail retained in raw history.\\nARCHIVE-1-013 requirement detail retained in raw history.\\nARCHIVE-1-014 requirement detail retained in raw history.\\nARCHIVE-1-015 requirement detail retained in raw history.\\nARCHIVE-1-016 requirement detail retained in raw history.\\nARCHIVE-1-017 requirement detail retained in raw history.\\nARCHIVE-1-018 requirement detail retained in raw history.\\nARCHIVE-1-019 requirement detail retained in raw history.\\nARCHIVE-1-020 requirement detail retained in raw history.\\nARCHIVE-1-021 requirement detail retained in raw history.\\nARCHIVE-1-022 requirement detail retained in raw history.\\nARCHIVE-1-023 requirement detail retained in raw history.\\nARCHIVE-1-024 requirement detail retained in raw history.\\nARCHIVE-1-025 requirement detail retained in raw history.\\nARCHIVE-1-026 requirement detail retained in raw history.\\nARCHIVE-1-027 requirement detail retained in raw history.\\nARCHIVE-1-028 requirement detail retained in raw history.\\nARCHIVE-1-029 requirement detail retained in raw history.\\nARCHIVE-1-030 requirement detail retained in raw history.\\nARCHIVE-1-031 requirement detail retained in raw history.\\nARCHIVE-1-032 requirement detail retained in raw history.\\nARCHIVE-1-033 requirement detail retained in raw history.\\nARCHIVE-1-034 requirement detail retained in raw history.\\nARCHIVE-1-035 requirement detail retained in raw history.\\nARCHIVE-1-036 requirement detail retained in raw history.\\nARCHIVE-1-037 requirement detail retained in raw history.\\nARCHIVE-1-038 requirement detail retained in raw history.\\nARCHIVE-1-039 requirement detail retained in raw history.\\nARCHIVE-1-040 requirement detail retained in raw history.\\nARCHIVE-1-041 requirement detail retained in raw history.\\nARCHIVE-1-042 requirement detail retained in raw history.\\nARCHIVE-1-043 requirement detail retained in raw history.\\nARCHIVE-1-044 requirement detail retained in raw history.\\nARCHIVE-1-045 requirement detail retained in raw history.\\nARCHIVE-1-046 requirement detail retained in raw history.\\nARCHIVE-1-047 requirement detail retained in raw history.\\nARCHIVE-1-048 requirement detail retained in raw history.\\nARCHIVE-1-049 requirement detail retained in raw history.\\nARCHIVE-1-050 requirement detail retained in raw history.\\nARCHIVE-1-051 requirement detail retained in raw history.\\nARCHIVE-1-052 requirement detail retained in raw history.\\nARCHIVE-1-053 requirement detail retained in raw history.\\nARCHIVE-1-054 requirement detail retained in raw history.\\nARCHIVE-1-055 requirement detail retained in raw history.\\nARCHIVE-1-056 requirement detail retained in raw history.\\nARCHIVE-1-057 requirement detail retained in raw history.\\nARCHIVE-1-058 requirement detail retained in raw history.\\nARCHIVE-1-059 requirement detail retained in raw history.\\nARCHIVE-1-060 requirement detail retained in raw history.\\nARCHIVE-1-061 requirement detail retained in raw history.\\nARCHIVE-1-062 requirement detail retained in raw history.\\nARCHIVE-1-063 requirement detail retained in raw history.\\nARCHIVE-1-064 requirement detail retained in raw history.\\nARCHIVE-1-065 requirement detail retained in raw history.\\nARCHIVE-1-066 requirement detail retained in raw history.\\nARCHIVE-1-067 requirement detail retained in raw history.\\nARCHIVE-1-068 requirement detail retained in raw history.\\nARCHIVE-1-069 requirement detail retained in raw history.\\nARCHIVE-1-070 requirement detail retained in raw history.\\nARCHIVE-1-071 requirement detail retained in raw history.\\nARCHIVE-1-072 requirement detail retained in raw history.\\nARCHIVE-1-073 requirement detail retained in raw history.\\nARCHIVE-1-074 requirement detail retained in raw history.\\nARCHIVE-1-075 requirement detail retained in raw history.\\nARCHIVE-1-076 requirement detail retained in raw history.\\nARCHIVE-1-077 requirement detail retained in raw history.\\nARCHIVE-1-078 requirement detail retained in raw history.\\nARCHIVE-1-079 requirement detail retained in raw history.\\nARCHIVE-1-080 requirement detail retained in raw history.\\nARCHIVE-1-081 requirement detail retained in raw history.\\nARCHIVE-1-082 requirement detail retained in raw history.\\nARCHIVE-1-083 requirement detail retained in raw history.\\nARCHIVE-1-084 requirement detail retained in raw history.\\nARCHIVE-1-085 requirement detail retained in raw history.\\nARCHIVE-1-086 requirement detail retained in raw history.\\nARCHIVE-1-087 requirement detail retained in raw history.\\nARCHIVE-1-088 requirement detail retained in raw history.\\nARCHIVE-1-089 requirement detail retained in raw history.\\nARCHIVE-1-090 requirement detail retained in raw history.\\nARCHIVE-1-091 requirement detail retained in raw history.\\nARCHIVE-1-092 requirement detail retained in raw history.\\nARCHIVE-1-093 requirement detail retained in raw history.\\nARCHIVE-1-094 requirement detail retained in raw history.\\nARCHIVE-1-095 requirement detail retained in raw history.\\nARCHIVE-1-096 requirement detail retained in raw history.\\nARCHIVE-1-097 requirement detail retained in raw history.\\nARCHIVE-1-098 requirement detail retained in raw history.\\nARCHIVE-1-099 requirement detail retained in raw history.\\nARCHIVE-1-100 requirement detail retained in raw history.\\nARCHIVE-1-101 requirement detail retained in raw history.\\nARCHIVE-1-102 requirement detail retained in raw history.\\nARCHIVE-1-103 requirement detail retained in raw history.\\nARCHIVE-1-104 requirement detail retained in raw history.\\nARCHIVE-1-105 requirement detail retained in raw history.\\nARCHIVE-1-106 requirement detail retained in raw history.\\nARCHIVE-1-107 requirement detail retained in raw history.\\nARCHIVE-1-108 requirement detail retained in raw history.\\nARCHIVE-1-109 requirement detail retained in raw history.\\nARCHIVE-1-110 requirement detail retained in raw history.\\nARCHIVE-1-111 requirement detail retained in raw history.\\nARCHIVE-1-112 requirement detail retained in raw history.\\nARCHIVE-1-113 requirement detail retained in raw history.\\nARCHIVE-1-114 requirement detail retained in raw history.\\nARCHIVE-1-115 requirement detail retained in raw history.\\nARCHIVE-1-116 requirement detail retained in raw history.\\nARCHIVE-1-117 requirement detail retained in raw history.\\nARCHIVE-1-118 requirement detail retained in raw history.\\nARCHIVE-1-119 requirement detail retained in raw history.\\n\",\"state\":{\"itemId\":\"msg_vis34_2\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis34_2\"},\"cost\":0,\"tokens\":{\"input\":6000,\"output\":1800,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+            },
+            {
+              "id": "msg_0dfe287610010dEB7JICLtZ8RX",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "idle",
+              "seq": 12,
+              "time_created": 1790462560097,
+              "time_updated": 1790462560097,
+              "data": "{\"time\":{\"created\":1790462560097},\"outcome\":\"succeeded\"}"
+            },
+            {
+              "id": "msg_0dfe290ef001EH3ett1eA926Co",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "user",
+              "seq": 16,
+              "time_created": 1790462562564,
+              "time_updated": 1790462562565,
+              "data": "{\"time\":{\"created\":1790462562564},\"text\":\"VIS34 seed 2: preserve requirement R2; no filesystem changes.\",\"files\":[],\"agents\":[]}"
+            },
+            {
+              "id": "msg_0dfe2910c001SAS762vbeo3I3R",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "assistant",
+              "seq": 17,
+              "time_created": 1790462562581,
+              "time_updated": 1790462562601,
+              "data": "{\"time\":{\"created\":1790462562581,\"streamed\":1790462562599,\"completed\":1790462562601},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS34-ANSWER-2:\\nARCHIVE-2-000 requirement detail retained in raw history.\\nARCHIVE-2-001 requirement detail retained in raw history.\\nARCHIVE-2-002 requirement detail retained in raw history.\\nARCHIVE-2-003 requirement detail retained in raw history.\\nARCHIVE-2-004 requirement detail retained in raw history.\\nARCHIVE-2-005 requirement detail retained in raw history.\\nARCHIVE-2-006 requirement detail retained in raw history.\\nARCHIVE-2-007 requirement detail retained in raw history.\\nARCHIVE-2-008 requirement detail retained in raw history.\\nARCHIVE-2-009 requirement detail retained in raw history.\\nARCHIVE-2-010 requirement detail retained in raw history.\\nARCHIVE-2-011 requirement detail retained in raw history.\\nARCHIVE-2-012 requirement detail retained in raw history.\\nARCHIVE-2-013 requirement detail retained in raw history.\\nARCHIVE-2-014 requirement detail retained in raw history.\\nARCHIVE-2-015 requirement detail retained in raw history.\\nARCHIVE-2-016 requirement detail retained in raw history.\\nARCHIVE-2-017 requirement detail retained in raw history.\\nARCHIVE-2-018 requirement detail retained in raw history.\\nARCHIVE-2-019 requirement detail retained in raw history.\\nARCHIVE-2-020 requirement detail retained in raw history.\\nARCHIVE-2-021 requirement detail retained in raw history.\\nARCHIVE-2-022 requirement detail retained in raw history.\\nARCHIVE-2-023 requirement detail retained in raw history.\\nARCHIVE-2-024 requirement detail retained in raw history.\\nARCHIVE-2-025 requirement detail retained in raw history.\\nARCHIVE-2-026 requirement detail retained in raw history.\\nARCHIVE-2-027 requirement detail retained in raw history.\\nARCHIVE-2-028 requirement detail retained in raw history.\\nARCHIVE-2-029 requirement detail retained in raw history.\\nARCHIVE-2-030 requirement detail retained in raw history.\\nARCHIVE-2-031 requirement detail retained in raw history.\\nARCHIVE-2-032 requirement detail retained in raw history.\\nARCHIVE-2-033 requirement detail retained in raw history.\\nARCHIVE-2-034 requirement detail retained in raw history.\\nARCHIVE-2-035 requirement detail retained in raw history.\\nARCHIVE-2-036 requirement detail retained in raw history.\\nARCHIVE-2-037 requirement detail retained in raw history.\\nARCHIVE-2-038 requirement detail retained in raw history.\\nARCHIVE-2-039 requirement detail retained in raw history.\\nARCHIVE-2-040 requirement detail retained in raw history.\\nARCHIVE-2-041 requirement detail retained in raw history.\\nARCHIVE-2-042 requirement detail retained in raw history.\\nARCHIVE-2-043 requirement detail retained in raw history.\\nARCHIVE-2-044 requirement detail retained in raw history.\\nARCHIVE-2-045 requirement detail retained in raw history.\\nARCHIVE-2-046 requirement detail retained in raw history.\\nARCHIVE-2-047 requirement detail retained in raw history.\\nARCHIVE-2-048 requirement detail retained in raw history.\\nARCHIVE-2-049 requirement detail retained in raw history.\\nARCHIVE-2-050 requirement detail retained in raw history.\\nARCHIVE-2-051 requirement detail retained in raw history.\\nARCHIVE-2-052 requirement detail retained in raw history.\\nARCHIVE-2-053 requirement detail retained in raw history.\\nARCHIVE-2-054 requirement detail retained in raw history.\\nARCHIVE-2-055 requirement detail retained in raw history.\\nARCHIVE-2-056 requirement detail retained in raw history.\\nARCHIVE-2-057 requirement detail retained in raw history.\\nARCHIVE-2-058 requirement detail retained in raw history.\\nARCHIVE-2-059 requirement detail retained in raw history.\\nARCHIVE-2-060 requirement detail retained in raw history.\\nARCHIVE-2-061 requirement detail retained in raw history.\\nARCHIVE-2-062 requirement detail retained in raw history.\\nARCHIVE-2-063 requirement detail retained in raw history.\\nARCHIVE-2-064 requirement detail retained in raw history.\\nARCHIVE-2-065 requirement detail retained in raw history.\\nARCHIVE-2-066 requirement detail retained in raw history.\\nARCHIVE-2-067 requirement detail retained in raw history.\\nARCHIVE-2-068 requirement detail retained in raw history.\\nARCHIVE-2-069 requirement detail retained in raw history.\\nARCHIVE-2-070 requirement detail retained in raw history.\\nARCHIVE-2-071 requirement detail retained in raw history.\\nARCHIVE-2-072 requirement detail retained in raw history.\\nARCHIVE-2-073 requirement detail retained in raw history.\\nARCHIVE-2-074 requirement detail retained in raw history.\\nARCHIVE-2-075 requirement detail retained in raw history.\\nARCHIVE-2-076 requirement detail retained in raw history.\\nARCHIVE-2-077 requirement detail retained in raw history.\\nARCHIVE-2-078 requirement detail retained in raw history.\\nARCHIVE-2-079 requirement detail retained in raw history.\\nARCHIVE-2-080 requirement detail retained in raw history.\\nARCHIVE-2-081 requirement detail retained in raw history.\\nARCHIVE-2-082 requirement detail retained in raw history.\\nARCHIVE-2-083 requirement detail retained in raw history.\\nARCHIVE-2-084 requirement detail retained in raw history.\\nARCHIVE-2-085 requirement detail retained in raw history.\\nARCHIVE-2-086 requirement detail retained in raw history.\\nARCHIVE-2-087 requirement detail retained in raw history.\\nARCHIVE-2-088 requirement detail retained in raw history.\\nARCHIVE-2-089 requirement detail retained in raw history.\\nARCHIVE-2-090 requirement detail retained in raw history.\\nARCHIVE-2-091 requirement detail retained in raw history.\\nARCHIVE-2-092 requirement detail retained in raw history.\\nARCHIVE-2-093 requirement detail retained in raw history.\\nARCHIVE-2-094 requirement detail retained in raw history.\\nARCHIVE-2-095 requirement detail retained in raw history.\\nARCHIVE-2-096 requirement detail retained in raw history.\\nARCHIVE-2-097 requirement detail retained in raw history.\\nARCHIVE-2-098 requirement detail retained in raw history.\\nARCHIVE-2-099 requirement detail retained in raw history.\\nARCHIVE-2-100 requirement detail retained in raw history.\\nARCHIVE-2-101 requirement detail retained in raw history.\\nARCHIVE-2-102 requirement detail retained in raw history.\\nARCHIVE-2-103 requirement detail retained in raw history.\\nARCHIVE-2-104 requirement detail retained in raw history.\\nARCHIVE-2-105 requirement detail retained in raw history.\\nARCHIVE-2-106 requirement detail retained in raw history.\\nARCHIVE-2-107 requirement detail retained in raw history.\\nARCHIVE-2-108 requirement detail retained in raw history.\\nARCHIVE-2-109 requirement detail retained in raw history.\\nARCHIVE-2-110 requirement detail retained in raw history.\\nARCHIVE-2-111 requirement detail retained in raw history.\\nARCHIVE-2-112 requirement detail retained in raw history.\\nARCHIVE-2-113 requirement detail retained in raw history.\\nARCHIVE-2-114 requirement detail retained in raw history.\\nARCHIVE-2-115 requirement detail retained in raw history.\\nARCHIVE-2-116 requirement detail retained in raw history.\\nARCHIVE-2-117 requirement detail retained in raw history.\\nARCHIVE-2-118 requirement detail retained in raw history.\\nARCHIVE-2-119 requirement detail retained in raw history.\\n\",\"state\":{\"itemId\":\"msg_vis34_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis34_3\"},\"cost\":0,\"tokens\":{\"input\":6000,\"output\":1800,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+            },
+            {
+              "id": "msg_0dfe2912b001WgoINWZ7tG7ntL",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "idle",
+              "seq": 22,
+              "time_created": 1790462562603,
+              "time_updated": 1790462562604,
+              "data": "{\"time\":{\"created\":1790462562603},\"outcome\":\"succeeded\"}"
+            },
+            {
+              "id": "msg_0dfe29ad5001DgjBLZ2YAGFgIH",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "user",
+              "seq": 26,
+              "time_created": 1790462565102,
+              "time_updated": 1790462565103,
+              "data": "{\"time\":{\"created\":1790462565102},\"text\":\"VIS34 seed 3: preserve requirement R3; no filesystem changes.\",\"files\":[],\"agents\":[]}"
+            },
+            {
+              "id": "msg_0dfe29af400127DX0CSrUrin5k",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "assistant",
+              "seq": 27,
+              "time_created": 1790462565112,
+              "time_updated": 1790462565156,
+              "data": "{\"time\":{\"created\":1790462565112,\"streamed\":1790462565153,\"completed\":1790462565155},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS34-ANSWER-3:\\nARCHIVE-3-000 requirement detail retained in raw history.\\nARCHIVE-3-001 requirement detail retained in raw history.\\nARCHIVE-3-002 requirement detail retained in raw history.\\nARCHIVE-3-003 requirement detail retained in raw history.\\nARCHIVE-3-004 requirement detail retained in raw history.\\nARCHIVE-3-005 requirement detail retained in raw history.\\nARCHIVE-3-006 requirement detail retained in raw history.\\nARCHIVE-3-007 requirement detail retained in raw history.\\nARCHIVE-3-008 requirement detail retained in raw history.\\nARCHIVE-3-009 requirement detail retained in raw history.\\nARCHIVE-3-010 requirement detail retained in raw history.\\nARCHIVE-3-011 requirement detail retained in raw history.\\nARCHIVE-3-012 requirement detail retained in raw history.\\nARCHIVE-3-013 requirement detail retained in raw history.\\nARCHIVE-3-014 requirement detail retained in raw history.\\nARCHIVE-3-015 requirement detail retained in raw history.\\nARCHIVE-3-016 requirement detail retained in raw history.\\nARCHIVE-3-017 requirement detail retained in raw history.\\nARCHIVE-3-018 requirement detail retained in raw history.\\nARCHIVE-3-019 requirement detail retained in raw history.\\nARCHIVE-3-020 requirement detail retained in raw history.\\nARCHIVE-3-021 requirement detail retained in raw history.\\nARCHIVE-3-022 requirement detail retained in raw history.\\nARCHIVE-3-023 requirement detail retained in raw history.\\nARCHIVE-3-024 requirement detail retained in raw history.\\nARCHIVE-3-025 requirement detail retained in raw history.\\nARCHIVE-3-026 requirement detail retained in raw history.\\nARCHIVE-3-027 requirement detail retained in raw history.\\nARCHIVE-3-028 requirement detail retained in raw history.\\nARCHIVE-3-029 requirement detail retained in raw history.\\nARCHIVE-3-030 requirement detail retained in raw history.\\nARCHIVE-3-031 requirement detail retained in raw history.\\nARCHIVE-3-032 requirement detail retained in raw history.\\nARCHIVE-3-033 requirement detail retained in raw history.\\nARCHIVE-3-034 requirement detail retained in raw history.\\nARCHIVE-3-035 requirement detail retained in raw history.\\nARCHIVE-3-036 requirement detail retained in raw history.\\nARCHIVE-3-037 requirement detail retained in raw history.\\nARCHIVE-3-038 requirement detail retained in raw history.\\nARCHIVE-3-039 requirement detail retained in raw history.\\nARCHIVE-3-040 requirement detail retained in raw history.\\nARCHIVE-3-041 requirement detail retained in raw history.\\nARCHIVE-3-042 requirement detail retained in raw history.\\nARCHIVE-3-043 requirement detail retained in raw history.\\nARCHIVE-3-044 requirement detail retained in raw history.\\nARCHIVE-3-045 requirement detail retained in raw history.\\nARCHIVE-3-046 requirement detail retained in raw history.\\nARCHIVE-3-047 requirement detail retained in raw history.\\nARCHIVE-3-048 requirement detail retained in raw history.\\nARCHIVE-3-049 requirement detail retained in raw history.\\nARCHIVE-3-050 requirement detail retained in raw history.\\nARCHIVE-3-051 requirement detail retained in raw history.\\nARCHIVE-3-052 requirement detail retained in raw history.\\nARCHIVE-3-053 requirement detail retained in raw history.\\nARCHIVE-3-054 requirement detail retained in raw history.\\nARCHIVE-3-055 requirement detail retained in raw history.\\nARCHIVE-3-056 requirement detail retained in raw history.\\nARCHIVE-3-057 requirement detail retained in raw history.\\nARCHIVE-3-058 requirement detail retained in raw history.\\nARCHIVE-3-059 requirement detail retained in raw history.\\nARCHIVE-3-060 requirement detail retained in raw history.\\nARCHIVE-3-061 requirement detail retained in raw history.\\nARCHIVE-3-062 requirement detail retained in raw history.\\nARCHIVE-3-063 requirement detail retained in raw history.\\nARCHIVE-3-064 requirement detail retained in raw history.\\nARCHIVE-3-065 requirement detail retained in raw history.\\nARCHIVE-3-066 requirement detail retained in raw history.\\nARCHIVE-3-067 requirement detail retained in raw history.\\nARCHIVE-3-068 requirement detail retained in raw history.\\nARCHIVE-3-069 requirement detail retained in raw history.\\nARCHIVE-3-070 requirement detail retained in raw history.\\nARCHIVE-3-071 requirement detail retained in raw history.\\nARCHIVE-3-072 requirement detail retained in raw history.\\nARCHIVE-3-073 requirement detail retained in raw history.\\nARCHIVE-3-074 requirement detail retained in raw history.\\nARCHIVE-3-075 requirement detail retained in raw history.\\nARCHIVE-3-076 requirement detail retained in raw history.\\nARCHIVE-3-077 requirement detail retained in raw history.\\nARCHIVE-3-078 requirement detail retained in raw history.\\nARCHIVE-3-079 requirement detail retained in raw history.\\nARCHIVE-3-080 requirement detail retained in raw history.\\nARCHIVE-3-081 requirement detail retained in raw history.\\nARCHIVE-3-082 requirement detail retained in raw history.\\nARCHIVE-3-083 requirement detail retained in raw history.\\nARCHIVE-3-084 requirement detail retained in raw history.\\nARCHIVE-3-085 requirement detail retained in raw history.\\nARCHIVE-3-086 requirement detail retained in raw history.\\nARCHIVE-3-087 requirement detail retained in raw history.\\nARCHIVE-3-088 requirement detail retained in raw history.\\nARCHIVE-3-089 requirement detail retained in raw history.\\nARCHIVE-3-090 requirement detail retained in raw history.\\nARCHIVE-3-091 requirement detail retained in raw history.\\nARCHIVE-3-092 requirement detail retained in raw history.\\nARCHIVE-3-093 requirement detail retained in raw history.\\nARCHIVE-3-094 requirement detail retained in raw history.\\nARCHIVE-3-095 requirement detail retained in raw history.\\nARCHIVE-3-096 requirement detail retained in raw history.\\nARCHIVE-3-097 requirement detail retained in raw history.\\nARCHIVE-3-098 requirement detail retained in raw history.\\nARCHIVE-3-099 requirement detail retained in raw history.\\nARCHIVE-3-100 requirement detail retained in raw history.\\nARCHIVE-3-101 requirement detail retained in raw history.\\nARCHIVE-3-102 requirement detail retained in raw history.\\nARCHIVE-3-103 requirement detail retained in raw history.\\nARCHIVE-3-104 requirement detail retained in raw history.\\nARCHIVE-3-105 requirement detail retained in raw history.\\nARCHIVE-3-106 requirement detail retained in raw history.\\nARCHIVE-3-107 requirement detail retained in raw history.\\nARCHIVE-3-108 requirement detail retained in raw history.\\nARCHIVE-3-109 requirement detail retained in raw history.\\nARCHIVE-3-110 requirement detail retained in raw history.\\nARCHIVE-3-111 requirement detail retained in raw history.\\nARCHIVE-3-112 requirement detail retained in raw history.\\nARCHIVE-3-113 requirement detail retained in raw history.\\nARCHIVE-3-114 requirement detail retained in raw history.\\nARCHIVE-3-115 requirement detail retained in raw history.\\nARCHIVE-3-116 requirement detail retained in raw history.\\nARCHIVE-3-117 requirement detail retained in raw history.\\nARCHIVE-3-118 requirement detail retained in raw history.\\nARCHIVE-3-119 requirement detail retained in raw history.\\n\",\"state\":{\"itemId\":\"msg_vis34_4\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis34_4\"},\"cost\":0,\"tokens\":{\"input\":23000,\"output\":1800,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+            },
+            {
+              "id": "msg_0dfe29b28001FR6u1iqw4hUKus",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "idle",
+              "seq": 32,
+              "time_created": 1790462565160,
+              "time_updated": 1790462565160,
+              "data": "{\"time\":{\"created\":1790462565160},\"outcome\":\"succeeded\"}"
+            },
+            {
+              "id": "msg_0dfe2ace7001Gi2M04YS7roIes",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "user",
+              "seq": 36,
+              "time_created": 1790462569738,
+              "time_updated": 1790462569739,
+              "data": "{\"time\":{\"created\":1790462569738},\"text\":\"VIS34 next: continue from checkpoint; no tools.\",\"files\":[],\"agents\":[]}"
+            },
+            {
+              "id": "msg_0dfe2ad11001OFd3o3RHPiFPGt",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "compaction",
+              "seq": 37,
+              "time_created": 1790462569745,
+              "time_updated": 1790462574211,
+              "data": "{\"time\":{\"created\":1790462569745},\"status\":\"completed\",\"reason\":\"auto\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"providerState\":{\"responseId\":\"resp_vis34_5\"},\"summary\":\"## Objective\\n- VIS34-CHECKPOINT: preserve R1, R2, R3.\\n\\n## Work State\\n- Three seeded exchanges completed; filesystem unchanged.\\n\\n## Next Move\\n1. Continue the user request without replaying tools.\\n\",\"recent\":\"[User]: VIS34 next: continue from checkpoint; no tools.\",\"cost\":0,\"tokens\":{\"input\":1000,\"output\":300,\"reasoning\":21,\"cache\":{\"read\":234,\"write\":0}}}"
+            },
+            {
+              "id": "msg_0dfe2be840018XUMoEX3fVTdza",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "assistant",
+              "seq": 40,
+              "time_created": 1790462574222,
+              "time_updated": 1790462574237,
+              "data": "{\"time\":{\"created\":1790462574222,\"streamed\":1790462574235,\"completed\":1790462574236},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS34-NEXT-DONE\",\"state\":{\"itemId\":\"msg_vis34_6\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis34_6\"},\"cost\":0,\"tokens\":{\"input\":6000,\"output\":1800,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+            },
+            {
+              "id": "msg_0dfe2be9f001xnrxgWGPNJJArX",
+              "session_id": "ses_f201d794affe3X37Yl625HlWtR",
+              "type": "idle",
+              "seq": 45,
+              "time_created": 1790462574239,
+              "time_updated": 1790462574239,
+              "data": "{\"time\":{\"created\":1790462574239},\"outcome\":\"succeeded\"}"
+            }
+          ],
+          "session_inbox": []
+        }
+      }
+    ],
+    "project_files": {}
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": 0,
+    "termination": "natural"
+  }
+]

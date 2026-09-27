@@ -90,12 +90,18 @@ pub enum ProviderError {
     /// Nonretryable HTTP status, without potentially sensitive response body.
     #[error("HTTP status {0}")]
     HttpStatus(u16),
+    /// Bounded structured provider diagnostic with configured credentials redacted.
+    #[error("HTTP status {status}: {message}")]
+    HttpDiagnostic { status: u16, message: String },
     /// Byte ceiling reached before appending data.
     #[error("{0} byte limit exceeded")]
     ByteLimit(&'static str),
     /// Malformed UTF-8 is never silently replaced.
     #[error("invalid UTF-8 in stream")]
     InvalidUtf8,
+    /// An explicit provider context-window error, eligible for one checkpoint rebuild.
+    #[error("context window exceeded")]
+    ContextOverflow,
 }
 
 /// Responses message role, independent of UI event kinds.
@@ -253,6 +259,7 @@ pub enum StreamItem {
 /// Complete streamed generation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Generation {
+    pub compaction_usage: Option<oc_core::compaction::CompactionUsage>,
     /// Full completed output, including opaque continuation state.
     pub output: Vec<serde_json::Value>,
     /// Ordered stream items (deltas in arrival order).
@@ -355,6 +362,7 @@ pub fn request_body(
 /// Incremental SSE decoder over an arbitrary byte stream.
 #[derive(Debug, Default)]
 pub struct SseParser {
+    compaction_usage: Option<oc_core::compaction::CompactionUsage>,
     /// Pending bytes (incomplete UTF-8 tail or partial line).
     pending: Vec<u8>,
     /// Accumulated `data:` lines for the current event.
@@ -497,6 +505,17 @@ impl SseParser {
             }
             Some("response.failed" | "error") => {
                 self.terminal = true;
+                let code = value
+                    .pointer("/response/error/code")
+                    .or_else(|| value.pointer("/error/code"))
+                    .or_else(|| value.get("code"))
+                    .and_then(|v| v.as_str());
+                if matches!(
+                    code,
+                    Some("context_length_exceeded" | "context_window_exceeded")
+                ) {
+                    return Err(ProviderError::ContextOverflow);
+                }
                 return Err(ProviderError::Failed);
             }
             Some("response.incomplete") => {
@@ -521,6 +540,26 @@ impl SseParser {
                 self.output_done.insert(index, item.clone());
             }
             Some("response.completed") => {
+                if let Some(usage) = value.pointer("/response/usage") {
+                    let input = usage["input_tokens"].as_u64().unwrap_or(0);
+                    let output = usage["output_tokens"].as_u64().unwrap_or(0);
+                    let cache_read = usage
+                        .pointer("/input_tokens_details/cached_tokens")
+                        .and_then(|v| v.as_u64())
+                        .unwrap_or(0);
+                    let reasoning = usage
+                        .pointer("/output_tokens_details/reasoning_tokens")
+                        .and_then(|v| v.as_u64())
+                        .unwrap_or(0);
+                    // Responses totals include cached input and reasoning output.
+                    self.compaction_usage = Some(oc_core::compaction::CompactionUsage {
+                        input_tokens: input.saturating_sub(cache_read),
+                        output_tokens: output.saturating_sub(reasoning),
+                        cache_read_tokens: cache_read,
+                        cache_write_tokens: 0,
+                        reasoning_tokens: reasoning,
+                    });
+                }
                 self.terminal = true;
                 match value
                     .pointer("/response/status")
@@ -880,7 +919,9 @@ async fn stream_body(
     }
 }
 
-fn request_headers(config: &ResponsesConfig) -> Result<reqwest::header::HeaderMap, ProviderError> {
+pub(crate) fn request_headers(
+    config: &ResponsesConfig,
+) -> Result<reqwest::header::HeaderMap, ProviderError> {
     use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
     let mut headers = HeaderMap::new();
     for (name, value) in &config.headers {
@@ -1000,6 +1041,46 @@ async fn stream_attempt(
     if status >= 500 {
         return Err((ProviderError::Server, false));
     }
+    if status == 400 || status == 413 {
+        let mut response = resp;
+        let mut bytes = Vec::new();
+        let deadline = tokio::time::Instant::now() + chunk_timeout;
+        loop {
+            let chunk = tokio::select! {
+                () = wait_cancel(cancel) => return Err((ProviderError::Cancelled,false)),
+                result = tokio::time::timeout_at(deadline,response.chunk()) => result,
+            };
+            match chunk {
+                Ok(Ok(Some(chunk))) if bytes.len() + chunk.len() <= 16 * 1024 => {
+                    bytes.extend_from_slice(&chunk)
+                }
+                Ok(Ok(None)) => break,
+                _ => return Err((ProviderError::HttpStatus(status), false)),
+            }
+        }
+        let diagnostic = serde_json::from_slice::<serde_json::Value>(&bytes).ok();
+        let known = diagnostic.as_ref().is_some_and(|v| {
+            matches!(
+                v.pointer("/error/code").and_then(|c| c.as_str()),
+                Some("context_length_exceeded" | "context_window_exceeded")
+            )
+        });
+        let message = diagnostic
+            .as_ref()
+            .and_then(|v| v.pointer("/error/message"))
+            .and_then(|v| v.as_str())
+            .and_then(|message| safe_diagnostic(message, headers));
+        return Err((
+            if known {
+                ProviderError::ContextOverflow
+            } else if let Some(message) = message {
+                ProviderError::HttpDiagnostic { status, message }
+            } else {
+                ProviderError::HttpStatus(status)
+            },
+            false,
+        ));
+    }
     if status != 200 {
         return Err((ProviderError::HttpStatus(status), false));
     }
@@ -1082,11 +1163,47 @@ async fn stream_attempt(
         .output
         .unwrap_or_else(|| parser.output_done.into_values().collect());
     Ok(Generation {
+        compaction_usage: parser.compaction_usage,
         output,
         items,
         text,
         usage,
     })
+}
+
+fn safe_diagnostic(message: &str, headers: &reqwest::header::HeaderMap) -> Option<String> {
+    // Only the structured error.message field is projected, never headers or
+    // the raw body. Bound it before processing and remove configured secrets.
+    if message.is_empty() || message.len() > 4096 {
+        return None;
+    }
+    let mut message = message.to_owned();
+    for secret in headers.values().filter_map(|value| value.to_str().ok()) {
+        let secret = secret.strip_prefix("Bearer ").unwrap_or(secret);
+        if !secret.is_empty() {
+            message = message.replace(secret, "[redacted]");
+        }
+    }
+    let lower = message.to_ascii_lowercase();
+    if [
+        "authorization:",
+        "bearer ",
+        "cookie:",
+        "api_key=",
+        "apikey=",
+    ]
+    .iter()
+    .any(|key| lower.contains(key))
+    {
+        return Some("provider diagnostic contained credentials (redacted)".into());
+    }
+    Some(
+        message
+            .chars()
+            .filter(|c| !c.is_control() || *c == ' ')
+            .take(512)
+            .collect(),
+    )
 }
 
 /// Redacted request preview for diagnostics (auth/contents withheld).

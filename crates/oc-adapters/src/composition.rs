@@ -451,6 +451,12 @@ async fn load_stages(
     // Definitions are merged at their exact source precedence points: config
     // inline domains first, then Markdown from the same admitted root.
     let mut loaded_defs = defs::LoadedDefs::default();
+    // Pinned core/plugin/agent.ts registers Build before configured transforms.
+    // A real definition participates in selection, policy and durable turn
+    // metadata; configured overrides/disable retain their normal precedence.
+    loaded_defs
+        .agents
+        .insert("build".into(), defs::builtin_build());
     if let Some(global) = global.as_ref() {
         let global = admitted_roots[0]
             .as_ref()
@@ -486,6 +492,13 @@ async fn load_stages(
         );
     }
 
+    // A configured Build body/model inherits the builtin primary mode unless
+    // the owner explicitly supplies a different mode (including `all`).
+    if let Some(build) = loaded_defs.agents.get_mut("build")
+        && build.mode.is_none()
+    {
+        build.mode = Some("primary".into());
+    }
     let mut instruction_files = Vec::new();
     if let Some(global) = global.as_ref()
         && let Some(root) = admitted_roots[0].as_ref()
@@ -531,6 +544,35 @@ async fn load_stages(
         )
         .into());
     }
+    if default_agent.is_none() {
+        default_agent = loaded_defs
+            .agents
+            .get("build")
+            .filter(|agent| agent.primary_capable() && !agent.hidden)
+            .or_else(|| {
+                loaded_defs
+                    .agents
+                    .values()
+                    .find(|agent| agent.primary_capable() && !agent.hidden)
+            })
+            .map(|agent| agent.id.clone());
+    }
+    if default_agent.as_deref() == Some("build")
+        && loaded_defs
+            .agents
+            .get("build")
+            .is_some_and(|agent| agent.origin == "builtin")
+        && let Some(diagnostic) = loaded_defs
+            .diagnostics
+            .iter()
+            .find(|d| d.field == "agent.build" || d.field.starts_with("agent.build."))
+    {
+        return Err(format!(
+            "selected agent build is invalid: {}: {}",
+            diagnostic.path, diagnostic.reason
+        )
+        .into());
+    }
     let selected_agent = match default_agent.as_deref() {
         Some(id) => match loaded_defs.agents.get(id) {
             Some(agent) if !agent.primary_capable() => {
@@ -567,7 +609,7 @@ async fn load_stages(
                 .into());
             }
         },
-        None => None,
+        None => return Err("no selectable primary agent".into()),
     };
 
     let selected = match selected {
@@ -848,6 +890,9 @@ async fn load_stages(
         );
     }
     let mut startup_notices = Vec::new();
+    if !generation.config_diagnostics.is_empty() {
+        startup_notices.push(StartupNotice::CompactionConfig);
+    }
     if !loaded_defs.diagnostics.is_empty() {
         startup_notices.push(StartupNotice::Definitions);
     }
@@ -871,6 +916,12 @@ async fn load_stages(
         })
         .collect();
     diagnostics.extend(plugin_diagnostics);
+    diagnostics.extend(
+        generation
+            .config_diagnostics
+            .iter()
+            .map(ToString::to_string),
+    );
     diagnostics.extend(
         dcp_warnings
             .into_iter()
@@ -897,6 +948,7 @@ async fn load_stages(
         }
     }
     let mut tui_chrome = oc_core::queries::TuiChrome {
+        config_diagnostics: generation.config_diagnostics.clone(),
         location: Some(project.to_string_lossy().into_owned()),
         terminal_copy,
         animations: generation.animations,
@@ -928,6 +980,9 @@ async fn load_stages(
                     Some("hide") => true,
                     _ => return Err("session.sidebar must be auto or hide".into()),
                 };
+            }
+            if let Some(v) = value.pointer("/session/tps") {
+                tui_chrome.session_tps = Some(v.as_bool().ok_or("session.tps must be boolean")?);
             }
             if let Some(v) = value.pointer("/tabs/layout") {
                 tui_chrome.vertical_tabs_width = match v.as_str() {
@@ -1362,6 +1417,74 @@ mod tests {
             );
             assert!(!error.contains(invalid), "{error}");
         }
+    }
+
+    #[tokio::test]
+    async fn builtin_build_selection_and_admitted_session_tps() {
+        let dir = tempfile::tempdir().unwrap();
+        let global = dir.path().join("config/opencode");
+        let project = dir.path().join("project");
+        std::fs::create_dir_all(&global).unwrap();
+        std::fs::create_dir_all(&project).unwrap();
+        let mut config = serde_json::json!({"model":"fixture/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{},"other":{}}}}});
+        std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
+        let env = BTreeMap::from([(
+            "XDG_CONFIG_HOME".into(),
+            dir.path().join("config").to_string_lossy().into_owned(),
+        )]);
+        let load = || load_with_env(&project, env.clone());
+        let base = load().await.unwrap();
+        assert_eq!(base.default_agent.as_deref(), Some("build"));
+        assert_eq!(base.agents["build"], crate::defs::builtin_build());
+        assert!(base.tui_chrome.session_tps.unwrap_or(true));
+        std::fs::write(global.join("cli.json"), "{\"session\":{\"tps\":false}}").unwrap();
+        assert_eq!(load().await.unwrap().tui_chrome.session_tps, Some(false));
+        std::fs::write(
+            project.join("cli.jsonc"),
+            "{ // override\n \"session\":{\"tps\":true}}",
+        )
+        .unwrap();
+        assert_eq!(load().await.unwrap().tui_chrome.session_tps, Some(true));
+        for invalid in ["null", "42", "\"false\""] {
+            std::fs::write(
+                project.join("cli.jsonc"),
+                format!("{{\"session\":{{\"tps\":{invalid}}}}}"),
+            )
+            .unwrap();
+            assert!(
+                load()
+                    .await
+                    .err()
+                    .unwrap()
+                    .contains("session.tps must be boolean")
+            );
+        }
+        std::fs::remove_file(project.join("cli.jsonc")).unwrap();
+        config["agent"] = serde_json::json!({"build":{"prompt":"configured Build","model":"fixture/other","permission":{"bash":"deny"}}});
+        std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
+        let configured = load().await.unwrap();
+        assert_eq!(configured.default_agent.as_deref(), Some("build"));
+        assert_eq!(configured.model_id, "other");
+        assert_eq!(configured.agent_prompt.as_deref(), Some("configured Build"));
+        assert!(!configured.agents["build"].subagent_capable());
+        assert_eq!(
+            configured.agents["build"].permissions["bash"],
+            crate::config::Permission::Deny
+        );
+        config["agent"] = serde_json::json!({"build":{"disabled":true},"review":{"mode":"primary","prompt":"review"}});
+        std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
+        let disabled = load().await.unwrap();
+        assert!(!disabled.agents.contains_key("build"));
+        assert_eq!(disabled.default_agent.as_deref(), Some("review"));
+        config["default_agent"] = serde_json::Value::Null;
+        std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
+        assert!(
+            load()
+                .await
+                .err()
+                .unwrap()
+                .contains("default_agent must be a nonempty string")
+        );
     }
 
     #[tokio::test]
@@ -1834,7 +1957,9 @@ mod tests {
             .expect("composition");
         assert_eq!(loaded.subagent_depth, 1);
         let ids: Vec<&str> = loaded.agents.keys().map(String::as_str).collect();
-        assert_eq!(ids, ["boss", "general", "helper"]);
+        assert_eq!(ids, ["boss", "build", "general", "helper"]);
+        assert_eq!(loaded.default_agent.as_deref(), Some("build"));
+        assert!(!loaded.agents["build"].subagent_capable());
         assert!(!loaded.agents["boss"].subagent_capable());
         assert!(loaded.agents["general"].primary_capable());
         assert!(loaded.agents["general"].subagent_capable());

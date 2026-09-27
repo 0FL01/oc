@@ -22,6 +22,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 use thiserror::Error;
 
+#[path = "storage_compaction.rs"]
+mod compaction;
 #[path = "storage_conversation.rs"]
 mod conversation;
 #[path = "storage_fork.rs"]
@@ -469,6 +471,7 @@ impl Db {
         conn.pragma_update(None, "synchronous", "FULL")?;
         conn.pragma_update(None, "foreign_keys", "ON")?;
         apply_schema(&conn)?;
+        Self::compaction_schema(&conn)?;
         Self::conversation_schema(&conn)?;
         Self::session_list_schema(&conn)?;
         // Same journal, indexed anchor lookup: history paging must not parse
@@ -940,6 +943,9 @@ impl Db {
         for table in [
             "compression_members",
             "conversation_points",
+            "session_checkpoint",
+            "session_usage_anchor",
+            "session_compactions",
             "conversation_redo",
             "conversation_exclusions",
             "conversation_state",

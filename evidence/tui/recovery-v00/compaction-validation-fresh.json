@@ -1,0 +1,486 @@
+{
+  "campaigns": {
+    "manual": {
+      "comparisons": {
+        "DIFFERENT": 38
+      },
+      "sides": {
+        "upstream": {
+          "behavior": "PASS",
+          "requests": 11,
+          "summary_requests": 3,
+          "tools": 1,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            },
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            },
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            }
+          ],
+          "actual_config": {
+            "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-12/upstream/home/config/opencode/opencode.json",
+            "sha256": "1f480fbb734d21d7f90ea9ffd7bb06ff77d98fd98919f55c6bcf7e06018e51b3",
+            "compaction": {
+              "auto": false,
+              "keep": {
+                "tokens": 0
+              },
+              "buffer": 20000
+            },
+            "model_limit": {
+              "context": 225000,
+              "output": 4096
+            },
+            "animations": null,
+            "snapshots": false
+          },
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "safe_boundary_and_coalescing": true,
+          "failed_cancelled_restart_checkpoint_unchanged": true,
+          "nonempty_filesystem_preserved": true,
+          "undo_redo_no_provider_or_tool_replay": true,
+          "restart_checkpoint_and_context": true
+        },
+        "oc": {
+          "behavior": "PASS",
+          "requests": 11,
+          "summary_requests": 3,
+          "tools": 1,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "developer",
+                "user"
+              ],
+              "tools": 0
+            },
+            {
+              "roles": [
+                "developer",
+                "user"
+              ],
+              "tools": 0
+            },
+            {
+              "roles": [
+                "developer",
+                "user"
+              ],
+              "tools": 0
+            }
+          ],
+          "actual_config": {
+            "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-12/oc/home/config/opencode/opencode.json",
+            "sha256": "4cf014f9b61aa45157030c1e025f69efe0cd7a85d558b871bb578c996f69f71a",
+            "compaction": {
+              "auto": false,
+              "keep": {
+                "tokens": 0
+              },
+              "buffer": 20000
+            },
+            "model_limit": {
+              "context": 225000,
+              "output": 4096
+            },
+            "animations": false,
+            "snapshots": false
+          },
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "safe_boundary_and_coalescing": true,
+          "failed_cancelled_restart_checkpoint_unchanged": true,
+          "nonempty_filesystem_preserved": true,
+          "undo_redo_no_provider_or_tool_replay": true,
+          "restart_checkpoint_and_context": true
+        }
+      }
+    },
+    "threshold": {
+      "comparisons": {
+        "DIFFERENT": 20
+      },
+      "sides": {
+        "upstream": {
+          "behavior": "PASS",
+          "requests": 7,
+          "summary_requests": 1,
+          "tools": 0,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            }
+          ],
+          "actual_config": {
+            "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-13/upstream/home/config/opencode/opencode.json",
+            "sha256": "164ac59b4c8c85587f980dee47989b8aa63c41dde37e0d734f9be3bad37f2757",
+            "compaction": {
+              "auto": true,
+              "keep": {
+                "tokens": 0
+              },
+              "buffer": 20000
+            },
+            "model_limit": {
+              "context": 40000,
+              "output": 2048
+            },
+            "animations": null,
+            "snapshots": false
+          },
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "usage_anchor": {
+            "input_tokens": 23000,
+            "output_tokens": 1800,
+            "total_tokens": 24800,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          "summary_before_next_main": true,
+          "undo_redo_no_provider_or_tool_replay": true,
+          "restart_checkpoint_and_context": true
+        },
+        "oc": {
+          "behavior": "PASS",
+          "requests": 7,
+          "summary_requests": 1,
+          "tools": 0,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "developer",
+                "user"
+              ],
+              "tools": 0
+            }
+          ],
+          "actual_config": {
+            "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-13/oc/home/config/opencode/opencode.json",
+            "sha256": "767af7f429baeffead778b113041c118fb17e7a60b13837d86d715c8911566f5",
+            "compaction": {
+              "auto": true,
+              "keep": {
+                "tokens": 0
+              },
+              "buffer": 20000
+            },
+            "model_limit": {
+              "context": 40000,
+              "output": 2048
+            },
+            "animations": false,
+            "snapshots": false
+          },
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "usage_anchor": {
+            "input_tokens": 23000,
+            "output_tokens": 1800,
+            "total_tokens": 24800,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          "summary_before_next_main": true,
+          "undo_redo_no_provider_or_tool_replay": true,
+          "restart_checkpoint_and_context": true
+        }
+      }
+    },
+    "overflow": {
+      "comparisons": {
+        "DIFFERENT": 20
+      },
+      "sides": {
+        "upstream": {
+          "behavior": "PASS",
+          "requests": 8,
+          "summary_requests": 1,
+          "tools": 0,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            }
+          ],
+          "actual_config": {
+            "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-14/upstream/home/config/opencode/opencode.json",
+            "sha256": "cda5e4afd94fa76631f05e28d6bec7351987fd085948c78728e38f7bca5eb695",
+            "compaction": {
+              "auto": true,
+              "keep": {
+                "tokens": 0
+              },
+              "buffer": 20000
+            },
+            "model_limit": {
+              "context": 40000,
+              "output": 2048
+            },
+            "animations": null,
+            "snapshots": false
+          },
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "undo_redo_no_provider_or_tool_replay": true,
+          "restart_checkpoint_and_context": true
+        },
+        "oc": {
+          "behavior": "PASS",
+          "requests": 8,
+          "summary_requests": 1,
+          "tools": 0,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "developer",
+                "user"
+              ],
+              "tools": 0
+            }
+          ],
+          "actual_config": {
+            "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-14/oc/home/config/opencode/opencode.json",
+            "sha256": "7b312a0a6e6c7da387f9e8be84a0deb2613676dd96c78c4ab9f1010edb097fa8",
+            "compaction": {
+              "auto": true,
+              "keep": {
+                "tokens": 0
+              },
+              "buffer": 20000
+            },
+            "model_limit": {
+              "context": 40000,
+              "output": 2048
+            },
+            "animations": false,
+            "snapshots": false
+          },
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "undo_redo_no_provider_or_tool_replay": true,
+          "restart_checkpoint_and_context": true
+        }
+      }
+    }
+  },
+  "source_build_link": {
+    "overflow_build_attempt": "14",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "native_sha256": "72c802b4b63123924d6731f9c88c002b3e39862c98ef8b2db1d88b744a87ae30",
+    "manual_attempt": "12",
+    "production_source_inputs_equal": true
+  },
+  "status": "PASS_BEHAVIOR_VISUAL_DIFFERENCES_REMAIN",
+  "fixture_identity": {
+    "historical_07": {
+      "capture.mjs": "190868382d1c782fe8229c1d76ff6aeaba3c9dd1d34c893bb0111a4118e375e5",
+      "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+      "bridge.py": "94e946f2a27dc9f9f729fa010fe7ae5f1c798a683ad0278f8587688daf9af889",
+      "compaction.mjs": "ab907ce2da79d49656a87eaaedf7c2bb0175a5f79162e6b2a9a7f356964702fa",
+      "compaction_fixture.py": "5ff44af3b981039e355575a99a990ef94ab6fe4f50cfbd64ff63308ad9b0da4f"
+    },
+    "current": {
+      "capture.mjs": "01e114ca0777aa0a2b850a2954de9b04afa3d1c3284186f9dd67e033b923a5fa",
+      "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+      "bridge.py": "c47e6681037a8feb2fae2c27920d7a79f2f54f17dbc22b776796fe25cc5ad5c2",
+      "compaction.mjs": "af6f73ba23199e3c2c7fbe0f7540d8db3c6eab9fd8cfccc2907ac1e4b9c3ae31",
+      "compaction_fixture.py": "4056e783198abc3729872729c1ecf450bfa3e9577d3cbee2f782f58988a278ab"
+    },
+    "byte_identical_to_10": true,
+    "byte_identical_to_07": false,
+    "qualification": "Same threshold policy and emitted seed text/usage; later read-only snapshot coverage and nonempty workspace sentinel already present in 10."
+  },
+  "threshold_seed_requests_and_usage_unchanged_from_07": true
+}

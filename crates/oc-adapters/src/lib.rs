@@ -42,3 +42,4 @@ pub const USER_AGENT: &str = concat!("oc/", env!("CARGO_PKG_VERSION"));
 pub const WEB_USER_AGENT: &str = "oc-user/1.0";
 
 pub use smoke::{adapter_name, build_smoke_client, rmcp_smoke_marker, smoke_memory_db};
+pub mod compaction;

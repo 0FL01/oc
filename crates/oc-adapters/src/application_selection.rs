@@ -129,12 +129,12 @@ fn base_for_agent(
 ) -> Result<Effective, CoreError> {
     let mut selected = fallback.clone();
     // A different unpinned agent must not inherit another agent's scoped model.
-    if let Some(agent) = agent {
+    // Absent/legacy-null means resolve the generation's default primary, as
+    // pinned Agent.select(undefined), not an executable agentless lane.
+    if let Some(agent) = agent.or(c.default_agent.as_deref()) {
         selected.set_agent(c, agent)?;
     } else {
-        selected.agent_id = None;
-        selected.agent_prompt = None;
-        selected.agent_digest = None;
+        return Err(app_error("no selectable primary agent"));
     }
     Ok(selected)
 }

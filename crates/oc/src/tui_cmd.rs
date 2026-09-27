@@ -214,9 +214,15 @@ async fn run_stages(data_dir: &Path, session_opt: Option<String>) -> Result<u8, 
     result
 }
 
+/// Owner receipt plus the slash-editor revision; palette admission has no revision.
+type CompactionAdmission = tokio::task::JoinHandle<
+    Result<(oc_core::compaction::CompactionSnapshot, Option<u64>), CoreError>,
+>;
+
 /// Loop-local application state that is not part of the view-model.
 #[derive(Default)]
 struct LoopState {
+    compaction_job: Option<CompactionAdmission>,
     /// Bounded prompt drafts for picker Location round trips. Views and
     /// configuration are rebuilt from the newly accepted owner receipt.
     picker_drafts: std::collections::BTreeMap<String, Vec<(Option<SessionId>, String)>>,
@@ -278,6 +284,7 @@ type CopyTransport = fn(&str) -> Result<(), String>;
 type ConversationRefresh = tokio::task::JoinHandle<(
     Result<oc_core::queries::HistoryPage, String>,
     Result<CatalogSnapshot, String>,
+    Result<Vec<oc_core::compaction::CompactionSnapshot>, String>,
 )>;
 
 fn conversation_refresh(app: CoreApp, session: SessionId) -> ConversationRefresh {
@@ -287,17 +294,21 @@ fn conversation_refresh(app: CoreApp, session: SessionId) -> ConversationRefresh
             .await
             .map_err(|e| e.to_string());
         let catalog = app
-            .session_selection(session, false, SelectionAction::Current)
+            .session_selection(session.clone(), false, SelectionAction::Current)
             .await
             .map_err(|e| e.to_string());
-        (page, catalog)
+        let compactions = app
+            .compaction_history(session)
+            .await
+            .map_err(|e| e.to_string());
+        (page, catalog, compactions)
     })
 }
 
 async fn apply_conversation_refresh(state: &mut TuiState, refresh: ConversationRefresh) -> bool {
     match refresh.await {
-        Ok((page, catalog)) => {
-            let success = page.is_ok() && catalog.is_ok();
+        Ok((page, catalog, compactions)) => {
+            let success = page.is_ok() && catalog.is_ok() && compactions.is_ok();
             match page {
                 Ok(page) => state.attach_page(&page),
                 Err(error) => state.push_transient_note(
@@ -309,6 +320,13 @@ async fn apply_conversation_refresh(state: &mut TuiState, refresh: ConversationR
                 Ok(catalog) => state.apply_catalog(catalog),
                 Err(error) => state.push_transient_note(
                     &format!("Conversation saved; metadata refresh failed: {error}"),
+                    NoteVariant::Error,
+                ),
+            }
+            match compactions {
+                Ok(snapshots) => state.apply_compaction_history(snapshots),
+                Err(error) => state.push_transient_note(
+                    &format!("Conversation saved; compaction refresh failed: {error}"),
                     NoteVariant::Error,
                 ),
             }
@@ -335,12 +353,17 @@ impl LoopState {
             | (u8::from(self.mention_job.is_some()) << 2)
             | (u8::from(self.title_job.is_some()) << 3)
             | (u8::from(self.reload_job.is_some()) << 4)
+            | (u8::from(self.compaction_job.is_some()) << 5)
     }
 
     fn ready_job(&self) -> bool {
-        self.conversation_job
+        self.compaction_job
             .as_ref()
             .is_some_and(|job| job.is_finished())
+            || self
+                .conversation_job
+                .as_ref()
+                .is_some_and(|job| job.is_finished())
             || self
                 .recovery_job
                 .as_ref()
@@ -777,6 +800,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
         poll_and_sync(app, &mut state, &mut loop_state).await;
         dirty |= sync_mention(app, &mut state, &mut loop_state).await;
         finish_conversation(app, &mut state, &mut loop_state).await;
+        finish_compaction_admission(&mut state, &mut loop_state).await;
         dirty |= job_ready || had_pending != state.has_pending_submission();
         if loop_state.reload_job.is_some()
             && loop_state.reload_painted
@@ -933,7 +957,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
                 metrics.worker_events += 1;
             }
             poll_and_sync(app, &mut state, &mut loop_state).await;
-            if let Some(current) = state.attached_session().cloned() {
+            if let CoreEvent::Compaction(snapshot) = event {
+                apply_compaction_to_view(&mut state, &mut loop_state, snapshot);
+            } else if let Some(current) = state.attached_session().cloned() {
                 handle_worker_event(app, &mut state, &mut loop_state, &current, event).await?;
             }
             loop_state.sync_tabs(&mut state);
@@ -1017,6 +1043,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
         job.abort();
     }
     settle_conversation(app, &mut state, &mut loop_state).await;
+    if let Some(job) = loop_state.compaction_job.take() {
+        let _ = job.await;
+    }
     reconcile_exit(app, &mut state, &mut loop_state).await?;
     if let Some(metrics) = frame_metrics.as_mut() {
         metrics.sample_views(&state, &loop_state);
@@ -1156,6 +1185,9 @@ fn at_tty() -> bool {
 /// Static source/operation guidance: no raw configuration or persisted values.
 fn startup_notice(source: StartupNotice) -> &'static str {
     match source {
+        StartupNotice::CompactionConfig => {
+            "compaction settings were normalized; review configuration diagnostics"
+        }
         StartupNotice::Definitions => "agent/skill/command definitions need review",
         StartupNotice::Plugin => "configured plugin marker was ignored; review plugin settings",
         StartupNotice::Dcp => "DCP settings have unsupported entries; review native dcp settings",
@@ -1189,6 +1221,11 @@ async fn initial_state(
     // A failed catalog is an initialization error, never a usable empty snapshot.
     state.apply_catalog(
         app.session_selection(state.session().clone(), false, SelectionAction::Current)
+            .await
+            .map_err(|_| StartupFailure::Query)?,
+    );
+    state.apply_compaction_history(
+        app.compaction_history(state.session().clone())
             .await
             .map_err(|_| StartupFailure::Query)?,
     );
@@ -1396,6 +1433,7 @@ async fn load_tab(app: &CoreApp, id: SessionId) -> Result<TuiState, CoreError> {
         .await?;
     let mut state = TuiState::new(app.clone(), id);
     state.attach_page(&page);
+    state.apply_compaction_history(app.compaction_history(state.session().clone()).await?);
     state.apply_catalog(catalog);
     Ok(state)
 }
@@ -1664,6 +1702,7 @@ async fn apply_intent_with_origin(
                 | PanelIntent::CycleVariant
                 | PanelIntent::SelectAgent { .. }
                 | PanelIntent::Compress { .. }
+                | PanelIntent::CompactSession
                 | PanelIntent::ReloadConfiguration
                 | PanelIntent::ChangeConversation { .. }
                 | PanelIntent::ForkMessage { .. }
@@ -1672,6 +1711,20 @@ async fn apply_intent_with_origin(
         return Err("child session: read-only history; saved tabs are unchanged".into());
     }
     match intent {
+        PanelIntent::CompactSession => {
+            if loop_state.compaction_job.is_some() {
+                return Err("compaction admission pending".into());
+            }
+            let session = state.attached_session().cloned().ok_or("no session yet")?;
+            let owner = app.clone();
+            let revision = state.compaction_request_revision();
+            loop_state.compaction_job = Some(tokio::spawn(async move {
+                owner
+                    .compact_session(session)
+                    .await
+                    .map(|snapshot| (snapshot, revision))
+            }));
+        }
         PanelIntent::ChangeConversation { action } => {
             if loop_state.conversation_recovery.is_some() || loop_state.recovery_job.is_some() {
                 return Err("conversation refresh pending".into());
@@ -2190,12 +2243,14 @@ async fn apply_intent_with_origin(
                     state.selected_session_renamed(&target.0, title);
                 }
                 state.apply_catalog(receipt.catalog);
+                refresh_compactions(app, state).await;
                 loop_state.sync_tabs(state);
                 return Ok(());
             }
             let mut next = TuiState::new(app.clone(), target);
             next.attach_page(&receipt.page);
             next.apply_catalog(receipt.catalog);
+            refresh_compactions(app, &mut next).await;
             state.close_panel();
             if let Some(old) = loop_state.active_tab.take() {
                 loop_state.tabs[old] = Some(std::mem::replace(state, next));
@@ -2326,11 +2381,17 @@ async fn finish_reload(
     // of each view's catalog, terminal.copy is safety-sensitive: a failed
     // session/Home refresh must not retain an obsolete automatic-copy mode.
     let copy_mode = snapshot.catalog.chrome.terminal_copy;
+    // This setting is already owner-published too. Footer presentation must
+    // follow it even if a later route-specific catalog query fails.
+    let session_tps = snapshot.catalog.chrome.session_tps;
+    state.chrome.session_tps = session_tps;
     state.refresh_clipboard_mode(copy_mode);
     for parked in deck.tabs.iter_mut().flatten() {
+        parked.chrome.session_tps = session_tps;
         parked.refresh_clipboard_mode(copy_mode);
     }
     if let Some(home) = deck.home.as_mut() {
+        home.chrome.session_tps = session_tps;
         home.refresh_clipboard_mode(copy_mode);
     }
     let mut catalogs = Vec::with_capacity(deck.tabs.len());
@@ -2458,6 +2519,7 @@ async fn adopt_picker_open(
     let mut active = TuiState::new(app.clone(), receipt.session.clone());
     active.attach_page(&receipt.page);
     active.apply_catalog(receipt.catalog.clone());
+    refresh_compactions(app, &mut active).await;
     if let Some((_, draft)) = drafts
         .iter()
         .find(|(id, _)| id.as_ref() == Some(&receipt.session))
@@ -2486,6 +2548,7 @@ async fn adopt_picker_open(
                 (Ok(page), Ok(catalog)) => {
                     view.attach_page(&page);
                     view.apply_catalog(catalog);
+                    refresh_compactions(app, &mut view).await;
                 }
                 _ => {
                     deck.picker_pending_tabs.insert(session);
@@ -2610,6 +2673,10 @@ async fn handle_worker_event(
     session: &SessionId,
     event: CoreEvent,
 ) -> Result<(), String> {
+    if let CoreEvent::Compaction(snapshot) = event {
+        apply_compaction_to_view(state, _loop_state, snapshot);
+        return Ok(());
+    }
     let owner = match &event {
         CoreEvent::SessionTitleUpdated { session, .. }
         | CoreEvent::TurnStarted { session, .. }
@@ -2623,11 +2690,13 @@ async fn handle_worker_event(
         | CoreEvent::TurnFinished { session, .. }
         | CoreEvent::TurnInterrupted { session, .. }
         | CoreEvent::TurnFailed { session, .. } => session,
+        CoreEvent::Compaction(_) => unreachable!("handled above"),
     };
     if state.attached_session() != Some(owner) {
         return Ok(());
     }
     match event {
+        CoreEvent::Compaction(_) => unreachable!("handled above"),
         CoreEvent::SessionTitleUpdated { title, .. } => state.session_title = Some(title),
         CoreEvent::TurnStarted {
             turn, model_switch, ..
@@ -2737,6 +2806,72 @@ async fn handle_worker_event(
         }
     }
     Ok(())
+}
+
+fn apply_compaction_to_view(
+    state: &mut TuiState,
+    deck: &mut LoopState,
+    snapshot: oc_core::compaction::CompactionSnapshot,
+) {
+    if state
+        .attached_session()
+        .is_some_and(|id| id.0 == snapshot.session)
+    {
+        state.apply_compaction(snapshot);
+    } else if let Some(view) = deck.tabs.iter_mut().flatten().find(|view| {
+        view.attached_session()
+            .is_some_and(|id| id.0 == snapshot.session)
+    }) {
+        view.apply_compaction(snapshot);
+    }
+}
+
+async fn finish_compaction_admission(state: &mut TuiState, deck: &mut LoopState) {
+    if !deck
+        .compaction_job
+        .as_ref()
+        .is_some_and(|job| job.is_finished())
+    {
+        return;
+    }
+    match deck
+        .compaction_job
+        .take()
+        .expect("finished compaction admission")
+        .await
+        .unwrap_or(Err(CoreError::Shutdown))
+    {
+        Ok((snapshot, revision)) => {
+            if state
+                .attached_session()
+                .is_some_and(|id| id.0 == snapshot.session)
+            {
+                state.compaction_admitted(snapshot, revision);
+            } else if let Some(view) = deck.tabs.iter_mut().flatten().find(|view| {
+                view.attached_session()
+                    .is_some_and(|id| id.0 == snapshot.session)
+            }) {
+                view.compaction_admitted(snapshot, revision);
+            }
+        }
+        Err(error) => {
+            state.push_transient_note(&format!("compaction: {error}"), NoteVariant::Error)
+        }
+    }
+    deck.sync_tabs(state);
+}
+
+async fn refresh_compactions(app: &CoreApp, state: &mut TuiState) {
+    let Some(session) = state.attached_session().cloned() else {
+        return;
+    };
+    match app.compaction_history(session).await {
+        Ok(snapshots) => state.apply_compaction_history(snapshots),
+        Err(error) => state.push_transient_note(
+            &format!("Session opened; compaction refresh failed: {error}"),
+            NoteVariant::Error,
+        ),
+    }
 }
 
 /// Refresh the DCP snapshot for the attached session.
@@ -3515,6 +3650,7 @@ mod tests {
                     ack.send(Err(CoreError::StoredTabDeck)).unwrap();
                 } else {
                     ack.send(Ok(catalog())).unwrap();
+                    empty_compactions(&mut inbox).await;
                 }
             }
             let Some(InboxMsg::HomeSelection { action, ack }) = inbox.recv().await else {
@@ -3589,6 +3725,7 @@ mod tests {
                 panic!("legacy selection")
             };
             ack.send(Ok(catalog())).unwrap();
+            empty_compactions(&mut inbox).await;
             assert!(inbox.try_recv().is_err(), "legacy ID was created or saved");
         });
         let (state, deck) = restore_initial(&app, Some(id)).await.unwrap();
@@ -3630,6 +3767,7 @@ mod tests {
                 panic!("good selection")
             };
             ack.send(Ok(catalog())).unwrap();
+            empty_compactions(&mut inbox).await;
             let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
                 panic!("fallback Home")
             };
@@ -3698,6 +3836,261 @@ mod tests {
         }
     }
 
+    async fn empty_compactions(inbox: &mut tokio::sync::mpsc::Receiver<InboxMsg>) {
+        let Some(InboxMsg::CompactionHistory { ack, .. }) = inbox.recv().await else {
+            panic!("compaction replay query")
+        };
+        ack.send(Ok(Vec::new())).unwrap();
+    }
+
+    fn tps_page() -> oc_core::queries::HistoryPage {
+        oc_core::queries::HistoryPage {
+            total: 1,
+            rows: vec![oc_core::queries::HistoryMessage {
+                id: oc_core::session::MessageId("measured-answer".into()),
+                seq: 1,
+                role: Role::Assistant,
+                text: "cached body".into(),
+                model_switch: None,
+                turn: Some(oc_core::queries::HistoryTurn {
+                    id: "measured-turn".into(),
+                    status: "completed".into(),
+                    model_label: "Measured model".into(),
+                    agent: Some("build".into()),
+                    duration_ms: Some(1500),
+                    streamed_ms: Some(4000),
+                    usage: Some((1000, 200)),
+                    ..Default::default()
+                }),
+            }],
+            ..Default::default()
+        }
+    }
+
+    #[tokio::test]
+    async fn vis34_manual_admission_event_race_parked_view_and_read_failure_keep_receipt() {
+        use oc_core::compaction::{
+            CompactionAnchor, CompactionReason, CompactionSnapshot, CompactionState,
+        };
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let session = SessionId("compact-view".into());
+        let mut state = TuiState::new(app.clone(), session.clone());
+        state.restore_prompt("/compact".into());
+        let mut deck = LoopState::default();
+        let outcome = state.handle_key(KeyAction::Enter).await;
+        assert_eq!(outcome.intent, Some(PanelIntent::CompactSession));
+        apply_intent(&app, &mut state, &mut deck, outcome.intent.unwrap())
+            .await
+            .unwrap();
+        assert_eq!(state.input(), "/compact");
+        let Some(InboxMsg::CompactSession {
+            session: requested,
+            ack,
+        }) = inbox.recv().await
+        else {
+            panic!("owner admission")
+        };
+        assert_eq!(requested, session);
+        let queued = CompactionSnapshot {
+            anchor: CompactionAnchor::default(),
+            id: "op".into(),
+            session: session.0.clone(),
+            reason: CompactionReason::Manual,
+            state: CompactionState::Queued,
+            summary: String::new(),
+            usage: None,
+            provider_native: false,
+            error: None,
+        };
+        let mut completed = queued.clone();
+        completed.state = CompactionState::Completed;
+        completed.summary = "Actual owner summary".into();
+        handle_worker_event(
+            &app,
+            &mut state,
+            &mut deck,
+            &session,
+            CoreEvent::Compaction(completed.clone()),
+        )
+        .await
+        .unwrap();
+        ack.send(Ok(queued)).unwrap();
+        while !deck.compaction_job.as_ref().unwrap().is_finished() {
+            tokio::task::yield_now().await;
+        }
+        finish_compaction_admission(&mut state, &mut deck).await;
+        assert_eq!(state.input(), "");
+        assert!(
+            !state.is_busy(),
+            "late queued receipt cannot restart completed work"
+        );
+        assert!(deck.compaction_job.is_none());
+        let before = state.transcript_rows();
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::CompactionHistory { ack, .. }) = inbox.recv().await else {
+                panic!("read only")
+            };
+            ack.send(Err(CoreError::Shutdown)).unwrap();
+            assert!(
+                inbox.try_recv().is_err(),
+                "refresh never repeats compaction/provider work"
+            );
+        });
+        refresh_compactions(&app, &mut state).await;
+        worker.await.unwrap();
+        assert_eq!(
+            state.transcript_rows(),
+            before,
+            "accepted receipt survives read failure"
+        );
+        let mut active = TuiState::new(app.clone(), SessionId("other".into()));
+        deck.tabs = vec![Some(state), None];
+        deck.active_tab = Some(1);
+        deck.tab_cards_before = vec![None, None];
+        completed.summary = "Parked owner summary".into();
+        handle_worker_event(
+            &app,
+            &mut active,
+            &mut deck,
+            &session,
+            CoreEvent::Compaction(completed),
+        )
+        .await
+        .unwrap();
+        assert!(active.transcript_rows().is_empty());
+        assert_eq!(
+            deck.tabs[0].as_ref().unwrap().transcript_rows()[0].text,
+            "Parked owner summary"
+        );
+    }
+
+    #[tokio::test]
+    async fn vis34_palette_enter_coalesced_admission_closes_only_on_success_and_preserves_composer()
+    {
+        use oc_core::compaction::{
+            CompactionAnchor, CompactionReason, CompactionSnapshot, CompactionState,
+        };
+        for (accepted, edit_pending) in [(true, false), (true, true), (false, false)] {
+            let (app, mut inbox, _) = CoreApp::channel(8);
+            let session = SessionId("palette-compaction".into());
+            let mut state = TuiState::new(app.clone(), session.clone());
+            // A palette action must preserve even a literal slash-command draft.
+            state.restore_prompt("/compact".into());
+            let queued = CompactionSnapshot {
+                anchor: CompactionAnchor::default(),
+                id: "already-queued".into(),
+                session: session.0.clone(),
+                reason: CompactionReason::Manual,
+                state: CompactionState::Queued,
+                summary: String::new(),
+                usage: None,
+                provider_native: false,
+                error: None,
+            };
+            state.apply_compaction(queued.clone());
+            let mut deck = LoopState {
+                tabs: vec![None],
+                tab_cards_before: vec![None],
+                active_tab: Some(0),
+                ..Default::default()
+            };
+            // Ctrl+P belongs to the open slash autocomplete (previous item).
+            // Dismiss that surface before opening the real Commands palette,
+            // just as the focused keyboard route requires in production.
+            state.handle_key(KeyAction::Commands).await;
+            assert_eq!(state.panel(), &TuiPanel::None);
+            state.handle_key(KeyAction::Cancel).await;
+            state.handle_key(KeyAction::Commands).await;
+            assert_eq!(state.panel(), &TuiPanel::Commands);
+            state.handle_paste("Compact session");
+            assert_eq!(state.modal_options().len(), 1);
+            assert_eq!(state.modal_options()[0].value, "session.compact");
+            handle_event(
+                &app,
+                &mut state,
+                &mut deck,
+                CEvent::Key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)),
+            )
+            .await
+            .unwrap();
+            assert_eq!(
+                state.panel(),
+                &TuiPanel::Commands,
+                "wait for actual owner receipt"
+            );
+            assert_eq!(
+                state.modal_options().len(),
+                1,
+                "admission must not reset palette search"
+            );
+            assert_eq!(state.input(), "/compact");
+            if edit_pending {
+                state.restore_prompt("edited while admission pending 界".into());
+            }
+            let Some(InboxMsg::CompactSession {
+                session: requested,
+                ack,
+            }) = inbox.recv().await
+            else {
+                panic!("real compact admission job")
+            };
+            assert_eq!(requested, session);
+            let expected_error = format!("compaction: {}", CoreError::Shutdown);
+            // Same operation ID is the owner's coalesced admission receipt.
+            ack.send(if accepted {
+                Ok(queued)
+            } else {
+                Err(CoreError::Shutdown)
+            })
+            .unwrap();
+            while !deck.compaction_job.as_ref().unwrap().is_finished() {
+                tokio::task::yield_now().await;
+            }
+            finish_compaction_admission(&mut state, &mut deck).await;
+            assert_eq!(
+                state.input(),
+                if edit_pending {
+                    "edited while admission pending 界"
+                } else {
+                    "/compact"
+                }
+            );
+            assert_eq!(
+                state.panel(),
+                if accepted {
+                    &TuiPanel::None
+                } else {
+                    &TuiPanel::Commands
+                }
+            );
+            if accepted {
+                assert!(state.note().is_none(), "no synthetic success toast");
+                assert_eq!(
+                    state
+                        .transcript_rows()
+                        .iter()
+                        .filter(|r| r.role == "compaction_queued")
+                        .count(),
+                    1,
+                    "coalesced receipt keeps one pending checkpoint"
+                );
+            } else {
+                assert_eq!(state.note(), Some(expected_error.as_str()));
+                assert_eq!(
+                    state.modal_options().len(),
+                    1,
+                    "owner refusal preserves searchable selection"
+                );
+                assert_eq!(state.modal_options()[0].value, "session.compact");
+            }
+            assert!(deck.compaction_job.is_none());
+            assert!(
+                inbox.try_recv().is_err(),
+                "no extra provider turn, refresh or compaction admission"
+            );
+        }
+    }
+
     #[tokio::test]
     async fn accepted_conversation_survives_refresh_failure_and_retries_queries_only() {
         use oc_core::queries::{ConversationAction, ConversationSnapshot, HistoryPage};
@@ -3757,6 +4150,7 @@ mod tests {
                         Err(CoreError::Shutdown)
                     })
                     .unwrap();
+                    empty_compactions(&mut inbox).await;
                     inbox
                 });
                 settle_conversation(&app, &mut state, &mut deck).await;
@@ -3781,6 +4175,7 @@ mod tests {
                     panic!("refresh only")
                 };
                 ack.send(Ok(catalog())).unwrap();
+                empty_compactions(&mut inbox).await;
                 while !deck.recovery_job.as_ref().unwrap().is_finished() {
                     tokio::task::yield_now().await;
                 }
@@ -3838,8 +4233,13 @@ mod tests {
                 let mut saved = None;
                 let mut history_seen = false;
                 let mut selection_seen = false;
-                while saved.is_none() || !history_seen || !selection_seen {
+                let mut compactions_seen = false;
+                while saved.is_none() || !history_seen || !selection_seen || !compactions_seen {
                     match inbox.recv().await.unwrap() {
+                        InboxMsg::CompactionHistory { ack, .. } => {
+                            compactions_seen = true;
+                            ack.send(Ok(Vec::new())).unwrap();
+                        }
                         InboxMsg::SaveTabDeck { mut deck, ack } => {
                             deck.revision = Some("saved-revision".into());
                             saved = Some(deck.clone());
@@ -3898,6 +4298,7 @@ mod tests {
                         panic!("restart catalog")
                     };
                     ack.send(Ok(catalog())).unwrap();
+                    empty_compactions(&mut inbox).await;
                 }
                 let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
                     panic!("restart Home")
@@ -4167,6 +4568,7 @@ mod tests {
             panic!("metadata refresh")
         };
         ack.send(Ok(catalog())).unwrap();
+        empty_compactions(&mut inbox).await;
         while !deck.conversation_job.as_ref().unwrap().is_finished() {
             tokio::task::yield_now().await;
         }
@@ -4441,6 +4843,7 @@ mod tests {
             panic!("fork selection")
         };
         ack.send(Ok(catalog())).unwrap();
+        empty_compactions(&mut inbox).await;
         while !deck.conversation_job.as_ref().unwrap().is_finished() {
             tokio::task::yield_now().await;
         }
@@ -4947,16 +5350,34 @@ mod tests {
         let (app, _inbox, _) = CoreApp::channel(8);
         let mut old = catalog();
         old.chrome.terminal_copy = Some(TerminalCopyMode::Manual);
+        old.chrome.session_tps = Some(true);
+        let measured_page = tps_page();
         let mut current = old.clone();
         current.chrome.terminal_copy = Some(TerminalCopyMode::Select);
+        current.chrome.session_tps = Some(false);
         let mut state = TuiState::new(app.clone(), SessionId::new("first").unwrap());
         state.apply_catalog(old.clone());
+        state.attach_page(&measured_page);
+        assert!(
+            state
+                .visible_transcript(80, 80, 40)
+                .0
+                .iter()
+                .any(|line| line.plain_text().contains("50.0 tok/s"))
+        );
         let mut deck = LoopState::default();
         deck.sync_tabs(&mut state);
         append_tab(&app, &mut deck, &mut state, "second");
         state.apply_catalog(current);
         deck.activate(&mut state, 0).unwrap();
         assert_eq!(state.clipboard_mode(), ClipboardMode::Select);
+        assert!(
+            !state
+                .visible_transcript(80, 80, 40)
+                .0
+                .iter()
+                .any(|line| line.plain_text().contains("tok/s"))
+        );
 
         let mut home = TuiState::new_home(app.clone());
         home.apply_catalog(old);
@@ -4969,6 +5390,15 @@ mod tests {
         assert_eq!(state.clipboard_mode(), ClipboardMode::default());
         assert!(deck.restore_home(&mut state));
         assert_eq!(state.clipboard_mode(), ClipboardMode::default());
+        deck.activate(&mut state, 0).unwrap();
+        assert!(
+            state
+                .visible_transcript(80, 80, 40)
+                .0
+                .iter()
+                .any(|line| line.plain_text().contains("50.0 tok/s")),
+            "missing setting restores pinned default without losing stats"
+        );
     }
 
     #[tokio::test]
@@ -5015,9 +5445,18 @@ mod tests {
         let mut old = catalog();
         old.chrome.location = Some("/fixture".into());
         old.chrome.terminal_copy = Some(TerminalCopyMode::Select);
+        old.chrome.session_tps = Some(true);
         old.commands = vec!["old-command".into()];
         let mut state = TuiState::new(app.clone(), SessionId::new("first").unwrap());
         state.apply_catalog(old.clone());
+        state.attach_page(&tps_page());
+        assert!(
+            state
+                .visible_transcript(80, 80, 40)
+                .0
+                .iter()
+                .any(|line| line.plain_text().contains("tok/s"))
+        );
         let mut deck = LoopState {
             location: Some("/fixture".into()),
             ..Default::default()
@@ -5026,9 +5465,18 @@ mod tests {
         append_tab(&app, &mut deck, &mut state, "second");
         state.apply_catalog(old.clone());
         state.handle_paste("/reload");
+        state.attach_page(&tps_page());
+        assert!(
+            state
+                .visible_transcript(80, 80, 40)
+                .0
+                .iter()
+                .any(|line| line.plain_text().contains("tok/s"))
+        );
         let mut fresh = old.clone();
         fresh.commands = vec!["fresh-command".into()];
         fresh.chrome.terminal_copy = Some(TerminalCopyMode::Manual);
+        fresh.chrome.session_tps = Some(false);
         let published = fresh.clone();
         let worker = tokio::spawn(async move {
             let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
@@ -5063,6 +5511,20 @@ mod tests {
         assert!(state.is_workspace_command("/old-command"));
         assert!(!state.is_workspace_command("/fresh-command"));
         assert_eq!(state.clipboard_mode(), ClipboardMode::Manual);
+        for view in [&state, deck.tabs[0].as_ref().unwrap()] {
+            let text = view
+                .visible_transcript(80, 80, 40)
+                .0
+                .iter()
+                .map(oc_tui::styled::Line::plain_text)
+                .collect::<Vec<_>>()
+                .join("\n");
+            assert!(text.contains("Build · Measured model · 1.5s"), "{text}");
+            assert!(
+                !text.contains("tok/s"),
+                "published setting survives read failure: {text}"
+            );
+        }
         assert!(
             deck.tabs[0]
                 .as_ref()
@@ -5120,8 +5582,17 @@ mod tests {
         let mut old = catalog();
         old.chrome.location = Some("/fixture".into());
         old.chrome.terminal_copy = Some(TerminalCopyMode::Manual);
+        old.chrome.session_tps = Some(true);
         let mut state = TuiState::new(app.clone(), SessionId::new("first").unwrap());
         state.apply_catalog(old.clone());
+        state.attach_page(&tps_page());
+        assert!(
+            state
+                .visible_transcript(80, 80, 40)
+                .0
+                .iter()
+                .any(|line| line.plain_text().contains("50.0 tok/s"))
+        );
         let mut deck = LoopState {
             location: Some("/fixture".into()),
             ..Default::default()
@@ -5129,12 +5600,21 @@ mod tests {
         deck.sync_tabs(&mut state);
         append_tab(&app, &mut deck, &mut state, "second");
         state.apply_catalog(old.clone());
+        state.attach_page(&tps_page());
+        assert!(
+            state
+                .visible_transcript(80, 80, 40)
+                .0
+                .iter()
+                .any(|line| line.plain_text().contains("50.0 tok/s"))
+        );
         let mut home = TuiState::new_home(app.clone());
         home.apply_catalog(old.clone());
         deck.home = Some(home);
 
         let mut fresh = old.clone();
         fresh.chrome.terminal_copy = Some(TerminalCopyMode::Select);
+        fresh.chrome.session_tps = Some(false);
         let returned = fresh.clone();
         let worker = tokio::spawn(async move {
             for expected in ["first", "second"] {
@@ -5171,6 +5651,28 @@ mod tests {
         .await
         .unwrap();
         worker.await.unwrap();
+        for view in [&state, deck.tabs[0].as_ref().unwrap()] {
+            let text = view
+                .visible_transcript(80, 80, 40)
+                .0
+                .iter()
+                .map(oc_tui::styled::Line::plain_text)
+                .collect::<Vec<_>>()
+                .join("\n");
+            assert!(text.contains("Build · Measured model · 1.5s"), "{text}");
+            assert!(
+                !text.contains("tok/s"),
+                "fresh owner setting must replace warmed footer: {text}"
+            );
+            let meta = view
+                .history()
+                .rows()
+                .iter()
+                .find_map(|row| row.meta.as_ref())
+                .unwrap();
+            assert_eq!(meta.streamed_ms, Some(4000));
+            assert_eq!(meta.output_tokens, Some(200));
+        }
         assert_eq!(state.clipboard_mode(), ClipboardMode::Select);
         assert_eq!(
             deck.tabs[0].as_ref().unwrap().clipboard_mode(),
@@ -5182,6 +5684,13 @@ mod tests {
         );
         deck.activate(&mut state, 0).unwrap();
         assert_eq!(state.clipboard_mode(), ClipboardMode::Select);
+        assert!(
+            !state
+                .visible_transcript(80, 80, 40)
+                .0
+                .iter()
+                .any(|line| line.plain_text().contains("tok/s"))
+        );
         assert!(deck.restore_home(&mut state));
         assert_eq!(state.clipboard_mode(), ClipboardMode::Select);
     }
@@ -5490,6 +5999,7 @@ mod tests {
                 assert_eq!(session.0, id);
                 assert_eq!(action, SelectionAction::Current);
                 ack.send(Ok(catalog())).unwrap();
+                empty_compactions(&mut inbox).await;
             }
             let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
                 panic!("Home selection")
@@ -5580,6 +6090,7 @@ mod tests {
                     panic!("selection")
                 };
                 ack.send(Ok(catalog())).unwrap();
+                empty_compactions(&mut inbox).await;
             }
             let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
                 panic!("Home selection")
@@ -5629,6 +6140,7 @@ mod tests {
                 };
                 assert_eq!(session.0, format!("tab-{i}"));
                 ack.send(Ok(catalog())).unwrap();
+                empty_compactions(&mut inbox).await;
             }
             assert!(
                 inbox.try_recv().is_err(),
@@ -5671,6 +6183,7 @@ mod tests {
                 panic!("read catalog")
             };
             ack.send(Ok(catalog())).unwrap();
+            empty_compactions(&mut inbox).await;
             let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
                 panic!("explicit session saves")
             };
@@ -5768,6 +6281,7 @@ mod tests {
                 panic!("read B catalog")
             };
             ack.send(Ok(b_session_catalog)).unwrap();
+            empty_compactions(&mut inbox).await;
             let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
                 panic!("save B route")
             };
@@ -6867,6 +7381,7 @@ mod tests {
                 previous_deck: old_deck,
             }))
             .unwrap();
+            empty_compactions(&mut inbox).await;
             let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
                 panic!("parked history")
             };
@@ -6902,6 +7417,7 @@ mod tests {
                 previous_deck: old_deck,
             }))
             .unwrap();
+            empty_compactions(&mut inbox).await;
         });
         let intent = PanelIntent::SwitchSession { id: "b".into() };
         assert!(

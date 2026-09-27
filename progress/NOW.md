@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-26T20:51:22+00:00
+State updated: 2026-09-27T02:29:03+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,32 +14,33 @@ Evidence target: evidence/T44/report.md
 
 ## Result
 
-Implemented demand-driven scheduling with bounded input/worker bursts and active
-animation deadlines; no idle redraw loop. Default wheel preserves three rows/tick
-and bounded temporal presentation; optional MacOS acceleration not claimed. Fixed
-real detached-completion jump by semantic durable message/part/row anchoring,
-retained older pages and expansion, preserving sticky bottom and explicit reset.
+Real session compaction distinct DCP: manual coalesced safe-boundary admission,
+streamed summary/usage, durable checkpoint, automatic measured usage threshold and
+bounded overflow recovery. Raw history/tool graph/DCP/files unchanged. Historical
+checkpoint participates in context version Undo/Redo/fork. Effective Build/TPS and
+compaction config diagnostics come from owner, no fabricated output.
 
 ## Checks
 
-Final serial workspace fmt/locked tests/strict all-target Clippy/locked build,
-capture syntax/frontend/docs/progress/diff PASS: tool_0df7a262c0017rL2kcrdyCQPZi.
-Actual source-built high-refresh-20260926-05 confirms detached/sticky completion,
-Shell/list routing, 32/32 glyph paints per input rate and zero lagged worker events.
-Four idle windows: zero bytes/CPU ticks/main-thread context switches. Native input
-p95 38.307/35.761ms at requested165/250Hz; draw p95 24.441ms. These are PTY timing,
-not measured FPS. Failed earlier attempts remain immutable.
+Final serial workspace fmt/locked tests/strict all-target Clippy/debug+release build,
+release actual headless/TUI entry, pinned TS 13-case normalization oracle,
+capture syntax/frontend/docs/progress/diff PASS: tool_0e0ac5a5c001YMn8ZMaXNoXIrZ.
+Paired captures18–23 verify manual/threshold/overflow/coalescing/failure/cancel,
+summary next context/restart/UndoRedo and workspace hashes; actual request counts
+retained in compaction-report.md. Capture23 completed differs only3elapsed cells,
+zero archive-tail or compaction body/divider differences. Previous failures kept.
 
 ## Risks
 
-44 full comparisons DIFFERENT, three active PNGs unstable. Exact external idle
-window/scheduler alignment, all-thread wakeups and large-history paired paging
-remain unqualified. No VIS31/VIS32/V09 complete claim. .opencode/ untouched.
+Whole compared frames DIFFERENT; no VIS34/V09 exact PASS. Animated output intervals
+observed, not phase alignment or FPS. Provider-native production unsupported,
+fixture capability not real support. .opencode/ never inspected or staged.
 
 ## Next
 
-Deliver verified scheduling/anchor slice, then session compaction 4bee144 without
-removing DCP; preserve newer owner patch/permission/leader-pending requirements.
+Deliver verified compaction slice; then owner apply_patch visual/filesystem parity,
+permission approval and leader pending presentation. Keep remaining exact and
+high-refresh qualifications open; do not forge timing/version/clipboard readback.
 
 
 Ready (до 5): T45, T46, T47

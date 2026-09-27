@@ -1,0 +1,40 @@
+   VIS34 compaction fixture      +                                                                                      
+                                                                                                                        
+     Build · MiMo-V2.6-Flash Free · 28ms                                                                                
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  VIS34 held tool: wait at safe boundary; no filesystem changes.                                                     
+  ┃                                                                                                                     
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  $ sleep 25                                                                                                         
+  ┃                                                                                                                     
+  ┃  (no output)                                                                                                        
+  ┃  Command exited with code 0.                                                                                        
+  ┃                                                                                                                     
+                                                                                                                        
+  ────────────────────────────────────────── Compaction · 1.2K in · 321 out ──────────────────────────────────────────  
+                                                                                                                        
+     Objective                                                                                                          
+                                                                                                                        
+     - VIS34-CHECKPOINT: preserve R1, R2, R3.                                                                           
+                                                                                                                        
+     Work State                                                                                                         
+                                                                                                                        
+     - Three seeded exchanges completed; filesystem unchanged.                                                          
+                                                                                                                        
+     Next Move                                                                                                          
+                                                                                                                        
+     1. Continue the user request without replaying tools.                                                              
+                                                                                                                        
+     VIS34-HELD-DONE                                                                                                    
+                                                                                                                        
+     Build · MiMo-V2.6-Flash Free · 31.6s                                                                               
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                                                          
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/openco…/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-05/project  7.8K (3%)  ctrl+p commands  
+                                                                                                                        

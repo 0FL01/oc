@@ -42,6 +42,99 @@ exit `2` denotes a runner blocker. Neither is parity success.
 
 ## What is captured
 
+### Session compaction (VIS34), opt-in bounded campaign
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --compaction true --compaction-trigger manual \
+  --geometry true --sidebar hide --sample short --columns 120 --rows 40 \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --output evidence/tui/recovery-v00/compaction20260927-23
+```
+
+Use a fresh output directory. The exclusive mode preserves all existing modes.
+`manual` (default) executes three actual seeded main exchanges, a real bounded
+`sleep 25` tool, `/compact`, palette Compact session and a read-only snapshot of
+the single coalesced pending operation. The fixture never executes a tool itself.
+It holds the real Responses summary stream after its first text delta, captures
+two running frames, then completes with actual input/cache/output/reasoning usage.
+Next context, failed/cancelled checkpoint preservation, clean exit/relaunch,
+saved-session reopening and the next real provider request are verified.
+The only seeded workspace file is `vis34-owner-approved.txt`; hashes are compared
+through compaction. SQLite observations use `mode=ro`, with no direct transcript,
+context or checkpoint writes. Fixture config sets snapshots off and keep.tokens=0.
+
+`--compaction-trigger threshold` uses auto=true, context=40000/output=2048,
+buffer=20000 and a 23000-input-token usage anchor on the third seeded response.
+`--compaction-trigger overflow` sends exactly one actual HTTP 400
+`context_length_exceeded` on the next main request, followed by normal recovery.
+Both modes capture real automatic summary requests, checkpoint and rebuilt main
+context; neither claims the full threshold-boundary/restart matrix.
+All modes cap provider requests at 24 per side. Stream holds expire at 30 seconds;
+PTY predicates have explicit timeouts. No live credentials or remote API is used.
+
+`compaction_fixture.py` distinguishes pinned OC2's final user buildPrompt from
+Rust's Developer summarizer plus JSON causal transcript. OC2 keeps tool definitions
+on the summarizer request; Rust offers none. Real request input/instructions/tool
+schemas are recorded rather than inferred from a generic text search. Provider-native
+compaction is unqualified: no production mechanism is registered.
+
+Every full styled 120x40 grid/PNG, VT stream, request, input, build command and
+source manifest is retained. No title, duration or dynamic cell is masked.
+Default running captures use animations=false; two partial-summary frames do
+not qualify the animated Braille spinner's cadence or post-completion CPU/wakeups.
+`--compaction-tps false` explicitly sets `session.tps=false` in both real CLI
+configs (default leaves native unset and keeps original's existing false).
+`--compaction-animation true` is restricted to the bounded threshold fixture:
+it enables real animations on both sides, records timestamped raw PTY chunks and
+live Compaction-row samples, then pauses the owned child with SIGSTOP for one
+stable full running grid/PNG and resumes with SIGCONT in a finally block. Actual
+phases are independently captured, never selected/aligned to match. Browser
+sampling includes IPC overhead; raw chunk timestamps are not synthetic 80ms ticks
+or application paint timestamps. This does not measure idle CPU/wakeups or FPS.
+
+The campaign-specific independent checker is:
+`node scripts/tui_capture/check_compaction_evidence.mjs evidence/tui/recovery-v00`.
+It verifies sealed capture hashes, dimensions, safe tool boundary, coalescing,
+causal pairs, immutable raw messages, usage, checkpoint failure/cancel/restart and
+nonempty filesystem hashes for attempt 10, overflow attempt 08 and the observed
+native usage-threshold mismatch in attempt 07. Its exit 0 means the evidence is
+internally consistent, including the production failure; it is not VIS34 PASS.
+See `evidence/tui/recovery-v00/compaction-report.md`.
+
+Fresh post-fix immutable campaigns are manual 12, unchanged-threshold 13 and
+overflow 14. They additionally reopen, submit a real restarted provider request,
+and exercise `/undo` plus `/redo` with no extra provider/tool calls. Validate with
+`node scripts/tui_capture/check_compaction_evidence.mjs evidence/tui/recovery-v00 --fresh`;
+this writes `compaction-validation-fresh.json` and preserves historical validation.
+`node scripts/tui_capture/analyze_compaction_frames.mjs evidence/tui/recovery-v00`
+writes full unmasked cell/pixel counts and marker positions for every fresh frame.
+Attempt 11 retains the failed singular/plural Undo predicate diagnostics.
+
+Final-source campaigns are manual 15, threshold 16 and overflow 17, using the
+same unchanged capture fixtures/probe as 12–14. Use `--final` instead of `--fresh`
+for the evidence validator and `--final` for the frame analyzer to write separate
+`*-final.json` reports. Optional `--quiet` only shortens console output; full
+derivative report measurements remain intact. Final validation additionally
+checks the durable current-user anchor while automatic summary is running and
+actual typed failure diagnostic. No config-alias, animated-cadence or FPS claim
+is inferred from canonical held-stream screenshots.
+
+Latest production-source captures are manual 18, threshold 19 and overflow 20.
+`--latest` on validator/analyzer writes separate `*-latest.json` reports.
+Add `--optional` to include threshold 21 (explicit TPS false on both sides) and
+22 (the same false setting plus actual animated running observation), writing
+`*-latest-options.json`. Their provider fixture remains unchanged; option fields
+and bridge/probe changes are declared in their own locks/specs. Exact commands
+are in each immutable `commands.json` and `compaction-report.md`.
+`node scripts/tui_capture/observe_compaction_timeline.mjs evidence/tui/recovery-v00`
+replays 22's real chunks through the pinned xterm parser and writes derivative
+`compaction-animation-observations.json`: Compaction-row glyph changes retain
+actual monotonic PTY-read timestamps, including the deliberate pause gap. It
+also checks that the glyph is absent from the completed row in subsequent
+generation-0 output; that observation is not a scheduler wakeup/deadline gate.
+
 ### Conversation-only Revert / whole-tail Redo (VIS33)
 
 `--revert-redo true` is an exclusive opt-in mode with paired explicit binaries,

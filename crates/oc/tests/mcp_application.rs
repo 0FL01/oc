@@ -37,6 +37,58 @@ const READY: &str = "Untitled session";
 const IO_TIMEOUT: Duration = Duration::from_secs(2);
 const POLL: Duration = Duration::from_millis(10);
 
+#[test]
+fn vis34_compaction_prune_normalization_headless_and_tui_entry() {
+    for prune in [true, false] {
+        let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
+        let fixture = Fixture::new();
+        fixture.write_config(&responses, json!({}), json!({}));
+        fs::write(
+            fixture.project.join("opencode.json"),
+            json!({"compaction":{"auto":true,"prune":prune}}).to_string(),
+        )
+        .unwrap();
+        let mut headless = fixture.spawn_run("vis34-prune-headless");
+        assert!(headless.wait().success(), "{}", headless.diagnostics());
+        let stderr = fs::read_to_string(&headless.stderr).unwrap();
+        assert!(stderr.contains("compaction.prune"), "{stderr}");
+        assert!(stderr.contains("Unsupported/Skip"), "{stderr}");
+        assert!(
+            stderr.contains("omitted unsupported legacy setting"),
+            "{stderr}"
+        );
+        let stdout = fs::read_to_string(&headless.stdout).unwrap();
+        assert!(
+            stdout.contains("answer:exercise configured MCP"),
+            "{stdout}"
+        );
+        assert!(!stdout.contains("unsupported legacy"));
+
+        let mut tui = PtyProcess::spawn(&fixture, "vis34-prune-tui");
+        tui.wait_visible(READY);
+        let offset = tui.send_line("VIS34 prune accepted");
+        tui.wait_visible_after(offset, "answer:VIS34 prune accepted");
+        std::thread::sleep(Duration::from_millis(300));
+        tui.send_line("/quit");
+        assert!(tui.wait_exit().success());
+        let output = tui.output.lock().unwrap();
+        let text = String::from_utf8_lossy(&output);
+        assert!(
+            text.contains("compaction settings were normalized"),
+            "missing startup notice"
+        );
+        assert!(!text.contains("failed to start"));
+        assert_eq!(
+            responses
+                .requests()
+                .iter()
+                .filter(|r| !title::is_title(r))
+                .count(),
+            2
+        );
+    }
+}
+
 #[derive(Debug, Clone)]
 struct HttpRequest {
     method: String,
@@ -1904,7 +1956,8 @@ done
     let deadline = Instant::now() + TIMEOUT;
     while !tui.screen().iter().any(|row| {
         row.trim_start()
-            .strip_prefix("MCP application fixture · ")
+            // The owner now resolves the genuine built-in primary Build.
+            .strip_prefix("Build · MCP application fixture · ")
             .and_then(|footer| footer.split_whitespace().next())
             .is_some_and(|duration| {
                 duration

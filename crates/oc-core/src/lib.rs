@@ -31,3 +31,4 @@ mod tests {
         assert_eq!(core_name(), "oc-core");
     }
 }
+pub mod compaction;

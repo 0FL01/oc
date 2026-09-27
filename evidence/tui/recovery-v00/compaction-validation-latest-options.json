@@ -1,0 +1,942 @@
+{
+  "campaigns": {
+    "manual": {
+      "comparisons": {
+        "DIFFERENT": 38
+      },
+      "sides": {
+        "upstream": {
+          "behavior": "PASS",
+          "requests": 11,
+          "summary_requests": 3,
+          "tools": 1,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            },
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            },
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            }
+          ],
+          "actual_config": {
+            "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-18/upstream/home/config/opencode/opencode.json",
+            "sha256": "bf986c6ba56a7512e2f5f1246f0197914ed8d829ef13b6c719c5e9fb2f4be75f",
+            "compaction": {
+              "auto": false,
+              "keep": {
+                "tokens": 0
+              },
+              "buffer": 20000
+            },
+            "model_limit": {
+              "context": 225000,
+              "output": 4096
+            },
+            "animations": null,
+            "snapshots": false
+          },
+          "actual_cli_config": {
+            "sha256": "fea57ffb65c886935813b5cec07c95f728ef2db4d6b92dd1d9d3fea327ae9fa8",
+            "session": {
+              "sidebar": "hide",
+              "tps": false
+            },
+            "session_tps_explicit": false,
+            "animations": false
+          },
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "safe_boundary_and_coalescing": true,
+          "failed_cancelled_restart_checkpoint_unchanged": true,
+          "nonempty_filesystem_preserved": true,
+          "undo_redo_no_provider_or_tool_replay": true,
+          "restart_checkpoint_and_context": true,
+          "running_observation": "Actual held summary stream renders partial Markdown and ellipsis; no FPS/cadence measurement.",
+          "admission_before_accept_and_schema_floor": "Not exercised by this admitted fixture; nearest owner tests required."
+        },
+        "oc": {
+          "behavior": "PASS",
+          "requests": 11,
+          "summary_requests": 3,
+          "tools": 1,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "developer",
+                "user"
+              ],
+              "tools": 0
+            },
+            {
+              "roles": [
+                "developer",
+                "user"
+              ],
+              "tools": 0
+            },
+            {
+              "roles": [
+                "developer",
+                "user"
+              ],
+              "tools": 0
+            }
+          ],
+          "actual_config": {
+            "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-18/oc/home/config/opencode/opencode.json",
+            "sha256": "26621ae2882770f24db6b124969c65f473d4184cb7c1da593cb423e8ee1e7551",
+            "compaction": {
+              "auto": false,
+              "keep": {
+                "tokens": 0
+              },
+              "buffer": 20000
+            },
+            "model_limit": {
+              "context": 225000,
+              "output": 4096
+            },
+            "animations": false,
+            "snapshots": false
+          },
+          "actual_cli_config": {
+            "sha256": "403ecad14309a54d6fb5ed3ff856cc4148b03e88dcf57ffcfa7266a45a20247e",
+            "session": {
+              "sidebar": "hide"
+            },
+            "session_tps_explicit": null,
+            "animations": null
+          },
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "safe_boundary_and_coalescing": true,
+          "failed_cancelled_restart_checkpoint_unchanged": true,
+          "nonempty_filesystem_preserved": true,
+          "undo_redo_no_provider_or_tool_replay": true,
+          "restart_checkpoint_and_context": true,
+          "running_observation": "Actual held summary stream renders partial Markdown and ellipsis; no FPS/cadence measurement.",
+          "admission_before_accept_and_schema_floor": "Not exercised by this admitted fixture; nearest owner tests required."
+        }
+      }
+    },
+    "threshold": {
+      "comparisons": {
+        "DIFFERENT": 20
+      },
+      "sides": {
+        "upstream": {
+          "behavior": "PASS",
+          "requests": 7,
+          "summary_requests": 1,
+          "tools": 0,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            }
+          ],
+          "actual_config": {
+            "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-19/upstream/home/config/opencode/opencode.json",
+            "sha256": "5c72a487fbd45d6cf4fad3c9274835b2905936cc232e9a1dcada647821801c72",
+            "compaction": {
+              "auto": true,
+              "keep": {
+                "tokens": 0
+              },
+              "buffer": 20000
+            },
+            "model_limit": {
+              "context": 40000,
+              "output": 2048
+            },
+            "animations": null,
+            "snapshots": false
+          },
+          "actual_cli_config": {
+            "sha256": "fea57ffb65c886935813b5cec07c95f728ef2db4d6b92dd1d9d3fea327ae9fa8",
+            "session": {
+              "sidebar": "hide",
+              "tps": false
+            },
+            "session_tps_explicit": false,
+            "animations": false
+          },
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "usage_anchor": {
+            "input_tokens": 23000,
+            "output_tokens": 1800,
+            "total_tokens": 24800,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          "summary_before_next_main": true,
+          "undo_redo_no_provider_or_tool_replay": true,
+          "restart_checkpoint_and_context": true,
+          "running_observation": "Actual held summary stream renders partial Markdown and ellipsis; no FPS/cadence measurement.",
+          "current_user_durable_during_running": true,
+          "admission_before_accept_and_schema_floor": "Not exercised by this admitted fixture; nearest owner tests required."
+        },
+        "oc": {
+          "behavior": "PASS",
+          "requests": 7,
+          "summary_requests": 1,
+          "tools": 0,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "developer",
+                "user"
+              ],
+              "tools": 0
+            }
+          ],
+          "actual_config": {
+            "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-19/oc/home/config/opencode/opencode.json",
+            "sha256": "62485351bb239dd72f44d612306657217ba8875d9ab96e38bd9b53ad64f0fc9e",
+            "compaction": {
+              "auto": true,
+              "keep": {
+                "tokens": 0
+              },
+              "buffer": 20000
+            },
+            "model_limit": {
+              "context": 40000,
+              "output": 2048
+            },
+            "animations": false,
+            "snapshots": false
+          },
+          "actual_cli_config": {
+            "sha256": "403ecad14309a54d6fb5ed3ff856cc4148b03e88dcf57ffcfa7266a45a20247e",
+            "session": {
+              "sidebar": "hide"
+            },
+            "session_tps_explicit": null,
+            "animations": null
+          },
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "usage_anchor": {
+            "input_tokens": 23000,
+            "output_tokens": 1800,
+            "total_tokens": 24800,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          "summary_before_next_main": true,
+          "undo_redo_no_provider_or_tool_replay": true,
+          "restart_checkpoint_and_context": true,
+          "running_observation": "Actual held summary stream renders partial Markdown and ellipsis; no FPS/cadence measurement.",
+          "current_user_durable_during_running": true,
+          "admission_before_accept_and_schema_floor": "Not exercised by this admitted fixture; nearest owner tests required."
+        }
+      }
+    },
+    "overflow": {
+      "comparisons": {
+        "DIFFERENT": 20
+      },
+      "sides": {
+        "upstream": {
+          "behavior": "PASS",
+          "requests": 8,
+          "summary_requests": 1,
+          "tools": 0,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            }
+          ],
+          "actual_config": {
+            "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-20/upstream/home/config/opencode/opencode.json",
+            "sha256": "f4cde0e410e3c3adeaf25825ea3731cf93b8789311727e12bbe0bf65f7f390a2",
+            "compaction": {
+              "auto": true,
+              "keep": {
+                "tokens": 0
+              },
+              "buffer": 20000
+            },
+            "model_limit": {
+              "context": 40000,
+              "output": 2048
+            },
+            "animations": null,
+            "snapshots": false
+          },
+          "actual_cli_config": {
+            "sha256": "fea57ffb65c886935813b5cec07c95f728ef2db4d6b92dd1d9d3fea327ae9fa8",
+            "session": {
+              "sidebar": "hide",
+              "tps": false
+            },
+            "session_tps_explicit": false,
+            "animations": false
+          },
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "undo_redo_no_provider_or_tool_replay": true,
+          "restart_checkpoint_and_context": true,
+          "running_observation": "Actual held summary stream renders partial Markdown and ellipsis; no FPS/cadence measurement.",
+          "current_user_durable_during_running": true,
+          "admission_before_accept_and_schema_floor": "Not exercised by this admitted fixture; nearest owner tests required."
+        },
+        "oc": {
+          "behavior": "PASS",
+          "requests": 8,
+          "summary_requests": 1,
+          "tools": 0,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "developer",
+                "user"
+              ],
+              "tools": 0
+            }
+          ],
+          "actual_config": {
+            "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-20/oc/home/config/opencode/opencode.json",
+            "sha256": "bfac3dd37598cad8e95cd90053bc9a1d6df5b6d8f0cc9efaae141a0b9e067355",
+            "compaction": {
+              "auto": true,
+              "keep": {
+                "tokens": 0
+              },
+              "buffer": 20000
+            },
+            "model_limit": {
+              "context": 40000,
+              "output": 2048
+            },
+            "animations": false,
+            "snapshots": false
+          },
+          "actual_cli_config": {
+            "sha256": "403ecad14309a54d6fb5ed3ff856cc4148b03e88dcf57ffcfa7266a45a20247e",
+            "session": {
+              "sidebar": "hide"
+            },
+            "session_tps_explicit": null,
+            "animations": null
+          },
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "undo_redo_no_provider_or_tool_replay": true,
+          "restart_checkpoint_and_context": true,
+          "running_observation": "Actual held summary stream renders partial Markdown and ellipsis; no FPS/cadence measurement.",
+          "current_user_durable_during_running": true,
+          "admission_before_accept_and_schema_floor": "Not exercised by this admitted fixture; nearest owner tests required."
+        }
+      }
+    },
+    "threshold-tps-false": {
+      "comparisons": {
+        "DIFFERENT": 20
+      },
+      "sides": {
+        "upstream": {
+          "behavior": "PASS",
+          "requests": 7,
+          "summary_requests": 1,
+          "tools": 0,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            }
+          ],
+          "actual_config": {
+            "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-21/upstream/home/config/opencode/opencode.json",
+            "sha256": "55a7390458dad795d892c94d4f1130c2bfa7cc540ecc4bb999815330f1667a75",
+            "compaction": {
+              "auto": true,
+              "keep": {
+                "tokens": 0
+              },
+              "buffer": 20000
+            },
+            "model_limit": {
+              "context": 40000,
+              "output": 2048
+            },
+            "animations": null,
+            "snapshots": false
+          },
+          "actual_cli_config": {
+            "sha256": "fea57ffb65c886935813b5cec07c95f728ef2db4d6b92dd1d9d3fea327ae9fa8",
+            "session": {
+              "sidebar": "hide",
+              "tps": false
+            },
+            "session_tps_explicit": false,
+            "animations": false
+          },
+          "explicit_false_tps_footers_absent": true,
+          "seed_requests_and_usage_unchanged_from_19": true,
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "usage_anchor": {
+            "input_tokens": 23000,
+            "output_tokens": 1800,
+            "total_tokens": 24800,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          "summary_before_next_main": true,
+          "undo_redo_no_provider_or_tool_replay": true,
+          "restart_checkpoint_and_context": true,
+          "running_observation": "Actual held summary stream renders partial Markdown and ellipsis; no FPS/cadence measurement.",
+          "current_user_durable_during_running": true,
+          "admission_before_accept_and_schema_floor": "Not exercised by this admitted fixture; nearest owner tests required."
+        },
+        "oc": {
+          "behavior": "PASS",
+          "requests": 7,
+          "summary_requests": 1,
+          "tools": 0,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "developer",
+                "user"
+              ],
+              "tools": 0
+            }
+          ],
+          "actual_config": {
+            "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-21/oc/home/config/opencode/opencode.json",
+            "sha256": "8488fdc5c2f4f74e0e465fe6951ffa4637a8c71868b740b4d2a8d93f88a1bad9",
+            "compaction": {
+              "auto": true,
+              "keep": {
+                "tokens": 0
+              },
+              "buffer": 20000
+            },
+            "model_limit": {
+              "context": 40000,
+              "output": 2048
+            },
+            "animations": false,
+            "snapshots": false
+          },
+          "actual_cli_config": {
+            "sha256": "f0ced074a4edc95d57438bfc529c7d9dd24a962c65c44d71221386819fffd1fc",
+            "session": {
+              "sidebar": "hide",
+              "tps": false
+            },
+            "session_tps_explicit": false,
+            "animations": null
+          },
+          "explicit_false_tps_footers_absent": true,
+          "seed_requests_and_usage_unchanged_from_19": true,
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "usage_anchor": {
+            "input_tokens": 23000,
+            "output_tokens": 1800,
+            "total_tokens": 24800,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          "summary_before_next_main": true,
+          "undo_redo_no_provider_or_tool_replay": true,
+          "restart_checkpoint_and_context": true,
+          "running_observation": "Actual held summary stream renders partial Markdown and ellipsis; no FPS/cadence measurement.",
+          "current_user_durable_during_running": true,
+          "admission_before_accept_and_schema_floor": "Not exercised by this admitted fixture; nearest owner tests required."
+        }
+      }
+    },
+    "threshold-animated": {
+      "comparisons": {
+        "DIFFERENT": 20
+      },
+      "sides": {
+        "upstream": {
+          "behavior": "PASS",
+          "requests": 7,
+          "summary_requests": 1,
+          "tools": 0,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user",
+                "assistant",
+                "user"
+              ],
+              "tools": 1
+            }
+          ],
+          "actual_config": {
+            "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-22/upstream/home/config/opencode/opencode.json",
+            "sha256": "7b6af8c63875d6c6db4f47ac3190119d1b1979940bf20d2bf193ead4ce4175cb",
+            "compaction": {
+              "auto": true,
+              "keep": {
+                "tokens": 0
+              },
+              "buffer": 20000
+            },
+            "model_limit": {
+              "context": 40000,
+              "output": 2048
+            },
+            "animations": null,
+            "snapshots": false
+          },
+          "actual_cli_config": {
+            "sha256": "371c31fd98f85a3c8fffcb852d4b579c66c2c751387ae9e0d33bcf16f6abbd83",
+            "session": {
+              "sidebar": "hide",
+              "tps": false
+            },
+            "session_tps_explicit": false,
+            "animations": true
+          },
+          "explicit_false_tps_footers_absent": true,
+          "seed_requests_and_usage_unchanged_from_19": true,
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "usage_anchor": {
+            "input_tokens": 23000,
+            "output_tokens": 1800,
+            "total_tokens": 24800,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          "summary_before_next_main": true,
+          "undo_redo_no_provider_or_tool_replay": true,
+          "restart_checkpoint_and_context": true,
+          "running_observation": "Actual live Braille samples/raw PTY timeline; full-grid/PNG captured while owned child paused, phases unaligned.",
+          "live_animation": {
+            "stage": "animation-observation",
+            "samples": 7,
+            "window_ms": 1446.9931939999988,
+            "phases": [
+              "⠸",
+              "⠧",
+              "⠋",
+              "⠼",
+              "⠹"
+            ],
+            "qualification": "Live observed phases, not phase-aligned across binaries or synthetic 80ms timestamps."
+          },
+          "current_user_durable_during_running": true,
+          "admission_before_accept_and_schema_floor": "Not exercised by this admitted fixture; nearest owner tests required."
+        },
+        "oc": {
+          "behavior": "PASS",
+          "requests": 7,
+          "summary_requests": 1,
+          "tools": 0,
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ],
+          "request_shapes": [
+            {
+              "roles": [
+                "developer",
+                "user"
+              ],
+              "tools": 0
+            }
+          ],
+          "actual_config": {
+            "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-22/oc/home/config/opencode/opencode.json",
+            "sha256": "abbff11822f9edb23d9fe448e09a6c8bee1162733cbfb61f3f8a6d355c58804f",
+            "compaction": {
+              "auto": true,
+              "keep": {
+                "tokens": 0
+              },
+              "buffer": 20000
+            },
+            "model_limit": {
+              "context": 40000,
+              "output": 2048
+            },
+            "animations": true,
+            "snapshots": false
+          },
+          "actual_cli_config": {
+            "sha256": "f0ced074a4edc95d57438bfc529c7d9dd24a962c65c44d71221386819fffd1fc",
+            "session": {
+              "sidebar": "hide",
+              "tps": false
+            },
+            "session_tps_explicit": false,
+            "animations": null
+          },
+          "explicit_false_tps_footers_absent": true,
+          "seed_requests_and_usage_unchanged_from_19": true,
+          "summary_usage": {
+            "input_tokens": 1234,
+            "output_tokens": 321,
+            "total_tokens": 1555,
+            "input_tokens_details": {
+              "cached_tokens": 234
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          },
+          "usage_anchor": {
+            "input_tokens": 23000,
+            "output_tokens": 1800,
+            "total_tokens": 24800,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          "summary_before_next_main": true,
+          "undo_redo_no_provider_or_tool_replay": true,
+          "restart_checkpoint_and_context": true,
+          "running_observation": "Actual live Braille samples/raw PTY timeline; full-grid/PNG captured while owned child paused, phases unaligned.",
+          "live_animation": {
+            "stage": "animation-observation",
+            "samples": 7,
+            "window_ms": 1478.713573999994,
+            "phases": [
+              "⠼",
+              "⠇",
+              "⠹",
+              "⠙"
+            ],
+            "qualification": "Live observed phases, not phase-aligned across binaries or synthetic 80ms timestamps."
+          },
+          "current_user_durable_during_running": true,
+          "admission_before_accept_and_schema_floor": "Not exercised by this admitted fixture; nearest owner tests required."
+        }
+      }
+    }
+  },
+  "source_build_link": {
+    "overflow_build_attempt": "20",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "native_sha256": "56a004185a05853e74f8283f7afc7d5dd1bcacdd5b758231455dcf5d14692e70",
+    "manual_attempt": "18",
+    "production_source_inputs_equal": true
+  },
+  "status": "PASS_BEHAVIOR_VISUAL_DIFFERENCES_REMAIN",
+  "fixture_identity": {
+    "historical_07": {
+      "capture.mjs": "190868382d1c782fe8229c1d76ff6aeaba3c9dd1d34c893bb0111a4118e375e5",
+      "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+      "bridge.py": "94e946f2a27dc9f9f729fa010fe7ae5f1c798a683ad0278f8587688daf9af889",
+      "compaction.mjs": "ab907ce2da79d49656a87eaaedf7c2bb0175a5f79162e6b2a9a7f356964702fa",
+      "compaction_fixture.py": "5ff44af3b981039e355575a99a990ef94ab6fe4f50cfbd64ff63308ad9b0da4f"
+    },
+    "current": {
+      "capture.mjs": "01e114ca0777aa0a2b850a2954de9b04afa3d1c3284186f9dd67e033b923a5fa",
+      "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+      "bridge.py": "c47e6681037a8feb2fae2c27920d7a79f2f54f17dbc22b776796fe25cc5ad5c2",
+      "compaction.mjs": "af6f73ba23199e3c2c7fbe0f7540d8db3c6eab9fd8cfccc2907ac1e4b9c3ae31",
+      "compaction_fixture.py": "4056e783198abc3729872729c1ecf450bfa3e9577d3cbee2f782f58988a278ab"
+    },
+    "byte_identical_to_10": true,
+    "byte_identical_to_07": false,
+    "qualification": "Same threshold policy and emitted seed text/usage; later read-only snapshot coverage and nonempty workspace sentinel already present in 10."
+  },
+  "threshold_seed_requests_and_usage_unchanged_from_07": true
+}

@@ -13,6 +13,7 @@ pub const COMMAND_ARGS_MAX: usize = 512;
 /// Dispatched built-in command.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CommandAction {
+    CompactSession,
     UndoConversation,
     RedoConversation,
     /// Search genuine native commands.
@@ -306,6 +307,14 @@ pub const REGISTRY: &[CommandSpec] = &[
         action: CommandAction::DcpCompress {
             focus: String::new(),
         },
+    },
+    CommandSpec {
+        id: "session.compact",
+        title: "Compact session",
+        group: "Session",
+        shortcuts: &[],
+        aliases: &["compact"],
+        action: CommandAction::CompactSession,
     },
     CommandSpec {
         id: "location.reload",

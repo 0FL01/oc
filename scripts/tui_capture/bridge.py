@@ -19,6 +19,7 @@ import shlex
 import sqlite3
 import time
 import urllib.request
+import compaction_fixture
 
 scanner_release = threading.Event()
 wheel_release = threading.Event()
@@ -105,6 +106,9 @@ class Provider(BaseHTTPRequestHandler):
     def do_POST(self):
         global transcript_round, title_round, bounded_requests, live_requests
         body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+        if spec.get('compaction'):
+            compaction_fixture.respond(self, body, spec, emit)
+            return
         if spec.get('sessions_interaction'):
             system = str(body.get('instructions', '')) + json.dumps([x for x in body.get('input', []) if x.get('role') in ('system', 'developer')])
             is_title = 'title generator' in system.lower() or (not body.get('tools') and 'title' in system.lower())
@@ -391,6 +395,8 @@ if spec.get('sample') == 'tools':
     (project / 'fixture-note.txt').write_text('fixture-content\n')
 if spec.get('revert_redo'):
     (project / 'vis33-owner-approved.txt').write_text('VIS33 conversation-only fixture: preserve these bytes.\n')
+if spec.get('compaction'):
+    (project / 'vis34-owner-approved.txt').write_text('VIS34 compaction fixture: preserve these filesystem bytes.\n')
 settings = {'baseURL': f'http://127.0.0.1:{server.server_port}/v1', 'apiKey': 'fixture-not-a-secret'}
 models = {m['id']: {k: v for k, v in m.items() if k not in ('id', 'variants')} for m in catalog['models']}
 if spec.get('sessions_interaction'):
@@ -449,6 +455,19 @@ else:
         'tabs': {'layout': spec.get('tabs', 'horizontal')}}
 if spec.get('devtools') is not None:
     cli_config['debug'] = {'devtools': spec['devtools']}
+if spec.get('compaction'):
+    automatic = spec.get('compaction_trigger','manual') != 'manual'
+    config['compaction'] = {'auto':automatic,'keep':{'tokens':0},'buffer':20000}
+    if automatic:
+        models['fixture-model-1']['limit'] = {'context':40000,'output':2048}
+    config['snapshots'] = False
+    if spec.get('compaction_tps') is not None:
+        cli_config['session']['tps'] = spec['compaction_tps']
+    if spec['origin'] == 'oc':
+        config['animations'] = spec.get('compaction_animation', False)
+        config['permissions'] = {'*':'deny','bash':{'*':'deny','sleep 25':'allow'}}
+    else:
+        config['permissions'] = [{'action':'*','resource':'*','effect':'deny'},{'action':'shell','resource':'sleep 25','effect':'allow'}]
 if spec.get('revert_redo'):
     config['snapshots'] = False
     cli_config['keybinds'] = {'session.redo':'<leader>r'}
@@ -535,7 +554,13 @@ try:
                     while b'\n' in pending:
                         line, pending = pending.split(b'\n', 1)
                         command = json.loads(line)
-                        if command['kind'] == 'revert_snapshot' and spec.get('revert_redo'):
+                        if command['kind'] == 'compaction_snapshot' and spec.get('compaction'):
+                            emit({'kind':'compaction_snapshot','request_id':command['request_id'], **compaction_fixture.snapshot(home, project)})
+                        elif command['kind'] == 'compaction_control' and spec.get('compaction'):
+                            compaction_fixture.behavior = command.get('behavior','complete')
+                            if command.get('release'): compaction_fixture.release.set()
+                            emit({'kind':'compaction_control_ack','request_id':command.get('request_id'),'behavior':compaction_fixture.behavior})
+                        elif command['kind'] == 'revert_snapshot' and spec.get('revert_redo'):
                             observations = []
                             for database in (home / 'data').rglob('*'):
                                 if database.suffix not in ('.db', '.sqlite', '.sqlite3'): continue
@@ -624,7 +649,7 @@ try:
                         elif command['kind'] == 'release_scanner' and spec.get('scanner'):
                             scanner_release.set()
                             emit({'kind': 'scanner_release_requested'})
-                        elif command['kind'] in ('pause_scanner', 'resume_scanner') and spec.get('scanner'):
+                        elif command['kind'] in ('pause_scanner', 'resume_scanner') and (spec.get('scanner') or spec.get('compaction_animation')):
                             pause = command['kind'] == 'pause_scanner'
                             try:
                                 if pause and child.poll() is None and not scanner_paused:
@@ -694,7 +719,7 @@ try:
             os.close(master)
             emit({'kind': 'exit', 'generation': generation, 'code': child.returncode,
                   'termination': 'forced_stop' if forced else 'natural'})
-        if forced or not (spec.get('tab_restart') or spec.get('sessions_interaction') or spec.get('revert_redo')):
+        if forced or not (spec.get('tab_restart') or spec.get('sessions_interaction') or spec.get('revert_redo') or spec.get('compaction')):
             break
         # The same bridge/server/config/project and XDG roots survive the first exit.
         command = json.loads(sys.stdin.readline())
@@ -706,6 +731,7 @@ try:
             project.mkdir(parents=True, exist_ok=True)
         emit({'kind': 'relaunch', 'generation': generation, 'argv': argv, 'cwd': str(project)})
 finally:
+    compaction_fixture.release.set()
     scanner_release.set()
     server.shutdown()
     server.server_close()

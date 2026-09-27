@@ -84,6 +84,58 @@ impl Import<'_> {
                             .ok_or_else(|| refuse("invalid historical nudge scope"))?;
                         v[0] = format!("dcp.nudge.{}\0{suffix}", self.root).into();
                     }
+                    6 => {
+                        v[0] = self.root.into();
+                        v[1] = mapped(self.messages, &v[1])?.into();
+                        let original = v[5]
+                            .as_str()
+                            .ok_or_else(|| refuse("invalid historical compaction operation"))?;
+                        let new_id = format!("{}:{original}", self.root);
+                        let present: bool = self.conn.query_row(
+                            "SELECT EXISTS(SELECT 1 FROM session_compactions WHERE id=?1)",
+                            [&new_id],
+                            |r| r.get(0),
+                        )?;
+                        if !present {
+                            let raw: String = self.conn.query_row(
+                                "SELECT snapshot FROM session_compactions WHERE id=?1",
+                                [original],
+                                |r| r.get(0),
+                            )?;
+                            let mut snapshot: oc_core::compaction::CompactionSnapshot =
+                                serde_json::from_str(&raw).map_err(|_| {
+                                    refuse("invalid historical compaction presentation")
+                                })?;
+                            snapshot.id = new_id.clone();
+                            snapshot.session = self.root.into();
+                            snapshot.anchor.message = snapshot
+                                .anchor
+                                .message
+                                .as_ref()
+                                .and_then(|id| self.messages.get(id).cloned())
+                                .or_else(|| v[1].as_str().map(String::from));
+                            // Tool/turn archive identities are independently rebased by the fork.
+                            // Public placement falls back to the genuine copied message anchor.
+                            snapshot.anchor.turn = None;
+                            snapshot.anchor.tool = None;
+                            let raw = serde_json::to_string(&snapshot).map_err(|_| {
+                                refuse("invalid historical compaction presentation")
+                            })?;
+                            self.bytes -= raw.len() as i64;
+                            if self.bytes < 0 {
+                                return Err(refuse("copy budget exceeded").into());
+                            }
+                            self.conn.execute(
+                                "INSERT INTO session_compactions VALUES(?1,?2,?3)",
+                                params![new_id, self.root, raw],
+                            )?;
+                        }
+                        v[5] = new_id.into();
+                    }
+                    7 => {
+                        // Wire identities and the measured causal prefix are unchanged.
+                        v[0] = self.root.into();
+                    }
                     _ => return Err(refuse("unknown historical metadata").into()),
                 }
                 let payload = v.to_string();

@@ -1,0 +1,40 @@
+   VIS34 compaction fixture      +                                                                                      
+     ARCHIVE-3-115 requirement detail retained in raw history.                                                          
+     ARCHIVE-3-116 requirement detail retained in raw history.                                                          
+     ARCHIVE-3-117 requirement detail retained in raw history.                                                          
+     ARCHIVE-3-118 requirement detail retained in raw history.                                                          
+     ARCHIVE-3-119 requirement detail retained in raw history.                                                          
+                                                                                                                        
+                                                                                                                        
+     MiMo-V2.6-Flash Free · 68ms · 37500.0 tok/s                                                                        
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  VIS34 held tool: wait at safe boundary; no filesystem changes.                                                     
+  ┃                                                                                                                     
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  $ sleep 12                                                                                                         
+  ┃                                                                                                                     
+                                                                                                                        
+     VIS34-HELD-DONE                                                                                                    
+                                                                                                                        
+     MiMo-V2.6-Flash Free · 18.7s · 32432.4 tok/s                                                                       
+                                                                                                                        
+  ────────────────────────────────────────── Compaction · 1.2K in · 321 out ──────────────────────────────────────────  
+                                                                                                                        
+     Objective                                                                                                          
+     - VIS34-CHECKPOINT: preserve R1, R2, R3.                                                                           
+                                                                                                                        
+     Work State                                                                                                         
+     - Three seeded exchanges completed; filesystem unchanged.                                                          
+                                                                                                                        
+     Next Move                                                                                                          
+     1. Continue the user request without replaying tools.                                                              
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃  MiMo-V2.6-Flash Free OpenCode Zen                                                                                  
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/openco…/.cache/opencode-tmp/opencode/t44-reference/runs/compaction20260927-01/project  7.8K (3%)  ctrl+p commands  
+                                                                                                                        

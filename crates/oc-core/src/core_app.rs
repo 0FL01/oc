@@ -129,6 +129,8 @@ impl SubmissionReceipt {
 /// Typed application events (live hints + durable outcomes for T03).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CoreEvent {
+    /// Session checkpoint lifecycle; summary deltas are cumulative snapshots.
+    Compaction(crate::compaction::CompactionSnapshot),
     /// A root title was committed; live views can update without waiting for a turn.
     SessionTitleUpdated {
         /// Owning root session.
@@ -309,6 +311,18 @@ impl MockProvider {
 
 /// Commands consumed by the single application owner (native or scripted).
 pub enum InboxMsg {
+    CompactSession {
+        session: SessionId,
+        ack: oneshot::Sender<Result<crate::compaction::CompactionSnapshot, CoreError>>,
+    },
+    CancelCompaction {
+        session: SessionId,
+        ack: oneshot::Sender<Result<(), CoreError>>,
+    },
+    CompactionHistory {
+        session: SessionId,
+        ack: oneshot::Sender<Result<Vec<crate::compaction::CompactionSnapshot>, CoreError>>,
+    },
     /// Stop execution before moving to a saved conversation point.
     ChangeConversation {
         session: SessionId,
@@ -607,6 +621,38 @@ pub struct WorkerGuard {
 }
 
 impl CoreApp {
+    /// Admit/coalesce a checkpoint operation without accepting a user message.
+    pub async fn compact_session(
+        &self,
+        session: SessionId,
+    ) -> Result<crate::compaction::CompactionSnapshot, CoreError> {
+        let (ack, rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::CompactSession { session, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+    /// Cancel only compaction, never a title request or running tool.
+    pub async fn cancel_compaction(&self, session: SessionId) -> Result<(), CoreError> {
+        let (ack, rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::CancelCompaction { session, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+    pub async fn compaction_history(
+        &self,
+        session: SessionId,
+    ) -> Result<Vec<crate::compaction::CompactionSnapshot>, CoreError> {
+        let (ack, rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::CompactionHistory { session, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        rx.await.map_err(|_| CoreError::Shutdown)?
+    }
     /// Restore a saved conversation point without replaying external effects.
     pub async fn change_conversation(
         &self,
@@ -1510,6 +1556,15 @@ fn elapsed_ms(started: std::time::Instant) -> u64 {
 fn scripted_unsupported(message: InboxMsg) {
     let error = || CoreError::Application("query unsupported by scripted worker".to_string());
     match message {
+        InboxMsg::CompactSession { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::CancelCompaction { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::CompactionHistory { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::ChangeConversation { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
@@ -1653,6 +1708,7 @@ mod tests {
                 | CoreEvent::TurnUsage { .. }
                 | CoreEvent::ToolCallStarted { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}
+                CoreEvent::Compaction(_) => panic!("unexpected compaction"),
                 CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             }
         }
@@ -1949,6 +2005,7 @@ mod tests {
                 | CoreEvent::TurnUsage { .. }
                 | CoreEvent::ToolCallStarted { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}
+                CoreEvent::Compaction(_) => panic!("unexpected compaction"),
                 CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             }
         }

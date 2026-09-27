@@ -31,6 +31,8 @@ use crate::tools::{
     SubagentRequest, SubagentRunner, ToolContext, ToolError, ToolPolicy, ToolRoots, TurnLog,
     assemble_calls, execute_batch,
 };
+#[path = "runtime_compaction.rs"]
+mod compaction;
 
 /// Max tool rounds per turn (bounded agent loop).
 pub const MAX_ROUNDS: u32 = 8;
@@ -925,6 +927,9 @@ struct ActiveContext {
 /// Single-flight: one active turn at a time (mirrors the single-turn
 /// worker); reload and DCP config changes only land between turns.
 pub struct Runtime<'a> {
+    compactions: Mutex<BTreeMap<String, compaction::Work>>,
+    compaction_events: Mutex<Option<tokio::sync::broadcast::Sender<oc_core::core_app::CoreEvent>>>,
+    native_compaction: RwLock<Option<Arc<dyn crate::compaction::NativeCompaction>>>,
     db: &'a Db,
     location: String,
     current: RwLock<Arc<PublishedGeneration>>,
@@ -980,6 +985,9 @@ impl<'a> Runtime<'a> {
         // additive idempotent DCP schema before the first turn.
         crate::dcp::apply_dcp_schema(db).map_err(|_| RuntimeError::Storage)?;
         Ok(Self {
+            compactions: Mutex::new(BTreeMap::new()),
+            compaction_events: Mutex::new(None),
+            native_compaction: RwLock::new(None),
             db,
             location: location.to_string(),
             current: RwLock::new(Arc::new(PublishedGeneration {
@@ -1177,9 +1185,9 @@ impl<'a> Runtime<'a> {
         self.stats.lock().expect("stats lock").clone()
     }
 
-    /// True while a turn holds the single-flight lease.
+    /// True while conversational or standalone compaction execution owns the route.
     pub fn turn_active(&self) -> bool {
-        self.active.load(Ordering::Relaxed)
+        self.active.load(Ordering::Relaxed) || self.compaction_active()
     }
 
     /// Per-session DCP turn counters, if the session ever ran a turn.
@@ -1565,11 +1573,26 @@ impl<'a> Runtime<'a> {
     /// [`ACTIVE_CONTEXT_BYTES_CAP`] refuses the turn with an explicit
     /// diagnostic instead of silently dropping facts.
     fn active_projection(&self, session: &str) -> Result<ActiveContext, RuntimeError> {
+        self.active_projection_inner(session, true)
+    }
+    fn active_projection_inner(
+        &self,
+        session: &str,
+        checkpoint: bool,
+    ) -> Result<ActiveContext, RuntimeError> {
         let after_seq = self
             .db
             .prune_bound(session)?
             .map(|(_, seq)| seq)
-            .unwrap_or(0);
+            .unwrap_or(0)
+            .max(if checkpoint {
+                self.db
+                    .session_checkpoint(session)?
+                    .map(|(seq, _)| seq)
+                    .unwrap_or(0)
+            } else {
+                0
+            });
         let active = self
             .db
             .active_history(session, after_seq, ACTIVE_CONTEXT_BYTES_CAP)?;
@@ -1582,8 +1605,18 @@ impl<'a> Runtime<'a> {
         let blocks =
             crate::dcp::load_blocks(self.db, session).map_err(|_| RuntimeError::Storage)?;
         let positions = self.db.block_positions(session, after_seq)?;
-        let projected = crate::dcp::project_active_rows(&active.rows, &blocks, &positions)
+        let mut projected = crate::dcp::project_active_rows(&active.rows, &blocks, &positions)
             .map_err(|error| RuntimeError::InvalidArgs(error.to_string()))?;
+        if checkpoint && let Some((_, summary)) = self.db.session_checkpoint(session)? {
+            projected.insert(
+                0,
+                (
+                    "session-checkpoint".into(),
+                    "developer".into(),
+                    format!("<conversation-checkpoint>\n{summary}\n</conversation-checkpoint>"),
+                ),
+            );
+        }
         Ok(ActiveContext {
             after_seq,
             projected,
@@ -1614,7 +1647,13 @@ impl<'a> Runtime<'a> {
             .db
             .prune_bound(session)?
             .map(|(_, seq)| seq)
-            .unwrap_or(0);
+            .unwrap_or(0)
+            .max(
+                self.db
+                    .session_checkpoint(session)?
+                    .map(|(seq, _)| seq)
+                    .unwrap_or(0),
+            );
         let active = self
             .db
             .active_history(session, after_seq, ACTIVE_CONTEXT_BYTES_CAP)?;
@@ -1706,6 +1745,12 @@ impl<'a> Runtime<'a> {
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
         let selection = models::select_variant(&base, params.variant.as_deref())
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+        self.validate_checkpoint_route(
+            &params.session,
+            &params.catalog.provider,
+            &selection.id,
+            &params.provider,
+        )?;
         let workspace = self.workspace.read().expect("workspace lock").clone();
         // Outbound context honors compression blocks + prune mark: covered
         // members collapse to summaries, raw history is never rewritten.
@@ -1778,16 +1823,98 @@ impl<'a> Runtime<'a> {
             .with_mcp(&attached.entries);
         let mut fixed_input = lane.fixed_input.clone();
         fixed_input.extend(mcp_instruction_input(attached, &policy));
+        let mut tool_defs = builtin_tool_defs();
+        if !compress_available {
+            tool_defs.retain(|tool| tool.name != COMPRESS_TOOL);
+        }
+        let subagents = workspace.subagents.clone();
+        if let Some(catalog) = &subagents {
+            tool_defs.push(subagent_tool_def(catalog, &policy));
+        }
+        for entry in &attached.entries {
+            tool_defs.push(ToolDef {
+                name: entry.namespaced.clone(),
+                description: entry
+                    .description
+                    .clone()
+                    .unwrap_or_else(|| format!("mcp {} tool", entry.tool)),
+                parameters: entry.input_schema.clone(),
+            });
+        }
+        let prompt_input = [InputItem::message(InputRole::User, &params.prompt)];
         let assembled_estimate = estimate_tokens(
-            &serde_json::to_string(&(fixed_input.as_slice(), history.as_slice()))
+            &serde_json::to_string(&(&fixed_input, &history, &prompt_input, &tool_defs))
                 .map_err(|_| RuntimeError::Storage)?,
-        ) + estimate_tokens(&params.prompt);
-        models::admit_budget(&selection, assembled_estimate, budget).map_err(|error| {
-            RuntimeError::InvalidArgs(match &budget.warning {
-                Some(warning) => format!("{error}; {warning}"),
-                None => error.to_string(),
-            })
-        })?;
+        );
+        let compaction_config = published.config.compaction.clone();
+        let usage_scope = crate::compaction::fingerprint(&(
+            crate::compaction::route_identity(
+                &params.catalog.provider,
+                &selection.id,
+                &params.provider,
+            )
+            .map_err(|_| RuntimeError::Provider)?,
+            &fixed_input,
+            &tool_defs,
+            &params.variant,
+        ));
+        let compaction_context = selection
+            .entry
+            .pointer("/limit/context")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+        // A new prompt that cannot fit even with an empty history cannot be
+        // repaired by summarization. Refuse before spending a summary request.
+        let irreducible = estimate_tokens(
+            &serde_json::to_string(&(&fixed_input, &prompt_input, &tool_defs))
+                .map_err(|_| RuntimeError::Storage)?,
+        );
+        models::admit_budget(&selection, irreducible, budget)
+            .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+        let compaction_output = selection
+            .entry
+            .pointer("/limit/output")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(budget.output);
+        let compaction_input = selection
+            .entry
+            .pointer("/limit/input")
+            .and_then(|v| v.as_u64());
+        let compaction_due = fresh_selection.is_none()
+            && !params.cancel.load(Ordering::Relaxed)
+            && !history.is_empty()
+            && self
+                .compaction_estimate(
+                    &params.session,
+                    &usage_scope,
+                    &history,
+                    &prompt_input,
+                    crate::compaction::estimate_context(
+                        &fixed_input,
+                        &history,
+                        &prompt_input,
+                        &tool_defs,
+                    ),
+                )?
+                .is_some_and(|estimate| {
+                    compaction_config.required(
+                        estimate,
+                        compaction_context,
+                        compaction_output,
+                        compaction_input,
+                    )
+                });
+        // Irreducible schema-inclusive admission has passed. If repairable
+        // history requires compaction, promote the genuine user first; its
+        // admission receipt and pre-context precede the summary lifecycle.
+        if !compaction_due && !params.cancel.load(Ordering::Relaxed) {
+            models::admit_budget(&selection, assembled_estimate, budget).map_err(|error| {
+                RuntimeError::InvalidArgs(match &budget.warning {
+                    Some(warning) => format!("{error}; {warning}"),
+                    None => error.to_string(),
+                })
+            })?;
+        }
         // Durable intent before any side effect.
         let turn_id = next_turn_id(&params.session, millis());
         let user_text = params.invocation.as_deref().unwrap_or(&params.prompt);
@@ -1821,24 +1948,6 @@ impl<'a> Runtime<'a> {
         };
         accepted(&turn_id, accepted_turn.model_switch.as_ref());
         let user_message = accepted_turn.user_message;
-        let mut tool_defs = builtin_tool_defs();
-        if !compress_available {
-            tool_defs.retain(|tool| tool.name != COMPRESS_TOOL);
-        }
-        let subagents = workspace.subagents.clone();
-        if let Some(catalog) = &subagents {
-            tool_defs.push(subagent_tool_def(catalog, &policy));
-        }
-        for entry in &attached.entries {
-            tool_defs.push(ToolDef {
-                name: entry.namespaced.clone(),
-                description: entry
-                    .description
-                    .clone()
-                    .unwrap_or_else(|| format!("mcp {} tool", entry.tool)),
-                parameters: entry.input_schema.clone(),
-            });
-        }
         let snapshot = workspace.skills;
         let runner = subagents.as_ref().map(|catalog| TurnSubagent {
             runtime: self,
@@ -1885,6 +1994,9 @@ impl<'a> Runtime<'a> {
             .checkpoint_turn(&turn_id, &turn_log.to_json().to_string())?;
         let max_rounds = params.max_rounds.clamp(1, ROUND_CAP);
         let mut rounds = 0u32;
+        let mut overflow_recovered = false;
+        let mut overflow_pending = false;
+        let mut last_compacted_round = None;
         loop {
             if params.cancel.load(Ordering::Relaxed) {
                 return self.commit_turn(
@@ -1944,6 +2056,110 @@ impl<'a> Runtime<'a> {
             if let Some(nudge) = &nudge {
                 nudge_hint = Some(nudge.text.clone());
                 self.stats.lock().expect("stats lock").nudges_emitted += 1;
+            }
+            let boundary_estimate = crate::compaction::estimate_context(
+                &fixed_input,
+                &history,
+                &turn_log.input,
+                &tool_defs,
+            );
+            let automatic_due = last_compacted_round != Some(rounds)
+                && !history.is_empty()
+                && self
+                    .compaction_estimate(
+                        &params.session,
+                        &usage_scope,
+                        &history,
+                        &turn_log.input,
+                        boundary_estimate,
+                    )?
+                    .is_some_and(|estimate| {
+                        compaction_config.required(
+                            estimate,
+                            compaction_context,
+                            compaction_output,
+                            compaction_input,
+                        )
+                    });
+            if automatic_due {
+                self.queue_compaction(
+                    &params.session,
+                    oc_core::compaction::CompactionReason::Automatic,
+                )?;
+            }
+            let compacted = self
+                .deliver_compaction_bound(
+                    &params.session,
+                    params.catalog,
+                    &selection.id,
+                    params.variant.as_deref(),
+                    &params.provider,
+                    Some(params.cancel),
+                )
+                .await?;
+            if params.cancel.load(Ordering::Relaxed) {
+                continue;
+            }
+            if (overflow_pending || automatic_due) && !compacted {
+                let mut report = self.commit_turn(
+                    &turn_log,
+                    turn_id,
+                    &params.session,
+                    TurnStatus::Failed,
+                    text,
+                    rounds,
+                    streamed_ms(streamed),
+                    usage,
+                    context_usage,
+                    calls,
+                    nudge_hint,
+                    &published,
+                )?;
+                report.diagnostic = Some(
+                    if overflow_pending {
+                        "context overflow; compaction failed without changing context"
+                    } else {
+                        "automatic compaction failed without changing context"
+                    }
+                    .into(),
+                );
+                return Ok(report);
+            }
+            overflow_pending = false;
+            if compacted {
+                last_compacted_round = Some(rounds);
+                let refreshed = self.active_projection(&params.session)?;
+                history = self.wire_history(
+                    &params.session,
+                    &refreshed.projected,
+                    &refreshed.blocks,
+                    &selection.id,
+                    &params.catalog.provider,
+                    lane.agent_digest.as_deref(),
+                    refreshed.after_seq,
+                )?;
+                // The running turn's journal is supplied separately below.
+                // Its active user row must not appear twice after refresh.
+                if let Some(anchor) = turn_log.user_message.as_deref()
+                    && let Some(index) = refreshed.projected.iter().position(|row| row.0 == anchor)
+                {
+                    let prior = &refreshed.projected[..index];
+                    history = self.wire_history(
+                        &params.session,
+                        prior,
+                        &refreshed.blocks,
+                        &selection.id,
+                        &params.catalog.provider,
+                        lane.agent_digest.as_deref(),
+                        refreshed.after_seq,
+                    )?;
+                }
+                projected = refreshed.projected;
+                tool_projection = self.db.load_dcp_tool_projection(&params.session)?;
+                apply_dcp_projection(&mut history, &tool_projection);
+                anchors = compress_available
+                    .then(|| dcp_config_input(&projected, &dcp_config))
+                    .flatten();
             }
             let input: Vec<InputItem> = fixed_input
                 .iter()
@@ -2074,6 +2290,13 @@ impl<'a> Runtime<'a> {
                     generation
                 }
                 Err(error) => {
+                    if matches!(error,crate::provider::ProviderError::ContextOverflow) && !overflow_recovered && compaction_config.auto {
+                        overflow_recovered=true;
+                        overflow_pending=true;
+                        self.queue_compaction(&params.session,oc_core::compaction::CompactionReason::Overflow)?;
+                        // Continue the same logical step/journal. No tool execution is retried.
+                        continue;
+                    }
                     turn_log.display_parts.retain(|part| part.get("pending_text").is_none());
                     streamed += stream_started.elapsed();
                     let status = if params.cancel.load(Ordering::Relaxed) {
@@ -2106,6 +2329,9 @@ impl<'a> Runtime<'a> {
                 }
             };
             rounds += 1;
+            // Pinned runner owns one overflow rebuild per logical LLM step.
+            // A successfully settled response starts the next step's allowance.
+            overflow_recovered = false;
             for item in &generation.items {
                 turn_log.ingest(item);
             }
@@ -2240,6 +2466,24 @@ impl<'a> Runtime<'a> {
                 turn_log
                     .input
                     .push(InputItem::message(InputRole::Assistant, &generation.text));
+            }
+            // Responses input totals already include cached input; output totals
+            // already include reasoning. Count each exactly once. Never use the
+            // accumulated billing/display turn total as the next context size.
+            if let Some((input, output)) = generation.usage
+                && input > 0
+            {
+                let measured_prefix: Vec<_> =
+                    history.iter().chain(&turn_log.input).cloned().collect();
+                self.db.save_usage_anchor(
+                    &params.session,
+                    &crate::compaction::UsageAnchor {
+                        scope: usage_scope.clone(),
+                        prefix: crate::compaction::fingerprint(&measured_prefix),
+                        items: measured_prefix.len(),
+                        tokens: input.saturating_add(output),
+                    },
+                )?;
             }
             let mut assigned = vec![false; messages.len()];
             let mut positioned = reasoning_anchors
@@ -2604,12 +2848,19 @@ impl<'a> Runtime<'a> {
             {
                 continue;
             }
-            if log.provider != provider {
+            if log.provider != provider && agent_digest != Some("__compaction__") {
                 return Err(RuntimeError::InvalidArgs(
                     "session wire history belongs to a different provider/model".to_string(),
                 ));
             }
-            if log.model != model || log.agent_digest.as_deref() != agent_digest {
+            if agent_digest != Some("__compaction__")
+                && (log.model != model
+                    || (log.agent_digest.as_deref() != agent_digest
+                    // Pre-Build native sessions used the same empty default
+                    // agent lane without a digest. Adopt only the unchanged
+                    // builtin profile, preserving genuine tool/opaque pairs.
+                    && !(log.agent_digest.is_none() && agent_digest == Some(crate::defs::agent_digest(&crate::defs::builtin_build()).as_str()))))
+            {
                 // Model or agent behavior changed: start a fresh causality lane
                 // from public messages, but retain the originally expanded user
                 // prompt for an uncompressed anchor. Never re-expand an invocation
@@ -2652,6 +2903,14 @@ impl<'a> Runtime<'a> {
             .map(|block| (block.id.as_str(), block.members.as_slice()))
             .collect::<BTreeMap<_, _>>();
         for (id, role, text) in projected {
+            if id == "session-checkpoint"
+                && let Some((_, _, _, Some(raw))) = self.db.checkpoint_record(session)?
+            {
+                input.push(InputItem::ProviderOutput(
+                    serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?,
+                ));
+                continue;
+            }
             if let Some(items) = turns.remove(id) {
                 input.extend(items);
             } else if !represented.contains(id) {
