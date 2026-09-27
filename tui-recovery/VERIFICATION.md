@@ -114,6 +114,16 @@ clock reference либо поддержанным animation-off mode обеих 
 анимациях на обеих сторонах; сопоставлять одинаковые фазы движения/пауз, а не
 несинхронизированные wall-clock кадры. Проверка animation-off fallback обязательна,
 но не заменяет доказательство движения вперёд и обратно.
+Для VIS39 также обязательны animation-on temporal sequences: Delegating/child-row
+spinner, continuation/fallback branches, root-family running → permission/question
+attention → completion/idle/unread и tab pulse/tints/glow/fade. Сверять component
+mount/phase/state rules, не глобально синхронизировать независимые rows. Animation-off
+проверять отдельно по component: row `⋯`, tab first frame/number, parent scanner `[⋯]`;
+off-only/static/native-golden evidence не заменяет временной parity. Full styled cells,
+PNG и cursor сохраняют RGB/alpha, attributes и blank backgrounds; no status-area masks.
+Reuse VIS28/VIS31 active-deadline measurements: после конечных transitions нет
+периодического idle work, static glow не требует timer. Истинность child/notice/
+Ctrl+B подтверждается shared SUB01/SUB02 protocol/SQLite/PTY, а не анимацией.
 В этом компактном checker нет masks, auto-resize, tolerance или auto-update-goldens.
 Добавление любого исключения в будущем требует отдельного documented approved reason.
 
@@ -135,7 +145,8 @@ skipped и итог не преобразует exit2 в PASS. Не правит
 
 ## Артефакты результата
 
-На каждый обязательный VIS01–VIS26: case ID, status, code SHA/tree hash, test command,
+На каждый mandatory case актуального ACCEPTANCE.json: case ID, фактический status,
+code SHA/tree hash, test command,
 exit code, timestamp, environment/fixture hash, paths всех evidence; failed attempt list.
 Для VIS без визуального результата допустимы structured protocol/DB/PTY assertions,
 но они не подменяют тройку Session/Commands/Models.

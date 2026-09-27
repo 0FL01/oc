@@ -507,6 +507,141 @@
       "locator": "2273–2345 UserMessage transcript text wrapper, raised background/split border/padding; D05 generates display text",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L2273-L2345",
       "purpose": "Real OC2 renderer geometry/theme for the DCP display-reference payload, not proof that the legacy plugin runtime works with OC2"
+    },
+    {
+      "id": "U35",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "1158–1200 child/background commands; 1351–1371 composer; 1742–1853 Thought; 1934–1983 footer; 2016–2072 notices; 2461–2483 input; 2677–2769 InlineTool/StatusBadge; 3173–3226 Subagent/model/background",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L3173-L3226",
+      "purpose": "VIS39 actual labels/icons/live-child versus launch metadata, color/selection/error/navigation, reasoning/footer and durable notice rows; OCR is not the oracle"
+    },
+    {
+      "id": "U36",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/message-parts.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "176–269 InlineToolRow/InlineToolLabel; spinner fallback, padding, denied attributes, error detail and badge wrapping",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/message-parts.tsx#L176-L269",
+      "purpose": "Real inline delegation geometry and partial-input fallback, not extra native result/session-ID cards"
+    },
+    {
+      "id": "U37",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/spinner.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "14–51 Spinner 80 ms/animations-off/color/optional shimmer; component/spinner-frames.ts:1 exact Braille frames; Subagent passes no shimmer",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/spinner.tsx#L14-L51",
+      "purpose": "Delegating/running spinner phases and static ⋯ fallback, distinct from continuation and tab fallbacks"
+    },
+    {
+      "id": "U38",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/message-updater.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "301–337 tool input.started/input.ended/tool.called streaming versus structured running input",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/message-updater.ts#L301-L337",
+      "purpose": "Partial-call display reference; native closed-response/schema validation before tool admission remains an explicit timing difference"
+    },
+    {
+      "id": "U39",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/tool/plugin/subagent.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "29–62 schema/modes; 194–265 progress, immediate background, foreground join/cancel/background conversion and result sessionID/status",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/subagent.ts#L194-L265",
+      "purpose": "T45 lifecycle facts before T44 paint, with actual child identity and launch-result/current-state distinction"
+    },
+    {
+      "id": "U40",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/subagent-job.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "20–57 fork/wait/SubagentJob.notify dedup keyed by childSessionID and startedAt",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/subagent-job.ts#L20-L57",
+      "purpose": "Automatic generation-keyed terminal observer, not UI polling or duplicate child execution"
+    },
+    {
+      "id": "U41",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/subagent-completion.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "8–45 output fallback/envelope and synthetic parent admission with notificationID/source/childID/agent/state/description",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/subagent-completion.ts#L8-L45",
+      "purpose": "Durable completion context/notice and parent continuation; child prose does not classify runtime outcome"
+    },
+    {
+      "id": "U42",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "425–440 background owned session jobs and admit actual user-requested-background control context",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session.ts#L425-L440",
+      "purpose": "Real Ctrl+B action, not a presentation-only background badge switch"
+    },
+    {
+      "id": "U43",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/feature-plugins/prompt/footer.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "20–85 active descendant counts/shell split/hover/keymap/click; component/prompt/index.tsx:1884–1900 separate own-session scanner",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/feature-plugins/prompt/footer.tsx#L20-L85",
+      "purpose": "Actual family activity footer versus parent-own running scanner, reusing VIS28"
+    },
+    {
+      "id": "U44",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/composer/subagents-tab.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "36–60 family/title/state; 113–190 effective keymap/filter/interrupt/select; 192–250 scrollbox/current/focus/running/empty/mouse",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/composer/subagents-tab.tsx#L113-L250",
+      "purpose": "Real Subagents active/inactive picker, controls and semantic action styles"
+    },
+    {
+      "id": "U45",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/composer/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "44–180 lower composer focus/close/tab keymap, raised geometry/border/title/footer; U35 child-route auto-open/parent return",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/composer/index.tsx#L44-L180",
+      "purpose": "Subagent composer is not fullscreen modal; preserve ordinary prompt drafts and permission/question priority"
+    },
+    {
+      "id": "U46",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/context/session-tabs.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "114–173 child-to-root tabs, family busy/permission-before-question attention and root unread",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/session-tabs.tsx#L114-L173",
+      "purpose": "Family status and actual parent continuation/idle signal, not one unread flag per child completion"
+    },
+    {
+      "id": "U47",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/session-tabs.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "58–63 frames/cadence; 124–226 attention/indicator/fallback/fade/ignition; 746–811 glow/tints; config/index.tsx:174–189 exposed tabs options",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/session-tabs.tsx#L124-L226",
+      "purpose": "Status/numbers indicators, distinct animation-off fallbacks and source state/color transitions; no invented spinner settings"
+    },
+    {
+      "id": "U48",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/tab-pulse.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "32–124 running/completion/edgeflash/glow timing, easing and blending; 243–417 branch/state/deadline lifecycle",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/tab-pulse.tsx#L32-L124",
+      "purpose": "Actual temporal/color tab parity with animations on/off; static glow without permanent idle wakeups (VIS31)"
+    },
+    {
+      "id": "U49",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/theme/assets/v2/opencode.json",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "base semantic text/background/action/feedback roles and dark/light overrides/hue scales; not legacy theme asset",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/theme/assets/v2/opencode.json",
+      "purpose": "Resolved palette, warning override versus tab accent, profile/action colors and representative custom/light qualification"
     }
   ],
   "external_primary_sources": [

@@ -586,9 +586,146 @@ retains DCP10/DCP11 child/long-horizon algorithms, без all-T45 done-dependenc
 VIS38 mandatory, NOT_RUN/evidence empty до actual qualification; исторический T39
 panel/status notice PASS не подтверждает этот новый контракт.
 
+## Subagent delegation parity — VIS39
+
+Owner-approved 2026-09-27: полный visual/interactive parity делегирования, работающих
+children и completion notices, включая цвета и анимации. OCR-примеры — иллюстрации,
+не oracle символов или production strings. Reference — исполнимый OC2 v2.0.12
+`2670273ff17da96f85c5826ced57aa1b368754fa`, pinned U35–U49 и existing U02 в SOURCES.json.
+T44 owns R4/R5/V06/VIS39; T45 owns R3/SUB01/SUB02 lifecycle и необходимые typed
+history/query/event projections. Сначала lifecycle slice, затем UI qualification,
+не all-T45 completion dependency и не второй task/store/job/event framework.
+
+1. **Truthful phases before paint.** Distinguish arguments streaming, admitted call,
+   permission wait, foreground child running, completed background launch/child running,
+   completed/error/cancelled/unknown child и continuation. Presentation uses bounded
+   call/part IDs, typed complete input, actual child/session/parent linkage, operation
+   outcome, launch metadata and current child job generation/status. Incomplete string
+   input is empty presentation input как в U35/U38: `Delegating…`, без extracting
+   agent/description/sessionID из partial JSON или свободного LLM-текста. Preserve
+   native response-close/schema-validation-before-tool-admission (CONTRACTS.md): это
+   declared streaming-timing difference, не разрешение early execution и не основание
+   сериализовать детей. No child/effect до admission. T45 proves real overlapping
+   foreground children, batch join before next parent step и immediate background
+   progress while parent active; unsupported background не подменять фиктивным success.
+2. **Inline delegation rows.** Follow Subagent + InlineToolRow (U35/U36), paddingLeft=3,
+   source wrapping/spacing, no extra bordered result/session-ID block. Pending literal
+   `Delegating…`; populated label `<Titlecased agent> Subagent — <description>` with
+   General/Subagent fallbacks. `sessionID` input means `Continue subagent`; append
+   ` · <model label>` only for explicit input.model, resolving actual catalog name or
+   raw reference and `#variant` → ` (variant)`, not inherited parent-model decoration.
+   Running = tool running OR linked child's current status running. Non-continuation
+   running uses spinner, completed non-running `✓`; continuation uses `↳` without the
+   ordinary subagent spinner once populated. Missing complete description still uses
+   pending Spinner through InlineToolRow fallback, even if explicit spinner=false.
+   Running suppresses stale tool-error presentation. `Background` badge is completed
+   tool + launch metadata.status=running, NOT current child status: may remain after
+   child completes. Historical launch rows can animate again when that SAME child is
+   continued; unlike VIS38 DCP snapshots, do not freeze their live child status.
+3. **Colors, attributes and interaction.** Inline color precedence: explicit override,
+   permission-pending warning, ordinary failed error, clickable hover text.base,
+   otherwise text.muted. Denial is typed rejection/strikethrough, not ordinary failure;
+   preserve native typed error model rather than donor error-message keyword classifiers.
+   Successful `✓` is muted, not invented green. Badge text muted, background
+   theme.decrease(background.base), spaces/padding and label flex-wrap as source.
+   Click a normal linked row → actual child; failed click toggles actual error detail
+   before navigation, expanded detail is indented as source. Text selection blocks
+   clicks; hover alone does not expand. VIS36 supplies real root/child permission
+   routing and attention, not an auto-grant; VIS37 question priority remains distinct.
+4. **Thought and parent footer.** Reuse VIS15/17 spacing and metadata qualification:
+   actual nonempty public reasoning groups, completed collapsed `+` / expanded `-`,
+   unfinished spinner. Thought step count is reasoning parts, NOT children; duration
+   sums nonnegative completed intervals. Collapsed non-hover completed warning has
+   alpha .6, hover/expanded full warning; unfinished uses text.base. Click toggle is
+   selection-safe. AssistantFooter uses that response's actual agent label/color,
+   model, duration and optional tok/s, source width/session.tps conditions. Duration/
+   rate muted, error profile label muted. Notice rows do not receive fake assistant
+   footers. OCR prose, IDs, Muse Spark/Free, 14.4s and 47.4 tok/s are fixture data only.
+5. **Durable completion notices and ordering.** T45 generates real synthetic parent
+   messages with source=subagent, childID, agent, state, description and actual child
+   result; persist/deduplicate job-generation/delivery identity before display. U35/U41:
+   completed `↳ <Actor> finished`, error `! <Actor> failed`, cancelled actual state;
+   suffix ` · <description>` muted, display-width truncated to remaining width,
+   marginLeft=3, no wrap. Heading info/error/warning by state; normal child-linked hover
+   text.base and selection-safe navigation. This is conversation history, not transient
+   toast or generic Notice. Parent receives result context and can continue automatically
+   without UI polling. Capture child 1 alone and children 2/3 together before the next
+   parent response, preserving real admission/order/batching, no assumed global ordering
+   of independent jobs. Ordinary child prose saying it cannot run sleep is completed,
+   not runtime failed; no free-text status inference or canned parent follow-up.
+6. **Child controls and composer.** Footer counts actual running family descendants
+   excluding current session, correct `N subagent(s)`, separate shell count, muted/base
+   hover, real keymap hint and click → child picker. Use real lower Subagents composer
+   (U44/U45), not fullscreen modal: raised surface, split border, source padding/title/
+   hints, maxHeight=5 scrollbox. Active/inactive filter, No active/inactive subagents,
+   truthful titles/agent fallback and Running labels; current vs focused semantic
+   action fg/bg, focused bold, mouse selection/open. Ctrl+A toggles filter, Ctrl+D
+   interrupts only running child, Enter opens, first Up closes, Down wraps; Esc/Ctrl+C
+   and left/right tabs follow composer/focus layer. Child route opens Subagents by
+   default when no form; close returns parent, preserve actual parent draft/chips/
+   cursor/focus. Session shortcuts (U02/U35) include interrupt, Down picker, child
+   left/right and Up parent where applicable; never hijack ordinary editor arrows.
+   Ctrl+B invokes actual owner Session.background conversion of owned foreground work,
+   admits genuine control context, returns running launch state and keeps observing
+   terminal delivery; not a local badge toggle. Other shell lifecycle stays T50/TOOL13.
+7. **Animation contract.** Regular Delegating/running row Spinner (U37): frames
+   `⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏`, 80 ms, actual row color; animations off → `⋯`.
+   No subagent text shimmer: Subagent does not pass Spinner's optional shimmer.
+   Reconcile component mount/branch/phase rules, not globally synchronize all rows.
+   Parent own-running scanner (VIS28, 40 ms eight-cell profile scanner/off `[⋯]`) is
+   separate from child-row running and root-tab family busy: parent may be idle while
+   children run. U46 root-family permission attention wins question; unread belongs
+   to root and follows actual parent continuation/idle, not every child completion.
+   U47 status indicators use default dots/80 ms, attention `!`/`?`, numbers mode keeps
+   number; off status-mode running keeps first frame, NOT universal `⋯`. Source-level
+   arcs/quadrants/line are 120 ms only if actually selected; do not invent config options.
+   Match U47/U48 running/attention/unread/completion tints and transitions: unread fade
+   180 ms, glow-level 200 ms, number ignition 700 ms, title/number glow tween 400 ms;
+   running sweep 2800 ms/attack450/head4/tail18/release500, completion1200/attack.12/
+   opacity.18, edgeflash800, glow ignition600/release900/drain200/opacity.16, with source
+   easing/blending, branches and animations-off behavior. Automatic-rename title
+   shimmer is not ordinary delegation animation. Reuse VIS31 demand-driven deadlines:
+   after finite transitions no periodic work, static glow needs no timer. No new clock
+   framework, permanent polling or animation-off-only waiver.
+8. **Resolved palette and resource/replay invariants.** Use v2 palette U49 and source
+   semantic roles, not legacy palette or guessed OCR colors. Default dark checkpoints:
+   base #eeeeee, muted #808080, background #0a0a0a, raised #141414, error #e06c75,
+   warning #f5a742, info #56b6c2; tab attention uses source accent[200] (#9d7cd8),
+   not tool warning. Verify alpha/tints, bold/strikethrough and blank-cell background;
+   profile/footer colors data-driven. Reuse R2 representative light/custom checks,
+   no full theme×viewport×state cross-product. Replay/reopen/restart restores actual
+   notices/tool metadata and current child status, no duplicate result delivery or
+   UI-triggered provider/tool re-execution of committed work. T45 may safely resume
+   unfinished jobs under R3 recovery; this is distinct from view restoration and
+   never authorizes unknown-effect replay. Unknown stays unknown, no infinite spinner.
+   Late events target actual session/job generation; bounded family queries/history
+   paging/cache/queues do not materialize all archived child transcripts. Conversation-
+   only Undo/Redo, immutable history, no unknown-effect replay, parent-child narrowing,
+   cleanup and A10 bounds remain authoritative. Do not widen Explore shell permission
+   for a sleep fixture or add excluded built-in websearch/CodeMode/browser.
+9. **Qualification sequence.** First SUB01/SUB02 actual rebuilt binary, protocol and
+   SQLite evidence for runtime states, linkage/results/notices/continuation/recovery.
+   Then running original/native paired full styled-cell/PNG/cursor captures with
+   identical fixtures/theme/profile at 80x24/120x40/160x48 and representative Unicode/
+   long description. Main bounded fake-provider scenario: three call argument streams
+   → three overlapping background children → parent answer while children run → first
+   notice/parent continuation → two notices/next parent response. Use barriers, no
+   sleep300 or new paid campaign. Addressable foreground/continuation/explicit model-
+   variant/Ctrl+B/permission/deny/error/cancel/unknown/restart paths share existing
+   runtime evidence; reuse VIS15/17/21/22/23/28/31/33/36/37 and A02/A08/A10, not a
+   duplicated backend negative matrix. Require normal/hover/error-detail/selected-text
+   and composer effects, animation-on phase sequences INCLUDING state transitions
+   and animation-off fallbacks. One static frame/native golden/off-only capture is
+   insufficient. No masks/crops/tolerance/reference updates to hide differences;
+   missing executable reference remains BLOCKED_REFERENCE. Preserve pinned provenance,
+   licenses and failed/blocked attempts. Runtime and visual results reported separately.
+
+VIS39 mandatory, NOT_RUN/evidence empty until actual qualification. Approval freezes
+the plan, not implementation PASS; existing task statuses/evidence/baseline stay intact.
+
 ## Обязательные результаты нового прохода
 
-V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS38 из ACCEPTANCE.json:
+V00–V09 из IMPLEMENTATION_GUIDE.md и все mandatory сценарии из актуального ACCEPTANCE.json:
 1. Изолированный upstream reference + identical fixture/state для трёх пользовательских экранов.
 2. Исправленные UI event loop/keymap и диагностируемый MCP error без потери draft.
 3. Shell/sidebar/tabs/prompt/footer из реальных данных с геометрией эталона.

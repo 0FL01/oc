@@ -94,6 +94,30 @@ resource evidence as applicable; equal-active small/large archives must not grow
 loaded presentation rows/caches/queues. No duplicated negative/viewport cross-product,
 new live campaign or historical PASS waiver; backend and visual results are separate.
 
+## T44 subagent delegation qualification — VIS39 (approved 2026-09-27; pending)
+
+T44 owns only the task-local visual/interactive VIS39; T45/R3 owns SUB01/SUB02 and
+the minimal typed lifecycle/history/family/control projections. First rebuilt actual
+binary/protocol/SQLite proves foreground overlap/batch join, immediate background,
+real Ctrl+B conversion, launch/current status, notices/results/continuation and
+deduplicated recovery. Native response-close/schema-validation-before-admission
+stays; no early child execution or incomplete-JSON/free-text status inference.
+
+Then running pinned-original/native paired full styled-cell/PNG/cursor captures at
+existing 80x24/120x40/160x48 profiles and representative Unicode/long labels prove
+inline Delegating/running/continuation/Background, Thought/actual parent footer,
+durable notices, semantic colors/attributes/hover/selection/error details, lower
+Subagents composer/navigation/filter/interrupt/draft/focus and family/tab indicators.
+Main barrier-controlled fixture: three children, parent answer while running, one
+notice/continuation then two notices before follow-up. No sleep300 or paid campaign.
+Require animation-on phase/state sequences plus component-specific off fallback;
+static frames/native goldens/off-only evidence cannot qualify. Reuse SUB01/SUB02,
+VIS15/17/21/22/23/28/31/33/36/37/A02/A08/A10 without duplicated negative/theme/viewport
+matrices. Replay/restart uses current child state/persisted notices without duplicate
+delivery/reexecution; bounded paging/family queries/queues and no periodic idle work.
+Backend and visual results separate, missing reference BLOCKED_REFERENCE, no all-T45
+completion dependency, new task/store/framework, policy widening or historical PASS.
+
 ## T50 selected native tools qualification (approved 2026-09-27; pending)
 
 TOOL12–TOOL19 in planning/acceptance.json have only T50 as owner; relevant high-level

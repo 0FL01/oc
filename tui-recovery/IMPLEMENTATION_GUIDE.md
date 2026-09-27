@@ -11,6 +11,9 @@ UI reference: `anomalyco/opencode@2670273ff17da96f85c5826ced57aa1b368754fa`
 не вводить новый UI framework, event bus, plugin host или второй журнал. Работа идёт
 в текущем T44; V00–V09 ниже — внутренние срезы с checkpoint через существующий
 `progress.py`. T43/T45 остаются самостоятельными обязательствами по subagents.
+Минимальные approved DTO/history/query/event projections допускаются у существующих
+owners. Для VIS39 lifecycle/control slice R3/SUB01/SUB02 принадлежит T45, visual/
+interactive slice — T44; slice prerequisite, не all-T45 done и не новый backend/store.
 
 Сначала прочитать `progress/NOW.md`, текущие Git status/diff и amendment этого пакета.
 Сверить каждый finding с новым HEAD: уже исправленное не откатывать. Обновить активный
@@ -326,6 +329,26 @@ Subagent card связан с реальным parent/child session и status; T
 незавершённые обязательства. Не представлять background/notice/reap как готовые только
 потому, что появилась карточка с таким названием.
 
+### Subagent delegation slice — VIS39 (R4/R5)
+
+Следовать [полной VIS39 спецификации](T44_CONTRACT_AMENDMENT.md#subagent-delegation-parity--vis39)
+и pinned U35–U49 + U02. Сначала T45 R3/SUB01/SUB02 real concurrency/background/
+completion/recovery/Ctrl+B и bounded typed projections; затем T44 inline Delegating/
+running/continuation/Background, durable notices/parent footer, lower Subagents
+composer, actual navigation/filter/interrupt/draft/focus и family/tab indicators.
+Не менять native closed-response-before-admission ради partial-call картинки.
+Launch badge/current child status, parent own scanner/family busy и Thought steps/
+child count различны. Цвета/attributes/hover/error/selection и анимации по original,
+без text shimmer, лишней bordered result card, toast вместо notice или OCR hardcode.
+
+Qualification: barrier-controlled три child jobs, parent answer while running,
+completion одного then двух before follow-up; реальные protocol/SQLite/PTY effects
+и full paired styled-cell/PNG/cursor. Animation-on phase/state sequences И off
+fallback обязательны; replay/restart/current status без duplicate delivery/reexecution.
+Reuse VIS15/17/21/22/23/28/31/33/36/37/A02/A08/A10, включая idle deadlines/resource
+bounds, no duplicate backend negative/theme/viewport matrix or new paid campaign.
+Не объявлять PASS по static frame/native golden; registry/evidence определяют status.
+
 ## Permission slice — VIS36 (V05/V06 prerequisites)
 
 Следовать audited sequence в T44_CONTRACT_AMENDMENT.md: real owner approval lifecycle
@@ -405,7 +428,8 @@ isolated rerun успешен. Либо воспроизвести и испра
 бездоказательным увеличением timeout. Current Actions=0 не доказывает отсутствие local
 run, но независимый обычный CI job с артефактами снимет часть этой неопределённости.
 
-Обновить T44 evidence с VIS01–VIS26: pass/fail/blocked/not-run, source SHA, capture inputs,
+Обновить T44 evidence для всех mandatory cases актуального ACCEPTANCE.json:
+pass/fail/blocked/not-run из фактического registry/evidence, source SHA, capture inputs,
 все outstanding gaps. Новый визуальный milestone не отменяет T43/T45, live T27 и FINAL T30.
 После offline qualification — только разрешённая bounded live campaign на настоящем `oc`,
 не массовый перебор платных моделей. Полный READY запрещён при открытой обязательной
