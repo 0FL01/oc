@@ -67,9 +67,53 @@ Dedup: одинаковые tool name+canonical arguments, оставить по
 
 ## Config surface
 
-Поддержать enabled; pruneNotification/type; commands.enabled/protectedTools; manualMode; turnProtection; protectedFilePatterns; compress range/permission/showCompression/summaryBuffer/min/max/model overrides/nudgeFrequency/iterationNudgeThreshold/nudgeForce/protectedTools/protectTags/protectUserMessages; strategies.deduplication/purgeErrors. `debug` включает только безопасные metadata logs. Notification `toast` может отображаться как TUI status notice — documented UI difference.
+Поддержать enabled; pruneNotification/type; commands.enabled/protectedTools; manualMode; turnProtection; protectedFilePatterns; compress range/permission/showCompression/summaryBuffer/min/max/model overrides/nudgeFrequency/iterationNudgeThreshold/nudgeForce/protectedTools/protectTags/protectUserMessages; strategies.deduplication/purgeErrors. `debug` включает только безопасные metadata logs. `pruneNotification` сохраняет off/minimal/detailed, не boolean; type — chat/toast. Display defaults detailed/chat, showCompression=false. Notification `toast` может отображаться как bounded transient TUI status notice — documented UI difference.
 
 Config source order фиксируется отдельной source-derived fixture вместе с general config roots; `cli.json` сюда не входит. Sources проходят explicit trust boundary и остаются read-only. Native enabling не добавляет npm package. Supported aliases — exact `@tarquinen/opencode-dcp`, `@tarquinen/opencode-dcp@3.1.15` и пользовательский `@tarquinen/opencode-dcp@latest`; все три дают один instance repository-pinned compiled revision. Последний не резолвится через npm/registry. Semver ranges и другие versions — `UnsupportedPlugin` до package/network side effects.
+
+## Approved transcript presentation — T44/VIS38 (pending)
+
+Контракт: [T44 DCP amendment](../tui-recovery/T44_CONTRACT_AMENDMENT.md#dcp-compression-display--vis38).
+Pinned display/accounting references D05–D10 и OC2 wrapper U34 — в
+[`tui-recovery/SOURCES.json`](../tui-recovery/SOURCES.json). Это DCP compression,
+не `/compact`/VIS34. Default detailed/chat после successful commit выглядит так
+(иллюстративные числа, не результаты выполненного теста):
+
+```text
+┃ ▣ DCP | -4.2M removed, +84.8K summary
+┃
+┃ │████████████████████████████████░░░░░░░░██░░░░░░⣿█│
+┃ ▣ Compression #8 -61.5K removed, +11.9K summary
+┃ → Topic: Confirmed apply patch delivery
+┃ → Items: 33 messages and 39 tools compressed
+```
+
+Блок находится между шагами агента в transcript. Pending показывает краткий
+Compressing…/topic, commit заменяет его подтверждённым результатом. No-gain/error/
+cancel/denial/unknown не рисуются успешным report. showCompression=true добавляет
+сохранённый summary; minimal показывает header/run, off отключает notification.
+
+Верхний removed — cumulative gross для session/current DCP revision, summary —
+active-summary total; нижние метрики — run. Это token estimates с disclosed method,
+не bytes, net saved или billed provider usage. Unique newly-covered message/tool
+occurrences не пересчитываются при consumption старых summaries. Один multi-range
+вызов получает один stable run/card; legacy metadata не заменяется выдуманными цифрами.
+Карта 50 message positions: █ ordinary, ░ previously active-compressed, ⣿ newly
+compressed; она не сообщает execution progress или долю tokens.
+
+Shared native formatter использует integer/K/M, decimal base 1000, максимум один
+decimal, half-up, trimmed .0 и rounded 1000K → 1M. Полные счётчики сохраняются;
+4218800 → 4.2M, 1000000 → 1M, 999950 → 1M. M/promotion — owner-approved display
+extension к pinned DCP K formatter, явно отмеченная в full-frame comparisons.
+
+Historical card header/bar фиксируются при commit; reopen/restart и Undo/Redo
+используют existing durable operation/history projections без нового model-visible
+user message, duplicate report или compression replay. Current panel stats читают
+текущую branch/revision. Session/child accounting изолирован; late events не меняют
+чужой экран/итоги. Bounded queries/paging и компактный snapshot исключают full-archive
+loads и lifetime UI caches ради счётчика/шкалы. UI04 no-duplicate-history сохраняется.
+T44 владеет display/accounting qualification A07/A08/A10; T45 сохраняет R9/DCP10/11
+алгоритмы. Исторический T39 panel/status-notice PASS не квалифицирует VIS38.
 
 ## Approved child/long-horizon contract — T45/R9 (pending)
 
@@ -154,8 +198,10 @@ read-only, bounded 1 MiB, regular UTF-8, no-follow. Deep object merge подде
 required surface выше. `autoUpdate:true` and unsupported modes/custom prompts
 remain explicit failures. Subagents were not qualified by T36 (later native config tolerated allowSubAgents
 with a warning). This does not implement R9 or override its new target default.
-`showCompression`, notification и
-commands display сохранены в snapshot, но их UI controls квалифицируются T39.
+`showCompression`, notification и commands display сохранялись в snapshot, UI
+controls квалифицировались T39 в прежнем объёме. Новый detailed transcript,
+typed display modes, session-scoped durable metrics/bar и K/M требуют отдельной
+T44/VIS38 qualification; исторический отчёт не является их PASS.
 
 Offline evidence: `evidence/T36/report.md`. Полная archive materialization и
 process-wide lifetime/RSS gates не считаются закрытыми этим срезом. T40 measured

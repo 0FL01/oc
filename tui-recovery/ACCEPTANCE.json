@@ -526,6 +526,24 @@
       "mandatory": true,
       "execution_status": "NOT_RUN",
       "evidence": []
+    },
+    {
+      "id": "VIS38",
+      "step": "V06",
+      "title": "DCP transcript reports, truthful durable accounting and compact K/M display",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md section DCP compression display — VIS38. First deliver actual model/manual compression accounting and typed durable operation/history projections: one stable session-scoped run/card for a successful multi-range call, genuine topic/block provenance, unique newly-covered message/tool occurrences, separate cumulative gross removed/active-summary and per-run removed/summary estimates with disclosed method. No repeated counting of inherited covered IDs, process-global counters, fabricated legacy metadata, net byte-saving relabeled as gross or billed-usage claims; pure summary recompression can have zero newly-covered Items while still reducing projection. Only successful atomic commits publish success metrics. Default detailed/chat renders between agent steps: raised OC2 transcript block with split left border, cumulative DCP header, blank row, 50-cell categorical message-position map (ordinary █, previously active-compressed ░, recent ⣿), Compression #N metrics, Topic and Items, donor zero/multi-range formatting. Running DCP/Compressing… uses actual owner state and existing animation policy; no-gain/denied/error/cancel/unknown remain truthful. Preserve off/minimal/detailed independently from chat/toast and showCompression; default hides summary body, true adds the real bounded/paged stored summary. Share integer/K/M token formatting across header/run/panel/notifications: base 1000, at most one decimal, half-up, trim .0, rounded 1000K promotes to 1M, 4218800 becomes 4.2M; preserve unrounded counters. Frozen historical header/bar/metrics survive session switch/reopen/restart; current panel follows current committed branch/revision, Undo/Redo hides/restores cards/versions without provider/tool replay or abandoned-tail totals. No additional model-visible user messages, duplicate reports or full-archive presentation loads; late/child events cannot corrupt another session. Require independently checked reduced next provider request, immutable history/graph and accounting, then running original pinned DCP formatter payload rendered in actual OC2 versus native full styled-cell/PNG/cursor captures at established profiles and representative long text. Source-derived display comparison is distinct from native runtime evidence and does not establish legacy plugin/OC2 compatibility. Missing executable reference remains BLOCKED_REFERENCE. Declare only owner-approved M/rounded-unit promotion and existing native toast mapping as named unmasked display differences, not arbitrary crop/mask/golden waivers. Reuse A07/A08/A10, VIS21/22/23/33 and applicable T45 evidence without duplicate negative/viewport matrices; equal active context over growing archives must keep loaded presentation state bounded. T44 owns the display slice, T45 retains DCP10/DCP11 algorithms, no whole-T45 completion dependency/new task/store/framework. VIS34 native /compact and historical UI04/T39 panel/status-notice evidence do not qualify VIS38. Preserve DCP provenance/license/notices and existing safety invariants.",
+      "sources": [
+        "D05",
+        "D06",
+        "D07",
+        "D08",
+        "D09",
+        "D10",
+        "U34"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
     }
   ]
 }

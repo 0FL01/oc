@@ -490,9 +490,105 @@ question backend; при одновременных requests соблюдать 
 owner/channels/editor/theme/history, без нового tracker/framework/DB или fake outcome.
 VIS37 mandatory, NOT_RUN/evidence empty до actual qualification; plan approval не PASS.
 
+## DCP compression display — VIS38
+
+Owner-approved 2026-09-27: подробный DCP-блок появляется непосредственно в ленте
+разговора между шагами агента; большие token-метрики используют K/M. Это обязательный
+R4/R5 slice T44, не отдельная modal и не OC2 native `/compact`/VIS34. Источник текста,
+шкалы, defaults и accounting — DCP 3.1.15, commit
+`11f6517780a502512a3467645074be447cb0369e`, AGPL-3.0-or-later; оригинальная transcript
+геометрия — OC2 v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`.
+Pinned links/locators: D05–D10 и U34 в `SOURCES.json`.
+
+1. **Backend before display.** Model `compress` и existing manual compression route
+   публикуют typed presentation из настоящей operation/commit, не разбора свободного
+   LLM-текста или canned screenshot. Сохранять scoped operation/run identity, topic,
+   связанные block IDs, отдельные removed/summary token estimates и их метод, unique
+   newly-covered message/tool-call counts, cumulative accounting и компактный снимок
+   карты сообщений. Один successful вызов с несколькими ranges — один run/card, не
+   отдельный номер на каждый block. Run identity стабильна через restart; не выводить
+   её из process-global stats, количества загруженных rows или global block sequence.
+   Legacy результаты без необходимых данных получают честное unavailable/legacy
+   представление, не fabricated counts или повторное исполнение ради backfill.
+2. **Accounting semantics.** Верхний removed — cumulative gross removed из projection
+   этой session/DCP revision, включая действительно учтённый pruning; верхний summary —
+   текущая сумма active summaries, не lifetime сумма всех blocks. Нижние removed/summary
+   принадлежат run. Items дедуплицируются по стабильным message/call occurrence IDs,
+   а не именам tools; inherited covered IDs при recompression не считаются вновь.
+   Pure summary recompression может уменьшать projection при zero newly-covered Items:
+   это не автоматически no-gain. Native no-gain определяется фактической projection.
+   Net saved estimate отдельно от removed и summary; `saved = byte difference / 4`
+   недостаточно для обеих величин. Token estimates/метод доступны в DCP metadata/panel;
+   не называть их provider billing, точным usage или размером raw history. Accounting
+   коммитится атомарно с projection/outcome, failed/no-gain/cancel не прибавляет успех.
+3. **Detailed transcript block.** Default detailed/chat после commit показывает
+   `▣ DCP | -… removed, +… summary`, blank row, `│…│`,
+   `▣ Compression #N -… removed, +… summary`, `→ Topic: …` и
+   `→ Items: N messages and M tools compressed`. При zero tools donor опускает tools
+   clause; zero summary metric и multi-range summary handling следуют D05. Match
+   raised background, left split `┃`, padding/spacing/theme roles и Unicode wrapping
+   настоящего OC2 transcript wrapper, используя existing semantic theme roles.
+   Карта — 50 ячеек канонических message positions: `█` ordinary/not compressed,
+   `░` ранее active-compressed, `⣿` newly compressed этим run, recent имеет приоритет.
+   Mapping, fixed width и empty fallback следуют D06; это не token ratio или execution
+   percentage. Running имеет короткое DCP/Compressing… состояние с topic и existing
+   animation policy; confirmed metrics/bar появляются только после commit. No-gain,
+   denied/error/cancelled/unknown состояния честные; successful report не подменяет их.
+4. **Shared number/K/M formatter.** Только presentation token-метрик: below 1000 —
+   целое число; от 1000 — K; от 1 000 000 — M. Decimal radix 1000, максимум один знак
+   после точки, rounding half-up, `.0` убирается. Если округлённое K становится 1000K,
+   promote до 1M. Примеры: 842 → 842, 11 900 → 11.9K, 1 000 000 → 1M,
+   4 218 800 → 4.2M, 999 950 → 1M. Raw counters сохраняют точность; formatting не
+   используется для arithmetic/admission. Один formatter для header/run/panel и
+   notification token labels. Pinned DCP имеет только K: M и boundary promotion —
+   явно согласованное native display difference, не изменение token estimator.
+5. **Controls and lifecycle.** `pruneNotification` off/minimal/detailed не сводится
+   к bool; chat/toast и `compress.showCompression` независимы. Defaults detailed/chat,
+   showCompression=false; true добавляет реальный сохранённый summary, bounded/paged,
+   с source-derived multi-range headings. Minimal — header + Compression #N; off
+   отключает notification, не runtime failure diagnostics. Native toast mapping в
+   bounded transient status notice остаётся documented difference, без persistent
+   duplicate. В chat run имеет одну card identity, pending сменяется committed view.
+   Карточка — projection существующей операции, не новый user prompt/LLM message.
+   Поздний event адресован operation/session/generation; child не меняет parent totals.
+6. **Replay and resource bounds.** Freeze header/bar/run metrics на момент commit;
+   следующий run добавляет свою карточку, не переписывает предыдущие. Session switch,
+   reopen/restart восстанавливает metadata без повторного compress/provider request.
+   Current `/dcp` stats отражают current committed branch/revision; historical cards
+   остаются snapshots. Undo/Redo hides/restores соответствующие operations/cards и
+   projection versions без replay, новый branch не получает abandoned-tail totals.
+   Получать cards через bounded history paging/queries; компактный bar/accounting не
+   требует полной материализации raw history/superseded archive или unbounded UI cache.
+   Использовать existing owner/storage/channels, без второй history/DB/event framework.
+7. **Qualification and references.** Сначала actual binary compression/continuation:
+   independently checked counters, меньший next provider request, immutable raw
+   history, multi-range/recompression, failure/cancel/no-gain и durable restart.
+   Затем одинаковые accounting fixtures/theme/terminal/state у native и display
+   reference: запускать original pinned DCP formatter и отрисовывать его payload
+   настоящим OC2 TUI. Возможен reference-only fixture driver; явно назвать метод
+   source-derived display comparison, не claim совместимости legacy plugin runtime
+   с OC2 и не замена actual native tool effects. Без исполнимого formatter/renderer
+   reference — BLOCKED_REFERENCE. Full styled-cell/PNG/cursor frames на existing
+   80x24/120x40/160x48 profiles и representative long-topic/summary cases; source
+   fixtures проверяют bar categories и K/M rounding/boundaries. M/promotion и existing
+   native toast mapping фиксируются как named differences в unmasked full comparisons;
+   прочие cells/styles/geometry не waive-ить, не переписывать reference по Rust.
+   Shared A07/A08/A10, VIS21/22/23/33 evidence покрывает controls, late routing,
+   secret/control safety, replay и equal-active small/large-archive measurements;
+   не повторять всю backend negative или viewport×state matrix. Производный код,
+   formatter fixtures и snippets сохраняют pinned provenance/license/notices.
+
+Sequence: existing DCP operation/accounting → typed durable view → transcript/controls
+→ paired display/replay/resource qualification. T44 owns VIS38 display slice; T45
+retains DCP10/DCP11 child/long-horizon algorithms, без all-T45 done-dependency или
+новой задачи. UI04 notification-not-duplicate-history остаётся invariant: card
+читает существующую operation, transient notices не создают дополнительные prompts.
+VIS38 mandatory, NOT_RUN/evidence empty до actual qualification; исторический T39
+panel/status notice PASS не подтверждает этот новый контракт.
+
 ## Обязательные результаты нового прохода
 
-V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS37 из ACCEPTANCE.json:
+V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS38 из ACCEPTANCE.json:
 1. Изолированный upstream reference + identical fixture/state для трёх пользовательских экранов.
 2. Исправленные UI event loop/keymap и диагностируемый MCP error без потери draft.
 3. Shell/sidebar/tabs/prompt/footer из реальных данных с геометрией эталона.

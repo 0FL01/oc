@@ -4,7 +4,7 @@ State updated: 2026-09-27T11:29:12+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
-Task: T44 — TUI pixel parity с opencode v2.0.12, включая полный Approve permission lifecycle/UI (VIS36) и question UI (VIS37)
+Task: T44 — TUI pixel parity с opencode v2.0.12, включая полный Approve permission lifecycle/UI (VIS36), question UI (VIS37) и DCP UI (VIS38)
 Spec: docs/goals/2026-09-21-tui-pixel-parity.md
 Evidence target: evidence/T44/report.md
 

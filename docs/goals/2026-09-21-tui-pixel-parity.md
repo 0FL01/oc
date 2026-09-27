@@ -1,7 +1,7 @@
 # Goal: TUI pixel parity with opencode v2.0.12
 
 Status: active
-Source: user instructions 2026-09-21, reviewed recovery amendment 2026-09-22 and question UI amendment 2026-09-27, reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`).
+Source: user instructions 2026-09-21, reviewed recovery amendment 2026-09-22 and question/DCP UI amendments 2026-09-27, reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`); DCP 3.1.15 at `11f6517780a502512a3467645074be447cb0369e` for compression presentation.
 Last updated: 2026-09-27
 
 ## Objective
@@ -15,7 +15,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 The owner's reviewed [T44 amendment](../../tui-recovery/T44_CONTRACT_AMENDMENT.md)
 supersedes the weaker self-authored interpretation below. Execute V00–V09 from
 [IMPLEMENTATION_GUIDE](../../tui-recovery/IMPLEMENTATION_GUIDE.md), all mandatory
-VIS01–VIS37 in [ACCEPTANCE.json](../../tui-recovery/ACCEPTANCE.json), and
+VIS01–VIS38 in [ACCEPTANCE.json](../../tui-recovery/ACCEPTANCE.json), and
 [SAFETY_REGRESSIONS](../../tui-recovery/SAFETY_REGRESSIONS.md). These are specifications,
 not executed results or a second task engine. `progress.py` remains the task-state owner.
 
@@ -24,6 +24,12 @@ never filesystem rollback; snapshots are off by default and no file-checkpoint e
 is required. Owner-approved parity correction: `/redo`, marker click and the Redo shortcut clear the entire staged boundary and restore the saved tail, superseding the earlier one-turn Redo rule. See the
 conversation-only section of the amendment for the exact contract and work plan.
 This documents approval, not implementation or permission to resume parked code.
+
+Owner-approved DCP presentation extension (2026-09-27, VIS38): use the pinned DCP
+notification formatter with the real OC2 transcript renderer as the display reference,
+not OC2 native `/compact`. Native token labels add `M` and rounded-unit promotion to
+the donor's `K` formatter. This narrowly declared numeric-format difference is recorded
+in full-frame comparisons; it does not waive unrelated symbols/styles/geometry diffs.
 
 ## Frozen Contract
 
@@ -73,12 +79,14 @@ or qualification; VIS34 remains open until its backend and paired UI gates pass.
   - Acceptance: paired captures for scripted transcripts including Markdown tables and two consecutive turns at identical width/state/profile; compare the styled-cell/PNG rows for final assistant text → attribution and attribution → next user's block/text, including wrapped text and replay. Fix only the boundary shown to differ, preserving the upstream one-row row margin and user-block padding without a blanket spacing multiplier; live and durable replay restore the same semantic parts/cards/metadata. For eligible `Explored` and long-output Shell rows, compare normal → hover → expanded → recollapsed full frames and actual visible output; hover alone does not expand, and expanding does not invent truncated data. VIS31 qualifies demand-driven high-refresh scheduling and idle cost; VIS32 qualifies wheel displacement, motion, and live viewport anchoring. No raw escape noise; content wraps correctly.
   - File-mutation parity (VIS35): retain the single model-visible `apply_patch(patchText)` contract for all models, without native model-name routing or write/edit built-ins. Its visual reference is pinned OC2 `patch`/`ApplyPatch`, covering create, empty create, update, full replacement, delete and move. Require full paired styled-cell/PNG parity for applicable operation states, per-file blocks, paths, spacing, theme roles, syntax, line numbers, unified/split/auto layout and configured wrapping. Execute real tools and independently verify filesystem effects before accepting captures. Persist result-derived diff metadata for replay/reopen without reading present-day files or reexecuting tools. Preserve truthful partial/unknown outcomes and existing permissions/DCP invariants. Separately qualify model-authored patches through the existing coding E2E; deterministic backend/TUI fixtures do not prove model proficiency.
   - Question cards (VIS37): render actual pending `Asking questions…` and result-derived `# Questions` with ordered question/answer pairs, matching pinned U33. Unanswered/cancelled/error outcomes remain truthful; replay/reopen/restart use persisted metadata without reasking or reexecuting the tool. A generic tool row or static fixture card does not qualify.
+  - DCP cards (VIS38): real compression operations render in the conversation stream between agent steps, with the cumulative `▣ DCP | … removed, … summary` header, 50-cell message-position map, per-run `▣ Compression #N …`, Topic and unique message/tool Items. Use committed session-scoped accounting and historical snapshots, shared number/K/M formatting, native pending/no-gain/error/cancel states and replay/reopen/restart without duplicate cards or tool execution. Follow the dedicated amendment; a generic compress row, saved-token toast or `/dcp` panel alone does not qualify.
   - Primary evidence: original/Rust paired styled cells and PNG plus real protocol/operation/restart assertions.
   - Status: implemented-partial/unverified
   - Evidence: iterations 3a+3b (committed): `crates/oc-tui/src/messages.rs` renders user blocks with `┃`/raised background/chips, assistant markdown (paddingLeft 3, headings/lists/code fences with syntax colors/blockquotes), collapsed reasoning (`Thinking` → `Thought: … · duration`), and the `agent · model · dur · tok/s · interrupted` footer; additive DTOs `ReasoningDelta`/`TurnUsage`/`duration_ms` wired through the provider stream (2 adapter end-to-end tests). Tool cards: inline rows (read/glob/grep/webfetch/skill/generic with upstream labels and spinner), shell `$ cmd` with stdout/stderr/exit/truncation, apply_patch `# Created`/`← Patched`/`# Deleted` with diff hunks using `diff.text.*` roles, subagent card parsed from the real `<subagent …>` wrapper, pending/running/completed/error/cancelled states; additive `ToolCallStarted/Finished` events emitted after durable writes. Known R4 residual: committed history rows carry no tool cards after a page reload (live turns only).
 
 - R5: Interaction parity — keybindings, command palette, dialogs (session list, model, agent, help, error details), input editor behavior (multi-line, paste, history), inline `/` autocomplete and `@` mention overlays (owner amendment 2026-09-24), mouse text selection/copy, running-agent indicator in the lower-left prompt footer, and status hints match upstream.
   - Question UI parity (owner-approved 2026-09-27, VIS37): follow the question section below and in the T44 amendment. First deliver the real T50/R4/TOOL15 backend/answer consumer slice; then qualify the original FormPrompt placement, single/multiple/free-form and multi-question review/navigation, focus/draft lifecycle and result cards with paired full styled-cell/PNG evidence. VIS36 permission approval is distinct. Depend on this backend slice, not completion of all T50; independent T44 work remains ready.
+  - DCP display controls (VIS38): preserve `pruneNotification` off/minimal/detailed, chat/toast and `compress.showCompression` independently. Default detailed/chat with summary body hidden produces the approved compact transcript block; the existing native status-notice mapping for toast remains explicit. Metadata-backed replay, current `/dcp` statistics and late-event routing use the appropriate session/branch, not process-global counters or the current screen.
   - Primary-profile parity (owner-approved 2026-09-27): follow the primary profile section in the T44 amendment and T45 R6. Build/Plan/custom profiles use real owner-backed definitions/selection; Shift+Tab cycles while /agents opens the picker. VIS06/VIS10/VIS17 qualify eligibility, profile color, draft/focus, instructions/model/permissions, Plan enter/leave reminders and replay/reopen with pinned U25–U30 references. Backend and UI evidence are separate; approval does not mark either implemented or verified.
   - Compaction parity (VIS34): `/compact` and palette trigger real session compaction, distinct from DCP compression. Match queued/running/completed/failed/cancelled states, safe-boundary delivery and pending-compaction coalescing. Render the divider rules, streaming Markdown summary and completed usage from the compaction request; running uses the pinned Braille spinner at 80 ms, or `⋯` with animations disabled (not a text shimmer). Preserve checkpoint and next provider context through reopen without rewriting raw history or replaying tools. Cover manual command, automatic context-threshold trigger and overflow recovery. For supported provider-native compaction, use `Provider compaction` without inventing a summary body. Verify paired styled-cell/PNG states and running frames; `Instructions updated` remains a separate instruction event. Preserve DCP and conversation-only Revert invariants.
   - Agent-switch feedback recon: pinned `opencode/packages/tui/src/component/dialog-agent.tsx:25–27` selects the agent and clears the dialog; `context/local.tsx:97–112` emits no success toast, only a warning for an unknown agent. Native `crates/oc/src/tui_cmd.rs::apply_intent(SelectAgent)` calls `push_note` with `agent: …`; `oc-tui/src/app.rs::push_note_variant` clears expiry, so this extra toast persists. The transient timer already exists; do not replace this divergence with an arbitrary timeout.
@@ -134,6 +142,28 @@ This is a slice ordering, not T44 depends_on all T50 (or the reverse); keep one
 active journal task and existing ownership. Approval does not verify implementation;
 VIS37 starts NOT_RUN with no evidence.
 
+### DCP compression display — VIS38 (R4/R5)
+
+Mandatory owner-approved scope: deliver actual model/manual compression accounting
+and durable presentation metadata first, then the transcript block, controls and
+paired full styled-cell/PNG qualification. Sources D05–D10 and U34 distinguish DCP
+3.1.15 notification/accounting from the OC2 transcript wrapper; VIS34 `/compact`
+remains independent. The native K/M extension has at most one decimal, trims `.0`
+and promotes a rounded `1000K` to `1M`; original numeric values stay unrounded.
+
+Follow [DCP compression display — VIS38](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#dcp-compression-display--vis38).
+Per-run removed/summary and cumulative gross removed/active-summary metrics have
+different meanings; token estimates disclose their method, not billed usage.
+Repeated compression does not count previously covered messages/tools twice.
+Card data and the categorical bar are frozen at commit and paged from existing
+operation/history projections, without extra model-visible user messages or
+full-archive hot-path loads. UI04's no-duplicate-history invariant is preserved.
+
+T44 owns this backend-to-UI display slice and A07/A08/A10 qualification; T45 retains
+child-DCP/long-horizon algorithms. Reuse their scoped data/resource evidence when
+available, without an all-T45 completion dependency or a new task/store/framework.
+Plan approval is not implementation evidence; VIS38 starts NOT_RUN/evidence empty.
+
 ### Constraints
 
 - C1: Rust 2024, modular monolith, `oc-core` independent of UI, KISS/YAGNI; no Node/Bun/JS host in production; ratatui-based rendering.
@@ -173,6 +203,7 @@ VIS37 starts NOT_RUN with no evidence.
 
 - 2026-09-22 resume: incorporate other-agent D13–D15/backend delivery per owner instruction. D13 visible per-server MCP degradation supersedes the earlier fatal attach rule (not cancellation/cleanup/caps). D14 absent variant means no overlay and unknown limits remain metadata-unknown with bounded native request policy. Resource-aware permissions only narrow. Keep historical V01/V04 reports as executed; current tests follow the newer contract. T44 is still the sole active journal task; other task scope is not marked done by integration.
 - 2026-09-22 (supersedes the 2026-09-21 source-derived-golden interpretation): pixel-perfect requires the running pinned upstream and Rust under identical fixture/state/profile, exact symbols/styles/colors/cursor/geometry and interaction, paired PNG and styled-cell dumps, comparator and independent review. Own TestBackend expected values cannot establish external parity. Bun/Node are allowed only for the isolated reference. Missing runnable reference/profile means BLOCKED_REFERENCE, not verified R3/R4/R5. Preserve failed/ignored/blocked attempts and rerun full qualification on the final code SHA. TUI_IMPLEMENTED_UNVERIFIED and TUI_PARITY_VERIFIED are reporting labels, not runtime enums; neither overrides product READY gates.
+- 2026-09-27: owner approved VIS38 DCP transcript/accounting/replay and the number/K/M display extension (`4218.8K` → `4.2M`). DCP formatter + running OC2 renderer supply the display reference; source-derived display fixtures do not prove plugin/OC2 runtime compatibility or native compression effects. Only declared M/rounded-unit promotion and the existing native toast mapping are allowed as named unmasked differences in paired comparisons; unrelated symbols/styles/geometry still require exact qualification. Existing execution statuses and historical evidence remain unchanged.
 
 ## Checkpoint History
 

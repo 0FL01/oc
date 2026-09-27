@@ -75,6 +75,25 @@ Use source-derived fixtures/captured fake-provider requests/actual binary and ex
 bounded live envelope, not days of paid prompts. Plan-only checks prove structure,
 not these runtime outcomes; executed historical reports remain unchanged.
 
+## T44 DCP display qualification — VIS38 (approved 2026-09-27; pending)
+
+VIS38 belongs only to T44 in its task-local registry, supplements A07/A08/A10 and
+does not reassign T45 DCP10/DCP11 or earlier UI04/DCP owners. First exercise actual
+model/manual compress and independently verify committed run/block identities,
+unique newly-covered messages/tools, gross removed/active-summary/per-run estimates,
+recompression, smaller next request, no-gain/failure/cancel and restart. Then compare
+native cards with original pinned DCP formatter payloads rendered by running OC2;
+label source-derived display fixtures separately from actual runtime qualification.
+Use full styled-cell/PNG/cursor evidence at existing profiles, representative long
+Topic/summary, off/minimal/detailed, chat/status notice and showCompression. Validate
+categorical bar and shared number/K/M formatter, including rounded-unit promotion;
+record only approved M/promotion and native toast mapping as named unmasked diffs.
+Freeze historical cards across reopen/restart, verify Undo/Redo and session/late-event
+routing without new model messages or reexecution. Reuse VIS21/22/23/33 and T45
+resource evidence as applicable; equal-active small/large archives must not grow
+loaded presentation rows/caches/queues. No duplicated negative/viewport cross-product,
+new live campaign or historical PASS waiver; backend and visual results are separate.
+
 ## T50 selected native tools qualification (approved 2026-09-27; pending)
 
 TOOL12–TOOL19 in planning/acceptance.json have only T50 as owner; relevant high-level

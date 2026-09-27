@@ -444,6 +444,69 @@
       "locator": "185–219 family/form queue; 1351–1418 composer priority/placement; 3508–3541 Question; 3662–3682 question/answer parsing",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L3508-L3541",
       "purpose": "Real lower FormPrompt placement and pending/completed question cards from actual questions and answers metadata"
+    },
+    {
+      "id": "D05",
+      "repository": "Opencode-DCP/opencode-dynamic-context-pruning",
+      "path": "lib/ui/notification.ts",
+      "commit": "11f6517780a502512a3467645074be447cb0369e",
+      "locator": "getCompressionLabel/formatCompressionMetrics; 166–316 sendCompressNotification; sendIgnoredMessage",
+      "url": "https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/ui/notification.ts#L166-L316",
+      "purpose": "Pinned DCP detailed/minimal/off chat/toast reports, cumulative versus run metrics, Topic/unique Items and optional summary; AGPL-3.0-or-later"
+    },
+    {
+      "id": "D06",
+      "repository": "Opencode-DCP/opencode-dynamic-context-pruning",
+      "path": "lib/ui/utils.ts",
+      "commit": "11f6517780a502512a3467645074be447cb0369e",
+      "locator": "formatTokenCount; 157–198 formatProgressBar; categorical message-position mapping/empty fallback",
+      "url": "https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/ui/utils.ts#L140-L198",
+      "purpose": "Donor K formatting and 50-cell █/░/⣿ bar, not token ratios or execution progress; native M/promotion is an approved extension"
+    },
+    {
+      "id": "D07",
+      "repository": "Opencode-DCP/opencode-dynamic-context-pruning",
+      "path": "lib/compress/state.ts",
+      "commit": "11f6517780a502512a3467645074be447cb0369e",
+      "locator": "allocateRunId versus allocateBlockId; applyCompressionState direct/effective IDs, consumed blocks, compressedTokens and stats",
+      "url": "https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/compress/state.ts",
+      "purpose": "Stable run/block distinction and newly-covered accounting across summary consumption/recompression; no inherited-ID double count"
+    },
+    {
+      "id": "D08",
+      "repository": "Opencode-DCP/opencode-dynamic-context-pruning",
+      "path": "lib/config.ts",
+      "commit": "11f6517780a502512a3467645074be447cb0369e",
+      "locator": "PluginConfig/validateConfigTypes; defaultConfig pruneNotification detailed, type chat, compress.showCompression false",
+      "url": "https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/config.ts",
+      "purpose": "Independent notification enums/summary visibility and display defaults, not native boolean collapse or permission changes"
+    },
+    {
+      "id": "D09",
+      "repository": "Opencode-DCP/opencode-dynamic-context-pruning",
+      "path": "lib/token-utils.ts",
+      "commit": "11f6517780a502512a3467645074be447cb0369e",
+      "locator": "countTokens/estimateTokensBatch/countToolTokens/countAllMessageTokens versus getCurrentTokenUsage",
+      "url": "https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/token-utils.ts",
+      "purpose": "Content token estimates and their fallback are distinct from reported provider usage; declare native estimator without production JS dependencies"
+    },
+    {
+      "id": "D10",
+      "repository": "Opencode-DCP/opencode-dynamic-context-pruning",
+      "path": "lib/state/utils.ts",
+      "commit": "11f6517780a502512a3467645074be447cb0369e",
+      "locator": "serialize/loadPruneMessagesState; getActiveSummaryTokenUsage; resetOnCompaction; lib/compress/range.ts allocate one run per batch",
+      "url": "https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/state/utils.ts",
+      "purpose": "Active-summary total, persisted run/block metadata and compaction distinction; old inactive summary totals are not current overhead"
+    },
+    {
+      "id": "U34",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "2273–2345 UserMessage transcript text wrapper, raised background/split border/padding; D05 generates display text",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L2273-L2345",
+      "purpose": "Real OC2 renderer geometry/theme for the DCP display-reference payload, not proof that the legacy plugin runtime works with OC2"
     }
   ],
   "external_primary_sources": [
