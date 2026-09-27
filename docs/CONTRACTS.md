@@ -117,6 +117,40 @@ No lifetime compress-call/block quota; keep per-call/graph/protected/model/activ
 bounds. Repeated compression must use bounded live dependencies instead of an aging
 chain or full-archive loads. See R9 and docs/DCP.md; this is pending, not executed PASS.
 
+## Canonical effort ordering — T47/VAR01 (approved 2026-09-27; pending)
+
+One shared model/catalog ordering policy applies **after effective discovery + local/
+static merge**, not to raw JSON/config keys or the discovery oracle. Available choices
+and Ctrl+T traversal are `Default → none → minimal → low → medium → high → xhigh → max
+→ custom → Default`, omitting absent/disabled entries and the exact reserved `default`
+UI sentinel. “At least low/medium/high/xhigh/max” means their relative order **when
+supported**, never manufacturing capabilities or enabling missing allowlist entries.
+
+- Rank by the exact known explicit `reasoningEffort` first. An alias `fast` with
+  effort `low` belongs at low; name `low` with effort `high` belongs at high.
+- Only if effort is absent, use a known standard variant name as the rank. An
+  explicitly unknown effort remains custom even when its name is standard. Match
+  case-sensitively; case/whitespace/unknown spellings stay custom. Existing validation
+  still rejects malformed metadata; ordering does not repair it or trim identifiers.
+- Known ranks precede custom entries. Equal-rank aliases and all custom entries retain
+  effective source order; aliases remain separate choices, never deduplicated by effort.
+  No independent lexical sort may compete with this view. Model/variant pickers,
+  application snapshots/cycle, enabled-choice diagnostics and T50 `opencode_models`
+  consume the same policy. Model/provider ordering itself is unchanged.
+- Default means no variant overlay and differs from the named `none`. Ranking by name
+  alone does not synthesize a wire effort. Exact name/ID, not position, is selected and
+  persisted; reorder/refresh/reopen/restart preserves identity. Retired/disabled choice
+  keeps actionable diagnostics, not a silent substitute. Cycle from a stale choice
+  follows the existing explicit Ctrl+T → Default rule; no named choices means a no-op.
+- Preserve exact configured wire values, allowlist/merge precedence, profile/subagent
+  selection and immutable turn/config-generation boundaries. No global JSON sorting,
+  serde order-feature change, model-ID/reasoning allowlist or provider fallback.
+
+This is an owner-approved native ordering difference from pinned OC2's declared order,
+not full upstream pixel parity. T47 owns VAR01 behavior; T44 VIS09/VIS29 qualifies
+presentation using the same ordered fixture on both sides and separately records
+unsorted-fixture differences. Existing statuses and historical PASS remain unchanged.
+
 ## Limits и context admission
 
 Резидентная память ограничивается отдельными byte/item caps, а не одним параметром «context tokens». Проверять event size, tool argument bytes, active context serialization, attachment encoding, queued bytes и outputs независимо.

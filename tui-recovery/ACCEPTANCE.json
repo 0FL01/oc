@@ -122,11 +122,12 @@
       "id": "VIS09",
       "step": "V04",
       "title": "Model dialog search and selection",
-      "expected": "Select model uses display metadata, current-dot vs focus, scrolling beyond8 rows, actual model/variant choice in captured provider request.",
+      "expected": "Select model uses display metadata, current-dot vs focus, scrolling beyond8 rows, actual model/variant choice in captured provider request. Variant picker consumes shared T47/VAR01 canonical effective effort order per T44_CONTRACT_AMENDMENT.md: Default separate, only supported enabled names, stable aliases/custom order and exact selected ID, no independent lexical sort. Verify full paired styled-cell/PNG/cursor geometry/colors/focus with identical canonically supplied order; separately label the approved native ordering difference on identical unsorted fixtures, no masking or universal donor pixel PASS. Reuse VAR01 identity/wire/refresh/reopen evidence; VIS29 qualifies the full Ctrl+T round trip, no whole-T47 completion dependency.",
       "sources": [
         "P03",
         "P10",
-        "U05"
+        "U05",
+        "U66"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",
@@ -404,10 +405,13 @@
       "id": "VIS29",
       "step": "V05",
       "title": "Ctrl+T cycles active model variants",
-      "expected": "In a real PTY, Ctrl+T cycles the active model from default through only its dynamically declared named variants in pinned upstream order and back to default. The selection is visible and persists according to upstream behavior, without changing model or sending a request on the shortcut; the next accepted prompt uses the selected variant in the provider request, including reasoning.effort when that model variant declares it. No named variants means Ctrl+T is a no-op. Paired original/native styled-cell frames and request/persistence evidence are required; no hard-coded variant names or levels.",
+      "expected": "Owner-approved 2026-09-27 Canonical effort ordering section in T44_CONTRACT_AMENDMENT.md supersedes only pinned declared order. Real PTY Ctrl+T and variant picker share T47/VAR01 active-model order Default -> none -> minimal -> low -> medium -> high -> xhigh -> max -> custom -> Default, absent/disabled/reserved default skipped, no fabricated levels. Known exact explicit reasoningEffort ranks before name; absent effort may rank standard name, explicitly unknown effort is custom. Preserve case/whitespace/unknown spellings, distinct aliases and stable equal-rank/custom source order, not lexical sort/dedup. Selection by exact ID remains visible/persisted through reorder/refresh/reopen/restart without model/draft change or shortcut request; retired/disabled choice has actionable diagnostic, no silent substitute. Preserve busy/read-only guards, explicit stale-cycle -> Default and empty/all-disabled no-op. Next accepted fake Responses request uses exact declared selected effort; rank/name does not manufacture effort, Default adds no variant overlay and differs from named none. Full paired original/native styled-cell/PNG/cursor frames use identical canonical supplied order for geometry/colors/focus; identical unsorted fixtures separately record approved native order difference, no masking/universal donor pixel PASS. Reuse VAR01 protocol/durability evidence and existing guards, not a whole-T47 done-dependency or duplicate owner.",
       "sources": [
         "U02",
-        "U05"
+        "U05",
+        "U66",
+        "U67",
+        "U68"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",

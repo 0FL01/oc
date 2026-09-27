@@ -254,6 +254,15 @@ Model dialog: `Select model`, query/search, current-dot отдельно от fo
 После закрытия restore focus и исходный draft. Agents/Sessions/Skills/MCP/error details
 используют тот же scaffold.
 
+Variant order — mandatory VIS09/VIS29, [approved shared-rank amendment](T44_CONTRACT_AMENDMENT.md#canonical-effort-ordering--vis09vis29):
+consume T47/VAR01 effective ordered view, not a picker-local lexical sort or universal
+upstream-declared-order rule. Supported known effort ranks none/minimal/low/medium/high/
+xhigh/max precede stable custom entries, Default separate. Exact ID/wire/aliases and
+selection survive reorder; missing/disabled levels are not created. Picker and Ctrl+T
+agree. Canonical supplied fixtures qualify full paired geometry/colors/focus/cursor;
+unsorted supplied fixtures separately disclose the approved native order difference.
+Backend slice precedes visual qualification, not whole-T47 completion; statuses unchanged.
+
 MCP modal — mandatory VIS40, [audited contract](T44_CONTRACT_AMENDMENT.md#mcp-modal-parity--vis40):
 T46/R5/MCP08 first supplies the minimal current-Location/generation typed status and
 real async controls through existing clients/registry, not all-T46 completion. Then

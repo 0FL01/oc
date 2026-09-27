@@ -94,6 +94,52 @@ Targeted owner/provider/PTY tests, затем affected-crate checks и обяз�
 Текущий статус: **план утверждён, реализация pending/paused**. Файловый undo, full-tree
 checkpoints, preimage storage, staged filesystem Revert/Clear и автоматический Git вне scope.
 
+## Canonical effort ordering — VIS09/VIS29
+
+**Owner-approved 2026-09-27 after RECON; plan pending/NOT_RUN.** Existing T47 R6/VAR01
+owns the shared behavior, T44 owns presentation under VIS09/VIS29; no new task or
+whole-T47 completion dependency. This supersedes only the old pinned-declared-order
+acceptance for variants, not the remaining UI parity requirements or historical reports.
+
+1. Consume [Canonical effort ordering](../docs/CONTRACTS.md#canonical-effort-ordering--t47var01-approved-2026-09-27-pending)
+   after effective discovery/local/static merge: Default → none → minimal → low →
+   medium → high → xhigh → max → custom → Default, skipping absent/disabled/reserved
+   exact `default`. These are supported-level ranks, not hardcoded capabilities.
+   Explicit known effort wins over name; absent effort may rank by standard name;
+   explicitly unknown effort remains custom. Exact case/whitespace unknown spellings,
+   aliases, equal-rank ties and custom source order follow the shared contract.
+2. Existing application snapshot, model/variant picker, Ctrl+T and applicable enabled
+   diagnostics use one policy, no independent lexical sort. Preserve exact IDs/wire
+   values and selected identity, not an index; sorting cannot synthesize reasoning.effort.
+   T45 primary/subagent selection and T50 opencode_models consume the same facts, not
+   a second ordering owner; model/provider grouping order itself is unchanged.
+3. Actual binary PTY proves identical picker/cycle sequence in Home/session, full
+   round trip, no model/draft change or request on shortcut, busy/read-only guards,
+   Default no-overlay distinct from named none, no-named/all-disabled no-op and
+   explicit stale-cycle → Default. Fake Responses next prompt carries exact selected
+   declared effort; ranking by name without effort does not invent wire data.
+   Reorder/refresh/reopen/restart preserves chosen ID; retirement/disable stays visibly
+   actionable until explicit recovery, with no automatic substitution.
+4. First deliver minimal shared ordering/effective-snapshot VAR01 slice; then pair
+   running pinned original/native full styled-cell/PNG/cursor frames with identical
+   canonically supplied variants to verify geometry/colors/focus/draft/selection.
+   Separately capture identical **unsorted** supplied variants: OC2 preserves declared
+   order, native normalizes known efforts. Label that approved difference without
+   hiding/reordering capture rows, masks or universal donor pixel PASS. Reuse existing
+   VAR01 protocol/durability and VIS09/11/17/21/22/23/29 fixtures, not duplicate matrices.
+
+Pinned OC2 `2670273ff17da96f85c5826ced57aa1b368754fa` sources U66–U68:
+`packages/tui/src/component/dialog-variant.tsx:10–30` (Default plus declared names),
+`context/local.tsx:472–498` (catalog names/cycle/persist),
+`model-preference.ts:67–75` (default/named/stale/empty cycle).
+Native RECON: `application.rs::EffectiveSelection::snapshot` preserves variants iteration;
+`oc-tui/src/picker.rs::variant_options` preserves it, `ModelPicker::variants` separately
+sorts names; `oc/src/tui_cmd.rs::CycleVariant` traverses the owner's Vec. JSON already
+uses preserve_order. Remove the competing sort when implementing the shared view;
+do not sort all config objects, mutate discovery oracle or deduplicate aliases by effort.
+Targeted checks and A03/A04/A08/A13/integration workspace gates remain required;
+no extra paid campaign, current execution-status/baseline change or PASS from this plan.
+
 ## Owner amendment 2026-09-24: inline autocomplete
 
 Новая инструкция владельца (2026-09-24) добавляет в R5 два обязательных элемента.

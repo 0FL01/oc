@@ -1,4 +1,4 @@
-# T47 — Model admission: unknown limits и explicit variant parity
+# T47 — Model admission: unknown limits, explicit variants и canonical effort ordering
 
 Status: todo
 Spec: ../../../docs/goals/2026-09-22-backend-blockers.md

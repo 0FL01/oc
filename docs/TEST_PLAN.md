@@ -45,6 +45,43 @@ T28 сначала фиксирует короткий baseline и measurement w
 
 Численные thresholds выводятся из baseline до optimisation candidate и не повышаются для сокрытия регрессии. Требуется отсутствие linear retained-history growth; произвольное заранее заданное число turns/sessions не является product contract.
 
+## Canonical effort ordering qualification — T47/VAR01 + T44 (approved 2026-09-27; pending)
+
+VAR01 belongs only to T47; DISC06/T14 and UI02/T39 retain ownership. T44 VIS09/VIS29
+own presentation, T50 TOOL18 owns the model-lookup consumer; no duplicate detailed IDs
+or whole-task done-dependencies. Contract: docs/CONTRACTS.md Canonical effort ordering.
+
+- Nearest shared-helper/effective-snapshot fixtures: permutations of known levels
+  (including max before xhigh), supported subsets/holes, missing/all-disabled entries,
+  exact reserved default vs named none, explicit effort/name conflict and absent vs
+  unknown effort, custom aliases/equal-rank ties/case/whitespace. Known ranks always
+  progress none/minimal/low/medium/high/xhigh/max; aliases/custom relative source order
+  and exact IDs remain. Local overrides rank final merged effort/disabled values;
+  discovery input/allowlist remains unchanged. Do not replace the existing zeta/alpha
+  unknown-effort cycle regression with an alphabetical expectation or repeat the same
+  matrix at every layer. Existing validation remains authoritative for malformed data.
+- Actual rebuilt binary PTY: variant picker and complete Ctrl+T round trip traverse
+  the same owner order in Home/session, Default before/after named choices. Shortcut
+  neither submits nor changes model/draft; busy/read-only guards, empty/all-disabled
+  no-op and explicit stale-cycle → Default recovery remain. Next accepted fake Responses
+  request receives exact declared effort of the chosen alias, then Default adds no
+  variant overlay. Standard-name rank without effort must not manufacture wire effort.
+- Reorder/refresh/session switch/reopen/process restart retains choice by exact ID,
+  not sorted index; removal/disable preserves existing visible retirement diagnostic
+  with no automatic substitution. Immutable in-flight generations/profile/child
+  selection and discovery publication regressions remain required.
+- VIS09/VIS29 paired running-original/native full styled-cell/PNG/cursor captures use
+  identical canonically supplied order to qualify geometry/colors/focus/draft and
+  selection. With identical **unsorted** supplied data separately show and label the
+  approved native order difference; donor keeps declared order. Do not mask rows,
+  rewrite historical evidence/baselines or claim universal donor pixel PASS. Shared
+  VAR01 wire/durability evidence is reused, not duplicated; TOOL18 consumes the same
+  ordered view while retaining own-provider/newest-family model order.
+
+Targeted affected-crate checks and workspace fmt/clippy/tests/build at integration/
+final acceptance supplement A03/A04/A08/A13; no extra paid campaign. Plan validation
+proves document/registry structure only; new behavior and visual results pending/NOT_RUN.
+
 ## T45 prompt/delegation/DCP qualification (approved 2026-09-27; pending)
 
 Detailed specs SUB01/SUB02/CTX01/CTX02/PRM01/DCP10/DCP11/DCP12 in planning/acceptance.json
@@ -280,7 +317,10 @@ helper-only tests, fixture table tool names and document validation are insuffic
 - TOOL17 checks webfetch text/markdown/html/defaults/metadata/total timeout with fake
   HTTP and actual model calls; TOOL07/TOOL08/AUD25/AUD26 SSRF/Unicode remain.
 - TOOL18 checks direct catalog lookup/static-dynamic-unknown metadata/paging/model
-  retention and authorized rename/reopen/restart/foreign-target/no-effects.
+  retention and authorized rename/reopen/restart/foreign-target/no-effects. Reuse
+  T47/VAR01 ordered variants, not an independent lexical sort; own-provider/newest-family
+  model grouping/paging semantics remain. Minimal shared-view prerequisite, no all-T47
+  completion dependency or duplicate ranking matrix/acceptance owner.
 - TOOL19 freezes A/B configs/history/job placement and uses barriers/crash points
   before admission/placement/result delivery. Verify same ID, trusted generation,
   immutable source turn, destination requests without stale harness/opaque items,

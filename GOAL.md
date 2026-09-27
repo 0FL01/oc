@@ -153,6 +153,24 @@ immutable generations, discovery oracle/budgets, redaction и unknown-effect qua
 не переписываются. MCP09/MCP10 — только T46, CFG09/CFG10/UI07 — только T51; T44 владеет
 visual qualification отдельно, без circular whole-task done-dependencies. План pending.
 
+## Owner scope amendment (2026-09-27 — canonical effort ordering)
+
+После RECON владелец утвердил [T47 R6/VAR01](docs/goals/2026-09-22-backend-blockers.md#current-checkpoint--approved-canonical-effort-plan-2026-09-27)
+и [общий контракт](docs/CONTRACTS.md#canonical-effort-ordering--t47var01-approved-2026-09-27-pending).
+Доступные уровни идут Default → none → minimal → low → medium → high → xhigh → max
+→ custom → Default с пропуском отсутствующих/disabled. Это относительный порядок
+поддержанных уровней, не обещание наличия всех пяти и не новый capability allowlist.
+Явный известный effort имеет приоритет над именем; при его отсутствии ранжируется
+стандартное имя, при неизвестном явном effort запись custom. Ties/aliases/custom
+стабильны по effective source order; ID и wire не переписываются, selection по ID.
+
+Это узкое native отличие от declared-order OC2. T44 VIS09/VIS29 и T50 TOOL18 используют
+один ordered view после merge, не независимую лексикографическую сортировку. DISC06,
+config precedence, no-overlay Default ≠ named none, no silent retired-choice fallback,
+profile/child selection и immutable generations сохраняются. VAR01 владеет только T47;
+минимальный backend slice предшествует presentation, не whole-task completion. План
+pending/NOT_RUN; исторические PASS, execution statuses и baselines не изменяются.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

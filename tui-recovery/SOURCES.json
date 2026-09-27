@@ -786,6 +786,33 @@
       "locator": "327–358 failed connect toast/dismiss; 382–411 failed/auth-expired command; 995–1028 successful invalidation/sync/model selection",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-integration.tsx#L327-L411",
       "purpose": "VIS42 service connection error/recovery feedback reference; native provider selection remains explicit, no OAuth/sign-in implementation or universal recoverability claim"
+    },
+    {
+      "id": "U66",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-variant.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "10–30 Default and declared named variants, excluding exact default",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-variant.tsx#L10-L30",
+      "purpose": "VIS09/VIS29 picker presentation reference; known-effort canonical native order is an approved difference"
+    },
+    {
+      "id": "U67",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/context/local.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "472–498 active-model declared variants, cycle and persisted preference",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/local.tsx#L472-L498",
+      "purpose": "VIS29 dynamic variant identity/order source; no donor canonical effort sorting claim"
+    },
+    {
+      "id": "U68",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/model-preference.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "67–75 Default/named round trip, reserved default, stale choice and empty list",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/model-preference.ts#L67-L75",
+      "purpose": "VIS29 preserved cycle edge cases independent of approved native known-effort rank"
     }
   ],
   "external_primary_sources": [
