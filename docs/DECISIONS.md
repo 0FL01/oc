@@ -26,7 +26,7 @@ D03: DCP range core и базовая панель; experimental message mode/cu
 
 D04: explicit direct exposure в native profile. Отсутствующий codemode field имеет direct semantics в этом профиле, explicit true отклоняется. Так устраняется прежний blocker на пропущенном ключе в пользовательском MCP config без скрытой подмены true→false.
 
-D05: один data-root owner, SQLite worker, sequential tool execution; no distributed locks/frameworks. История на диске, DCP — projection.
+D05: один data-root owner, SQLite worker, sequential tool execution; no distributed locks/frameworks. История на диске, DCP — projection. D19 supersedes sequential execution only for independent subagent calls/background jobs; serial non-child mutation ordering remains.
 
 D06: AGPL-3.0-or-later-compatible путь для прямого производного DCP-порта. До первого push такого кода получить LICENSE pinned DCP, сохранить notices/атрибуцию и ясно обозначить лицензию соответствующей производной работы. Не переименовывать DCP в MIT. Пакет не делает правового заключения о любых будущих способах сочетания кода; при конфликте лицензий затронутый push блокируется, unrelated local work продолжается. У OpenProxy проверенный GitHub metadata не определяет лицензию; не копировать его реализацию без отдельного основания, достаточно protocol/reference tests.
 
@@ -60,6 +60,38 @@ Ask user-approvable; effective Deny и structural central/agent/child/trust ceil
 ApprovalRequired остаётся; explicit supported --auto требует реального once-consumer.
 Новые policy/UI различия не скрывать под claim identical donor algebra. Не добавлять
 новый task/framework или dependency на completion всего T43/T45.
+
+### D19 — owner-approved prompt/subagent/context/DCP plan (2026-09-27)
+
+[T45 R3/R6–R10](goals/2026-09-21-config-compat-and-subagents.md) supersedes only
+the child-DCP exclusion in D03, sequential execution for independent child calls
+and background jobs in D05 (not non-child tool/mutation ordering), and the
+primary-only/fixed-instruction interpretation of D10. Original decisions/evidence
+remain historical; one data-root owner, immutable generation, skill tool-result
+contract, SQLite durability and authority narrowing are unchanged.
+
+- Foreground is default but independent child calls overlap; explicit background
+  progresses while parent is active. Bounded session-owned jobs/notices and safe
+  restart replace a parent-terminal-only queue. Donor recovery is at-least-once;
+  native unknown side effects never automatically replay.
+- Optional context_message_ids attaches exact parent text/roles as quoted user data,
+  not system authority. Validate branch/revision/cutoff/budgets before admission;
+  immutable durable snapshot, independent stable IDs and effective capability preview
+  distinguish automatic child profile/AGENTS/tools/skill metadata from supplied history.
+- Child DCP defaults true with false/off/manual/Deny gates, narrow Explore compress
+  and session isolation. Protect active task/pack, release on completion and restore
+  for safe recovery; old packs do not become permanent fixed lanes.
+- No lifetime compress-call/block quota; repeated recompression must avoid aging
+  depth/full-archive-load exhaustion while preserving graph/protections/replay and
+  active memory/model/turn guards. No existing cumulative cap was found; historical
+  OC1 failure cause is unverified, not falsely attributed to a removed counter.
+- Shared base/custom system/environment/tool guidance and initial/dynamic AGENTS
+  lifecycle follow pinned OC2 within native trust/tool boundaries. R7 host extension
+  is retained. Explicit excluded donor features are not smuggled into parity.
+
+All are pending implementation; new scenarios have one owner T45. No change to task
+status, historical PASS, A10 baseline thresholds, mandatory workspace/live gates or
+T44 approval authority. Native compaction and DCP are independent context mechanisms.
 
 ## Остаточные prerequisites, не новые Q
 

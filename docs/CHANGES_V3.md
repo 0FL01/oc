@@ -8,6 +8,14 @@ T02 фиксирует source-derived fixtures и provenance без заявле
 
 Поддержка намеренно уже upstream: только primary agents; commands — literal `$ARGUMENTS`/`$1...` templates через текущую session; skill body — snapshot и ordinary tool result. Subagents, shell interpolation, recursive/background commands, remote/executable skills, watchers, UI authoring, arbitrary plugin paths/packages, JS/TS execution, Node/Bun и npm install остаются вне scope.
 
+This paragraph records the original V3 subset, not current T45 exclusions.
+Owner-approved [R3/R6–R10](goals/2026-09-21-config-compat-and-subagents.md) and dated
+GOAL.md amendments supersede primary-only/subagent/child-command exclusions and
+admit bounded native instruction observation at safe generation boundaries.
+Context packs/default child DCP/host context are native additions. Skill bodies
+still load only as native tool results; no JS/CodeMode/cloud host or remote/
+executable skill is admitted. Pending plan scenarios are not implementation PASS.
+
 Known plugin identities: bare, pinned `@tarquinen/opencode-dcp@3.1.15` и user-required exact `@tarquinen/opencode-dcp@latest` (fixed compiled revision, без registry), а также exact `openproxy-models.js` непосредственно под `{plugin,plugins}` admitted config root. Duplicate aliases активируют один module. Exact authoring-only goal-plugin marker игнорируется с warning и без capability. Ranges, другие versions, `.ts`, basename lookalikes и external paths дают source-qualified `UnsupportedPlugin` до import/process/network.
 
 Исторический `docs/CHANGES_V2.md` не переписывается. V3 не утверждает, что Rust product или новые acceptance tests уже реализованы.

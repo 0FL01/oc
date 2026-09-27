@@ -6,7 +6,12 @@
 
 Range compression с несколькими spans, stable message/block references, вложенные summaries, protected tool/file/user/tag content; system/tool instructions и context/turn/iteration nudges; deduplication, purgeErrors; эффективный DCP config; durable state и replay; `/dcp` context/stats/manual controls и `/dcp-compress [focus]`.
 
-Experimental message compression, subagent integration и custom prompt overrides отложены. Explicit enable неподдержанного режима — UnsupportedCapability, не молчаливый fallback на range. AutoUpdate/auto-generated upstream config не выполняются; native code обновляется только сборкой. В native profile DCP включён явно, не зависит от npm registry.
+Experimental message compression и custom prompt overrides остаются отложенными.
+Subagent integration включена owner-approved T45/R9 (2026-09-27), implementation
+pending: прежнее исключение отменено, не превращено в PASS. Explicit enable прочих
+неподдержанных режимов — UnsupportedCapability, не fallback на range. AutoUpdate и
+auto-generated upstream config не выполняются; native code обновляется сборкой,
+не зависит от npm registry.
 
 ## Архитектурная граница
 
@@ -33,6 +38,13 @@ Range contract из upstream types [D3]:
 
 Compression планируется для всего batch до commit. Summary может включать ссылку на старый block; nested content раскрывается/связывается по upstream semantics с цикло/размерными limits. Пределы depth/bytes срабатывают до allocation blow-up; не recursively materialize неограниченную историю. Сложный вложенный block не заменяется заглушкой, скрывающей данные.
 
+T45/R9 supplements this guard: valid repeated shrinking recompression must not
+inevitably exhaust depth merely because previous summaries form an aging chain.
+Normalize/flatten live dependencies or an equivalent bounded representation,
+transactionally preserving placeholder semantics/stable IDs/provenance/replay.
+Historical depth/byte bounds remain safety guards for malformed or oversized
+expansion; increasing them is not the long-horizon solution.
+
 Token saving фиксируется как measured/estimated; сохранность смысла не следует из меньшего размера. При summary, не уменьшающем проекцию, не создавать бесконечный compression loop: visible no-gain outcome, сохранить исходную projection и разрешить другой selection. Этот anti-loop guard — наш safety difference.
 
 ## Protections и унификация patch
@@ -58,6 +70,48 @@ Dedup: одинаковые tool name+canonical arguments, оставить по
 Поддержать enabled; pruneNotification/type; commands.enabled/protectedTools; manualMode; turnProtection; protectedFilePatterns; compress range/permission/showCompression/summaryBuffer/min/max/model overrides/nudgeFrequency/iterationNudgeThreshold/nudgeForce/protectedTools/protectTags/protectUserMessages; strategies.deduplication/purgeErrors. `debug` включает только безопасные metadata logs. Notification `toast` может отображаться как TUI status notice — documented UI difference.
 
 Config source order фиксируется отдельной source-derived fixture вместе с general config roots; `cli.json` сюда не входит. Sources проходят explicit trust boundary и остаются read-only. Native enabling не добавляет npm package. Supported aliases — exact `@tarquinen/opencode-dcp`, `@tarquinen/opencode-dcp@3.1.15` и пользовательский `@tarquinen/opencode-dcp@latest`; все три дают один instance repository-pinned compiled revision. Последний не резолвится через npm/registry. Semver ranges и другие versions — `UnsupportedPlugin` до package/network side effects.
+
+## Approved child/long-horizon contract — T45/R9 (pending)
+
+This is a native addition, separate from OC2 automatic/manual compaction. OC2 core
+has no allowSubAgents DCP key. Pinned DCP 3.1.15/current native RECON did not identify
+a total successful-compression-call quota; the owner's historical OC1 error cause
+remains unverified. Do not invent a cap removal or blame nudge counters for it.
+
+- dcp.experimental.allowSubAgents missing means true; explicit false disables child
+  model compress/anchors/nudges/automatic strategies, not root DCP. Global enabled,
+  manualMode and effective compress permissions retain their semantics; Deny wins.
+  Remove the obsolete unsupported warning only when actual behavior is implemented.
+- Built-in Explore gets a narrow own-history compress grant while patch/bash/nested
+  delegation stay denied. Custom explicit/wildcard Deny is not overridden. The
+  orchestrator's owner-backed preview reports effective availability/ask conditions.
+- Scope all block/anchor/projection/nudge/protection state to session/generation.
+  A child cannot compress parent/sibling IDs; parallel sessions cannot share cadence
+  resets or protection changes. Fixed profile/environment/AGENTS lanes stay separate.
+- Current admitted delegation task/context pack is protected while pending/running,
+  without turning quoted user context into system authority. Terminal completion
+  releases the extra active-task protection; configured user/tag protections still
+  apply. Safe recovery reinstates it before requests. Continuation cannot accumulate
+  every old pack in permanent fixed lanes. Native compaction separately preserves/
+  reconstructs active requirements; irreducible budgets are explicit failures.
+- No default lifetime successful-call/block-count quota; stats are not admission
+  counters. Invalid/no-gain calls do not spend a lifetime attempt. Per-call ranges/
+  payload limits, cycle/ID/protection/tool-graph checks and active-memory/model/turn
+  budgets remain; unlimited operation count is not unlimited RAM/disk/provider use.
+- Planning/projection reads only active/addressed blocks and required dependencies,
+  not every superseded block. Retain immutable raw history and reachable archive;
+  use bounded traversal and do not delete referenced summaries to get green tests.
+  Recovery/compress must not demand an over-budget read of the entire archive.
+- Summary guidance preserves facts/paths/decisions/open questions/next step and
+  repository journal/checkpoint references. No automatic journal writes/Git commits,
+  no hidden summarizer model or regex extraction of free model text. Compression is
+  optional context management, not a mandatory call after each read.
+
+DCP10 covers defaults/gates/parallel-session isolation/active-pack lifecycle.
+DCP11 repeats compress/continue/recompress/restart and compares equal active context
+over growing inactive block archives with row/depth/peak/retained-state measurements.
+Keep A07/A10 thresholds and actual-binary cleanup. A finite frozen workload is
+evidence, not a product session-lifespan quota or proof of infinite resources.
 
 ## Acceptance и source trace
 
@@ -95,13 +149,17 @@ content сохраняются. Complete call/output pairs никогда не �
 могут быть вложенными; consumed block rows остаются для bounded expansion, а их
 active memberships заменяются транзакционно.
 
-`dcp.json/jsonc` и inline `dcp` читаются в общем порядке admitted config roots,
+Historical T36 qualification: `dcp.json/jsonc` и inline `dcp` читались в общем порядке admitted config roots,
 read-only, bounded 1 MiB, regular UTF-8, no-follow. Deep object merge поддерживает
-required surface выше. `autoUpdate:true`, unsupported modes/custom prompts и
-subagents дают explicit unsupported error. `showCompression`, notification и
+required surface выше. `autoUpdate:true` and unsupported modes/custom prompts
+remain explicit failures. Subagents were not qualified by T36 (later native config tolerated allowSubAgents
+with a warning). This does not implement R9 or override its new target default.
+`showCompression`, notification и
 commands display сохранены в snapshot, но их UI controls квалифицируются T39.
 
 Offline evidence: `evidence/T36/report.md`. Полная archive materialization и
-process-wide lifetime/RSS gates остаются T40, не считаются закрытыми этим срезом.
+process-wide lifetime/RSS gates не считаются закрытыми этим срезом. T40 measured
+active-history construction; T45/R9 additionally owns repeated-summary/archive-block
+qualification. Historical one-compression evidence is not sustainable-DCP PASS.
 
 До переноса кода/prompts/tests сохранить license/notices/provenance. Rust перевод не удаляет лицензирование источника. Не копировать unrelated OpenProxy code с неустановленной лицензией.

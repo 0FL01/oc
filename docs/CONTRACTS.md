@@ -16,7 +16,7 @@ Live hints: TextDelta, ToolProgress, ContextStats. Durable outcomes: InputAccept
 
 `idle → preparing → streaming → tool_pending → tool_running → preparing` до финального ответа; любой live state может перейти в `cancelling → interrupted`, `failed` или `completed`. WaitingApproval — отдельное ожидание с возможностью cancel, не held DB transaction.
 
-Каждый provider response может иметь несколько tool calls. Аргументы собираются bounded по call ID; tool НЕ исполняется по частичному JSON. Сначала закрыть/validate response и завершить arguments, затем admission tools. Duplicate call IDs, unknown tool и несоответствие schemas — typed errors. Параллелизм tool calls из wire не вынуждает параллельный execution.
+Каждый provider response может иметь несколько tool calls. Аргументы собираются bounded по call ID; tool НЕ исполняется по частичному JSON. Сначала закрыть/validate response и завершить arguments, затем admission tools. Duplicate call IDs, unknown tool и несоответствие schemas — typed errors. Wire parallelism не снимает ordering/safety гарантий; T45/R3 явно требует concurrent execution независимых subagent calls и immediate background. Native закрытие response до admission остаётся отдельным streaming difference, не основанием сериализовать детей.
 
 Пустой stream EOF без terminal completion — interrupted/failed, не успех. Не выполнять tool дважды из-за повторного done-event. Тесты включают arbitrary chunk split, CRLF, partial UTF-8 и terminal error after text.
 
@@ -58,7 +58,33 @@ This is a future implementation contract, not evidence that the channel exists t
 
 ## Prompt assembly
 
-Один runtime assembler строит provider input из typed lanes: compiled runtime/tool/security contract → selected primary-agent body → ordered AGENTS fragments → DCP fixed/nudge fragments → history projection → current user input. Каждая fixed lane имеет provenance/digest/byte accounting и stable delimiter. Expanded command остаётся user input; loaded skill остаётся ordinary tool result, никогда system text. DCP не сжимает fixed config lanes и не добавляет их повторную копию на каждом turn.
+Один runtime assembler строит provider input из typed lanes: compiled runtime/tool/security contract → selected session-agent body/base prompt (primary или child) → environment/date → ordered AGENTS/skill metadata/permitted MCP fragments → DCP fixed/nudge fragments → history projection → current user input. Каждая fixed lane имеет provenance/digest/byte accounting и stable delimiter. Expanded command и delegation/context pack остаются user input; loaded skill остаётся ordinary tool result, никогда system text. DCP не сжимает fixed config lanes и не добавляет их повторную копию на каждом turn.
+
+Approved T45/R6–R10 target: selected nonempty agent.system replaces the base harness
+prompt; environment/date, applicable AGENTS, skill metadata and permitted MCP/DCP
+guidance remain separate. Same assembler serves root/child, with real native tool
+descriptions/schemas separate from messages. Initial instruction baseline and
+chronological changed/removed/nested-read fragments survive restart/compaction/Revert
+within trust and immutable-generation boundaries, without rewriting old raw messages.
+
+subagent defaults foreground, background:true returns running/sessionID while child
+work progresses; independent foreground children overlap. Fresh child receives its
+own profile/context and delegated prompt, not parent system/history; sessionID retains
+its own conversation. Optional context_message_ids is a native addition: validate
+parent branch/revision/request cutoff and text-only supported content, then attach
+exact deduplicated chronological messages as quoted user data, not system instructions.
+Budget validation precedes child/input creation. Snapshot/digest/provenance is durable
+and immutable after admission; replay never duplicates it. Runtime-owned candidate
+IDs are visible independently of DCP; harness/opaque/tool items are not candidates.
+Automatic-context guidance and policy-backed capabilities prevent duplicate AGENTS/
+tool schemas/skill bodies without hiding task-specific restrictions or user quotes.
+
+Child DCP defaults allowed by allowSubAgents=true, gated by global/manual/policy and
+own-session identity. Protect active task/pack while admitted work is pending/running;
+terminal packs become normally compressible, safe recovery restores active protection.
+No lifetime compress-call/block quota; keep per-call/graph/protected/model/active-memory
+bounds. Repeated compression must use bounded live dependencies instead of an aging
+chain or full-archive loads. See R9 and docs/DCP.md; this is pending, not executed PASS.
 
 ## Limits и context admission
 

@@ -76,6 +76,34 @@ redo и точное восстановление сохранённой LLM/DCP
 Прежнее R5/VIS10 требование отката файлов superseded владельцем, остальные gates сохраняются.
 Утверждение плана не является claim реализации; припаркованный код пока не возобновлён.
 
+## Owner scope amendment (2026-09-27 — prompt/subagents/DCP)
+
+Владелец утвердил весь обсуждённый план T45:
+[M8 contract R3/R6–R10](docs/goals/2026-09-21-config-compat-and-subagents.md) и
+[ordered slices](roadmap/M8.md). Обязательны настоящий background и concurrent
+foreground children, durable result/recovery/cancel lifecycle; собственный профиль
+и автоматический workspace/tools/skills контекст ребёнка без копии parent transcript;
+optional context_message_ids с точными цитируемыми parent messages, стабильными IDs
+независимо от DCP и truthful effective-capability preview. Общая сборка base/custom
+system, Linux environment/date, AGENTS baseline/nested reads/chronological updates
+и restart/compaction/Revert reconciliation проходит через одного runtime owner.
+
+Child DCP allowSubAgents defaults true; explicit false/global/manual/effective Deny
+сохраняют ограничения. Compress собственной сессии не меняет parent/siblings;
+активные task/context pack защищены без пожизненного накопления. Нет default lifetime
+compress-call/block-count quota или неизбежного nesting/archive-loading тупика;
+per-call/graph/model/active-memory/turn safeguards и A10 resource gates остаются.
+В проверенном DCP 3.1.15/native коде cumulative quota не найдена; причина старого
+OC1-сбоя не установлена. Контекст-пакеты/host fields/default child DCP — native
+extensions, не обещание полного parity или бесконечных ресурсов.
+
+Эта запись дополняет, не ослабляет A02/A04/A05/A07/A10/A13 и не отменяет запрет
+unknown-effect replay, parent-child authority narrowing, canonical trust boundaries,
+skill body только через native skill, apply_patch вместо write/edit и отсутствие
+JS/CodeMode/cloud host. Donor recovery at-least-once не является exactly-once effects.
+T45 владеет новыми scenarios; T44 UI qualification отдельна, без done-dependency.
+Утверждён только план: execution statuses/evidence не становятся PASS.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

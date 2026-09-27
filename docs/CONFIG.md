@@ -16,7 +16,7 @@ Pipeline: source discovery/provenance → explicit trust decision для canonic
 
 Missing required selected-provider key приводит к MissingCredential, а не fallback provider. Отсутствующие env references обрабатываются по pinned substitution contract (пустое значение), но обязательность credentials проверяется только для выбранных/enabled integrations после normalization. Disabled provider/MCP не запускает network/process и не требует своих credentials. Это НЕ обещает lazy file substitution: доверенный config с {file:...} может читать ссылку до entry filtering; trust gate применяется ко всему источнику. Пустая подстановка не является действительным ключом и не выводится как secret в effective config. Не вводить второй противоречащий parsing pipeline ради пропуска неиспользуемых env keys.
 
-JSONC comments/trailing commas и source locations сохраняются для diagnostics. Unsupported arbitrary plugin/provider package даёт имя config field и capability, которой не хватает. Не «поддерживать» настройку только тем, что Serde её проглотил. Security-relevant invalid candidate не публикуется; malformed отдельная definition исключается с path/field/reason, пока selected/default reference на неё не превращает всю candidate generation в hard error.
+JSONC comments/trailing commas и source locations сохраняются для diagnostics. Unsupported arbitrary plugin/provider package даёт имя config field и capability, которой не хватает. Не «поддерживать» настройку только тем, что Serde её проглотил. Security-relevant invalid candidate не публикуется; malformed отдельная definition исключается с path/field/reason. Explicit selected-reference failure остаётся явным; configured default eligibility/fallback governed by approved R6, not the old blanket default-reference hard error.
 
 DCP domains, provider model metadata/variants, MCP entries, skills, agents, commands и permissions имеют отдельные merge rules. Native own settings не переопределяют смысл известных upstream fields. Источник и shadowed origins доступны в `oc config explain`, secrets и sensitive absolute paths redacted.
 
@@ -24,13 +24,33 @@ DCP domains, provider model metadata/variants, MCP entries, skills, agents, comm
 
 `AGENTS.md` — не config override. Effective instructions состоят из canonical-deduplicated `G/AGENTS.md`, затем applicable Location files в pinned nearest-working-directory-to-root order; distinct sentinel каждого admitted файла входит ровно один раз с provenance. Unreadable/disappeared file даёт diagnostic и не сохраняет текст из старой candidate. Reload возможен только между turns.
 
-Automatic definitions читаются только из `G` и admitted `.opencode` roots: `{skill,skills}/<id>/SKILL.md`, `{agent,agents}/<id>.md`, `{command,commands}/<id>.md`. Singular root обрабатывается перед plural в одной source directory; inline JSON/JSONC declaration — перед Markdown definitions этого root. Exact order/collisions закрепляются fixture, а не filesystem enumeration. Flat skill files, `.claude`/`.agents`, legacy modes, URL/remote/package skills и symlink escape unsupported.
+T45/R10 target adds the OC2 initial baseline/chronological changed or removed
+instructions and successful-read nested AGENTS lifecycle. Reconcile after
+compaction/Revert/reopen, without stale content or mixed in-flight generations.
+Trust/canonical Location boundaries remain native differences from broader donor
+walks; this is not permission to read arbitrary ancestors/home directories.
+
+Automatic definitions читаются только из `G` и admitted `.opencode` roots: `{skill,skills}/<id>/SKILL.md`, `{agent,agents}/<id>.md`, `{command,commands}/<id>.md`. Singular root обрабатывается перед plural в одной source directory; inline JSON/JSONC declaration — перед Markdown definitions этого root. Exact order/collisions закрепляются fixture, а не filesystem enumeration. T45/R6 admits recursive agent/agents IDs and one-level compatibility mode/modes per pinned importer; legacy-mode exclusion is superseded only for these profiles. Flat skill files, `.claude`/`.agents`, URL/remote/package skills и symlink escape remain unsupported.
 
 Skill ID выводится из canonical directory ID; supported frontmatter — bounded `name`/`description`, body — instructions. Later source целиком заменяет duplicate ID с shadowing provenance. При построении generation body проверяется как regular no-follow file, bounded и snapshot-ится вместе с digest; model catalog получает только bounded id/name/description. После publication файл повторно не открывается.
 
-Agent subset — selectable primary profiles: Markdown body/system, description, validated model/variant и optional permission restrictions, которые только пересекаются с central policy. `default_agent` и persisted selection обязаны ссылаться на effective profile; исчезновение selected profile блокирует следующий turn, без silent fallback. `mode:subagent`, `mode:all`, tools/hooks/env/request headers/body, child/background behavior и любое расширение authority дают `UnsupportedCapability`. Later agent source обновляет только supported fields с field provenance; permissions сохраняют ordered restrictive semantics.
+Approved T45/R6 target replaces the old primary-only subset: Build/Plan/General/Explore,
+custom Markdown primary/subagent/all and typed system/model/variant/request/steps/color
+follow pinned importer/merge/default semantics. Configured default_agent uses donor
+visible-primary fallback; an explicit invalid selection still fails, and a disappeared
+pinned session selection is diagnosed rather than silently widening authority.
+Native central/parent/child permissions only narrow. Unsupported arbitrary hooks/env
+or other unimplemented fields do not become silently accepted. Historical subset
+evidence is not qualification of these pending outcomes.
 
-Command subset — Markdown body, description, `$ARGUMENTS` и positional `$1...`; duplicate later source заменяет definition целиком. Invocation делает одно bounded literal expansion и один обычный durable `SubmitInput` текущей session. Original invocation и expanded prompt сохраняются; restart их не разворачивает повторно. Reserved built-in collision, subagent/subtask, shell interpolation, recursive/background/direct tool execution, file/URL/late-env include дают `UnsupportedCapability`.
+Command body/description, `$ARGUMENTS`/positional expansion and durable original/expanded
+input remain. T45/R3 supersedes subagent/subtask and child-background exclusions with
+pinned agent/model/route precedence and background child admission; supported shell
+interpolation follows the pinned contract, never runs in the loader or again on replay.
+Reserved collisions, arbitrary recursive/direct tool execution and unsupported
+file/URL/late-env includes remain explicit failures. Omitted context_message_ids
+preserves OC2 delegation; the optional model-tool field attaches exact quoted parent
+text, not config instructions or automatic parent-history inheritance (R8).
 
 ## Native plugin classification
 
@@ -40,7 +60,12 @@ Command subset — Markdown body, description, `$ARGUMENTS` и positional `$1...
 
 Одна session навсегда принадлежит одному Location; один turn держит immutable `(LocationId, ConfigGenerationId)` и selected-agent digest до завершения. Reload/agent selection только между turns. Location switch полностью строит target generation и выбирает/создаёт Location-scoped session, не retarget-ит активную. Config/agent change открывает новую provider causality generation и не повторно использует opaque continuation items.
 
-Ограничить source count, directory depth/path length, frontmatter nesting, body/metadata bytes, total generation bytes и model-visible catalog/prompt bytes. Over-limit entry отклоняется явно; silent truncation не должна рекламировать skill, который нельзя вызвать. TUI получает redacted projection generation без credentials, expanded secrets, full skill bodies и sensitive paths.
+Ограничить source count, admitted directory depth/path length, parsing nesting,
+total generation и served/model-visible bytes. R2's removed artificial per-file/
+frontmatter/name/description caps are not reintroduced; its documented total/serving
+guards remain. Over-limit serving outcome явный; no silent skill advertisement for
+uncallable body. TUI получает redacted projection без credentials, expanded secrets,
+full skill bodies и sensitive paths.
 
 ## Commands — проектируемый CLI
 
@@ -52,6 +77,14 @@ Production default model: explicit config selection или persisted польз�
 
 ## Native settings и units
 
+T45/R9 planned DCP child default: dcp.experimental.allowSubAgents=true when omitted;
+false disables child model compress/anchors/nudges/strategies only. Global enabled/
+manual and effective Deny remain authoritative. No lifetime successful-compression
+or block-count quota; keep per-call/active-context/model/turn resource bounds.
+Existing examples/dcp.jsonc explicitly sets false as an opt-out; it is not the new
+default or proof of implementation. Update executable samples/help with actual R9
+implementation, not by advertising an unsupported setting as already functional.
+
 Пример TOML — контракт будущего parser, не config существующего upstream. Числа имеют явные units в key. `provider.options.timeout/chunkTimeout` upstream имеют их собственную semantics; не применять discovery milliseconds как generation timeout.
 
 Initial safety defaults предложены этой редакцией, меняются осмысленным config/decision и не являются измеренными performance budgets. Per-event 4 MiB, model tool args 2 MiB, serialized request 24 MiB (ниже observed proxy cap 32 MiB), preview 64 KiB, retained tool output 16 MiB, active queue 8 MiB, blob quota 2 GiB, max turns 128/запуск. Не выделять все capacity upfront.
@@ -60,4 +93,10 @@ Initial safety defaults предложены этой редакцией, мен
 
 ## Config capability report
 
-На конец M2 поддержанные domains и known differences фиксируются в `evidence/T07/compatibility.md`; к финалу — единый раздел FINAL.md. Минимум differences: bounded Location discovery; direct MCP default; unified apply_patch; primary-only agents; non-executable commands/skills; exact native plugin mappings; strict malformed security config; read-only config/native extensions; DCP scope; own storage/CLI names; safe byte caps. Unsupported audio/video/pdf, subagents, Code Mode/OAuth/другие npm packages не объявляются supported.
+На конец M2 historical domains/differences фиксируются в `evidence/T07/compatibility.md`;
+к финалу — current evidence in FINAL.md. Bounded Location discovery, direct MCP,
+unified apply_patch, native authority narrowing, exact native mappings, strict security,
+read-only inputs, own storage/CLI and resource bounds remain explicit differences.
+Primary-only/no-child/executable-command exclusions are superseded only by approved
+T45/R3/R6–R10; pending subagent/context/prompt/DCP extensions are not supported claims.
+Unsupported audio/video/pdf, CodeMode/OAuth/arbitrary npm remain outside scope.

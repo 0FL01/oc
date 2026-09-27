@@ -37,11 +37,11 @@ Tokio runtime один на процесс. Application handle — cloneable typ
 
 ## Владение сессией
 
-Один `SessionWorker` владеет mutable session/active turn/context generation. Session навсегда связана с одним `LocationId`; turn держит immutable `LocationGeneration` и selected-agent digest. Команды идут по bounded channel; одновременно один turn, tool mutations последовательно. Headless, TUI и MCP никогда не получают `Arc<Mutex<Everything>>` или raw DB handle. Чтение immutable session snapshots отделено от команд.
+Один execution owner на session владеет mutable session/active turn/context generation. Session навсегда связана с одним `LocationId`; turn держит immutable `LocationGeneration` и selected-agent digest. Команды идут по bounded channel; одновременно один turn на session, не один на всю семью/Location. T45/R3 требует параллельных независимых foreground-детей и background progress до конца parent turn; existing supervisor owns bounded jobs/cancellation/delivery, без нового scheduler service. Tool mutations сохраняют ordering/CAS/path protections, а parent-held lease не сериализует все child sessions. Headless, TUI и MCP никогда не получают `Arc<Mutex<Everything>>` или raw DB handle. Чтение immutable session snapshots отделено от команд.
 
 Долгий provider stream не блокирует обработку Cancel: worker select-ит stream, inbox и shutdown, а выполняемые child activities имеют owner и cancellation. Очередь новых пользовательских сообщений ограничена; сообщение принято только после durable acknowledgement. Ошибка storage не маскируется успешным UI ack.
 
-Все tool calls, включая `compress`, сначала проходят registry → input validation → permission check → durable intent → executor → durable outcome. Порядок provider tool calls сохраняется; concurrent tools пока не нужны. Новый provider request посылается после завершения текущего tool batch. DCP не запускает скрытый второй agent loop.
+Все tool calls, включая `compress`, сначала проходят registry → input validation → permission check → durable intent → executor → durable outcome. Admission/causality IDs и объявленный mutation order сохраняются; независимые subagent calls могут исполняться одновременно. Новый provider request следует после terminal foreground batch; background call возвращает running, не ждёт terminal ребёнка. Завершение доставляется durable notice через parent owner, без polling, не теряется при занятом parent. Явно запущенные child loops не являются скрытым DCP summarizer: compress не вызывает вторую модель.
 
 ## Storage без event-sourcing платформы
 
@@ -63,11 +63,13 @@ DCP создаёт `CompressionBlock` с anchors/member IDs, summary, refs на 
 
 Provider continuation items (включая opaque reasoning) хранить отдельно от UI text и в пределах quotas. Они привязаны к provider/config generation/model/agent digest и causality group. Не переносить их между разными провайдерами или config/agent generations по совпавшему имени модели. В первой реализации используется явная локальная history projection с `store:false`, без зависимости от remote `previous_response_id`; не посылать старую server-side conversation цепочку после локального compress.
 
-Один runtime prompt assembler владеет semantic lanes: compiled policy, primary-agent body, ordered AGENTS, DCP additions, history projection, user input и tool results. Config adapter/TUI не собирают финальный prompt. Command expansion остаётся durable user input; skill body — tool result. Fixed config lanes не входят в DCP compression и не дублируются между turns.
+Один runtime prompt assembler владеет semantic lanes: compiled policy, selected session-agent body/base prompt (primary или child), environment/date, ordered AGENTS/skill metadata/permitted MCP, DCP additions, history projection, user input и tool results. Config adapter/TUI не собирают финальный prompt. Command expansion и delegation/context pack остаются durable user input; skill body — tool result. Fixed config lanes не входят в DCP compression и не дублируются между turns.
 
 Target architecture under owner-approved [T45/R7](goals/2026-09-21-config-compat-and-subagents.md#environmentcontext-references--r7), not a current implementation claim: host/workspace environment is a compiled harness instruction layer, separate from the selected agent system/body and ordered AGENTS.md. A custom agent system replaces the base harness prompt but never suppresses environment/date. The missing base harness fallback is an explicit implementation requirement.
 
 Request context order: agent system/base harness prompt → host/workspace environment + date → ordered workspace instructions and skill metadata → permitted MCP guidance and DCP additions → history projection → current user input and tool results. Tool descriptions/schemas remain a separate provider request field. Root and child requests share the assembler; guidance describes actual native tools.
+
+T45/R8–R10 target: initial instruction baseline is durable; safe-boundary updates/removals and successful-read nested AGENTS are chronological messages with origin/revision, not rewrites of raw history. Reconcile after compaction/Revert/reopen within admitted source boundaries. A new child gets its own profile/context, not parent transcript/system; optional context_message_ids adds exact selected parent text/roles as escaped quoted user context alongside the task. Resolve branch/revision/cutoff/unsupported content/budgets before admission and persist one snapshot/digest; continuation admits its next task/pack once. Candidate IDs are bounded and independent of DCP. Guidance and effective capability preview distinguish automatic AGENTS/tools/skill metadata from supplied task/history, never claim denied tools or automatic skill bodies.
 
 Linux host facts are collected natively with ordinary user permissions, without shell subprocesses or privilege escalation. Runtime metadata reflects the actual tool executor, not the inherited $SHELL. Render selected bounded fields deterministically, escaping control characters/block delimiters; unavailable optional facts are unknown/omitted, not startup failures. Preserve one immutable snapshot per request and refresh the relevant context on restart/Location change without accumulating duplicates. The environment block describes execution facts, not an access grant or sandbox assertion. Do not inject raw environment/proc dumps or changing resource/toolchain inventories.
 
@@ -81,6 +83,13 @@ Cancel до admission side effect = не запускать. Cancel после �
 
 Shutdown: запрет новых turns → cancel streams/tools → завершить known outcomes → drain DB → restore terminal → release lock. Panic/abrupt kill оставляет interrupted turn; startup repair не повторяет неизвестные команды. Не предлагать автоматический `git reset --hard`.
 
+T45 background recovery validates durable parent/child/job identity and deduplicates
+terminal notice delivery. Already committed results are delivered without execution;
+eligible work may continue within pinned donor recovery bounds. Donor execution is
+at-least-once, not exactly-once; native started/unknown mutation/shell/MCP effects
+remain blocked from automatic replay. Successful parent completion is not child
+cancellation. Shutdown still joins all owned work; no orphan background tasks.
+
 ## TUI без второй модели мира
 
 Ratatui+Crossterm; bounded viewport и lazy paging session list/history. Input buffer ограничен. Rendering не парсит весь transcript на каждый token. UI получает snapshots + live hints; при отставании перечитывает snapshot с cursor, а не держит бесконечный backlog.
@@ -93,9 +102,17 @@ T40 wiring: активный контекст собирается bounded proje
 
 ## Производительность и простота
 
+T45/R9 extends T40 with repeated-compression qualification: no lifetime compress-call
+or block-count quota. Keep durable archive/stable IDs but load only active/addressed
+blocks and required dependencies; normalize repeated summaries transactionally so
+age does not become depth exhaustion. Bounds apply to active traversal/payload/model
+budget, not cumulative operations. Per-session active delegation task/pack protection
+is released on terminal completion and reinstated for safe recovery, never permanent
+fixed-lane growth. T36/T40 historical evidence does not prove this pending outcome.
+
 Первоначальные safety caps заданы в `examples/oc-rs.toml`; это новые product defaults, не upstream defaults и не benchmark-обещание. Memory budgets квалифицируются A10. У метрик не должно быть high-cardinality labels на каждый token/message. Лог по умолчанию — metadata; payload tracing требует отдельного opt-in и никогда не включает credentials.
 
-Не оптимизировать custom allocator, static musl, parallel workers или cache до измерений. Не заводить API server «на будущее». Первые архитектурные сигналы успеха — работающий вертикальный slice и тестируемые ownership boundaries.
+Не оптимизировать custom allocator, static musl или speculative workers/cache до измерений; owner-required child concurrency не является speculative optimisation. Не заводить API server «на будущее». Первые архитектурные сигналы успеха — работающий вертикальный slice и тестируемые ownership boundaries.
 
 ## T42 compatibility wiring
 

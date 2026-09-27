@@ -45,6 +45,36 @@ T28 сначала фиксирует короткий baseline и measurement w
 
 Численные thresholds выводятся из baseline до optimisation candidate и не повышаются для сокрытия регрессии. Требуется отсутствие linear retained-history growth; произвольное заранее заданное число turns/sessions не является product contract.
 
+## T45 prompt/delegation/DCP qualification (approved 2026-09-27; pending)
+
+Detailed specs SUB01/SUB02/CTX01/CTX02/PRM01/DCP10/DCP11 in planning/acceptance.json
+have only T45 as owner; supplements A02/A03/A04/A05/A07/A10/A13. No duplicated
+owner assignment to earlier T24/T36/T40 or to T44 visual scenarios.
+
+- SUB01 uses provider barriers to demonstrate simultaneous independent foreground
+  children and background progress before parent completion, including command route.
+  SUB02 injects crash/cancel at admission/completion/delivery; verify lineage, bounded
+  cleanup, deduplicated notices and no unknown-effect replay, not exactly-once claims.
+- CTX01 captures exact selected parent text/roles/provenance and immutable pack on
+  background/restart/continuation. Invalid/foreign/reverted/future/unsupported/over-
+  budget selection creates no child/input; compressed raw text is not a reverted branch.
+  CTX02 captures independent DCP-off IDs, automatic-context guidance and policy-backed
+  capability preview; no unselected history or quote-to-system promotion.
+- PRM01 proves the actual shared root/child base/custom/environment/tool/skill/AGENTS
+  lanes and initial/nested/changed/removed/restart/compaction/Revert lifecycle within
+  immutable-generation/trust boundaries. Existing R6/R7 profile/host fixtures remain.
+- DCP10 checks child default true/false/off/manual/deny/Explore, parallel-session state
+  isolation and active task/pack protection/release/safe recovery. DCP11 repeatedly
+  recompresses and restarts using fixed equal active data over small/large inactive
+  archives, measuring loaded rows/depth and peak/retained process state. No lifetime
+  call/block quota; keep payload/cycle/no-gain/model/memory/turn guards. Freeze workload
+  before qualification, never raise A10 regression caps or make a finite cycle count
+  a product lifespan. Do not infer sustainability from the single-compression E2E.
+
+Use source-derived fixtures/captured fake-provider requests/actual binary and existing
+bounded live envelope, not days of paid prompts. Plan-only checks prove structure,
+not these runtime outcomes; executed historical reports remain unchanged.
+
 ## Evidence cadence
 
 - Slice: targeted test; checkpoint только при handoff/block/non-idempotent external action.

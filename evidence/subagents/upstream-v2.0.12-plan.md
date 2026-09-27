@@ -6,13 +6,19 @@ Research date 2026-09-22. Upstream ref: `anomalyco/opencode` tag `v2.0.12`, tree
 Upstream paths below are relative to `packages/`; citations are `path:line` at that SHA.
 Read-only task: no source file was modified.
 
-## Scope note (must be resolved by the owner)
+Plan amended with owner approval on 2026-09-27: implementation proposals below
+now follow [R3/R6–R10](../../docs/goals/2026-09-21-config-compat-and-subagents.md).
+Research-date HEAD/local line numbers are historical, not current code evidence.
+Donor observations stay pinned; context packs, default child DCP and native
+authority/recovery constraints are explicitly labelled additions/differences.
+
+## Scope note (resolved by owner amendments)
 
 `GOAL.md:53` lists "subagents/task orchestration" as *out of this goal*, while the owner
 contract `docs/goals/2026-09-21-config-compat-and-subagents.md` (R3, lines 33–38) requires
-full implementation. This plan follows the newer owner contract. Before delivery, GOAL.md
-must be amended (or the goal doc marked authoritative) so A12 does not claim an out-of-scope
-feature; do not edit GOAL.md silently.
+full implementation. This plan follows the newer owner contract. GOAL.md's dated
+owner amendments admit T43/T45; original exclusions remain historical audit scope.
+No new CodeMode, JS host or cloud orchestrator is admitted; approval is not PASS.
 
 ## 1. Upstream semantics (field → behavior)
 
@@ -38,7 +44,7 @@ Tool identity: the tool is named **`subagent`** (`core/src/tool/plugin/subagent.
 | child context | fresh history; only prompt+prefix; child gets its own agent `system` prompt and its agent permission ruleset; no parent transcript | `subagent.ts:55-62`; `config/plugin/agent.ts:115,121-123` |
 | foreground join | `jobs.block({id: child.id, sessionID: parent})`; `Effect.onInterrupt` → `sessions.interrupt(child)` + `jobs.cancel(child)` | `subagent.ts:234-240` |
 | cascade delete | `Session.remove` recursively removes children | `core/src/session.ts:356-359` |
-| restart recovery | durable `Job.Background{kind:"subagent"}` with recovery ids; on restart re-verifies child/parent, delivers terminal outcome or resumes child once | `session/execution/restart.ts:137-204` |
+| restart recovery | durable recovery ids; verifies parent/child, delivers terminal result or attempts bounded safe continuation; donor execution recovery is at-least-once, not exactly-once | `session/execution/restart.ts:15-20,137-229` |
 | session record | `session.created` event carries `parentID`, `agent`, `model`, `title`; child inherits parent `location`, `metadata`, `permissions` | `core/src/session.ts:246-283`; `schema/src/session-event.ts:50-66` |
 | listing/stats | `list({parentID})` filter exists; stats count `parent_id != null` rows as subagents; TUI "Subagents" composer tab navigates the session family | `session/store.ts:110-112`; `session/stats.ts:154-157`; `tui/src/routes/session/composer/subagents-tab.tsx:37-63` |
 | command frontmatter | `subagent = command.subagent ?? command.subtask`; child branch when `subagent ?? commandAgent?.mode === "subagent"`; `subagent:false` overrides both mode and alias; child always background, `resume:false` | `config/plugin/command.ts:75,98-122`; `core/test/config/command-subagent.test.ts:109-124` |
@@ -46,11 +52,12 @@ Tool identity: the tool is named **`subagent`** (`core/src/tool/plugin/subagent.
 | command template | `$ARGUMENTS`, `$N`, shell `` !`cmd` `` interpolation | `config/plugin/command.ts:189-241` |
 | command test proof | child `{agent:"reviewer", model:{id:"child"}, title:"Review code"}`; parent agent/model untouched and parent history empty until synthetic notice | `core/test/config/command-subagent.test.ts:88-104` |
 | concurrency cap | none in core; one job per child session id, nesting bounded by `subagent_depth` | `job.ts:184-232` (registry), `subagent.ts:117-133` |
+| foreground batch concurrency | tool-call fibers start independently and runner joins all before the next model step; default foreground blocks that call, not other independent calls | `session/runner/step.ts:100-145` |
 
 `experimental.allowSubAgents` is **not** a core v2.0.12 key (only `subagent_depth` exists).
 It is our DCP-plugin config option; in v2.0.12 no `allowSubAgents` symbol exists anywhere
 under `packages/` (verified by rg over the tag tree). Making it meaningful is therefore our
-choice: gate DCP summarisation of child sessions on it (see S7).
+choice: default true, with explicit false and global/manual/permission gates (S7/R9).
 
 ## 2. Local code map
 
@@ -70,11 +77,11 @@ choice: gate DCP summarisation of child sessions on it (see S7).
 | permission policy | `RuntimePolicy` map-based, unlisted → deny `runtime.rs:148-173`; agent permission merge for the selected primary only `composition.rs:394-410` |
 | test norm | fake SSE server + `make_harness/runtime_of/params/provider_of` `crates/oc-adapters/tests/runtime.rs:200-320` |
 
-Existing contract to keep: `crates/oc/tests/configured_workspace.rs:506-540` (`aud17`) requires a
-hard error naming `subagent` when `default_agent` points at a subagent-mode agent. Supporting
-`mode: subagent` must change the diagnostic text, not the fail-closed behavior: use
-`selected agent broken is subagent-only and cannot be a primary agent` (still contains both
-`broken` and `subagent`).
+Historical test note: `configured_workspace.rs:506-540` associated an invalid
+default_agent with a hard error. R6 supersedes only configured-default selection
+with pinned visible-primary fallback. Explicit invalid primary selection still
+fails; malformed definitions remain diagnosed, and fallback cannot widen policy.
+Do not rewrite historical AUD17 evidence or drop its native-plugin/skill checks.
 
 ## 3. New/changed types and functions
 
@@ -96,19 +103,24 @@ hard error naming `subagent` when `default_agent` points at a subagent-mode agen
   `Runtime::spawn_subagent(...)` → nested `run_turn_inner` (no `begin_active`, child cancel flag OR-ed
   with parent flag), child policy = parent generation permissions refined by child agent rules;
   `builtin_tool_defs(subagents_enabled)` + turn-time description augmentation with `Available subagents:`.
-- `application.rs`: `CommandRoute::{Inline{agent,model}, Child{agent,model}}`;
-  `resolve_submission -> (CommandRoute, String, Option<String>)`;
-  bounded `PendingChild` queue drained after the parent turn; synthetic admission helper.
+- `application.rs`: existing command routes and bounded owner-supervised child jobs;
+  background children progress while the parent runs, not a PendingChild queue
+  drained only after parent completion. Use the same scheduler for command children.
+- subagent admission: optional context_message_ids; resolve an exact parent-revision
+  snapshot into quoted user data before admission, persist provenance/digest with
+  the task. Stable candidate IDs are visible independently of DCP. Use existing
+  conversation storage, not a parent transcript clone or second context registry.
 - `oc-core/queries.rs`: `SessionListEntry { id, parent_id, agent, title }`; `TuiState::apply_sessions`
   accepts it; `oc/src/tui_cmd.rs` marks children (e.g. `└─ <agent> <title>`).
-- `dcp_auto.rs`: `DcpConfig.allow_subagents: bool` (default false), warning removed;
-  `dcp_available(session, meta)` gate.
+- `dcp_auto.rs`: `DcpConfig.allow_subagents: bool` (default true), warning removed;
+  effective per-session availability honours explicit false/global/manual/Deny.
 
 ## 4. Ordered slices (each keeps workspace gates green and is committed)
 
 **S1 Config admission (compat slice dependency).** Accept `mode: subagent|all` in both Markdown and
 JSON agent paths; parse command `agent/model/subagent/subtask` into `CommandDef` (Markdown frontmatter
-+ JSON); keep `subtask` as deprecated alias; keep AUD17 fail-closed with the reworded diagnostic.
++ JSON); keep `subtask` as deprecated alias; explicit invalid primary selection fails,
+while R6 configured-default fallback supersedes the historical AUD17-coupled default assertion.
 Tests: `defs.rs` units (mode round-trip, command fields, unknown mode still error) + existing
 `configured_workspace.rs` suite. Assumption: a concurrent compat slice may already accept some of this;
 re-check `git log -1 -- crates/oc-adapters/src/defs.rs` before editing to avoid a conflicting revert.
@@ -133,33 +145,45 @@ result = last completed assistant text with `NO_TEXT` fallback. Tests: new
 `crates/oc-adapters/tests/subagent.rs` on the existing fake-SSE harness: spawn returns child text and
 persists child rows; nested spawn at depth 1 fails with the depth message; `deny subagent` yields
 `error: denied subagent` and **no** child row; cancel mid-child-stream marks the child turn
-`cancelled`/`interrupted` and the parent tool output `error: cancelled`; completion detail absent
-from parent context (fresh history).
+`cancelled`/`interrupted` and the parent tool output `error: cancelled`; parent
+transcript absent from child request (fresh history), final child text returned to parent.
 
-**S5 Background + completion notices + reap.** `background:true` admits the child to a bounded
-worker queue, returns the running text; after the parent turn reaches terminal state the worker runs
-the child (nested, no lease), then admits exactly one synthetic
-`<subagent sessionID state description>` message to the parent and wakes a parent turn. On
-shutdown/cancel the queue is drained: no pending child turns after `WorkerGuard::join`
-(A02). Tests: queued child runs after parent; synthetic appears once with metadata
-`{source:"subagent", childID, agent, state}`; shutdown with a queued/running child leaves no
-orphan turn and child status is terminal; restart path marks in-flight children `interrupted`
-without duplicate notice.
+**S5 Concurrent foreground/background + durable notices/recovery (SUB01/SUB02).**
+Default foreground awaits the child's final result; independent calls in one batch
+run concurrently. background:true admits and starts child work independently, then
+returns running/sessionID while the parent can continue non-overlapping work. Keep
+bounded admission/jobs/notifications and one execution owner per session; a parent
+lease may not block the child's progress. Child terminal outcome is durably linked
+to one parent notice identity and wakes/steers the parent through normal admission.
+Cancel/shutdown joins owned children without holding a DB transaction across awaits.
+Restart verifies lineage, delivers committed outcomes without rerunning, and safely
+continues eligible work within donor recovery bounds. Donor recovery is at-least-once;
+native unknown side effects never autoreplay. Barrier tests prove two foreground
+children overlap and a background child progresses before parent completion; crash
+at admission/completion/delivery proves no duplicate notice or unknown-effect repeat.
 
 **S6 Command subagent routing.** Child branch: `sessions.create(parent_id, title=description??id,
 agent=route.agent??parent.agent, model=route.model??child-agent.model??parent.model)`, prompt with
-prefix, run to terminal, synthetic notice + parent resume; always `resume:false` for the child's
+prefix, schedule independent background execution and synthetic notice + parent resume; `resume:false` for initial child's
 own wake. Inline branch per S3 ordering. Tests mirror upstream
 `command-subagent.test.ts`: subagent-true fixture (JSON + legacy Markdown) leaves parent
 agent/model/history untouched and creates one child with the right title/agent/model; the
 `subagent:false` fixture produces zero children, parent agent+model switched, expanded text
 with a shell interpolation.
 
-**S7 DCP `allowSubAgents`.** Remove the warning; `DcpConfig.allow_subagents` (default false).
-When false, child-session turns run with DCP compression disabled (no `compress` tool, no nudges);
-when true, children behave like root sessions. Tests: `dcp_auto` config unit (no warning, default
-false, parse true); runtime test that a parent turn still advertises `compress` while a child turn
-does not with false, and does with true. Update `examples/dcp.jsonc` comment.
+**S7 Child and long-horizon DCP (DCP10/DCP11, R9).** Default allowSubAgents=true;
+explicit false disables child model compress/anchors/nudges/strategies, not root DCP.
+Global disabled/manual and effective Deny remain authoritative. Give built-in Explore
+only an own-history compress grant, not patch/bash/delegation authority. Isolate all
+DCP state across parent/children and protect each active admitted task/context pack;
+terminal old packs return to ordinary configured protection, safe recovery reinstates
+active protection. Repeated valid recompression has no lifetime call/block quota and
+must not grow nesting or materialize the inactive archive. Normalize live dependencies
+transactionally with stable IDs/provenance/replay; keep cycle/payload/no-gain/model and
+memory checks. Repeated-compression/restart/archive-size fixtures qualify sustainable
+root/parallel-child operation, not just one successful compression. Native compaction
+is independent; preserve/reconcile the active task through it without inventing a
+second DCP summarizer loop. Update config documentation when implementation lands.
 
 **S8 TUI/history surfaces.** `list_session_meta` query, indented child rows with agent/title in the
 sessions panel, selection opens the child session, and the sessions panel refreshes after a child
@@ -168,17 +192,17 @@ finishes. Tests: `views.rs` render unit with a parent/child pair; `oc sessions` 
 
 ## 5. Top risks and mitigations
 
-1. **Single-flight lease deadlock.** `Runtime` holds one `AtomicBool` lease per Location
-   (`runtime.rs:626-654`); a child turn calling the public `run_turn*` would return `TurnActive`.
-   Mitigation: `spawn_subagent` must call `run_turn_inner` directly, never `begin_active`; it must
-   OR the child cancel flag with the parent's `params.cancel` so one Cancel stops both; a unit test
-   asserts `runtime.turn_active()` is true throughout a nested child and that cancel terminates the
-   child within the same turn.
-2. **Cancellation/reaping orphans (A02).** Child turns share the worker; background children are the
-   only detached work. Mitigation: bounded queue owned by the worker loop; terminal statuses only
-   (`cancelled`/`interrupted`/`failed`); worker shutdown drains the queue before `WorkerGuard::join`;
-   restart writes `interrupted` for non-terminal children; tests assert zero pending children and
-   child turn status after shutdown/crash simulation.
+1. **Single-flight lease deadlock.** Historical Location-wide parent-held admission
+   cannot implement concurrent children. Narrow execution ownership to session/job
+   identities in the existing supervisor; pin immutable parent generation/policy,
+   retain mutation safety and test cancellation while children overlap. Do not fix
+   the deadlock by serializing background work after parent completion.
+2. **Cancellation/reaping/recovery (A02).** All background work remains owned, bounded
+   and joinable. Cancel scopes and shutdown outcomes are explicit; foreground cancel
+   interrupts its waiting child, while background jobs are not accidentally killed
+   merely because the parent successfully finishes. Durable recovery does not blanket
+   mark every child interrupted or promise exactly-once effects. Test known terminal
+   delivery, safe continuation and refusal to repeat unknown mutation/shell/MCP work.
 3. **Permission/authority widening.** Today agent rules are merged into the *generation* for the
    selected primary only (`composition.rs:394-410`) and `RuntimePolicy` denies unlisted tools.
    A child must not inherit the caller's broad permissions beyond its own agent ruleset. Mitigation:
@@ -192,10 +216,33 @@ finishes. Tests: `views.rs` render unit with a parent/child pair; `oc sessions` 
 - R3(a) S1/S3, (b) S4/S5, (c) S2/S8, (d) S6, (e) S4, (f) S7, (g) S5; A02 reaping in S5.
 - Primary evidence: fake-server integration tests + one bounded live run spawning one subagent on the
   configured OpenProxy provider; commands and outputs recorded under `evidence/subagents/`.
+- SUB01/SUB02 concurrency/recovery; CTX01/CTX02 precise transfer and effective preview;
+  PRM01 shared automatic context; DCP10/DCP11 default child DCP and sustainable repeated
+  compression. All new scenarios belong to T45; R6/R7 profile/host checks remain required.
 
 ## 7. Explicit non-goals / declared differences
 
-No concurrent foreground subagents (worker is single-flight); background children start only after the
-current parent turn reaches terminal state rather than truly concurrently; no upstream `Job` KV replay
-of notifications across restarts (terminal-only replay); no `question` tool/UI for subagent approvals;
-no Code Mode exposure (`codemode:false` upstream is moot here — direct exposure only).
+The former serial-foreground/deferred-background/terminal-only-recovery exclusions
+are superseded by owner-approved R3 on 2026-09-27. No clone of upstream Job KV storage,
+CodeMode host or cloud orchestrator is required; use existing SQLite/session owners.
+Preserve native central/parent/child authority narrowing and unknown-effect safety,
+and qualify differences from donor algebra/recovery explicitly. General/Explore do
+not acquire question/extra delegation permissions through this amendment; actual
+Ask uses the owner-approved application permission channel, not a fake approval.
+
+## 8. Native context-pack and automatic-context slices (R8/R10)
+
+1. Shared assembler gives each child its own profile/base prompt, environment,
+   applicable AGENTS, permitted tools/MCP and skill metadata. Initial instruction
+   baseline, nested-read additions and chronological changes survive restart,
+   compaction/Revert within admitted source boundaries. Skills load only via skill.
+2. Advertise stable text-message IDs independently of compression and truthful
+   effective child capabilities. State explicitly what is automatic and what the
+   caller must supply; don't duplicate AGENTS/tool schemas/profile bodies.
+3. Resolve optional context_message_ids before admission, deduplicate and order
+   chronologically, preserve exact source text/role/provenance as quoted user data.
+   Reject foreign/reverted/future/over-budget IDs and unsupported attachments;
+   retained compressed text is selectable if still in the active branch.
+4. Persist one immutable task/pack snapshot for foreground/background/recovery.
+   Continuation appends its new task once; unselected parent transcript and parent
+   system are never implicitly inherited. R9 owns its compression protection lifecycle.
