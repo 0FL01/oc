@@ -6,9 +6,26 @@
 
 Команды: CreateSession(Location), SubmitInput, CancelTurn, AnswerPermission, CompressRequest (user prompt command), SelectModelVariant, SelectPrimaryAgent(expected generation), InvokeCommand(expected generation), ReloadConfig, SelectLocationSession, Shutdown. Запросы: ListSessions(cursor), ReadHistory(cursor, limit), GetSessionSnapshot, ListModels, WorkspaceSnapshot(redacted), EffectiveConfig(redacted), DcpStats. Конкретные Rust signatures фиксируются в M1; не генерировать универсальный RPC framework.
 
+T50 pending extension adds typed question query/answer/dismiss and session rename/
+admitted move operations through these same owners. Exact Rust signatures follow the
+minimal slice, not a new RPC registry. Direct model definitions opencode_models,
+opencode_session_rename and opencode_session_move lower to authorized existing catalog/
+session actions; model lookup does not select a model. Validate actor/target/generation,
+especially child versus parent/sibling session authority, before mutation.
+
 `SubmitInput` возвращает durable accepted ID либо ошибку. При переполнении очереди — Busy, не потеря input. Session IDs/application operation IDs непрозрачны; clock/ID provider в tests заменяемый. Ошибка provider не уничтожает пользовательский ввод.
 
 Workspace actions несут expected `(LocationId, ConfigGenerationId)` и отвергают stale UI requests. `InvokeCommand` сохраняет command ID/generation, original invocation и одно expanded user input, затем использует тот же durable admission, что обычный `SubmitInput`; TUI не исполняет definition самостоятельно. `SelectLocationSession` выбирает/создаёт session target Location и не меняет Location существующей session.
+
+Explicit T50 session_move is different from SelectLocationSession: same sessionID,
+durable admitted/pending/applied placement and complete trusted destination generation.
+Never mutate an in-flight turn/request/tool context; close the source turn durably
+under its pinned generation, then use a distinct subsequent destination turn.
+Same-batch destination assumptions fail or keep
+source context. History/DCP/original job/child provenance and unknown-effect MCP
+quarantine survive; failure/stale/untrusted destination leaves placement unchanged.
+No permission grants, family migration, arbitrary foreign-session control or replay
+of unknown effects. Only the permanent-binding ban is superseded (AUD14/TOOL19).
 
 Live hints: TextDelta, ToolProgress, ContextStats. Durable outcomes: InputAccepted, TurnStarted, ToolStarted/Finished, CompressionCommitted, TurnFinished/Failed/Interrupted. Каждое outcome имеет session_id, turn_id, seq и типизированные details. Не включать credentials/raw HTTP headers.
 
@@ -17,6 +34,13 @@ Live hints: TextDelta, ToolProgress, ContextStats. Durable outcomes: InputAccept
 `idle → preparing → streaming → tool_pending → tool_running → preparing` до финального ответа; любой live state может перейти в `cancelling → interrupted`, `failed` или `completed`. WaitingApproval — отдельное ожидание с возможностью cancel, не held DB transaction.
 
 Каждый provider response может иметь несколько tool calls. Аргументы собираются bounded по call ID; tool НЕ исполняется по частичному JSON. Сначала закрыть/validate response и завершить arguments, затем admission tools. Duplicate call IDs, unknown tool и несоответствие schemas — typed errors. Wire parallelism не снимает ordering/safety гарантий; T45/R3 явно требует concurrent execution независимых subagent calls и immediate background. Native закрытие response до admission остаётся отдельным streaming difference, не основанием сериализовать детей.
+
+T50 background shell follows the same durable admission/output graph: running is
+not terminal success, and a later owner-generated notice is deduplicated by job/
+delivery identity. No execution timeout still has bounded capture/cancel/teardown.
+Question pending wait has its own typed replies, distinct from permissions; stale/
+duplicate/foreign replies fail, dismissal interrupts, no-consumer headless is explicit
+non-success and --auto never invents an answer. No held DB transaction or UI-only state.
 
 Пустой stream EOF без terminal completion — interrupted/failed, не успех. Не выполнять tool дважды из-за повторного done-event. Тесты включают arbitrary chunk split, CRLF, partial UTF-8 и terminal error after text.
 
@@ -39,6 +63,13 @@ Retry только в одном явно указанном месте. Discove
 ## Permissions
 
 Default product profile: read/search в trusted project allow; apply_patch/bash/webfetch/MCP ask; skill/compress allow. Для live tests выделенный temporary fixture workspace с явно allowlisted operations. Режим полномочий authoring-agent не меняет автоматически permissions самого `oc`.
+
+T50 canonical shell normalizes with legacy bash policy through the same ceiling;
+legacy Deny/save patterns cannot be bypassed by changing names. New question/models
+and session-control definitions require explicit native default/config admission,
+never implicit allow for a missing central action. Profile overrides may only narrow;
+session rename/move targets must be authorized independently of trusting the target
+directory. Native target/path/credential ceilings remain declared donor differences.
 
 `ask` без interactive channel — ApprovalRequired с ненулевым exit status. Parsing errors не превращаются в allow. Legacy `write`/`edit` permission entries нормализуются к patch operations; конфликтующие применимые policies разрешаются консервативно deny → ask → allow и фиксируются как difference. Нельзя объединять implicit default allow с explicit deny.
 

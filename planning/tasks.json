@@ -790,6 +790,16 @@
       "work": "Reproduce selected model versus main Responses wire and turn footer in existing PTY/fake-server tests; fix demonstrated identity/lifecycle defects without changing provider routing or retry limits. Attribute title/cancel requests offline. Run a scoped real-API smoke only with the runbook's verified durable envelope; do not bypass the blocked T27 harness or expose secrets.",
       "evidence": "evidence/T49/report.md",
       "spec": "docs/TEST_PLAN.md"
+    },
+    {
+      "id": "T50",
+      "phase": "M8",
+      "title": "Selected native tool parity: shell/search/question/read/fetch/session controls",
+      "depends_on": [],
+      "tests": ["A02", "A03", "A04", "A05", "A06", "A08", "A10", "A13", "TOOL12", "TOOL13", "TOOL14", "TOOL15", "TOOL16", "TOOL17", "TOOL18", "TOOL19"],
+      "work": "Owner-approved 2026-09-27 tool RECON: built-in websearch/provider integrations и Code Mode/execute исключены; explicit MCP search/browser сохраняются. R1–R8: canonical shell command/workdir/timeout/background с durable automatic notices и legacy bash(argv) compatibility через одного policy/execution owner; grep regex/literal/path/include/caseSensitive и glob path/hidden; настоящий application-owned question с typed answers/multiple/free-form/cancel/headless; read text/directories/images (PDF excluded); webfetch text/markdown/html/defaults/timeout; direct opencode_models/session_rename/session_move без Code Mode. Session move сохраняет ID/history и применяется только через admitted safe-boundary destination generation; immutable turn/request/job context, child placement, trust, legacy Deny, raw history, sticky MCP quarantine и no unknown-effect replay сохраняются. TOOL12–TOOL19 имеют только T50 как owner; existing regressions не переназначать. Координация T45 prompt/profile/subagent consumers, T46 MCP и T44 real frontend/visual surfaces без circular completion dependency. Порядок минимальных срезов и pinned donor references в spec/M8; новый todo не означает implementation PASS.",
+      "evidence": "evidence/T50/report.md",
+      "spec": "docs/goals/2026-09-27-native-tool-parity.md"
     }
   ]
 }

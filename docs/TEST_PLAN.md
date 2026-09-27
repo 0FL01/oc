@@ -75,6 +75,42 @@ Use source-derived fixtures/captured fake-provider requests/actual binary and ex
 bounded live envelope, not days of paid prompts. Plan-only checks prove structure,
 not these runtime outcomes; executed historical reports remain unchanged.
 
+## T50 selected native tools qualification (approved 2026-09-27; pending)
+
+TOOL12–TOOL19 in planning/acceptance.json have only T50 as owner; relevant high-level
+A02/A03/A04/A05/A06/A08/A10/A13 and existing detailed scenarios stay regressions,
+not reassigned owners. Use pinned donor fixtures and actual binary calls/results;
+helper-only tests, fixture table tool names and document validation are insufficient.
+
+- TOOL12 captures policy-filtered root/child direct catalogs, canonical shell and
+  legacy bash compatibility/deny, explicit MCP search and excluded native tools.
+- TOOL13 uses process/provider barriers for foreground waiting and background
+  launch/progress/automatic notices, timeout default/zero/explicit semantics,
+  original-location completion after move, cancel/shutdown/crash/delivery. Reuse
+  TOOL05/TOOL06/AUD27/AUD28 and freeze A10 jobs/output/queue retention checks.
+- TOOL14 source fixtures cover regex/literal/path/include/case and glob hidden/ignore/
+  scope/truncation with malformed/over-budget/path/permission negatives (TOOL01).
+- TOOL15 exercises actual PTY option/multiple/free-form answers and dismissal, model
+  continuation, stale replies/headless/--auto/cancel/restart. T50 behavior proves the
+  real question owner; T44 paired frontend visual qualification remains separate.
+- TOOL16 captures text/directory pages and real image tool-result continuation;
+  PDF/unsupported/malformed/over-budget cases fail honestly. Reuse PROV05/PRM01,
+  including nested AGENTS from directory reads, without a second loader.
+- TOOL17 checks webfetch text/markdown/html/defaults/metadata/total timeout with fake
+  HTTP and actual model calls; TOOL07/TOOL08/AUD25/AUD26 SSRF/Unicode remain.
+- TOOL18 checks direct catalog lookup/static-dynamic-unknown metadata/paging/model
+  retention and authorized rename/reopen/restart/foreign-target/no-effects.
+- TOOL19 freezes A/B configs/history/job placement and uses barriers/crash points
+  before admission/placement/result delivery. Verify same ID, trusted generation,
+  immutable source turn, destination requests without stale harness/opaque items,
+  original background/child execution and MCP quarantine. AUD14 supersedes only
+  permanent binding; direct cross-Location use without admitted move still fails.
+
+Run nearest targeted evidence per minimal slice, then affected crate/integration
+and mandatory final workspace gates, rebuilt debug/release binaries and existing
+bounded live envelope. No new paid search campaign or live-budget expansion. Keep
+historical reports and task statuses unchanged until real qualification.
+
 ## Evidence cadence
 
 - Slice: targeted test; checkpoint только при handoff/block/non-idempotent external action.

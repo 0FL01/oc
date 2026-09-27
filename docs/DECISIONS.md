@@ -38,6 +38,9 @@ D09: нет большого монолитного progress log. Один ма�
 
 D10: одна immutable config generation на turn. Skills snapshot-ятся bounded при построении generation и раскрывают body только через native tool result; primary agents могут только сужать central policy; commands проходят ровно один durable SubmitInput. Location switch выбирает Location-scoped session, не перепривязывает активную session.
 
+T50/D20 adds a distinct durable same-session move; ordinary Location switch and
+in-flight immutable generation remain as above. Only permanent binding is superseded.
+
 D11: known plugin compatibility — обычный exact enum/match по capability kind, не generic registry. T07 классифицирует и отклоняет unknown до side effects; T14/T19 связывают marker с compiled discovery/DCP. Exact marker не исполняет JS-файл и не меняет authority пользовательского discovery snapshot.
 
 D12: `oc-tui` зависит от read-side `oc-adapters` (models select/admit, config explain/skills, storage paged reads + `tui.*` prefs). DAG сохраняется: `core <- adapters <- tui <- oc`; TUI не порождает network/process, storage writes только pref-ключи, Db handle lifecycle остаётся в binary. Чистый `core`-only TUI не может показать picker/history/workspace без дублирования доменной логики.
@@ -92,6 +95,32 @@ contract, SQLite durability and authority narrowing are unchanged.
 All are pending implementation; new scenarios have one owner T45. No change to task
 status, historical PASS, A10 baseline thresholds, mandatory workspace/live gates or
 T44 approval authority. Native compaction and DCP are independent context mechanisms.
+
+### D20 — selected native tools and explicit exclusions (2026-09-27)
+
+Owner-approved [T50 R1–R8](goals/2026-09-27-native-tool-parity.md) adds real Linux
+command-shell/background notices, donor search options, question, read directories/
+images, webfetch formats/timeout and direct model/session controls. Keep canonical
+shell plus legacy bash compatibility under one permission/execution owner. Question
+is user input, not approval; --auto never answers it. New controls require real
+target authorization, not model-description authority or silent missing-action allow.
+
+Built-in websearch and its provider integrations are intentionally omitted. Code
+Mode/execute remains excluded, including shims/remote interpreter emulation. Explicit
+MCP search/browser stays opt-in and catalog-derived; no built-in browser or PDF.
+Native opencode_* tools expose existing owners directly, not a Code Mode dependency.
+
+Only permanent session→Location binding is superseded: admitted same-session move
+validates destination and applies on a safe boundary, preserves ID/history and yields
+source execution before fresh destination generation. Ordinary SelectLocationSession
+is unchanged. Immutable in-flight context, original background/child provenance,
+parent-child ceilings, source trust, MCP quarantine/cleanup and unknown-effect safety
+remain; no file snapshots, family migration or second storage/scheduler framework.
+
+T50 owns TOOL12–TOOL19; AUD14's permanent-binding clause is narrowly amended with
+the original audit/evidence retained. Add todo state without changing existing task
+statuses or PASS. T45/T46/T44 remain independently owned, no done-dependency cycle;
+current request/effect/PTY/resource/workspace/live evidence is required before claims.
 
 ## Остаточные prerequisites, не новые Q
 

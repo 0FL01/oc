@@ -126,6 +126,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 ### Non-goals
 
 - OAuth, ChatCompletions fallback, daemon/serve/attach, Code Mode, JS/TS/WASM plugin host, cloud orchestrator.
+- Owner-approved tool follow-up is tracked separately by [T50](2026-09-27-native-tool-parity.md): shell/search/question/read/fetch and direct model/session tools. Built-in websearch/provider integrations, built-in browser and PDF remain excluded; explicit MCP search/browser remains supported. R3/R6/R10 profile restrictions/guidance refer to the selected native tool set, not a promise to expose excluded donor tools. T45 and T50 share existing owners without a completion cycle; no new framework or status claim.
 - Unrelated refactors or audits; scope expands only on owner instruction or a diff-caused regression.
 
 ## Change Envelope

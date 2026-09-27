@@ -2,6 +2,13 @@
 
 Product tool list является явным выбранным подмножеством OpenCode, не «все инструменты upstream». Названия/описания одинаковы для любых моделей; no GPT-vs-other write branch.
 
+Owner-approved [T50 contract](goals/2026-09-27-native-tool-parity.md) defines the
+pending target catalog: read/glob/grep/apply_patch/shell/webfetch/skill/question/
+subagent/compress plus opencode_models/opencode_session_rename/opencode_session_move.
+Effective policy/config still filters tools. No built-in websearch/provider selector,
+Code Mode/execute or built-in browser; explicit admitted MCP search/browser remains.
+PDF stays unsupported. This amendment is not a claim that the new tools work today.
+
 ## Built-ins
 
 `read`: bounded чтение файла/диапазона строк с path/offset/limit, явные truncated/next cursor и blob reference при необходимости. Директории и binary contents обрабатываются явно; не грузить весь репозиторий. `read`, `glob`, `grep` и `apply_patch` отклоняют own data root, включая direct path и symlink escape. `glob`/`grep` дают stable sorted paginated matches с bounded files/bytes/time. Plain literal/regex режимы явно различимы; не писать custom regex engine.
@@ -38,16 +45,21 @@ mutation syscalls. Temporary inode — `O_CREAT|O_EXCL|O_NOFOLLOW`, новое �
 
 Для удаления/rename сохранять достаточную operation metadata в own storage; не превращать это в snapshot/undo subsystem. Не запускать `git reset`, не делать auto-rollback на пользовательские файлы. Модель получает concise diff/status; полный diff в bounded blob.
 
-`bash`: process group, explicit cwd = trusted project, executable shell из проверенной настройки, command bounded, stdin protocol documented. Child получает минимальный documented environment для build tools, но не provider keys/MCP bearer/runner credentials по умолчанию; это не устраняет same-UID filesystem/network risk. Concurrent drain stdout/stderr предотвращает deadlock. Preview отдельно от bounded retained output; после output cap продолжать drain/discard со счётчиком, а не держать growing string. Exit code/signal/timeout/cancel различаются. TERM→grace→KILL→wait. Noninteractive tool не поддерживает скрытый бесконечный terminal session; долгие процессы получают явный timeout/outcome.
+`shell` (T50 target): command/workdir/timeout/background through the actual configured Linux shell; default foreground timeout120000ms, explicit0 disables execution timeout, background default has no execution timeout. Preserve legacy `bash(argv/cwd/timeout_ms)` through one supervisor/policy owner with unambiguous schema normalization, not duplicate advertised tools or a Deny bypass. Process group, trusted cwd, minimal documented credential-free env, concurrent drains, bounded preview/retained output and TERM→grace→KILL→wait remain. Background returns running/shellID after launch and later an automatic durable terminal notice, without polling; output/jobs/queues/teardown stay bounded even with no execution timeout. Native unknown effects never auto-replay; no hidden persistent terminal manager or sandbox claim.
 
-`webfetch`: read-only GET, http/https, text/HTML/JSON response; bounded download и redirect count, понятное преобразование HTML→text, исходный URL/status/content type и source references в результате. Не browser automation и не OpenProxy private admin fetch. Private/link-local/loopback targets запрещены по умолчанию; DNS resolution, фактический dial и каждый redirect проверяются вместе. Explicit trusted endpoint exception для provider/MCP НЕ распространяется на модельный webfetch. Credential headers не наследуются; proxy env не должен обходить egress policy. Для test fixtures использовать отдельный explicit loopback allowlist. No arbitrary methods/upload/cookies.
+`webfetch`: read-only GET, http/https, text/HTML/JSON response; T50 adds requested text/markdown/html (default markdown), timeout seconds default30/max120 and truthful original/final URL/status/content-type/format. One total budget includes conversion; bounded download/redirect/output and Unicode conversion remain. Не browser automation и не OpenProxy private admin fetch. Private/link-local/loopback targets запрещены по умолчанию; DNS resolution, фактический dial и каждый redirect проверяются вместе. Explicit trusted endpoint exception для provider/MCP НЕ распространяется на модельный webfetch. Credential headers не наследуются; proxy env не должен обходить egress policy. Для test fixtures использовать отдельный explicit loopback allowlist. No arbitrary methods/upload/cookies.
 
-`glob`: literal bounded pattern, stable sorted pagination. Pattern ≤4096 bytes,
+`glob`: bounded glob pattern, stable sorted pagination. T50 adds donor path/hidden
+(default false)/limit and matching/ignore behavior; current memoized matcher is not
+evidence of full donor semantics. Pattern ≤4096 bytes,
 не более 64 segments; memoized `**` matcher. Walk budget 10,000 entries считается
 при enumeration, до накопления результата. Nonregular nodes не читаются.
 
-`grep`: literal UTF-8 search (regex mode пока explicit unsupported), stable sorted
-pagination. Pattern ≤4096 bytes, per-file read ≤1 MiB, aggregate scan ≤16 MiB,
+`grep`: current literal-only implementation is a historical subset, superseded by
+T50's pending regex-default/literal/path/include/caseSensitive/limit contract. Use a
+vetted pinned donor-compatible engine, not a custom approximation. Stable coherent
+pagination and explicit malformed/budget outcomes remain. Pattern ≤4096 bytes,
+per-file read ≤1 MiB, aggregate scan ≤16 MiB,
 hit text ≤2 KiB на UTF-8 boundary. Files открываются no-follow/nonblocking и после
 fstat читаются только regular; FIFO/device не блокируют runtime. Budget exhaustion
 видим, не подменяется silent partial success.
@@ -61,7 +73,27 @@ host helper не является отдельным слабым commit path: �
 
 `skill`: input `{id}` выбирает skill только из pinned generation текущего turn. Model-visible descriptor/catalog содержит bounded id/name/description, но не body. Executor проверяет stale generation и central/agent-narrowed permission, записывает durable intent/outcome и возвращает immutable bounded snapshot body с digest и redacted provenance. Unknown/removed/oversized/unreadable skill — visible failure. Tool не перечитывает filesystem, не регистрирует другие tools/MCP, не запускает scripts и не меняет permissions/agent/model.
 
-## T38 qualification — supervision и egress
+T50 read target adds paged directory entries and actual image tool results to text
+line reads (1-based offset/limit, donor default2000). Images use validated provider
+media lowering/accounting; unsupported model/PDF/invalid/oversized media is not
+path-only success. Keep one successful-read nested AGENTS owner with T45/R10.
+
+`question` is an application-owned form, not permission approval: nonempty typed
+questions/options/multiple/free-form, cancellable wait, real ordered answers, bounded
+operation/session/generation identities. No-consumer headless fails explicitly;
+--auto never supplies answers. Dismissal interrupts, stale replies never authorize.
+
+`opencode_models` searches the existing catalog without selecting a model;
+`opencode_session_rename` persists an authorized current/explicit session title;
+`opencode_session_move` admits a trusted destination for the same ID and applies it
+at a safe boundary. No Code Mode, second registry/store or child authority over
+arbitrary parent/sibling sessions. Original execution/jobs retain source context;
+move never resets history, grants, unknown-effect quarantine or cleanup obligations.
+
+## T38 historical qualification — supervision и egress
+
+This records the argv/deadline subset, not T50 command/background qualification.
+No-execution-timeout jobs still require bounded teardown/output and explicit outcomes.
 
 `bash` supervisor: единый deadline начинается **до** spawn и покрывает spawn,
 запись stdin, исполнение и ограниченное окно teardown. stdin пишет отдельный
@@ -199,6 +231,11 @@ server schema `query` + `response_length`, не helper `limit`.
 ## Direct exposure vs Code Mode
 
 В `oc-rs.toml` профиль явно `tool_exposure = "direct"`. При отсутствии upstream codemode field выбранный профиль означает direct — это объявленное отличие. Explicit true = actionable unsupported error. Не запускать JS interpreter, Node eval, Code Mode shim или remote execute to emulate missing interpreter.
+
+The owner explicitly keeps this exclusion under T50. Native opencode_* tools are
+ordinary direct definitions, not a shim for tools.opencode via execute. Built-in
+websearch and its auth/provider selection are absent; configured MCP tools keep
+their real identities/schemas and can search without inventing a built-in alias.
 
 ## T42 qualification — config source trust
 

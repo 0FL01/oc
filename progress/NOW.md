@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-27T06:46:34+00:00
+State updated: 2026-09-27T11:29:12+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -42,7 +42,7 @@ reply lifecycle and its actual TUI (VIS36), then leader pending presentation and
 remaining exact matrix. Do not invent approval or waive security for parity.
 
 
-Ready (до 5): T45, T46, T47
+Ready (до 5): T45, T46, T47, T50
 Blocked: T27, T43
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.

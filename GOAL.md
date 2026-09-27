@@ -8,7 +8,7 @@
 
 Продукт работает с пользовательским OpenProxy через нативный OpenAI Responses wire adapter; принимает config alias `@ai-sdk/openai`, baseURL/apiKey и указанные options. `ludka` поддерживает static models, `ludka2` — динамическую metadata discovery по присланному plugin без списка моделей в Rust. API/OAuth реальных upstream providers остаются за OpenProxy.
 
-Доступны built-ins `read`, `glob`, `grep`, `apply_patch`, `bash`, `webfetch`, `skill`, `compress` и dynamically registered MCP tools. `write`/`edit` не выставляются модели как альтернативные built-ins. Встроенный DCP переносит required range/compress, nudges, protections, deduplication, purgeErrors, сохранение projection и минимальную панель управления. Модель может провести цикл read → patch → shell test → корректировка → ответ, выполнить webfetch и `codex_web` search, по запросу загрузить объявленный skill, сжать завершённый контекст и продолжить после restart.
+Целевой direct набор: `read`, `glob`, `grep`, `apply_patch`, `shell`, `webfetch`, `skill`, `question`, `subagent`, `compress`, `opencode_models`, `opencode_session_rename`, `opencode_session_move` и dynamically registered MCP tools. Канонический command-shell дополняется совместимостью прежнего `bash(argv)` через одного владельца исполнения/permissions; не две взаимозаменяемые схемы в каталоге. `write`/`edit`, built-in `websearch` и Code Mode/`execute` не выставляются модели. Встроенный DCP переносит required range/compress, nudges, protections, deduplication, purgeErrors, сохранение projection и минимальную панель управления. Модель может провести цикл read → patch → shell test → корректировка → ответ, выполнить webfetch и явно настроенный `codex_web` search, по запросу загрузить объявленный skill, сжать завершённый контекст и продолжить после restart. Это требуемый результат, не claim, что новые tools уже реализованы; контракт T50 ниже.
 
 ## Критерии приёмки — A01–A13
 
@@ -103,6 +103,28 @@ skill body только через native skill, apply_patch вместо write/
 JS/CodeMode/cloud host. Donor recovery at-least-once не является exactly-once effects.
 T45 владеет новыми scenarios; T44 UI qualification отдельна, без done-dependency.
 Утверждён только план: execution statuses/evidence не становятся PASS.
+
+## Owner scope amendment (2026-09-27 — selected native tools)
+
+Утверждён [T50 tool contract](docs/goals/2026-09-27-native-tool-parity.md) и срезы
+[M8](roadmap/M8.md): Linux shell command/background/automatic notices; grep regex/
+literal/path/include/case, glob path/hidden; настоящий question; read text/directories/
+images (PDF вне цели); webfetch text/markdown/html/timeout; прямые native model lookup,
+session rename и same-session move без Code Mode. Built-in websearch и его provider
+integrations сознательно исключены; поиск и browser через explicit MCP сохраняются.
+Не добавлять встроенный browser, LSP, PDF или JS host под видом parity.
+
+Только прежняя пожизненная session→Location привязка superseded: явный admitted move
+сохраняет ID/историю и применяется на безопасной границе с новой target generation.
+In-flight turn/request/tool не перепривязывается; старые operations/background jobs/
+children сохраняют execution provenance. Trust admission, permissions, MCP quarantine,
+immutable raw history и запрет unknown-effect replay остаются. Обычный UI Location
+switch выбирает/создаёт target-scoped session, не является скрытым move.
+
+TOOL12–TOOL19 имеют одного владельца T50; T45/T46 и T44 visual gates сохраняют свой
+scope, без circular done-dependencies. Дополнение не ослабляет A01–A13/живые gates,
+не переписывает исторические PASS и не меняет existing task execution statuses.
+Утверждён и доставляется план, новая реализация ещё pending.
 
 ## Исполнение
 

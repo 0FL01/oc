@@ -14,7 +14,7 @@ crates/oc-adapters/
   config/                  # JSONC/AGENTS/definitions + native TOML + provenance
   storage/                 # rusqlite worker + blobs
   providers/openproxy/     # Responses wire + bounded discovery
-  tools/                   # read/search/patch/bash/webfetch/skill
+  tools/                   # read/search/patch/shell/webfetch/skill/question + session/model controls
   mcp/                     # rmcp client, remote и stdio
   dcp/                     # range/protections/nudges/pruning
 crates/oc-tui/
@@ -37,11 +37,22 @@ Tokio runtime один на процесс. Application handle — cloneable typ
 
 ## Владение сессией
 
-Один execution owner на session владеет mutable session/active turn/context generation. Session навсегда связана с одним `LocationId`; turn держит immutable `LocationGeneration` и selected-agent digest. Команды идут по bounded channel; одновременно один turn на session, не один на всю семью/Location. T45/R3 требует параллельных независимых foreground-детей и background progress до конца parent turn; existing supervisor owns bounded jobs/cancellation/delivery, без нового scheduler service. Tool mutations сохраняют ordering/CAS/path protections, а parent-held lease не сериализует все child sessions. Headless, TUI и MCP никогда не получают `Arc<Mutex<Everything>>` или raw DB handle. Чтение immutable session snapshots отделено от команд.
+Один execution owner на session владеет mutable session/active turn/context generation. Session имеет текущий `LocationId`; T50 допускает только явный durable admitted move той же session на safe boundary, superseding прежнюю пожизненную привязку. Turn держит immutable `LocationGeneration` и selected-agent digest: исходный turn terminal под pinned source generation; destination request принадлежит отдельному последующему turn, не in-flight retarget. Команды идут по bounded channel; одновременно один turn на session, не один на всю семью/Location. T45/R3 требует параллельных независимых foreground-детей и background progress до конца parent turn; existing supervisor owns bounded jobs/cancellation/delivery, без нового scheduler service. Tool mutations сохраняют ordering/CAS/path protections, а parent-held lease не сериализует все child sessions. Headless, TUI и MCP никогда не получают `Arc<Mutex<Everything>>` или raw DB handle. Чтение immutable session snapshots отделено от команд.
 
 Долгий provider stream не блокирует обработку Cancel: worker select-ит stream, inbox и shutdown, а выполняемые child activities имеют owner и cancellation. Очередь новых пользовательских сообщений ограничена; сообщение принято только после durable acknowledgement. Ошибка storage не маскируется успешным UI ack.
 
 Все tool calls, включая `compress`, сначала проходят registry → input validation → permission check → durable intent → executor → durable outcome. Admission/causality IDs и объявленный mutation order сохраняются; независимые subagent calls могут исполняться одновременно. Новый provider request следует после terminal foreground batch; background call возвращает running, не ждёт terminal ребёнка. Завершение доставляется durable notice через parent owner, без polling, не теряется при занятом parent. Явно запущенные child loops не являются скрытым DCP summarizer: compress не вызывает вторую модель.
+
+T50 selected native tool target is defined in [its frozen contract](goals/2026-09-27-native-tool-parity.md).
+Canonical shell(command/workdir/timeout/background) and legacy bash(argv) reuse one
+policy/supervisor, with no duplicate advertised shell or alias-based authority gain.
+Background shell jobs retain bounded owned capture/cancel/teardown/durable notices;
+unset/zero execution timeout does not make retention or shutdown unbounded. Question
+uses typed application-owned pending/answer/cancel identities, not permission replies
+or a held database transaction. Direct opencode_* tools reuse catalog/session owners,
+without Code Mode/execute, websearch integration, built-in browser or a second registry.
+Read images use the existing provider media boundary, not base64 text pretending to
+be an image. Search/conversion engines stay bounded and pinned; PDF remains excluded.
 
 ## Storage без event-sourcing платформы
 
@@ -77,7 +88,17 @@ Linux host facts are collected natively with ordinary user permissions, without 
 
 ## Lifecycle
 
-Process владеет DB worker/config/logger; `LocationGeneration` — canonical Location root/identity, permission ceiling, prompt fragments, exact native capabilities, agent/command/skill catalogs со snapshotted skill bodies, MCP clients и redacted diagnostics; Session — worker и DCP state; Turn — pinned generation, provider stream и tool activities. MCP не создаётся заново на каждый provider chunk/HTTP request. Candidate generation строится полностью и публикуется атомарно только между turns; failure сохраняет old generation. Location switch выбирает другую Location-scoped session, не перепривязывает существующую. Hot reload native machine code отсутствует.
+Process владеет DB worker/config/logger; `LocationGeneration` — canonical Location root/identity, permission ceiling, prompt fragments, exact native capabilities, agent/command/skill catalogs со snapshotted skill bodies, MCP clients и redacted diagnostics; Session — worker и DCP state; Turn — pinned generation, provider stream и tool activities. MCP не создаётся заново на каждый provider chunk/HTTP request. Candidate generation строится полностью и публикуется атомарно только между turns; failure сохраняет old generation. Обычный Location switch выбирает другую Location-scoped session; T50 explicit move меняет placement той же session только после source-turn boundary. Hot reload native machine code отсутствует.
+
+T50 move admission validates caller/session access and destination existence/type/
+trust before building a complete target generation. Persist admitted versus applied
+placement and retain ID/history/DCP; next execution refreshes environment/instructions/
+catalogs and provider causality without stale source-local rules or opaque continuation.
+Original operations/background jobs/children keep execution Location/generation and
+provenance; the move is not family migration or a permission grant. Do not close a
+generation still owned by admitted work or accumulate an unbounded retired-generation
+cache. Sticky unknown-effect MCP quarantine/cleanup survives transitions. Crash/restart
+deduplicates committed move/result delivery, never replays unknown shell/MCP/mutations.
 
 Cancel до admission side effect = не запускать. Cancel после старта = запросить остановку, записать outcome/partial/unknown. Drop future не обещает остановить blocking work. Shell: отдельная process group, drain stdout/stderr, TERM → deadline → KILL → wait/reap. Отделившийся malicious daemon может выйти из простой group; это не kernel sandbox, containment нужен на runner/OS уровне.
 
@@ -130,6 +151,12 @@ untouched, and a switch requested while a turn streams is refused explicitly. Se
 Location-bound: a first visit mints a session, a return reopens the recorded one. The
 view-model drops every generation-bound cache (`TuiState::reset_workspace`) so no panel can
 show the previous Location's catalog, skills, cards, sessions or DCP snapshot.
+
+The paragraph above records T42 SelectLocationSession wiring, not a prohibition of
+T50's pending explicit same-session move. Ordinary UI switch semantics remain;
+permanent session binding alone is superseded by the admitted safe-boundary operation.
+Keep old operation provenance visible after move/reopen; do not rewrite history to
+make old tools appear to have executed in the destination workspace.
 
 `apply_patch` tool cards render a bounded diff summary (per-file op marker, path, +/- counts,
 hunk count, rename target; totals; file cap) parsed from the patch text, never a second copy

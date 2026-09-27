@@ -7,3 +7,4 @@ Plan: ../../roadmap/M8.md
 - [T46](T46/INDEX.md) [todo] — MCP attach parity: per-server degradation + outbound User-Agent; latest: нет.
 - [T47](T47/INDEX.md) [todo] — Model admission: unknown limits и explicit variant parity; latest: нет.
 - [T49](T49/INDEX.md) [done] — Turn model identity and ancillary request attribution; latest: 0008.md.
+- [T50](T50/INDEX.md) [todo] — Selected native tool parity: shell/search/question/read/fetch/session controls; latest: нет.

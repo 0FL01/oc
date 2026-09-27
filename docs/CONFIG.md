@@ -58,7 +58,18 @@ text, not config instructions or automatic parent-history inheritance (R8).
 
 ## Generation и limits
 
-Одна session навсегда принадлежит одному Location; один turn держит immutable `(LocationId, ConfigGenerationId)` и selected-agent digest до завершения. Reload/agent selection только между turns. Location switch полностью строит target generation и выбирает/создаёт Location-scoped session, не retarget-ит активную. Config/agent change открывает новую provider causality generation и не повторно использует opaque continuation items.
+Session имеет текущий Location; один turn держит immutable `(LocationId, ConfigGenerationId)` и selected-agent digest до завершения. Reload/agent selection только между turns. Обычный Location switch полностью строит target generation и выбирает/создаёт Location-scoped session, не retarget-ит активную. T50 explicit admitted session_move supersedes только прежнюю пожизненную привязку: сохраняет session ID/history и применяет validated destination на safe boundary после durable terminal исходного turn; destination request относится к отдельному следующему turn. Config/agent/Location change открывает новую provider causality generation и не повторно использует incompatible opaque continuation items. Original operations/background jobs/children сохраняют execution context/provenance; move не сбрасывает permissions или unknown-effect MCP quarantine.
+
+Pending [T50 tool target](goals/2026-09-27-native-tool-parity.md) exposes canonical
+shell(command/workdir/timeout/background), with explicit legacy bash(argv/cwd/
+timeout_ms) compatibility through one policy owner. No second interchangeable model
+schema or alias-based Deny bypass. Search/read/fetch options and native question/
+opencode_* controls require real runtime semantics, not silent config acceptance.
+Built-in websearch/provider integrations, Code Mode/execute and built-in browser are
+excluded; configured MCP search/browser remains opt-in, permission-gated and catalog-
+derived. PDF stays outside scope. Do not modify runtime config examples before the
+corresponding implementation exists or claim old grants automatically authorize
+new session-control actions/destination resources.
 
 Ограничить source count, admitted directory depth/path length, parsing nesting,
 total generation и served/model-visible bytes. R2's removed artificial per-file/
