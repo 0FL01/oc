@@ -1,7 +1,7 @@
 # Goal: MCP attach parity с opencode v2.0.12
 
 Status: active
-Source: инструкция владельца 2026-09-22 (паритет поведения opencode 2, без костылей), reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`).
+Source: инструкция владельца 2026-09-22 и утверждённый после RECON план 2026-09-27 (MCP config/startup/failure parity), reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`).
 Last updated: 2026-09-27
 
 ## Objective
@@ -16,6 +16,20 @@ upstream v2.0.12: сервер получает статус failed с сани�
 Owner-approved 2026-09-27: минимальный status/control prerequisite для настоящей
 MCP-модалки T44/VIS40 также входит в T46/R5. Это расширение существующего владельца
 generation/clients, не новая служба или claim полного MCP/OAuth parity.
+
+Owner-approved config/startup extension: отдельная MCP-запись не может обрушать
+весь запуск ещё в loader. Обе донорские формы нормализуются, `cwd`/`environment`
+имеют реальные launch effects, enabled-серверы начинают подключение асинхронно
+до первого prompt. Приложение и исправные соседи работают при failed/slow MCP;
+диагностика и модалка доступны до turn. T51 отдельно владеет plugin/provider и
+общими startup diagnostics; это не второй MCP owner и не done-dependency T46.
+
+## Execution Directive
+
+Complete the frozen Required Outcomes using the listed Change Envelope and Primary
+Evidence. Work on the smallest unresolved outcome. Do not add requirements from
+reviews, tests, tools, speculative risks, or optional source text. Finish when every
+required outcome is resolved and affected constraints remain satisfied.
 
 ## Required Outcomes
 
@@ -47,6 +61,41 @@ generation/clients, не новая служба или claim полного MCP
   - Status: pending
   - Evidence: pending — `evidence/T46/report.md`; paired visual evidence belongs to T44/VIS40.
 
+- R6: donor-compatible config admission и настоящий local launch.
+  - Source: утверждённый план 2026-09-27; pinned `packages/core/src/v1/config/mcp.ts`, `v1/config/migrate.ts:202–225`, `config/normalize.ts:260–293,633–696`, `config/plugin/mcp.ts`, `packages/schema/src/mcp.ts:7–64`, `packages/core/src/mcp/client.ts:195–207`, `mcp/stdio.ts:17–31,80–89`.
+  - Acceptance: MCP09 проверяет матрицу ниже через общий trust→substitute→normalize→validate pipeline. Legacy/canonical/global timeout и precedence имеют донорскую семантику, неизвестные не-security fields не вызывают общий отказ. Некорректная recognized запись остаётся в bounded diagnostic inventory с server/source/field/stage/safe code и без tools/process/network; валидные соседи сохраняются. Unsupported OAuth/CodeMode/protocol — per-server capability failure, не молчаливое принятие. Валидный disabled chrome с `environment:{npm_config_offline:"true"}`/timeout запускает TUI с нулём npx/browser effects. Для admitted local fake MCP actual argv/cwd/inherited env/overlay/PATH и раздельные deadlines соответствуют normalized config. Explain/logs/UI/history не раскрывают env/credential values; исходные файлы не меняются.
+  - Primary evidence: source-derived normalization fixtures плюс rebuilt actual binary/fake stdio cwd/env/argv and process counters; reuse CFG02/CFG04/AUD22/MCP04/MCP05, новый owner только MCP09.
+  - Status: pending
+  - Evidence: pending — `evidence/T46/report.md`; historical stdio tests не квалифицируют новый env contract.
+
+- R7: независимый асинхронный initial MCP startup.
+  - Source: утверждённый план 2026-09-27; pinned `packages/core/src/mcp/index.ts:355–447,487–513,583–638`.
+  - Acceptance: MCP10 доказывает startup до prompt с одним healthy, одним barrier-held slow и одним failed MCP: TUI/history/status и healthy server доступны, failed не отменяет запуск/turn, slow не удерживает global launch barrier. Initialize+catalog precede connected; только доступные tools/guidance попадают в новый request snapshot. Все клиенты/actions/startup принадлежат существующему owner; late completion/reload/Location/cancel/shutdown не смешивают generations и не оставляют owned tasks/children. Config/startup failures сразу видны R5-consumer; исправление config/retry восстанавливает фактическое состояние на безопасной границе, не исполняет неизвестный tool effect.
+  - Primary evidence: rebuilt actual binary + barrier-controlled HTTP/stdio counters, pre-prompt PTY responsiveness, first/next request catalogs и owned cleanup; reuse MCP08/AUD23/A02/A10 без второго lifecycle registry.
+  - Status: pending
+  - Evidence: pending — `evidence/T46/report.md`; paired presentation separately T44/VIS19/VIS40.
+
+## R6 field/capability matrix — approved target, not supported claim
+
+| Input | Required normalization/runtime outcome |
+| --- | --- |
+| `mcp.<name>` и `mcp.servers.<name>` | Один canonical domain; canonical запись побеждает legacy при совпадении имени в документе; в layered documents later server целиком заменяет same-name entry (не field-wise merge), global timeout merges supplied leaves отдельно. Pinned order/provenance и legacy серверы с именами servers/timeout различаются normalizer-ом. Invalid recognized entry диагностируется отдельно, не удаляет healthy siblings. |
+| `type`, local `command`, remote `url`/`headers` | Typed local/remote shapes, argv без shell splitting, exact configured URL без probing/rewrite; headers case-insensitive/conflicts явны до network. Invalid entry остаётся failed. |
+| `enabled` → `disabled` | Legacy inversion; omitted activation follows pinned normalizer. Disabled не стартует/не требует credentials; malformed disabled record не маскирует ошибку, но не отменяет приложение. |
+| Local `cwd` | Omitted = effective workspace cwd; relative = resolve от Location workspace directory, не config-source directory. Absolute требует существующего canonical admission; никакого silent fallback, escape или нового доверия. |
+| Local `environment` | String map с действующими admitted substitutions. Наследовать environment **product process** и наложить overlay, включая PATH при разрешении executable. Только после command/resource/credential-domain admission; lower-trust command не получает higher-trust credentials вследствие inheritance. Не читать auth/config внешнего runner. |
+| Legacy numeric `timeout` | Positive milliseconds; migrate только в catalog/execution, startup отдельно. |
+| `mcp.timeout` и server `timeout.{startup,catalog,execution}` | Global layer merge + per-server overlay; omitted donor defaults 30000/30000/43200000 ms. Runtime stage deadlines действуют, cancellation и отдельные cleanup budgets/caps сохраняются. |
+| `codemode` | Omitted остаётся direct по D04 — declared difference от donor default true; false = direct; true = per-server UnsupportedCapability, без interpreter. |
+| Remote `oauth` | false поддерживается без OAuth discovery. Legacy camelCase/current snake_case object fields распознаются как unsupported OAuth capability; existing true compatibility диагностируется, не выдаётся за donor schema. Omitted OAuth сохраняет declared native no-OAuth semantics. |
+| `protocol` | Omitted/legacy сохраняет существующую initialize negotiation до 2025-11-25 и exact codex_web contract. `auto`/`2026-07-28`: bounded rmcp compatibility spike; пока нет реального доказанного adapter path — явный per-server UnsupportedProtocol, не false PASS/legacy rewrite. Реализация нового protocol вне утверждённого среза. |
+| Unknown fields | Donor excess-field omission допускается только для не-security metadata; recognized malformed/unsupported capabilities имеют безопасную typed причину. Policy/trust validation не ослабляется. |
+
+Полный список OAuth fields: legacy clientId/clientSecret/scope/callbackPort/redirectUri;
+canonical client_id/client_secret/scope/callback_port/redirect_uri/auth_server_metadata_url.
+Распознавание этих полей не обещает OAuth. `{file:}` остаётся no-follow/relative-only;
+absolute/`~/` file-reference parity и remote-workspace execution plane не добавляются.
+
 ## Constraints
 
 ### Backend follow-up (2026-09-22)
@@ -60,16 +109,18 @@ R4 remains pending until full bounded owner-live evidence. Media tool outputs,
 MCP prompts/resource catalogs remain explicit open parity work, not silently
 excluded by the older non-goals list. This follow-up does not change T44 surfaces.
 
-- C1: остаются фатальными: `Cancelled`, ошибки cleanup/`McpShutdown`, `MAX_MCP_SERVERS` и generation-капы каталога; AUD23 reaping ранее подключённых серверов сохраняется.
-- C2: диагностика санитизирована: только server id, stage и safe code; никаких URL, заголовков и значений.
+- C1: остаются non-success на соответствующей admission/operation/application boundary: `Cancelled`, ошибки cleanup/`McpShutdown`, `MAX_MCP_SERVERS` и generation-капы каталога; AUD23 reaping ранее подключённых серверов сохраняется. Отмена операции не превращается в successful degradation; обычный admitted per-server disconnect не означает отмену приложения.
+- C2: диагностика санитизирована: warning несёт server id, stage и safe code/retryability; R6/T51 structured details дополнительно safe source identity/field/allowed action. Никаких raw URL, заголовков, env/secret values, remote exceptions или sensitive absolute paths; безопасность распространяется на copy/investigation drafts.
 - C3: изменение прежней политики (fatal attach) фиксируется записью D13; тесты переписываются как осознанное изменение контракта, а не ради зелени.
 - C4: R5 uses the existing application/runtime/resource owner, immutable request/config generations and bounded snapshots/events/actions. No second client registry/store/event bus, daemon, JS host or periodic UI polling. Retry is a new admitted connection attempt, not permission to repeat an unknown MCP tool call; sticky remote quarantine and cleanup failure remain actionable, non-success states.
 - C5: native OAuth remains outside GOAL. Donor `needs_auth`/integration sign-in is recorded in the capability mapping before capture: render only actual typed state and make unsupported sign-in honest/actionable, never launch a fictitious OAuth flow. Safe diagnostics only in details/copy/investigation drafts, never raw remote error text, URL/header/env values. MCP result/media/prompts/resource work and R4 live qualification are not closed by MCP08/VIS40.
+- C6: R6 narrowly supersedes T37's minimal credential-free **local MCP** env/cwd policy (D21); ordinary shell TOOL05/AUD28 remains minimal. Source trust, command/resource and credential-domain admission still precede inheritance; remote MCP does not acquire arbitrary local env. All configured env values and inherited secrets join existing redaction; no env dump in fixtures/evidence. Explicit admitted external process is not a sandbox.
 
 ## R5 sequence and visual consumer
 
 1. Add minimal typed current-Location/generation status snapshots/events to existing
-   owners; preserve lazy/startup admission truth, disabled zero-spawn and no false
+   owners; R7 supersedes lazy first-turn attach with async initial startup. Preserve
+   admission, disabled zero-spawn and no false
    connected state before a successful handshake/catalog. Modal reads cannot spawn
    disabled entries or repeatedly reconnect healthy clients.
 2. Deliver real connect/disconnect/retry, per-server pending/coalescing/cleanup and
@@ -82,7 +133,25 @@ excluded by the older non-goals list. This follow-up does not change T44 surface
 Approval freezes this plan, not implementation PASS. Existing execution statuses,
 evidence and dependencies remain factual; independent T44 slices stay ready.
 
+## Change Envelope and current checkpoint
+
+- Expected owners/paths: adapters config/composition/mcp_stdio/mcp_remote/application,
+  core runtime MCP generations/actions/redactions; direct typed consumers in `oc`/TUI.
+  Extend existing owners only; no separate store/event bus/worker framework/daemon.
+- Order: R6 config normalization → admitted local launch/deadlines → R7 async initial
+  lifecycle with R5 snapshots/control → MCP09/MCP10/MCP08 actual-binary checks →
+  T44 VIS19/VIS40 paired qualification. T51 service isolation may proceed independently;
+  shared safe diagnostic shape is not a whole-task completion barrier.
+- Next: source-derived failing normalization/disabled-chrome fixture for R6, then
+  smallest parser/normalizer change; no owner config edit to hide the reproduced failure.
+- Evidence gates: affected crate targeted tests, relevant A02/A03/A06/A08/A10/A13
+  regressions and workspace fmt/clippy/tests/build for integration/final acceptance;
+  bounded R4 live remains mandatory. No new paid/browser campaign for fake qualification.
+- Approval checkpoint 2026-09-27: RECON confirmed strict McpEntry rejects environment
+  even when disabled, stdio uses env_clear/minimal env, attach is first-turn/sequential.
+  This is planned work; no new runtime/visual PASS or change to task execution status.
+
 ## Non-goals
 
 - `oc mcp list` CLI и отдельная персистентная status service/panel остаются вне этого среза. Typed snapshots/control для T44/VIS40 входят в R5; прежняя отсрочка всех статусов superseded владельцем 2026-09-27.
-- OAuth, Code Mode, отдельный browser-like UA для MCP (webfetch R3 сохраняется), расширение `{file:}` (absolute/`~/`) и прочие parity-дельты, не влияющие на согласованные R1–R5.
+- OAuth, Code Mode, новый protocol/remote-workspace execution plane, отдельный browser-like UA для MCP (webfetch R3 сохраняется), расширение `{file:}` (absolute/`~/`) и прочие parity-дельты вне согласованных R1–R7. Config admission/cwd/env/status/async startup больше не являются non-goals.

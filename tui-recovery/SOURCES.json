@@ -732,6 +732,60 @@
       "locator": "5–44 short/exact-fit, offsets/spaced-dot loop, generated-dot versus title-dot and wide-grapheme examples",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/test/util/marquee.test.ts#L5-L44",
       "purpose": "Reuse pinned text fixtures for the nearest Rust regression, not a second implementation or screenshot-derived expected"
+    },
+    {
+      "id": "U60",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/plugin/supervisor.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "58–110 failed load inventory, retained healthy activation and duplicate-ID isolation before registry activation",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/plugin/supervisor.ts#L58-L110",
+      "purpose": "T51/CFG09 actual failed requested/current plugin state for VIS42; native compiled-only mappings never resolve/execute arbitrary JS"
+    },
+    {
+      "id": "U61",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/plugin.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "47–121 per-generation load/setup failures; 127–175 retained activation prefix; 182–235 transform failure state/report/refresh",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/plugin.ts#L47-L121",
+      "purpose": "Healthy siblings and real plugin failure projections; not evidence that fatal trust/storage/cleanup can be swallowed"
+    },
+    {
+      "id": "U62",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/feature-plugins/system/plugins.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "45–139 actual inventory/visibility/search/failed gutter/footer/colors/actions; 327–349 error/ref and /plugins/palette command",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/feature-plugins/system/plugins.tsx#L45-L139",
+      "purpose": "VIS42 PluginsDialog safe failure details/real list; rejected native marker represented failed, never hidden as unsupported; install/update/hot-load not admitted"
+    },
+    {
+      "id": "U63",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-status.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "7–58 MCP inventory/empty, semantic status colors and real failed/disabled/auth detail text",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-status.tsx#L7-L58",
+      "purpose": "VIS19/VIS40/VIS42 visible service failure before turn; native safe codes replace raw donor error strings without fake status"
+    },
+    {
+      "id": "U64",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/feature-plugins/sidebar/mcp.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "5–79 Location/session inventory, actual connected/error counts, row semantic colors/status labels and click-to-details",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/feature-plugins/sidebar/mcp.tsx#L5-L79",
+      "purpose": "Startup/connection-close/error/recovery visibility outside the MCP modal, not configured-enabled-as-connected"
+    },
+    {
+      "id": "U65",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-integration.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "327–358 failed connect toast/dismiss; 382–411 failed/auth-expired command; 995–1028 successful invalidation/sync/model selection",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-integration.tsx#L327-L411",
+      "purpose": "VIS42 service connection error/recovery feedback reference; native provider selection remains explicit, no OAuth/sign-in implementation or universal recoverability claim"
     }
   ],
   "external_primary_sources": [

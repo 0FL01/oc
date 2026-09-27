@@ -197,6 +197,56 @@ Missing reference remains BLOCKED_REFERENCE. No paid/browser campaign; fake conf
 stdio exercises explicit connect. Backend/visual results and T46 R4 live stay separate,
 failed attempts/provenance retained, existing statuses/evidence/baseline unchanged.
 
+## Service config/startup/error isolation qualification (approved 2026-09-27; pending)
+
+MCP09/MCP10 only T46, CFG09/CFG10/UI07 only T51 in planning/acceptance.json;
+VIS42 only T44 in task-local registry. Existing detailed owners and high-level gates
+stay intact. Contracts/field matrix and ordered slices: T46/T51 goals and roadmap/M8.
+Doc/progress checks prove planning structure, never runtime/visual PASS.
+
+- **MCP09:** derive legacy/canonical/global-timeout/precedence fixtures from pinned
+  donor normalizer/migrate/schema. Rebuilt actual binary starts with original-shaped
+  disabled chrome environment+timeout and records zero npx/browser processes/probes.
+  Fake stdio reports actual argv/cwd/inherited safe sentinel env and configured overlay/
+  PATH; use synthetic credential sentinels to prove admission/redaction, never real env
+  dump. Assert per-stage normalized deadline effects with fake time/barriers, not long
+  wall-clock waits. Invalid/unsupported recognized entries visible while healthy peers
+  survive; valid disabled stays disabled. Reuse CFG02/CFG04/AUD22/MCP04/MCP05. MCP04's
+  credential-free local env clause is narrowly superseded by D21; shell TOOL05/AUD28
+  remains minimal. No external runner-auth access or implied trust/credential grant.
+- **MCP10 + MCP08:** healthy/slow/failed barrier-controlled startup before first prompt,
+  no all-server launch wait; responsive history/status, actual initialize/catalog
+  counters and first/next request catalogs. Then real connect/disconnect/retry, close,
+  late completion/Location/reload/cancel/shutdown cleanup and generations. Reuse
+  MCP07/AUD23/MCP05/A02/A10, including last-healthy-catalog relist/quarantine semantics.
+- **CFG09:** mixed native aliases and unsupported marker, no code/resolver/process/
+  network for rejected plugin; healthy siblings and local application usable. Actual
+  typed requested/current activation and safe provenance/error available before prompt
+  and on reload/reopen; no generic JS/plugin framework or swallowed fatal local error.
+- **UI07:** discovery/connect/auth/credential failure at cold startup retains local TUI,
+  history/model selection/diagnostics. Capture explicit selected identity and zero
+  generation/tool effects for unavailable prompt/headless error. Admitted retry/refresh
+  or user selection recovers, next request uses it. Preserve DISC01–DISC10 budgets/
+  retry/metadata/atomicity and empty-cold configured catalog; no automatic fallback.
+- **CFG10:** shared structured source/field/service/stage/safe-code/action across entry
+  errors and true fatal trust/policy/data-root/storage/recovery/cleanup/caps. Compare
+  optional malformed document (complete mandatory config still safe) vs policy-critical
+  malformed/unreadable source (non-success, no wider default policy), atomic failed
+  reload and safe details/copy/investigate/CLI/--json. Synthetic env/URL/header/ANSI
+  sentinels must not leak; no arbitrary remote-text/regex status classification.
+- **VIS19/VIS40/VIS42:** before-prompt failed config/pending/connect/close/retry, actual
+  plugin inventory/details and provider readiness/error/recovery. Backend effects/state
+  proven above precede paired running-original/native full styled-cell/PNG/cursor
+  evidence using U50–U55/U60–U65/U02/U49 and existing profiles/focus/draft/resize/idle
+  checks. Declare safe-diagnostic/unsupported capability differences before captures;
+  native fatal startup frame gets functional source/cause/action coverage, no invented
+  donor frame. No duplicate negative/theme×viewport×state matrix, masked rows, native-
+  golden PASS or new paid/browser campaign. Missing reference stays BLOCKED_REFERENCE.
+
+New runtime evidence requires targeted affected-crate checks and workspace fmt/clippy/
+tests/build at integration/final acceptance. A02/A03/A06/A08/A10/A13, T46 R4 and existing
+mandatory live gates remain; historical PASS is neither edited nor reused as new proof.
+
 ## T50 selected native tools qualification (approved 2026-09-27; pending)
 
 TOOL12–TOOL19 in planning/acceptance.json have only T50 as owner; relevant high-level

@@ -726,7 +726,7 @@
     {
       "id": "T44",
       "phase": "M9",
-      "title": "TUI pixel parity с opencode v2.0.12, включая Approve (VIS36), question (VIS37), DCP (VIS38) и полный subagent UI/colors/animations (VIS39), MCP modal (VIS40), tab hover-marquee (VIS41)",
+      "title": "TUI pixel parity с opencode v2.0.12, включая Approve (VIS36), question (VIS37), DCP (VIS38), subagent (VIS39), MCP modal/startup (VIS19/VIS40), tab hover-marquee (VIS41), plugin/service errors (VIS42)",
       "depends_on": [],
       "tests": [
         "A02",
@@ -768,10 +768,10 @@
     {
       "id": "T46",
       "phase": "M8",
-      "title": "MCP attach parity: per-server degradation + outbound User-Agent",
+      "title": "MCP config/startup parity: per-server degradation, cwd/environment, async lifecycle + User-Agent",
       "depends_on": [],
-      "tests": ["MCP07", "MCP08"],
-      "work": "D13 per-server attach degradation + visible warnings/User-Agent уже в 3ce5e03/b7ab06d (evidence/T46/report.md). Backend remainder: structured/textual-resource results, bounded permission-filtered initialize instructions и безопасные error categories (evidence/T46/backend-parity.md). Сохранить fatal Cancelled/cleanup/caps, AUD23 reaping и redaction. Full live R4 остаётся обязательным; media-output/prompts/resource catalog parity остаётся открытой, не выдавать этот срез за full MCP parity. Owner-approved 2026-09-27 R5/MCP08: bounded typed Location/generation status/events and actual async connect/disconnect/retry through existing clients/registry, immutable in-flight requests/safe catalog boundaries, responsive snapshots, coalescing/stale-action/cleanup/restart and disabled zero-spawn. Runtime toggles do not silently persist config; permissions/redaction/quarantine/OAuth boundaries hold. T44 owns VIS40 full modal/focus/colors/actions/state-transition qualification after this minimal slice, not all-T46 completion/new task/store/framework/live campaign; backend and visual evidence separate.",
+      "tests": ["A02", "A03", "A06", "A08", "A10", "A13", "MCP07", "MCP08", "MCP09", "MCP10"],
+      "work": "D13 attach degradation/warnings/UA delivered 3ce5e03/b7ab06d; historical evidence/T46/report.md is not new full-live PASS. Existing remainder structured/textual-resource results, initialize guidance/safe categories (backend-parity.md), mandatory R4 live and media/prompts/resources remain open. Owner-approved 2026-09-27 R5/MCP08 supplies bounded typed Location/generation statuses and real async controls via existing clients/registry. R6/MCP09 adds legacy/canonical/global-timeout normalization and full donor field/capability matrix; per-entry failed config/capability diagnostics preserve valid siblings. Admitted local cwd/environment have actual effects: product-process env inheritance + overlay after command/resource/credential-domain admission; shell minimal env unchanged. Valid disabled chrome with environment/timeout is zero-spawn. R7/MCP10 replaces lazy first-turn/sequential attach with independent async initial connections; healthy/slow/failed startup, pre-prompt UI/status and safe next-request catalogs. Preserve fatal Cancelled/cleanup/caps, AUD23 reaping, immutable generations, redaction/permissions/quarantine/no unknown-effect replay, exact codex_web negotiation and explicit OAuth/CodeMode/protocol differences. T51 independently owns plugin/provider startup isolation/common safe diagnostics; no second MCP owner or whole-task dependency. T44 qualifies VIS19/VIS40 config/startup/modal effects/frames, not all-T46 completion; evidence separate, no new paid/browser campaign or PASS from approval.",
       "evidence": "evidence/T46/report.md",
       "spec": "docs/goals/2026-09-22-mcp-attach-parity.md"
     },
@@ -804,6 +804,16 @@
       "work": "Owner-approved 2026-09-27 tool RECON: built-in websearch/provider integrations и Code Mode/execute исключены; explicit MCP search/browser сохраняются. R1–R8: canonical shell command/workdir/timeout/background с durable automatic notices и legacy bash(argv) compatibility через одного policy/execution owner; grep regex/literal/path/include/caseSensitive и glob path/hidden; настоящий application-owned question с typed answers/multiple/free-form/cancel/headless; read text/directories/images (PDF excluded); webfetch text/markdown/html/defaults/timeout; direct opencode_models/session_rename/session_move без Code Mode. Session move сохраняет ID/history и применяется только через admitted safe-boundary destination generation; immutable turn/request/job context, child placement, trust, legacy Deny, raw history, sticky MCP quarantine и no unknown-effect replay сохраняются. TOOL12–TOOL19 имеют только T50 как owner; existing regressions не переназначать. Координация T45 prompt/profile/subagent consumers, T46 MCP и T44 real frontend/visual surfaces без circular completion dependency. Порядок минимальных срезов и pinned donor references в spec/M8; новый todo не означает implementation PASS.",
       "evidence": "evidence/T50/report.md",
       "spec": "docs/goals/2026-09-27-native-tool-parity.md"
+    },
+    {
+      "id": "T51",
+      "phase": "M8",
+      "title": "Startup fault isolation: plugins/provider readiness и typed actionable diagnostics",
+      "depends_on": [],
+      "tests": ["A02", "A03", "A08", "A10", "A13", "CFG09", "CFG10", "UI07"],
+      "work": "Owner-approved 2026-09-27 after OC2 RECON: R1/CFG09 isolates unsupported/failed native plugin admission to a bounded visible failed capability before resolution/import/process/network; healthy compiled aliases survive without JS host. R2/UI07 keeps local TUI/history/model picker usable during selected-provider/discovery/credential failure; explicit selection remains, unavailable request fails before effects, admitted retry/refresh or user selection restores readiness. No silent provider/model fallback, altered discovery oracle/budgets or automatic paid retry layer. R3/CFG10 shares safe structured source/field/service/stage/code/retryability/action diagnostics in loader/application/TUI/headless; fatal trust/policy/storage/recovery/cleanup/caps retain non-success and last healthy atomic generation. Optional malformed document can be dropped only if mandatory effective policy is still completely admitted, never wider defaults. T46 owns all MCP config/env/async startup/clients; T51 consumes/shared minimal diagnostics, no done-cycle/second registry/store/framework. T44 owns VIS42 and MCP startup transitions in VIS19/VIS40 after respective backend slices. Actual binary offline failure/recovery/side-effect counters and existing A gates precede claims; plan todo, previous statuses/evidence/PASS unchanged.",
+      "evidence": "evidence/T51/report.md",
+      "spec": "docs/goals/2026-09-27-startup-fault-isolation.md"
     }
   ]
 }

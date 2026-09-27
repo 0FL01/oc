@@ -12,6 +12,13 @@
 
 Долговечные ограничения `AGENTS.md` и подтверждённые пользовательские требования остаются в силе. Для описанных дефектов этот файл и `repairs/T31.md` … `T42.md` уточняют acceptance и отменяют ошибочный смысл прежних PASS-claims. Корневые A01–A13 и исходные test IDs сохраняются. Не подменять их новыми слабее.
 
+Поздние owner amendments корневого GOAL authoritative. В частности,
+[D21 / T46 R6/R7](../docs/goals/2026-09-22-mcp-attach-parity.md) supersedes только
+историческое minimal credential-free **local MCP** env/cwd из T37 и lazy attach;
+[T51](../docs/goals/2026-09-27-startup-fault-isolation.md) изолирует optional-service
+failure вместо общего startup отказа. Original audit/repair reports остаются историей;
+shell env, trust/credential admission, cleanup/caps, durability и quarantine не ослаблены.
+
 ## Начало работы
 
 Прочитать `audit/README.md`, `audit/REPORT.md`, `progress/NOW.md`, `progress/INDEX.md`, актуальный Git status/diff. Однократно выполнить явный merge fragments из `audit/`, описанный в README, в существующие registries. Не создавать второй progress engine. Затем работать по одной ready-задаче T31–T42. В каждой задаче сохранять checkpoint после среза; текущий статус имеет единственный источник `progress/STATE.json`.

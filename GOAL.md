@@ -22,7 +22,7 @@
 
 **A05 TOOLS:** create/delete/update/empty file и конфликтный patch; read/search limits; shell stdout/stderr/exit/timeout/process cleanup; webfetch redirects/SSRF/size limits; native `skill` permission/snapshot/limits проверены. Ошибочная часть patch не выдаётся за success; tool-call/result graph валиден.
 
-**A06 MCP:** remote `codex_web` подключается без OAuth по exact configured URL, поддерживает его JSON HTTP ответы и negotiation `2025-11-25`; получает каталог и вызывает search. Local stdio adapter работает с test server. Выключенный `chrome-devtools` НЕ запускает npx/browser и не блокирует запуск. Его opt-in real browser smoke — условный, не обязательный для default profile.
+**A06 MCP:** remote `codex_web` подключается без OAuth по exact configured URL, поддерживает его JSON HTTP ответы и negotiation `2025-11-25`; получает каталог и вызывает search. Local stdio adapter работает с test server. Выключенный `chrome-devtools`, включая environment/cwd/timeout в admitted config, НЕ запускает npx/browser и не блокирует запуск. T46/R6/R7 добавляют обе donor config формы, реальные cwd/env effects и независимый async startup; optional MCP failure видим и не отменяет приложение. Его opt-in real browser smoke — условный, не обязательный для default profile.
 
 **A07 DCP:** range schema и upstream-derived fixtures, stable IDs, nested/protected summaries, nudges, dedup/purgeErrors работают. History неизменна; projection действительно меньше на synthetic fixture; после compression и после restart агент продолжает задачу. Summary не теряет tool-result пары и не раскрывает secrets.
 
@@ -36,7 +36,7 @@
 
 **A12 HANDOFF:** `evidence/FINAL.md` содержит code commit, команды проверки, отдельный результат каждого A-gate, supported differences, инструкцию запуска и известные ограничения. Лицензии и provenance DCP/upstream сохранены до push производного кода. Нет обещания full OpenCode parity.
 
-**A13 CONFIGURED WORKSPACE:** global и Location-local `opencode.json/jsonc`, ordered `AGENTS.md`, `.opencode`, skills, primary agents и current-session commands загружаются с pinned precedence, provenance и actionable diagnostics. Один turn использует одну immutable Location/config generation; switch сохраняет global и полностью убирает старое project-local состояние. Skill body появляется только как bounded result native `skill`; exact DCP и admitted `openproxy-models.js` aliases включают native modules, а прочие JS/TS/package plugins дают `UnsupportedPlugin` до исполнения и без Node/Bun. CFG05–CFG08, TOOL11, UI06 и E2E05 проходят.
+**A13 CONFIGURED WORKSPACE:** global и Location-local `opencode.json/jsonc`, ordered `AGENTS.md`, `.opencode`, skills, primary agents и current-session commands загружаются с pinned precedence, provenance и actionable diagnostics. Один turn использует одну immutable Location/config generation; switch сохраняет global и полностью убирает старое project-local состояние. Skill body появляется только как bounded result native `skill`; exact DCP и admitted `openproxy-models.js` aliases включают native modules, а прочие JS/TS/package plugins дают per-entry failed/`UnsupportedPlugin` до исполнения и без Node/Bun, не обрушая исправную локальную часть приложения (T51). CFG05–CFG10, TOOL11, UI06/UI07 и E2E05 проходят.
 
 Детальные test IDs и методики: `docs/TEST_PLAN.md`. Задачи/зависимости: `planning/tasks.json`.
 
@@ -125,6 +125,33 @@ TOOL12–TOOL19 имеют одного владельца T50; T45/T46 и T44 v
 scope, без circular done-dependencies. Дополнение не ослабляет A01–A13/живые gates,
 не переписывает исторические PASS и не меняет existing task execution statuses.
 Утверждён и доставляется план, новая реализация ещё pending.
+
+## Owner scope amendment (2026-09-27 — service config/startup/error isolation)
+
+После RECON владелец утвердил [T46 R6/R7](docs/goals/2026-09-22-mcp-attach-parity.md),
+[T51 R1–R3](docs/goals/2026-09-27-startup-fault-isolation.md) и
+[T44 VIS19/VIS40/VIS42](tui-recovery/T44_CONTRACT_AMENDMENT.md#service-configstartup-error-parity--vis19vis40vis42).
+MCP legacy/canonical config, environment/cwd/timeouts имеют реальную семантику;
+ошибка отдельной записи/optional plugin/provider connection не отменяет TUI/history/
+model picker. Enabled MCP initial startup асинхронен через существующего owner;
+failed/pending/disabled и безопасные details доступны до первого prompt. Selected
+model не подменяется, запрос к недоступной модели даёт явную ошибку; fatal native
+startup содержит safe source/field/stage/code/action, не только общую категорию.
+
+Admitted **local MCP** наследует product-process environment плюс configured overlay:
+это явное изменение старого T37/MCP04 минимального env, не policy обычного shell.
+Command/resource/credential-domain admission предшествует inheritance; lower-trust
+command не получает higher-trust secrets автоматически. No runner-auth extraction,
+env/config/raw-error dumps или чтение/редактирование пользовательского config ради green.
+
+Superseded только app-wide optional-service rejection, lazy first-turn MCP attach и
+minimal local-MCP env/cwd restriction. Trust/security-critical invalid policy, storage/
+data-root/recovery, cancellation, cleanup/McpShutdown/caps остаются non-success;
+immutable generations, discovery oracle/budgets, redaction и unknown-effect quarantine
+не меняются. OAuth/CodeMode/arbitrary JS host и новый protocol вне утверждённого среза
+имеют честное per-service unsupported состояние, не working parity. Historical PASS
+не переписываются. MCP09/MCP10 — только T46, CFG09/CFG10/UI07 — только T51; T44 владеет
+visual qualification отдельно, без circular whole-task done-dependencies. План pending.
 
 ## Исполнение
 

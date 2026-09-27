@@ -1,7 +1,7 @@
 # Goal: TUI pixel parity with opencode v2.0.12
 
 Status: active
-Source: user instructions 2026-09-21, reviewed recovery amendment 2026-09-22 and question/DCP/subagent/MCP/tab UI amendments 2026-09-27, reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`); DCP 3.1.15 at `11f6517780a502512a3467645074be447cb0369e` for compression presentation.
+Source: user instructions 2026-09-21, reviewed recovery amendment 2026-09-22 and question/DCP/subagent/MCP/tab/service-error UI amendments 2026-09-27, reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`); DCP 3.1.15 at `11f6517780a502512a3467645074be447cb0369e` for compression presentation.
 Last updated: 2026-09-27
 
 ## Objective
@@ -30,6 +30,16 @@ notification formatter with the real OC2 transcript renderer as the display refe
 not OC2 native `/compact`. Native token labels add `M` and rounded-unit promotion to
 the donor's `K` formatter. This narrowly declared numeric-format difference is recorded
 in full-frame comparisons; it does not waive unrelated symbols/styles/geometry diffs.
+
+Owner-approved service-error extension (2026-09-27):
+[VIS19/VIS40/VIS42](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#service-configstartup-error-parity--vis19vis40vis42)
+consumes T46 config/async initial MCP status and T51 plugin/provider/readiness/safe
+diagnostic facts before first prompt. Failed optional service must not prevent usable
+TUI/history/model picker. /plugins and service details show real failures/recovery with
+safe provenance/cause, no fake connected/active/sign-in labels. Selected-model fallback
+is not adopted. Truly fatal native startup frame has concrete safe cause/action and
+functional qualification, not invented donor pixel parity. VIS42 mandatory NOT_RUN;
+backend slice/effects precede paired presentation, no all-T46/T51 done-dependency.
 
 ## Frozen Contract
 
@@ -207,14 +217,21 @@ Approval is not PASS; VIS39 starts NOT_RUN/evidence empty, previous evidence int
 - Allowed and forbidden artifacts: source/tests/docs/evidence. Forbidden: editing GOAL.md gates, deleting tests, adding JS runtime, committing secrets.
 - User or harness budget: commits+pushes per slice; iterative rounds; no attempt limit.
 
-## Current Checkpoint
+## Current handoff and historical startup checkpoint
+
+Current task execution is authoritative in [progress/NOW.md](../../progress/NOW.md)
+and Git, not the old startup notes below. Owner-approved 2026-09-27 MCP environment
+failure is a different reproduced loader defect, assigned to T46/T51; the resolved
+stale-key incident does not prove today's startup/config parity or close VIS42.
+The following checkpoint/state records the earlier 2026-09-23 incident only; it is
+retained as history, not a current pause instruction or unresolved credential blocker.
 
 - Closes: no visual gate yet.
 - Smallest next action: **owner startup failure root cause is proven by the startup trace and the fix is applied** — the failing zsh exported a stale `LUDKA2_API_KEY` (fingerprint `1101b285`) while the working identity (`54f454fc`) is available from the same `secrets.env` the `oc` alias loads; config resolution, provider and discovery URL matched exactly and the server answered 401 for the stale credential. The owner-approved `with-oc2-secrets` wrapper + `alias oc2` in `~/.zshrc` now load that file before `exec`ing the native binary (backup `~/.zshrc.bak-oc2`; `zsh -n` and a stale-key PTY run both pass with `status=200`/Home). Owner activates it with `source ~/.zshrc` or a new terminal. T44 remains paused; on resumption continue S05/S06/S08, S07 resources and V08–V09 for all mandatory cases in current ACCEPTANCE.json. See `evidence/tui/recovery-startup/{owner-catalog-recon,trace-report,resolved-checkpoint}.md`.
 - Expected evidence: capture lock, independent original frames, commands/exit codes and raw input/application effects; exact checkpoint after each slice.
 - Stop or replan if: reference/profile unavailable → BLOCKED_REFERENCE, never closest-rendering parity. Independent fixes remain executable.
 
-## Current State
+## Historical startup state (2026-09-23)
 
 - Resolved: source/theme/component groundwork landed through `d232baa`; historical reports remain unchanged.
 - Last relevant evidence: V00 real diagnostic paired captures in `evidence/tui/recovery-v00` (all comparisons unequal); V01 raw PTY stalled MCP prompt and manual compression cancellation/retry plus safe diagnostics in `evidence/tui/recovery-v01/report.md`. These do not qualify VIS01–VIS26.

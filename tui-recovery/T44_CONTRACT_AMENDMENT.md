@@ -915,6 +915,67 @@ VIS41 mandatory, NOT_RUN/evidence empty until qualification; VIS39 remains open.
 Plan approval changes neither task execution statuses, historical reports/evidence
 nor baseline. This plan-only delivery does not implement either animation.
 
+## Service config/startup error parity — VIS19/VIS40/VIS42
+
+Owner-approved 2026-09-27 after RECON. [T46 R6/R7](../docs/goals/2026-09-22-mcp-attach-parity.md)
+adds real donor config/cwd/environment and nonblocking initial MCP connections;
+[T51 R1–R3](../docs/goals/2026-09-27-startup-fault-isolation.md) adds plugin/provider
+isolation and safe startup diagnostics. T44 owns the UI consumer/qualification,
+not another service owner or a whole-task completion barrier. Independent T44 slices
+stay ready. Pinned OC2 commit unchanged; U60–U65 extend U50–U55/U02/U49.
+
+1. **Existing VIS19/VIS40 startup extension.** Config-admission failure, failed/slow
+   initial connection and unexpected close must be visible before any turn warning.
+   Status/details consume actual current Location/config-generation inventory, including
+   invalid recognized entries and disabled records. Valid disabled chrome with environment/
+   timeout opens usable TUI without npx/browser spawn/probe; opening/searching modal cannot
+   launch it. Healthy/slow/failed fixture shows real independent state and available tools.
+   Connected requires init/catalog success; close/disconnect retires unavailable tools,
+   failed relist keeps last healthy catalog per MCP07. Explicit admitted retry/config
+   repair restores true state, never clears quarantine or reexecutes uncertain effects.
+   Existing VIS40 geometry/actions/colors/focus/details/idle requirements still apply.
+2. **New VIS42 / R5 / V04 — plugin failure inventory.** /plugins and palette entry
+   use real bounded native module/admission facts. Reproduce pinned PluginsDialog list,
+   failed footer/gutter, semantic error/focus roles and safe error detail access, search/
+   empty/long Unicode/scroll/resize/close routing through shared Dialog/Select. Rejected
+   unknown marker is failed/UnsupportedPlugin, not hidden by donor unsupported-row filter,
+   and not active; healthy compiled aliases stay usable. Requested/current retained
+   activation differs truthfully when relevant. Do not invent registry install/update/
+   hot-load controls; unavailable donor actions have predeclared native capability mapping.
+   No raw target URL/absolute path/error/env secret in labels/details/copy/investigate.
+3. **VIS42 service/readiness diagnostics.** Status/sidebar/dialog/error feedback follows
+   real owner facts and pinned U63/U64/U65 components. A provider discovery/connect/
+   credential failure leaves TUI/history/model picker usable, shows actionable safe cause,
+   does not silently select a different model or show mock response. Unavailable prompt
+   fails before generation/tool effects; admitted recovery or explicit model choice
+   becomes ready and next request uses it. Preserve ordinary prompt/chips/cursor/focus
+   on error/detail/back/reopen; late events cannot corrupt another Location/session.
+4. **Structured diagnostic/fatal native surface.** Show redacted source/field/service/
+   stage/safe-code/retryability and allowed next action, not raw exceptions or generic
+   Configuration load failed alone. Details/copy/investigate share safe owner payload;
+   no regex/keyword inference or auto-submit. Fatal trust/policy/storage/data-root/
+   recovery/cleanup/caps remains non-success. Native fatal startup frame is a declared
+   functional difference, not a nonexistent donor pixel reference; test exit/focus/
+   terminal restoration and concrete safe source/cause/action without disguising it as
+   paired parity. Optional malformed config cannot bypass mandatory effective policy.
+5. **Qualification.** Rebuilt actual binary proves MCP09/MCP10/MCP08 and CFG09/CFG10/
+   UI07 startup/failure/recovery/request/effect/cleanup assertions first. Then paired
+   running pinned-original/native production components with identical safe fixture/
+   theme/state/profile prove full styled-cell/PNG/cursor list/details/error/recovery,
+   real keyboard/mouse, focus/draft restoration and reopen at existing 80x24/120x40/
+   160x48 profiles and representative long labels. Use fake services/controlled plugin
+   failures, not npm installs/real browser or a paid campaign. Safe-diagnostic wording,
+   compiled-only plugins and unsupported OAuth/CodeMode/protocol/actions are named
+   unmasked differences before capture, never hidden rows/fake buttons/native-golden
+   PASS. Reuse VIS10/11/19/20/21/22/23/31/40 plus backend evidence rather than repeat the
+   negative/theme×viewport×state matrix. Bound owner snapshots/queries/queues; no idle
+   polling/new framework. Preserve reference provenance/failed attempts; missing
+   executable reference is BLOCKED_REFERENCE, not relaxed tolerance or baseline edit.
+
+VIS42 mandatory NOT_RUN/evidence empty; VIS19/VIS40 remain open until current backend
+and paired qualification. No execution status/history/PASS rewrite. T46/T51 own backend
+scenarios, T44 owns VIS only; minimal slice dependencies have no circular task completion.
+
 ## Обязательные результаты нового прохода
 
 V00–V09 из IMPLEMENTATION_GUIDE.md и все mandatory сценарии из актуального ACCEPTANCE.json:

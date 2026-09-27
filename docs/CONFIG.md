@@ -12,13 +12,41 @@ Discovery native enabled для ludka2; static ludka можно включить
 
 Baseline discovery/precedence получить из pinned OpenCode config tests и сохранить source-derived fixture в T02. `G` — `$OPENCODE_CONFIG_DIR`, если задан, иначе platform XDG OpenCode config root; env override заменяет default, а не добавляет второй global layer. Для admitted sources low→high: `G/opencode.json`, `G/opencode.jsonc`, optional explicit `--config`, direct `opencode.json` затем `opencode.jsonc` от Location root к working directory, затем `.opencode` roots от Location root к working directory с JSON перед JSONC. Более широкий upstream walk за trusted Location boundary — documented difference, не скрытое чтение parent/home filesystem.
 
-Pipeline: source discovery/provenance → explicit trust decision для canonical Location/source boundary → text substitutions/no-follow resource reads → JSONC parse → normalize supported shapes → domain-specific merge → typed capability validation → fully built candidate generation → atomic publication. До trust нельзя читать `{file:...}`, разрешать lower-trust endpoint/command с higher-trust credential или запускать network/process. Failure сохраняет прежнюю generation; mixed old/new config, instructions, catalogs, plugins или clients не публикуются. Подстановки выполняются ДО parsing согласно pinned recon, не переносить старую ошибку плана v1.
+Pipeline: source discovery/provenance → explicit trust decision для canonical Location/source boundary → text substitutions/no-follow resource reads → JSONC parse → normalize supported shapes → domain-specific merge → typed capability validation → fully built candidate generation → atomic publication. До trust нельзя читать `{file:...}`, разрешать lower-trust endpoint/command с higher-trust credential или запускать network/process. Fatal candidate/reload failure сохраняет прежнюю generation; mixed old/new config, instructions, catalogs, plugins или clients не публикуются. T46/T51 target допускает fully admitted candidate с isolated optional-service failures и typed diagnostic inventory, не half-valid policy. Подстановки выполняются ДО parsing согласно pinned recon, не переносить старую ошибку плана v1.
 
-Missing required selected-provider key приводит к MissingCredential, а не fallback provider. Отсутствующие env references обрабатываются по pinned substitution contract (пустое значение), но обязательность credentials проверяется только для выбранных/enabled integrations после normalization. Disabled provider/MCP не запускает network/process и не требует своих credentials. Это НЕ обещает lazy file substitution: доверенный config с {file:...} может читать ссылку до entry filtering; trust gate применяется ко всему источнику. Пустая подстановка не является действительным ключом и не выводится как secret в effective config. Не вводить второй противоречащий parsing pipeline ради пропуска неиспользуемых env keys.
+Missing required selected-provider key приводит к MissingCredential, а не fallback provider. T51 target сохраняет локальную TUI/history/model picker доступность, но запрос выбранной недоступной модели явно fails до generation/tool effects; headless nonzero. Это supersedes отказ всего TUI из-за credential/discovery readiness, не selected-reference validation. Отсутствующие env references обрабатываются по pinned substitution contract (пустое значение), но обязательность credentials проверяется только для выбранных/enabled integrations после normalization. Disabled provider/MCP не запускает network/process и не требует своих credentials. Это НЕ обещает lazy file substitution: доверенный config с {file:...} может читать ссылку до entry filtering; trust gate применяется ко всему источнику. Пустая подстановка не является действительным ключом и не выводится как secret в effective config. Не вводить второй противоречащий parsing pipeline ради пропуска неиспользуемых env keys.
 
 JSONC comments/trailing commas и source locations сохраняются для diagnostics. Unsupported arbitrary plugin/provider package даёт имя config field и capability, которой не хватает. Не «поддерживать» настройку только тем, что Serde её проглотил. Security-relevant invalid candidate не публикуется; malformed отдельная definition исключается с path/field/reason. Explicit selected-reference failure остаётся явным; configured default eligibility/fallback governed by approved R6, not the old blanket default-reference hard error.
 
 DCP domains, provider model metadata/variants, MCP entries, skills, agents, commands и permissions имеют отдельные merge rules. Native own settings не переопределяют смысл известных upstream fields. Источник и shadowed origins доступны в `oc config explain`, secrets и sensitive absolute paths redacted.
+
+## Service config/startup — approved target (T46/T51, pending)
+
+[T46 R6 matrix](goals/2026-09-22-mcp-attach-parity.md#r6-fieldcapability-matrix--approved-target-not-supported-claim)
+defines legacy `mcp.<name>` and canonical `mcp.servers.<name>`, global/server stage
+timeouts, enabled inversion/precedence, actual argv/cwd/environment and explicit
+OAuth/CodeMode/protocol differences. Admission is per server after source trust;
+malformed/unsupported entry stays in bounded failed diagnostic inventory while valid
+siblings survive. Unknown non-security donor metadata may be omitted, not recognized
+unsupported behavior or malformed policy. Valid disabled entries remain disabled and
+zero-spawn even with environment/cwd/timeout; loader support is not proven by Serde alone.
+
+Admitted local MCP inherits product-process env plus configured string-map overlay;
+relative cwd resolves from effective Location workspace directory, not source file.
+Full environment/credential authority requires command/resource/credential-domain
+admission before launch; untrusted/lower-trust commands do not inherit higher-trust
+secrets. Ordinary shell keeps its minimal env; remote MCP gets no arbitrary local env.
+New env values/inherited secrets join redaction; never dump expanded effective config.
+
+[T51](goals/2026-09-27-startup-fault-isolation.md) adds typed source/field/service/stage/
+safe-code/retryability/action diagnostics shared by TUI/headless. Optional malformed
+document may be rejected only when complete mandatory effective config/policy remains
+admitted; donor syntax skipping is not permission to fall back to less restrictive
+policy. Fatal unsafe config/storage/recovery/cleanup remains non-success with a concrete
+safe cause. Selected-model/provider readiness is separate from local UI availability;
+discovery deadlines/retries/metadata and last-healthy-catalog publication remain intact.
+Async MCP startup/status/control uses existing owner and safe request boundaries.
+These targets are pending; current strict loader/lazy attach is not a support claim.
 
 ## DCP configuration — approved target
 
@@ -98,6 +126,12 @@ text, not config instructions or automatic parent-history inheritance (R8).
 ## Native plugin classification
 
 До resolver/import/process/network классифицируются только exact identities. Bare `@tarquinen/opencode-dcp`, pinned `@tarquinen/opencode-dcp@3.1.15` и пользовательский exact alias `@tarquinen/opencode-dcp@latest` обозначают один compiled DCP module фиксированной repository revision: `@latest` здесь НЕ вызывает registry resolution и не меняет revision. Exact canonical `<effective-config-root>/{plugin,plugins}/openproxy-models.js` обозначает один compiled OpenProxy discovery module; файл не читается и не исполняется. Exact `@prevalentware/opencode-goal-plugin@0.1.49` из общей authoring-конфигурации даёт warning и нулевую runtime capability: код пакета не загружается. Basename вне admitted root, `.ts`, URL/arbitrary path, ranges, другие versions/packages и любой unknown JS/TS дают source-qualified `UnsupportedPlugin`. Duplicate aliases idempotent. Provider alias `@ai-sdk/openai` остаётся отдельным config domain, не plugin identity.
+
+T51/CFG09 approved target isolates `UnsupportedPlugin` to the rejected capability,
+not the entire usable candidate/TUI. Failed requested/current native activation and
+source are reported truthfully before first prompt and on reload. Known native aliases
+and definitions survive; no plugin code/resolver is invoked. The exact classifier and
+authoring-only ignored alias remain unchanged; this does not add a plugin SDK/hot-load.
 
 ## Generation и limits
 

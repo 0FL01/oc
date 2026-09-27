@@ -154,9 +154,19 @@ preview никогда не подменяет доступные модели �
 
 HTTP client умеет JSON и SSE ответы там, где transport их предлагает. У OpenProxy stateless JSON mode отсутствие session ID или GET event stream не должно порождать reconnect loop. Если SDK optional GET получает 405 — не считать это отказом исправного POST path; соответствие спецификации и поведение SDK проверить. Отправлять нужный `MCP-Protocol-Version` после initialize; no OAuth auto-discovery при oauth:false. Remote service timeout может быть меньше нашего клиентского 60s — сохранять исходный error, не ложно ждать/повторять операцию.
 
-Local `chrome-devtools`: argv точно из trusted config, без shell splitting/rewrite. `enabled:false` означает: не launch npx, не probe browser, не требовать Node, не делать install. При true — stdio JSON-RPC, stdout только protocol, stderr в ограниченный redacted log, process group lifecycle и минимальный child environment без provider/MCP credentials. Нужны runtime и уже доступный browser-url; `oc` не запускает Chrome с произвольным профилем пользователя.
+Local `chrome-devtools`: argv точно из admitted config, без shell splitting/rewrite. `enabled:false` (или canonical disabled:true) означает: не launch npx, не probe browser, не требовать Node, не делать install, включая environment/cwd/timeout. При true — stdio JSON-RPC, stdout только protocol, stderr в ограниченный redacted log, process group lifecycle. T46/R6 pending target заменяет прежний минимальный MCP env на inherited product-process environment + configured overlay после command/resource/credential-domain admission; обычный shell остаётся credential-free/minimal. Нужны runtime и уже доступный browser-url; `oc` не запускает Chrome с произвольным профилем пользователя.
 
 `chrome-devtools-mcp@latest` — явная пользовательская команда; её не подменять pinned silently. Core adapter acceptance — pinned fake stdio server. Optional real-browser smoke записывает фактически разрешённую версию/digest в evidence; это не воспроизводимость `@latest` навсегда.
+
+Approved config/startup target — [T46 R6/R7](goals/2026-09-22-mcp-attach-parity.md):
+legacy mcp.<name> и canonical mcp.servers/mcp.timeout через одну нормализацию;
+actual cwd/environment/stage deadlines, visible failed config/capability entries,
+async initial connections без ожидания всех серверов/первого turn. Invalid optional
+server не отменяет TUI или healthy siblings. No tools до initialize/catalog success;
+only safe-boundary publication, существующие clients/owner и responsive typed state.
+Полная field/capability matrix в T46, не предполагать поддержку OAuth/CodeMode/нового
+protocol или file-reference expansion. MCP09/MCP10 добавляют доказательство нового
+поведения; прежний MCP04/T37 PASS не квалифицирует inheritance/async startup.
 
 ## Catalog и вызовы
 
@@ -177,9 +187,13 @@ task, поэтому drop caller future не отменяет закрытие. 
 возвращается наружу: `WorkerGuard::join` сообщает её, и actual binary завершается
 ненулевым кодом вместо заявления clean shutdown.
 
-Owned stdio child лидирует отдельную process group (`setpgid` до exec), получает
-trusted project cwd и минимальный env (`PATH`/`HOME`/`TMPDIR`/`LANG`/`LC_*`) без
-credential values; TERM→grace→KILL адресуется только собственной group, а
+Owned stdio child лидирует отдельную process group (`setpgid` до exec). Historical
+T37 implementation uses project cwd/minimal env; approved T46/R6 target resolves
+configured cwd от effective Location workspace (absolute only if admitted) и
+inherits admitted product-process env plus overlay, including executable PATH.
+Source/command/resource/credential-domain admission precedes inheritance; lower-trust
+command cannot capture higher-trust credentials. No external runner-auth extraction;
+configured env values/inherited secrets join redaction, no env dumps. TERM→grace→KILL адресуется только собственной group, а
 не runner. SIGKILL fallback остаётся armed, пока wait не подтвердил reap.
 Закрытие generation ограничено общим бюджетом 10 s; превышение — честный
 `mcp shutdown failed`, а не бесконечное ожидание. Число enabled MCP servers
@@ -225,7 +239,8 @@ remote вызова и не выполняет автоматическую св
 для следующего turn. Failed relist восстанавливает claim и сохраняет прежний
 catalog. Пропущенный или конфликтующий `Authorization` даёт явную ошибку до
 network: headers нормализуются в typed `HeaderMap` case-insensitively, а
-duplicate с разными значениями — terminal config error. Search вызывает
+duplicate с разными значениями — terminal config error конкретного server (T46/R6 target:
+failed entry, не app-wide optional-service failure). Search вызывает
 server schema `query` + `response_length`, не helper `limit`.
 
 ## Direct exposure vs Code Mode

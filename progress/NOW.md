@@ -1,10 +1,10 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-27T16:43:22+00:00
+State updated: 2026-09-27T18:15:25+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
-Task: T44 — TUI pixel parity с opencode v2.0.12, включая Approve (VIS36), question (VIS37), DCP (VIS38) и полный subagent UI/colors/animations (VIS39), MCP modal (VIS40), tab hover-marquee (VIS41)
+Task: T44 — TUI pixel parity с opencode v2.0.12, включая Approve (VIS36), question (VIS37), DCP (VIS38), subagent (VIS39), MCP modal/startup (VIS19/VIS40), tab hover-marquee (VIS41), plugin/service errors (VIS42)
 Spec: docs/goals/2026-09-21-tui-pixel-parity.md
 Evidence target: evidence/T44/report.md
 
@@ -27,7 +27,7 @@ Chip wrapping/expansion remains open; inherited.opencode untouched.
 Observed VIS07 composer gaps, then remaining approved T44 presentation qualification.
 
 
-Ready (до 5): T45, T46, T47, T50
+Ready (до 5): T45, T46, T47, T50, T51
 Blocked: T27, T43
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.

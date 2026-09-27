@@ -122,6 +122,38 @@ the original audit/evidence retained. Add todo state without changing existing t
 statuses or PASS. T45/T46/T44 remain independently owned, no done-dependency cycle;
 current request/effect/PTY/resource/workspace/live evidence is required before claims.
 
+### D21 — service config/startup/error isolation (owner-approved 2026-09-27)
+
+After RECON the owner approved [T46 R6/R7](goals/2026-09-22-mcp-attach-parity.md),
+[T51 R1–R3](goals/2026-09-27-startup-fault-isolation.md) and T44 VIS19/VIS40/VIS42.
+Optional MCP config/connect/catalog, plugin admission/setup and selected-provider
+discovery/connect readiness cannot kill otherwise admitted TUI/history/model picker.
+Failed services retain typed safe status/diagnostics before first prompt; no raw-error
+or keyword/regex classification. Selected provider/model never silently falls back;
+unavailable request is actionable non-success, headless remains nonzero.
+
+Supersedes only app-wide rejection for an optional failed capability in D11/old
+loader, lazy first-turn MCP attach and T37/MCP04's minimal local-MCP env/cwd policy.
+Legacy/canonical MCP forms normalize per pinned donor field matrix; admitted local
+MCP inherits **product-process** env + configured overlay and resolves relative cwd
+from Location workspace. Command/resource/credential-domain admission is required
+before inheritance; no lower-trust secret capture or external runner-auth extraction.
+Ordinary shell TOOL05/AUD28 stays minimal. Env values/inherited secrets are redacted.
+
+Use existing generation/client/application owners for async MCP startup and bounded
+status/actions; publish tools at safe request boundaries. Invalid recognized entry is
+failed, valid disabled remains zero-spawn; OAuth/CodeMode/unsupported protocol are
+per-server capability errors, not pretend support. Security-critical malformed policy,
+trust/storage/data-root/recovery, cancellation, cleanup/McpShutdown and caps stay
+non-success. Reload preserves the previous healthy complete generation on fatal
+failure; no partial unsafe policy or mixed state. Discovery oracle/budgets/atomic
+catalogs and remote sticky quarantine/no unknown-effect replay stay unchanged.
+
+This is pending plan delivery: MCP09/MCP10 only T46, CFG09/CFG10/UI07 only T51,
+VIS42 only T44 (with startup transitions in existing VIS19/VIS40). No second registry/
+daemon/store/framework, whole-task completion cycle, historical PASS rewrite or new
+OAuth/JS host. Historical T37 env evidence remains factual but does not qualify R6.
+
 ## Остаточные prerequisites, не новые Q
 
 Secrets/connectivity/наличие нужной live модели проверяются just-in-time в T16/T27, не в T00. Missing → конкретный external blocker, не угадывание credentials. Docker проверяется только перед первым использованием и иначе `NOT_USED`. Exact versions Cargo dependencies/rmcp protocol/TLS проверяются compile spike. Реальная browser-служба требуется только для opt-in smoke. Monetary hard limit внешнего authoring-agent не задан; документация его не исполняет. Semantic DCP качества проверяются fixtures/live task, а не декларацией.

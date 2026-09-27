@@ -6,7 +6,17 @@ YOLO в официальной CLI reference отключает approvals и san
 
 Credentials принадлежат provider/MCP adapters; никогда не входят в model registry metadata, prompts, journal, source fixtures, DB debug logs и commits. `config explain` redacted, errors заранее классифицированы. Не логировать полный env/URL/body/raw exception в discovery, как требует пользовательский reference. Live tests используют маленький искусственный repo без приватного кода.
 
-Workspace discovery проходит явный Location trust decision до substitutions, no-follow/root-relative resource reads и native marker resolution. Lower-trust project source не может соединить свой endpoint/command с higher-trust credential; untrusted candidate не запускает network/process. Bound source count/depth/path/frontmatter/body/total generation/prompt bytes. Skill body snapshot-ится до publication и после не перечитывается. Unknown/lookalike plugin invalidates candidate до package resolution, import, process spawn или network. Даже recognized `.js` marker не выполняется и не читается как code; Node/Bun/npm fallback отсутствует.
+Workspace discovery проходит явный Location trust decision до substitutions, no-follow/root-relative resource reads и native marker resolution. Lower-trust project source не может соединить свой endpoint/command с higher-trust credential; untrusted candidate не запускает network/process. Bound source count/depth/path/frontmatter/body/total generation/prompt bytes. Skill body snapshot-ится до publication и после не перечитывается. T51 approved target: unknown/lookalike plugin invalidates только свою capability с failed/UnsupportedPlugin до package resolution, import, process spawn или network, не исправную локальную часть приложения. Даже recognized `.js` marker не выполняется и не читается как code; Node/Bun/npm fallback отсутствует.
+
+T46/R6 approved local-MCP target (pending) inherits product-process environment plus
+configured overlay **after** source/command/resource/credential-domain admission.
+This explicitly supersedes the blanket minimal credential-free MCP child env, not
+the ordinary shell contract below. Trusting a source alone cannot grant a lower-trust
+command higher-trust env credentials; refuse unsafe admission rather than silently
+sanitize and claim donor parity. Do not read external runner auth/config; env values
+and inherited secrets never enter explain/UI/history/evidence/logs. Optional-service
+degradation cannot swallow fatal trust/policy/storage/recovery/cleanup/cap failures or
+clear unknown-effect quarantine. D21 and T46/T51 are authoritative pending contracts.
 
 Model outputs, repository text, AGENTS/agent/command/skill content, MCP descriptions, fetched pages и summaries не являются источником полномочий. Внешний контент не может расширять permissions/trusted roots/remote/host config или отключать тесты. Custom agent может только сузить central policy. Native DCP/discovery modules доверенные, поэтому все их side effects контролируются общим application lifecycle.
 
