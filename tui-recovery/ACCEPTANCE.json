@@ -267,7 +267,7 @@
       "id": "VIS19",
       "step": "V01",
       "title": "MCP failure diagnostics",
-      "expected": "crw or faithful sanitized fixture exposes server+stage+safe cause; required failure not hidden; disabled zero spawn; exact auth/protocol per actual server.",
+      "expected": "crw or faithful sanitized fixture exposes server+stage+safe cause; required failure not hidden; disabled zero spawn; exact auth/protocol per actual server. Current D13/MCP07: per-server attach failure is visible while the turn continues, initial failed tools absent; fatal cancellation/cleanup/caps remain non-success. Historical pre-D13 refusal evidence is not current acceptance or a visual waiver.",
       "sources": [
         "P11",
         "P12"
@@ -567,6 +567,25 @@
         "U47",
         "U48",
         "U49"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS40",
+      "step": "V04",
+      "title": "MCP servers modal, truthful controls and full styled parity",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md section MCP modal parity — VIS40. T46/R5/MCP08 first delivers bounded typed current-Location/config-generation status snapshots/events and actual async connect/disconnect/retry with genuine initialize/catalog/cleanup effects; no whole-T46 completion dependency/new task/store/framework. Then /mcps, autocomplete and palette MCP servers open the medium overlay without transcript reflow. Match pinned Dialog/DialogSelect geometry/backdrop/v2 dialog surface, Search/fuzzy filter, No items available versus No results found, name-sorted real servers, truncation/scroll/resize, selection-preserving status refresh and cursor. Right statuses are Connecting …, bold Connected ✓, Failed !, Sign in required → and Disabled ○, not OCR Enabled columns/checkboxes; disabled server remains a selectable connect target. Actual focused status determines connect/disconnect/retry/sign-in hint with effective Space binding, empty/no-match action disabled, pending/loading suppresses duplicates. Match normal/focused/footer-focused/disabled semantic fg/bg/bold/blank-cell backgrounds/alpha; selected status follows shared Select focus override, not permanently green/red. Real keyboard/remap/mouse/footer navigation, Space action versus Enter details/no-op, safe MCP server error details/back/copy/investigate and common Esc/Ctrl+C/search/selection/draft/chips/cursor/focus behavior. Investigate prepares a safe draft without auto-submit; details never publish raw errors/URLs/headers/env. No component spinner/shimmer/fade: compare owner-driven pending/success/failure/retry/disconnect transitions, animations on/off surrounding UI/cursor as relevant, no idle polling. Configured-enabled is not connected; runtime toggles do not silently persist config or replay operations on reopen/restart. Preserve immutable in-flight requests/safe catalog boundaries, stale Location/generation routing, D13 visible per-server degradation, fatal cancel/cleanup/caps, permission/authority/redaction/negotiation and sticky unknown-effect quarantine. Disabled browser zero automatic spawn/probe; explicit connect fixture uses fake stdio. OAuth/integration sign-in stays an honest predeclared unsupported capability, not a working flow/full behavioral parity. Require rebuilt actual-binary fake HTTP/stdio/catalog/process effects then running pinned-original/native full styled-cell/PNG/cursor at80x24/120x40/160x48, representative Unicode/long-name/scroll/search/details/focus/action cases, no OCR/native-only golden/crop/mask/tolerance waiver. Missing executable reference BLOCKED_REFERENCE. Reuse VIS10/11/19/21/22/23/31/MCP07/MCP05/AUD23 and applicable A02/A06/A08/A10 evidence, not a duplicate negative/theme/viewport matrix or new paid/browser campaign. Backend/visual and T46 R4 live qualification remain separate, prior statuses/evidence/baseline preserved.",
+      "sources": [
+        "U02",
+        "U49",
+        "U50",
+        "U51",
+        "U52",
+        "U53",
+        "U54",
+        "U55"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",

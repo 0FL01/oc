@@ -642,6 +642,60 @@
       "locator": "base semantic text/background/action/feedback roles and dark/light overrides/hue scales; not legacy theme asset",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/theme/assets/v2/opencode.json",
       "purpose": "Resolved palette, warning override versus tab accent, profile/action colors and representative custom/light qualification"
+    },
+    {
+      "id": "U50",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-mcp.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "16–175 Status/DialogMcp: Location/name sorting, loading/status colors, actual toggle labels/connect/disconnect, Enter details/integration branch",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-mcp.tsx#L16-L175",
+      "purpose": "Canonical MCP servers strings/icons/status and real row/footer actions, not OCR Enabled columns; native OAuth capability boundary remains explicit"
+    },
+    {
+      "id": "U51",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/ui/dialog-select.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "185–205 fuzzy filter; 241–354 height/selection preservation; 389–532 modal actions; 566–900 footer/empty/row/focus rendering; ui/select-controller.ts:1–12 wrap/clamp",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/ui/dialog-select.tsx#L639-L900",
+      "purpose": "Search/empty/no-match, source padding/scroll/truncation, status focus-color override and actual keyboard/mouse/footer selection"
+    },
+    {
+      "id": "U52",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/ui/dialog.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "14–73 width/backdrop/placement/surface; 96–112 focus restoration; 115–207 Esc/Ctrl+C/stack/medium reset",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/ui/dialog.tsx#L14-L73",
+      "purpose": "Actual overlay alpha/geometry and state-specific selection/search-close behavior without editor key leaks or transcript reflow"
+    },
+    {
+      "id": "U53",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/app.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "882–888 mcp.list/MCP servers/Agent/slash mcps; config/keybind.ts:167 default none,255–261 dialog navigation,277 Space toggle",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/app.tsx#L882-L888",
+      "purpose": "Shared command/slash/palette entry and effective keymap hints; no invented default MCP hotkey"
+    },
+    {
+      "id": "U54",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/mcp/index.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "380–447 start/pending/catalog/status and stop cleanup; 487–528 asynchronous initial/reload reconciliation; 583–609 servers/connect/disconnect",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/mcp/index.ts#L380-L447",
+      "purpose": "Existing Location-owned actual connection state, events, catalog and runtime-only controls; T46/MCP08 native safety/immutable-generation boundaries retained"
+    },
+    {
+      "id": "U55",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-error-details.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "17–132 details geometry/scroll/copy/investigate/back; util/error-details.ts:1–21 copied text and explicit investigation draft",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-error-details.tsx#L17-L132",
+      "purpose": "Real MCP error-details interaction and safe draft/clipboard consumer; native diagnostics remain sanitized rather than raw donor exceptions"
     }
   ],
   "external_primary_sources": [

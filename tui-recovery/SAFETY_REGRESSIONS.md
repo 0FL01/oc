@@ -49,10 +49,14 @@ BEL и carriage return. Renderer должен показывать/безопа�
 
 ## S05 — MCP error не становится policy bypass
 
-Три fixtures: disabled entry (0 spawn/probe), required unavailable (явный failure),
-working configured entry (нормальная работа). Важно: не считать required optional
-из-за дизайна TUI. Проверить bearer/no-bearer и protocol shape по реальной capability
-семье, не переносить codex-specific требования на неизвестный `crw` вслепую.
+Три fixtures: disabled entry (0 automatic spawn/probe), unavailable entry (видимый
+per-server failure по current D13/MCP07, turn продолжается), working configured entry
+(нормальная работа). Не считать required optional и не скрывать failure из-за дизайна
+TUI; fatal cancellation/cleanup/caps остаются non-success. Проверить bearer/no-bearer
+и protocol shape по реальной capability семье, не переносить codex-specific требования
+на неизвестный `crw` вслепую. VIS40/MCP08 modal open/search не запускает disabled browser;
+явный connect проверять с fake configured stdio. Runtime toggle не меняет config на
+диске, не обходит permissions/Location/generation или sticky unknown-effect quarantine.
 Диагностика содержит server id+stage+safe error class, но не header values/raw body.
 Повтор после исправления — новое явное действие, не скрытый replay side effects.
 

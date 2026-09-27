@@ -723,6 +723,113 @@ history/query/event projections. Сначала lifecycle slice, затем UI q
 VIS39 mandatory, NOT_RUN/evidence empty until actual qualification. Approval freezes
 the plan, not implementation PASS; existing task statuses/evidence/baseline stay intact.
 
+## MCP modal parity — VIS40
+
+Owner-approved 2026-09-27: MCP-модалка должна воспроизводить pinned OC2 v2.0.12
+`2670273ff17da96f85c5826ced57aa1b368754fa`, не OCR. T44/R3/R5/V04 owns VIS40;
+T46/R5/MCP08 owns its minimal typed status/control prerequisite. No all-T46 done
+dependency, reverse gate, new task/client store/event framework or OAuth expansion.
+Sources U50–U55 plus existing U02/U49; preserve pinned provenance/license notices.
+
+1. **Exact source rather than OCR.** `/mcps` and palette `MCP servers` (`mcp.list`,
+   Agent category, default direct binding none) open the real DialogMcp; slash
+   autocomplete and dispatch share the existing registry. Current native
+   `commands.rs` explicitly inventories `mcps` as unsupported: replace that expectation
+   only when the owner-backed action actually works, keeping other unsupported entries.
+   Title is `MCP servers`, right label `esc`, input placeholder `Search`. With no
+   configured rows/query show `No items available`; a nonempty query with no matches
+   shows `No results found`. No extra Enabled/Disabled column or checkbox from OCR.
+   Server names come from current Location and are name-sorted, not production constants.
+   A server with status disabled is selectable/connectable, not a disabled Select option.
+2. **Geometry, filter and selection.** Use existing medium Dialog: width60 capped by
+   terminal width−2, horizontally centered/top at height/4, no added border, dialog
+   surface/base, paddingTop1 and backdrop black alpha150/255. No transcript reflow.
+   DialogSelect gap1/paddingBottom1, title/search paddingLeft/Right4 and input top gap1;
+   source row/title/footer paddings and alignment, hidden-scrollbar list with height
+   min(rows, floor(terminal height/2)−6), actual width/truncation/Unicode behavior.
+   Case-insensitive fuzzy filtering follows U51, not an ad-hoc substring/status search;
+   query/caret and selected server identity survive status updates. Filter/removed-row
+   reconciliation and scroll reveal follow the shared Select source. Do not add a
+   current-dot marker: DialogMcp supplies no current/gutter. Compare narrow/resize
+   and long names without altering caps or shrinking the overall comparison viewport.
+3. **Truthful statuses and action labels.** Right footer: pending/local loading
+   `Connecting …`; connected bold `Connected ✓`; failed `Failed !`; needs_auth
+   `Sign in required →`; disabled `Disabled ○`. Local loading also covers an ongoing
+   disconnect, not a new invented Disconnecting label. Toggle title derives from
+   actual focused status: connected disconnect, failed retry, needs_auth sign in,
+   otherwise connect; do not overwrite it merely from a local loading flag. Hint
+   comes from actual `dialog.mcp.toggle` binding (default space). Empty configured
+   list still renders disabled/no-op `connect space`; filtered no-match disables
+   the action but may retain the last focused server's title, not force connect.
+   While pending or already loading, repeat Space creates no duplicate operation. Never infer
+   connected from enabled config, auth from arbitrary prose or success from a UI flag.
+4. **Colors and attributes.** Resolve v2 `surface("dialog")` (U49), not legacy tokens
+   or raw hard-coded RGB. Unselected status colors: success connected, error failed,
+   warning needs_auth, muted pending/disabled; Connected retains source bold. Default
+   dark: text.base#eeeeee, muted#808080, success#7fd88f, error#e06c75, warning#f5a742,
+   dialog background#141414. Focused row uses action.primary focused bg/fg (default
+   dark #fab283/#0a0a0a), title bold; this overrides ordinary status color. When Tab
+   focuses the footer action, selected row becomes muted/raised.high and action gets
+   source focus/bold; disabled action uses action.primary.disabled. Input/background/
+   cursor, blank-cell backgrounds and alpha compositing also match. Reuse R2 for
+   representative light/custom fallback, not a whole state×width×theme matrix.
+5. **Keyboard, mouse and details.** Up/Down/Ctrl+P/Ctrl+N wrap, PageUp/PageDown use
+   source ±10 selection policy, Home/End select endpoints; effective remaps apply.
+   Mouse hover/down moves selection, row click follows Enter/select, footer click
+   follows its action; Tab/Shift+Tab cycle available footer focus. Space is the
+   real toggle action, not search insertion or editor input. Enter follows actual
+   server status, not local loading: connected/disabled/pending does not connect/close;
+   failed opens details with
+   `enter to view error`. Details match `MCP server: <name>`, safe error/context,
+   scroll, c/Copy and i/Investigate controls, copied feedback and Esc back to medium
+   list. Use sanitized owner diagnostics, not donor raw exceptions. Investigate
+   explicitly prepares a bounded safe diagnostic draft without auto-submit/tool
+   effects; distinguish this requested draft replacement from ordinary close/back.
+   Common modal Esc/selection/backdrop and Ctrl+C search-clear-before-dismiss rules
+   restore original prompt/chips/cursor/focus and do not exit the app; no key leaks.
+6. **Runtime owner and native boundaries.** MCP08 first supplies current
+   Location/config-generation snapshots/events and actual async connect/disconnect/
+   retry using existing clients/registry. Connected follows successful initialize
+   and tools-list; disconnect performs cleanup/catalog removal. Preserve in-flight
+   request immutability and publish controls/catalog at safe boundaries; bounded
+   snapshot reads/resize/cancel must not wait behind the entire turn's MCP mutex.
+   Revalidate server/Location/generation before effects; coalesce pending actions
+   and ignore stale display completion, without abandoning owned cleanup. Reopen
+   reads current facts; restart rebuilds from effective config, not saved connected
+   labels or replayed operations. Runtime toggles do not silently edit config.
+   D13: per-server failed attach is visible and turn continues, never silently disable
+   required MCP; fatal cancel/cleanup/caps still fail. Preserve permissions/authority,
+   strict codex_web versus generic negotiation, redaction and unknown-effect quarantine:
+   retry cannot clear safety state or reexecute uncertain tool work. Disabled browser
+   has zero automatic spawn/probe, including modal open/search. Explicit connect tests
+   use configured fake stdio, not real browser/npx. OAuth/integration flows remain
+   unsupported under GOAL; actual typed auth-required display and honest unavailable
+   sign-in are a predeclared capability mapping, not working OAuth/full behavioral parity.
+7. **State transitions, not invented animation.** Status itself has no Spinner,
+   shimmer or periodic animation; `Connecting …` is literal text. Compare actual
+   pending→connected/failed, connected→local-loading→disabled, failed→retry plus
+   row/footer focus and disabled branches, with animations on/off where relevant to
+   surrounding UI/cursor. Do not borrow the VIS39 Braille spinner or invent a fade.
+   Update from owner events; idle modal has no polling/timer per server. Reuse VIS31
+   demand-driven deadlines/resource evidence and preserve bounded snapshots/queues.
+8. **Qualification.** First rebuilt actual binary/fake HTTP+stdio proves MCP08
+   handshake/catalog/control counters, safe errors, next-request registry and owned
+   cleanup. Then run actual pinned DialogMcp/native with identical fixture/state/theme
+   and capture full styled-cell/PNG/cursor at80x24/120x40/160x48. Cover empty, mixed
+   connected/disabled, search match/no-match, pending/success/failure/retry/disconnect,
+   error details/back/copy/investigate, footer/mouse/keyboard focus and representative
+   Unicode/long-name/scroll/resize. Check real action effects independently; a static
+   renderer or OCR-derived golden is not qualification. Reuse VIS10/11/19/21/22/23/31,
+   MCP07/MCP05/AUD23 and applicable A02/A06/A08/A10 evidence, no duplicated backend
+   negative matrix or paid/browser campaign. Reference missing is BLOCKED_REFERENCE;
+   no crops/masks/tolerances or discarded capability rows to hide gaps. Report native
+   unsupported-OAuth capability and sanitized-diagnostic differences before capture, preserve failed attempts
+   and distinguish backend from visual results; this slice does not close T46 R4 live.
+
+VIS40 mandatory, NOT_RUN/evidence empty until actual qualification. Plan approval
+does not change task statuses, previous evidence or baseline. Independent T44 work
+continues while the minimum MCP08 prerequisite is delivered by the existing owner.
+
 ## Обязательные результаты нового прохода
 
 V00–V09 из IMPLEMENTATION_GUIDE.md и все mandatory сценарии из актуального ACCEPTANCE.json:

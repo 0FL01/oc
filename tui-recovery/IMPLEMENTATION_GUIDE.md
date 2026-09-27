@@ -107,10 +107,12 @@ Idle(draft)
 Реальный transport читать из конфигурации, а не выводить из имени. `oauth:false` означает
 «не выполнять OAuth», а не универсальное «каждый remote обязан иметь bearer».
 
-Обязательный MCP нельзя молча выключить ради красивого кадра. До отдельного owner
-решения failure сохраняется, но UI остаётся интерактивным, показывает полезную причину
-и позволяет повторить после исправления/явной настройки. Если будет введён optional MCP
-mode — отдельный видимый контракт, не скрытый fallback.
+Обязательный MCP нельзя молча выключить ради красивого кадра. Current D13/T46/MCP07
+supersedes прежний fatal attach: failed server видим с безопасной причиной, его initial
+tools не публикуются, turn продолжается. Failed relist сохраняет прежний catalog per
+MCP07. Cancellation/cleanup/caps остаются fatal; не превращать их в optional success.
+UI остаётся интерактивным; повтор подключения — новое admitted действие, не hidden
+replay неизвестных tool effects. Исторические P11/V01 reports/PNG не переписывать.
 
 **Тест:** fake зависает на initialize до принятия prompt; реальный PTY принимает resize,
 редактирование/отмену, возвращает draft; после отмены нет лишнего turn, child или request.
@@ -226,6 +228,23 @@ Model dialog: `Select model`, query/search, current-dot отдельно от fo
 первых восьми элементов. Выбор меняет runtime model/variant, а не только цвет строки.
 После закрытия restore focus и исходный draft. Agents/Sessions/Skills/MCP/error details
 используют тот же scaffold.
+
+MCP modal — mandatory VIS40, [audited contract](T44_CONTRACT_AMENDMENT.md#mcp-modal-parity--vis40):
+T46/R5/MCP08 first supplies the minimal current-Location/generation typed status and
+real async controls through existing clients/registry, not all-T46 completion. Then
+`/mcps`/palette open `MCP servers`; reproduce Search/empty/no-match, sorted real names,
+right source statuses/icons, normal/row-focused/footer-focused colors and actual
+Space connect/disconnect/retry versus Enter error details. Disabled status is not a
+disabled list option. Preserve query/selection across status updates, mouse/remaps,
+details/back/copy/investigate and state-specific Esc/Ctrl+C/draft/focus. Medium overlay
+and blank-cell backgrounds come from pinned U50–U55/U02/U49, not OCR Enabled columns.
+`Connecting …` is static status text with owner-driven transitions, no component
+spinner/shimmer or server polling. Snapshot/resize/cancel cannot wait behind the turn's
+long-held MCP mutex. Safe catalog boundaries, disabled zero-spawn, cleanup/caps,
+permissions/redaction/quarantine and honest unsupported OAuth stay intact. Qualify
+MCP08 actual-binary fake effects first, then VIS40 full paired styled-cell/PNG/cursor
+at existing profiles/representative long Unicode/search/scroll/details/focus cases;
+reuse VIS10/11/19/21/22/23/31 and MCP07/MCP05/AUD23 without duplicate matrices/campaigns.
 
 Не вводить ложные working `Share session`, `Connect an integration`/OAuth ради скриншота.
 Для отсутствующего backend нужен owner scope decision или явная недоступность; этот

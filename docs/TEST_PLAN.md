@@ -118,6 +118,36 @@ delivery/reexecution; bounded paging/family queries/queues and no periodic idle 
 Backend and visual results separate, missing reference BLOCKED_REFERENCE, no all-T45
 completion dependency, new task/store/framework, policy widening or historical PASS.
 
+## MCP modal prerequisite and qualification — MCP08 / VIS40 (approved 2026-09-27; pending)
+
+MCP08 in planning/acceptance.json belongs only to T46/R5; VIS40 is T44-owned in its
+task-local registry. Prerequisite is the minimal status/control slice, not all-T46
+completion or a reverse dependency. Reuse MCP07/MCP05/AUD23/A02/A06/A08/A10: actual
+rebuilt binary with fake HTTP/stdio verifies initialize+catalog before connected,
+current-Location/generation snapshots, genuine pending/connect/disconnect/retry,
+safe errors, tool catalogs at safe request boundaries, disabled zero-spawn and owned
+cleanup. Snapshot/resize/cancel remains responsive during turn execution; repeated
+pending Space coalesces, late actions cannot corrupt a new Location/generation.
+Reopen reads current facts and restart rebuilds from config without operation replay
+or saved connected labels. Runtime toggles do not silently edit config or clear sticky
+quarantine; unknown MCP tool effects never replay. D13 preserves visible per-server
+failure while the turn continues; fatal cancellation/cleanup/caps remain regressions.
+
+Then running pinned-original/native DialogMcp captures full styled-cell/PNG/cursor
+at80x24/120x40/160x48 with identical state/profile/fixtures: empty, mixed statuses,
+fuzzy search/no-match, pending→success/failure, retry/disconnect, error details/back/
+copy/investigate, row/footer/keyboard/mouse focus, long Unicode names/scroll/resize.
+Check v2 dialog surface/backdrop/blank backgrounds, bold, selected-status override
+and actual effects/draft restoration. Canonical strings/status icons follow U50–U55,
+not OCR Enabled columns. `Connecting …` has no component spinner/shimmer/fade;
+owner-driven transition frames and no idle polling, surrounding animations/cursor
+on/off as relevant. Reuse VIS10/11/19/21/22/23/31 rather than a duplicate full matrix.
+Declare sanitized diagnostics and unsupported OAuth/integration capability before
+capture; no fictitious sign-in, hidden rows, crop/mask/tolerance or native-golden PASS.
+Missing reference remains BLOCKED_REFERENCE. No paid/browser campaign; fake configured
+stdio exercises explicit connect. Backend/visual results and T46 R4 live stay separate,
+failed attempts/provenance retained, existing statuses/evidence/baseline unchanged.
+
 ## T50 selected native tools qualification (approved 2026-09-27; pending)
 
 TOOL12–TOOL19 in planning/acceptance.json have only T50 as owner; relevant high-level

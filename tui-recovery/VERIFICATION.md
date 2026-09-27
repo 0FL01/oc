@@ -50,6 +50,9 @@ ANSI stripping не подходит. Терминальные escape output м�
 
 В четвёртом PNG turn не принят из-за MCP attach failure. Это самостоятельный error
 scenario, не baseline для сравнения успешной беседы. Обязательны оба класса сценариев.
+Это исторический failure до D13: current MCP07 требует видимый per-server failure с
+продолжением turn, не прежний общий отказ. Fatal cancellation/cleanup/caps не меняются;
+не переписывать старый PNG/report и не выдавать его за expected current behavior.
 
 Original нужно воспроизводить через normal executable с isolated config и fake provider,
 а не вручную рисовать его экран. Seed session допустим через штатный API/fixtures
@@ -124,6 +127,18 @@ PNG и cursor сохраняют RGB/alpha, attributes и blank backgrounds; no 
 Reuse VIS28/VIS31 active-deadline measurements: после конечных transitions нет
 периодического idle work, static glow не требует timer. Истинность child/notice/
 Ctrl+B подтверждается shared SUB01/SUB02 protocol/SQLite/PTY, а не анимацией.
+VIS40 compares actual pending/connect/disconnect/retry and focus/error-detail transitions
+using U50–U55/U02/U49. DialogMcp `Connecting …` has no Spinner/shimmer/fade: do not copy
+the VIS39 animation into this modal. Capture normal/focused/footer-focused/disabled
+RGB/attributes/blank-cell backgrounds/backdrop/cursor at full frame, plus relevant
+surrounding animation/cursor on/off. Idle modal uses owner events, not polling; reuse
+VIS31 measurements. First prove MCP08 actual fake HTTP/stdio handshake/catalog/
+disconnect/retry/cleanup; display-only flags are insufficient. Empty versus filtered
+no-match, Unicode/scroll/resize, effective keys/mouse, safe details/copy/investigate and
+draft restoration need paired original/native and actual effects. Native unsupported
+OAuth and sanitized diagnostics are predeclared capability mappings; no fake sign-in,
+hidden rows or cropped/status-masked PASS. T46 R4 live stays independent, reference
+absence BLOCKED_REFERENCE and existing MCP07/MCP05/AUD23/safety evidence reusable.
 В этом компактном checker нет masks, auto-resize, tolerance или auto-update-goldens.
 Добавление любого исключения в будущем требует отдельного documented approved reason.
 
