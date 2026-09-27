@@ -62,6 +62,19 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Status: pending
   - Evidence:
 
+- R7: Every model request receives truthful Linux execution-environment context.
+  - Source: owner-approved Linux host-environment proposal and plan diff, 2026-09-27.
+  - Owner: T45 backend; reuse the existing runtime prompt assembler.
+  - Acceptance: a native collector obtains hostname, OS/distribution, kernel release, machine/process architecture, process pointer width, available CPU parallelism and effective UID/GID without root, sudo, additional Linux capabilities or shell subprocesses.
+  - Acceptance: the prompt includes the actual tool execution environment: working directory, workspace root, Git repository yes/no, configured shell executable and approved temporary directory. Do not infer the tool shell from $SHELL. Include the environment/date baseline and explicitly implement the missing base harness prompt fallback for an empty agent.system; custom agent.system replaces that base prompt, not the environment layer.
+  - Acceptance: host/workspace context is a separate harness instruction layer; custom agent.system does not replace it. Root and child requests use the same assembler and describe their actual execution context.
+  - Acceptance: collected fields are bounded and rendered deterministically, including escaping control characters and block delimiters in externally supplied values. Optional unavailable fields are omitted or marked unknown; collection failure does not prevent startup. os-release is parsed as data, never executed or sourced.
+  - Acceptance: architecture and CPU parallelism describe the execution environment, not an assumed physical host. Distinguish machine and process architecture; do not equate online CPU count with available parallelism or advertise filesystem/tool access as granted.
+  - Acceptance: restart and workspace switching refresh the relevant context. Each request uses one immutable snapshot; tool continuation does not accumulate duplicate environment messages. Preserve the existing immutable Location/config-generation boundary.
+  - Primary evidence: collector fixtures covering available/unavailable fields, captured fake-provider root/child requests with default and custom profiles and workspace switching, plus target/release/oc exercised under a non-root account with no effective capabilities. Verify the fallback/environment/date and absence of duplicate or unselected metadata in actual requests.
+  - Status: pending
+  - Evidence:
+
 ### Constraints
 
 - C1: Rust 2024, modular monolith, core independent of UI, KISS/YAGNI; no Node/Bun/JS host in production.
@@ -69,6 +82,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - C3: Do not weaken existing contracts to gain green checks (MCP attach failure stays fatal, validation/security/accessibility/concurrency guarantees intact, no suppressed tests).
 - C4: Progress engine `scripts/progress.py` is the only status source; one active task at a time.
 - C5: Plan-directory admission is narrowly scoped to donor-compatible `~/.opencode/plan`; no general trusted-root widening. Map donor edit permissions to native apply_patch, preserving explicit Deny, parent/child narrowing, symlink/CAS protections and the single apply_patch contract. Shell follows its own policy as in OC2; Plan is not a shell sandbox. Do not introduce write/edit built-ins or a JS plugin host. Remaining native policy/tool differences must be explicit and cannot count as full parity.
+- C6: Host metadata contains only explicitly selected fields. Do not project the full process environment, machine-id, network configuration or raw /proc files. Treat hostname and os-release values as bounded data, not instructions. No automatic toolchain inventory, network probes or privilege escalation. Host metadata does not grant or bypass native tool permissions. Free RAM/disk/load and toolchain versions are measured on demand, not injected as a changing inventory on every request. Keep native tool guidance truthful; no hardcoded production model IDs or copied guidance for absent write/edit tools.
 
 ### Non-goals
 
@@ -80,6 +94,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - Target: `crates/oc-adapters/src/{defs.rs,config.rs,composition.rs,runtime.rs,application.rs,tools.rs}`, `crates/oc-core/src/*`, `crates/oc-tui/src/*`, `crates/oc/src/*`, tests under `crates/*/tests/`, `docs/*`, `evidence/*`.
 - Expected paths, symbols, and direct consumers: `split_frontmatter`, `parse_skill`, `load_kind`, `insert_agent`, `insert_command`, `normalize_permission`, `MAX_*` constants; subagent work touches session/tool/runtime composition and TUI rendering.
 - R6 adds agent definition/merge/default selection, native Build/Plan registration and reminder lifecycle, narrowly admitted Plan-directory patch operations, headless CLI selection and existing T44 picker/cycle consumers. Reuse application/session/config owners; no new agent framework or separate persistence engine.
+- R7 adds a small native Linux environment collector in oc-adapters and integration into the existing application/runtime prompt assembler, including the base harness fallback and environment/date baseline. Reuse existing workspace and shell-executor metadata. No second registry, persistence engine, background service or new model-facing tool. This is a Linux extension, not a macOS/Windows implementation commitment or closure of all other OC2 instruction-lifecycle gaps.
 - Allowed and forbidden artifacts: source, tests, docs, evidence notes. Forbidden: editing GOAL.md/audit gates to pass, deleting tests, adding JS runtime, committing secrets or `.local/` contents.
 - User or harness budget: commits + pushes required; no attempt limit; live calls bounded.
 
@@ -98,6 +113,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - Next: R1+R2 implementation slice (delegated), then R3 research + implementation slices, committing/pushing each.
 
 ## Material Decisions
+
+- 2026-09-27: Owner approved R7 Linux host/workspace context and the four-file plan diff. T45 owns backend/request qualification; A13 is added to its existing gates without changing task IDs, dependencies or statuses. Extended host fields are native product additions, not claims that OC2 already emits them. Implementation remains pending.
 
 - 2026-09-27: Owner approved R6 primary-profile parity and pinned references. T45 owns backend/CLI; T44 owns UI qualification. Implementation and acceptance remain pending; T43's historical verified warning fixtures do not prove full profile parity.
 
@@ -123,6 +140,14 @@ IDs are registered in [SOURCES.json](../../tui-recovery/SOURCES.json).
 - U28 — [Default selection and fallback](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/agent.ts#L92-L133).
 - U29 — [Picker eligibility and cycle](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/local.tsx#L56-L123); [picker](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-agent.tsx#L6-L29); [keybindings](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/config/keybind.ts#L169-L171).
 - U30 — [Headless target selection](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/cli/src/session-target.ts#L42-L85); [switch before prompt](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/cli/src/run/noninteractive.ts#L644-L648).
+
+## Environment/context references — R7
+
+Pinned to `2670273ff17da96f85c5826ced57aa1b368754fa`:
+
+- [Built-in environment and date](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/instructions/builtins.ts#L22-L55) — donor environment baseline; extended Linux host fields are owner-approved native additions.
+- [Agent system/base prompt and instruction baseline composition](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/model-request.ts#L73-L92) — custom system replaces the base prompt, not the remaining instruction context.
+- [Base harness prompt](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/runner/prompt/system.txt#L1-L15) — fallback reference; adapt tool guidance to the native contracts and preserve provenance if copied.
 
 ## Completion
 

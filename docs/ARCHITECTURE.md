@@ -65,6 +65,12 @@ Provider continuation items (включая opaque reasoning) хранить о�
 
 Один runtime prompt assembler владеет semantic lanes: compiled policy, primary-agent body, ordered AGENTS, DCP additions, history projection, user input и tool results. Config adapter/TUI не собирают финальный prompt. Command expansion остаётся durable user input; skill body — tool result. Fixed config lanes не входят в DCP compression и не дублируются между turns.
 
+Target architecture under owner-approved [T45/R7](goals/2026-09-21-config-compat-and-subagents.md#environmentcontext-references--r7), not a current implementation claim: host/workspace environment is a compiled harness instruction layer, separate from the selected agent system/body and ordered AGENTS.md. A custom agent system replaces the base harness prompt but never suppresses environment/date. The missing base harness fallback is an explicit implementation requirement.
+
+Request context order: agent system/base harness prompt → host/workspace environment + date → ordered workspace instructions and skill metadata → permitted MCP guidance and DCP additions → history projection → current user input and tool results. Tool descriptions/schemas remain a separate provider request field. Root and child requests share the assembler; guidance describes actual native tools.
+
+Linux host facts are collected natively with ordinary user permissions, without shell subprocesses or privilege escalation. Runtime metadata reflects the actual tool executor, not the inherited $SHELL. Render selected bounded fields deterministically, escaping control characters/block delimiters; unavailable optional facts are unknown/omitted, not startup failures. Preserve one immutable snapshot per request and refresh the relevant context on restart/Location change without accumulating duplicates. The environment block describes execution facts, not an access grant or sandbox assertion. Do not inject raw environment/proc dumps or changing resource/toolchain inventories.
+
 При reproject сохранять законченные call/result/reasoning группы целиком либо заменять закрытую группу summary. Активный незавершённый batch не сжимается. Корректность replay подтверждается fake wire suite и live OpenProxy; несовместимость конкретного opaque item — visible capability blocker, не strip-and-retry.
 
 ## Lifecycle
