@@ -205,6 +205,29 @@ R6: pending до full rerun на финальном code SHA; сохранить
 `progress.py` остаётся единственным task-state owner; R-status — детализация T44, не
 второй task tracker. `ACCEPTANCE.json` здесь содержит спецификации, а не PASS результаты.
 
+## Primary profile selection parity — VIS06/VIS10/VIS17
+
+Owner-approved 2026-09-27 after RECON. Backend/CLI contract: R6 in
+`docs/goals/2026-09-21-config-compat-and-subagents.md` (T45).
+Pinned sources U25–U30 in `SOURCES.json`; UI source U29. No new task tracker.
+
+1. Use T45's real Build/Plan/custom catalog and application-owned session selection.
+   Match visible primary/all picker/cycle eligibility; exclude hidden, disabled
+   and subagent-only profiles from automatic selection surfaces as in OC2.
+2. Shift+Tab cycles eligible profiles rather than opening the picker; `/agents`,
+   palette and agent.list open the real picker. Match configured bindings, cycle
+   order/wraparound and empty eligibility without inventing a fallback profile.
+3. Preserve complete draft/focus and actual model/variant/session selection.
+   Prompt color comes from admitted profile metadata, not an invented color index.
+   Existing display titlecase/width fitting and no-success-toast contracts remain.
+4. Qualify Build → Plan → custom → Build using captured outgoing requests and actual
+   permissions/effects, including Plan enter/leave context. Reopen/reload and
+   compaction/Revert retain or reconcile the correct profile/reminders; labels alone
+   do not prove execution parity. Do not permit autoaccept to bypass effective Deny.
+5. Extend VIS06/VIS10/VIS17 with paired original/native full styled-cell/PNG picker
+   and prompt states plus owner/runtime evidence. T45 backend and T44 visual results
+   remain separate; no circular task-completion dependency or PASS by approval.
+
 ## Compaction parity — VIS34
 
 1. Проверить и переиспользовать session compaction runtime. Проследить `/compact`

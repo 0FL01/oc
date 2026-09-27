@@ -742,9 +742,11 @@
       "title": "Остаток subagent system (T43 slices 5-8)",
       "depends_on": [],
       "tests": [
-        "A02"
+        "A02",
+        "A03",
+        "A05"
       ],
-      "work": "Background subagents + synthetic notices + reap, command routing (agent/model/subagent/subtask), DCP allowSubAgents для child turns, TUI/history child rows. Built-in build/general/explore и остаток typed upstream agent fields (color/steps/system/request) с реальной семантикой, не silent acceptance; hidden/permission-filtered catalog опирается на T43 backend regression. Foreground prerequisite уже в 7895f43; removed T43 done-dependency устраняет взаимоблокировку, не объявляет остаток выполненным. Источник: evidence/subagents/upstream-v2.0.12-plan.md (срезы 5-8). TUI-часть координировать с владельцем T44, не менять в backend-blockers slice. T44 VIS26 ожидает non-primary agent exposure (mode/hidden фильтр) для `@`-mention; координировать без блокировки срезов T44.",
+      "work": "Background subagents + synthetic notices + reap, command routing (agent/model/subagent/subtask), DCP allowSubAgents для child turns, TUI/history child rows. Built-in build/plan/general/explore и остаток typed upstream agent fields (color/steps/system/request) с реальной семантикой, не silent acceptance; hidden/permission-filtered catalog опирается на T43 backend regression. Owner-approved 2026-09-27 R6: полный Build/Plan/custom Markdown primary-profile parity; discovery/nested IDs/field-wise merge/default primary mode, default_agent fallback, Plan policy/narrow plan-directory admission/enter-leave reminders/reconciliation и run --agent с фактическим switch перед prompt. Pinned U25–U30 и прямые ссылки в spec; T44 VIS06/VIS10/VIS17 проверяют picker/cycle/prompt/replay, backend и visual результаты отдельно, без circular completion dependency. Foreground prerequisite уже в 7895f43; removed T43 done-dependency устраняет взаимоблокировку, не объявляет остаток выполненным. Источник: evidence/subagents/upstream-v2.0.12-plan.md (срезы 5-8). TUI-часть координировать с владельцем T44, не менять в backend-blockers slice. T44 VIS26 ожидает non-primary agent exposure (mode/hidden фильтр) для `@`-mention; координировать без блокировки срезов T44.",
       "evidence": "evidence/T45/report.md",
       "spec": "docs/goals/2026-09-21-config-compat-and-subagents.md"
     },

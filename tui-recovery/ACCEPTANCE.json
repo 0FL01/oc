@@ -75,11 +75,15 @@
       "id": "VIS06",
       "step": "V02",
       "title": "Data-driven chrome",
-      "expected": "Session title, model/provider display names, agent color, usage and known/unknown pricing come from actual DTOs, not renderer constants. Prompt metadata uses pinned Locale.titlecase for the active agent display label: build → Build, build-yolo → Build-Yolo, preserving separators and existing casing elsewhere. Preserve the original agent ID, selection and color; model/provider/variant labels remain unchanged. Width fitting/truncation uses the painted label. Extend the existing prompt-metadata regression test and verify paired original/native full styled-cell/PNG frames for simple and hyphenated profile names.",
+      "expected": "Session title, model/provider display names, agent color, usage and known/unknown pricing come from actual DTOs, not renderer constants. Prompt metadata uses pinned Locale.titlecase for the active agent display label: build → Build, build-yolo → Build-Yolo, preserving separators and existing casing elsewhere. Preserve the original agent ID, selection and color; model/provider/variant labels remain unchanged. Width fitting/truncation uses the painted label. Extend the existing prompt-metadata regression test and verify paired original/native full styled-cell/PNG frames for simple and hyphenated profile names. Owner-approved 2026-09-27 primary-profile contract in T44_CONTRACT_AMENDMENT.md: Build/Plan/custom metadata and admitted profile color come from T45 R6 owner-backed definitions; verify actual selection/model/variant, not only display labels. Pinned U25/U27/U28/U29 are authoritative; backend and paired UI qualification remain separate.",
       "sources": [
         "P05",
         "P10",
-        "U05"
+        "U05",
+        "U25",
+        "U27",
+        "U28",
+        "U29"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",
@@ -132,11 +136,16 @@
       "id": "VIS10",
       "step": "V04",
       "title": "Modal focus and backdrop",
-      "expected": "Cell styles reflect correct backdrop/surface, dimensions60/88/116 constrained by width; Esc restores draft/focus and does not quit app. Successful agent selection closes Select agent, restores prompt draft/focus and updates actual selection/metadata without an agent-selection success toast, matching pinned upstream; verify paired before/after full frames and the selected agent while preserving error feedback and unrelated existing warnings. In an existing multi-message session, hovering the user message changes only its block as upstream; mouse-up without selected text opens the matching Message Actions dialog, text selection does not. Jump to dismisses for the already visible message. Owner amendment 2026-09-26: Revert moves the active conversation/LLM-context boundary before the selected user message and refills the prompt, never restoring files; /undo targets the last preceding nonempty-text user message, and all Redo entry points clear the entire staged boundary and restore the saved tail without provider calls or tool reexecution, matching original clear-all behavior per VIS33 and superseding the earlier one-turn Redo exception. Raw history is retained, DCP summaries/pruning obey the restored context version, restart retains the boundary, and a new accepted prompt after undo invalidates normal redo of the old tail. Workspace content/modes and user Git index/HEAD remain unchanged; snapshots default off, snapshot:false and snapshots:false are accepted, true reports unsupported. Copy requests a clipboard write with the exact message text (verify the destination separately where supported, per VIS27), Fork creates a real session before that user message with the prompt restored. Paired normal/hover/dialog styled-cell and PNG frames against original with snapshots disabled plus post-action session/context, unchanged-workspace and clipboard evidence are required. Missing owner actions cannot be represented by inert menu entries.",
+      "expected": "Cell styles reflect correct backdrop/surface, dimensions60/88/116 constrained by width; Esc restores draft/focus and does not quit app. Successful agent selection closes Select agent, restores prompt draft/focus and updates actual selection/metadata without an agent-selection success toast, matching pinned upstream; verify paired before/after full frames and the selected agent while preserving error feedback and unrelated existing warnings. In an existing multi-message session, hovering the user message changes only its block as upstream; mouse-up without selected text opens the matching Message Actions dialog, text selection does not. Jump to dismisses for the already visible message. Owner amendment 2026-09-26: Revert moves the active conversation/LLM-context boundary before the selected user message and refills the prompt, never restoring files; /undo targets the last preceding nonempty-text user message, and all Redo entry points clear the entire staged boundary and restore the saved tail without provider calls or tool reexecution, matching original clear-all behavior per VIS33 and superseding the earlier one-turn Redo exception. Raw history is retained, DCP summaries/pruning obey the restored context version, restart retains the boundary, and a new accepted prompt after undo invalidates normal redo of the old tail. Workspace content/modes and user Git index/HEAD remain unchanged; snapshots default off, snapshot:false and snapshots:false are accepted, true reports unsupported. Copy requests a clipboard write with the exact message text (verify the destination separately where supported, per VIS27), Fork creates a real session before that user message with the prompt restored. Paired normal/hover/dialog styled-cell and PNG frames against original with snapshots disabled plus post-action session/context, unchanged-workspace and clipboard evidence are required. Missing owner actions cannot be represented by inert menu entries. Owner-approved 2026-09-27 primary-profile contract in T44_CONTRACT_AMENDMENT.md: Shift+Tab cycles eligible profiles with donor order/wraparound instead of opening the picker; /agents/palette open the picker. Exclude hidden/disabled/subagent-only profiles from automatic surfaces. Qualify Build → Plan → custom → Build with actual owner selection, instructions/model/permissions and Plan enter/leave context, preserving draft/focus. Use T45 R6 and pinned U25–U29; no display-only parity or circular completion dependency.",
       "sources": [
         "P05",
         "P07",
-        "U01"
+        "U01",
+        "U25",
+        "U26",
+        "U27",
+        "U28",
+        "U29"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",
@@ -227,11 +236,14 @@
       "id": "VIS17",
       "step": "V06",
       "title": "Durable replay parity",
-      "expected": "Same session parts/cards/metadata render equivalently after page reload, session switch and process restart, with one durable owner. For a fresh session with a non-default profile and no explicit profile switch, the first user stripe matches pinned upstream during streaming, after completion/durable page replacement and after reopen. Both actual user and assistant message IDs retain the correct turn association and agent/color metadata; verify a real completed turn and history query, not synthetic rows or a renderer fallback. Paired full styled-cell/PNG frames and two sequential outgoing provider requests must show unchanged selected agent ID/digest (owner selection/log evidence) and that profile's instruction input, with no silent default-Build substitution under unchanged profile/config. No hard-coded profile/color or new immutable historical-color rule across explicit profile switches. UI color and stable profile instructions do not establish provider KV-cache reuse; do not publish credentials or raw live responses.",
+      "expected": "Same session parts/cards/metadata render equivalently after page reload, session switch and process restart, with one durable owner. For a fresh session with a non-default profile and no explicit profile switch, the first user stripe matches pinned upstream during streaming, after completion/durable page replacement and after reopen. Both actual user and assistant message IDs retain the correct turn association and agent/color metadata; verify a real completed turn and history query, not synthetic rows or a renderer fallback. Paired full styled-cell/PNG frames and two sequential outgoing provider requests must show unchanged selected agent ID/digest (owner selection/log evidence) and that profile's instruction input, with no silent default-Build substitution under unchanged profile/config. No hard-coded profile/color or new immutable historical-color rule across explicit profile switches. UI color and stable profile instructions do not establish provider KV-cache reuse; do not publish credentials or raw live responses. Owner-approved 2026-09-27 primary-profile contract in T44_CONTRACT_AMENDMENT.md: profile selection/instructions/model/variant survive reopen/reload; Plan reminders reconcile after compaction/Revert without inventing a profile switch. Reuse T45 R6 runtime/headless evidence (run --agent switches before prompting; omission retains existing selection), with pinned U26/U28/U30. Backend behavior does not substitute for paired visual replay qualification.",
       "sources": [
         "P01",
         "P06",
-        "P10"
+        "P10",
+        "U26",
+        "U28",
+        "U30"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",

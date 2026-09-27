@@ -363,6 +363,60 @@
       "locator": "192–193 leader-muted; 1556–1560 highlight; 1736–1742 text; 1827–1832 metadata; component/prompt/metadata.tsx:42–79 roles; context/keymap.tsx:137–145 timeout,312–315 pending source",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/index.tsx#L192-L193",
       "purpose": "Leader pending composer/metadata muting and configured timed-leader registration; following-key lifecycle requires pinned original verification"
+    },
+    {
+      "id": "U25",
+      "repository": "anomalyco/opencode",
+      "path": "packages/schema/src/agent.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "38–53 default primary/permissions; core/src/plugin/agent.ts:86–92 Build registration",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/schema/src/agent.ts#L38-L53",
+      "purpose": "Built-in Build and new-profile defaults; actual policy rather than display-only profile names"
+    },
+    {
+      "id": "U26",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/plugin/plan.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "14–25 enter/leave reminders; 27–53 Plan policy/directory; 56–120 context reconciliation and switch events",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/plugin/plan.ts#L14-L120",
+      "purpose": "Real Plan mode, explicit-request plan files, edit exception and lifecycle through compaction/Revert"
+    },
+    {
+      "id": "U27",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/config/plugin/agent.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "88–124 field merge/default/disable; 164–211 recursive Markdown/native-legacy import; config/discovery.ts:23–83 source roots/order; v1/config/migrate.ts:141–163 compatibility field mapping",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/config/plugin/agent.ts#L88-L211",
+      "purpose": "Custom Markdown profiles, nested IDs, frontmatter, typed fields and supplied-field merging"
+    },
+    {
+      "id": "U28",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/agent.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "92–133 selectable default/fallback, explicit addressing and list order",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/agent.ts#L92-L133",
+      "purpose": "Configured default versus Build/fallback, eligibility and explicit profile selection"
+    },
+    {
+      "id": "U29",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/context/local.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "56–123 picker eligibility/set/cycle; component/dialog-agent.tsx:6–29 picker; config/keybind.ts:169–171 agent bindings; app.tsx:873–898,925–931 picker and cycle dispatch",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/local.tsx#L56-L123",
+      "purpose": "Real profile picker versus Shift+Tab cycle, visibility, order, wrapping and selection feedback"
+    },
+    {
+      "id": "U30",
+      "repository": "anomalyco/opencode",
+      "path": "packages/cli/src/session-target.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "42–85 new/existing session agent selection; commands/commands.ts:354–381 run --agent; run/noninteractive.ts:644–648 switch before prompt",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/cli/src/session-target.ts#L42-L85",
+      "purpose": "Headless run --agent and preservation of existing session selection when omitted"
     }
   ],
   "external_primary_sources": [
