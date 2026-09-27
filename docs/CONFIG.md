@@ -20,6 +20,49 @@ JSONC comments/trailing commas и source locations сохраняются для
 
 DCP domains, provider model metadata/variants, MCP entries, skills, agents, commands и permissions имеют отдельные merge rules. Native own settings не переопределяют смысл известных upstream fields. Источник и shadowed origins доступны в `oc config explain`, secrets и sensitive absolute paths redacted.
 
+## DCP configuration — approved target
+
+Native DCP already reads optional `dcp.json`/`dcp.jsonc`; no automatic creation or
+rewriting. Within each admitted root, inline `dcp` precedes standalone JSON, then
+JSONC. The existing standalone layer order is `G` → Location project root → its
+admitted `.opencode`, with later supplied fields overriding earlier fields. `G`
+is nonempty OPENCODE_CONFIG_DIR, otherwise XDG_CONFIG_HOME/opencode, otherwise
+HOME/.config/opencode; the override replaces, not duplicates, the default root.
+Read-only regular UTF-8/no-follow/1 MiB and general trust/generation rules remain.
+`cli.json` is not a DCP source; no wider ancestor search, npm host or updater.
+
+Approved T45/R9/DCP12 omitted-field defaults are compress.minContextLimit=`"40%"`,
+maxContextLimit=`"55%"`, summaryBuffer=false; frequency5/iteration15/soft unchanged.
+They are native policy additions, not pinned DCP 3.1.15 defaults. Current compiled
+defaults and examples/dcp.jsonc still use explicit 50000/100000/true until the
+corresponding implementation; do not use that sample to qualify no-config defaults
+or overwrite existing user settings. Semantics/evidence: [DCP.md](DCP.md#approved-percentage-defaults--t45r9dcp12-pending).
+
+Target configurable groups (qualification is required, parsing alone is not support):
+
+| Group | Fields and values |
+| --- | --- |
+| Core | `enabled`, `debug` (safe metadata only); `$schema` is metadata |
+| Compression | `compress.mode:range`, `permission:allow\|ask\|deny`, `minContextLimit`/`maxContextLimit` positive tokens or valid `X%`, `summaryBuffer`, `showCompression` |
+| Model policy | `compress.modelMinLimits`/`modelMaxLimits` exact provider/model maps; native `compress.modelOverrides` with minContextLimit/maxContextLimit/nudgeFrequency; no model-ID hardcoding |
+| Reminder policy | `compress.nudgeFrequency`, `iterationNudgeThreshold`, `nudgeForce:soft\|strong` (`hard` is not a config value) |
+| Protection | `compress.protectedTools`, `protectTags`, `protectUserMessages`, top-level `protectedFilePatterns` |
+| Commands/manual | `commands.enabled`/`protectedTools`, `manualMode.enabled`/`automaticStrategies` |
+| Turn/strategies | `turnProtection.enabled`/`turns`, `strategies.deduplication.enabled`/`protectedTools`, `strategies.purgeErrors.enabled`/`turns`/`protectedTools` |
+| Display | `pruneNotification:off\|minimal\|detailed`, `pruneNotificationType:chat\|toast`; detailed/chat and showCompression=false defaults stay |
+| Children | `experimental.allowSubAgents` default true target, explicit false child-only opt-out under T45/R9/DCP10 |
+
+Existing legacy root limits/manualMode boolean/purgeAfterTurns and native
+modelOverrides aliases retain their declared normalization; recommend canonical
+nested fields. Effective min≤max validation follows model-context resolution.
+Enabled/manual/module policy never widens central Deny/ask or parent-child ceilings.
+Explicit autoUpdate:true, customPrompts:true and message mode remain unsupported;
+false does not enable an updater/prompt engine. Child gates are pending R9, and
+typed display modes/showCompression are pending T44/VIS38. Commands/debug are not
+qualified merely by accepted fields or old snapshot tests; their required runtime
+effects need current evidence. DCP12 proves default/threshold/config-resolution
+behavior, not completion of all these other outcomes.
+
 ## Instructions и definitions
 
 `AGENTS.md` — не config override. Effective instructions состоят из canonical-deduplicated `G/AGENTS.md`, затем applicable Location files в pinned nearest-working-directory-to-root order; distinct sentinel каждого admitted файла входит ровно один раз с provenance. Unreadable/disappeared file даёт diagnostic и не сохраняет текст из старой candidate. Reload возможен только между turns.

@@ -1,6 +1,6 @@
 # DCP native port — обязательное контекстное ядро
 
-Основа владельца: `compress` и подсказки агенту о сжатии. Source baseline: DCP 3.1.15, commit из `planning/baseline.lock.json`, AGPL-3.0-or-later. [D1–D3] в SOURCES. Это перенос функционального ядра, не npm package/auto-updater и не заявление о полном parity всех экспериментальных возможностей.
+Основа владельца: `compress` и подсказки агенту о сжатии. Source baseline: DCP 3.1.15, commit из `planning/baseline.lock.json`, AGPL-3.0-or-later. [D1–D4] в SOURCES. Это перенос функционального ядра, не npm package/auto-updater и не заявление о полном parity всех экспериментальных возможностей.
 
 ## Входит в goal
 
@@ -57,9 +57,18 @@ Permissions `compress:allow|ask|deny` независимы от file mutations. 
 
 ## Nudges и automatic strategies
 
-Стартовые upstream-derived значения required profile: minContextLimit 50000, maxContextLimit 100000, nudgeFrequency 5, iteration threshold 15, nudgeForce soft, summaryBuffer true. Это soft policy, а не потолок model capacity. Числовые и процентные thresholds + per-model overrides поддержать в DCP config; model IDs в код не зашивать. Явные user overrides читаются из dcp.jsonc.
+Owner-approved native defaults (2026-09-27): minContextLimit `"40%"`, maxContextLimit
+`"55%"`, summaryBuffer `false`; остальные defaults сохраняются, в том числе
+nudgeFrequency 5, iterationNudgeThreshold 15 и nudgeForce `soft`. Это pending
+T45/R9/DCP12, не claim изменения compiled code. Исторический upstream/native
+profile 50000/100000/summaryBuffer=true остаётся source baseline [D4] и может
+сохраняться как явный user override, но больше не является целевым default.
 
-Для меньшего окна с учётом requested output/safety reserve thresholds не должны требовать отправки недопустимого input; runtime hard admission сильнее DCP reminder. Effective thresholds и причины clamp доступны в DCP panel. Для models без limits не выдавать estimate за точный token counter.
+Runtime hard admission учитывает requested output/safety reserve и сильнее DCP
+reminder; процентная база — positive effective context capacity, не оставшийся input
+budget. Панель различает reminder thresholds и реальные model/input constraints,
+объясняя fallback и budget clamps, а не расширяя input до reminder threshold.
+Для models без limits не выдавать estimate за точный token counter.
 
 Nudge timing/placement и counter resets перенести из pinned hooks/prompts/tests. Не добавлять новую persistent reminder message на каждый token/chunk; emitted prompt projection не должна со временем накапливать дубликаты nudges. Context-limit reminder повторяется по частоте, пока превышение реально сохраняется; успешная compression пересчитывает counters. Manual mode отключает autonomous tool invocation/instructions в объёме baseline; manual automaticStrategies control не игнорируется.
 
@@ -70,6 +79,79 @@ Dedup: одинаковые tool name+canonical arguments, оставить по
 Поддержать enabled; pruneNotification/type; commands.enabled/protectedTools; manualMode; turnProtection; protectedFilePatterns; compress range/permission/showCompression/summaryBuffer/min/max/model overrides/nudgeFrequency/iterationNudgeThreshold/nudgeForce/protectedTools/protectTags/protectUserMessages; strategies.deduplication/purgeErrors. `debug` включает только безопасные metadata logs. `pruneNotification` сохраняет off/minimal/detailed, не boolean; type — chat/toast. Display defaults detailed/chat, showCompression=false. Notification `toast` может отображаться как bounded transient TUI status notice — documented UI difference.
 
 Config source order фиксируется отдельной source-derived fixture вместе с general config roots; `cli.json` сюда не входит. Sources проходят explicit trust boundary и остаются read-only. Native enabling не добавляет npm package. Supported aliases — exact `@tarquinen/opencode-dcp`, `@tarquinen/opencode-dcp@3.1.15` и пользовательский `@tarquinen/opencode-dcp@latest`; все три дают один instance repository-pinned compiled revision. Последний не резолвится через npm/registry. Semver ranges и другие versions — `UnsupportedPlugin` до package/network side effects.
+
+## Approved percentage defaults — T45/R9/DCP12 (pending)
+
+Canonical target фрагмент `dcp.jsonc` (иллюстрация утверждённых defaults, не
+изменение пользовательского файла или доказательство реализации):
+
+```json
+{
+  "compress": {
+    "minContextLimit": "40%",
+    "maxContextLimit": "55%",
+    "summaryBuffer": false,
+    "nudgeFrequency": 5,
+    "iterationNudgeThreshold": 15,
+    "nudgeForce": "soft"
+  }
+}
+```
+
+1. **Native defaults, overrides and provenance.** Change omitted-field defaults in
+   `DcpConfig::default`, not only a sample/local override. Positive integer token
+   limits and existing valid percent strings remain configurable, including partial
+   and exact per-model overrides. Explicit numeric overrides clear the percentage
+   form; explicit summaryBuffer=true keeps its opt-in semantics. Preserve source
+   precedence, validation/precision guards and one immutable config generation.
+   Update public help/samples with implementation; existing examples/dcp.jsonc is
+   an explicit older profile, not a no-config default test. Other defaults and
+   pinned revision/license stay unchanged. Config files are optional for DCP defaults.
+2. **One effective model basis.** Runtime and DCP panel use the same canonical
+   provider/model key, selected model budget/context capacity, native positive
+   fallback and exact model overrides. Resolve percent limits as floor(context ×
+   percent/100), minimum one token, then validate effective min≤max before effects.
+   Missing/zero/partial metadata uses existing AUD41 fallback/warnings; discovery
+   metadata remains unknown, DISC05/admission caps unchanged. Never use context=0
+   or DCP's max threshold as model capacity. Keep input/output/safety admission
+   stronger than reminders; do not hardcode production model IDs or vendor rules.
+3. **Total-active accounting and cadence.** The minimum check includes active
+   summaries in both buffer modes. With default false, the upper check also uses
+   total active estimated context, including summaries sent now. Opt-in true
+   subtracts only those active summary estimates for the upper check, not archived
+   summaries or actual request/model budgets. Below min: no context nudge; at min
+   it is eligible subject to existing cadence. At max: no max-only escalation;
+   strictly above max: strong/required reminder when cadence is due. Preserve
+   iteration-threshold escalation, frequency and successful-compress reset/cooldown;
+   invalid/no-gain attempts do not falsely reset them. Estimates are not exact billed
+   usage. Both modes send summaries and preserve immutable raw history/protections.
+4. **Reminder, not capacity.** 55% is an upper reminder criterion, not an enforced
+   occupancy ceiling, automatic summary call or extension of model admission.
+   `nudgeForce` is `soft|strong`; internal Hard means the stronger transient developer
+   reminder, not a separate input limit. Preserve disabled/manual/effective Deny,
+   child gates/isolation and active-task/context-pack protection. Native compaction
+   remains separate. No hidden paid summarizer, config writes or automatic Git work.
+5. **Truthful typed consumer.** Existing application/query/panel projection reports
+   effective min/max reminders separately from model capacity, buffer mode and
+   fallback provenance/warning. Correct the current panel's raw-model-ID/context=0
+   path to share runtime resolution, not a second policy calculator. Threshold facts
+   agree across selection/overrides/reopen/restart/Location generations; token estimates
+   retain their declared method rather than pretending every UI estimate equals wire
+   usage. Reuse bounded active queries and existing VIS38/resource evidence, no new
+   store, archive-loading consumer, framework or whole-T45 completion dependency.
+6. **Qualification.** DCP12 first tests no-DCP-file defaults, integer/percent/partial/
+   model overrides, true/false buffer distinction, boundary/cadence/reset and invalid
+   effective combinations. Then rebuilt actual binary with fake-provider requests and
+   owner snapshots proves reminder strength and matching effective thresholds for
+   known and fallback models, config precedence, restart and safe-boundary Location
+   changes. Reuse DCP05/DCP07/DCP10/DCP11/AUD41 and A03/A07/A08/A10/A13; no duplicate
+   long-horizon/negative matrix or new paid campaign. T45 owns DCP12 backend/facts;
+   T44 independently qualifies presentation, including pending VIS38. Historical
+   T19/T36/T39 reports, task statuses, baseline and existing evidence remain intact.
+
+Standalone paths, parameter groups and partial-implementation distinctions are in
+[CONFIG.md](CONFIG.md#dcp-configuration--approved-target). DCP12 and R9 remain
+pending until actual qualification; this plan does not qualify other display flags.
 
 ## Approved transcript presentation — T44/VIS38 (pending)
 
@@ -180,7 +262,9 @@ transaction и после restart допускает только zero-or-comple
 
 Nudge state durable и изолирован ключом session/provider/model. Percent limits и
 exact provider/model overrides вычисляются от context limit выбранной модели;
-summaryBuffer расширяет hard boundary, но не откладывает первое soft reminder.
+summaryBuffer=true вычитает активные summary только из верхнего nudge estimate,
+но не из первого minimum check или model admission. Это историческое buffer
+поведение, не новый default и не расширение hard input boundary.
 `nudgeForce` принимает `strong|soft`. Успешная compression сбрасывает cadence
 только своего ключа. Manual mode отключает autonomous strategies/reminders.
 

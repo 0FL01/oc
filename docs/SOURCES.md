@@ -36,6 +36,10 @@ T02 extracts representative source-derived fixtures from `config.test.ts`, `skil
 
 [D3] https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/compress/types.ts
 
+[D4] https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/config.ts
+
+D4 read 2026-09-27: schema/defaultConfig/source paths, including upstream 50000/100000/summaryBuffer=true. Native owner-approved 40%/55%/false are a separate pending T45/R9/DCP12 policy; source reading is not runtime qualification or a baseline revision change.
+
 Пути для последующего executable recon (не весь код проверен в этой редакции): `lib/compress/`, `lib/hooks.ts`, `lib/messages/`, `lib/prompts/`, `lib/config.ts`, `tests/`, `LICENSE` на том же commit. Не копировать README вместо точного test case.
 
 ## OpenProxy

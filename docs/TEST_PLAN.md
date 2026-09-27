@@ -47,7 +47,7 @@ T28 сначала фиксирует короткий baseline и measurement w
 
 ## T45 prompt/delegation/DCP qualification (approved 2026-09-27; pending)
 
-Detailed specs SUB01/SUB02/CTX01/CTX02/PRM01/DCP10/DCP11 in planning/acceptance.json
+Detailed specs SUB01/SUB02/CTX01/CTX02/PRM01/DCP10/DCP11/DCP12 in planning/acceptance.json
 have only T45 as owner; supplements A02/A03/A04/A05/A07/A10/A13. No duplicated
 owner assignment to earlier T24/T36/T40 or to T44 visual scenarios.
 
@@ -70,6 +70,25 @@ owner assignment to earlier T24/T36/T40 or to T44 visual scenarios.
   call/block quota; keep payload/cycle/no-gain/model/memory/turn guards. Freeze workload
   before qualification, never raise A10 regression caps or make a finite cycle count
   a product lifespan. Do not infer sustainability from the single-compression E2E.
+- DCP12 proves native omitted-field defaults 40%/55%/summaryBuffer=false, not only
+  an example/local override. Freeze known synthetic context sizes and compare
+  just-below/at-min, at/above-max with cadence due/not-due, iteration escalation and
+  success reset/cooldown/no-gain. For context100000, summary20000 plus other40000:
+  default false uses total60000 for max; explicit true uses40000 only for max, while
+  both include summaries for min and actual model admission. Verify actual transient
+  developer reminders/next request and committed state, not free model prose.
+  Integer/percent/partial/provider-model overrides, malformed/effective min>max,
+  disabled/manual/deny and existing child gates share DCP05/DCP07/DCP10 coverage.
+  Rebuilt binary/fake-provider owner snapshots must agree on canonical provider/model,
+  effective min/max, buffer mode and model capacity/fallback for known/missing/zero/
+  partial metadata, restart and safe-boundary Location/config changes. Do not turn
+  unknown discovery metadata into fabricated limits, use context=0 or confuse the
+  55% reminder with an enforced input ceiling; preserve AUD41/DISC05/input/output
+  guards. Config fixtures cover inline then dcp.json/jsonc within each admitted
+  root, global→project→.opencode layers, replacement OPENCODE_CONFIG_DIR, comments/
+  trailing commas, read-only sources and no auto-generated file. Reuse existing
+  config/restart/resource evidence; no new paid campaign or duplicate soak matrix.
+  T45 owns default/resolution/facts; T44 qualifies presentation independently.
 
 Use source-derived fixtures/captured fake-provider requests/actual binary and existing
 bounded live envelope, not days of paid prompts. Plan-only checks prove structure,
@@ -78,7 +97,7 @@ not these runtime outcomes; executed historical reports remain unchanged.
 ## T44 DCP display qualification — VIS38 (approved 2026-09-27; pending)
 
 VIS38 belongs only to T44 in its task-local registry, supplements A07/A08/A10 and
-does not reassign T45 DCP10/DCP11 or earlier UI04/DCP owners. First exercise actual
+does not reassign T45 DCP10/DCP11/DCP12 or earlier UI04/DCP owners. First exercise actual
 model/manual compress and independently verify committed run/block identities,
 unique newly-covered messages/tools, gross removed/active-summary/per-run estimates,
 recompression, smaller next request, no-gain/failure/cancel and restart. Then compare
