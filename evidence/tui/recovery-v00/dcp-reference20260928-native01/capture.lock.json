@@ -1,0 +1,304 @@
+{
+  "schema_version": 1,
+  "method": "source-derived display; intercepted pinned DCP payload -> original public session import -> unmodified U34 renderer",
+  "qualification": "Capture integrity only; no full parity claim",
+  "binary": {
+    "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "goldens_sha256": "ceca292f4f55c947458733a658fd6446eb17bfb463d32b86f75c702a6b57bb02",
+  "source_manifest": {
+    "dcp_pin": "11f6517780a502512a3467645074be447cb0369e",
+    "oc_pin": "2670273ff17da96f85c5826ced57aa1b368754fa",
+    "sources": [
+      {
+        "id": "D05",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/ui/notification.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/ui/notification.ts",
+        "sha256": "626a8978c1386ea206ae1600642a0c268e00f6db85b30670049dd2d33ffb319b",
+        "local": "sources/lib__ui__notification.ts"
+      },
+      {
+        "id": "D06",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/ui/utils.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/ui/utils.ts",
+        "sha256": "3a7f92b604906530d7494511d07330db3c2b6d8ad695c8cea3bca2b819fec7cb",
+        "local": "sources/lib__ui__utils.ts"
+      },
+      {
+        "id": "D07",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/compress/state.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/compress/state.ts",
+        "sha256": "ea109d2ae177cb3386d635b0955ce8b65274906a02f20c259e1195ac51769185",
+        "local": "sources/lib__compress__state.ts"
+      },
+      {
+        "id": "D08",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/config.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/config.ts",
+        "sha256": "b505a347324507f13f6a2e63d5971e950351be0dce2309ce7e37702e029c6c90",
+        "local": "sources/lib__config.ts"
+      },
+      {
+        "id": "D09",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/token-utils.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/token-utils.ts",
+        "sha256": "8206128a441226c0e67f0836646103bbfde616bd7ae15ea5005574fc201def8e",
+        "local": "sources/lib__token-utils.ts"
+      },
+      {
+        "id": "D10",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/state/utils.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/state/utils.ts",
+        "sha256": "47e1d1693698f31be16371b7172658d0b446469be0608ed2c1aceabf98e5eaf2",
+        "local": "sources/lib__state__utils.ts"
+      },
+      {
+        "id": "D10-range",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/compress/range.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/compress/range.ts",
+        "sha256": "043fba72da4262c26c5c360dddbbbf123a8148a892b96c15495286fd04e69c97",
+        "local": "sources/lib__compress__range.ts"
+      },
+      {
+        "id": "package",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "package.json",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/package.json",
+        "sha256": "8659a083229316d42833506878d8dadde740485d83e4ecef9e224a220cc318d5",
+        "local": "sources/package.json"
+      },
+      {
+        "id": "license",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "LICENSE",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/LICENSE",
+        "sha256": "ce3fb82d9ee80a1cb0e548f9b0560ead52378ee2b4e826fd9459b4acf7075d89",
+        "local": "sources/LICENSE"
+      },
+      {
+        "id": "U34",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "path": "packages/tui/src/routes/session/index.tsx",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx",
+        "sha256": "e4af9db141d101d47a61d4ca761f9c1b38e375288442490ce609732450283734",
+        "local": "sources/oc__packages__tui__src__routes__session__index.tsx"
+      },
+      {
+        "id": "OC-import",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "path": "packages/cli/src/commands/handlers/session/import.ts",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/2670273ff17da96f85c5826ced57aa1b368754fa/packages/cli/src/commands/handlers/session/import.ts",
+        "sha256": "85efea7895832852186ef9fce6476580e9898eeb3de4da9666e7868b4b0b9450",
+        "local": "sources/oc__packages__cli__src__commands__handlers__session__import.ts"
+      },
+      {
+        "id": "OC-transfer",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "path": "packages/schema/src/session-transfer.ts",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/2670273ff17da96f85c5826ced57aa1b368754fa/packages/schema/src/session-transfer.ts",
+        "sha256": "b7de525457c97b02afbd03604a1fcd82adb65c75ccfa39686c8746a005638f5a",
+        "local": "sources/oc__packages__schema__src__session-transfer.ts"
+      },
+      {
+        "id": "OC-message",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "path": "packages/schema/src/session-message.ts",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/2670273ff17da96f85c5826ced57aa1b368754fa/packages/schema/src/session-message.ts",
+        "sha256": "9b5cfce6c69bb4987771bdbbb36f6af09c76c5d166ca9da764b052f7c92a4e1a",
+        "local": "sources/oc__packages__schema__src__session-message.ts"
+      },
+      {
+        "id": "OC-license",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "path": "LICENSE",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/2670273ff17da96f85c5826ced57aa1b368754fa/LICENSE",
+        "sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+        "local": "sources/oc__LICENSE"
+      }
+    ],
+    "runner_sha256": "016539d3d6df611466c43307d2f1bb65c00824500a9b288767a8ed0f6c837d80",
+    "inherited_source_oracle": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-oracle20260927-03"
+  },
+  "runner_hashes": {
+    "dcp_reference_capture.mjs": "c1977c32dd5cd91c2a8ffdfe0ee4e2f28b70e55cfe4b1399e2dfc61bc4fbe2dd",
+    "dcp_reference_bridge.py": "66326fb3cd991471f7f2641cdd22bef813269da50bdd952b736c8e6b99a9bdcd",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e"
+  },
+  "captures": [
+    {
+      "name": "native-single-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "b5cb71a7342919a5180c755c01f42a369664bd6b7853586bed0f4beebfe38f69",
+        "png": "1da168ff064671c1d6ab9745b6cc331af5a5340c39b4bddb60217bca22f3665a",
+        "txt": "9c710c3e322a7697ffce73882206cf91feeb5d638534900674955999436319cf",
+        "vt": "d3fcd59199c51c01db71353979635598149fcc122dfb3cfad8691e4bada9cac6",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-single-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "ccb784531ebcfc380e5ce4698fa6299dc2956db49c140917277c3968f716d7fb",
+        "png": "ec93bffb66b938b07110d61b3dd2aa0981ad62c5e9b9e27fd3485189d8a987c8",
+        "txt": "a650c9f9b69c6cf7a8c4c99e66eba0bf2df33de3e544a76a62691c0283fb1470",
+        "vt": "cc978c9b7e11567f664fd6b8e08000e14e08f6607415965c5e171f5b22f24ceb",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-single-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "dd24cf0d73a46659fe0deb77cb0e9d548ca669d2d8c8aa094ecdff9970c9317b",
+        "png": "4cc0f15cab7d932aa1332805f548afd851781fc784096ddf2a34e61da736f122",
+        "txt": "21e21e811cbaab7956df0d44cc6867dd7e52a41b75743b5c1d18c5c63a6b5179",
+        "vt": "aebb35c078091205737747390d66e285c17f6b1eb9b299ad47dddcfed3d2a659",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-single-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "8bdc6ed8e33b7e953ee1031b91523fed0f238e00f917a62b3d13d4930ebcd838",
+        "png": "cbdd1d377544e83ea8f2d21c73f5126fe9125c91585ec2dbee555d8e17c04d44",
+        "txt": "83c181c647dd28e40fb5c1aece4dc35590ed8702e4835c9ac4464e57d3829374",
+        "vt": "077961a8d3615db6cc824891ddb6a65faf1f24aa473e7c879aae92146bea9c8b",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-multi-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "f5802b48144dd6f0e8c44c6b8d99901d2edcd70f1cd5db81b3754680f1f0c252",
+        "png": "82233e65c8406ba312bd4038e6cc5a6d9d95846baa971f66bb30ba09aa3c24a4",
+        "txt": "4f6fc1ab8cf90929e8771ff92939fe513e5cc461530136d1a6cfbc747bbc5df9",
+        "vt": "8b487d9cf2ae718c7337c40ef68e406619b44d5de4eb71138097bfd1b650d5bc",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-multi-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "66d9f2c23eaef06cfb9f46e8d8806147346de221ac5f52dfa2d487c1b3be11e0",
+        "png": "3ece949d0da4b0cdd5ccb5cc4c25cb7d0943e5543786ddb760fdc7b20a50c330",
+        "txt": "1ecee4c25c4b9cab196711d805f896bd69f4a9ae7ee66cd050e2322b5a1763be",
+        "vt": "fa46ef5ef57adc2980f7b4628cf33ad54c52a851682924087fa6f2b507f9e18a",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-multi-80x24",
+      "stage": "scroll-1",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "cd3c4246e0dfee97188a158c0a55b102138d8b0a309a76514c504351fd628cac",
+        "png": "f6481eb7cdc8b80d667bfdaa02cc60231d373743bdc296945aaf5c87cce7151a",
+        "txt": "2eed6a83cd9225430744d78f30451200a8ef929d21d2d893c32ec29f03bd3c1b",
+        "vt": "5734f8112eaca714384185bd28b92aeb0141a89a042c20fbb0f5743be947b20f",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-multi-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "fac2d3babe2981614b4ec43bb01faf6cac242e045d86c145703689d4fbbbbb3e",
+        "png": "7d18012c2831c55baf1bf39236535cc5cc0e5c26f99674acdff81a9e0a8acb9c",
+        "txt": "3a01e3a3ec5c18311cb679d1768f0823c5acbafac9c265222d9fa979f1ccf4f7",
+        "vt": "e269a20c859dcd7b7d5ce89c9aff289b9bca3d155c278f50629d77b52e713567",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-multi-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "995bc681e27ec635b2438e2946ff19c675a2e7f8be84b4be3821fb9ddd30901c",
+        "png": "f0c468284bf77c9497ac8253b314bbc011ae4a23467e22c9e5ac39b37b7f5a3d",
+        "txt": "3cfa0252afa9c570827e9bc0260f2e89337269f580009cf00bb556736451936f",
+        "vt": "81fad65dae15d8132587bf6af3d00cea15a09fd91c5575bf5188ecbc458469ed",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    }
+  ],
+  "attempts": [
+    {
+      "name": "native-single-80x24",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-single-120x40",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-single-160x48",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-multi-80x24",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-multi-120x40",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-multi-160x48",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    }
+  ],
+  "frontend": {
+    "chromium": "145.0.7632.6",
+    "playwright": "1.58.2",
+    "xterm": "6.0.0",
+    "unicode": "0.9.0",
+    "font": "DejaVu Sans Mono",
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "padding": 0,
+    "unmasked": true
+  }
+}

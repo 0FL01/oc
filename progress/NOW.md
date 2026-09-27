@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-27T19:46:01+00:00
+State updated: 2026-09-27T23:25:39+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -13,20 +13,13 @@ Evidence target: evidence/T44/report.md
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-VIS07 word wrapping, bold chips, painted click/repeat expansion and raw caret navigation corrected.
-Raw draft bytes are preserved; no VIS07/V09 parity PASS.
-
+VIS38 real DCP snapshots/cards/accounting delivered; T44 ACTIVE, no parity PASS.
 ## Checks
-Serial workspace fmt/locked tests/strict Clippy/debug+release/frontend/syntax/docs/progress PASS: tool_0e4622176001fRhobWNLI2t0QA.
-Fresh paired prompt-paste04: ten builds, 24 valid local requests, behavior/provenance PASS; 202 grids/202 PNGs DIFFERENT, 16 cursor differences.
-Resize/input readiness defect traced and fixed via existing level-triggered Crossterm backend; 30 resize and 83 PTY tests PASS.
-
+Serial gate PASS: tool_0e51bf7ae001L43hkvwsvd4nD9. Actual native05/reference05 checks PASS; full frames DIFFERENT. See dcp-report20260928-02.md.
 ## Risks
-Original structural paste separator differs from exact native stored bytes; unapproved gap remains.
-Truthful identity/time and other full-frame gaps remain. Inherited .opencode untouched.
-
+Fallback estimates, unmasked geometry/time gaps; .opencode untouched.
 ## Next
-Resolve remaining VIS07 separator semantics without losing draft integrity; continue independent approved T44 presentation slices.
+VIS38 display-state correction; independent T44 subagent/question/MCP/tab slices.
 
 
 Ready (до 5): T45, T46, T47, T50, T51

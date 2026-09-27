@@ -26,6 +26,8 @@ use thiserror::Error;
 mod compaction;
 #[path = "storage_conversation.rs"]
 mod conversation;
+#[path = "storage_dcp_view.rs"]
+mod dcp_view;
 #[path = "storage_fork.rs"]
 mod fork;
 #[path = "storage_grants.rs"]
@@ -336,6 +338,10 @@ pub(crate) enum BoundedPref {
 /// One tool operation row for TUI tool cards (T22).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolOpRow {
+    /// Canonical parsed compression arguments, independent of raw UI input.
+    pub dcp_topic: Option<String>,
+    /// Frozen DCP commit; absent for other tools and legacy operations.
+    pub dcp: Option<oc_core::dcp_view::DcpRunSnapshot>,
     /// Bounded confirmed effects, independently of the legacy text preview.
     pub patch_effects: Option<oc_core::patch::PatchEffects>,
     /// Operation id.
@@ -393,6 +399,8 @@ pub struct CompressionBlockRow {
 
 /// Stable occurrence of a provider call ID in session wire order.
 pub(crate) type DcpCallKey = (String, u64);
+/// Immutable accounting identity: durable turn, provider call, local occurrence.
+pub(crate) type DcpCallIdentity = (String, String, u64);
 
 /// Durable DCP tool projection decisions. A provider may reuse call IDs in
 /// different turns, so identity includes the occurrence in immutable wire order.
@@ -414,11 +422,12 @@ pub(crate) struct ToolOutcomeLogCommit<'a> {
 
 /// One prevalidated DCP transaction request.
 pub(crate) struct CompressionPlanCommit<'a> {
+    pub(crate) measurement: &'a crate::dcp::DcpMeasurement,
     pub(crate) session: &'a str,
     pub(crate) blocks: &'a [CompressionBlockRow],
     pub(crate) consumed_blocks: &'a [String],
     pub(crate) expected_next: u64,
-    pub(crate) expected_existing: &'a [String],
+    pub(crate) expected_revision: i64,
     pub(crate) expected_prune: Option<&'a str>,
     pub(crate) hidden_calls: &'a [DcpCallKey],
     pub(crate) purged_calls: &'a [DcpCallKey],
@@ -945,6 +954,10 @@ impl Db {
         // Child tables before their foreign-key parents; optional DCP tables
         // exist only after first DCP use. Shared blobs/context objects remain.
         for table in [
+            "dcp_accounting",
+            "dcp_run_views",
+            "dcp_coverage",
+            "dcp_run_identity",
             "compression_members",
             "conversation_points",
             "session_checkpoint",
@@ -1214,13 +1227,26 @@ impl Db {
                 let raw: Option<String> = row.get(5)?;
                 let bytes: i64 = row.get::<_, Option<i64>>(6)?.unwrap_or(0);
                 let (output, truncated) = bound_preview(raw, bytes);
+                let dcp = Self::dcp_run_in(&conn, session, &row.get::<_, String>(0)?)
+                    .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                let name: String = row.get(2)?;
+                let input: Option<String> = row.get(4)?;
+                let dcp_topic = if name == "compress" {
+                    dcp.as_ref()
+                        .map(|run| run.topic.clone())
+                        .or_else(|| crate::dcp::presentation_topic(&name, input.as_deref()))
+                } else {
+                    None
+                };
                 Ok(ToolOpRow {
+                    dcp_topic,
+                    dcp,
                     patch_effects: decode_patch_effects(row.get(8)?),
                     op: row.get(0)?,
                     turn: row.get(1)?,
-                    name: row.get(2)?,
+                    name,
                     state: row.get(3)?,
-                    input: row.get(4)?,
+                    input,
                     output,
                     output_bytes: bytes,
                     output_truncated: truncated,
@@ -1391,13 +1417,26 @@ impl Db {
                 let raw: Option<String> = row.get(5)?;
                 let bytes: i64 = row.get::<_, Option<i64>>(6)?.unwrap_or(0);
                 let (output, truncated) = bound_preview(raw, bytes);
+                let dcp = Self::dcp_run_in(&conn, session, &row.get::<_, String>(0)?)
+                    .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                let name: String = row.get(2)?;
+                let input: Option<String> = row.get(4)?;
+                let dcp_topic = if name == "compress" {
+                    dcp.as_ref()
+                        .map(|run| run.topic.clone())
+                        .or_else(|| crate::dcp::presentation_topic(&name, input.as_deref()))
+                } else {
+                    None
+                };
                 Ok(ToolOpRow {
+                    dcp_topic,
+                    dcp,
                     patch_effects: decode_patch_effects(row.get(8)?),
                     op: row.get(0)?,
                     turn: row.get(1)?,
-                    name: row.get(2)?,
+                    name,
                     state: row.get(3)?,
-                    input: row.get(4)?,
+                    input,
                     output,
                     output_bytes: bytes,
                     output_truncated: truncated,
@@ -2363,7 +2402,11 @@ impl Db {
                 let view=conn.query_row("SELECT rowid,name,state,CASE WHEN length(CAST(input AS BLOB))<=?4 THEN input ELSE NULL END,substr(output,1,?3),length(CAST(output AS BLOB)),(SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id) FROM tool_operations WHERE id=?1 AND turn_id=?2",params![op,id,TOOL_OP_PREVIEW_BYTES as i64,budget.saturating_sub(TOOL_OP_PREVIEW_BYTES) as i64],|r| {
                     let bytes=r.get::<_,Option<i64>>(5)?.unwrap_or(0);
                     let (output,output_truncated)=bound_preview(r.get(4)?,bytes);
-                    Ok(ToolOpView{patch_effects:decode_patch_effects(r.get(6)?),op:op.to_string(),rowid:r.get(0)?,name:r.get(1)?,state:r.get(2)?,input:r.get(3)?,output,output_bytes:bytes,output_truncated})
+                    let dcp = Self::dcp_run_in(&conn,session,op).map_err(|_| rusqlite::Error::InvalidQuery)?;
+                    let name: String = r.get(1)?;
+                    let input: Option<String> = r.get(3)?;
+                    let dcp_topic = if name == "compress" { dcp.as_ref().map(|run|run.topic.clone()).or_else(||crate::dcp::presentation_topic(&name,input.as_deref())) } else { None };
+                    Ok(ToolOpView{dcp_topic,dcp,patch_effects:decode_patch_effects(r.get(6)?),op:op.to_string(),rowid:r.get(0)?,name,state:r.get(2)?,input,output,output_bytes:bytes,output_truncated})
                 }).optional()?;
                 if let Some(mut view) = view {
                     if let Some(effects) = &view.patch_effects {
@@ -2445,9 +2488,14 @@ impl Db {
              CREATE TABLE IF NOT EXISTS compression_identity(singleton INTEGER PRIMARY KEY CHECK(singleton=1), high_water INTEGER NOT NULL);
              INSERT INTO compression_identity(singleton,high_water) SELECT 1,COALESCE(MAX(CAST(SUBSTR(id,2) AS INTEGER)),0) FROM compression_blocks WHERE true
                ON CONFLICT(singleton) DO UPDATE SET high_water=MAX(high_water,excluded.high_water);
-             CREATE TRIGGER IF NOT EXISTS compression_identity_insert AFTER INSERT ON compression_blocks BEGIN
+              CREATE TRIGGER IF NOT EXISTS compression_identity_insert AFTER INSERT ON compression_blocks BEGIN
                UPDATE compression_identity SET high_water=MAX(high_water,CAST(SUBSTR(NEW.id,2) AS INTEGER)) WHERE singleton=1;
-             END;
+              END;
+              CREATE TABLE IF NOT EXISTS dcp_accounting(session_id TEXT PRIMARY KEY REFERENCES sessions(id), snapshot TEXT NOT NULL);
+              CREATE TABLE IF NOT EXISTS dcp_run_views(operation_id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id), snapshot TEXT NOT NULL);
+              CREATE INDEX IF NOT EXISTS dcp_run_session ON dcp_run_views(session_id);
+              CREATE TABLE IF NOT EXISTS dcp_coverage(session_id TEXT NOT NULL REFERENCES sessions(id), kind TEXT NOT NULL, identity TEXT NOT NULL, PRIMARY KEY(session_id,kind,identity));
+              CREATE TABLE IF NOT EXISTS dcp_run_identity(session_id TEXT PRIMARY KEY REFERENCES sessions(id), high_water INTEGER NOT NULL);
               INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (2, 't17');",
         )?;
         Self::install_context_tracking(&conn)
@@ -2547,6 +2595,44 @@ impl Db {
     }
 
     /// Read one consistent DCP planning snapshot.
+    pub(crate) fn compression_commit_snapshot(
+        &self,
+        session: &str,
+    ) -> Result<(i64, Option<String>, u64), StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        Self::require_session(&conn, session)?;
+        let revision = Self::dcp_projection_revision_in(&conn, session)?;
+        let prune = conn
+            .query_row(
+                "SELECT up_to_msg FROM prune_marks WHERE session_id=?1",
+                [session],
+                |r| r.get(0),
+            )
+            .optional()?;
+        let high: i64 = conn.query_row(
+            "SELECT high_water FROM compression_identity WHERE singleton=1",
+            [],
+            |r| r.get(0),
+        )?;
+        Ok((revision, prune, (high.max(0) as u64).saturating_add(1)))
+    }
+
+    pub(super) fn dcp_projection_revision_in(
+        conn: &Connection,
+        session: &str,
+    ) -> Result<i64, StorageError> {
+        Ok(conn.query_row("SELECT COALESCE(MAX(MAX(valid_from,COALESCE(valid_to,0))),0) FROM conversation_versions WHERE session_id=?1 AND kind IN (0,1,2,3,4)",[session],|r|r.get(0))?)
+    }
+
+    /// Latest durable continuation route, without loading its journal payload.
+    pub(crate) fn dcp_wire_route(
+        &self,
+        session: &str,
+    ) -> Result<Option<(String, String)>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        Ok(conn.query_row("SELECT json_extract(result,'$.model'),json_extract(result,'$.provider') FROM conversation_turns WHERE session_id=?1 AND json_valid(result) AND json_extract(result,'$.model') IS NOT NULL AND json_extract(result,'$.provider') IS NOT NULL ORDER BY archive_rowid DESC LIMIT 1",[session],|r|Ok((r.get(0)?,r.get(1)?))).optional()?)
+    }
+
     pub(crate) fn compression_snapshot(
         &self,
         session: &str,
@@ -2576,18 +2662,22 @@ impl Db {
     pub(crate) fn commit_compression_plan(
         &self,
         plan: CompressionPlanCommit<'_>,
-    ) -> Result<(), StorageError> {
+    ) -> Result<oc_core::dcp_view::DcpRunSnapshot, StorageError> {
         let CompressionPlanCommit {
             session,
             blocks,
             consumed_blocks,
             expected_next,
-            expected_existing,
+            expected_revision,
             expected_prune,
             hidden_calls,
             purged_calls,
             tool,
+            measurement,
         } = plan;
+        if tool.is_some_and(|tool| tool.operation_state != "completed") {
+            return Err(StorageError::CompressionConflict);
+        }
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         Self::require_session(&tx, session)?;
@@ -2603,14 +2693,7 @@ impl Db {
         if actual_next != expected_next {
             return Err(StorageError::CompressionConflict);
         }
-        let actual_existing = {
-            let mut statement = tx.prepare_cached(
-                "SELECT id FROM compression_blocks WHERE session_id = ?1 ORDER BY id ASC",
-            )?;
-            statement
-                .query_map(params![session], |row| row.get::<_, String>(0))?
-                .collect::<Result<Vec<_>, _>>()?
-        };
+        let actual_revision = Self::dcp_projection_revision_in(&tx, session)?;
         let actual_prune = tx
             .query_row(
                 "SELECT up_to_msg FROM prune_marks WHERE session_id = ?1",
@@ -2618,7 +2701,7 @@ impl Db {
                 |row| row.get::<_, String>(0),
             )
             .optional()?;
-        if actual_existing != expected_existing || actual_prune.as_deref() != expected_prune {
+        if actual_revision != expected_revision || actual_prune.as_deref() != expected_prune {
             return Err(StorageError::CompressionConflict);
         }
 
@@ -2757,6 +2840,7 @@ impl Db {
             }
         }
 
+        let snapshot = Self::commit_dcp_view(&tx, session, blocks, measurement, tool)?;
         if let Some(tool) = tool {
             tx.execute(
                 "UPDATE tool_operations SET state = ?1, output = ?2 WHERE id = ?3",
@@ -2780,8 +2864,11 @@ impl Db {
                 )?;
             }
         }
+        // A standalone operation revises the genuine settled tip as well as
+        // ContextVersion rows; running turns publish at their normal settlement.
+        Self::publish_settled_context(&tx, session)?;
         tx.commit()?;
-        Ok(())
+        Ok(snapshot)
     }
 
     /// Load durable tool projection decisions for one session.
@@ -2790,7 +2877,14 @@ impl Db {
         session: &str,
     ) -> Result<DcpToolProjection, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        Self::require_session(&conn, session)?;
+        Self::load_dcp_tool_projection_in(&conn, session)
+    }
+
+    pub(super) fn load_dcp_tool_projection_in(
+        conn: &Connection,
+        session: &str,
+    ) -> Result<DcpToolProjection, StorageError> {
+        Self::require_session(conn, session)?;
         let mut statement = conn.prepare_cached(
             "SELECT call_id, occurrence, action FROM dcp_tool_projection_v2 WHERE session_id = ?1",
         )?;
@@ -2821,12 +2915,25 @@ impl Db {
 
     /// Record a prune mark: outbound context drops the prefix through `up_to`.
     pub fn save_prune_mark(&self, session: &str, up_to: &str) -> Result<(), StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
-        conn.prepare_cached(
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        let old_seq: i64 = tx.query_row("SELECT COALESCE((SELECT seq FROM messages WHERE session_id=?1 AND id=(SELECT up_to_msg FROM prune_marks WHERE session_id=?1)),0)",[session],|r|r.get(0))?;
+        let new_seq: Option<i64> = tx
+            .query_row(
+                "SELECT seq FROM conversation_messages WHERE session_id=?1 AND id=?2",
+                params![session, up_to],
+                |r| r.get(0),
+            )
+            .optional()?;
+        if let Some(new_seq) = new_seq {
+            Self::account_prune(&tx, session, old_seq, new_seq)?;
+        }
+        tx.prepare_cached(
             "INSERT INTO prune_marks(session_id, up_to_msg, created_at) VALUES (?1, ?2, ?3)
              ON CONFLICT(session_id) DO UPDATE SET up_to_msg = ?2, created_at = ?3",
         )?
         .execute(params![session, up_to, now_rfc3339()])?;
+        tx.commit()?;
         Ok(())
     }
 

@@ -9,6 +9,7 @@ pub mod application;
 pub mod approval;
 pub mod context_plan;
 pub mod core_app;
+pub mod dcp_view;
 pub mod domain;
 pub mod patch;
 pub mod ports;

@@ -1,0 +1,1221 @@
+{
+  "schema_version": 1,
+  "method": "source-derived display; intercepted pinned DCP payload -> original public session import -> unmodified U34 renderer",
+  "qualification": "Capture integrity only; no full parity claim",
+  "binary": {
+    "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "goldens_sha256": "1e82e5539bb3c85dec6eb4cae61f98be196e04ecfdd299d17e43b31bc12e9ecd",
+  "source_manifest": {
+    "dcp_pin": "11f6517780a502512a3467645074be447cb0369e",
+    "oc_pin": "2670273ff17da96f85c5826ced57aa1b368754fa",
+    "sources": [
+      {
+        "id": "D05",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/ui/notification.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/ui/notification.ts",
+        "sha256": "626a8978c1386ea206ae1600642a0c268e00f6db85b30670049dd2d33ffb319b",
+        "local": "sources/lib__ui__notification.ts"
+      },
+      {
+        "id": "D06",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/ui/utils.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/ui/utils.ts",
+        "sha256": "3a7f92b604906530d7494511d07330db3c2b6d8ad695c8cea3bca2b819fec7cb",
+        "local": "sources/lib__ui__utils.ts"
+      },
+      {
+        "id": "D07",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/compress/state.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/compress/state.ts",
+        "sha256": "ea109d2ae177cb3386d635b0955ce8b65274906a02f20c259e1195ac51769185",
+        "local": "sources/lib__compress__state.ts"
+      },
+      {
+        "id": "D08",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/config.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/config.ts",
+        "sha256": "b505a347324507f13f6a2e63d5971e950351be0dce2309ce7e37702e029c6c90",
+        "local": "sources/lib__config.ts"
+      },
+      {
+        "id": "D09",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/token-utils.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/token-utils.ts",
+        "sha256": "8206128a441226c0e67f0836646103bbfde616bd7ae15ea5005574fc201def8e",
+        "local": "sources/lib__token-utils.ts"
+      },
+      {
+        "id": "D10",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/state/utils.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/state/utils.ts",
+        "sha256": "47e1d1693698f31be16371b7172658d0b446469be0608ed2c1aceabf98e5eaf2",
+        "local": "sources/lib__state__utils.ts"
+      },
+      {
+        "id": "D10-range",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/compress/range.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/compress/range.ts",
+        "sha256": "043fba72da4262c26c5c360dddbbbf123a8148a892b96c15495286fd04e69c97",
+        "local": "sources/lib__compress__range.ts"
+      },
+      {
+        "id": "package",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "package.json",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/package.json",
+        "sha256": "8659a083229316d42833506878d8dadde740485d83e4ecef9e224a220cc318d5",
+        "local": "sources/package.json"
+      },
+      {
+        "id": "license",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "LICENSE",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/LICENSE",
+        "sha256": "ce3fb82d9ee80a1cb0e548f9b0560ead52378ee2b4e826fd9459b4acf7075d89",
+        "local": "sources/LICENSE"
+      },
+      {
+        "id": "U34",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "path": "packages/tui/src/routes/session/index.tsx",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx",
+        "sha256": "e4af9db141d101d47a61d4ca761f9c1b38e375288442490ce609732450283734",
+        "local": "sources/oc__packages__tui__src__routes__session__index.tsx"
+      },
+      {
+        "id": "OC-import",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "path": "packages/cli/src/commands/handlers/session/import.ts",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/2670273ff17da96f85c5826ced57aa1b368754fa/packages/cli/src/commands/handlers/session/import.ts",
+        "sha256": "85efea7895832852186ef9fce6476580e9898eeb3de4da9666e7868b4b0b9450",
+        "local": "sources/oc__packages__cli__src__commands__handlers__session__import.ts"
+      },
+      {
+        "id": "OC-transfer",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "path": "packages/schema/src/session-transfer.ts",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/2670273ff17da96f85c5826ced57aa1b368754fa/packages/schema/src/session-transfer.ts",
+        "sha256": "b7de525457c97b02afbd03604a1fcd82adb65c75ccfa39686c8746a005638f5a",
+        "local": "sources/oc__packages__schema__src__session-transfer.ts"
+      },
+      {
+        "id": "OC-message",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "path": "packages/schema/src/session-message.ts",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/2670273ff17da96f85c5826ced57aa1b368754fa/packages/schema/src/session-message.ts",
+        "sha256": "9b5cfce6c69bb4987771bdbbb36f6af09c76c5d166ca9da764b052f7c92a4e1a",
+        "local": "sources/oc__packages__schema__src__session-message.ts"
+      },
+      {
+        "id": "OC-license",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "path": "LICENSE",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/2670273ff17da96f85c5826ced57aa1b368754fa/LICENSE",
+        "sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+        "local": "sources/oc__LICENSE"
+      }
+    ],
+    "runner_sha256": "16f583d3513011b6e55dfeaa77fda43e479f6314add7007e51b685c3caf1c0f6",
+    "inherited_source_oracle": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-oracle20260927-03"
+  },
+  "runner_hashes": {
+    "dcp_reference_capture.mjs": "c1977c32dd5cd91c2a8ffdfe0ee4e2f28b70e55cfe4b1399e2dfc61bc4fbe2dd",
+    "dcp_reference_bridge.py": "271be3f650a3f40ed1f1293732ba44825de05e114d1b5488152492f1a675d017",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e"
+  },
+  "captures": [
+    {
+      "name": "native-single-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "64e6a19f8388e28634e034bea55b2ff0613a0348feb1f48e95fb426153abd821",
+        "png": "1da168ff064671c1d6ab9745b6cc331af5a5340c39b4bddb60217bca22f3665a",
+        "txt": "9c710c3e322a7697ffce73882206cf91feeb5d638534900674955999436319cf",
+        "vt": "ed9ba60d5cd7e39decb936ddb96f66d54e0990ca11486676e765f245577867bc",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-single-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "cb4a1152f71fc09fdc234f5149d72eeeb1e202f43b03e782923b9e76f104493c",
+        "png": "ec93bffb66b938b07110d61b3dd2aa0981ad62c5e9b9e27fd3485189d8a987c8",
+        "txt": "a650c9f9b69c6cf7a8c4c99e66eba0bf2df33de3e544a76a62691c0283fb1470",
+        "vt": "3d676880ee2cafa5b3f6acc105aa2a38084f46895a9599b8aaa874be94b23dce",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-single-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "f79cd33c2c83dc95252fff197315c7cbe83d417f4ddf15c8866d4c23e37a0451",
+        "png": "a538c03a8885e8fcba83055245feda13f6ed8a7bc88bd3bca4672948462158c1",
+        "txt": "1db7877f32b48d23b0a6d7933da092df409d391e2473ca700740898ac56a2df4",
+        "vt": "26fa1a8d1acbcb75adbb3c5f2a9cda2a515d88169f668a80452bb56afc33201a",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-single-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "f98c006fbc2952d66a0318c84a79476db769f61d8fa7158aa20417576c1ede13",
+        "png": "59005d1fa067e9af8ca0a1bbc7d3856e11556ee76307830f0b1621733d71095f",
+        "txt": "ca3d738e87b91570002c61d9eae140049332d627aeb270639ae76c5a456be973",
+        "vt": "8822ec2b58e996e68341c219bac00d215514d94c84e4d7395b94d72074c92de2",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-multi-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "d642d8e9239cc0744e124929c486013530aaef4e8b0428bae68b3a4a8456fd62",
+        "png": "82233e65c8406ba312bd4038e6cc5a6d9d95846baa971f66bb30ba09aa3c24a4",
+        "txt": "4f6fc1ab8cf90929e8771ff92939fe513e5cc461530136d1a6cfbc747bbc5df9",
+        "vt": "96ca0edf5bb39c9999b725ae749dbc330f3eb59aae02bb36cda8dbddd932d46f",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-multi-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "10c8da17280acbb422188c2eb1dea0b52f2483ea3580b81cc2827b61f30bc14a",
+        "png": "3ece949d0da4b0cdd5ccb5cc4c25cb7d0943e5543786ddb760fdc7b20a50c330",
+        "txt": "1ecee4c25c4b9cab196711d805f896bd69f4a9ae7ee66cd050e2322b5a1763be",
+        "vt": "4163624b56eddba61acb883ca45ce130c9e8f38bc7df4b0b73060cd3b1d675fb",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-multi-80x24",
+      "stage": "scroll-1",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "62bc49581fd84c7101a158c984e1f6966f427ad41340240c5a576b857c645573",
+        "png": "f6481eb7cdc8b80d667bfdaa02cc60231d373743bdc296945aaf5c87cce7151a",
+        "txt": "2eed6a83cd9225430744d78f30451200a8ef929d21d2d893c32ec29f03bd3c1b",
+        "vt": "396eadaf5ab4834186474f48e67638494604c6583e7952c6120618560c33ae22",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-multi-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "a9416a08a1ae659ae43b42bab11055b68ec722ce40885ff0a6638f8e642067bc",
+        "png": "58f137006e097c7ef3f3f0624c8b6524d8765c2b645bf1d44f3ec55ac8882a01",
+        "txt": "e3acda869a66dda1a8ad43179fb4aefaa9e13239d99d0dff61cc15e9f8425966",
+        "vt": "5090ea71ef02968db9e20d6f1695bc234638b6be2f21961c739ce6c448d3037b",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-multi-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "b8060d416df92db3fe7a44c787c9a2b3d21cd0d6315a6165625eadf4bc2fc901",
+        "png": "66fd782b1c9e60ef8598f0960ca007339f1125f688697fde9c890e09ac4cc83e",
+        "txt": "e8c9cae475c8533dd705897aa8091e7b07ec8bf42bd9dd042bc49bd9945a4144",
+        "vt": "5d4c2708e2982031767141dd3367232a3944946e8e32cfa775e19769a06787f9",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-recompression-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "09f7ffdfc3594170500edeec6832a30dd87c23363a2b87c826abfb8984193aaf",
+        "png": "9367bd3b5ddbe9dcb1602781e848a2f106aa9d9826f7d7a60c28bec0ecd55c04",
+        "txt": "d884589cc23a52912c43a7e1ce2796f536dba9f44616edba34e0c032660bd803",
+        "vt": "32bc485c5c2bfb3d97aad62e13c2716570c50dc8e6b93edb85ef09883aaa5ad8",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-recompression-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "9c1203d041d9ee5293f6098b699df47d2280ec2fc39c56a5bbf44074dec788c1",
+        "png": "248fee78214c3ab89928507217b79a6179d98f1594000f97bebbf5c28a5a0730",
+        "txt": "17fcfddbfaa537d6c51373afc4c95482012bee747eea9bdbb01c5efdb78a38e0",
+        "vt": "e5c909ce82abbdf537f9dfcf8ba425bb096066219c0faf24194d6d068233b881",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-recompression-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "e3d1ac0f421f504445658682dc1b4f5613fbbb27871ab9ae0d55de3ead797414",
+        "png": "8f4cad90b84c045815641e0b73340ebac2cabfd6b5a1b008f7e1c80b43c91cb5",
+        "txt": "e961c912f443f75e17545f9f18f378f40a434681f49de53de3c3a43a63a716aa",
+        "vt": "57d7a5829b03303b0c68ed44d5cf70a76da0a183bcac3aa4dc62bda99abbe71d",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-restart-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "8e751e0e8d7b195f4d631eec1e45d739494801246d9efca91c5f35865fc884db",
+        "png": "9cf95b55f82cbb2c28a62b2f5c6e992ddb6bfb258bc89205c089806a78c98eb2",
+        "txt": "7b38d3e944212502ee22e092f811f6a287ddae7c899bb574c1a9f0672cf736a5",
+        "vt": "21143b6ed8384a9f042d8549b82ab26188b670f02bdebde6f8b6a39180c28e1c",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-restart-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "d63204bb9bb91ddd47b69fddf8a5eb5736e253d8964e85a9ef47ac628c4afa2b",
+        "png": "4beb16b2e5716d3fad376d32de46b8f45ff2e56b6297a5fb13acdc5882d6ba05",
+        "txt": "f133bbe1ed5569c8e9fc647c2375f64ff2c0ba13df98ee30091753be3fb5506e",
+        "vt": "f20afd4a2ea8236b8abde4fdba118d245fdc3450172760e159aab33c02faeb24",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-restart-80x24",
+      "stage": "scroll-1",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "d4cb96d6f706f336c64e4b302da6d7918514e973ba238fec6845be18d0bc33be",
+        "png": "49af82e5d3db16a322b5adcca5613d78fcc4eddad828e22a5477b94fc131009a",
+        "txt": "8bb13d3476437870e8d1797dbb6b5a3f15cb9c39aa7bf7144b35353ff6e6534d",
+        "vt": "8723335c5adedea4d79e7f999358fe8693d9a59ae9fc5b598b6c18904824ba23",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-restart-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "76960d420913fc9a9f04a4993020eaea9d6be6c1496ff1b037264ba3a7638522",
+        "png": "36e71e30abe203b2d2743c4fc99f340be174bcb240c141c050af58a6cfe66e1a",
+        "txt": "479b1b90a7a8e20379ed21d252d7ab689f7504f89e355a5ffea35bee73295737",
+        "vt": "0949bd8c271e9a0858f77bd5b22dca65d3e76cc72ee2844d01b9fa212a328fed",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-restart-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "0f21bfe8090ce600fea90116828d58a197d85474399d9801ae66ca63f7b1fca1",
+        "png": "2f68f34fa61c5fa5280db2174c88e59d29b721ca5336a9ae1a774835f60d9b87",
+        "txt": "304593ff7948a657d1b82d85b33c91c86edf37b6554855b579b2439891a3f471",
+        "vt": "aecdad7bfe83552ed67d407fe6b064746f1cb116b90c8274f5e88f5a90d47c94",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "6de9ccc86ee1436b64dbf0dac49bc503c8d6ae25159d266c1c668435b4dacc68",
+        "png": "a3a8f572c48f84641dc33c25d2266ff5846e114893fbbd99def6bdb4a4468a6b",
+        "txt": "132514525378e7558c61f125026ebab717659709c4c1aa5cddb8d3f317d3f137",
+        "vt": "34210818e2d29eb66780b12409605c5c7270d7711adbb9428be7d508ae62b981",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "7729c42e904dccf7338b1a758aaac8d1197bd84d2b0e12fa82a46742edde4100",
+        "png": "046a3aef650313bd8ce87a0e1c9c88620e91f919d14bffe317ef1beb7588defe",
+        "txt": "79556eafc1640c35834ab6d413498a11348606f4e2f3f2565f9223a1564363fe",
+        "vt": "bb472b8d375c161c40d0c16ba7ee52729f53abfda11acb800fa3b52eda229c5a",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "scroll-1",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "868b7bc2bc53c9cb6791d15ad50f7c41d40f598e7901e3a29a3b50a6d5e84e9f",
+        "png": "1432892ad9750a4eb7efced402898794b9425d4cf634a6ab4665a4c3f4d185aa",
+        "txt": "96f1b7ff9d4a027de1dbee9fcdf4205fe7ead1e7d9e48ede3c300e06bdbcc937",
+        "vt": "e5ca9caee4f713419fde899bf3caaee73b6db588aefe5ebeb6982bdd2ddbd0f6",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "scroll-2",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "7bbf0d22401c586a1c8a62725397f106e7380eec11282cdc6fbc31ff23ef58d8",
+        "png": "cc09784c32dd8de6ed7cf2810d7c833788a22f90d0282829e5a1dc8aae5bed66",
+        "txt": "3c1b66c077615b3e9be5375f0c3b30650138e7cd47f7f1b0a293d346e062c847",
+        "vt": "73391fe7fa282ba5eaebff7357909fbf36c2a4df9814f627cbe237d24694fdc9",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "scroll-3",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "0c9ab95e850e51518d5cd9ce72c764fe885753dc3883f31b137333e1e5e3e62d",
+        "png": "cb8c034499c0cd635eed6bc6d0d9a73acd27aabe0b3306e25775b80c4f2126d8",
+        "txt": "1df6c547fdd399f26889cc34ad1a3598dd44a7057d1c4981216ffba0b1a4f149",
+        "vt": "a3561d6e9c2a1cc40fcf1ab7ebe7556b3a050b80e4413b16d24e50d35100c8bd",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "scroll-4",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "0d53933cd97a69ee3cd15bbfabc6e0b7a9b94cb1ed41cf41ae60610765a0eba9",
+        "png": "f0cb3d97e21a4ec8f87acda73dbe275aa74cb1aa4ab65360e7fb4846f88af15a",
+        "txt": "db15591f2c66f86c9466d58910efcfff0ea1f7cfa253eea302fa6602c6bd8013",
+        "vt": "8a4ce8131c6f260744b30798b35a8f80652fa63aea6a1d63c38b34b495b9a214",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "scroll-5",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "28561ee7a5352eda36dbf789fadbccc21a4c570c07bc3aefbd4f435a6ae3aeb1",
+        "png": "f7ca92cea24db55bac4f1aaa436ff26f8efb0792cfd1f1df8d65db16f501d3c1",
+        "txt": "a405f227b299f040cf836bce8f1e652ddf53bf96b4587dfff773ab3c6a3a9ad7",
+        "vt": "4a6f5a3c638e776b07fd7245c3c6547c825822bde7f9c3e61cd55380bd8af3d9",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "scroll-6",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "76b69c72980dc0c14421b1778077f6304b29b9de4e8389056a32acd04483c80a",
+        "png": "efe3d4529758098585ba04fbf9040a1ccb897bf952e11499f5fc193f1f03eaf2",
+        "txt": "0727e2275fb165faeb95d5eff58a54aebac32e208674936ebbc2f7fd3370b2b7",
+        "vt": "058546ed31cba28ea9d2880438776cd71e61b0db0f1cd598774aabbd8d327525",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "scroll-7",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "1194e711a4a910988d23e6aa4d7d03f7bf32bcd88972850042c28cc99d3a6884",
+        "png": "1ac4eeb2b0c41ffa5ff55720444b86a778dc880d2c230b3ab792b4aacc26c065",
+        "txt": "7405d16fcb8666079b6de1d148273a9b853db931949e0c6b4f913325edf56122",
+        "vt": "72c1ba6dd6466025e40fb48b745981aa4a4931a7e5f4548cd68c65d42ff03d3d",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "scroll-8",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "3eff5560c8da49a890cfa101764f7f20ace1e0e6f7c8d721f86a8b5485b8cb44",
+        "png": "888bd8d42b3f0e936ba1ea3d7f4a5aa7745a83bb7be26102631b1074125d1292",
+        "txt": "8408e6b45efc5a410882af3c250f9cec9f85b3f46f7e60338a80c36cd2425b7c",
+        "vt": "e13f7af9a33144f148a50bbd048f3fdda5aff2f030c5af3453618029b2ab3865",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "scroll-9",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "fdfbd798d7d0189919ce9127bc8350012bec89ae3a347d33773061f15a41e8ff",
+        "png": "1056d4b1846f65571c0b86c40d56c01a81c97fb42ab3a9abd9961414d743f0b6",
+        "txt": "32928236525c6a9f83d57caf9d79d93bbe3a391c16585fb214a10d7be5323be1",
+        "vt": "67fe9274530275a99ceb56c72fa7fbeb457a483967b6c778458e648b8da7f6af",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "scroll-10",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "b225d464ef889c55b41cc3c6b8d4ab684665e18b04a09489291a978d14581d34",
+        "png": "c6a62b0a41debf2b76cec77348483aea0a73e67e312cec16b778efeeeccb19e6",
+        "txt": "38497971eba176cf0106b3d7af51bff93b5483a6715cea78b8415e989ad9aa85",
+        "vt": "e6db0576a5b5949fe0627d3985ea08489150e14dd9a5b3f5c4f9994cccfc309d",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "scroll-11",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "e6ef44eaba572bf46024e1f5f453ef5f5c1890e4fe921b3d54fa5ed8d8c88267",
+        "png": "ad5fa7c3e9c33da19466c8930b8576b02c44c8dcfbc80ffadb0169327e79b6f0",
+        "txt": "4c7f73b028a025b8c445177c6f6adf3f059dc95ebbf497ab246c0839094dc9c7",
+        "vt": "dfca06ae80c59056deb98fe6a85e67a1bf2fba57e7dd077e1ce895e68bfcc6db",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "scroll-12",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "72a770146163042555f5c2d420bd448c3bd3f1127388ce13c6bde2880081b73a",
+        "png": "567207237d5b080ee9931b4c5705bd326f2220c1df4d989de068f7086756d37e",
+        "txt": "d7684fe7de4bdf91d9e83d940876edffa3a8996d5ca0ce3b5fb8daa17c7b7dcd",
+        "vt": "a2ef4516e78cdba12a00d2554018a357c9316347edc40e5c3c410a1a96df7ccd",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "scroll-13",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "da81ddba38a1afad27d10cf532f74cb08e52a68277d3683656cce6eb940795a1",
+        "png": "2bb8218c11a660443593c30a1fcb21d48c35d627dd73c68ad15b0a20d74f429c",
+        "txt": "217572a6d6f7630cc8a245438aaae04c3237d31aca8d33ac12d4b4297167b85e",
+        "vt": "52bf8d1decdb5a81333d88eb8ad237592bc4e3071a904c9d64207a05ac2dc467",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "scroll-14",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "67c694a6e1eb93bf096eaf18162aa9b7b254f44da34610c5cd229e0bd267447a",
+        "png": "f622d51ae569eba75752d8129fe2656e0d807d3b27af7ac822b0107238fddefb",
+        "txt": "5e7c7fb2ca418f71a3a10add8744d524182d54601baf88f6539b08a238555966",
+        "vt": "c201cfe5df8c1fb73ce27ca651cb9caa8b84f86d19fc3fa0b8b3979e5b7d5630",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "scroll-15",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "6d6011ad462e4b585484221d3c73de8c14113de98264cf7ee07cb338b721389a",
+        "png": "010ff8234fbc3fd71db4ef7cdb89173dd73489cbd572cbfbc438651e7281b0a8",
+        "txt": "362d66073f277c3974883d2b496bb0da5bdc39a282c5cef7d2b85a14889d25f7",
+        "vt": "b8151abacec59678df128359e18aa715ceb3504a84ac42511d53aaf71aefb37f",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "e92d9187f43e89d8198146519a88e51e610ff73193976da47b80164ee1de9799",
+        "png": "ddbc79044fc75e95bb9fc979ca357adda07c5691aa818b242340b799a9447986",
+        "txt": "2088260872e11157a17613c904c0d62f827f7a927e192a83c8d9de0eb56248e5",
+        "vt": "5881082d19c574512a6d897f3b3dc8863267db398de095bf4f9ec968279c78fd",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "scroll-0",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "a88dfe5e70ce34b044a4b6beb9a567b242317729312b7eef9305d97e62eca6e0",
+        "png": "75b947ecc5d35f50b98e70e7ceaf7f7b094b028a828d4961c2a83e42fa3ec18b",
+        "txt": "8fd311d0ca12d21392e4ec882adf3ff2f8d2767dbf8499cb497d2a478c17851a",
+        "vt": "4962edc87f28bdcac8da5f3338e46a88513b229104997dbc2f2f92d54ae21f03",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "scroll-1",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "cfa23a49fd3640abf11016e4bfe226351d54ffaee99f41ee374bc9d1f67713b8",
+        "png": "55a8708f607690c18f6d6fc1cdf5dd92a0240ecbc4b5199d15a60152ddbbe336",
+        "txt": "ceec1cce699cba0431ccfbfde5c944a74c6e6ec588cb7066517cba47c5020b3d",
+        "vt": "dd45fe77d67372496cbcc3e49b6b61be0984e1a25cec2fba928c95be6bb31fd5",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "scroll-2",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "443ad642c2315564cf3e79c4d53ef0eac8609a9e9cf453a6f4137cbe2cb7d746",
+        "png": "5a7e4563f0f05d04fb202b963312429d2462e5362518c20c2d4aebae42df1207",
+        "txt": "cdc405a29d7030d3426a1e7848804f34f14bd92e8be6dc8000a47b069918122a",
+        "vt": "b8da052fc097ace93a60c1310e4d9c7c3348b40877e806ef09fa730661585d31",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "scroll-3",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "f7e5a2f2d28db0f4f1b49f9805c0731c370dcfb99909da1a52f45440baf9dce1",
+        "png": "69bd4544a231cb2ae1362f212a516e2e448a3bffad50962a149d560f570766d2",
+        "txt": "4af9dd5fb93598463f19fcc0669792a278fe9dac673ea098b120971552b07d4e",
+        "vt": "5574ac400b2ea949b276879f469c4f41e30e30c6861aadac7677f97634d9d552",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "scroll-4",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "82f28b53357e5c05e51146d76193c8e4c253d5ce13b7f2da31a270205d72e4b8",
+        "png": "5f9c4fc821257ab5ae4577fee80bc2b12db957b2492446dc0169ebd674dd173a",
+        "txt": "0771c5a00a6ae90c74e50a46e18af9f26ad7ed126599e5ca3b6c9c160eb9d1fd",
+        "vt": "9d03a87715dcbedf47785a96861ceca376e6059fe9fbae563a58686fdf92cb47",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "scroll-5",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "730b9e77e045be47efa0d314464420a5137d3b8616ad3931cb73123707f302da",
+        "png": "a96c13cc1be84a3fa75a4759ebec0c2fea20198f64d3c64d498a2f8ce59b4d76",
+        "txt": "492598a8fdb6d4fa062db42e372fe13d56db11485dbb70957b9274fec524838f",
+        "vt": "2d6009b756502cf253f9f287b55f130696c6e207b7c7642cf0f9cca6d31d4918",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "scroll-6",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "5d13bdf5cdaa8179907589a05e78232eae08ec0e8df44effa4b2c67b5644de1a",
+        "png": "d0b4cba1ebf5363ea196d141bd7d6912061ec4f2202b71679de0791eb602b016",
+        "txt": "a8e03bc7ff9c4cc07db583d6914a41231f172661f0c07e4339883b848944878b",
+        "vt": "7a63e8f6bd2a3d41550c8008fb5ee60fcaff411e1e1b62d2a4cf5cef24d0832f",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "scroll-7",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "ac9cd9d67acafe0a1ac906f2ece7ad308bf1674a96c193515520095e690b1747",
+        "png": "aedef488dade85ad9361eca7213d0e6fa2bb50df29a69ff261013b8d94a19b64",
+        "txt": "0c2811be828b36dadef37dbe110bd9547ebae1aae85d2b8fcc5788b238bfec8a",
+        "vt": "a10d5bedc02aee30becc1cdec03305e780359058bc7767e68d72bfcd9c8f8290",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "scroll-8",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "a6a5faf02c3875eea2c13d5b47d654af18b3a9d0506060868069b3c829174c35",
+        "png": "7d0be08af1c0745f8d1a3d006b6227ae1edf618d913ba081e89502be36f735d2",
+        "txt": "f537faf2bed31eaae64cdb95e87c372ca6edfb4e5e9b3613f693796dee368c28",
+        "vt": "541333487059da473dd98855cb8aeee54ca2f25747408956aa14251675a1ed9c",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "scroll-9",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "d54e5436271256c11551d7284d71dc69c57ce8e5306768dc5c5d6cbfd00ab33c",
+        "png": "abeca532a419e3e71273f9e1abd18943cd9ba6939bf6625d0739280cff284e18",
+        "txt": "dc8f4a545e9b42fd04ac5aa018b49fa486dd34d409ef4b6409711f3233b36145",
+        "vt": "20b4cb640c04856a219c4891fbe2bc7254c1d5d8ad0f3bf6d347f1c36ef640a9",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "scroll-10",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "179c1cc3729b30b743908779ff68281f0d6574c6f9d179bbdbc9230a44862fba",
+        "png": "7eb19bd7c90c7fb44b226063b88f78a2a66392221523e51b01cb51b2708a844a",
+        "txt": "12ed26ddb012bfeb5d5e9ab4f442d4fedb490c226978536478eae2c86cefdad3",
+        "vt": "409971c7adf542de2f8ed2d2bc3ec1fda4e3dbf33312ee8024203285efe80d51",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "scroll-11",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "b1b64117e3d22873217296218007d704cf9d4608723145ed0e56b9a622791af3",
+        "png": "5e8bfb2c217257922455e57b42ff82b7cae715a26fa494c4eab44f84267d85fe",
+        "txt": "86ae028bc1bf7be1c769e1824a3c01e1d921bf506077a7697fab9e583944b041",
+        "vt": "558f7679fc89d427f0b5c4cb7243773b6f526bf31288bfb3c1faf6952a21e4c5",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "scroll-12",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "99a31b1e566b36e182819f0cad38fd5f7eb46e51eb31ed9eb9418b8d245f4968",
+        "png": "ba7acc7dbff53d0df6137c0b59c086df82ee294d8ba0a9ea900d7118bf0ccd8a",
+        "txt": "af1daa8e3f51259ef14839c7a57840bc5012f1268bb01fb9207a305f592e4446",
+        "vt": "3e0d4917613404c8c8cb615a90910852c1e4956a2cd3605b2c97d11327348eb8",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "scroll-13",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "1bc25929da6982b64307c8b176119084d2f422970ed7249671e0af8e6533a218",
+        "png": "4cc5e51504517194cb32c2f73dda170b1b23a09927b7e0f8f4fde854b55901b1",
+        "txt": "c3acdfbdedcf9f0cd1213af021df304de020048ec40f55d631803f11df71861b",
+        "vt": "a82071411ad485cc8ea7c716cf944a5cb500b7f417102421084b2c7e26e0daea",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "scroll-14",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "39b3c924f14476f7fa35ce1f8d6e947b2dd899381073244b7d41e39efdd6ff52",
+        "png": "9d55dd6cefcf9b201f6c70b4a88ba57e76f012fe41f155315536bbb40a72b5f1",
+        "txt": "32eeb8127118c78bd89df60abac97e9f91b7d42c26c150f7830153cbff0906da",
+        "vt": "8dbddfae255febe5316b409ead26d5f4fb24afc04bf514e32f155c705524de11",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "scroll-15",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "2390e10ab321ef1a89cc6f21e39f99429376e2deb0615232983a46e0775f076b",
+        "png": "dc34d79168ab5cb299a5d4793e6cf7d57c93849f97b5ebe1388005f6b99bb9e5",
+        "txt": "efe103a043672dcbcc9cc5300bdb922f13c06bf2d3d72e02b97f129008129fa0",
+        "vt": "7a3878645c1442a84b19881b44875253420f773f409b4d12e2d64fe1b6176a12",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "f5e5de81a5ab91475b2a37d7b957ab2e58cf46d24eb138ed28093a6339e57e14",
+        "png": "3867e350a14a343f38f835d7f6e690d66eeb0569dfcf3264675f6090ac76589b",
+        "txt": "68862de4abe6d898fe38332b4f114d7514c0e2eba2303786b1b0821c9d59f71e",
+        "vt": "db2dd8593a535e85d9f2f78a538036692b88bae06d01b9a65cb88bb23c5f4b4d",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "scroll-0",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "a55b40f0d20edc42709ecf1fe9efcb7a87b711ee9bc5db3fd2cd9bbd50c91349",
+        "png": "35cbd0d34b2f76a4333cbc2ee5f73cb5ef04055030ed11513e957ce2267fdaf1",
+        "txt": "a226eb51fb079d0455829a4e687cc3af20beb367bf56b46bba7a1f2ad736b7d7",
+        "vt": "04a645fa8d1e12d4886278dddd1f1d8699399c37226743aff8c30892c7fa863e",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "scroll-1",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "47abb23fe4bb0e26d874780d0b7f784a3b197bf0d82125705f6081e21128524d",
+        "png": "d3f180a798a572ba9e6ba83bb4fe8eed45f54e7d8fc4209f53a42e59fc6b68fa",
+        "txt": "1c9517cae63f82b583b2216a42ce2e6eece3b3abd5fd4c498ac385091e21b849",
+        "vt": "fab7a5257a6fc78123e44ee399242aebeed12f3825340e4fa9b1c3d63fb3da98",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "scroll-2",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "63db77bd20dd21a1c9a19b7cd508b52fb1bca4857198e124904f7c7c61bf55a0",
+        "png": "66912eda5bcbf041cb02e85814f79341da8931e0269c9163b8c932cd38415d17",
+        "txt": "4932661907eac5979027961376f6fb333c67ed719fa7b62694e92d0c73e1205f",
+        "vt": "cd38e3a991fa2f25d01ce0d4e21194720f1576e79430448e439af852136776f7",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "scroll-3",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "e560a579946a558a2e8286ec1a70c43543fbbaf156734d744681a764622175dd",
+        "png": "a15097edb3e754968f74f3e8e024e610591a3cce72cc02a3a637faab29c3d0ed",
+        "txt": "df71fd5c813fa952de98f62c3452cb20fff56956ff2d12e28703387720bd8e7e",
+        "vt": "e5e2df70bd2370ef457d189e4bdf586d7c26446ac00c77efb3c7ba00e902facc",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "scroll-4",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "1b908c95b4007d0f10e7146fe4fb9e46f778ac6aece0f3d3f054d61230e0c420",
+        "png": "a624646be6dd6b67de565ce6f5155318bd510d1626dd56decdadd2fa215590fa",
+        "txt": "3d72265998f43afc0849c91041f1fdf82998d0542d8c247acae44a5eedac388a",
+        "vt": "5fcdedcdb55b7ec0299103e5001aa37988b42dfeddc42cbc63e36fe1c142b6f9",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "scroll-5",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "7524ecfa01445611ce97003bf845583d94d60a88b2243fe1acb53a99195d3e9e",
+        "png": "66b9fa34d8889022f465c029ea96ba31a371f1009bdd881841b317d91964c3b7",
+        "txt": "58b67277ef72d50446a4ddfba0d89a2aa0baf425976ec0d7995d63fbe541b2d4",
+        "vt": "33d20cf45bf9526d895eb6243b95fc14ba9f3715e801e53db786ecff631615a2",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "scroll-6",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "22605636bf0eded8140e5db504a2910a51053266d6544f93d4c62f3ef97b2ae4",
+        "png": "39c7c7d6c2a98698365d0fce79daefc2490df815de8d70a0471362062c4f114f",
+        "txt": "66627600b515dd6fd9a251cdc21dce752a4aeda7fbed43b0ea01f4f043c7d4da",
+        "vt": "30f025f47f74cb8b2146d83e042535072508191b7cc9c1ab3b043dbc950a5088",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "scroll-7",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "3815317e7e1aba62bae08ac1fb2f73c792f30db930baaf9f98ca853d7e3fa6bd",
+        "png": "385c3664fab563163a96eaca3a97a3d618a3e8ded95d97eb2b74443274b5df69",
+        "txt": "6e1dcc17d85e5ffd68f2a4406e6567daaa0c28af5fe8cf33d87d07e89080c348",
+        "vt": "184a67895c9022f9cad9c780f2c38df89c8d495971d0cce481830d21ac56073c",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "scroll-8",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "19bbe7ffb34506f3109cb13b2cc987aacef50e857fafea4644223913de9362fe",
+        "png": "1671a39b59a3e314e1233d53081a6a66444fdece2d5a69c775d173a84dbd465d",
+        "txt": "0639077df2dc91a881633400a45178dbae6623845ba9e5423fdc6b8cbab8a29c",
+        "vt": "d851adfeff571c58b52656bad575e066f8f052c88bf58820338fc6f2b10c2532",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "scroll-9",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "76980bfffbca7f3a4f76fd0b318080c46b89a74eea8d425b54016cd7e3adf4f7",
+        "png": "ca425aa25ce99712a0cf85672a5ed9a874d1592dad899216e2cf52446d999f2a",
+        "txt": "6a9754d93c8a23fe0fc035ee8738d771dcf9a612ca21426ce0b1151708ddf7d0",
+        "vt": "f4b8d6745eda8e193cb0cb6032fd1fb6ce084d090b39fee6ae68ad41eb05d57c",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "scroll-10",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "48ce19d393f14027ccda797c89b2d8fec0d32eadac2bfe8fbfd020134a221cc6",
+        "png": "b69540888ab88cbeb40ab9d95f1c6ff6a2b79109480d4c57e67f759efdd1c375",
+        "txt": "ead2e00932d0e60dbb04440ee56815da5b9c45826dccfa6fa777663813ceb617",
+        "vt": "f943a3bf0a9a6da8036aff7e481084f9a28c54c58dee4f7b322fdea7b1c61a49",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "scroll-11",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "e75a49c235bff1795a24f21d093de1567fae60d36b3a576dc3c962499b3e55b4",
+        "png": "cdf155574ace1cd0dc83651439721aabf1cc1d0ca09a9ef281d2c012e8a92c18",
+        "txt": "5af8fc027374affe2e1763ab0834cfcdbf7850c44b4de00166d73295080a6d72",
+        "vt": "76ea0f409fbc2ce59f51254401a49f32102d3d33812ba1b61e654472cce44346",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "scroll-12",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "bb967ca2fc068bab1bb99d0a65873b88b190e43f0d9ddc4d0a16296c10366e42",
+        "png": "cf232b26edcab026b823015de2c0db9c278468abd53b5a60647c3215667b9e16",
+        "txt": "49f84913fd580c6e4aaf97bec8b213c4aa677d9163847bbc57c648c7e164bf0a",
+        "vt": "8c21a6e9d535e49ae39731f96d3cfeb8dd0f87ed9f94fa03607ee65003092e56",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "scroll-13",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "342ea7bdd41ff675cee366fbbc170886a413e5023cf5e8e8c1b69df818f330f9",
+        "png": "1b5520287b6e93e177002553d359568c8f8fab50687b34b3403b126d7cfd69af",
+        "txt": "2fc00a932b582fef670df300358db80e4b8619b0820e69da0b953bb3086424c5",
+        "vt": "f52e3b6ade1809660f7f687ba8b1ce62aa0eef1d237451c144672b50b63ea605",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "scroll-14",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "77232c7a7636ab0d2ba828f48d703023faf638d9ed6d94cccce54e4f7911ff7d",
+        "png": "e6fe9b32ea750fafac8206f3c222d8f0475b442ac0d56a9fd5763e4fa00b50cf",
+        "txt": "afbfa79caea69f5d6e942c46635a2d91e4f557e8e864a9f9b8a37b17027bdb7b",
+        "vt": "54ca8dec6e295ac1edf4915c9e068c610de01c79a90075414a57c9c5b9d8527e",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "scroll-15",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "62115fe6ae139a4cbe68a33515eb1dcce787279275d5525c2f4d137f1a48c385",
+        "png": "65bc4dcedbc4d572800d3f81db7b78d5e7aef793b6d64b432c05ebc55befcafa",
+        "txt": "8033ec2f5338a622a488d3cc0d00a61aa6612fb69adc5cf90a2c7d1ccbb02210",
+        "vt": "fbe924a489dbc827bd8672bd06bffd5d46b0cf74e62e68faa07535094658902d",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-off-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "56264e90be4d4b7eda68fc6c3edd9d065c763b6fb41224d42bf21db7c040b7b0",
+        "png": "c6bacd810954ee44c56a6020ed3d0b7c025957834d074e3e22bcf08da69a07fb",
+        "txt": "f58c01e897a92efaa2105bcf7aad5ec5004d2e4f10f0f724ca9811e4303a54c5",
+        "vt": "f8c760cc1afbfe265ac1533005a39e9120b819db78f63ad10841693536369ef5",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-off-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "4c91b3e482144dff25be76013d602b0423ca956f43bc0bfd4d4d50b6b49b3ba1",
+        "png": "dbc3cfa9a60e1a7f7dcc4b7f29a5ad53f3e902e4f2ef34875e4146762857cb84",
+        "txt": "879baf2756a5592e22b58b0cae236ea8210c1b0d2d4ac4e4ea6cdd951c49b502",
+        "vt": "ab839d2485dc21e2de55bbdc7634c451eb039ec0ac38d5a4529a698aa9acca78",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-off-80x24",
+      "stage": "scroll-1",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "e970895dbf904a9161850c667ef9999842b7c3b3f609f95f8d7cdf75aa6cafec",
+        "png": "44c225002f85258f0e375baa1c744850ae14811b76c7ae844a0a14325db8f650",
+        "txt": "c9af299c0131786f33d24aca754f59fe73412908a9d2402a90e6a28e63036e02",
+        "vt": "953c95da4a73fdb1d2ad00b324bf5df1c8a9d53a465400f7823722b414ace63f",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-off-80x24",
+      "stage": "scroll-2",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "91c25b522e5c756754eac1671fc95e2447acdf1d5b928eeddd3f71a514cdec8c",
+        "png": "393675bdc7f868a8c5818fef5bf4f0be72abded10a30f506a7220013ba512fd0",
+        "txt": "83244cff5958ba1603a921c338d23291faa1bf9be22ec33b1c56ca485fece2dc",
+        "vt": "df2e4a43ce78817342cd7b9bdd13e5c0452203ea8dcff0059d12b936ffd52488",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-off-80x24",
+      "stage": "scroll-3",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "4cf6023ec523c6aaa105f26e011ea0a3f93d505123ca1637617bc05979b77dcf",
+        "png": "44e52b4330be29865aab66ec4bd37f7e4a4497875428e589fb785616543f82a5",
+        "txt": "3b9e348b1e366bb5d8cd830210c3f49df5dbe1338458524ca64d08c893c29049",
+        "vt": "bcc490b45373c12d6d70a651b27765c890e14ba54ec8e3782fa4e9ca8f47baa4",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-off-80x24",
+      "stage": "scroll-4",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "39513bf50a59d4b45c168182a8d6d9143a5d77385630ed3e6f3da63bc5835d9d",
+        "png": "b61808b43da7fc7cb366ce4f958db527d10d198958c6ef3af705cd56e6d94ddf",
+        "txt": "341f264cbab465ca49b59d4904118540ed0241468d51db241a6f91d34e77d966",
+        "vt": "489734484da1e9bfb54a161faad9f1bfa4491a2836bbb6b2d9f58e709cf1924e",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-off-80x24",
+      "stage": "scroll-5",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "3aa437f4bf71073e0d0c7cc442a3b30dd9c1292e994f0fe8e8b66f19f8d86d9e",
+        "png": "78e8a8289fce918661e0204a1d65ca87a37663d938035733109e0dc07d0d5bf7",
+        "txt": "3e0a1a75d32938c4e2b77fde082fb24615c230f5e21599f4b955b622e3a1198b",
+        "vt": "cffc21bdc4c52e87e35bd54180790aeedee557942a69fdda072d6c1a9dcf57db",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    }
+  ],
+  "attempts": [
+    {
+      "name": "native-single-80x24",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-single-120x40",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-single-160x48",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-multi-80x24",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-multi-120x40",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-multi-160x48",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-recompression-80x24",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-recompression-120x40",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-recompression-160x48",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-restart-80x24",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-restart-120x40",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-restart-160x48",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-minimal-80x24",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-minimal-120x40",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-minimal-160x48",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-off-80x24",
+      "status": "FAILED_REFERENCE_CAPTURE",
+      "reason": "Bridge exit null waiting card scroll: "
+    }
+  ],
+  "frontend": {
+    "chromium": "145.0.7632.6",
+    "playwright": "1.58.2",
+    "xterm": "6.0.0",
+    "unicode": "0.9.0",
+    "font": "DejaVu Sans Mono",
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "padding": 0,
+    "unmasked": true
+  }
+}

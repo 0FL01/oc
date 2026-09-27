@@ -3714,6 +3714,26 @@ async fn compress_blocks_compensate_and_stabilize() {
         .len();
     assert_eq!(before, after);
 
+    // A valid but ineffective manual operation is durably no_gain, not a
+    // completed operation lacking a snapshot or a generic storage failure.
+    let accounting = harness.db.dcp_accounting("s").unwrap();
+    let no_gain = serde_json::json!({"topic":"honest no gain","content":[{"startId":ids[4].0,"endId":ids[4].0,"summary":"ineffective summary ".repeat(100)}]});
+    assert!(runtime.run_compress("s", &no_gain, &spec).is_err());
+    let operation = harness
+        .db
+        .list_tool_ops("s")
+        .unwrap()
+        .into_iter()
+        .last()
+        .unwrap();
+    assert_eq!(operation.state, "no_gain");
+    assert_eq!(operation.dcp_topic.as_deref(), Some("honest no gain"));
+    assert!(operation.dcp.is_none());
+    let output: serde_json::Value =
+        serde_json::from_str(operation.output.as_deref().unwrap()).unwrap();
+    assert_eq!(output["status"], "no_gain");
+    assert_eq!(harness.db.dcp_accounting("s").unwrap(), accounting);
+
     // Compress obeys the same permission path (default-deny without entry).
     let (harness2, generation2) = make_harness(BTreeMap::new());
     let runtime2 = runtime_of(&harness2, generation2, Vec::new());
@@ -4285,6 +4305,25 @@ async fn aud20_compress_commits_only_eligible_strategy_projection() {
         .unwrap();
 
     assert_eq!(*hits.lock().unwrap(), 11);
+    let runs = harness
+        .db
+        .list_tool_ops("strategy")
+        .unwrap()
+        .into_iter()
+        .filter_map(|op| op.dcp)
+        .collect::<Vec<_>>();
+    assert_eq!(runs.len(), 2);
+    assert_eq!(
+        (runs[0].ordinal, runs[0].new_tools),
+        (1, 2),
+        "only hidden duplicate and actual purged input are covered"
+    );
+    assert_eq!(
+        (runs[1].ordinal, runs[1].new_tools),
+        (2, 2),
+        "reused call ID and newly aged error are new occurrences; inherited pruning is excluded"
+    );
+    assert_eq!(runs[1].cumulative.prunes, 4);
     let requests = requests.lock().unwrap();
     assert_eq!(requests.len(), 11);
     let projected = &requests[5];
@@ -4453,19 +4492,27 @@ async fn aud21_model_compress_preserves_complete_tool_graph_without_replay() {
         vec![compress, sse_delta("refusal handled") + &sse_completed()],
         Duration::ZERO,
     );
+    let mut events = Vec::new();
     let report = runtime
-        .run_turn(params(
-            "graph",
-            "compress the completed tool turn",
-            &harness,
-            provider_of(&compress_base),
-            &NO_CANCEL,
-        ))
+        .run_turn_with_tool_events(
+            params(
+                "graph",
+                "compress the completed tool turn",
+                &harness,
+                provider_of(&compress_base),
+                &NO_CANCEL,
+            ),
+            |_| {},
+            |_, _| {},
+            |_, _| {},
+            |_, event| events.push(event.clone()),
+        )
         .await
         .unwrap();
     assert_eq!(report.status, TurnStatus::Completed);
     assert_eq!(report.calls[0].name, "compress");
     assert_eq!(report.calls[0].state, "completed");
+    assert!(events.iter().any(|event|matches!(event,ToolCallEvent::Started { name,dcp_topic:Some(topic),.. } if name=="compress" && topic=="unsafe graph range")));
     let requests = requests.lock().unwrap();
     assert!(
         function_output(&requests[1], "compress-graph")
@@ -4480,6 +4527,79 @@ async fn aud21_model_compress_preserves_complete_tool_graph_without_replay() {
     );
     let operations = harness.db.list_tool_ops("graph").unwrap();
     assert_eq!(
+        operations
+            .iter()
+            .find(|op| op.name == "compress")
+            .unwrap()
+            .dcp_topic
+            .as_deref(),
+        Some("unsafe graph range")
+    );
+    let snapshot = operations
+        .iter()
+        .find(|op| op.name == "compress")
+        .unwrap()
+        .dcp
+        .as_ref()
+        .unwrap();
+    assert_eq!(snapshot.ordinal, 1);
+    assert_eq!(
+        (snapshot.new_messages, snapshot.new_tools),
+        (2, 0),
+        "retained function pairs are not compressed tool occurrences"
+    );
+    let estimate = |text: &str| (text.encode_utf16().count() as u64 + 2) / 4;
+    assert_eq!(
+        snapshot.removed,
+        history
+            .iter()
+            .map(|(_, _, text)| estimate(text))
+            .sum::<u64>()
+    );
+    assert_eq!(
+        snapshot.summary,
+        estimate("the durable effect completed once")
+    );
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e,ToolCallEvent::Finished { dcp:Some(run), .. } if run==snapshot))
+    );
+    let request_tokens = |request: &serde_json::Value| {
+        let mut total = 0u64;
+        for item in request["input"].as_array().unwrap() {
+            if item["call_id"] == "compress-graph" {
+                continue;
+            }
+            if let Some(parts) = item["content"].as_array() {
+                for part in parts {
+                    if let Some(text) = part["text"].as_str() {
+                        // The measured projection excludes generated anchor-lane
+                        // instructions, which are rebuilt independently per request.
+                        if !text.starts_with("DCP context anchors in order.") {
+                            total += estimate(text);
+                        }
+                    }
+                }
+            }
+            if let Some(arguments) = item["arguments"].as_str() {
+                total += estimate(arguments);
+            }
+            if let Some(output) = item["output"].as_str() {
+                total += estimate(output);
+            }
+        }
+        total
+    };
+    assert!(request_tokens(&requests[1]) < request_tokens(&requests[0]));
+    assert_eq!(
+        snapshot.net_saved,
+        request_tokens(&requests[0]) - request_tokens(&requests[1])
+    );
+    let raw_after = harness.db.read_history_full("graph").unwrap();
+    assert_eq!(&raw_after[..history.len()], history.as_slice());
+    assert_eq!(raw_after.len(), 4, "DCP metadata adds no history message");
+    assert_eq!(
         operations.iter().filter(|op| op.name == "bash").count(),
         1,
         "compression refusal replayed the prior side effect"
@@ -4489,6 +4609,99 @@ async fn aud21_model_compress_preserves_complete_tool_graph_without_replay() {
         *compress_hits.lock().unwrap(),
         2,
         "compression must return one structured output and then continue"
+    );
+}
+
+/// DTO extension (iteration 3a): the runtime forwards provider reasoning
+#[tokio::test]
+async fn vis38_failed_no_gain_and_cancel_never_publish_success_accounting() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("negative-dcp").unwrap();
+    let first = harness
+        .db
+        .append_message("negative-dcp", "user", &"raw content ".repeat(200))
+        .unwrap();
+    let second = harness
+        .db
+        .append_message("negative-dcp", "assistant", &"answer ".repeat(200))
+        .unwrap();
+    let call = |id: &str, start: &str, end: &str, summary: &str| {
+        sse_tool_call(
+            id,
+            "compress",
+            &serde_json::json!({"topic":"negative outcome","content":[{"startId":start,"endId":end,"summary":summary}]}),
+        ) + &sse_completed()
+    };
+    let (base, _, _) = Fake::start_recording(
+        vec![
+            call("no-gain", &first, &second, &"too much summary ".repeat(400)),
+            sse_delta("no gain handled") + &sse_completed(),
+            call("failed", "missing", &second, "short"),
+            sse_delta("failure handled") + &sse_completed(),
+            call("cancelled", &first, &second, "short"),
+        ],
+        Duration::ZERO,
+    );
+    for (prompt, state) in [
+        ("attempt no gain", "no_gain"),
+        ("attempt failure", "failed"),
+    ] {
+        let report = runtime
+            .run_turn(params(
+                "negative-dcp",
+                prompt,
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(report.calls[0].state, state);
+    }
+    let cancel = AtomicBool::new(false);
+    let mut events = Vec::new();
+    runtime
+        .run_turn_with_tool_events(
+            params(
+                "negative-dcp",
+                "attempt cancellation",
+                &harness,
+                provider_of(&base),
+                &cancel,
+            ),
+            |_| {},
+            |_, _| {},
+            |_, _| {},
+            |_, event| {
+                if matches!(event,ToolCallEvent::Started { name,.. } if name=="compress") {
+                    cancel.store(true, Ordering::Release);
+                }
+                events.push(event.clone());
+            },
+        )
+        .await
+        .unwrap();
+    assert!(
+        events.iter().any(
+            |e| matches!(e,ToolCallEvent::Finished { state,dcp:None,.. } if state=="cancelled")
+        )
+    );
+    assert!(harness.db.dcp_accounting("negative-dcp").unwrap().is_none());
+    assert!(
+        harness
+            .db
+            .load_compression_blocks("negative-dcp")
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        harness
+            .db
+            .list_tool_ops("negative-dcp")
+            .unwrap()
+            .iter()
+            .all(|op| op.dcp.is_none())
     );
 }
 
@@ -6483,7 +6696,13 @@ async fn dto_tool_events_surface_started_and_finished_with_a_patch() {
     events.retain(|event| !matches!(event, ToolCallEvent::ArgumentStream(_)));
     assert_eq!(events.len(), 2, "one intent and one outcome: {events:?}");
     match &events[0] {
-        ToolCallEvent::Started { op, name, input } => {
+        ToolCallEvent::Started {
+            dcp_topic,
+            op,
+            name,
+            input,
+        } => {
+            assert!(dcp_topic.is_none(), "ordinary tools have no DCP topic");
             assert_eq!(op, &linked.1);
             assert_eq!(name, "apply_patch");
             assert!(!op.is_empty());
@@ -6503,6 +6722,7 @@ async fn dto_tool_events_surface_started_and_finished_with_a_patch() {
             output_bytes,
             output_truncated,
             patch_effects,
+            ..
         } => {
             let effects = patch_effects.as_ref().expect("confirmed effects");
             assert_eq!(effects.total_files, 2);

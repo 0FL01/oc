@@ -1,0 +1,3464 @@
+{
+  "schema_version": 1,
+  "provenance": {
+    "package": "@tarquinen/opencode-dcp",
+    "version": "3.1.15",
+    "commit": "11f6517780a502512a3467645074be447cb0369e",
+    "license": "AGPL-3.0-or-later",
+    "method": "Execute unchanged pinned formatter/bar/active-summary owner with import-only normalization and intercepted external prompt/toast delivery",
+    "qualification": "source-derived display; not plugin runtime compatibility or actual native compression"
+  },
+  "notifications": [
+    {
+      "id": "detailed",
+      "fixture": {
+        "id": "detailed",
+        "blocks": [
+          {
+            "blockId": 3,
+            "runId": 2,
+            "topic": "Earlier analysis",
+            "summary": "Keep prior requirement.",
+            "summaryTokens": 260,
+            "compressedTokens": 3000,
+            "active": true,
+            "directMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "directToolIds": [
+              "call-a"
+            ],
+            "effectiveMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "effectiveToolIds": [
+              "call-a"
+            ]
+          },
+          {
+            "blockId": 11,
+            "runId": 7,
+            "topic": "Formatter qualification",
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 842,
+            "compressedTokens": 11900,
+            "active": true,
+            "directMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "directToolIds": [
+              "call-b",
+              "call-c"
+            ],
+            "effectiveMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "effectiveToolIds": [
+              "call-b",
+              "call-c"
+            ]
+          }
+        ],
+        "entries": [
+          {
+            "blockId": 11,
+            "runId": 7,
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 842
+          }
+        ],
+        "sessionMessageIds": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6",
+          "m7",
+          "m8",
+          "m9",
+          "m10"
+        ],
+        "config": {
+          "pruneNotification": "detailed",
+          "pruneNotificationType": "chat",
+          "compress": {
+            "showCompression": false
+          }
+        },
+        "state": {
+          "stats": {
+            "totalPruneTokens": 14900,
+            "pruneTokenCounter": 400
+          },
+          "prune": {
+            "messages": {
+              "byMessageId": {
+                "m1": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m2": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m3": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m4": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m5": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m6": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m7": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m8": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m9": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m10": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                }
+              },
+              "blocksById": {
+                "3": {
+                  "blockId": 3,
+                  "runId": 2,
+                  "topic": "Earlier analysis",
+                  "summary": "Keep prior requirement.",
+                  "summaryTokens": 260,
+                  "compressedTokens": 3000,
+                  "active": true,
+                  "directMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "directToolIds": [
+                    "call-a"
+                  ],
+                  "effectiveMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "effectiveToolIds": [
+                    "call-a"
+                  ]
+                },
+                "11": {
+                  "blockId": 11,
+                  "runId": 7,
+                  "topic": "Formatter qualification",
+                  "summary": "Preserve R1; continue without replaying tools.",
+                  "summaryTokens": 842,
+                  "compressedTokens": 11900,
+                  "active": true,
+                  "directMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "directToolIds": [
+                    "call-b",
+                    "call-c"
+                  ],
+                  "effectiveMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "effectiveToolIds": [
+                    "call-b",
+                    "call-c"
+                  ]
+                }
+              },
+              "activeBlockIds": [
+                3,
+                11
+              ],
+              "activeByAnchorMessageId": {},
+              "nextBlockId": 13,
+              "nextRunId": 8
+            }
+          }
+        }
+      },
+      "result": true,
+      "prompts": [
+        {
+          "path": {
+            "id": "ses_dcp_oracle"
+          },
+          "body": {
+            "noReply": true,
+            "agent": "build",
+            "model": {
+              "providerID": "fixture",
+              "modelID": "fixture-model-1"
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "▣ DCP | -15.3K removed, +1.1K summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -11.9K removed, +842 summary\n→ Topic: Formatter qualification\n→ Items: 3 messages and 2 tools compressed",
+                "ignored": true
+              }
+            ]
+          }
+        }
+      ],
+      "toasts": [],
+      "errors": [],
+      "active_summary_tokens": 1102,
+      "payload": "▣ DCP | -15.3K removed, +1.1K summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -11.9K removed, +842 summary\n→ Topic: Formatter qualification\n→ Items: 3 messages and 2 tools compressed"
+    },
+    {
+      "id": "minimal",
+      "fixture": {
+        "id": "minimal",
+        "blocks": [
+          {
+            "blockId": 3,
+            "runId": 2,
+            "topic": "Earlier analysis",
+            "summary": "Keep prior requirement.",
+            "summaryTokens": 260,
+            "compressedTokens": 3000,
+            "active": true,
+            "directMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "directToolIds": [
+              "call-a"
+            ],
+            "effectiveMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "effectiveToolIds": [
+              "call-a"
+            ]
+          },
+          {
+            "blockId": 11,
+            "runId": 7,
+            "topic": "Formatter qualification",
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 842,
+            "compressedTokens": 11900,
+            "active": true,
+            "directMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "directToolIds": [
+              "call-b",
+              "call-c"
+            ],
+            "effectiveMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "effectiveToolIds": [
+              "call-b",
+              "call-c"
+            ]
+          }
+        ],
+        "entries": [
+          {
+            "blockId": 11,
+            "runId": 7,
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 842
+          }
+        ],
+        "sessionMessageIds": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6",
+          "m7",
+          "m8",
+          "m9",
+          "m10"
+        ],
+        "config": {
+          "pruneNotification": "minimal",
+          "pruneNotificationType": "chat",
+          "compress": {
+            "showCompression": false
+          }
+        },
+        "state": {
+          "stats": {
+            "totalPruneTokens": 14900,
+            "pruneTokenCounter": 400
+          },
+          "prune": {
+            "messages": {
+              "byMessageId": {
+                "m1": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m2": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m3": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m4": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m5": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m6": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m7": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m8": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m9": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m10": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                }
+              },
+              "blocksById": {
+                "3": {
+                  "blockId": 3,
+                  "runId": 2,
+                  "topic": "Earlier analysis",
+                  "summary": "Keep prior requirement.",
+                  "summaryTokens": 260,
+                  "compressedTokens": 3000,
+                  "active": true,
+                  "directMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "directToolIds": [
+                    "call-a"
+                  ],
+                  "effectiveMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "effectiveToolIds": [
+                    "call-a"
+                  ]
+                },
+                "11": {
+                  "blockId": 11,
+                  "runId": 7,
+                  "topic": "Formatter qualification",
+                  "summary": "Preserve R1; continue without replaying tools.",
+                  "summaryTokens": 842,
+                  "compressedTokens": 11900,
+                  "active": true,
+                  "directMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "directToolIds": [
+                    "call-b",
+                    "call-c"
+                  ],
+                  "effectiveMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "effectiveToolIds": [
+                    "call-b",
+                    "call-c"
+                  ]
+                }
+              },
+              "activeBlockIds": [
+                3,
+                11
+              ],
+              "activeByAnchorMessageId": {},
+              "nextBlockId": 13,
+              "nextRunId": 8
+            }
+          }
+        }
+      },
+      "result": true,
+      "prompts": [
+        {
+          "path": {
+            "id": "ses_dcp_oracle"
+          },
+          "body": {
+            "noReply": true,
+            "agent": "build",
+            "model": {
+              "providerID": "fixture",
+              "modelID": "fixture-model-1"
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "▣ DCP | -15.3K removed, +1.1K summary — Compression #7",
+                "ignored": true
+              }
+            ]
+          }
+        }
+      ],
+      "toasts": [],
+      "errors": [],
+      "active_summary_tokens": 1102,
+      "payload": "▣ DCP | -15.3K removed, +1.1K summary — Compression #7"
+    },
+    {
+      "id": "minimal-show",
+      "fixture": {
+        "id": "minimal-show",
+        "blocks": [
+          {
+            "blockId": 3,
+            "runId": 2,
+            "topic": "Earlier analysis",
+            "summary": "Keep prior requirement.",
+            "summaryTokens": 260,
+            "compressedTokens": 3000,
+            "active": true,
+            "directMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "directToolIds": [
+              "call-a"
+            ],
+            "effectiveMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "effectiveToolIds": [
+              "call-a"
+            ]
+          },
+          {
+            "blockId": 11,
+            "runId": 7,
+            "topic": "Formatter qualification",
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 842,
+            "compressedTokens": 11900,
+            "active": true,
+            "directMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "directToolIds": [
+              "call-b",
+              "call-c"
+            ],
+            "effectiveMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "effectiveToolIds": [
+              "call-b",
+              "call-c"
+            ]
+          }
+        ],
+        "entries": [
+          {
+            "blockId": 11,
+            "runId": 7,
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 842
+          }
+        ],
+        "sessionMessageIds": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6",
+          "m7",
+          "m8",
+          "m9",
+          "m10"
+        ],
+        "config": {
+          "pruneNotification": "minimal",
+          "pruneNotificationType": "chat",
+          "compress": {
+            "showCompression": true
+          }
+        },
+        "state": {
+          "stats": {
+            "totalPruneTokens": 14900,
+            "pruneTokenCounter": 400
+          },
+          "prune": {
+            "messages": {
+              "byMessageId": {
+                "m1": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m2": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m3": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m4": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m5": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m6": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m7": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m8": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m9": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m10": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                }
+              },
+              "blocksById": {
+                "3": {
+                  "blockId": 3,
+                  "runId": 2,
+                  "topic": "Earlier analysis",
+                  "summary": "Keep prior requirement.",
+                  "summaryTokens": 260,
+                  "compressedTokens": 3000,
+                  "active": true,
+                  "directMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "directToolIds": [
+                    "call-a"
+                  ],
+                  "effectiveMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "effectiveToolIds": [
+                    "call-a"
+                  ]
+                },
+                "11": {
+                  "blockId": 11,
+                  "runId": 7,
+                  "topic": "Formatter qualification",
+                  "summary": "Preserve R1; continue without replaying tools.",
+                  "summaryTokens": 842,
+                  "compressedTokens": 11900,
+                  "active": true,
+                  "directMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "directToolIds": [
+                    "call-b",
+                    "call-c"
+                  ],
+                  "effectiveMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "effectiveToolIds": [
+                    "call-b",
+                    "call-c"
+                  ]
+                }
+              },
+              "activeBlockIds": [
+                3,
+                11
+              ],
+              "activeByAnchorMessageId": {},
+              "nextBlockId": 13,
+              "nextRunId": 8
+            }
+          }
+        }
+      },
+      "result": true,
+      "prompts": [
+        {
+          "path": {
+            "id": "ses_dcp_oracle"
+          },
+          "body": {
+            "noReply": true,
+            "agent": "build",
+            "model": {
+              "providerID": "fixture",
+              "modelID": "fixture-model-1"
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "▣ DCP | -15.3K removed, +1.1K summary — Compression #7",
+                "ignored": true
+              }
+            ]
+          }
+        }
+      ],
+      "toasts": [],
+      "errors": [],
+      "active_summary_tokens": 1102,
+      "payload": "▣ DCP | -15.3K removed, +1.1K summary — Compression #7"
+    },
+    {
+      "id": "off",
+      "fixture": {
+        "id": "off",
+        "blocks": [
+          {
+            "blockId": 3,
+            "runId": 2,
+            "topic": "Earlier analysis",
+            "summary": "Keep prior requirement.",
+            "summaryTokens": 260,
+            "compressedTokens": 3000,
+            "active": true,
+            "directMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "directToolIds": [
+              "call-a"
+            ],
+            "effectiveMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "effectiveToolIds": [
+              "call-a"
+            ]
+          },
+          {
+            "blockId": 11,
+            "runId": 7,
+            "topic": "Formatter qualification",
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 842,
+            "compressedTokens": 11900,
+            "active": true,
+            "directMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "directToolIds": [
+              "call-b",
+              "call-c"
+            ],
+            "effectiveMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "effectiveToolIds": [
+              "call-b",
+              "call-c"
+            ]
+          }
+        ],
+        "entries": [
+          {
+            "blockId": 11,
+            "runId": 7,
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 842
+          }
+        ],
+        "sessionMessageIds": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6",
+          "m7",
+          "m8",
+          "m9",
+          "m10"
+        ],
+        "config": {
+          "pruneNotification": "off",
+          "pruneNotificationType": "chat",
+          "compress": {
+            "showCompression": false
+          }
+        },
+        "state": {
+          "stats": {
+            "totalPruneTokens": 14900,
+            "pruneTokenCounter": 400
+          },
+          "prune": {
+            "messages": {
+              "byMessageId": {
+                "m1": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m2": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m3": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m4": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m5": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m6": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m7": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m8": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m9": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m10": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                }
+              },
+              "blocksById": {
+                "3": {
+                  "blockId": 3,
+                  "runId": 2,
+                  "topic": "Earlier analysis",
+                  "summary": "Keep prior requirement.",
+                  "summaryTokens": 260,
+                  "compressedTokens": 3000,
+                  "active": true,
+                  "directMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "directToolIds": [
+                    "call-a"
+                  ],
+                  "effectiveMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "effectiveToolIds": [
+                    "call-a"
+                  ]
+                },
+                "11": {
+                  "blockId": 11,
+                  "runId": 7,
+                  "topic": "Formatter qualification",
+                  "summary": "Preserve R1; continue without replaying tools.",
+                  "summaryTokens": 842,
+                  "compressedTokens": 11900,
+                  "active": true,
+                  "directMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "directToolIds": [
+                    "call-b",
+                    "call-c"
+                  ],
+                  "effectiveMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "effectiveToolIds": [
+                    "call-b",
+                    "call-c"
+                  ]
+                }
+              },
+              "activeBlockIds": [
+                3,
+                11
+              ],
+              "activeByAnchorMessageId": {},
+              "nextBlockId": 13,
+              "nextRunId": 8
+            }
+          }
+        }
+      },
+      "result": false,
+      "prompts": [],
+      "toasts": [],
+      "errors": [],
+      "active_summary_tokens": 1102,
+      "payload": null
+    },
+    {
+      "id": "show-single",
+      "fixture": {
+        "id": "show-single",
+        "blocks": [
+          {
+            "blockId": 3,
+            "runId": 2,
+            "topic": "Earlier analysis",
+            "summary": "Keep prior requirement.",
+            "summaryTokens": 260,
+            "compressedTokens": 3000,
+            "active": true,
+            "directMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "directToolIds": [
+              "call-a"
+            ],
+            "effectiveMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "effectiveToolIds": [
+              "call-a"
+            ]
+          },
+          {
+            "blockId": 11,
+            "runId": 7,
+            "topic": "Formatter qualification",
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 842,
+            "compressedTokens": 11900,
+            "active": true,
+            "directMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "directToolIds": [
+              "call-b",
+              "call-c"
+            ],
+            "effectiveMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "effectiveToolIds": [
+              "call-b",
+              "call-c"
+            ]
+          }
+        ],
+        "entries": [
+          {
+            "blockId": 11,
+            "runId": 7,
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 842
+          }
+        ],
+        "sessionMessageIds": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6",
+          "m7",
+          "m8",
+          "m9",
+          "m10"
+        ],
+        "config": {
+          "pruneNotification": "detailed",
+          "pruneNotificationType": "chat",
+          "compress": {
+            "showCompression": true
+          }
+        },
+        "state": {
+          "stats": {
+            "totalPruneTokens": 14900,
+            "pruneTokenCounter": 400
+          },
+          "prune": {
+            "messages": {
+              "byMessageId": {
+                "m1": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m2": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m3": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m4": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m5": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m6": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m7": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m8": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m9": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m10": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                }
+              },
+              "blocksById": {
+                "3": {
+                  "blockId": 3,
+                  "runId": 2,
+                  "topic": "Earlier analysis",
+                  "summary": "Keep prior requirement.",
+                  "summaryTokens": 260,
+                  "compressedTokens": 3000,
+                  "active": true,
+                  "directMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "directToolIds": [
+                    "call-a"
+                  ],
+                  "effectiveMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "effectiveToolIds": [
+                    "call-a"
+                  ]
+                },
+                "11": {
+                  "blockId": 11,
+                  "runId": 7,
+                  "topic": "Formatter qualification",
+                  "summary": "Preserve R1; continue without replaying tools.",
+                  "summaryTokens": 842,
+                  "compressedTokens": 11900,
+                  "active": true,
+                  "directMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "directToolIds": [
+                    "call-b",
+                    "call-c"
+                  ],
+                  "effectiveMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "effectiveToolIds": [
+                    "call-b",
+                    "call-c"
+                  ]
+                }
+              },
+              "activeBlockIds": [
+                3,
+                11
+              ],
+              "activeByAnchorMessageId": {},
+              "nextBlockId": 13,
+              "nextRunId": 8
+            }
+          }
+        }
+      },
+      "result": true,
+      "prompts": [
+        {
+          "path": {
+            "id": "ses_dcp_oracle"
+          },
+          "body": {
+            "noReply": true,
+            "agent": "build",
+            "model": {
+              "providerID": "fixture",
+              "modelID": "fixture-model-1"
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "▣ DCP | -15.3K removed, +1.1K summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -11.9K removed, +842 summary\n→ Topic: Formatter qualification\n→ Items: 3 messages and 2 tools compressed\n→ Compression (~842 tokens): Preserve R1; continue without replaying tools.",
+                "ignored": true
+              }
+            ]
+          }
+        }
+      ],
+      "toasts": [],
+      "errors": [],
+      "active_summary_tokens": 1102,
+      "payload": "▣ DCP | -15.3K removed, +1.1K summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -11.9K removed, +842 summary\n→ Topic: Formatter qualification\n→ Items: 3 messages and 2 tools compressed\n→ Compression (~842 tokens): Preserve R1; continue without replaying tools."
+    },
+    {
+      "id": "multi-range",
+      "fixture": {
+        "id": "multi-range",
+        "blocks": [
+          {
+            "blockId": 3,
+            "runId": 2,
+            "topic": "Earlier analysis",
+            "summary": "Keep prior requirement.",
+            "summaryTokens": 260,
+            "compressedTokens": 3000,
+            "active": true,
+            "directMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "directToolIds": [
+              "call-a"
+            ],
+            "effectiveMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "effectiveToolIds": [
+              "call-a"
+            ]
+          },
+          {
+            "blockId": 11,
+            "runId": 7,
+            "topic": "Formatter qualification",
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 842,
+            "compressedTokens": 11900,
+            "active": true,
+            "directMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "directToolIds": [
+              "call-b",
+              "call-c"
+            ],
+            "effectiveMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "effectiveToolIds": [
+              "call-b",
+              "call-c"
+            ]
+          },
+          {
+            "blockId": 12,
+            "runId": 7,
+            "topic": "Unicode continuation: 日本語 résumé",
+            "summary": "Retain R2 and stable occurrence IDs.",
+            "summaryTokens": 170,
+            "compressedTokens": 2700,
+            "active": true,
+            "directMessageIds": [
+              "m5",
+              "m6"
+            ],
+            "directToolIds": [
+              "call-c",
+              "call-d"
+            ],
+            "effectiveMessageIds": [
+              "m5",
+              "m6"
+            ],
+            "effectiveToolIds": [
+              "call-c",
+              "call-d"
+            ]
+          }
+        ],
+        "entries": [
+          {
+            "blockId": 11,
+            "runId": 7,
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 842
+          },
+          {
+            "blockId": 12,
+            "runId": 7,
+            "summary": "Retain R2 and stable occurrence IDs.",
+            "summaryTokens": 170
+          }
+        ],
+        "sessionMessageIds": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6",
+          "m7",
+          "m8",
+          "m9",
+          "m10"
+        ],
+        "batchTopic": "Two independent ranges",
+        "config": {
+          "pruneNotification": "detailed",
+          "pruneNotificationType": "chat",
+          "compress": {
+            "showCompression": true
+          }
+        },
+        "state": {
+          "stats": {
+            "totalPruneTokens": 14900,
+            "pruneTokenCounter": 400
+          },
+          "prune": {
+            "messages": {
+              "byMessageId": {
+                "m1": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m2": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m3": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m4": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m5": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11,
+                    12
+                  ],
+                  "activeBlockIds": [
+                    11,
+                    12
+                  ]
+                },
+                "m6": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    12
+                  ],
+                  "activeBlockIds": [
+                    12
+                  ]
+                },
+                "m7": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m8": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m9": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m10": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                }
+              },
+              "blocksById": {
+                "3": {
+                  "blockId": 3,
+                  "runId": 2,
+                  "topic": "Earlier analysis",
+                  "summary": "Keep prior requirement.",
+                  "summaryTokens": 260,
+                  "compressedTokens": 3000,
+                  "active": true,
+                  "directMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "directToolIds": [
+                    "call-a"
+                  ],
+                  "effectiveMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "effectiveToolIds": [
+                    "call-a"
+                  ]
+                },
+                "11": {
+                  "blockId": 11,
+                  "runId": 7,
+                  "topic": "Formatter qualification",
+                  "summary": "Preserve R1; continue without replaying tools.",
+                  "summaryTokens": 842,
+                  "compressedTokens": 11900,
+                  "active": true,
+                  "directMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "directToolIds": [
+                    "call-b",
+                    "call-c"
+                  ],
+                  "effectiveMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "effectiveToolIds": [
+                    "call-b",
+                    "call-c"
+                  ]
+                },
+                "12": {
+                  "blockId": 12,
+                  "runId": 7,
+                  "topic": "Unicode continuation: 日本語 résumé",
+                  "summary": "Retain R2 and stable occurrence IDs.",
+                  "summaryTokens": 170,
+                  "compressedTokens": 2700,
+                  "active": true,
+                  "directMessageIds": [
+                    "m5",
+                    "m6"
+                  ],
+                  "directToolIds": [
+                    "call-c",
+                    "call-d"
+                  ],
+                  "effectiveMessageIds": [
+                    "m5",
+                    "m6"
+                  ],
+                  "effectiveToolIds": [
+                    "call-c",
+                    "call-d"
+                  ]
+                }
+              },
+              "activeBlockIds": [
+                3,
+                11,
+                12
+              ],
+              "activeByAnchorMessageId": {},
+              "nextBlockId": 13,
+              "nextRunId": 8
+            }
+          }
+        }
+      },
+      "result": true,
+      "prompts": [
+        {
+          "path": {
+            "id": "ses_dcp_oracle"
+          },
+          "body": {
+            "noReply": true,
+            "agent": "build",
+            "model": {
+              "providerID": "fixture",
+              "modelID": "fixture-model-1"
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "▣ DCP | -15.3K removed, +1.3K summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿████████████████████│\n▣ Compression #7 -14.6K removed, +1K summary\n→ Topic: Two independent ranges\n→ Items: 4 messages and 3 tools compressed\n→ Compression (~1K tokens): ### Formatter qualification\nPreserve R1; continue without replaying tools.\n\n### Unicode continuation: 日本語 résumé\nRetain R2 and stable occurrence IDs.",
+                "ignored": true
+              }
+            ]
+          }
+        }
+      ],
+      "toasts": [],
+      "errors": [],
+      "active_summary_tokens": 1272,
+      "payload": "▣ DCP | -15.3K removed, +1.3K summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿████████████████████│\n▣ Compression #7 -14.6K removed, +1K summary\n→ Topic: Two independent ranges\n→ Items: 4 messages and 3 tools compressed\n→ Compression (~1K tokens): ### Formatter qualification\nPreserve R1; continue without replaying tools.\n\n### Unicode continuation: 日本語 résumé\nRetain R2 and stable occurrence IDs."
+    },
+    {
+      "id": "zero-summary-tools",
+      "fixture": {
+        "id": "zero-summary-tools",
+        "blocks": [
+          {
+            "blockId": 3,
+            "runId": 2,
+            "topic": "Earlier analysis",
+            "summary": "Keep prior requirement.",
+            "summaryTokens": 260,
+            "compressedTokens": 3000,
+            "active": true,
+            "directMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "directToolIds": [
+              "call-a"
+            ],
+            "effectiveMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "effectiveToolIds": [
+              "call-a"
+            ]
+          },
+          {
+            "blockId": 11,
+            "runId": 7,
+            "topic": "Formatter qualification",
+            "summary": "",
+            "summaryTokens": 0,
+            "compressedTokens": 11900,
+            "active": true,
+            "directMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "directToolIds": [],
+            "effectiveMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "effectiveToolIds": []
+          }
+        ],
+        "entries": [
+          {
+            "blockId": 11,
+            "runId": 7,
+            "summary": "",
+            "summaryTokens": 0
+          }
+        ],
+        "sessionMessageIds": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6",
+          "m7",
+          "m8",
+          "m9",
+          "m10"
+        ],
+        "config": {
+          "pruneNotification": "detailed",
+          "pruneNotificationType": "chat",
+          "compress": {
+            "showCompression": false
+          }
+        },
+        "state": {
+          "stats": {
+            "totalPruneTokens": 14900,
+            "pruneTokenCounter": 400
+          },
+          "prune": {
+            "messages": {
+              "byMessageId": {
+                "m1": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m2": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m3": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m4": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m5": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m6": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m7": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m8": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m9": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m10": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                }
+              },
+              "blocksById": {
+                "3": {
+                  "blockId": 3,
+                  "runId": 2,
+                  "topic": "Earlier analysis",
+                  "summary": "Keep prior requirement.",
+                  "summaryTokens": 260,
+                  "compressedTokens": 3000,
+                  "active": true,
+                  "directMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "directToolIds": [
+                    "call-a"
+                  ],
+                  "effectiveMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "effectiveToolIds": [
+                    "call-a"
+                  ]
+                },
+                "11": {
+                  "blockId": 11,
+                  "runId": 7,
+                  "topic": "Formatter qualification",
+                  "summary": "",
+                  "summaryTokens": 0,
+                  "compressedTokens": 11900,
+                  "active": true,
+                  "directMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "directToolIds": [],
+                  "effectiveMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "effectiveToolIds": []
+                }
+              },
+              "activeBlockIds": [
+                3,
+                11
+              ],
+              "activeByAnchorMessageId": {},
+              "nextBlockId": 13,
+              "nextRunId": 8
+            }
+          }
+        }
+      },
+      "result": true,
+      "prompts": [
+        {
+          "path": {
+            "id": "ses_dcp_oracle"
+          },
+          "body": {
+            "noReply": true,
+            "agent": "build",
+            "model": {
+              "providerID": "fixture",
+              "modelID": "fixture-model-1"
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "▣ DCP | -15.3K removed, +260 summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -11.9K removed\n→ Topic: Formatter qualification\n→ Items: 3 messages compressed",
+                "ignored": true
+              }
+            ]
+          }
+        }
+      ],
+      "toasts": [],
+      "errors": [],
+      "active_summary_tokens": 260,
+      "payload": "▣ DCP | -15.3K removed, +260 summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -11.9K removed\n→ Topic: Formatter qualification\n→ Items: 3 messages compressed"
+    },
+    {
+      "id": "empty-positions",
+      "fixture": {
+        "id": "empty-positions",
+        "blocks": [
+          {
+            "blockId": 3,
+            "runId": 2,
+            "topic": "Earlier analysis",
+            "summary": "Keep prior requirement.",
+            "summaryTokens": 260,
+            "compressedTokens": 3000,
+            "active": true,
+            "directMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "directToolIds": [
+              "call-a"
+            ],
+            "effectiveMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "effectiveToolIds": [
+              "call-a"
+            ]
+          },
+          {
+            "blockId": 11,
+            "runId": 7,
+            "topic": "Formatter qualification",
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 842,
+            "compressedTokens": 11900,
+            "active": true,
+            "directMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "directToolIds": [
+              "call-b",
+              "call-c"
+            ],
+            "effectiveMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "effectiveToolIds": [
+              "call-b",
+              "call-c"
+            ]
+          }
+        ],
+        "entries": [
+          {
+            "blockId": 11,
+            "runId": 7,
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 842
+          }
+        ],
+        "sessionMessageIds": [],
+        "config": {
+          "pruneNotification": "detailed",
+          "pruneNotificationType": "chat",
+          "compress": {
+            "showCompression": false
+          }
+        },
+        "state": {
+          "stats": {
+            "totalPruneTokens": 14900,
+            "pruneTokenCounter": 400
+          },
+          "prune": {
+            "messages": {
+              "byMessageId": {},
+              "blocksById": {
+                "3": {
+                  "blockId": 3,
+                  "runId": 2,
+                  "topic": "Earlier analysis",
+                  "summary": "Keep prior requirement.",
+                  "summaryTokens": 260,
+                  "compressedTokens": 3000,
+                  "active": true,
+                  "directMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "directToolIds": [
+                    "call-a"
+                  ],
+                  "effectiveMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "effectiveToolIds": [
+                    "call-a"
+                  ]
+                },
+                "11": {
+                  "blockId": 11,
+                  "runId": 7,
+                  "topic": "Formatter qualification",
+                  "summary": "Preserve R1; continue without replaying tools.",
+                  "summaryTokens": 842,
+                  "compressedTokens": 11900,
+                  "active": true,
+                  "directMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "directToolIds": [
+                    "call-b",
+                    "call-c"
+                  ],
+                  "effectiveMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "effectiveToolIds": [
+                    "call-b",
+                    "call-c"
+                  ]
+                }
+              },
+              "activeBlockIds": [
+                3,
+                11
+              ],
+              "activeByAnchorMessageId": {},
+              "nextBlockId": 13,
+              "nextRunId": 8
+            }
+          }
+        }
+      },
+      "result": true,
+      "prompts": [
+        {
+          "path": {
+            "id": "ses_dcp_oracle"
+          },
+          "body": {
+            "noReply": true,
+            "agent": "build",
+            "model": {
+              "providerID": "fixture",
+              "modelID": "fixture-model-1"
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "▣ DCP | -15.3K removed, +1.1K summary\n\n│░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│\n▣ Compression #7 -11.9K removed, +842 summary\n→ Topic: Formatter qualification\n→ Items: 3 messages and 2 tools compressed",
+                "ignored": true
+              }
+            ]
+          }
+        }
+      ],
+      "toasts": [],
+      "errors": [],
+      "active_summary_tokens": 1102,
+      "payload": "▣ DCP | -15.3K removed, +1.1K summary\n\n│░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│\n▣ Compression #7 -11.9K removed, +842 summary\n→ Topic: Formatter qualification\n→ Items: 3 messages and 2 tools compressed"
+    },
+    {
+      "id": "recompression",
+      "fixture": {
+        "id": "recompression",
+        "blocks": [
+          {
+            "blockId": 3,
+            "runId": 2,
+            "topic": "Earlier analysis",
+            "summary": "Keep prior requirement.",
+            "summaryTokens": 260,
+            "compressedTokens": 3000,
+            "active": false,
+            "directMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "directToolIds": [
+              "call-a"
+            ],
+            "effectiveMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "effectiveToolIds": [
+              "call-a"
+            ]
+          },
+          {
+            "blockId": 11,
+            "runId": 7,
+            "topic": "Formatter qualification",
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 90,
+            "compressedTokens": 842,
+            "active": true,
+            "directMessageIds": [],
+            "directToolIds": [],
+            "effectiveMessageIds": [
+              "m1",
+              "m2",
+              "m3"
+            ],
+            "effectiveToolIds": [
+              "call-a",
+              "call-b"
+            ],
+            "consumedBlockIds": [
+              3
+            ]
+          }
+        ],
+        "entries": [
+          {
+            "blockId": 11,
+            "runId": 7,
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 90
+          }
+        ],
+        "sessionMessageIds": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6",
+          "m7",
+          "m8",
+          "m9",
+          "m10"
+        ],
+        "config": {
+          "pruneNotification": "detailed",
+          "pruneNotificationType": "chat",
+          "compress": {
+            "showCompression": false
+          }
+        },
+        "state": {
+          "stats": {
+            "totalPruneTokens": 14900,
+            "pruneTokenCounter": 400
+          },
+          "prune": {
+            "messages": {
+              "byMessageId": {
+                "m1": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3,
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m2": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3,
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m3": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m4": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m5": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m6": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m7": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m8": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m9": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m10": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                }
+              },
+              "blocksById": {
+                "3": {
+                  "blockId": 3,
+                  "runId": 2,
+                  "topic": "Earlier analysis",
+                  "summary": "Keep prior requirement.",
+                  "summaryTokens": 260,
+                  "compressedTokens": 3000,
+                  "active": false,
+                  "directMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "directToolIds": [
+                    "call-a"
+                  ],
+                  "effectiveMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "effectiveToolIds": [
+                    "call-a"
+                  ]
+                },
+                "11": {
+                  "blockId": 11,
+                  "runId": 7,
+                  "topic": "Formatter qualification",
+                  "summary": "Preserve R1; continue without replaying tools.",
+                  "summaryTokens": 90,
+                  "compressedTokens": 842,
+                  "active": true,
+                  "directMessageIds": [],
+                  "directToolIds": [],
+                  "effectiveMessageIds": [
+                    "m1",
+                    "m2",
+                    "m3"
+                  ],
+                  "effectiveToolIds": [
+                    "call-a",
+                    "call-b"
+                  ],
+                  "consumedBlockIds": [
+                    3
+                  ]
+                }
+              },
+              "activeBlockIds": [
+                11
+              ],
+              "activeByAnchorMessageId": {},
+              "nextBlockId": 13,
+              "nextRunId": 8
+            }
+          }
+        }
+      },
+      "result": true,
+      "prompts": [
+        {
+          "path": {
+            "id": "ses_dcp_oracle"
+          },
+          "body": {
+            "noReply": true,
+            "agent": "build",
+            "model": {
+              "providerID": "fixture",
+              "modelID": "fixture-model-1"
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "▣ DCP | -15.3K removed, +90 summary\n\n│░░░░░░░░░░░░░░░███████████████████████████████████│\n▣ Compression #7 -842 removed, +90 summary\n→ Topic: Formatter qualification\n→ Items: 0 messages compressed",
+                "ignored": true
+              }
+            ]
+          }
+        }
+      ],
+      "toasts": [],
+      "errors": [],
+      "active_summary_tokens": 90,
+      "payload": "▣ DCP | -15.3K removed, +90 summary\n\n│░░░░░░░░░░░░░░░███████████████████████████████████│\n▣ Compression #7 -842 removed, +90 summary\n→ Topic: Formatter qualification\n→ Items: 0 messages compressed"
+    },
+    {
+      "id": "large-k-only",
+      "fixture": {
+        "id": "large-k-only",
+        "blocks": [
+          {
+            "blockId": 11,
+            "runId": 7,
+            "topic": "Formatter qualification",
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 1000000,
+            "compressedTokens": 4218800,
+            "active": true,
+            "directMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "directToolIds": [
+              "call-b",
+              "call-c"
+            ],
+            "effectiveMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "effectiveToolIds": [
+              "call-b",
+              "call-c"
+            ]
+          }
+        ],
+        "entries": [
+          {
+            "blockId": 11,
+            "runId": 7,
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 1000000
+          }
+        ],
+        "sessionMessageIds": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6",
+          "m7",
+          "m8",
+          "m9",
+          "m10"
+        ],
+        "config": {
+          "pruneNotification": "detailed",
+          "pruneNotificationType": "chat",
+          "compress": {
+            "showCompression": false
+          }
+        },
+        "totals": {
+          "totalPruneTokens": 4218800,
+          "pruneTokenCounter": 0
+        },
+        "state": {
+          "stats": {
+            "totalPruneTokens": 4218800,
+            "pruneTokenCounter": 0
+          },
+          "prune": {
+            "messages": {
+              "byMessageId": {
+                "m1": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m2": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m3": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m4": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m5": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m6": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m7": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m8": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m9": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m10": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                }
+              },
+              "blocksById": {
+                "11": {
+                  "blockId": 11,
+                  "runId": 7,
+                  "topic": "Formatter qualification",
+                  "summary": "Preserve R1; continue without replaying tools.",
+                  "summaryTokens": 1000000,
+                  "compressedTokens": 4218800,
+                  "active": true,
+                  "directMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "directToolIds": [
+                    "call-b",
+                    "call-c"
+                  ],
+                  "effectiveMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "effectiveToolIds": [
+                    "call-b",
+                    "call-c"
+                  ]
+                }
+              },
+              "activeBlockIds": [
+                11
+              ],
+              "activeByAnchorMessageId": {},
+              "nextBlockId": 13,
+              "nextRunId": 8
+            }
+          }
+        }
+      },
+      "result": true,
+      "prompts": [
+        {
+          "path": {
+            "id": "ses_dcp_oracle"
+          },
+          "body": {
+            "noReply": true,
+            "agent": "build",
+            "model": {
+              "providerID": "fixture",
+              "modelID": "fixture-model-1"
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "▣ DCP | -4218.8K removed, +1000K summary\n\n│██████████⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -4218.8K removed, +1000K summary\n→ Topic: Formatter qualification\n→ Items: 3 messages and 2 tools compressed",
+                "ignored": true
+              }
+            ]
+          }
+        }
+      ],
+      "toasts": [],
+      "errors": [],
+      "active_summary_tokens": 1000000,
+      "payload": "▣ DCP | -4218.8K removed, +1000K summary\n\n│██████████⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -4218.8K removed, +1000K summary\n→ Topic: Formatter qualification\n→ Items: 3 messages and 2 tools compressed"
+    },
+    {
+      "id": "long-topic-summary",
+      "fixture": {
+        "id": "long-topic-summary",
+        "blocks": [
+          {
+            "blockId": 3,
+            "runId": 2,
+            "topic": "Earlier analysis",
+            "summary": "Keep prior requirement.",
+            "summaryTokens": 260,
+            "compressedTokens": 3000,
+            "active": true,
+            "directMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "directToolIds": [
+              "call-a"
+            ],
+            "effectiveMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "effectiveToolIds": [
+              "call-a"
+            ]
+          },
+          {
+            "blockId": 11,
+            "runId": 7,
+            "topic": "Long topic 日本語 résumé — requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation ",
+            "summary": "## Preserved requirements\n- R1: retain 日本語 and tool pairs; never replay an unknown effect.\n- R2: retain 日本語 and tool pairs; never replay an unknown effect.\n- R3: retain 日本語 and tool pairs; never replay an unknown effect.\n- R4: retain 日本語 and tool pairs; never replay an unknown effect.\n- R5: retain 日本語 and tool pairs; never replay an unknown effect.\n- R6: retain 日本語 and tool pairs; never replay an unknown effect.\n- R7: retain 日本語 and tool pairs; never replay an unknown effect.\n- R8: retain 日本語 and tool pairs; never replay an unknown effect.\n- R9: retain 日本語 and tool pairs; never replay an unknown effect.\n- R10: retain 日本語 and tool pairs; never replay an unknown effect.\n- R11: retain 日本語 and tool pairs; never replay an unknown effect.\n- R12: retain 日本語 and tool pairs; never replay an unknown effect.\n- R13: retain 日本語 and tool pairs; never replay an unknown effect.\n- R14: retain 日本語 and tool pairs; never replay an unknown effect.\n- R15: retain 日本語 and tool pairs; never replay an unknown effect.\n- R16: retain 日本語 and tool pairs; never replay an unknown effect.\n- R17: retain 日本語 and tool pairs; never replay an unknown effect.\n- R18: retain 日本語 and tool pairs; never replay an unknown effect.",
+            "summaryTokens": 842,
+            "compressedTokens": 11900,
+            "active": true,
+            "directMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "directToolIds": [
+              "call-b",
+              "call-c"
+            ],
+            "effectiveMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "effectiveToolIds": [
+              "call-b",
+              "call-c"
+            ]
+          }
+        ],
+        "entries": [
+          {
+            "blockId": 11,
+            "runId": 7,
+            "summary": "## Preserved requirements\n- R1: retain 日本語 and tool pairs; never replay an unknown effect.\n- R2: retain 日本語 and tool pairs; never replay an unknown effect.\n- R3: retain 日本語 and tool pairs; never replay an unknown effect.\n- R4: retain 日本語 and tool pairs; never replay an unknown effect.\n- R5: retain 日本語 and tool pairs; never replay an unknown effect.\n- R6: retain 日本語 and tool pairs; never replay an unknown effect.\n- R7: retain 日本語 and tool pairs; never replay an unknown effect.\n- R8: retain 日本語 and tool pairs; never replay an unknown effect.\n- R9: retain 日本語 and tool pairs; never replay an unknown effect.\n- R10: retain 日本語 and tool pairs; never replay an unknown effect.\n- R11: retain 日本語 and tool pairs; never replay an unknown effect.\n- R12: retain 日本語 and tool pairs; never replay an unknown effect.\n- R13: retain 日本語 and tool pairs; never replay an unknown effect.\n- R14: retain 日本語 and tool pairs; never replay an unknown effect.\n- R15: retain 日本語 and tool pairs; never replay an unknown effect.\n- R16: retain 日本語 and tool pairs; never replay an unknown effect.\n- R17: retain 日本語 and tool pairs; never replay an unknown effect.\n- R18: retain 日本語 and tool pairs; never replay an unknown effect.",
+            "summaryTokens": 842
+          }
+        ],
+        "sessionMessageIds": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6",
+          "m7",
+          "m8",
+          "m9",
+          "m10"
+        ],
+        "config": {
+          "pruneNotification": "detailed",
+          "pruneNotificationType": "chat",
+          "compress": {
+            "showCompression": true
+          }
+        },
+        "state": {
+          "stats": {
+            "totalPruneTokens": 14900,
+            "pruneTokenCounter": 400
+          },
+          "prune": {
+            "messages": {
+              "byMessageId": {
+                "m1": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m2": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m3": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m4": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m5": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m6": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m7": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m8": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m9": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m10": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                }
+              },
+              "blocksById": {
+                "3": {
+                  "blockId": 3,
+                  "runId": 2,
+                  "topic": "Earlier analysis",
+                  "summary": "Keep prior requirement.",
+                  "summaryTokens": 260,
+                  "compressedTokens": 3000,
+                  "active": true,
+                  "directMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "directToolIds": [
+                    "call-a"
+                  ],
+                  "effectiveMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "effectiveToolIds": [
+                    "call-a"
+                  ]
+                },
+                "11": {
+                  "blockId": 11,
+                  "runId": 7,
+                  "topic": "Long topic 日本語 résumé — requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation ",
+                  "summary": "## Preserved requirements\n- R1: retain 日本語 and tool pairs; never replay an unknown effect.\n- R2: retain 日本語 and tool pairs; never replay an unknown effect.\n- R3: retain 日本語 and tool pairs; never replay an unknown effect.\n- R4: retain 日本語 and tool pairs; never replay an unknown effect.\n- R5: retain 日本語 and tool pairs; never replay an unknown effect.\n- R6: retain 日本語 and tool pairs; never replay an unknown effect.\n- R7: retain 日本語 and tool pairs; never replay an unknown effect.\n- R8: retain 日本語 and tool pairs; never replay an unknown effect.\n- R9: retain 日本語 and tool pairs; never replay an unknown effect.\n- R10: retain 日本語 and tool pairs; never replay an unknown effect.\n- R11: retain 日本語 and tool pairs; never replay an unknown effect.\n- R12: retain 日本語 and tool pairs; never replay an unknown effect.\n- R13: retain 日本語 and tool pairs; never replay an unknown effect.\n- R14: retain 日本語 and tool pairs; never replay an unknown effect.\n- R15: retain 日本語 and tool pairs; never replay an unknown effect.\n- R16: retain 日本語 and tool pairs; never replay an unknown effect.\n- R17: retain 日本語 and tool pairs; never replay an unknown effect.\n- R18: retain 日本語 and tool pairs; never replay an unknown effect.",
+                  "summaryTokens": 842,
+                  "compressedTokens": 11900,
+                  "active": true,
+                  "directMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "directToolIds": [
+                    "call-b",
+                    "call-c"
+                  ],
+                  "effectiveMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "effectiveToolIds": [
+                    "call-b",
+                    "call-c"
+                  ]
+                }
+              },
+              "activeBlockIds": [
+                3,
+                11
+              ],
+              "activeByAnchorMessageId": {},
+              "nextBlockId": 13,
+              "nextRunId": 8
+            }
+          }
+        }
+      },
+      "result": true,
+      "prompts": [
+        {
+          "path": {
+            "id": "ses_dcp_oracle"
+          },
+          "body": {
+            "noReply": true,
+            "agent": "build",
+            "model": {
+              "providerID": "fixture",
+              "modelID": "fixture-model-1"
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "▣ DCP | -15.3K removed, +1.1K summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -11.9K removed, +842 summary\n→ Topic: Long topic 日本語 résumé — requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation \n→ Items: 3 messages and 2 tools compressed\n→ Compression (~842 tokens): ## Preserved requirements\n- R1: retain 日本語 and tool pairs; never replay an unknown effect.\n- R2: retain 日本語 and tool pairs; never replay an unknown effect.\n- R3: retain 日本語 and tool pairs; never replay an unknown effect.\n- R4: retain 日本語 and tool pairs; never replay an unknown effect.\n- R5: retain 日本語 and tool pairs; never replay an unknown effect.\n- R6: retain 日本語 and tool pairs; never replay an unknown effect.\n- R7: retain 日本語 and tool pairs; never replay an unknown effect.\n- R8: retain 日本語 and tool pairs; never replay an unknown effect.\n- R9: retain 日本語 and tool pairs; never replay an unknown effect.\n- R10: retain 日本語 and tool pairs; never replay an unknown effect.\n- R11: retain 日本語 and tool pairs; never replay an unknown effect.\n- R12: retain 日本語 and tool pairs; never replay an unknown effect.\n- R13: retain 日本語 and tool pairs; never replay an unknown effect.\n- R14: retain 日本語 and tool pairs; never replay an unknown effect.\n- R15: retain 日本語 and tool pairs; never replay an unknown effect.\n- R16: retain 日本語 and tool pairs; never replay an unknown effect.\n- R17: retain 日本語 and tool pairs; never replay an unknown effect.\n- R18: retain 日本語 and tool pairs; never replay an unknown effect.",
+                "ignored": true
+              }
+            ]
+          }
+        }
+      ],
+      "toasts": [],
+      "errors": [],
+      "active_summary_tokens": 1102,
+      "payload": "▣ DCP | -15.3K removed, +1.1K summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -11.9K removed, +842 summary\n→ Topic: Long topic 日本語 résumé — requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation \n→ Items: 3 messages and 2 tools compressed\n→ Compression (~842 tokens): ## Preserved requirements\n- R1: retain 日本語 and tool pairs; never replay an unknown effect.\n- R2: retain 日本語 and tool pairs; never replay an unknown effect.\n- R3: retain 日本語 and tool pairs; never replay an unknown effect.\n- R4: retain 日本語 and tool pairs; never replay an unknown effect.\n- R5: retain 日本語 and tool pairs; never replay an unknown effect.\n- R6: retain 日本語 and tool pairs; never replay an unknown effect.\n- R7: retain 日本語 and tool pairs; never replay an unknown effect.\n- R8: retain 日本語 and tool pairs; never replay an unknown effect.\n- R9: retain 日本語 and tool pairs; never replay an unknown effect.\n- R10: retain 日本語 and tool pairs; never replay an unknown effect.\n- R11: retain 日本語 and tool pairs; never replay an unknown effect.\n- R12: retain 日本語 and tool pairs; never replay an unknown effect.\n- R13: retain 日本語 and tool pairs; never replay an unknown effect.\n- R14: retain 日本語 and tool pairs; never replay an unknown effect.\n- R15: retain 日本語 and tool pairs; never replay an unknown effect.\n- R16: retain 日本語 and tool pairs; never replay an unknown effect.\n- R17: retain 日本語 and tool pairs; never replay an unknown effect.\n- R18: retain 日本語 and tool pairs; never replay an unknown effect."
+    },
+    {
+      "id": "toast",
+      "fixture": {
+        "id": "toast",
+        "blocks": [
+          {
+            "blockId": 3,
+            "runId": 2,
+            "topic": "Earlier analysis",
+            "summary": "Keep prior requirement.",
+            "summaryTokens": 260,
+            "compressedTokens": 3000,
+            "active": true,
+            "directMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "directToolIds": [
+              "call-a"
+            ],
+            "effectiveMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "effectiveToolIds": [
+              "call-a"
+            ]
+          },
+          {
+            "blockId": 11,
+            "runId": 7,
+            "topic": "Long topic 日本語 résumé — requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation ",
+            "summary": "## Preserved requirements\n- R1: retain 日本語 and tool pairs; never replay an unknown effect.\n- R2: retain 日本語 and tool pairs; never replay an unknown effect.\n- R3: retain 日本語 and tool pairs; never replay an unknown effect.\n- R4: retain 日本語 and tool pairs; never replay an unknown effect.\n- R5: retain 日本語 and tool pairs; never replay an unknown effect.\n- R6: retain 日本語 and tool pairs; never replay an unknown effect.\n- R7: retain 日本語 and tool pairs; never replay an unknown effect.\n- R8: retain 日本語 and tool pairs; never replay an unknown effect.\n- R9: retain 日本語 and tool pairs; never replay an unknown effect.\n- R10: retain 日本語 and tool pairs; never replay an unknown effect.\n- R11: retain 日本語 and tool pairs; never replay an unknown effect.\n- R12: retain 日本語 and tool pairs; never replay an unknown effect.\n- R13: retain 日本語 and tool pairs; never replay an unknown effect.\n- R14: retain 日本語 and tool pairs; never replay an unknown effect.\n- R15: retain 日本語 and tool pairs; never replay an unknown effect.\n- R16: retain 日本語 and tool pairs; never replay an unknown effect.\n- R17: retain 日本語 and tool pairs; never replay an unknown effect.\n- R18: retain 日本語 and tool pairs; never replay an unknown effect.",
+            "summaryTokens": 842,
+            "compressedTokens": 11900,
+            "active": true,
+            "directMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "directToolIds": [
+              "call-b",
+              "call-c"
+            ],
+            "effectiveMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "effectiveToolIds": [
+              "call-b",
+              "call-c"
+            ]
+          }
+        ],
+        "entries": [
+          {
+            "blockId": 11,
+            "runId": 7,
+            "summary": "## Preserved requirements\n- R1: retain 日本語 and tool pairs; never replay an unknown effect.\n- R2: retain 日本語 and tool pairs; never replay an unknown effect.\n- R3: retain 日本語 and tool pairs; never replay an unknown effect.\n- R4: retain 日本語 and tool pairs; never replay an unknown effect.\n- R5: retain 日本語 and tool pairs; never replay an unknown effect.\n- R6: retain 日本語 and tool pairs; never replay an unknown effect.\n- R7: retain 日本語 and tool pairs; never replay an unknown effect.\n- R8: retain 日本語 and tool pairs; never replay an unknown effect.\n- R9: retain 日本語 and tool pairs; never replay an unknown effect.\n- R10: retain 日本語 and tool pairs; never replay an unknown effect.\n- R11: retain 日本語 and tool pairs; never replay an unknown effect.\n- R12: retain 日本語 and tool pairs; never replay an unknown effect.\n- R13: retain 日本語 and tool pairs; never replay an unknown effect.\n- R14: retain 日本語 and tool pairs; never replay an unknown effect.\n- R15: retain 日本語 and tool pairs; never replay an unknown effect.\n- R16: retain 日本語 and tool pairs; never replay an unknown effect.\n- R17: retain 日本語 and tool pairs; never replay an unknown effect.\n- R18: retain 日本語 and tool pairs; never replay an unknown effect.",
+            "summaryTokens": 842
+          }
+        ],
+        "sessionMessageIds": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6",
+          "m7",
+          "m8",
+          "m9",
+          "m10"
+        ],
+        "config": {
+          "pruneNotification": "detailed",
+          "pruneNotificationType": "toast",
+          "compress": {
+            "showCompression": true
+          }
+        },
+        "state": {
+          "stats": {
+            "totalPruneTokens": 14900,
+            "pruneTokenCounter": 400
+          },
+          "prune": {
+            "messages": {
+              "byMessageId": {
+                "m1": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m2": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m3": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m4": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m5": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m6": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m7": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m8": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m9": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m10": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                }
+              },
+              "blocksById": {
+                "3": {
+                  "blockId": 3,
+                  "runId": 2,
+                  "topic": "Earlier analysis",
+                  "summary": "Keep prior requirement.",
+                  "summaryTokens": 260,
+                  "compressedTokens": 3000,
+                  "active": true,
+                  "directMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "directToolIds": [
+                    "call-a"
+                  ],
+                  "effectiveMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "effectiveToolIds": [
+                    "call-a"
+                  ]
+                },
+                "11": {
+                  "blockId": 11,
+                  "runId": 7,
+                  "topic": "Long topic 日本語 résumé — requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation ",
+                  "summary": "## Preserved requirements\n- R1: retain 日本語 and tool pairs; never replay an unknown effect.\n- R2: retain 日本語 and tool pairs; never replay an unknown effect.\n- R3: retain 日本語 and tool pairs; never replay an unknown effect.\n- R4: retain 日本語 and tool pairs; never replay an unknown effect.\n- R5: retain 日本語 and tool pairs; never replay an unknown effect.\n- R6: retain 日本語 and tool pairs; never replay an unknown effect.\n- R7: retain 日本語 and tool pairs; never replay an unknown effect.\n- R8: retain 日本語 and tool pairs; never replay an unknown effect.\n- R9: retain 日本語 and tool pairs; never replay an unknown effect.\n- R10: retain 日本語 and tool pairs; never replay an unknown effect.\n- R11: retain 日本語 and tool pairs; never replay an unknown effect.\n- R12: retain 日本語 and tool pairs; never replay an unknown effect.\n- R13: retain 日本語 and tool pairs; never replay an unknown effect.\n- R14: retain 日本語 and tool pairs; never replay an unknown effect.\n- R15: retain 日本語 and tool pairs; never replay an unknown effect.\n- R16: retain 日本語 and tool pairs; never replay an unknown effect.\n- R17: retain 日本語 and tool pairs; never replay an unknown effect.\n- R18: retain 日本語 and tool pairs; never replay an unknown effect.",
+                  "summaryTokens": 842,
+                  "compressedTokens": 11900,
+                  "active": true,
+                  "directMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "directToolIds": [
+                    "call-b",
+                    "call-c"
+                  ],
+                  "effectiveMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "effectiveToolIds": [
+                    "call-b",
+                    "call-c"
+                  ]
+                }
+              },
+              "activeBlockIds": [
+                3,
+                11
+              ],
+              "activeByAnchorMessageId": {},
+              "nextBlockId": 13,
+              "nextRunId": 8
+            }
+          }
+        }
+      },
+      "result": true,
+      "prompts": [],
+      "toasts": [
+        {
+          "body": {
+            "title": "DCP: Compress Notification",
+            "message": "▣ DCP | -15.3K removed, +1.1K summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -11.9K removed, +842 summary\n→ Topic: Long topic 日本語 résumé — requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation \n→ Items: 3 messages and 2 tools compressed\n→ Compression (~842 tokens): ## Preserved requirements\n- R1: retain 日本語 and tool pairs; never replay an unknown effect.\n- R2: retain 日本語 and tool pairs; never replay an unknown effect.\n- R3: retain 日本語 and tool pairs; never replay an unknown effect.\n- R4: retain 日本語 and tool pairs; never replay an unknown effect.\n... and 5 more",
+            "variant": "info",
+            "duration": 5000
+          }
+        }
+      ],
+      "errors": [],
+      "active_summary_tokens": 1102,
+      "payload": "▣ DCP | -15.3K removed, +1.1K summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -11.9K removed, +842 summary\n→ Topic: Long topic 日本語 résumé — requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation \n→ Items: 3 messages and 2 tools compressed\n→ Compression (~842 tokens): ## Preserved requirements\n- R1: retain 日本語 and tool pairs; never replay an unknown effect.\n- R2: retain 日本語 and tool pairs; never replay an unknown effect.\n- R3: retain 日本語 and tool pairs; never replay an unknown effect.\n- R4: retain 日本語 and tool pairs; never replay an unknown effect.\n... and 5 more"
+    },
+    {
+      "id": "empty-entries",
+      "fixture": {
+        "id": "empty-entries",
+        "blocks": [
+          {
+            "blockId": 3,
+            "runId": 2,
+            "topic": "Earlier analysis",
+            "summary": "Keep prior requirement.",
+            "summaryTokens": 260,
+            "compressedTokens": 3000,
+            "active": true,
+            "directMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "directToolIds": [
+              "call-a"
+            ],
+            "effectiveMessageIds": [
+              "m1",
+              "m2"
+            ],
+            "effectiveToolIds": [
+              "call-a"
+            ]
+          },
+          {
+            "blockId": 11,
+            "runId": 7,
+            "topic": "Formatter qualification",
+            "summary": "Preserve R1; continue without replaying tools.",
+            "summaryTokens": 842,
+            "compressedTokens": 11900,
+            "active": true,
+            "directMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "directToolIds": [
+              "call-b",
+              "call-c"
+            ],
+            "effectiveMessageIds": [
+              "m3",
+              "m4",
+              "m5"
+            ],
+            "effectiveToolIds": [
+              "call-b",
+              "call-c"
+            ]
+          }
+        ],
+        "entries": [],
+        "sessionMessageIds": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6",
+          "m7",
+          "m8",
+          "m9",
+          "m10"
+        ],
+        "config": {
+          "pruneNotification": "detailed",
+          "pruneNotificationType": "chat",
+          "compress": {
+            "showCompression": false
+          }
+        },
+        "state": {
+          "stats": {
+            "totalPruneTokens": 14900,
+            "pruneTokenCounter": 400
+          },
+          "prune": {
+            "messages": {
+              "byMessageId": {
+                "m1": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m2": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m3": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m4": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m5": {
+                  "tokenCount": 100,
+                  "allBlockIds": [
+                    11
+                  ],
+                  "activeBlockIds": [
+                    11
+                  ]
+                },
+                "m6": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m7": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m8": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m9": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m10": {
+                  "tokenCount": 100,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                }
+              },
+              "blocksById": {
+                "3": {
+                  "blockId": 3,
+                  "runId": 2,
+                  "topic": "Earlier analysis",
+                  "summary": "Keep prior requirement.",
+                  "summaryTokens": 260,
+                  "compressedTokens": 3000,
+                  "active": true,
+                  "directMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "directToolIds": [
+                    "call-a"
+                  ],
+                  "effectiveMessageIds": [
+                    "m1",
+                    "m2"
+                  ],
+                  "effectiveToolIds": [
+                    "call-a"
+                  ]
+                },
+                "11": {
+                  "blockId": 11,
+                  "runId": 7,
+                  "topic": "Formatter qualification",
+                  "summary": "Preserve R1; continue without replaying tools.",
+                  "summaryTokens": 842,
+                  "compressedTokens": 11900,
+                  "active": true,
+                  "directMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "directToolIds": [
+                    "call-b",
+                    "call-c"
+                  ],
+                  "effectiveMessageIds": [
+                    "m3",
+                    "m4",
+                    "m5"
+                  ],
+                  "effectiveToolIds": [
+                    "call-b",
+                    "call-c"
+                  ]
+                }
+              },
+              "activeBlockIds": [
+                3,
+                11
+              ],
+              "activeByAnchorMessageId": {},
+              "nextBlockId": 13,
+              "nextRunId": 8
+            }
+          }
+        }
+      },
+      "result": false,
+      "prompts": [],
+      "toasts": [],
+      "errors": [],
+      "active_summary_tokens": 1102,
+      "payload": null
+    }
+  ],
+  "bars": [
+    {
+      "id": "bar0",
+      "messages": [],
+      "pruned": [],
+      "recent": [],
+      "width": 50,
+      "payload": "│░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│"
+    },
+    {
+      "id": "bar1",
+      "messages": [
+        "a"
+      ],
+      "pruned": [
+        "a"
+      ],
+      "recent": [],
+      "width": 50,
+      "payload": "│░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│"
+    },
+    {
+      "id": "recent-overrides-prior",
+      "messages": [
+        "a",
+        "b",
+        "c",
+        "d"
+      ],
+      "pruned": [
+        "a",
+        "b"
+      ],
+      "recent": [
+        "b",
+        "c"
+      ],
+      "width": 50,
+      "payload": "│░░░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████│"
+    },
+    {
+      "id": "bar50",
+      "messages": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "31",
+        "32",
+        "33",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "40",
+        "41",
+        "42",
+        "43",
+        "44",
+        "45",
+        "46",
+        "47",
+        "48",
+        "49"
+      ],
+      "pruned": [
+        "0",
+        "20"
+      ],
+      "recent": [
+        "20",
+        "49"
+      ],
+      "width": 50,
+      "payload": "│░███████████████████⣿████████████████████████████⣿│"
+    },
+    {
+      "id": "bar101-zero-span",
+      "messages": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "31",
+        "32",
+        "33",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "40",
+        "41",
+        "42",
+        "43",
+        "44",
+        "45",
+        "46",
+        "47",
+        "48",
+        "49",
+        "50",
+        "51",
+        "52",
+        "53",
+        "54",
+        "55",
+        "56",
+        "57",
+        "58",
+        "59",
+        "60",
+        "61",
+        "62",
+        "63",
+        "64",
+        "65",
+        "66",
+        "67",
+        "68",
+        "69",
+        "70",
+        "71",
+        "72",
+        "73",
+        "74",
+        "75",
+        "76",
+        "77",
+        "78",
+        "79",
+        "80",
+        "81",
+        "82",
+        "83",
+        "84",
+        "85",
+        "86",
+        "87",
+        "88",
+        "89",
+        "90",
+        "91",
+        "92",
+        "93",
+        "94",
+        "95",
+        "96",
+        "97",
+        "98",
+        "99",
+        "100"
+      ],
+      "pruned": [
+        "0",
+        "2",
+        "3",
+        "50"
+      ],
+      "recent": [
+        "0",
+        "50",
+        "99",
+        "100"
+      ],
+      "width": 50,
+      "payload": "│░███████████████████████⣿████████████████████████⣿│"
+    }
+  ],
+  "tokens": [
+    {
+      "input": 0,
+      "pinned_compact": "0",
+      "pinned_verbose": "0 tokens",
+      "approved_native_compact": "0",
+      "named_difference": null
+    },
+    {
+      "input": 842,
+      "pinned_compact": "842",
+      "pinned_verbose": "842 tokens",
+      "approved_native_compact": "842",
+      "named_difference": null
+    },
+    {
+      "input": 999,
+      "pinned_compact": "999",
+      "pinned_verbose": "999 tokens",
+      "approved_native_compact": "999",
+      "named_difference": null
+    },
+    {
+      "input": 1000,
+      "pinned_compact": "1K",
+      "pinned_verbose": "1K tokens",
+      "approved_native_compact": "1K",
+      "named_difference": null
+    },
+    {
+      "input": 1049,
+      "pinned_compact": "1K",
+      "pinned_verbose": "1K tokens",
+      "approved_native_compact": "1K",
+      "named_difference": null
+    },
+    {
+      "input": 1050,
+      "pinned_compact": "1.1K",
+      "pinned_verbose": "1.1K tokens",
+      "approved_native_compact": "1.1K",
+      "named_difference": null
+    },
+    {
+      "input": 1149,
+      "pinned_compact": "1.1K",
+      "pinned_verbose": "1.1K tokens",
+      "approved_native_compact": "1.1K",
+      "named_difference": null
+    },
+    {
+      "input": 1150,
+      "pinned_compact": "1.1K",
+      "pinned_verbose": "1.1K tokens",
+      "approved_native_compact": "1.2K",
+      "named_difference": "VIS38-native-decimal-half-up-versus-JS-toFixed"
+    },
+    {
+      "input": 11900,
+      "pinned_compact": "11.9K",
+      "pinned_verbose": "11.9K tokens",
+      "approved_native_compact": "11.9K",
+      "named_difference": null
+    },
+    {
+      "input": 999949,
+      "pinned_compact": "999.9K",
+      "pinned_verbose": "999.9K tokens",
+      "approved_native_compact": "999.9K",
+      "named_difference": null
+    },
+    {
+      "input": 999950,
+      "pinned_compact": "1000K",
+      "pinned_verbose": "1000K tokens",
+      "approved_native_compact": "1M",
+      "named_difference": "VIS38-native-M-and-K-boundary-promotion"
+    },
+    {
+      "input": 1000000,
+      "pinned_compact": "1000K",
+      "pinned_verbose": "1000K tokens",
+      "approved_native_compact": "1M",
+      "named_difference": "VIS38-native-M-and-K-boundary-promotion"
+    },
+    {
+      "input": 4218800,
+      "pinned_compact": "4218.8K",
+      "pinned_verbose": "4218.8K tokens",
+      "approved_native_compact": "4.2M",
+      "named_difference": "VIS38-native-M-and-K-boundary-promotion"
+    }
+  ]
+}

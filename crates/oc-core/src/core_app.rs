@@ -214,6 +214,8 @@ pub enum CoreEvent {
     /// Durable intent notification, emitted before dispatch. Input is complete
     /// recorded arguments JSON, bounded by tool argument caps.
     ToolCallStarted {
+        /// Canonical validated/planned compression topic; other tools use None.
+        dcp_topic: Option<String>,
         /// Session that owns the turn.
         session: SessionId,
         /// Active turn id.
@@ -228,6 +230,8 @@ pub enum CoreEvent {
     /// One tool call reached a terminal state (durable outcome recorded);
     /// the transcript updates the card in place.
     ToolCallFinished {
+        /// Frozen successful DCP commit, shared with durable history projection.
+        dcp: Option<crate::dcp_view::DcpRunSnapshot>,
         /// Bounded confirmed mutation metadata, shared with history replay.
         patch_effects: Option<crate::patch::PatchEffects>,
         /// Session that owns the turn.
@@ -502,6 +506,15 @@ pub enum InboxMsg {
         offset: usize,
         limit: usize,
         ack: oneshot::Sender<Result<crate::queries::ToolOutputPage, CoreError>>,
+    },
+    /// Bounded real saved DCP summary, identified by operation and range index.
+    DcpSummary {
+        session: SessionId,
+        op: String,
+        block_index: usize,
+        offset: i64,
+        limit: usize,
+        ack: oneshot::Sender<Result<Option<crate::dcp_view::DcpSummaryPage>, CoreError>>,
     },
     /// Model catalog plus the effective model/variant/agent selection.
     Catalog {
@@ -1166,6 +1179,30 @@ impl CoreApp {
         rx.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// Summary bodies are fetched explicitly; snapshots never embed an archive.
+    pub async fn dcp_summary_page(
+        &self,
+        session: SessionId,
+        op: String,
+        block_index: usize,
+        offset: i64,
+        limit: usize,
+    ) -> Result<Option<crate::dcp_view::DcpSummaryPage>, CoreError> {
+        let (ack, rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::DcpSummary {
+                session,
+                op,
+                block_index,
+                offset,
+                limit,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Model catalog plus the effective model/variant/agent selection.
     pub async fn catalog(&self) -> Result<CatalogSnapshot, CoreError> {
         let (ack_tx, ack_rx) = oneshot::channel();
@@ -1653,6 +1690,9 @@ fn scripted_unsupported(message: InboxMsg) {
         }
         InboxMsg::ToolOutput { ack, .. } => {
             let _ = ack.send(Err(error()));
+        }
+        InboxMsg::DcpSummary { ack, .. } => {
+            let _ = ack.send(Err(CoreError::Shutdown));
         }
         InboxMsg::Catalog { ack }
         | InboxMsg::SessionSelection { ack, .. }

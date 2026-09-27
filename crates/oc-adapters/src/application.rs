@@ -47,8 +47,6 @@ pub const COMPRESS_FOCUS_MAX: usize = 256;
 pub const HISTORY_PAGE_LIMIT: usize = 100;
 /// Bounded rows served per tool-operation page.
 pub const TOOL_OPS_PAGE_LIMIT: usize = 100;
-/// Byte cap for the DCP token estimate input.
-const ESTIMATE_BYTES: usize = 4 * 1024 * 1024;
 
 /// A normal exit may finish an already accepted title, but cannot wait for the
 /// provider's full request timeout when it stalls.
@@ -2003,6 +2001,8 @@ fn query(
                 let rows = page
                     .into_iter()
                     .map(|row| ToolOpView {
+                        dcp_topic: row.dcp_topic,
+                        dcp: row.dcp,
                         patch_effects: row.patch_effects,
                         op: row.op,
                         rowid: row.rowid,
@@ -2020,6 +2020,23 @@ fn query(
                     has_older,
                 })
             })();
+            let _ = ack.send(result);
+        }
+        InboxMsg::DcpSummary {
+            session,
+            op,
+            block_index,
+            offset,
+            limit,
+            ack,
+        } => {
+            let result = runtime
+                .open_session(&session.0)
+                .map_err(app_error)
+                .and_then(|_| {
+                    db.dcp_summary_page(&session.0, &op, block_index, offset, limit)
+                        .map_err(app_error)
+                });
             let _ = ack.send(result);
         }
         InboxMsg::ToolOutput {
@@ -2169,10 +2186,8 @@ fn query(
         InboxMsg::Dcp { session, ack } => {
             let result = (|| -> Result<DcpSnapshot, CoreError> {
                 runtime.open_session(&session.0).map_err(app_error)?;
-                let stats = runtime.dcp_stats();
-                let saved_blocks = crate::dcp::load_blocks(db, &session.0)
-                    .map_err(|error| app_error(error.to_string()))?;
-                let blocks = saved_blocks.len();
+                let accounting = db.dcp_accounting(&session.0).map_err(app_error)?;
+                let blocks = db.dcp_block_count(&session.0).map_err(app_error)?;
                 let turns_since_compress = runtime
                     .dcp_turn_state(&session.0)
                     .map(|state| state.turns_since_compress)
@@ -2198,31 +2213,28 @@ fn query(
                     )
                     .map_err(app_error)?;
                 let estimated_tokens = if active.overflow {
-                    // Above the safety budget: report the exact byte-derived
-                    // estimate instead of a silent zero.
-                    active.bytes / 4
+                    None
                 } else {
                     let positions = db
                         .block_positions(&session.0, after_seq)
                         .map_err(app_error)?;
+                    let saved_blocks = db
+                        .active_compression_graph(&session.0, after_seq)
+                        .map_err(app_error)?;
                     let projected =
                         crate::dcp::project_active_rows(&active.rows, &saved_blocks, &positions)
                             .map_err(app_error)?;
-                    let mut text = String::new();
-                    for (_, _, body) in &projected {
-                        if text.len() >= ESTIMATE_BYTES {
-                            break;
-                        }
-                        text.push_str(body);
-                    }
-                    crate::runtime::estimate_tokens(&text)
-                };
-                let estimated_tokens = estimated_tokens.saturating_add(
-                    db.session_checkpoint(&session.0)
+                    runtime
+                        .dcp_projection_estimate(&session.0, &projected, &saved_blocks, after_seq)
                         .map_err(app_error)?
-                        .map(|(_, summary)| crate::runtime::estimate_tokens(&summary))
-                        .unwrap_or(0),
-                );
+                };
+                let checkpoint_tokens = db
+                    .session_checkpoint(&session.0)
+                    .map_err(app_error)?
+                    .map(|(_, summary)| oc_core::dcp_view::estimate_content(&summary))
+                    .unwrap_or(0);
+                let estimated_tokens =
+                    estimated_tokens.map(|tokens| tokens.saturating_add(checkpoint_tokens));
                 let selected = selection::for_turn(db, composition, effective, &session.0)?;
                 let model_context = composition
                     .catalog
@@ -2235,13 +2247,16 @@ fn query(
                     .dcp_config
                     .effective_for_context(&selected.model_id, model_context);
                 Ok(DcpSnapshot {
-                    estimated_tokens,
+                    estimated_tokens_available: estimated_tokens.is_some(),
+                    estimate_method: Default::default(),
+                    accounting: accounting.clone(),
+                    estimated_tokens: estimated_tokens.unwrap_or(0),
                     max_context: thresholds.max_context,
                     turns_since_compress,
                     blocks,
-                    compressions: stats.compressions,
-                    nudges: stats.nudges_emitted,
-                    prunes: stats.prunes,
+                    compressions: accounting.as_ref().map_or(0, |a| a.compressions),
+                    nudges: db.dcp_nudges(&session.0).map_err(app_error)?,
+                    prunes: accounting.as_ref().map_or(0, |a| a.prunes),
                 })
             })();
             let _ = ack.send(result);
@@ -2960,16 +2975,21 @@ async fn worker(
                                         event: event.clone(),
                                     }
                                 }
-                                ToolCallEvent::Started { op, name, input } => {
-                                    CoreEvent::ToolCallStarted {
-                                        session: session.clone(),
-                                        turn,
-                                        op: op.clone(),
-                                        name: name.clone(),
-                                        input: input.clone(),
-                                    }
-                                }
+                                ToolCallEvent::Started {
+                                    dcp_topic,
+                                    op,
+                                    name,
+                                    input,
+                                } => CoreEvent::ToolCallStarted {
+                                    dcp_topic: dcp_topic.clone(),
+                                    session: session.clone(),
+                                    turn,
+                                    op: op.clone(),
+                                    name: name.clone(),
+                                    input: input.clone(),
+                                },
                                 ToolCallEvent::Finished {
+                                    dcp,
                                     patch_effects,
                                     op,
                                     name,
@@ -2978,6 +2998,7 @@ async fn worker(
                                     output_bytes,
                                     output_truncated,
                                 } => CoreEvent::ToolCallFinished {
+                                    dcp: dcp.clone(),
                                     patch_effects: patch_effects.clone(),
                                     session: session.clone(),
                                     turn,

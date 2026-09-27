@@ -160,6 +160,26 @@ impl HistoryWindow {
         &self.rows
     }
 
+    pub(crate) fn apply_dcp_summary(
+        &mut self,
+        op: &str,
+        page: oc_core::dcp_view::DcpSummaryPage,
+    ) -> bool {
+        let changed = self.rows.iter_mut().any(|row| {
+            let Some(card) = row.tool.as_mut().filter(|card| card.op == op) else {
+                return false;
+            };
+            let ToolRender::Dcp(view) = &mut card.render else {
+                return false;
+            };
+            view.apply_summary(page.clone())
+        });
+        if changed && self.enforce(Evict::Oldest) {
+            self.has_older = true;
+        }
+        changed
+    }
+
     /// Retained row count.
     pub fn len(&self) -> usize {
         self.rows.len()
@@ -526,7 +546,7 @@ impl ToolCard {
 pub fn card_from_row(row: &ToolOpView) -> ToolCard {
     // Presentation only: keep the durable/provider structured rejection envelope
     // and its byte offsets intact; render its typed meaning to a human.
-    let human = if matches!(row.state.as_str(), "denied" | "cancelled") {
+    let human = if row.name != "compress" && matches!(row.state.as_str(), "denied" | "cancelled") {
         row.output.as_deref().and_then(permission_output)
     } else {
         None
@@ -556,7 +576,13 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
     } else {
         patch_diff(&row.name, row.input.as_deref())
     };
-    let render = if row.name == "apply_patch" && row.patch_effects.is_some() {
+    let render = if row.name == "compress" {
+        ToolRender::Dcp(Box::new(crate::dcp_view::DcpRender {
+            snapshot: row.dcp.clone().filter(|run| run.operation_id == row.op),
+            topic: row.dcp_topic.clone(),
+            ..Default::default()
+        }))
+    } else if row.name == "apply_patch" && row.patch_effects.is_some() {
         ToolRender::Patch(Default::default())
     } else {
         ToolRender::parse(&row.name, row.input.as_deref(), output, &row.state)
@@ -1127,6 +1153,8 @@ mod tests {
                     output_bytes: 0,
                     output_truncated: false,
                     patch_effects: None,
+                    dcp: None,
+                    dcp_topic: None,
                 }),
                 reason("**Three**\n\nbody 3"),
                 TranscriptPart::Text("separator".into()),
@@ -1365,6 +1393,8 @@ mod tests {
             output_bytes: 0,
             output_truncated: false,
             patch_effects: None,
+            dcp: None,
+            dcp_topic: None,
         });
         assert_eq!(card.op, "op1");
         assert_eq!(card.state, "completed");
@@ -1384,6 +1414,8 @@ mod tests {
                 output_bytes: 0,
                 output_truncated: false,
                 patch_effects: None,
+                dcp: None,
+                dcp_topic: None,
             });
             assert!(card.files.is_empty(), "alias {alias} must be ignored");
         }
@@ -1397,6 +1429,8 @@ mod tests {
             output_bytes: 0,
             output_truncated: false,
             patch_effects: None,
+            dcp: None,
+            dcp_topic: None,
         });
         assert!(card.files.is_empty());
         assert!(card.output_preview.is_empty());
@@ -1413,6 +1447,8 @@ mod tests {
             output_bytes: 0,
             output_truncated: false,
             patch_effects: None,
+            dcp: None,
+            dcp_topic: None,
         });
         assert!(card.files.is_empty());
         assert!(card.input_preview.len() <= CARD_PREVIEW + 16);
@@ -1434,6 +1470,8 @@ mod tests {
             output_bytes: 0,
             output_truncated: false,
             patch_effects: None,
+            dcp: None,
+            dcp_topic: None,
         });
         assert_eq!(card.files.len(), CARD_FILES);
         assert!(card.files_truncated);
@@ -1452,6 +1490,8 @@ mod tests {
                 output_bytes: 0,
                 output_truncated: false,
                 patch_effects: None,
+                dcp: None,
+                dcp_topic: None,
             },
             ToolOpView {
                 rowid: 0,
@@ -1463,6 +1503,8 @@ mod tests {
                 output_bytes: 0,
                 output_truncated: false,
                 patch_effects: None,
+                dcp: None,
+                dcp_topic: None,
             },
         ];
         let cards = cards_from_rows(&rows);

@@ -1,0 +1,8 @@
+{
+  "binary": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+  "case": "large-k-only",
+  "columns": 120,
+  "rows": 40,
+  "goldens": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-oracle20260927-02/goldens.json",
+  "isolated_root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference20260927-03-0c9f782a4233/large-k-only-120x40"
+}

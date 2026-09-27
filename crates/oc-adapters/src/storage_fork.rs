@@ -109,7 +109,13 @@ impl Db {
         }
         let unanchored_tool: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM conversation_tools o WHERE o.session_id=?1 AND (o.turn_id IS NULL OR NOT EXISTS(SELECT 1 FROM conversation_turns t WHERE t.id=o.turn_id AND t.session_id=?1)))",[source],|r|r.get(0))?;
         if unanchored_tool {
-            return Err(refuse("unanchored tool record").into());
+            let standalone = context::standalone_prefix_operations(&tx, source, before, cutoff)?;
+            let standalone = serde_json::to_string(&standalone)
+                .map_err(|_| refuse("invalid historical DCP operations"))?;
+            let unrelated: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM conversation_tools o WHERE o.session_id=?1 AND ((o.turn_id IS NULL AND o.id NOT IN (SELECT value FROM json_each(?2))) OR (o.turn_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM conversation_turns t WHERE t.id=o.turn_id AND t.session_id=?1))))",params![source,standalone],|r|r.get(0))?;
+            if unrelated {
+                return Err(refuse("unanchored tool record").into());
+            }
         }
         let messages = tx
             .prepare(
@@ -322,6 +328,7 @@ impl Db {
             ids.insert(old, new_id);
         }
         let mut turn_ids = HashMap::new();
+        let mut operation_ids = HashMap::new();
         for (old, status, prompt, anchor, mut log) in prepared {
             let model = models
                 .get(&anchor)
@@ -353,6 +360,7 @@ impl Db {
                 let new_op = format!("{new}:op:{}", op_ids.len());
                 tx.execute("INSERT INTO tool_operations(id,session_id,turn_id,name,state,input,output) VALUES (?1,?2,?3,?4,?5,?6,?7)",params![new_op,root,new,name,state,input,output])?;
                 tx.execute("INSERT INTO patch_effects(op_id,metadata) SELECT ?1,metadata FROM patch_effects WHERE op_id=?2",params![new_op,op])?;
+                operation_ids.insert(op.clone(), new_op.clone());
                 op_ids.insert(op, new_op);
             }
             if let Some(parts) = log["display_parts"].as_array_mut() {
@@ -383,6 +391,7 @@ impl Db {
             &root,
             &ids,
             &turn_ids,
+            &operation_ids,
             &seqs,
             MAX_ROWS - rows,
             MAX_BYTES - copied_bytes,
@@ -407,6 +416,10 @@ impl Db {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "storage_fork_dcp_tests.rs"]
+mod dcp_tests;
 
 enum ForkError {
     Refusal(CoreError),

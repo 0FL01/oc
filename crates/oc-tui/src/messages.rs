@@ -917,8 +917,12 @@ fn render_row(
         ),
         "tool" => {
             if let Some(card) = &row.tool {
-                let mut lines = vec![Line::plain("")];
-                lines.extend(crate::tools::tool_block(card, theme, width));
+                let block = crate::tools::tool_block(card, theme, width);
+                let mut lines = Vec::new();
+                if !block.is_empty() {
+                    lines.push(Line::plain(""));
+                    lines.extend(block);
+                }
                 lines
             } else {
                 notice_block(row)
@@ -2335,10 +2339,35 @@ fn user_block(
     width: u16,
     agent_color: &impl Fn(Option<&str>) -> Color,
 ) -> Vec<Line> {
+    user_block_parts(
+        &row.text,
+        &row.chips,
+        theme,
+        width,
+        user_agent_color(row, theme, agent_color),
+    )
+}
+
+/// The real UserMessage text wrapper, also used by metadata-backed DCP cards.
+/// It does not create a message, hit target or persistent user prompt.
+pub(crate) fn transcript_text_block(
+    text: &str,
+    theme: &Theme,
+    width: u16,
+    color: Color,
+) -> Vec<Line> {
+    user_block_parts(text, &[], theme, width, color)
+}
+
+fn user_block_parts(
+    text: &str,
+    chips: &[Chip],
+    theme: &Theme,
+    width: u16,
+    color: Color,
+) -> Vec<Line> {
     let bg = theme.user_message_background();
-    let border = Style::default()
-        .fg(user_agent_color(row, theme, agent_color))
-        .bg(bg);
+    let border = Style::default().fg(color).bg(bg);
     let body = Style::default().fg(theme.text()).bg(bg);
     let width = width as usize;
     let mut out = Vec::new();
@@ -2349,9 +2378,9 @@ fn user_block(
     } else {
         width.saturating_sub(1 + USER_PADDING)
     };
-    if !row.text.is_empty() {
-        for raw in row.text.split('\n') {
-            let line = Line::new(vec![Span::styled(raw, body)]);
+    if !text.is_empty() {
+        for raw in text.split('\n') {
+            let line = Line::new(vec![Span::styled(safe_text(raw), body)]);
             for wrapped in styled::wrap_line(&line, inner.max(1)) {
                 let mut spans = vec![
                     Span::styled("┃", border),
@@ -2362,10 +2391,10 @@ fn user_block(
             }
         }
     }
-    if !row.chips.is_empty() {
+    if !chips.is_empty() {
         // Chips row: `paddingTop={1}`, `gap={1}`, `flexWrap="wrap"`.
         out.push(user_row(&[Span::styled("┃", border)], bg, width));
-        for chips in chip_rows(&row.chips, theme, inner) {
+        for chips in chip_rows(chips, theme, inner) {
             let mut spans = vec![
                 Span::styled("┃", border),
                 Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
@@ -4600,6 +4629,8 @@ mod tests {
             output_bytes: 14,
             output_truncated: truncated,
             patch_effects: None,
+            dcp: None,
+            dcp_topic: None,
         });
         HistoryRow {
             message_id: None,
@@ -5120,6 +5151,8 @@ mod tests {
             output_bytes: 9,
             output_truncated: false,
             patch_effects: None,
+            dcp: None,
+            dcp_topic: None,
         }));
         let tool_lines = transcript(&[tool], theme, 60, 60, |_| theme.text());
         assert!(
@@ -6125,6 +6158,8 @@ mod tests {
             output_bytes: 20,
             output_truncated: false,
             patch_effects: None,
+            dcp: None,
+            dcp_topic: None,
         };
         let mut row = assistant("");
         row.role = "tool".into();

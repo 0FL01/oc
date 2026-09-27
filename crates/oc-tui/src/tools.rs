@@ -69,6 +69,8 @@ pub enum ToolRender {
     Patch(PatchRender),
     /// `subagent` child-session card.
     Subagent(SubagentRender),
+    /// Typed, operation-associated DCP snapshot; no input/output text parsing.
+    Dcp(Box<crate::dcp_view::DcpRender>),
     /// Short-lived tools and generic/MCP calls.
     Inline(InlineRender),
 }
@@ -173,6 +175,7 @@ impl ToolRender {
     pub(crate) fn retained_bytes(&self) -> usize {
         let optional = |s: &Option<String>| s.as_ref().map_or(0, String::len);
         match self {
+            Self::Dcp(view) => view.retained_bytes(),
             Self::Shell(s) => {
                 s.command.len()
                     + optional(&s.cwd)
@@ -223,6 +226,9 @@ impl ToolRender {
     /// Unknown or unparsable inputs produce the generic renderer over the
     /// bounded argument preview; nothing is fabricated.
     pub fn parse(name: &str, input: Option<&str>, output: Option<&str>, state: &str) -> Self {
+        if name == "compress" {
+            return Self::Dcp(Box::default());
+        }
         let value = input.and_then(|raw| serde_json::from_str::<serde_json::Value>(raw).ok());
         match name {
             "bash" => ToolRender::Shell(shell_render(value.as_ref(), output)),
@@ -471,6 +477,14 @@ pub fn is_error_state(state: &str) -> bool {
 /// Render one tool card as transcript rows. `width == 0` is the unbounded
 /// text projection (no background padding).
 pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
+    if let ToolRender::Dcp(view) = &card.render
+        && !matches!(
+            card.state.as_str(),
+            "argument_stream" | "permission_pending"
+        )
+    {
+        return crate::dcp_view::block(view, &card.state, &card.output_preview, theme, width);
+    }
     if card.name == "apply_patch"
         && card.state == "denied"
         && card
@@ -565,6 +579,9 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
             }
         }
         ToolRender::Subagent(subagent) => subagent_block(subagent, card, theme, width),
+        ToolRender::Dcp(view) => {
+            crate::dcp_view::block(view, &card.state, &card.output_preview, theme, width)
+        }
         ToolRender::Inline(inline) => inline_rows(inline, card, theme),
     }
 }
@@ -1258,6 +1275,8 @@ mod tests {
             output_bytes: output.map(str::len).unwrap_or(0) as i64,
             output_truncated: false,
             patch_effects: None,
+            dcp: None,
+            dcp_topic: None,
         })
     }
 

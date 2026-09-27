@@ -98,6 +98,8 @@ fn second_range_failure_rolls_back_blocks_members_and_tool_journal() {
         })
         .expect("member count");
     assert_eq!((block_count, member_count), (0, 0));
+    assert_eq!(db.dcp_accounting("s").unwrap(), None);
+    assert_eq!(db.dcp_run("s", "op-1").unwrap(), None);
     assert_eq!(db.tool_state("op-1").expect("tool state"), "started");
     assert_eq!(
         db.turn_result("turn-1").expect("turn result"),
@@ -128,6 +130,41 @@ fn second_range_failure_rolls_back_blocks_members_and_tool_journal() {
     assert_eq!(report.blocks[1].members.len(), 2);
     assert!(report.after_bytes < report.before_bytes);
     assert!(report.saved_tokens > 0);
+    let estimate = oc_core::dcp_view::estimate_content;
+    let snapshot = &report.snapshot;
+    assert_eq!(snapshot.ordinal, 1, "one multirange operation is one run");
+    assert_eq!(snapshot.block_ids, vec!["b0001", "b0002"]);
+    assert_eq!(snapshot.new_messages, 4);
+    assert_eq!(snapshot.new_tools, 0);
+    assert_eq!(
+        snapshot.removed,
+        history[..4].iter().map(|m| estimate(&m.text)).sum::<u64>()
+    );
+    assert_eq!(
+        snapshot.summary,
+        estimate("early-summary") + estimate("late-summary")
+    );
+    assert_eq!(snapshot.cumulative.gross_removed, snapshot.removed);
+    assert_eq!(snapshot.cumulative.active_summary, snapshot.summary);
+    assert_eq!(snapshot.cumulative.compressions, 1);
+    assert!(snapshot.cumulative.complete);
+    assert_eq!(
+        snapshot.bar,
+        format!("{}{}", "⣿".repeat(28), "█".repeat(22))
+    );
+    assert_eq!(db.dcp_run("s", "op-1").unwrap().as_ref(), Some(snapshot));
+    assert_eq!(
+        db.list_tool_ops_page("s", 20, None).unwrap()[0]
+            .dcp
+            .as_ref(),
+        Some(snapshot)
+    );
+    let page = db
+        .dcp_summary_page("s", "op-1", 1, 0, 4096)
+        .unwrap()
+        .unwrap();
+    assert_eq!(page.text, "late-summary");
+    assert_eq!(page.next_offset, None);
     assert_eq!(db.tool_state("op-1").expect("committed state"), "completed");
     assert_eq!(
         db.list_tool_ops("s").expect("committed operation")[0]
@@ -166,6 +203,25 @@ fn second_range_failure_rolls_back_blocks_members_and_tool_journal() {
     .expect("block anchors may subsume older active blocks");
     assert_eq!(nested.blocks[0].id, "b0003");
     assert_eq!(nested.blocks[0].members.len(), 4);
+    assert_eq!(nested.snapshot.ordinal, 2);
+    assert!(
+        !nested.snapshot.bar.contains('⣿'),
+        "inherited IDs are previously compressed, never newly painted"
+    );
+    assert_eq!(
+        (nested.snapshot.new_messages, nested.snapshot.new_tools),
+        (0, 0)
+    );
+    assert_eq!(
+        nested.snapshot.removed, 0,
+        "inherited content is not removed again"
+    );
+    assert!(nested.snapshot.net_saved > 0, "pure recompression can gain");
+    assert_eq!(
+        nested.snapshot.cumulative.gross_removed,
+        snapshot.cumulative.gross_removed
+    );
+    assert_eq!(db.dcp_run("s", "op-1").unwrap().as_ref(), Some(snapshot));
     let all = dcp::load_blocks(&db, "s").expect("nested blocks");
     assert_eq!(
         all.len(),
@@ -198,6 +254,8 @@ fn second_range_failure_rolls_back_blocks_members_and_tool_journal() {
     assert_eq!(second_level.blocks[0].start_msg, "m0001");
     assert_eq!(second_level.blocks[0].end_msg, "m0005");
     assert_eq!(second_level.blocks[0].members.len(), 5);
+    assert_eq!(second_level.snapshot.ordinal, 3);
+    assert_eq!(second_level.snapshot.new_messages, 1);
     let all = dcp::load_blocks(&db, "s").expect("second-level blocks");
     let projected = dcp::project_history(&raw_before, &all, None);
     assert!(projected[0].1.contains("early-summary"));

@@ -2233,6 +2233,8 @@ impl TuiState {
             .compactions
             .iter()
             .any(|s| s.state == oc_core::compaction::CompactionState::Running)
+            || self.live_parts.iter().any(|part| matches!(part,
+                LivePart::Tool { card, .. } if card.name == "compress" && matches!(card.state.as_str(), "started" | "running")))
         {
             self.compaction_at.get_or_insert_with(Instant::now);
         } else {
@@ -3898,6 +3900,19 @@ impl TuiState {
         for row in &mut rows {
             if let Some(card) = &mut row.tool {
                 card.diff_settings = self.chrome.diffs;
+                if let crate::tools::ToolRender::Dcp(view) = &mut card.render {
+                    view.config = self.chrome.dcp.clone();
+                    view.color_index = row.agent_color_index.or(view.color_index).or_else(|| {
+                        row.agent.as_ref().and_then(|id| {
+                            self.agents
+                                .iter()
+                                .find(|entry| &entry.id == id)
+                                .map(|entry| entry.color_index)
+                        })
+                    });
+                    view.spinner = (self.chrome.animations != Some(false))
+                        .then(|| crate::compaction::FRAMES[self.compaction_frame].to_string());
+                }
             }
             if let Some(meta) = &mut row.meta {
                 meta.session_tps = self.chrome.session_tps;
@@ -4436,7 +4451,77 @@ impl TuiState {
 
     /// Report a runtime DCP outcome: transient notice, never chat history.
     pub fn notify_dcp(&mut self, outcome: DcpOutcome) {
+        let failure = matches!(outcome, DcpOutcome::Failed { .. });
         self.dcp.set_outcome(outcome);
+        if (failure || self.chrome.dcp.notification != oc_core::dcp_view::DcpNotificationMode::Off)
+            && let Some(notice) = self.dcp.notice().map(str::to_string)
+        {
+            self.push_transient_note(
+                &notice,
+                if failure {
+                    NoteVariant::Error
+                } else {
+                    NoteVariant::Info
+                },
+            );
+        }
+        self.dcp.clear_notice();
+    }
+
+    /// Query only committed block IDs retained by this view, with a hard batch
+    /// bound. Disabled/minimal/toast views never request summary contents.
+    pub fn dcp_summary_requests(&self) -> Vec<(String, usize)> {
+        use oc_core::dcp_view::{DcpNotificationChannel, DcpNotificationMode};
+        if !self.chrome.dcp.show_compression
+            || self.chrome.dcp.notification != DcpNotificationMode::Detailed
+            || self.chrome.dcp.channel != DcpNotificationChannel::Chat
+        {
+            return Vec::new();
+        }
+        self.transcript_rows()
+            .into_iter()
+            .rev()
+            .filter_map(|row| row.tool)
+            .flat_map(|card| {
+                let crate::tools::ToolRender::Dcp(view) = card.render else {
+                    return Vec::new();
+                };
+                let Some(run) = view.snapshot else {
+                    return Vec::new();
+                };
+                run.block_ids
+                    .into_iter()
+                    .enumerate()
+                    .filter(|(_, id)| !view.summaries.iter().any(|page| &page.block_id == id))
+                    .map(|(index, _)| (card.op.clone(), index))
+                    .collect::<Vec<_>>()
+            })
+            .take(32)
+            .collect()
+    }
+
+    pub fn apply_dcp_summary(
+        &mut self,
+        session: &SessionId,
+        op: &str,
+        page: oc_core::dcp_view::DcpSummaryPage,
+    ) {
+        if self.session.as_ref() != Some(session) {
+            return;
+        }
+        if self.window.apply_dcp_summary(op, page.clone()) {
+            return;
+        }
+        for part in &mut self.live_parts {
+            if let LivePart::Tool { card, .. } = part
+                && card.op == op
+                && let crate::tools::ToolRender::Dcp(view) = &mut card.render
+            {
+                view.apply_summary(page);
+                self.enforce_parts();
+                return;
+            }
+        }
     }
 
     /// Report that an intent could not be applied; the input is kept so the
@@ -4596,7 +4681,6 @@ impl TuiState {
         self.turn_usage = None;
         self.scroll = 0;
         self.wheel_motion = None;
-        self.push_note("dcp: compressing…");
     }
 
     /// Whether the active turn was accepted from a manual compression request.
@@ -6509,7 +6593,9 @@ impl TuiState {
         self.reasoning_started = None;
         self.reasoning_finished = None;
         self.turn_usage = None;
-        std::mem::take(&mut self.live_parts)
+        let parts = std::mem::take(&mut self.live_parts);
+        self.sync_compaction_clock();
+        parts
     }
 
     /// Push committed part rows into the window (bounded like any row).
@@ -6561,7 +6647,23 @@ impl TuiState {
     /// Apply a recorded tool-call intent: freeze the open segments, then
     /// append the running card in upstream part order.
     pub fn apply_tool_started(&mut self, turn: &WorkerTurnId, op: &str, name: &str, input: &str) {
+        self.apply_tool_started_with_presentation(turn, op, name, input, None);
+    }
+
+    /// Owner-derived pending DCP topic; input remains an opaque recorded payload.
+    pub fn apply_tool_started_with_presentation(
+        &mut self,
+        turn: &WorkerTurnId,
+        op: &str,
+        name: &str,
+        input: &str,
+        dcp_topic: Option<String>,
+    ) {
         if Some(turn) != self.active_turn.as_ref() {
+            return;
+        }
+        if name == "compress" && self.live_parts.iter().any(|part| matches!(part,
+            LivePart::Tool { card, .. } if card.op == op && matches!(&card.render, crate::tools::ToolRender::Dcp(view) if view.snapshot.is_some()))) {
             return;
         }
         if !self.live_reasoning.is_empty() && self.reasoning_finished.is_none() {
@@ -6569,7 +6671,7 @@ impl TuiState {
         }
         self.freeze_reasoning();
         self.freeze_text();
-        let card = card_from_row(&ToolOpView {
+        let mut card = card_from_row(&ToolOpView {
             rowid: 0,
             op: op.to_string(),
             name: name.to_string(),
@@ -6579,7 +6681,12 @@ impl TuiState {
             output_bytes: 0,
             output_truncated: false,
             patch_effects: None,
+            dcp: None,
+            dcp_topic,
         });
+        if let crate::tools::ToolRender::Dcp(view) = &mut card.render {
+            view.color_index = self.live_agent_color_index;
+        }
         if let Some(part) = self
             .live_parts
             .iter_mut()
@@ -6590,6 +6697,7 @@ impl TuiState {
                 input: input.to_string(),
             };
             self.enforce_parts();
+            self.sync_compaction_clock();
             return;
         }
         self.live_parts.push(LivePart::Tool {
@@ -6597,6 +6705,7 @@ impl TuiState {
             input: input.to_string(),
         });
         self.enforce_parts();
+        self.sync_compaction_clock();
     }
 
     /// Apply disposable provider snapshots. Raw fragments never enter the
@@ -6618,7 +6727,7 @@ impl TuiState {
         for request in &eligible {
             let present = self.live_parts.iter().any(|part| matches!(part, LivePart::Tool { card, .. } if card.op == request.binding.operation || card.op.splitn(3, ':').nth(2).and_then(|json| serde_json::from_str::<[String; 2]>(json).ok()).is_some_and(|ids| ids[1] == request.binding.call)));
             if !present && self.live_parts.iter().filter(|p| matches!(p, LivePart::Tool { card, .. } if matches!(card.state.as_str(), "argument_stream" | "permission_pending"))).count() < oc_core::tool_stream::PENDING_TOOL_MAX {
-                let card = card_from_row(&ToolOpView { rowid: 0, op: request.binding.operation.clone(), name: request.action.clone(), state: "argument_stream".into(), input: None, output: None, output_bytes: 0, output_truncated: false, patch_effects: None });
+                let card = card_from_row(&ToolOpView { rowid: 0, op: request.binding.operation.clone(), name: request.action.clone(), state: "argument_stream".into(), input: None, output: None, output_bytes: 0, output_truncated: false, patch_effects: None, dcp: None, dcp_topic: None });
                 self.live_parts.push(LivePart::Tool { card: Box::new(card), input: String::new() });
             }
         }
@@ -6779,6 +6888,8 @@ impl TuiState {
                     output_bytes: 0,
                     output_truncated: false,
                     patch_effects: None,
+                    dcp: None,
+                    dcp_topic: None,
                 });
                 card.render =
                     crate::tools::ToolRender::Inline(crate::tools::InlineRender::Generic {
@@ -6895,8 +7006,50 @@ impl TuiState {
         output_truncated: bool,
         patch_effects: Option<oc_core::patch::PatchEffects>,
     ) {
+        self.apply_tool_finished_with_presentation(
+            turn,
+            op,
+            name,
+            state,
+            output,
+            output_bytes,
+            output_truncated,
+            patch_effects,
+            None,
+        );
+    }
+
+    /// The same frozen DCP metadata as durable history, attached to one operation.
+    #[allow(clippy::too_many_arguments)]
+    pub fn apply_tool_finished_with_presentation(
+        &mut self,
+        turn: &WorkerTurnId,
+        op: &str,
+        name: &str,
+        state: &str,
+        output: &str,
+        output_bytes: i64,
+        output_truncated: bool,
+        patch_effects: Option<oc_core::patch::PatchEffects>,
+        dcp: Option<oc_core::dcp_view::DcpRunSnapshot>,
+    ) {
         if Some(turn) != self.active_turn.as_ref() {
             return;
+        }
+        let dcp = dcp.filter(|run| {
+            run.operation_id == op && self.session.as_ref().is_some_and(|id| id.0 == run.session)
+        });
+        let already_confirmed = self.live_parts.iter().any(|part| matches!(part,
+            LivePart::Tool { card, .. } if card.op == op && matches!(&card.render, crate::tools::ToolRender::Dcp(view) if view.snapshot.is_some())));
+        if already_confirmed {
+            return;
+        }
+        if state == "completed"
+            && let Some(notice) = dcp
+                .as_ref()
+                .and_then(|run| crate::dcp_view::toast_text(run, &self.chrome.dcp))
+        {
+            self.push_transient_note(&notice, NoteVariant::Info);
         }
         let outcome = ToolOpView {
             rowid: 0,
@@ -6908,6 +7061,8 @@ impl TuiState {
             output_bytes,
             output_truncated,
             patch_effects,
+            dcp,
+            dcp_topic: None,
         };
         if let Some(LivePart::Tool { card, input }) = self
             .live_parts
@@ -6919,10 +7074,14 @@ impl TuiState {
             row.name = card.name.clone();
             row.input = Some(std::mem::take(input));
             let mut finished = card_from_row(&row);
+            if let crate::tools::ToolRender::Dcp(view) = &mut finished.render {
+                view.color_index = self.live_agent_color_index;
+            }
             // Reject never emits Started, so its transient card may have only
             // owner-prepared targets rather than canonical arguments. Retain
             // those labels, not a proposed diff or a claim of applied effects.
-            if finished.files.is_empty()
+            if card.name == "apply_patch"
+                && finished.files.is_empty()
                 && matches!(state, "denied" | "cancelled")
                 && crate::history::permission_output(output).is_some()
                 && finished
@@ -6934,15 +7093,22 @@ impl TuiState {
                 finished.files_truncated = card.files_truncated;
             }
             **card = finished;
+            self.enforce_parts();
+            self.sync_compaction_clock();
             return;
         }
         // The intent event was not observed (e.g. a late subscription): the
         // card appears with the outcome only, never with an invented input.
+        let mut card = card_from_row(&outcome);
+        if let crate::tools::ToolRender::Dcp(view) = &mut card.render {
+            view.color_index = self.live_agent_color_index;
+        }
         self.live_parts.push(LivePart::Tool {
-            card: Box::new(card_from_row(&outcome)),
+            card: Box::new(card),
             input: String::new(),
         });
         self.enforce_parts();
+        self.sync_compaction_clock();
     }
 
     /// Evict oldest live parts while the count or byte cap is exceeded; the
@@ -7387,9 +7553,11 @@ impl ScriptDriver {
                     op,
                     name,
                     input,
+                    dcp_topic,
                     ..
                 })) => {
-                    state.apply_tool_started(&turn, &op, &name, &input);
+                    state
+                        .apply_tool_started_with_presentation(&turn, &op, &name, &input, dcp_topic);
                 }
                 Ok(Ok(CoreEvent::ToolCallFinished {
                     turn,
@@ -7400,9 +7568,10 @@ impl ScriptDriver {
                     output_bytes,
                     output_truncated,
                     patch_effects,
+                    dcp,
                     ..
                 })) => {
-                    state.apply_tool_finished_with_effects(
+                    state.apply_tool_finished_with_presentation(
                         &turn,
                         &op,
                         &name,
@@ -7411,6 +7580,7 @@ impl ScriptDriver {
                         output_bytes,
                         output_truncated,
                         patch_effects,
+                        dcp,
                     );
                 }
                 Ok(Ok(CoreEvent::TurnUsage {
@@ -11608,6 +11778,8 @@ mod tests {
                 output_bytes: 14,
                 output_truncated: false,
                 patch_effects: None,
+                dcp: None,
+                dcp_topic: None,
             });
             state.window.push_row(crate::history::HistoryRow {
                 message_id: None,
@@ -12849,6 +13021,8 @@ mod tests {
             output: Some(result),
             output_truncated: false,
             patch_effects: None,
+            dcp: None,
+            dcp_topic: None,
         });
         state.window.push_row(crate::history::HistoryRow {
             message_id: None,
@@ -12953,6 +13127,8 @@ mod tests {
             output: Some("private file body".into()),
             output_truncated: true,
             patch_effects: None,
+            dcp: None,
+            dcp_topic: None,
         });
         state.window.push_row(crate::history::HistoryRow {
             message_id: None,
@@ -13009,6 +13185,8 @@ mod tests {
                 output: Some(result),
                 output_truncated: false,
                 patch_effects: None,
+                dcp: None,
+                dcp_topic: None,
             });
             state.window.push_row(crate::history::HistoryRow {
                 message_id: None,
@@ -13458,6 +13636,8 @@ mod tests {
                     output_bytes: 600,
                     output_truncated: false,
                     patch_effects: None,
+                    dcp: None,
+                    dcp_topic: None,
                 }),
                 TranscriptPart::Text((0..60).map(|i| format!("TAIL-{i:03}\n")).collect()),
             ],
@@ -13847,6 +14027,236 @@ mod tests {
         assert!(footer > diff, "footer follows the parts: {texts:?}");
     }
 
+    #[tokio::test]
+    async fn vis38_dcp_metadata_freezes_through_commit_replay_controls_and_session_switch() {
+        use crate::tools::ToolRender;
+        use oc_core::{
+            dcp_view::{DcpAccounting, DcpNotificationMode, DcpSummaryPage},
+            queries::{DcpSnapshot, HistoryTurn, ToolOpView, TranscriptPart},
+        };
+        let mut state = fresh_state("dcp-lifecycle").await;
+        let turn = WorkerTurnId("dcp-turn".into());
+        state.active_turn = Some(turn.clone());
+        state.status = TuiStatus::Streaming;
+        state.live_agent_color_index = Some(2);
+        state.apply_tool_started_with_presentation(
+            &turn,
+            "op",
+            "compress",
+            r#"{"topic":"forged input topic"}"#,
+            Some("Actual owner topic 中文".into()),
+        );
+        let pending = state
+            .transcript_lines(100, 100)
+            .iter()
+            .map(crate::styled::Line::plain_text)
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(pending.contains("Actual owner topic 中文"));
+        assert!(!pending.contains("forged input topic") && !pending.contains("removed"));
+        assert!(
+            state.compaction_at.is_some(),
+            "real DCP operation uses existing animation clock"
+        );
+        let run = crate::dcp_view::fixture_run("dcp-lifecycle", "op");
+        state.apply_tool_finished_with_presentation(
+            &turn,
+            "op",
+            "compress",
+            "completed",
+            "forged output",
+            13,
+            false,
+            None,
+            Some(run.clone()),
+        );
+        assert!(state.compaction_at.is_none());
+        assert!(
+            state.note().is_none(),
+            "chat has no duplicate success toast"
+        );
+        let frozen = state.transcript_lines(100, 100);
+        let mut rewritten = run.clone();
+        rewritten.ordinal = 99;
+        rewritten.cumulative.gross_removed = 9_999_999;
+        state.apply_tool_finished_with_presentation(
+            &turn,
+            "op",
+            "compress",
+            "completed",
+            "replacement",
+            11,
+            false,
+            None,
+            Some(rewritten),
+        );
+        state.apply_tool_started(&turn, "op", "compress", "late duplicate");
+        assert_eq!(
+            state.transcript_lines(100, 100),
+            frozen,
+            "confirmed run cannot be rewritten by duplicate events"
+        );
+        state.apply_finished(&turn, "", 100);
+        let mut answer = msg(2, Role::Assistant, "");
+        answer.turn = Some(HistoryTurn {
+            id: turn.0.clone(),
+            agent_color_index: Some(2),
+            parts: vec![TranscriptPart::Tool(ToolOpView {
+                rowid: 1,
+                op: "op".into(),
+                name: "compress".into(),
+                state: "completed".into(),
+                input: None,
+                output: Some("legacy output is irrelevant".into()),
+                output_bytes: 27,
+                output_truncated: false,
+                patch_effects: None,
+                dcp: Some(run.clone()),
+                dcp_topic: Some("Actual owner topic".into()),
+            })],
+            ..Default::default()
+        });
+        let owner = page(vec![answer], 1, false, false);
+        state.refresh_completed_page(&owner);
+        state.apply_dcp_snapshot(DcpSnapshot {
+            accounting: Some(DcpAccounting {
+                gross_removed: 9_999_999,
+                active_summary: 0,
+                ..Default::default()
+            }),
+            ..Default::default()
+        });
+        let card = state
+            .transcript_rows()
+            .into_iter()
+            .find_map(|row| row.tool)
+            .unwrap();
+        let ToolRender::Dcp(view) = &card.render else {
+            panic!("DCP metadata")
+        };
+        assert_eq!(
+            view.snapshot,
+            Some(run.clone()),
+            "current accounting does not rewrite historical headers/maps"
+        );
+        assert_eq!(view.color_index, Some(2));
+        assert!(
+            state.dcp_summary_requests().is_empty(),
+            "default hides contents without querying"
+        );
+        state.chrome.dcp.show_compression = true;
+        assert_eq!(state.dcp_summary_requests(), vec![("op".into(), 0)]);
+        state.apply_dcp_summary(
+            &sid("unrelated"),
+            "op",
+            DcpSummaryPage {
+                block_id: "b7".into(),
+                topic: "topic".into(),
+                text: "wrong session".into(),
+                total_bytes: 13,
+                next_offset: None,
+            },
+        );
+        assert_eq!(state.dcp_summary_requests().len(), 1);
+        state.apply_dcp_summary(
+            &sid("dcp-lifecycle"),
+            "op",
+            DcpSummaryPage {
+                block_id: "b7".into(),
+                topic: "topic".into(),
+                text: "Actual bounded summary".into(),
+                total_bytes: 22,
+                next_offset: None,
+            },
+        );
+        assert!(state.dcp_summary_requests().is_empty());
+        assert!(
+            state
+                .transcript_lines(100, 100)
+                .iter()
+                .any(|line| line.plain_text().contains("Actual bounded summary"))
+        );
+        state.chrome.dcp.notification = DcpNotificationMode::Off;
+        assert!(
+            !state
+                .transcript_lines(100, 100)
+                .iter()
+                .any(|line| line.plain_text().contains("▣ DCP"))
+        );
+        state.chrome.dcp.notification = DcpNotificationMode::Detailed;
+        state.chrome.dcp.show_compression = false;
+        state.attach_page(&owner);
+        let ToolRender::Dcp(view) = &state.history().rows()[0].tool.as_ref().unwrap().render else {
+            panic!("replayed card")
+        };
+        assert_eq!(view.snapshot, Some(run));
+        state.app.create_session(sid("dcp-other")).await.unwrap();
+        state.set_session(sid("dcp-other"));
+        assert!(!state.transcript_rows().iter().any(|row| row.tool.is_some()));
+    }
+
+    #[tokio::test]
+    async fn vis38_dcp_toast_uses_existing_expiry_once_and_off_preserves_failures() {
+        use crate::dcp_panel::DcpOutcome;
+        use oc_core::dcp_view::{DcpNotificationChannel, DcpNotificationMode};
+        let mut state = fresh_state("dcp-toast").await;
+        state.chrome.dcp.channel = DcpNotificationChannel::Toast;
+        let turn = WorkerTurnId("toast-turn".into());
+        state.active_turn = Some(turn.clone());
+        state.status = TuiStatus::Streaming;
+        let run = crate::dcp_view::fixture_run("dcp-toast", "op");
+        state.apply_tool_finished_with_presentation(
+            &turn,
+            "op",
+            "compress",
+            "completed",
+            "",
+            0,
+            false,
+            None,
+            Some(run.clone()),
+        );
+        assert_eq!(
+            state.note(),
+            Some("▣ DCP | -21.9K removed, +1.3K summary — Compression #7")
+        );
+        assert!(
+            state.dcp.notice().is_none(),
+            "no duplicate persistent notice"
+        );
+        assert!(
+            !state
+                .transcript_lines(100, 100)
+                .iter()
+                .any(|line| line.plain_text().contains("▣ DCP"))
+        );
+        assert!(state.toast_expiry.is_some());
+        state.tick_toast(Instant::now() + Duration::from_secs(6));
+        assert!(state.note().is_none());
+        state.apply_tool_finished_with_presentation(
+            &turn,
+            "op",
+            "compress",
+            "completed",
+            "",
+            0,
+            false,
+            None,
+            Some(run),
+        );
+        assert!(
+            state.note().is_none(),
+            "duplicate finish must not resurrect expired toast"
+        );
+        state.chrome.dcp.notification = DcpNotificationMode::Off;
+        state.notify_dcp(DcpOutcome::Failed {
+            reason: "actual failure".into(),
+        });
+        assert_eq!(state.note(), Some("dcp failed: actual failure"));
+        assert_eq!(state.note_variant(), Some(NoteVariant::Error));
+        assert!(state.toast_expiry.is_some());
+    }
+
     /// Owner effects survive every frontend adoption boundary.
     #[tokio::test]
     async fn vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects() {
@@ -13866,6 +14276,8 @@ mod tests {
             output_bytes: 13,
             output_truncated: false,
             patch_effects: Some(effects.clone()),
+            dcp: None,
+            dcp_topic: None,
         };
         // A missed intent event still gets the actual result metadata.
         state.apply_tool_finished_with_effects(

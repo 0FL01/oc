@@ -121,7 +121,7 @@ pub struct DcpConfig {
     /// Preserve covered user messages verbatim.
     pub protect_user_messages: bool,
     /// Prune notifications enabled.
-    pub prune_notification: bool,
+    pub prune_notification: oc_core::dcp_view::DcpNotificationMode,
     /// Notification channel (`chat` or documented `toast` UI difference).
     pub prune_notification_type: String,
     /// Whether configured slash commands are enabled.
@@ -162,7 +162,7 @@ impl Default for DcpConfig {
             protected_file_patterns: Vec::new(),
             protect_tags: false,
             protect_user_messages: false,
-            prune_notification: true,
+            prune_notification: oc_core::dcp_view::DcpNotificationMode::Detailed,
             prune_notification_type: "chat".to_string(),
             commands_enabled: true,
             turn_protection: false,
@@ -380,10 +380,18 @@ pub fn load_config(fragment: &serde_json::Value) -> Result<(DcpConfig, Vec<Strin
     }
     if let Some(value) = obj.get("pruneNotification") {
         config.prune_notification = match value {
-            serde_json::Value::Bool(value) => *value,
-            serde_json::Value::String(mode) if matches!(mode.as_str(), "none" | "off") => false,
-            serde_json::Value::String(_) => true,
-            _ => return Err(invalid("pruneNotification must be bool or string")),
+            serde_json::Value::Bool(false) => oc_core::dcp_view::DcpNotificationMode::Off,
+            serde_json::Value::Bool(true) => oc_core::dcp_view::DcpNotificationMode::Detailed,
+            serde_json::Value::String(mode) if matches!(mode.as_str(), "none" | "off") => {
+                oc_core::dcp_view::DcpNotificationMode::Off
+            }
+            serde_json::Value::String(mode) if mode == "minimal" => {
+                oc_core::dcp_view::DcpNotificationMode::Minimal
+            }
+            serde_json::Value::String(mode) if mode == "detailed" => {
+                oc_core::dcp_view::DcpNotificationMode::Detailed
+            }
+            _ => return Err(invalid("pruneNotification must be off/minimal/detailed")),
         };
     }
     if let Some(overrides) = obj.get("modelOverrides").and_then(|v| v.as_object()) {
@@ -1018,6 +1026,33 @@ mod tests {
 
     #[test]
     fn dcp07_config_aliases_stats_and_unsupported() {
+        let defaults = DcpConfig::default();
+        assert_eq!(
+            defaults.prune_notification,
+            oc_core::dcp_view::DcpNotificationMode::Detailed
+        );
+        assert_eq!(defaults.prune_notification_type, "chat");
+        assert!(!defaults.show_compression);
+        let (display,_) = load_config(&serde_json::json!({"pruneNotification":"minimal","pruneNotificationType":"toast","compress":{"showCompression":true}})).unwrap();
+        assert_eq!(
+            display.prune_notification,
+            oc_core::dcp_view::DcpNotificationMode::Minimal
+        );
+        assert_eq!(display.prune_notification_type, "toast");
+        assert!(display.show_compression);
+        let (off, _) = load_config(
+            &serde_json::json!({"pruneNotification":"off","compress":{"showCompression":true}}),
+        )
+        .unwrap();
+        assert_eq!(
+            off.prune_notification,
+            oc_core::dcp_view::DcpNotificationMode::Off
+        );
+        assert!(
+            off.show_compression,
+            "summary preference is independent of notifications"
+        );
+        assert!(load_config(&serde_json::json!({"pruneNotification":"arbitrary"})).is_err());
         // Defaults < user fragment < per-model override.
         let (config, warnings) = load_config(&serde_json::json!({
             "maxContextLimit": 80000,

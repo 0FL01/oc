@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "method": "Released native binary -> genuine held owner session -> real PTY, no import",
+  "qualification": "Capture integrity only; no full parity claim",
+  "binary": {
+    "path": "/home/opencode/ai/oc/target/debug/oc",
+    "sha256": "8f7b79887e7c0fa3296800388819bca72f68c7aeae459d891ce0eb2690c4df93",
+    "commit": "8fda54ad25667ea6cf0115c3a77b32d182baaf9b"
+  },
+  "goldens_sha256": "b02b7ac9d73d89e3d9535772b623c255d8cbd116c8332c0596f4b51f8cf1e933",
+  "source_manifest": {
+    "binary": "/home/opencode/ai/oc/target/debug/oc",
+    "binary_sha256": "8f7b79887e7c0fa3296800388819bca72f68c7aeae459d891ce0eb2690c4df93",
+    "origin": "oc",
+    "session": "s-vis38-actual-owner",
+    "operation_id": "ts-vis38-actual-owner-1790550588103-1702984-0-r1-c0-call_vis38_compress-recompression",
+    "stage": "restart",
+    "context_snapshot": "restart-snapshot.json",
+    "isolated_root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-05",
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "tui",
+      "--session",
+      "s-vis38-actual-owner"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-05/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-05/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-05/home/config",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-05/home/data",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-05/home/cache",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-05/home/state",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "PATH": "/usr/bin:/bin",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC"
+    },
+    "source_HEAD": "8fda54ad25667ea6cf0115c3a77b32d182baaf9b",
+    "typed_snapshot": {
+      "session": "s-vis38-actual-owner",
+      "operation_id": "ts-vis38-actual-owner-1790550588103-1702984-0-r1-c0-call_vis38_compress-recompression",
+      "ordinal": 3,
+      "topic": "VIS38 recompression",
+      "block_ids": [
+        "b0004"
+      ],
+      "removed": 0,
+      "summary": 6,
+      "net_saved": 77,
+      "method": "utf16_round_quarter_fallback",
+      "new_messages": 0,
+      "new_tools": 0,
+      "cumulative": {
+        "gross_removed": 8364,
+        "active_summary": 34,
+        "net_saved": 8315,
+        "compressions": 3,
+        "prunes": 0,
+        "method": "utf16_round_quarter_fallback",
+        "complete": true
+      },
+      "bar": "░░░░░░░░░░░░░░░░░░░░░░░░░░░███████████████████████"
+    },
+    "display": {
+      "notification": "detailed",
+      "channel": "chat",
+      "show_compression": true
+    },
+    "capture_after": "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay.",
+    "capture_gate": "Synchronous genuine stage before subsequent mutation; no history ingress."
+  },
+  "runner_hashes": {
+    "dcp_reference_capture.mjs": "89496184bf65683cabf78e9eb440c9bccffcba073ff3fd1a6fd86d16f0a0185a",
+    "dcp_native_bridge.py": "375ca1a6a3bdabb32d4fd0c070f6b0f27ae6c85e4d3a126c31fb8d39fa51a019",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e"
+  },
+  "captures": [
+    {
+      "name": "native-restart-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "ad65e35e179292a3b9705dab15ac35b9b38baeae67896fd6ab19abd2547a821a",
+        "png": "d9f353dd6d78bb8ef4bbf6f9fa11b955c6e2e226a1fc5443aa1b1e130074e4f8",
+        "txt": "47c28fd1722722a56c4e418d80d3fba84b93665b1ae4615661fcff4271153ec1",
+        "vt": "e6c25e98135621057ece397b3c335baf33abbea391c653ece084159dbfa0511f",
+        "render.json": "cef7a123f2a3e80837d174c512f63d1294d1cb635383db91c0e9c08b1606c763"
+      }
+    },
+    {
+      "name": "native-restart-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "28caf11fb18fd9acd1baec867f66fae2f54575cda46cd40f934f1cea40993cb4",
+        "png": "a91a0e309092fe6f0b786cd7c77f59b0b89e2295b9c6333d02836b349817fca9",
+        "txt": "37072725f8f9047968e87c8cded20d83ece4d2b1d42e21e87638ec6a3a236e94",
+        "vt": "5404d87d514104c40c84c34280b74e0a02609a52b35cb6a23f494b44868f6611",
+        "render.json": "cef7a123f2a3e80837d174c512f63d1294d1cb635383db91c0e9c08b1606c763"
+      }
+    },
+    {
+      "name": "native-restart-80x24",
+      "stage": "scroll-1",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "2d6f08588212c284620ff8ed5fa75fe8d64ad98ff23fdca8e4e3fbae7d574d17",
+        "png": "3d1fe5a624382fce406556ba8e8b8634f0722f0c3546d2ab0dafdf8a121efe4c",
+        "txt": "bffbaad6c47115e785d801e8cb8b4164b8688110afbbda15f9f709db5d08540a",
+        "vt": "b45a106e1b825d1fa8a546ce772ee956f0e93db91f0f0a04b6d24b3bb17e20df",
+        "render.json": "cef7a123f2a3e80837d174c512f63d1294d1cb635383db91c0e9c08b1606c763"
+      }
+    },
+    {
+      "name": "native-restart-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "d8b626e0b6aceca764bed60e5ac89d553951f5c816b5d7b102b1caeee709aa79",
+        "png": "0b40088d856970b952894e0f7d5f49932b45b0a782f6551d866745d77ee9de55",
+        "txt": "1e84a9293921a9944534bf132aeed259209303d13611186232bff8692810556a",
+        "vt": "2a0c229af792edfaefb12a9096e20d094a4b570be9f1e108a2eacbab62a28e81",
+        "render.json": "3fc4d94379e7038f4404189b926a5637b1847a3f21b5d480bfba39ef6cf7e7b5"
+      }
+    },
+    {
+      "name": "native-restart-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "08aa117d20eb04d9b3deb76efe46c4ab145eb48348305c923f64bb311272c4c6",
+        "png": "e7243483bb984d06b6f009ef354a55db1d0c182b5b510400e236d7a13984184a",
+        "txt": "da401ebe69725f74fcbb59d96fb1e9c47542d0f3a35cfe0302db671a630cee20",
+        "vt": "cf97da007a51bbcc042c97cc3e73cb346402819f3ad0e35851ba99e790fdf374",
+        "render.json": "50a5a84e2d4eb319407d73d02eb11e33a257a4ec6b82dd6903095d38a8efafb7"
+      }
+    }
+  ],
+  "attempts": [
+    {
+      "name": "native-restart-80x24",
+      "status": "PASS_NATIVE_STAGE_CAPTURE",
+      "genuine_session": true
+    },
+    {
+      "name": "native-restart-120x40",
+      "status": "PASS_NATIVE_STAGE_CAPTURE",
+      "genuine_session": true
+    },
+    {
+      "name": "native-restart-160x48",
+      "status": "PASS_NATIVE_STAGE_CAPTURE",
+      "genuine_session": true
+    }
+  ],
+  "frontend": {
+    "chromium": "145.0.7632.6",
+    "playwright": "1.58.2",
+    "xterm": "6.0.0",
+    "unicode": "0.9.0",
+    "font": "DejaVu Sans Mono",
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "padding": 0,
+    "unmasked": true
+  }
+}

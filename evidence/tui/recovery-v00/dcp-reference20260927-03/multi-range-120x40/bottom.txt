@@ -1,0 +1,40 @@
+   VIS38 multi-range             +                                                                                      
+                                                                                                                        
+     VIS38-BEFORE: agent step completed.                                                                                
+                                                                                                                        
+     Build · VIS38 Display Model                                                                                        
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  ▣ DCP | -15.3K removed, +1.3K summary                                                                              
+  ┃                                                                                                                     
+  ┃  │░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿████████████████████│                                                               
+  ┃  ▣ Compression #7 -14.6K removed, +1K summary                                                                       
+  ┃  → Topic: Two independent ranges                                                                                    
+  ┃  → Items: 4 messages and 3 tools compressed                                                                         
+  ┃  → Compression (~1K tokens): ### Formatter qualification                                                            
+  ┃  Preserve R1; continue without replaying tools.                                                                     
+  ┃                                                                                                                     
+  ┃  ### Unicode continuation: 日本語 résumé                                                                            
+  ┃  Retain R2 and stable occurrence IDs.                                                                               
+  ┃                                                                                                                     
+                                                                                                                        
+     VIS38-AFTER: continuation display.                                                                                 
+                                                                                                                        
+     Build · VIS38 Display Model · 1ms                                                                                  
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃  Build · VIS38 Display Model VIS38 Display Fixture                                                                  
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/t44-ref…/runs/dcp-reference20260927-03-0c9f782a4233/multi-range-120x40/project  shift+tab agents  ctrl+p commands  
+                                                                                                                        

@@ -1,0 +1,521 @@
+{
+  "schema_version": 1,
+  "qualification": "Typed display inputs for the owner UI test/fixture interface, NOT outcomes of actual native compress. Actual owner operation qualification must precede native paired-binary PASS.",
+  "snapshot_type": "oc_core::dcp_view::DcpRunSnapshot",
+  "fixtures": [
+    {
+      "id": "detailed",
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": false
+      },
+      "snapshot": {
+        "session": "reference-fixture-session",
+        "operation_id": "reference-display-fixture-detailed",
+        "ordinal": 7,
+        "topic": "Formatter qualification",
+        "block_ids": [
+          "b11"
+        ],
+        "removed": 11900,
+        "summary": 842,
+        "net_saved": 11058,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 3,
+        "new_tools": 2,
+        "cumulative": {
+          "gross_removed": 15300,
+          "active_summary": 1102,
+          "net_saved": 14198,
+          "compressions": 7,
+          "prunes": 1,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████"
+      },
+      "summaries": [
+        {
+          "block_id": "b11",
+          "topic": "Formatter qualification",
+          "text": "Preserve R1; continue without replaying tools."
+        }
+      ],
+      "pinned_payload": "▣ DCP | -15.3K removed, +1.1K summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -11.9K removed, +842 summary\n→ Topic: Formatter qualification\n→ Items: 3 messages and 2 tools compressed",
+      "named_differences": []
+    },
+    {
+      "id": "minimal",
+      "display": {
+        "notification": "minimal",
+        "channel": "chat",
+        "show_compression": false
+      },
+      "snapshot": {
+        "session": "reference-fixture-session",
+        "operation_id": "reference-display-fixture-minimal",
+        "ordinal": 7,
+        "topic": "Formatter qualification",
+        "block_ids": [
+          "b11"
+        ],
+        "removed": 11900,
+        "summary": 842,
+        "net_saved": 11058,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 3,
+        "new_tools": 2,
+        "cumulative": {
+          "gross_removed": 15300,
+          "active_summary": 1102,
+          "net_saved": 14198,
+          "compressions": 7,
+          "prunes": 1,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████"
+      },
+      "summaries": [
+        {
+          "block_id": "b11",
+          "topic": "Formatter qualification",
+          "text": "Preserve R1; continue without replaying tools."
+        }
+      ],
+      "pinned_payload": "▣ DCP | -15.3K removed, +1.1K summary — Compression #7",
+      "named_differences": []
+    },
+    {
+      "id": "minimal-show",
+      "display": {
+        "notification": "minimal",
+        "channel": "chat",
+        "show_compression": true
+      },
+      "snapshot": {
+        "session": "reference-fixture-session",
+        "operation_id": "reference-display-fixture-minimal-show",
+        "ordinal": 7,
+        "topic": "Formatter qualification",
+        "block_ids": [
+          "b11"
+        ],
+        "removed": 11900,
+        "summary": 842,
+        "net_saved": 11058,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 3,
+        "new_tools": 2,
+        "cumulative": {
+          "gross_removed": 15300,
+          "active_summary": 1102,
+          "net_saved": 14198,
+          "compressions": 7,
+          "prunes": 1,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████"
+      },
+      "summaries": [
+        {
+          "block_id": "b11",
+          "topic": "Formatter qualification",
+          "text": "Preserve R1; continue without replaying tools."
+        }
+      ],
+      "pinned_payload": "▣ DCP | -15.3K removed, +1.1K summary — Compression #7",
+      "named_differences": []
+    },
+    {
+      "id": "off",
+      "display": {
+        "notification": "off",
+        "channel": "chat",
+        "show_compression": false
+      },
+      "snapshot": {
+        "session": "reference-fixture-session",
+        "operation_id": "reference-display-fixture-off",
+        "ordinal": 7,
+        "topic": "Formatter qualification",
+        "block_ids": [
+          "b11"
+        ],
+        "removed": 11900,
+        "summary": 842,
+        "net_saved": 11058,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 3,
+        "new_tools": 2,
+        "cumulative": {
+          "gross_removed": 15300,
+          "active_summary": 1102,
+          "net_saved": 14198,
+          "compressions": 7,
+          "prunes": 1,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████"
+      },
+      "summaries": [
+        {
+          "block_id": "b11",
+          "topic": "Formatter qualification",
+          "text": "Preserve R1; continue without replaying tools."
+        }
+      ],
+      "pinned_payload": null,
+      "named_differences": []
+    },
+    {
+      "id": "show-single",
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": true
+      },
+      "snapshot": {
+        "session": "reference-fixture-session",
+        "operation_id": "reference-display-fixture-show-single",
+        "ordinal": 7,
+        "topic": "Formatter qualification",
+        "block_ids": [
+          "b11"
+        ],
+        "removed": 11900,
+        "summary": 842,
+        "net_saved": 11058,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 3,
+        "new_tools": 2,
+        "cumulative": {
+          "gross_removed": 15300,
+          "active_summary": 1102,
+          "net_saved": 14198,
+          "compressions": 7,
+          "prunes": 1,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████"
+      },
+      "summaries": [
+        {
+          "block_id": "b11",
+          "topic": "Formatter qualification",
+          "text": "Preserve R1; continue without replaying tools."
+        }
+      ],
+      "pinned_payload": "▣ DCP | -15.3K removed, +1.1K summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -11.9K removed, +842 summary\n→ Topic: Formatter qualification\n→ Items: 3 messages and 2 tools compressed\n→ Compression (~842 tokens): Preserve R1; continue without replaying tools.",
+      "named_differences": []
+    },
+    {
+      "id": "multi-range",
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": true
+      },
+      "snapshot": {
+        "session": "reference-fixture-session",
+        "operation_id": "reference-display-fixture-multi-range",
+        "ordinal": 7,
+        "topic": "Two independent ranges",
+        "block_ids": [
+          "b11",
+          "b12"
+        ],
+        "removed": 14600,
+        "summary": 1012,
+        "net_saved": 13588,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 4,
+        "new_tools": 3,
+        "cumulative": {
+          "gross_removed": 15300,
+          "active_summary": 1272,
+          "net_saved": 14028,
+          "compressions": 7,
+          "prunes": 1,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿████████████████████"
+      },
+      "summaries": [
+        {
+          "block_id": "b11",
+          "topic": "Formatter qualification",
+          "text": "Preserve R1; continue without replaying tools."
+        },
+        {
+          "block_id": "b12",
+          "topic": "Unicode continuation: 日本語 résumé",
+          "text": "Retain R2 and stable occurrence IDs."
+        }
+      ],
+      "pinned_payload": "▣ DCP | -15.3K removed, +1.3K summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿████████████████████│\n▣ Compression #7 -14.6K removed, +1K summary\n→ Topic: Two independent ranges\n→ Items: 4 messages and 3 tools compressed\n→ Compression (~1K tokens): ### Formatter qualification\nPreserve R1; continue without replaying tools.\n\n### Unicode continuation: 日本語 résumé\nRetain R2 and stable occurrence IDs.",
+      "named_differences": []
+    },
+    {
+      "id": "zero-summary-tools",
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": false
+      },
+      "snapshot": {
+        "session": "reference-fixture-session",
+        "operation_id": "reference-display-fixture-zero-summary-tools",
+        "ordinal": 7,
+        "topic": "Formatter qualification",
+        "block_ids": [
+          "b11"
+        ],
+        "removed": 11900,
+        "summary": 0,
+        "net_saved": 11900,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 3,
+        "new_tools": 0,
+        "cumulative": {
+          "gross_removed": 15300,
+          "active_summary": 260,
+          "net_saved": 15040,
+          "compressions": 7,
+          "prunes": 1,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████"
+      },
+      "summaries": [
+        {
+          "block_id": "b11",
+          "topic": "Formatter qualification",
+          "text": ""
+        }
+      ],
+      "pinned_payload": "▣ DCP | -15.3K removed, +260 summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -11.9K removed\n→ Topic: Formatter qualification\n→ Items: 3 messages compressed",
+      "named_differences": []
+    },
+    {
+      "id": "empty-positions",
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": false
+      },
+      "snapshot": {
+        "session": "reference-fixture-session",
+        "operation_id": "reference-display-fixture-empty-positions",
+        "ordinal": 7,
+        "topic": "Formatter qualification",
+        "block_ids": [
+          "b11"
+        ],
+        "removed": 11900,
+        "summary": 842,
+        "net_saved": 11058,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 3,
+        "new_tools": 2,
+        "cumulative": {
+          "gross_removed": 15300,
+          "active_summary": 1102,
+          "net_saved": 14198,
+          "compressions": 7,
+          "prunes": 1,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░"
+      },
+      "summaries": [
+        {
+          "block_id": "b11",
+          "topic": "Formatter qualification",
+          "text": "Preserve R1; continue without replaying tools."
+        }
+      ],
+      "pinned_payload": "▣ DCP | -15.3K removed, +1.1K summary\n\n│░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│\n▣ Compression #7 -11.9K removed, +842 summary\n→ Topic: Formatter qualification\n→ Items: 3 messages and 2 tools compressed",
+      "named_differences": []
+    },
+    {
+      "id": "recompression",
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": false
+      },
+      "snapshot": {
+        "session": "reference-fixture-session",
+        "operation_id": "reference-display-fixture-recompression",
+        "ordinal": 7,
+        "topic": "Formatter qualification",
+        "block_ids": [
+          "b11"
+        ],
+        "removed": 842,
+        "summary": 90,
+        "net_saved": 752,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 0,
+        "new_tools": 0,
+        "cumulative": {
+          "gross_removed": 15300,
+          "active_summary": 90,
+          "net_saved": 15210,
+          "compressions": 7,
+          "prunes": 1,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░░░░░░███████████████████████████████████"
+      },
+      "summaries": [
+        {
+          "block_id": "b11",
+          "topic": "Formatter qualification",
+          "text": "Preserve R1; continue without replaying tools."
+        }
+      ],
+      "pinned_payload": "▣ DCP | -15.3K removed, +90 summary\n\n│░░░░░░░░░░░░░░░███████████████████████████████████│\n▣ Compression #7 -842 removed, +90 summary\n→ Topic: Formatter qualification\n→ Items: 0 messages compressed",
+      "named_differences": []
+    },
+    {
+      "id": "large-k-only",
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": false
+      },
+      "snapshot": {
+        "session": "reference-fixture-session",
+        "operation_id": "reference-display-fixture-large-k-only",
+        "ordinal": 7,
+        "topic": "Formatter qualification",
+        "block_ids": [
+          "b11"
+        ],
+        "removed": 4218800,
+        "summary": 1000000,
+        "net_saved": 3218800,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 3,
+        "new_tools": 2,
+        "cumulative": {
+          "gross_removed": 4218800,
+          "active_summary": 1000000,
+          "net_saved": 3218800,
+          "compressions": 7,
+          "prunes": 1,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "██████████⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████"
+      },
+      "summaries": [
+        {
+          "block_id": "b11",
+          "topic": "Formatter qualification",
+          "text": "Preserve R1; continue without replaying tools."
+        }
+      ],
+      "pinned_payload": "▣ DCP | -4218.8K removed, +1000K summary\n\n│██████████⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -4218.8K removed, +1000K summary\n→ Topic: Formatter qualification\n→ Items: 3 messages and 2 tools compressed",
+      "named_differences": [
+        "VIS38-native-M-and-K-boundary-promotion"
+      ]
+    },
+    {
+      "id": "long-topic-summary",
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": true
+      },
+      "snapshot": {
+        "session": "reference-fixture-session",
+        "operation_id": "reference-display-fixture-long-topic-summary",
+        "ordinal": 7,
+        "topic": "Long topic 日本語 résumé — requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation ",
+        "block_ids": [
+          "b11"
+        ],
+        "removed": 11900,
+        "summary": 842,
+        "net_saved": 11058,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 3,
+        "new_tools": 2,
+        "cumulative": {
+          "gross_removed": 15300,
+          "active_summary": 1102,
+          "net_saved": 14198,
+          "compressions": 7,
+          "prunes": 1,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████"
+      },
+      "summaries": [
+        {
+          "block_id": "b11",
+          "topic": "Long topic 日本語 résumé — requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation ",
+          "text": "## Preserved requirements\n- R1: retain 日本語 and tool pairs; never replay an unknown effect.\n- R2: retain 日本語 and tool pairs; never replay an unknown effect.\n- R3: retain 日本語 and tool pairs; never replay an unknown effect.\n- R4: retain 日本語 and tool pairs; never replay an unknown effect.\n- R5: retain 日本語 and tool pairs; never replay an unknown effect.\n- R6: retain 日本語 and tool pairs; never replay an unknown effect.\n- R7: retain 日本語 and tool pairs; never replay an unknown effect.\n- R8: retain 日本語 and tool pairs; never replay an unknown effect.\n- R9: retain 日本語 and tool pairs; never replay an unknown effect.\n- R10: retain 日本語 and tool pairs; never replay an unknown effect.\n- R11: retain 日本語 and tool pairs; never replay an unknown effect.\n- R12: retain 日本語 and tool pairs; never replay an unknown effect.\n- R13: retain 日本語 and tool pairs; never replay an unknown effect.\n- R14: retain 日本語 and tool pairs; never replay an unknown effect.\n- R15: retain 日本語 and tool pairs; never replay an unknown effect.\n- R16: retain 日本語 and tool pairs; never replay an unknown effect.\n- R17: retain 日本語 and tool pairs; never replay an unknown effect.\n- R18: retain 日本語 and tool pairs; never replay an unknown effect."
+        }
+      ],
+      "pinned_payload": "▣ DCP | -15.3K removed, +1.1K summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -11.9K removed, +842 summary\n→ Topic: Long topic 日本語 résumé — requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation \n→ Items: 3 messages and 2 tools compressed\n→ Compression (~842 tokens): ## Preserved requirements\n- R1: retain 日本語 and tool pairs; never replay an unknown effect.\n- R2: retain 日本語 and tool pairs; never replay an unknown effect.\n- R3: retain 日本語 and tool pairs; never replay an unknown effect.\n- R4: retain 日本語 and tool pairs; never replay an unknown effect.\n- R5: retain 日本語 and tool pairs; never replay an unknown effect.\n- R6: retain 日本語 and tool pairs; never replay an unknown effect.\n- R7: retain 日本語 and tool pairs; never replay an unknown effect.\n- R8: retain 日本語 and tool pairs; never replay an unknown effect.\n- R9: retain 日本語 and tool pairs; never replay an unknown effect.\n- R10: retain 日本語 and tool pairs; never replay an unknown effect.\n- R11: retain 日本語 and tool pairs; never replay an unknown effect.\n- R12: retain 日本語 and tool pairs; never replay an unknown effect.\n- R13: retain 日本語 and tool pairs; never replay an unknown effect.\n- R14: retain 日本語 and tool pairs; never replay an unknown effect.\n- R15: retain 日本語 and tool pairs; never replay an unknown effect.\n- R16: retain 日本語 and tool pairs; never replay an unknown effect.\n- R17: retain 日本語 and tool pairs; never replay an unknown effect.\n- R18: retain 日本語 and tool pairs; never replay an unknown effect.",
+      "named_differences": []
+    },
+    {
+      "id": "toast",
+      "display": {
+        "notification": "detailed",
+        "channel": "toast",
+        "show_compression": true
+      },
+      "snapshot": {
+        "session": "reference-fixture-session",
+        "operation_id": "reference-display-fixture-toast",
+        "ordinal": 7,
+        "topic": "Long topic 日本語 résumé — requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation ",
+        "block_ids": [
+          "b11"
+        ],
+        "removed": 11900,
+        "summary": 842,
+        "net_saved": 11058,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 3,
+        "new_tools": 2,
+        "cumulative": {
+          "gross_removed": 15300,
+          "active_summary": 1102,
+          "net_saved": 14198,
+          "compressions": 7,
+          "prunes": 1,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████"
+      },
+      "summaries": [
+        {
+          "block_id": "b11",
+          "topic": "Long topic 日本語 résumé — requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation ",
+          "text": "## Preserved requirements\n- R1: retain 日本語 and tool pairs; never replay an unknown effect.\n- R2: retain 日本語 and tool pairs; never replay an unknown effect.\n- R3: retain 日本語 and tool pairs; never replay an unknown effect.\n- R4: retain 日本語 and tool pairs; never replay an unknown effect.\n- R5: retain 日本語 and tool pairs; never replay an unknown effect.\n- R6: retain 日本語 and tool pairs; never replay an unknown effect.\n- R7: retain 日本語 and tool pairs; never replay an unknown effect.\n- R8: retain 日本語 and tool pairs; never replay an unknown effect.\n- R9: retain 日本語 and tool pairs; never replay an unknown effect.\n- R10: retain 日本語 and tool pairs; never replay an unknown effect.\n- R11: retain 日本語 and tool pairs; never replay an unknown effect.\n- R12: retain 日本語 and tool pairs; never replay an unknown effect.\n- R13: retain 日本語 and tool pairs; never replay an unknown effect.\n- R14: retain 日本語 and tool pairs; never replay an unknown effect.\n- R15: retain 日本語 and tool pairs; never replay an unknown effect.\n- R16: retain 日本語 and tool pairs; never replay an unknown effect.\n- R17: retain 日本語 and tool pairs; never replay an unknown effect.\n- R18: retain 日本語 and tool pairs; never replay an unknown effect."
+        }
+      ],
+      "pinned_payload": "▣ DCP | -15.3K removed, +1.1K summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -11.9K removed, +842 summary\n→ Topic: Long topic 日本語 résumé — requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation requirements and continuation \n→ Items: 3 messages and 2 tools compressed\n→ Compression (~842 tokens): ## Preserved requirements\n- R1: retain 日本語 and tool pairs; never replay an unknown effect.\n- R2: retain 日本語 and tool pairs; never replay an unknown effect.\n- R3: retain 日本語 and tool pairs; never replay an unknown effect.\n- R4: retain 日本語 and tool pairs; never replay an unknown effect.\n... and 5 more",
+      "named_differences": [
+        "VIS38-native-bounded-transient-toast-mapping"
+      ]
+    }
+  ]
+}

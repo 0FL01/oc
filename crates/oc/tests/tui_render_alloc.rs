@@ -181,6 +181,8 @@ fn page(older: usize) -> HistoryPage {
                         output_bytes: 128 * 1024,
                         output_truncated: true,
                         patch_effects: None,
+                        dcp: None,
+                        dcp_topic: None,
                     }),
                 ],
                 ..HistoryTurn::default()

@@ -320,7 +320,11 @@ fn conversation_refresh(app: CoreApp, session: SessionId) -> ConversationRefresh
     })
 }
 
-async fn apply_conversation_refresh(state: &mut TuiState, refresh: ConversationRefresh) -> bool {
+async fn apply_conversation_refresh(
+    app: &CoreApp,
+    state: &mut TuiState,
+    refresh: ConversationRefresh,
+) -> bool {
     match refresh.await {
         Ok((page, catalog, compactions)) => {
             let success = page.is_ok() && catalog.is_ok() && compactions.is_ok();
@@ -345,6 +349,7 @@ async fn apply_conversation_refresh(state: &mut TuiState, refresh: ConversationR
                     NoteVariant::Error,
                 ),
             }
+            refresh_dcp_summaries(app, state).await;
             success
         }
         Err(_) => {
@@ -728,7 +733,7 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
         .is_some_and(|job| job.is_finished())
     {
         let job = deck.recovery_job.take().expect("finished refresh");
-        if apply_conversation_refresh(state, job).await {
+        if apply_conversation_refresh(app, state, job).await {
             deck.conversation_recovery = None;
         } else if let Some((_, retry)) = &mut deck.conversation_recovery {
             *retry = std::time::Instant::now() + std::time::Duration::from_secs(1);
@@ -766,7 +771,7 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
                 return;
             }
             state.conversation_applied(&snapshot, &Default::default());
-            if !apply_conversation_refresh(state, refresh).await {
+            if !apply_conversation_refresh(app, state, refresh).await {
                 deck.conversation_recovery = Some((
                     snapshot.session,
                     std::time::Instant::now() + std::time::Duration::from_secs(1),
@@ -794,7 +799,7 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
             deck.dcp_seen = false;
             deck.sync_tabs(state);
             deck.save_if_changed(app, state, &before).await;
-            if !apply_conversation_refresh(state, refresh).await {
+            if !apply_conversation_refresh(app, state, refresh).await {
                 deck.conversation_recovery = Some((
                     snapshot.session,
                     std::time::Instant::now() + std::time::Duration::from_secs(1),
@@ -1341,6 +1346,7 @@ async fn initial_state(
             .await
             .map_err(|_| StartupFailure::Query)?,
     );
+    refresh_dcp_summaries(app, &mut state).await;
     Ok(state)
 }
 
@@ -1547,6 +1553,7 @@ async fn load_tab(app: &CoreApp, id: SessionId) -> Result<TuiState, CoreError> {
     state.attach_page(&page);
     state.apply_compaction_history(app.compaction_history(state.session().clone()).await?);
     state.apply_catalog(catalog);
+    refresh_dcp_summaries(app, &mut state).await;
     Ok(state)
 }
 
@@ -2210,6 +2217,7 @@ async fn apply_intent_with_origin(
         PanelIntent::ActivateTab { index } => {
             let before = loop_state.snapshot(state);
             loop_state.activate(state, index)?;
+            refresh_dcp_summaries(app, state).await;
             // Parked prompt/editor state survives routing, but pending ownership
             // must be recovered before its first visible frame after activation.
             if (!state.approval_roots.is_empty() || state.approvals.active().is_some())
@@ -2239,6 +2247,7 @@ async fn apply_intent_with_origin(
                     .cloned()
             };
             loop_state.close_tab(app, state, index).await?;
+            refresh_dcp_summaries(app, state).await;
             if let Some((owner, _)) = &loop_state.title_job
                 && closed.as_ref() == Some(owner)
             {
@@ -2449,6 +2458,7 @@ async fn apply_intent_with_origin(
                     .await
                     .map_err(|e| e.to_string())?;
                 state.prepend_page(&page);
+                refresh_dcp_summaries(app, state).await;
             }
         }
         PanelIntent::LoadNewer => {
@@ -2466,6 +2476,7 @@ async fn apply_intent_with_origin(
                     .await
                     .map_err(|e| e.to_string())?;
                 state.append_page(&page);
+                refresh_dcp_summaries(app, state).await;
             }
         }
         PanelIntent::Compress { focus } => {
@@ -2901,8 +2912,9 @@ async fn handle_worker_event(
             op,
             name,
             input,
+            dcp_topic,
             ..
-        } => state.apply_tool_started(&turn, &op, &name, &input),
+        } => state.apply_tool_started_with_presentation(&turn, &op, &name, &input, dcp_topic),
         CoreEvent::ToolCallFinished {
             turn,
             op,
@@ -2912,17 +2924,25 @@ async fn handle_worker_event(
             output_bytes,
             output_truncated,
             patch_effects,
+            dcp,
             ..
-        } => state.apply_tool_finished_with_effects(
-            &turn,
-            &op,
-            &name,
-            &tool_state,
-            &output,
-            output_bytes,
-            output_truncated,
-            patch_effects,
-        ),
+        } => {
+            state.apply_tool_finished_with_presentation(
+                &turn,
+                &op,
+                &name,
+                &tool_state,
+                &output,
+                output_bytes,
+                output_truncated,
+                patch_effects,
+                dcp,
+            );
+            if name == "compress" && state.active_turn() == Some(&turn) {
+                refresh_dcp(app, state, session).await;
+                refresh_dcp_summaries(app, state).await;
+            }
+        }
         CoreEvent::TurnUsage {
             turn,
             input_tokens,
@@ -2946,9 +2966,10 @@ async fn handle_worker_event(
                     .await
                     .map_err(|e| e.to_string())?;
                 state.refresh_completed_page(&page);
-            }
-            if compress {
-                report_compress_outcome(app, state, session).await?;
+                refresh_dcp_summaries(app, state).await;
+                if compress {
+                    report_compress_outcome(app, state, session, &turn, &page).await;
+                }
             }
             // After the durable page: degradation rows are transient notices,
             // so they must follow the page attach that rebuilds the transcript.
@@ -3055,6 +3076,29 @@ async fn refresh_compactions(app: &CoreApp, state: &mut TuiState) {
             NoteVariant::Error,
         ),
     }
+    refresh_dcp_summaries(app, state).await;
+}
+
+async fn refresh_dcp_summaries(app: &CoreApp, state: &mut TuiState) {
+    let Some(session) = state.attached_session().cloned() else {
+        return;
+    };
+    for (op, index) in state.dcp_summary_requests() {
+        // This is a bounded preview, not the full transcript or tool output.
+        // Missing legacy/query data stays explicitly unavailable on the card.
+        if let Ok(Some(page)) = app
+            .dcp_summary_page(
+                session.clone(),
+                op.clone(),
+                index,
+                0,
+                oc_tui::dcp_view::SUMMARY_PAGE_BYTES,
+            )
+            .await
+        {
+            state.apply_dcp_summary(&session, &op, page);
+        }
+    }
 }
 
 /// Refresh the DCP snapshot for the attached session.
@@ -3064,34 +3108,32 @@ async fn refresh_dcp(app: &CoreApp, state: &mut TuiState, session: &SessionId) {
     }
 }
 
-/// Report the real outcome of a manual compress turn from recorded tool
-/// operations (never invented numbers).
+/// Only this exact turn can establish a manual-operation outcome. Successful
+/// notices are emitted once by ToolCallFinished from its typed run snapshot.
 async fn report_compress_outcome(
     app: &CoreApp,
     state: &mut TuiState,
     session: &SessionId,
-) -> Result<(), String> {
+    turn: &oc_core::core_app::WorkerTurnId,
+    page: &oc_core::queries::HistoryPage,
+) {
     refresh_dcp(app, state, session).await;
-    let page = app
-        .tool_ops_page(session.clone(), None, TOOL_OPS_PAGE_LIMIT)
-        .await
-        .map_err(|e| e.to_string())?;
-    let saved = page
+    let recorded = page
         .rows
         .iter()
-        .filter(|row| row.name == "compress")
-        .find_map(|row| {
-            let output = row.output.as_deref()?;
-            let value: serde_json::Value = serde_json::from_str(output).ok()?;
-            value.get("savedTokens").and_then(serde_json::Value::as_u64)
+        .filter_map(|row| row.turn.as_ref())
+        .filter(|owner| owner.id == turn.0)
+        .any(|owner| {
+            owner.parts.iter().any(|part| {
+                matches!(part,
+        oc_core::queries::TranscriptPart::Tool(tool) if tool.name == "compress")
+            })
         });
-    match saved {
-        Some(saved_tokens) => state.notify_dcp(DcpOutcome::Done { saved_tokens }),
-        None => state.notify_dcp(DcpOutcome::Failed {
+    if !recorded {
+        state.notify_dcp(DcpOutcome::Failed {
             reason: "no compression recorded in this turn".to_string(),
-        }),
+        });
     }
-    Ok(())
 }
 
 /// Bounded view metrics for PTY qualification (opt-in, never in normal use).
@@ -7661,6 +7703,8 @@ mod tests {
                             output_bytes: 0,
                             output_truncated: false,
                             patch_effects: None,
+                            dcp: None,
+                            dcp_topic: None,
                         })
                         .collect(),
                     total: 3,

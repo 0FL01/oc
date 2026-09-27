@@ -163,6 +163,16 @@ pub fn validate_range_args(
     Ok((topic.to_string(), ranges))
 }
 
+/// Bounded canonical arguments for operation-backed pending presentation.
+pub(crate) fn presentation_topic(name: &str, input: Option<&str>) -> Option<String> {
+    if name != "compress" {
+        return None;
+    }
+    let input = input.filter(|input| input.len() <= crate::provider::ARGUMENT_BYTE_CAP)?;
+    let args = serde_json::from_str::<serde_json::Value>(input).ok()?;
+    validate_range_args(&args).ok().map(|(topic, _)| topic)
+}
+
 /// Durable compression block record.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompressionBlock {
@@ -185,13 +195,18 @@ pub struct CompressionBlock {
 /// Pure, fully validated compression candidate.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompressionPlan {
+    pub(crate) projection_revision: Option<i64>,
+    /// Bounded graph captured with the addressed planning snapshot.
+    pub(crate) context_blocks: Vec<CompressionBlock>,
+    /// Independently measured content estimates and coverage candidates.
+    pub(crate) measurement: DcpMeasurement,
     /// Candidate blocks in transcript order with their final durable ids.
     pub blocks: Vec<CompressionBlock>,
     /// Existing projection serialized as the provider-facing row shape.
     pub before_bytes: usize,
     /// Candidate projection serialized as the provider-facing row shape.
     pub after_bytes: usize,
-    /// Rough saved-token estimate derived from measured saved bytes.
+    /// Independently rounded public-content estimate, not serialized-byte delta.
     pub saved_tokens: u64,
     /// Older blocks whose active memberships are subsumed by this plan.
     pub consumed_blocks: Vec<String>,
@@ -201,14 +216,30 @@ pub struct CompressionPlan {
 /// Successful durable compression result.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompressionReport {
+    /// Frozen operation-backed presentation published only after commit.
+    pub snapshot: oc_core::dcp_view::DcpRunSnapshot,
     /// Blocks committed by this call.
     pub blocks: Vec<CompressionBlock>,
     /// Existing projected serialized bytes.
     pub before_bytes: usize,
     /// Committed projected serialized bytes.
     pub after_bytes: usize,
-    /// Rough saved-token estimate derived from measured saved bytes.
+    /// Independently rounded public-content estimate, not serialized-byte delta.
     pub saved_tokens: u64,
+}
+
+/// Prepared content accounting. Coverage is deduplicated again transactionally.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct DcpMeasurement {
+    pub unavailable_coverage: bool,
+    pub prunes: u64,
+    pub removed: u64,
+    pub summary: u64,
+    pub net_saved: u64,
+    pub active_summary: u64,
+    pub messages: Vec<String>,
+    /// Durable turn + turn-local call occurrence, independent of window ranks.
+    pub calls: Vec<crate::storage::DcpCallIdentity>,
 }
 
 /// Optional existing tool operation and turn journal finalized with the blocks.
@@ -448,7 +479,7 @@ fn plan_compression_with_gain(
         let mut user_texts = Vec::new();
         let mut other_texts = Vec::new();
         for message in &history[resolved.start..=resolved.end] {
-            if !message_protected(spec, message) {
+            if message.text.is_empty() || !message_protected(spec, message) {
                 continue;
             }
             if message.text.len() > PROTECTED_BYTES_CAP {
@@ -527,9 +558,54 @@ fn plan_compression_with_gain(
             after_bytes,
         });
     }
-    let saved_bytes = before_bytes.saturating_sub(after_bytes);
-    let saved_tokens = u64::try_from(saved_bytes).unwrap_or(u64::MAX).div_ceil(4);
+    let estimate = oc_core::dcp_view::estimate_content;
+    let before_tokens: u64 = before.iter().map(|(_, _, text)| estimate(text)).sum();
+    let after_tokens: u64 = after.iter().map(|(_, _, text)| estimate(text)).sum();
+    let changed = before
+        .iter()
+        .filter(|row| !after.contains(row))
+        .collect::<Vec<_>>();
+    let saved_tokens = before_tokens.saturating_sub(after_tokens);
+    let measurement = DcpMeasurement {
+        unavailable_coverage: false,
+        prunes: 0,
+        removed: changed
+            .iter()
+            .filter(|(id, _, _)| !existing.iter().any(|b| &b.id == id))
+            .map(|(_, _, text)| estimate(text))
+            .sum(),
+        summary: after
+            .iter()
+            .filter(|(id, _, _)| blocks.iter().any(|block| &block.id == id))
+            .map(|(id, _, text)| {
+                estimate(
+                    text.strip_prefix(&format!("[compressed {id}] "))
+                        .unwrap_or(text),
+                )
+            })
+            .sum(),
+        net_saved: saved_tokens,
+        active_summary: after
+            .iter()
+            .filter(|(id, _, _)| candidate.iter().any(|block| &block.id == id))
+            .map(|(id, _, text)| {
+                estimate(
+                    text.strip_prefix(&format!("[compressed {id}] "))
+                        .unwrap_or(text),
+                )
+            })
+            .sum(),
+        messages: changed
+            .iter()
+            .filter(|(id, _, _)| history.iter().any(|m| &m.id.0 == id))
+            .map(|(id, _, _)| id.clone())
+            .collect(),
+        calls: Vec::new(),
+    };
     Ok(CompressionPlan {
+        projection_revision: None,
+        context_blocks: existing.to_vec(),
+        measurement,
         blocks,
         before_bytes,
         after_bytes,
@@ -575,6 +651,47 @@ pub(crate) fn prepare_compression(
     )
 }
 
+/// Runtime planner over a bounded SQL snapshot. Covered message IDs have no
+/// raw payload; inherited protections come from their durable summaries.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn plan_active_compression(
+    session: &str,
+    history: &[oc_core::session::Message],
+    ranges: &[ValidatedRange],
+    spec: &oc_core::context_plan::ProtectedSpec,
+    existing: &[CompressionBlock],
+    prune: Option<&str>,
+    next: u64,
+) -> Result<CompressionPlan, DcpError> {
+    let mut plan =
+        plan_compression_with_gain(session, history, ranges, spec, existing, prune, next, false)?;
+    for block in &mut plan.blocks {
+        for inherited in existing.iter().filter(|old| {
+            plan.consumed_blocks.contains(&old.id)
+                && !old.members.is_empty()
+                && old.members.iter().all(|id| block.members.contains(id))
+        }) {
+            if parse_block_placeholders(authored_summary(&block.summary))
+                .iter()
+                .any(|p| p.block_id == inherited.id)
+            {
+                continue;
+            }
+            let suffix = &inherited.summary[authored_summary(&inherited.summary).len()..];
+            if block.summary.len() + suffix.len() > NESTED_BYTES_CAP {
+                return Err(DcpError::Impossible {
+                    reason: "inherited protection exceeds summary budget".into(),
+                });
+            }
+            block.summary.push_str(suffix);
+        }
+    }
+    let mut graph = existing.to_vec();
+    graph.extend(plan.blocks.iter().cloned());
+    validate_block_graph(&graph)?;
+    Ok(plan)
+}
+
 /// Atomically publish a previously prepared plan and optional model-tool journal.
 pub(crate) fn commit_compression(
     db: &crate::storage::Db,
@@ -593,7 +710,9 @@ pub(crate) fn commit_compression_with_projection(
     hidden_calls: &[crate::storage::DcpCallKey],
     purged_calls: &[crate::storage::DcpCallKey],
 ) -> Result<CompressionReport, DcpError> {
-    let (existing_rows, prune, next) = db.compression_snapshot(session).map_err(map_storage)?;
+    let (revision, prune, next) = db
+        .compression_commit_snapshot(session)
+        .map_err(map_storage)?;
     if next != plan.first_block_number {
         return Err(DcpError::Conflict);
     }
@@ -618,23 +737,22 @@ pub(crate) fn commit_compression_with_projection(
         turn_log: metadata.turn_log,
         preference_updates: metadata.preference_updates,
     });
-    let existing_ids = existing_rows
-        .iter()
-        .map(|block| block.id.clone())
-        .collect::<Vec<_>>();
-    db.commit_compression_plan(crate::storage::CompressionPlanCommit {
-        session,
-        blocks: &rows,
-        consumed_blocks: &plan.consumed_blocks,
-        expected_next: plan.first_block_number,
-        expected_existing: &existing_ids,
-        expected_prune: prune.as_deref(),
-        hidden_calls,
-        purged_calls,
-        tool: tool.as_ref(),
-    })
-    .map_err(map_storage)?;
+    let snapshot = db
+        .commit_compression_plan(crate::storage::CompressionPlanCommit {
+            session,
+            blocks: &rows,
+            consumed_blocks: &plan.consumed_blocks,
+            expected_next: plan.first_block_number,
+            expected_revision: plan.projection_revision.unwrap_or(revision),
+            expected_prune: prune.as_deref(),
+            hidden_calls,
+            purged_calls,
+            tool: tool.as_ref(),
+            measurement: &plan.measurement,
+        })
+        .map_err(map_storage)?;
     Ok(CompressionReport {
+        snapshot,
         blocks: plan.blocks,
         before_bytes: plan.before_bytes,
         after_bytes: plan.after_bytes,
@@ -795,7 +913,7 @@ pub fn expand_block(
     Ok(text)
 }
 
-fn authored_summary(summary: &str) -> &str {
+pub(crate) fn authored_summary(summary: &str) -> &str {
     let protected_start = [PROTECTED_USER_HEADING, PROTECTED_CONTENT_HEADING]
         .into_iter()
         .filter_map(|heading| summary.find(heading))
@@ -1174,6 +1292,23 @@ mod tests {
         assert!(validate_range_args(&serde_json::json!({"topic": "t", "content": []})).is_err());
         let big = serde_json::json!({"topic": "t", "content": [{"startId": "a", "endId": "b", "summary": "x".repeat(9000)}]});
         assert!(validate_range_args(&big).is_err());
+        let escaped_topic = "quoted \"topic\" with \\ path and 🌍";
+        let mut canonical = args();
+        canonical["topic"] = escaped_topic.into();
+        let raw = canonical.to_string();
+        assert_eq!(
+            super::presentation_topic("compress", Some(&raw)).as_deref(),
+            Some(escaped_topic)
+        );
+        assert_eq!(super::presentation_topic("bash", Some(&raw)), None);
+        assert_eq!(
+            super::presentation_topic("compress", Some("{\"topic\":\"unfinished")),
+            None
+        );
+        assert_eq!(
+            super::presentation_topic("compress", Some("{\"topic\":\"alone\"}")),
+            None
+        );
     }
 
     #[test]

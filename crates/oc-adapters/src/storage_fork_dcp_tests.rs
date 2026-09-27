@@ -1,0 +1,213 @@
+use super::*;
+use crate::storage::compaction::dcp_lifecycle_fixture as fixture;
+use oc_core::queries::ConversationAction::{Redo, Undo};
+
+#[test]
+fn standalone_new_turn_fork_undo_redo_rebases_scoped_metadata_without_source_collisions() {
+    let tmp = tempfile::tempdir().unwrap();
+    let db = Db::open(tmp.path()).unwrap();
+    db.create_bound_session("source", "/project").unwrap();
+    db.apply_dcp_schema().unwrap();
+    let first = fixture::complete(&db, "source", "source-tip", true);
+    let prefix = db.read_history_full("source").unwrap();
+    let coverage = serde_json::json!(["source-tip", "reused", 0]).to_string();
+    db.conn
+        .lock()
+        .unwrap()
+        .execute(
+            "INSERT INTO dcp_coverage VALUES('source','call',?1)",
+            [&coverage],
+        )
+        .unwrap();
+    let run = fixture::standalone(
+        &db,
+        "source",
+        &first,
+        &first,
+        "standalone fork summary",
+        Some("source-manual"),
+    );
+    let boundary = fixture::complete(&db, "source", "next", false);
+    let original = db.read_history_full("source").unwrap();
+    let accounting = db.dcp_accounting("source").unwrap();
+    let fork = db
+        .fork_session("source", &boundary, "/project", "fixture", "{}")
+        .unwrap();
+    let root = fork.session.0;
+    let copied = db.read_history_full(&root).unwrap();
+    assert_eq!(copied.len(), prefix.len());
+    let imported = db
+        .list_tool_ops(&root)
+        .unwrap()
+        .into_iter()
+        .filter_map(|o| o.dcp)
+        .collect::<Vec<_>>();
+    assert_eq!(imported.len(), 1);
+    let imported = imported.into_iter().next().unwrap();
+    assert_ne!(imported.operation_id, run.operation_id);
+    assert_ne!(imported.block_ids, run.block_ids);
+    assert_eq!(imported.session, root);
+    assert_eq!(imported.bar, run.bar);
+    assert_eq!(imported.cumulative, run.cumulative);
+    assert_eq!(db.dcp_accounting(&root).unwrap(), accounting);
+    let page = db
+        .dcp_summary_page(&root, &imported.operation_id, 0, 0, 8192)
+        .unwrap()
+        .unwrap();
+    assert_eq!(page.text, "standalone fork summary");
+    assert!(
+        db.dcp_summary_page(&root, &run.operation_id, 0, 0, 8192)
+            .unwrap()
+            .is_none()
+    );
+    let conn = db.conn.lock().unwrap();
+    let copied_turn: String = conn
+        .query_row(
+            "SELECT turn_id FROM turn_acceptances WHERE session_id=?1",
+            [&root],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let copied_coverage: String = conn
+        .query_row(
+            "SELECT identity FROM dcp_coverage WHERE session_id=?1 AND kind='call'",
+            [&root],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        copied_coverage,
+        serde_json::json!([copied_turn, "reused", 0]).to_string()
+    );
+    let state: (String, Option<String>) = conn
+        .query_row(
+            "SELECT state,turn_id FROM tool_operations WHERE id=?1 AND session_id=?2",
+            params![imported.operation_id, root],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(state, ("completed".into(), None));
+    drop(conn);
+    db.change_conversation(&root, Undo).unwrap();
+    assert!(db.dcp_accounting(&root).unwrap().is_none());
+    assert!(db.dcp_run(&root, &imported.operation_id).unwrap().is_none());
+    assert!(db.conversation_history_full(&root).unwrap().is_empty());
+    assert_eq!(
+        db.dcp_run("source", &run.operation_id).unwrap(),
+        Some(run.clone())
+    );
+    assert_eq!(db.read_history_full("source").unwrap(), original);
+    drop(db);
+    let db = Db::open(tmp.path()).unwrap();
+    db.change_conversation(&root, Redo).unwrap();
+    assert_eq!(
+        db.dcp_run(&root, &imported.operation_id).unwrap(),
+        Some(imported.clone())
+    );
+    assert_eq!(db.dcp_accounting(&root).unwrap(), accounting);
+    assert_eq!(db.conversation_history_full(&root).unwrap(), copied);
+    assert_eq!(db.read_history_full("source").unwrap(), original);
+    // Recompress inherited summary with no new raw coverage; copied immutable
+    // tool identity must not collide with the source or create another item.
+    let recompressed = fixture::standalone(
+        &db,
+        &root,
+        &imported.block_ids[0],
+        &imported.block_ids[0],
+        "short",
+        None,
+    );
+    assert_eq!((recompressed.new_messages, recompressed.new_tools), (0, 0));
+    assert!(recompressed.ordinal > imported.ordinal);
+    let new_boundary = fixture::complete(&db, &root, "fork-next", false);
+    let recursive = db
+        .fork_session(&root, &new_boundary, "/project", "fixture", "{}")
+        .unwrap()
+        .session
+        .0;
+    assert_eq!(
+        db.dcp_accounting(&recursive).unwrap(),
+        Some(recompressed.cumulative.clone())
+    );
+    db.change_conversation(&recursive, Undo).unwrap();
+    db.change_conversation(&recursive, Redo).unwrap();
+    let recursive_runs = db
+        .list_tool_ops(&recursive)
+        .unwrap()
+        .into_iter()
+        .filter_map(|o| o.dcp)
+        .collect::<Vec<_>>();
+    assert_eq!(recursive_runs.len(), 2);
+    assert!(recursive_runs.iter().all(|r| r.session == recursive
+        && r.operation_id != run.operation_id
+        && r.operation_id != imported.operation_id
+        && r.operation_id != recompressed.operation_id));
+    assert_eq!(db.dcp_run("source", &run.operation_id).unwrap(), Some(run));
+}
+
+#[test]
+fn unrelated_or_future_standalone_records_do_not_bypass_prefix_refusal() {
+    let tmp = tempfile::tempdir().unwrap();
+    let db = Db::open(tmp.path()).unwrap();
+    db.create_bound_session("source", "/project").unwrap();
+    db.apply_dcp_schema().unwrap();
+    let first = fixture::complete(&db, "source", "seed", false);
+    fixture::standalone(
+        &db,
+        "source",
+        &first,
+        &first,
+        "genuine standalone summary",
+        None,
+    );
+    let boundary = fixture::complete(&db, "source", "boundary", false);
+    db.record_tool_intent("unrelated", "source", None, "read", "{}")
+        .unwrap();
+    db.record_tool_outcome("unrelated", "completed", Some("done"))
+        .unwrap();
+    let count = db.list_sessions().unwrap().len();
+    let error = db
+        .fork_session("source", &boundary, "/project", "fixture", "{}")
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("unanchored tool record"), "{error}");
+    assert_eq!(db.list_sessions().unwrap().len(), count);
+    assert!(db.tab_adoptions("/project").unwrap().is_empty());
+    // Even compress/completed alone is not evidence of a genuine prefix cut.
+    db.conn
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE tool_operations SET name='compress' WHERE id='unrelated'",
+            [],
+        )
+        .unwrap();
+    assert!(
+        db.fork_session("source", &boundary, "/project", "fixture", "{}")
+            .unwrap_err()
+            .to_string()
+            .contains("unanchored tool record")
+    );
+    db.conn
+        .lock()
+        .unwrap()
+        .execute("DELETE FROM tool_operations WHERE id='unrelated'", [])
+        .unwrap();
+    // A real future run is not referenced by the earlier boundary's cut.
+    fixture::standalone(
+        &db,
+        "source",
+        &boundary,
+        &boundary,
+        "future compression",
+        Some("future-op"),
+    );
+    assert!(
+        db.fork_session("source", &boundary, "/project", "fixture", "{}")
+            .unwrap_err()
+            .to_string()
+            .contains("unanchored tool record")
+    );
+    assert_eq!(db.list_sessions().unwrap().len(), count);
+    assert!(db.tab_adoptions("/project").unwrap().is_empty());
+}

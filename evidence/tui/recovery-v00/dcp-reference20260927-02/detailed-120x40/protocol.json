@@ -1,0 +1,209 @@
+[
+  {
+    "kind": "fixture",
+    "case": "detailed",
+    "goldens_sha256": "9e5d2f9568f929da56b37d15570b2084bfe2be79dffd36ed4c29701f597098e2",
+    "notification_text_sha256": "503faf3889c6f90fc96af1221e60036170f595f28ea89bf7cbd180c4ae0f1b3c",
+    "transfer": {
+      "info": {
+        "id": "ses_vis38_detailed",
+        "projectID": "global",
+        "cost": 0,
+        "tokens": {
+          "input": 0,
+          "output": 0,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        },
+        "time": {
+          "created": 1700000000000,
+          "updated": 1700000000003
+        },
+        "title": "VIS38 detailed",
+        "location": {
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference20260927-02-fb0a20c660e6/detailed-120x40/project"
+        }
+      },
+      "messages": [
+        {
+          "id": "msg_vis38_before",
+          "type": "assistant",
+          "agent": "build",
+          "model": {
+            "providerID": "fixture",
+            "id": "fixture-model-1"
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "VIS38-BEFORE: agent step completed."
+            }
+          ],
+          "finish": "stop",
+          "time": {
+            "created": 1700000000001,
+            "completed": 1700000000001
+          }
+        },
+        {
+          "id": "msg_vis38_report",
+          "type": "user",
+          "text": "▣ DCP | -15.3K removed, +1.1K summary\n\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\n▣ Compression #7 -11.9K removed, +842 summary\n→ Topic: Formatter qualification\n→ Items: 3 messages and 2 tools compressed",
+          "time": {
+            "created": 1700000000002
+          }
+        },
+        {
+          "id": "msg_vis38_after",
+          "type": "assistant",
+          "agent": "build",
+          "model": {
+            "providerID": "fixture",
+            "id": "fixture-model-1"
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "VIS38-AFTER: continuation display."
+            }
+          ],
+          "finish": "stop",
+          "time": {
+            "created": 1700000000003,
+            "completed": 1700000000003
+          }
+        }
+      ]
+    },
+    "delivery_mapping": "D05 intercepted ignored noReply text -> OC2 imported user text; display reference only"
+  },
+  {
+    "kind": "command",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--version"
+    ],
+    "exit_code": 0,
+    "stdout": "opencode v2.0.12\n",
+    "stderr": ""
+  },
+  {
+    "kind": "command",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "session",
+      "import",
+      "--standalone",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference20260927-02-fb0a20c660e6/detailed-120x40/home/session.json"
+    ],
+    "exit_code": 0,
+    "stdout": "Imported session: ses_vis38_detailed\n",
+    "stderr": ""
+  },
+  {
+    "kind": "command",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "session",
+      "export",
+      "--standalone",
+      "ses_vis38_detailed"
+    ],
+    "exit_code": 0,
+    "stdout": "{\n  \"info\": {\n    \"id\": \"ses_vis38_detailed\",\n    \"projectID\": \"1a4ebf88aba051165ed56a39f62129888bd8de37\",\n    \"cost\": 0,\n    \"tokens\": {\n      \"input\": 0,\n      \"output\": 0,\n      \"reasoning\": 0,\n      \"cache\": {\n        \"read\": 0,\n        \"write\": 0\n      }\n    },\n    \"time\": {\n      \"created\": 1700000000000,\n      \"updated\": 1790539308457\n    },\n    \"title\": \"VIS38 detailed\",\n    \"location\": {\n      \"directory\": \"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference20260927-02-fb0a20c660e6/detailed-120x40/project\"\n    }\n  },\n  \"messages\": [\n    {\n      \"id\": \"msg_vis38_before\",\n      \"time\": {\n        \"created\": 1700000000001,\n        \"completed\": 1700000000001\n      },\n      \"type\": \"assistant\",\n      \"agent\": \"build\",\n      \"model\": {\n        \"id\": \"fixture-model-1\",\n        \"providerID\": \"fixture\"\n      },\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"VIS38-BEFORE: agent step completed.\"\n        }\n      ],\n      \"finish\": \"stop\"\n    },\n    {\n      \"id\": \"msg_vis38_report\",\n      \"time\": {\n        \"created\": 1700000000002\n      },\n      \"text\": \"▣ DCP | -15.3K removed, +1.1K summary\\n\\n│░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████████████│\\n▣ Compression #7 -11.9K removed, +842 summary\\n→ Topic: Formatter qualification\\n→ Items: 3 messages and 2 tools compressed\",\n      \"type\": \"user\"\n    },\n    {\n      \"id\": \"msg_vis38_after\",\n      \"time\": {\n        \"created\": 1700000000003,\n        \"completed\": 1700000000003\n      },\n      \"type\": \"assistant\",\n      \"agent\": \"build\",\n      \"model\": {\n        \"id\": \"fixture-model-1\",\n        \"providerID\": \"fixture\"\n      },\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"VIS38-AFTER: continuation display.\"\n        }\n      ],\n      \"finish\": \"stop\"\n    }\n  ]\n}\n",
+    "stderr": ""
+  },
+  {
+    "kind": "exact_import_export_verified",
+    "session_id": "ses_vis38_detailed",
+    "message_count": 3
+  },
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone",
+      "--session",
+      "ses_vis38_detailed"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference20260927-02-fb0a20c660e6/detailed-120x40/project",
+    "config": {
+      "model": "fixture/fixture-model-1",
+      "share": "disabled",
+      "update": "disable",
+      "plugins": [
+        "-opencode.models.dev"
+      ],
+      "snapshots": false,
+      "providers": {
+        "fixture": {
+          "name": "VIS38 Display Fixture",
+          "package": "@opencode/ai/providers/openai/responses",
+          "settings": {
+            "baseURL": "http://127.0.0.1:43925/v1"
+          },
+          "models": {
+            "fixture-model-1": {
+              "name": "VIS38 Display Model",
+              "limit": {
+                "context": 32000,
+                "output": 2048
+              }
+            }
+          }
+        }
+      }
+    },
+    "cli": {
+      "theme": {
+        "name": "opencode",
+        "mode": "dark"
+      },
+      "animations": false,
+      "session": {
+        "sidebar": "hide",
+        "tps": false
+      },
+      "tabs": {
+        "layout": "horizontal"
+      },
+      "attention": {
+        "notifications": false,
+        "sound": false
+      },
+      "cursor": {
+        "style": "block",
+        "blinking": false
+      }
+    },
+    "env_names": [
+      "COLORTERM",
+      "HOME",
+      "LANG",
+      "LC_ALL",
+      "OPENCODE_CONFIG_CONTENT",
+      "OPENCODE_CONFIG_PROJECT_DISABLE",
+      "OPENCODE_DISABLE_AUTOUPDATE",
+      "OPENCODE_DISABLE_FILEWATCHER",
+      "OPENCODE_DISABLE_MODELS_FETCH",
+      "OPENCODE_TEST_HOME",
+      "PATH",
+      "SHELL",
+      "TERM",
+      "TZ",
+      "XDG_CACHE_HOME",
+      "XDG_CONFIG_HOME",
+      "XDG_DATA_HOME",
+      "XDG_STATE_HOME"
+    ],
+    "inherited_env": false
+  },
+  {
+    "kind": "exit",
+    "code": 0,
+    "termination": "natural"
+  }
+]

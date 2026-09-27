@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "method": "Released native binary -> genuine held owner session -> real PTY, no import",
+  "qualification": "Capture integrity only; no full parity claim",
+  "binary": {
+    "path": "/home/opencode/ai/oc/target/debug/oc",
+    "sha256": "4070639b7d0e9814f862b577ee7a4014f06a21567054c534fd6f6baf9b076f19",
+    "commit": "8fda54ad25667ea6cf0115c3a77b32d182baaf9b"
+  },
+  "goldens_sha256": "c80266f6ab2a10f9a56c9959b4e326ae88cf04622e4d86166c3d6b201bcc90bc",
+  "source_manifest": {
+    "binary": "/home/opencode/ai/oc/target/debug/oc",
+    "binary_sha256": "4070639b7d0e9814f862b577ee7a4014f06a21567054c534fd6f6baf9b076f19",
+    "origin": "oc",
+    "session": "s-vis38-actual-owner",
+    "operation_id": "ts-vis38-actual-owner-1790547009253-1608954-0-r1-c0-call_vis38_compress-multi",
+    "stage": "multi",
+    "context_snapshot": "compress-multi-snapshot.json",
+    "isolated_root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-03",
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "tui",
+      "--session",
+      "s-vis38-actual-owner"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-03/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-03/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-03/home/config",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-03/home/data",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-03/home/cache",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-03/home/state",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "PATH": "/usr/bin:/bin",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC"
+    },
+    "source_HEAD": "8fda54ad25667ea6cf0115c3a77b32d182baaf9b",
+    "typed_snapshot": {
+      "session": "s-vis38-actual-owner",
+      "operation_id": "ts-vis38-actual-owner-1790547009253-1608954-0-r1-c0-call_vis38_compress-multi",
+      "ordinal": 2,
+      "topic": "VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries",
+      "block_ids": [
+        "b0002",
+        "b0003"
+      ],
+      "removed": 5576,
+      "summary": 28,
+      "net_saved": 5538,
+      "method": "utf16_round_quarter_fallback",
+      "new_messages": 4,
+      "new_tools": 0,
+      "cumulative": {
+        "gross_removed": 8364,
+        "active_summary": 111,
+        "net_saved": 8238,
+        "compressions": 2,
+        "prunes": 0,
+        "method": "utf16_round_quarter_fallback",
+        "complete": true
+      },
+      "bar": "░░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████"
+    },
+    "display": {
+      "notification": "detailed",
+      "channel": "chat",
+      "show_compression": true
+    },
+    "capture_after": "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay.",
+    "capture_gate": "Synchronous genuine stage before subsequent mutation; no history ingress."
+  },
+  "runner_hashes": {
+    "dcp_reference_capture.mjs": "c1977c32dd5cd91c2a8ffdfe0ee4e2f28b70e55cfe4b1399e2dfc61bc4fbe2dd",
+    "dcp_native_bridge.py": "375ca1a6a3bdabb32d4fd0c070f6b0f27ae6c85e4d3a126c31fb8d39fa51a019",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e"
+  },
+  "captures": [
+    {
+      "name": "native-multi-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "4731af8b5967cead868f62c55833818362a25ff6677db9e03742d9c514028d11",
+        "png": "8c4406a96b0f5c55eac6546ad2a5aa711cf37dbd53330143f69e7cd80c81a405",
+        "txt": "75144099b2f54ffd1208d89ae989ce5a71c9ff0491f80fe969fe1ae80eab1095",
+        "vt": "6abd25c5bb8f7232a1262ea68adc67dbc19b6698c60fc27f804785ce2c45795f",
+        "render.json": "cef7a123f2a3e80837d174c512f63d1294d1cb635383db91c0e9c08b1606c763"
+      }
+    },
+    {
+      "name": "native-multi-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "bf8f2fb6ec9b55c6e4fb08e9ad120f69d432d203775d8b380450d87bd987ddb3",
+        "png": "016dd989653bb1d10b0ebbd2c253a9a397ccd9cb6acab2f98ee86ce642440c1b",
+        "txt": "35955c9f69f15503bcbb7d92891cccf73beda04e31746d6e2cf83b80a17c5b1d",
+        "vt": "00fbc312044d3b269487710c939279ecbae06526254bdb9283c28d10e2e7f917",
+        "render.json": "cef7a123f2a3e80837d174c512f63d1294d1cb635383db91c0e9c08b1606c763"
+      }
+    },
+    {
+      "name": "native-multi-80x24",
+      "stage": "scroll-1",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "f31b1f06888ba795ba0fb76304c936f3b8ac637985604784a496bf2a42f3e64d",
+        "png": "5005d3b65e74d7faeb25f56aff97f33d76143f9060c2e3b26b7618769cc25f85",
+        "txt": "0c54f366143ac93fb6d2d0eaa5c24aa0084e98205f759e58657caa8afd07c32a",
+        "vt": "3d0df0fef238ee68ee2957963951128b78a145208ec489a273930e892aa0d59f",
+        "render.json": "cef7a123f2a3e80837d174c512f63d1294d1cb635383db91c0e9c08b1606c763"
+      }
+    },
+    {
+      "name": "native-multi-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "9cea83800aaef89eb6d72da2a6e33d1ff7eae724283d002d54f321c1dc76245a",
+        "png": "80052154ab44dd748087c9b9adc3b315550b5c12c96a2c422af6e0046b6e087b",
+        "txt": "67d2e0a63c50f1887a4c08a66bd3e17f1b1535d2bff517ba8030e73e60e3e1f0",
+        "vt": "713444cfc1f2a2d7d1f954bbc9c63b0c8dd63229a1a3a7f4d10364ba920cef14",
+        "render.json": "3fc4d94379e7038f4404189b926a5637b1847a3f21b5d480bfba39ef6cf7e7b5"
+      }
+    },
+    {
+      "name": "native-multi-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "9730632defa5ee09a96f6089204164f18b9dfdaafc97ad6adceabc8f0043590b",
+        "png": "bd9f8abf5f5dcbcc677b440b1381efa69276bbf3d76c07fb92882582232dae0c",
+        "txt": "b703d4fde03aaba13a0d427126bed01f7890c6468c0f1c016b6a1a79701549fa",
+        "vt": "17d7cec01457d443c8f2b4999334faffa3e143ddb83c46bd3d45c0cc8d58eccd",
+        "render.json": "50a5a84e2d4eb319407d73d02eb11e33a257a4ec6b82dd6903095d38a8efafb7"
+      }
+    }
+  ],
+  "attempts": [
+    {
+      "name": "native-multi-80x24",
+      "status": "PASS_NATIVE_STAGE_CAPTURE",
+      "genuine_session": true
+    },
+    {
+      "name": "native-multi-120x40",
+      "status": "PASS_NATIVE_STAGE_CAPTURE",
+      "genuine_session": true
+    },
+    {
+      "name": "native-multi-160x48",
+      "status": "PASS_NATIVE_STAGE_CAPTURE",
+      "genuine_session": true
+    }
+  ],
+  "frontend": {
+    "chromium": "145.0.7632.6",
+    "playwright": "1.58.2",
+    "xterm": "6.0.0",
+    "unicode": "0.9.0",
+    "font": "DejaVu Sans Mono",
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "padding": 0,
+    "unmasked": true
+  }
+}

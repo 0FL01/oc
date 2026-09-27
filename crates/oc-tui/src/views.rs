@@ -465,6 +465,9 @@ mod tests {
     async fn dcp_panel_renders_snapshot_and_notice() {
         let mut state = view_state("s-d").await;
         state.apply_dcp_snapshot(DcpSnapshot {
+            estimated_tokens_available: true,
+            estimate_method: Default::default(),
+            accounting: None,
             estimated_tokens: 900,
             max_context: 1000,
             turns_since_compress: 3,
@@ -477,15 +480,13 @@ mod tests {
         let turn = WorkerTurnId("t-dcp".to_string());
         state.begin_compress_turn(turn.clone());
         let lines = panel_lines(&state);
-        assert!(lines.iter().any(|l| l.contains("900/1000")), "{lines:?}");
+        assert!(lines.iter().any(|l| l.contains("900/1K")), "{lines:?}");
         assert!(
             lines.iter().any(|l| l.contains("pending focus: draft")),
             "{lines:?}"
         );
 
-        // Iteration 2: the DCP notice renders in the prompt footer status slot
-        // once the turn is idle (the running slot shows `esc interrupt`);
-        // completion is what the binary reports the outcome after.
+        // DCP failure uses the existing transient toast after completion.
         state.apply_finished(&turn, "", 0);
         state.notify_dcp(DcpOutcome::Failed {
             reason: "span open".to_string(),

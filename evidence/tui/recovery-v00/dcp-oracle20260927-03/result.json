@@ -1,0 +1,10 @@
+{
+  "status": "PASS_PINNED_DISPLAY_ORACLE",
+  "notification_cases": 13,
+  "bar_cases": 5,
+  "token_cases": 13,
+  "goldens_sha256": "9e5d2f9568f929da56b37d15570b2084bfe2be79dffd36ed4c29701f597098e2",
+  "body_changes": false,
+  "provider_requests": 0,
+  "actual_native_compress": "NOT_RUN_AWAIT_PARENT_FINAL_BINARY_RELEASE"
+}

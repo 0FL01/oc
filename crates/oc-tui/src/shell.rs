@@ -4580,7 +4580,7 @@ mod tests {
         assert_eq!(buffer[(12, 21)].fg, theme.text());
         assert_eq!(buffer[(16, 21)].fg, theme.text_muted());
 
-        // The DCP notice replaces the interrupt hint once the turn is idle.
+        // DCP uses the same transient toast, with semantic error styling.
         state.apply_finished(&turn, "done", 0);
         state.notify_dcp(crate::dcp_panel::DcpOutcome::Failed {
             reason: "span open".to_string(),
@@ -4591,7 +4591,9 @@ mod tests {
             .draw(|frame| crate::views::render_frame(frame, &state))
             .expect("draw");
         let buffer = terminal.backend().buffer();
-        assert_eq!(buffer[(2, 21)].fg, theme.info());
+        let toast = toast_rect(&state, Rect::new(0, 0, 80, 24)).expect("DCP toast");
+        assert_eq!(buffer[(toast.x, toast.y + 1)].fg, theme.error());
+        assert!(state.dcp.notice().is_none(), "no duplicate footer notice");
     }
 
     #[test]

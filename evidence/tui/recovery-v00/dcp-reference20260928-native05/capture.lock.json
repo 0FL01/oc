@@ -1,0 +1,698 @@
+{
+  "schema_version": 1,
+  "method": "source-derived display; intercepted pinned DCP payload -> original public session import -> unmodified U34 renderer",
+  "qualification": "Capture integrity only; no full parity claim",
+  "binary": {
+    "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "goldens_sha256": "723446a89b363d418868644ec64e23d7090e0ce3705492a1cf854ace5144fba9",
+  "source_manifest": {
+    "dcp_pin": "11f6517780a502512a3467645074be447cb0369e",
+    "oc_pin": "2670273ff17da96f85c5826ced57aa1b368754fa",
+    "sources": [
+      {
+        "id": "D05",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/ui/notification.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/ui/notification.ts",
+        "sha256": "626a8978c1386ea206ae1600642a0c268e00f6db85b30670049dd2d33ffb319b",
+        "local": "sources/lib__ui__notification.ts"
+      },
+      {
+        "id": "D06",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/ui/utils.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/ui/utils.ts",
+        "sha256": "3a7f92b604906530d7494511d07330db3c2b6d8ad695c8cea3bca2b819fec7cb",
+        "local": "sources/lib__ui__utils.ts"
+      },
+      {
+        "id": "D07",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/compress/state.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/compress/state.ts",
+        "sha256": "ea109d2ae177cb3386d635b0955ce8b65274906a02f20c259e1195ac51769185",
+        "local": "sources/lib__compress__state.ts"
+      },
+      {
+        "id": "D08",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/config.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/config.ts",
+        "sha256": "b505a347324507f13f6a2e63d5971e950351be0dce2309ce7e37702e029c6c90",
+        "local": "sources/lib__config.ts"
+      },
+      {
+        "id": "D09",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/token-utils.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/token-utils.ts",
+        "sha256": "8206128a441226c0e67f0836646103bbfde616bd7ae15ea5005574fc201def8e",
+        "local": "sources/lib__token-utils.ts"
+      },
+      {
+        "id": "D10",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/state/utils.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/state/utils.ts",
+        "sha256": "47e1d1693698f31be16371b7172658d0b446469be0608ed2c1aceabf98e5eaf2",
+        "local": "sources/lib__state__utils.ts"
+      },
+      {
+        "id": "D10-range",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "lib/compress/range.ts",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/lib/compress/range.ts",
+        "sha256": "043fba72da4262c26c5c360dddbbbf123a8148a892b96c15495286fd04e69c97",
+        "local": "sources/lib__compress__range.ts"
+      },
+      {
+        "id": "package",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "package.json",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/package.json",
+        "sha256": "8659a083229316d42833506878d8dadde740485d83e4ecef9e224a220cc318d5",
+        "local": "sources/package.json"
+      },
+      {
+        "id": "license",
+        "commit": "11f6517780a502512a3467645074be447cb0369e",
+        "path": "LICENSE",
+        "url": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/11f6517780a502512a3467645074be447cb0369e/LICENSE",
+        "sha256": "ce3fb82d9ee80a1cb0e548f9b0560ead52378ee2b4e826fd9459b4acf7075d89",
+        "local": "sources/LICENSE"
+      },
+      {
+        "id": "U34",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "path": "packages/tui/src/routes/session/index.tsx",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx",
+        "sha256": "e4af9db141d101d47a61d4ca761f9c1b38e375288442490ce609732450283734",
+        "local": "sources/oc__packages__tui__src__routes__session__index.tsx"
+      },
+      {
+        "id": "OC-import",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "path": "packages/cli/src/commands/handlers/session/import.ts",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/2670273ff17da96f85c5826ced57aa1b368754fa/packages/cli/src/commands/handlers/session/import.ts",
+        "sha256": "85efea7895832852186ef9fce6476580e9898eeb3de4da9666e7868b4b0b9450",
+        "local": "sources/oc__packages__cli__src__commands__handlers__session__import.ts"
+      },
+      {
+        "id": "OC-transfer",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "path": "packages/schema/src/session-transfer.ts",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/2670273ff17da96f85c5826ced57aa1b368754fa/packages/schema/src/session-transfer.ts",
+        "sha256": "b7de525457c97b02afbd03604a1fcd82adb65c75ccfa39686c8746a005638f5a",
+        "local": "sources/oc__packages__schema__src__session-transfer.ts"
+      },
+      {
+        "id": "OC-message",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "path": "packages/schema/src/session-message.ts",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/2670273ff17da96f85c5826ced57aa1b368754fa/packages/schema/src/session-message.ts",
+        "sha256": "9b5cfce6c69bb4987771bdbbb36f6af09c76c5d166ca9da764b052f7c92a4e1a",
+        "local": "sources/oc__packages__schema__src__session-message.ts"
+      },
+      {
+        "id": "OC-license",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "path": "LICENSE",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/2670273ff17da96f85c5826ced57aa1b368754fa/LICENSE",
+        "sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+        "local": "sources/oc__LICENSE"
+      }
+    ],
+    "runner_sha256": "d089e334fdd0763b2bcf03d1294ce1a2f499c15b2333845a965c89dd3325aaac",
+    "inherited_source_oracle": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-oracle20260927-03"
+  },
+  "runner_hashes": {
+    "dcp_reference_capture.mjs": "89496184bf65683cabf78e9eb440c9bccffcba073ff3fd1a6fd86d16f0a0185a",
+    "dcp_reference_bridge.py": "271be3f650a3f40ed1f1293732ba44825de05e114d1b5488152492f1a675d017",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e"
+  },
+  "captures": [
+    {
+      "name": "native-single-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "3b8942bc789adf840f38a0afa1518446dd6cac02b2084b1e819115563cdc3c3a",
+        "png": "1da168ff064671c1d6ab9745b6cc331af5a5340c39b4bddb60217bca22f3665a",
+        "txt": "9c710c3e322a7697ffce73882206cf91feeb5d638534900674955999436319cf",
+        "vt": "fb6d106d1945fc3dbc87b0890395d55ad127df4d61b1d582ce33faac9c9b35ab",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-single-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "ae41aa53153188ca7dfcc7d864c13fa6e1a362c4dc83fa865919c3ed18b8dcee",
+        "png": "ec93bffb66b938b07110d61b3dd2aa0981ad62c5e9b9e27fd3485189d8a987c8",
+        "txt": "a650c9f9b69c6cf7a8c4c99e66eba0bf2df33de3e544a76a62691c0283fb1470",
+        "vt": "8d1d2b85c8bf7a65865c137a92a01e7406bb5047ec60ad2d326c920dfc624179",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-single-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "7b370bd2b52db6e6f199089ef3fe7f0b7e0f684eff2e6ba259d02d4f83922631",
+        "png": "3cb1bef176e179c12c3ec5f483ccb93d05f417e820be79a8d99ed4b6acf07c03",
+        "txt": "4e6b72aa67d41ccd23f7b41037a2c4a27779926b64961b4113acd28b2b4fce36",
+        "vt": "8af786740d8095fad250c17a7df29285e26db95f3dcb0e1ed1d784b6a3fafb96",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-single-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "61949318f2cd57f1695b79562683f31e32f17f33a65c84be9f6b5f3456d8a0ec",
+        "png": "d1fe7071d6ab0629436a1ab1b55671c3f02e3642d89aaf36ac4ec751c9408080",
+        "txt": "c8f9a84704917148d2f1497b72f632d237c78431280d3f9172369bb9d2f6c078",
+        "vt": "87b76f6c5790ba0c2373bd9e0ff355af4b944a7484ec06af70d9ad8422833952",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-multi-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "40756767d2bb4d337d247007135ab71e179c0328dc4cf89542ec5dbab480988e",
+        "png": "82233e65c8406ba312bd4038e6cc5a6d9d95846baa971f66bb30ba09aa3c24a4",
+        "txt": "4f6fc1ab8cf90929e8771ff92939fe513e5cc461530136d1a6cfbc747bbc5df9",
+        "vt": "ead8be75e7783f7d13a03ee9ff5e8a2db81eb51dd5354ef099df49a1cb50ae58",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-multi-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "bd9e6f34d63b43819bb90bc14ccf0956b8e73b9362e21a72514800b5d08057df",
+        "png": "3ece949d0da4b0cdd5ccb5cc4c25cb7d0943e5543786ddb760fdc7b20a50c330",
+        "txt": "1ecee4c25c4b9cab196711d805f896bd69f4a9ae7ee66cd050e2322b5a1763be",
+        "vt": "de2ae63edfedff2ea224a644e40dac9d0dddac75c08f52dc4bfbffceb61e6253",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-multi-80x24",
+      "stage": "scroll-1",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "84f12d6f1d2b0038251754bb78d999591131335a85c38af4ae224168df65d4f7",
+        "png": "f6481eb7cdc8b80d667bfdaa02cc60231d373743bdc296945aaf5c87cce7151a",
+        "txt": "2eed6a83cd9225430744d78f30451200a8ef929d21d2d893c32ec29f03bd3c1b",
+        "vt": "d736c168e7aaa8f23af4ae4cc8088ef1a44c56fcb221577e6a0db5d08972f4f2",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-multi-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "5d9cd2884ba6bb8d820c091dff773280252e3bbcf21fdbe882e9af00bea90bef",
+        "png": "83ac8c2a69c5d41b3387272f4a86d5728dc3f4d8a359404fe2a4659014c4c7c6",
+        "txt": "a6793eec01caf8196a17a188781d05c489f246027c7c3a2100c3ee1c05cf14d0",
+        "vt": "70229b981429cf5db9cfd8f100bb3aca576a639578e168cec6335a128f40b92f",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-multi-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "e8df0e4e600091edbc04fd06c1675c76c91bc9f3d0604ceea6ccc9db29e98906",
+        "png": "9b44cb39a526286e76313d236c6f36478044645e9566eaac77644649262c4c93",
+        "txt": "31beede2c077d045deb95f4dcad89f1ba02cbf89392f6e1a063a67792a51e81f",
+        "vt": "cc6267a9ff658ff32ff86d452dbbfe18d8d8e74c8c025384ba3a202055fefa5a",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-recompression-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "1fc045ffa78da2eede27a9db61f7f7a9c8d445b79714679554ebfbb7f3b79b7f",
+        "png": "9367bd3b5ddbe9dcb1602781e848a2f106aa9d9826f7d7a60c28bec0ecd55c04",
+        "txt": "d884589cc23a52912c43a7e1ce2796f536dba9f44616edba34e0c032660bd803",
+        "vt": "a55acad1a23553312a4456e66de2d6d6d7623f040d127c3b75d5014e11d982c3",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-recompression-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "6efc5b487576b6458abc279feabc4956e4381045dfbdb234fed659a5518a3452",
+        "png": "a953239e303239f248b1d3fa9945fbb79ccd3be885be366abce86ea75fdadc10",
+        "txt": "c104d9f50699065032e73db2382a260f503954a0a3711d27f8af914de1848c51",
+        "vt": "19d1e3132716d67a6526eef39fdb8caf024440b938601fd95746b57c3643880f",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-recompression-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "92be106e3ecce13341e136320bc5fcc994d8e46649e85053de1e5fb027f3c33c",
+        "png": "580bb0da500c3af5f567305c15bac18fe17b2d84135f5c1d1f570bdf82b6d348",
+        "txt": "0aa498d3fd58025c8a1de7d86f2931f623a07886be64766d67946cec84d36230",
+        "vt": "09e5956925d28526c36434bdaf59d22351e4bb17d2fa2cbc5169ae2f87cd8533",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-restart-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "123be0af89724c22efbfe808bcf650ca99a442c2ab77a806976c2e623f0cf4f5",
+        "png": "9cf95b55f82cbb2c28a62b2f5c6e992ddb6bfb258bc89205c089806a78c98eb2",
+        "txt": "7b38d3e944212502ee22e092f811f6a287ddae7c899bb574c1a9f0672cf736a5",
+        "vt": "bb3b7b126494e66a5a588499b38c220d4ee273f87089de46f6fa5f2529d9da9b",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-restart-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "8c588bdb69dc9a981963ec0200b874a8847ad827065c81c7125085adbb316cf7",
+        "png": "4beb16b2e5716d3fad376d32de46b8f45ff2e56b6297a5fb13acdc5882d6ba05",
+        "txt": "f133bbe1ed5569c8e9fc647c2375f64ff2c0ba13df98ee30091753be3fb5506e",
+        "vt": "03630e654d2af06cfa2e71c73d225389b31d96a1e71cc60c5560949be26b9e3d",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-restart-80x24",
+      "stage": "scroll-1",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "d348c6ef16a38df4cecf1fd613e03f6142361da5cab10c2bd26e0c350a82b5d2",
+        "png": "49af82e5d3db16a322b5adcca5613d78fcc4eddad828e22a5477b94fc131009a",
+        "txt": "8bb13d3476437870e8d1797dbb6b5a3f15cb9c39aa7bf7144b35353ff6e6534d",
+        "vt": "db0a52da3c360ef77171fcdaf696ae794bd628c4c64cfd4d6755e2617b3eb9cd",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-restart-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "73a97c09b9927c9dff6175f9432aa07a922e40934bbcf0a7f9531974031bd61c",
+        "png": "1a5af614d7f2216f907434a020debf52adecf0f6030b47f208a1ee90f7e6e8ab",
+        "txt": "7e7bbd1d055baa284b89c78eaa921d3e9f983f68ada1a37aedf47d4b88e854f3",
+        "vt": "fcd6b37c51f57ab938aad841610a89d3d598b82ba52b8bb67cb759a0f4692b56",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-restart-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "f05f6e3f37b3e6a00b5c02e4e317c2ad0c7234798122aef45c09bee1a36f2e07",
+        "png": "74a5d88ac9cafcb0e917a0a09dca11f2922aeb93e52c971396aea75e06a78cc7",
+        "txt": "087ed537765d8024d60ed0b498c85198e74226779992b6ceeaacc24e7399d9d6",
+        "vt": "1c855e2754415071fd49c432b7828b032623cb5938dc7eb37dc72ee817b3205d",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "6fd6c0a9b8ab9e25e5c59c6539b25d953a91501d117069838e4df458cd47d493",
+        "png": "a3a8f572c48f84641dc33c25d2266ff5846e114893fbbd99def6bdb4a4468a6b",
+        "txt": "132514525378e7558c61f125026ebab717659709c4c1aa5cddb8d3f317d3f137",
+        "vt": "13fb5f76a440b4702d78b3a4bcf2b33415200a493970954d89f3eb1d526e707d",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "1346b0ac4b493d95f26f36e3abefc73b8a7bc34d502ed7d4a6aed2a1c1b9f847",
+        "png": "52bbf4378ed8f439bb0b5e55fd16ad134d8f433d73cfcf617a1da902b76e746b",
+        "txt": "4b03df6ad31c51e113321ebecb0e589e284e9574ed3fcd50164cc6deda5c5d25",
+        "vt": "92d96467c96dcaef3977f287d3d1cd61af0c967ef9baaa842bd8183a4cf1af80",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "e9dca9198e667bbeb771d0e7f3808098a1b59b37be97081ea42d9a00446c4bc7",
+        "png": "c45188b438f75bedaf998224caff5942e4b1b51cbe2eb0cd8b1bf8f77580ad99",
+        "txt": "48777dbefa32001cb9f2e9deb88f2c8e2d74598cdb8ddd6584b8ef0625553593",
+        "vt": "77c0e43cc2b4e9a3c29e5fa4c8650c7536ff5a770b6695e15e129227832ac47a",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-off-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "c8c8d2eb22c2fc0a46ae8b2d7ad057af1d2ee660f142c364c4f0533a58c47349",
+        "png": "c6bacd810954ee44c56a6020ed3d0b7c025957834d074e3e22bcf08da69a07fb",
+        "txt": "f58c01e897a92efaa2105bcf7aad5ec5004d2e4f10f0f724ca9811e4303a54c5",
+        "vt": "f7ea2b5d68f73f7f4c45735f3df9561d3787e163e21f828e2fd3757962911fba",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-off-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "603aadbc6db22b98fc2c2b647033284c3698de86743a9cd4b081d84f35c913ca",
+        "png": "efa86f6013cafb3b9a97bd054d49e1bb70e127960a3870aa766d9776327d10eb",
+        "txt": "37e0b8e766a3b75c127d03ea17140f996e62bd8a950cfb5255f21d0117327c57",
+        "vt": "71ee528b0f83c5b3776ae36e722d02da142cc2ef8e47b968457b69d1b450e5ba",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-off-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "17d6fe0436667754b9d9a031b39eb3d0d22c61c93189c4159aab4b1a1e25ae2e",
+        "png": "4c6d6575eafb8b9448f10d287a5ab6f9a2eeac28c91958f6a6ab2c914173266f",
+        "txt": "ce029e6d66cb4e0e9ac4246ea6548e9affff86e18446f5ec74013565f0466ce4",
+        "vt": "1efe18e7d28e92145c21114e9e6113e222826007ae5ece8555fb8f4533de35e8",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-show-false-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "b7380994fe5b77a8eec542b4d80cccbd750d1be5fad2c79d1919019925cab6a5",
+        "png": "f0e4700c38fc88b622dd8ed6375e41a5b732ee245f9c007b9114ab600f05de25",
+        "txt": "b05bcafa36608a0bf7f499e580dfc83fc3cb21afcd9d8c3b1e6f454eb19fc075",
+        "vt": "76804cc362b9b70c1e19d64c57b1006f4dc4cd6fb2cb5e9c26fa8cead19f9fce",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-show-false-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "e3a33983144c52598ef9d3038e8e6e2e15b7ca98307962cef2851e03c19dca52",
+        "png": "803f7cf979196708a9b34ff6e9b1f9ec0cafb8adf847f49f6c64022eb0631d0e",
+        "txt": "e0317723f7ee283f4e4342f6adfa3d3602df48c8567331cae6f040e46758fffa",
+        "vt": "408c1c23434f647ea014c437ea8304bb97612db4f178004ebc4deae991c67af5",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-show-false-80x24",
+      "stage": "scroll-1",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "6f81e8bd5ca96a50b874e31906e458c396b709da849a3d25b29e8ba17eb72910",
+        "png": "560d34bba8dd7432595288589ff760ce78be298a8b24f714d0f27b63370cf464",
+        "txt": "31e727f977c96b300650690b88dfab42be65527e1f4cd8766c24b150842b2024",
+        "vt": "53c2c2b5e22571d4cfdbfddf240c8cc5a05185d80d256008132a8ede7b78ffd1",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-show-false-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "3fdfb7dbd4b6770763ffc5dece605b6df9d85305155c8e49914f416cc7431a02",
+        "png": "d042e0d0619ff78a183eea6045a095d7400f69efd9115ea9b0dd35647abfb6e8",
+        "txt": "17d2400be1d42ed5af4e1f19690113c5df31bbc2db122ec736c561112d713d20",
+        "vt": "485dd9ee4368cda526cf59a4757721a145513b0440da52a5b0840ff5e3692f22",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-show-false-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "efb1d0a78ab72bbd846103fd1b58975a455aba9aa9ad88f5aec784f6ef6279d8",
+        "png": "f274d7fb8db4a0bd38625db076652854ee64d13282b6c21a2d668f7a2f4cd3a0",
+        "txt": "fc899d0f47c98324fadbe68bfa42d518deaf5c997167acd3aa88128b7c55fc47",
+        "vt": "31ca2bf1806f2bb7e6cba4c864ba78987312bedfde8964b01846728c1b2d74b4",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    },
+    {
+      "name": "native-toast-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "dc6b60eda52628ca39895874bb2e93ad78886c07462c0180849bdf1487eea52c",
+        "png": "19ac443f207faf531ee63de288a8ad7996429a29e6a7cee5b7b951937b7ff24b",
+        "txt": "50aa26a76c7f8050c7c66e74e3a071e76ac93bc52960242eac159e5fec525594",
+        "vt": "0e1b4e69588ee8b06c149fd5881febc31b202280dac25eb6aff022d4de759f25",
+        "render.json": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595"
+      }
+    },
+    {
+      "name": "native-toast-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "16c50ac4a921b14be28ca1c7ffdb5c0f4b1cd2c04246936c5a1a79ae4c39a970",
+        "png": "f5024def7900294709615bb1608926450ab419cc63e22b9a3ff6ce7f9fc879bb",
+        "txt": "232325481e93bbae2191ed2038c87ab0fa62be27d0a19ce068e3bbf31fd93d2e",
+        "vt": "acd9b217882bcceed04d42d684691c8a29cf4c0c3134ce255b8b85e215a568d6",
+        "render.json": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda"
+      }
+    },
+    {
+      "name": "native-toast-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "e9e7d3ca2628c94fd932ed4990a25639ece438924a0e86ef836b654d6ea4089c",
+        "png": "adb7a7626eb2562a06c55ac9800ea701ff886599d54d22a859d1d4b50b5c3778",
+        "txt": "722687d1c66bd59d1a0c21ac07e45c831e0e043f3beef8f5057b92fd313190bf",
+        "vt": "84682ba392fa712c947f81fd794bd72d8393f6fb2d8911796ffadfbc77d9dca3",
+        "render.json": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd"
+      }
+    }
+  ],
+  "attempts": [
+    {
+      "name": "native-single-80x24",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-single-120x40",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-single-160x48",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-multi-80x24",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-multi-120x40",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-multi-160x48",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-recompression-80x24",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-recompression-120x40",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-recompression-160x48",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-restart-80x24",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-restart-120x40",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-restart-160x48",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-minimal-80x24",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-minimal-120x40",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-minimal-160x48",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-off-80x24",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-off-120x40",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-off-160x48",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-show-false-80x24",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-show-false-120x40",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-show-false-160x48",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-toast-80x24",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-toast-120x40",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    },
+    {
+      "name": "native-toast-160x48",
+      "status": "PASS_REFERENCE_CAPTURE",
+      "provider_requests": 0,
+      "import_export_exact": true
+    }
+  ],
+  "frontend": {
+    "chromium": "145.0.7632.6",
+    "playwright": "1.58.2",
+    "xterm": "6.0.0",
+    "unicode": "0.9.0",
+    "font": "DejaVu Sans Mono",
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "padding": 0,
+    "unmasked": true
+  }
+}

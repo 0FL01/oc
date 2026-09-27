@@ -1,0 +1,325 @@
+{
+  "status": "PASS_REFERENCE_INTEGRITY_AND_U34_GEOMETRY",
+  "qualification": "Source-derived pinned display reference only; no native/parity PASS",
+  "notification_cases": 13,
+  "bar_cases": 5,
+  "token_cases": 13,
+  "captures": 1,
+  "imports": 1,
+  "provider_requests": 0,
+  "source_hashes": {
+    "D05": "626a8978c1386ea206ae1600642a0c268e00f6db85b30670049dd2d33ffb319b",
+    "D06": "3a7f92b604906530d7494511d07330db3c2b6d8ad695c8cea3bca2b819fec7cb",
+    "D07": "ea109d2ae177cb3386d635b0955ce8b65274906a02f20c259e1195ac51769185",
+    "D08": "b505a347324507f13f6a2e63d5971e950351be0dce2309ce7e37702e029c6c90",
+    "D09": "8206128a441226c0e67f0836646103bbfde616bd7ae15ea5005574fc201def8e",
+    "D10": "47e1d1693698f31be16371b7172658d0b446469be0608ed2c1aceabf98e5eaf2",
+    "U34": "e4af9db141d101d47a61d4ca761f9c1b38e375288442490ce609732450283734"
+  },
+  "named_number_differences": [
+    {
+      "input": 1150,
+      "pinned_compact": "1.1K",
+      "pinned_verbose": "1.1K tokens",
+      "approved_native_compact": "1.2K",
+      "named_difference": "VIS38-native-decimal-half-up-versus-JS-toFixed"
+    },
+    {
+      "input": 999950,
+      "pinned_compact": "1000K",
+      "pinned_verbose": "1000K tokens",
+      "approved_native_compact": "1M",
+      "named_difference": "VIS38-native-M-and-K-boundary-promotion"
+    },
+    {
+      "input": 1000000,
+      "pinned_compact": "1000K",
+      "pinned_verbose": "1000K tokens",
+      "approved_native_compact": "1M",
+      "named_difference": "VIS38-native-M-and-K-boundary-promotion"
+    },
+    {
+      "input": 4218800,
+      "pinned_compact": "4218.8K",
+      "pinned_verbose": "4218.8K tokens",
+      "approved_native_compact": "4.2M",
+      "named_difference": "VIS38-native-M-and-K-boundary-promotion"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "detailed-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "png": [
+        1011,
+        640
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 7,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [
+          {
+            "x": 5,
+            "y": 9,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 9,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 10,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 11,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 12,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "status": "PASS_RELEASE_DIGEST_ONLY_RUNTIME_ADAPTER",
+  "exit_code": 0,
+  "source_helper": "/home/opencode/ai/oc/scripts/tui_capture/dcp_pair_audit.mjs",
+  "source_helper_sha256": "21ec6d77dad139bf4dc3f221296a7fc0dd07fdb56ce79c6e3f579e9c624e1e4d",
+  "executed_program_sha256": "061e21f741d620663065645dc22b91a5c79657e19ba35a7c15f8cfbc31418942",
+  "replacement": {
+    "old": "assert.equal(owner.oc_binary_sha256,'4070639b7d0e9814f862b577ee7a4014f06a21567054c534fd6f6baf9b076f19');",
+    "new": "assert.equal(owner.oc_binary_sha256,'8f7b79887e7c0fa3296800388819bca72f68c7aeae459d891ce0eb2690c4df93');",
+    "source_file_modified": false,
+    "all_other_audit_checks_unchanged": true
+  },
+  "parent_full_workspace_gate": {
+    "status": "PASS",
+    "tool": "tool_0e51bf7ae001L43hkvwsvd4nD9",
+    "association": "Parent-provided final SQL-query-fix build attestation"
+  },
+  "args": [
+    "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-native20260928-05",
+    "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-oracle20260928-native04",
+    "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-reference20260928-native05",
+    "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-pair-check20260928-03.json"
+  ],
+  "runner_sha256": "355fcd5626bbd81d2a35e4c947b33f5eb4a8849ac51304baccfa668998d578a9",
+  "paired_report_sha256": "cdc14668bdf85346dfdef7fbcafdab458d7540979768aa92ae73b48ed2cd04d5"
+}

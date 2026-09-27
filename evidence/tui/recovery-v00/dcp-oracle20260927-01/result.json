@@ -1,0 +1,10 @@
+{
+  "status": "PASS_PINNED_DISPLAY_ORACLE",
+  "notification_cases": 13,
+  "bar_cases": 5,
+  "token_cases": 9,
+  "goldens_sha256": "555131be3b73cbb6650aaf0568590964bef805a4fc30aba40ff5304376a1a678",
+  "body_changes": false,
+  "provider_requests": 0,
+  "actual_native_compress": "NOT_RUN_OWNER_API_PENDING"
+}

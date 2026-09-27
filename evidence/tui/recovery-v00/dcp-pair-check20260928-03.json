@@ -1,0 +1,3242 @@
+{
+  "status": "PASS_PAIRED_EVIDENCE_INTEGRITY_WITH_DIFFERENCES",
+  "qualification": "Actual owner and original captures verified; equality only when per-frame counts are zero; no VIS38 visual parity PASS asserted",
+  "binary_sha256": "8f7b79887e7c0fa3296800388819bca72f68c7aeae459d891ce0eb2690c4df93",
+  "source_HEAD": "8fda54ad25667ea6cf0115c3a77b32d182baaf9b",
+  "source_oracle_sha256": "723446a89b363d418868644ec64e23d7090e0ce3705492a1cf854ace5144fba9",
+  "cases": 24,
+  "owner_operations": 3,
+  "owner_provider_requests": 11,
+  "display_provider_requests": 0,
+  "full_bottom_cells": 115200,
+  "unequal_bottom_cells": 64597,
+  "unequal_text_cells": 38613,
+  "unequal_foreground_cells": 36845,
+  "unequal_background_cells": 25792,
+  "unequal_modifier_cells": 216,
+  "unequal_cursor_frames": 24,
+  "bottom_png_equal": 0,
+  "case_results": [
+    {
+      "name": "native-single-80x24",
+      "stage": "single",
+      "size": [
+        80,
+        24
+      ],
+      "full_grid": {
+        "cells": 1920,
+        "unequal": 1094,
+        "text": 832,
+        "foreground": 645,
+        "background": 306,
+        "modifiers": 10
+      },
+      "full_png": {
+        "native_sha256": "d89fc8e08165e8489b713c34bc9b183bb7ca06975b8916551539868e19a6e07a",
+        "reference_sha256": "1da168ff064671c1d6ab9745b6cc331af5a5340c39b4bddb60217bca22f3665a",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            674,
+            384
+          ],
+          "reference": [
+            674,
+            384
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 17,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 18,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": false,
+        "reference_header": false,
+        "native_run": true,
+        "reference_run": true
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom",
+        "scroll-0"
+      ],
+      "reference_frames": [
+        "bottom",
+        "scroll-0"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-single-120x40",
+      "stage": "single",
+      "size": [
+        120,
+        40
+      ],
+      "full_grid": {
+        "cells": 4800,
+        "unequal": 2892,
+        "text": 1969,
+        "foreground": 1389,
+        "background": 930,
+        "modifiers": 10
+      },
+      "full_png": {
+        "native_sha256": "4c74fe4fa04144ee0b0a614dbf96158c86e921c15b0d913576de36160a8fad21",
+        "reference_sha256": "3cb1bef176e179c12c3ec5f483ccb93d05f417e820be79a8d99ed4b6acf07c03",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            1011,
+            640
+          ],
+          "reference": [
+            1011,
+            640
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 33,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": true,
+        "reference_header": true,
+        "native_run": true,
+        "reference_run": true
+      },
+      "focused_card": {
+        "expected_header": "▣ DCP | -2.8K removed, +83 summary",
+        "expected_run": "▣ Compression #1 -2.8K removed, +83 summary",
+        "expected_bar": "│⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿████████████████████████████████████│",
+        "native_header": true,
+        "reference_header": true,
+        "native_run": true,
+        "reference_run": true,
+        "native_bar": true,
+        "reference_bar": true,
+        "summary_visible": true
+      },
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-single-160x48",
+      "stage": "single",
+      "size": [
+        160,
+        48
+      ],
+      "full_grid": {
+        "cells": 7680,
+        "unequal": 4453,
+        "text": 3214,
+        "foreground": 1770,
+        "background": 1258,
+        "modifiers": 10
+      },
+      "full_png": {
+        "native_sha256": "095b39640858f12892d8b90e0af811ada9a321bf11771e93c2dddfa1d1ca5819",
+        "reference_sha256": "d1fe7071d6ab0629436a1ab1b55671c3f02e3642d89aaf36ac4ec751c9408080",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            1349,
+            768
+          ],
+          "reference": [
+            1349,
+            768
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 41,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 42,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": true,
+        "reference_header": true,
+        "native_run": true,
+        "reference_run": true
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-multi-80x24",
+      "stage": "multi",
+      "size": [
+        80,
+        24
+      ],
+      "full_grid": {
+        "cells": 1920,
+        "unequal": 1349,
+        "text": 1052,
+        "foreground": 877,
+        "background": 306,
+        "modifiers": 11
+      },
+      "full_png": {
+        "native_sha256": "69e721b542d60f2ae74a93f93b4e93d233d62aaba79b9f8b3c2658891558f96f",
+        "reference_sha256": "82233e65c8406ba312bd4038e6cc5a6d9d95846baa971f66bb30ba09aa3c24a4",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            674,
+            384
+          ],
+          "reference": [
+            674,
+            384
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 17,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 18,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": false,
+        "reference_header": false,
+        "native_run": false,
+        "reference_run": false
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom",
+        "scroll-0",
+        "scroll-1"
+      ],
+      "reference_frames": [
+        "bottom",
+        "scroll-0",
+        "scroll-1"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-multi-120x40",
+      "stage": "multi",
+      "size": [
+        120,
+        40
+      ],
+      "full_grid": {
+        "cells": 4800,
+        "unequal": 2815,
+        "text": 1844,
+        "foreground": 1737,
+        "background": 930,
+        "modifiers": 11
+      },
+      "full_png": {
+        "native_sha256": "f1e16a3a8c959a0057b94a710a062366206ba271ced56797335235acf6e64671",
+        "reference_sha256": "83ac8c2a69c5d41b3387272f4a86d5728dc3f4d8a359404fe2a4659014c4c7c6",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            1011,
+            640
+          ],
+          "reference": [
+            1011,
+            640
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 33,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": true,
+        "reference_header": true,
+        "native_run": true,
+        "reference_run": true
+      },
+      "focused_card": {
+        "expected_header": "▣ DCP | -8.4K removed, +111 summary",
+        "expected_run": "▣ Compression #2 -5.6K removed, +28 summary",
+        "expected_bar": "│░░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████│",
+        "native_header": true,
+        "reference_header": true,
+        "native_run": true,
+        "reference_run": true,
+        "native_bar": true,
+        "reference_bar": true,
+        "summary_visible": true
+      },
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-multi-160x48",
+      "stage": "multi",
+      "size": [
+        160,
+        48
+      ],
+      "full_grid": {
+        "cells": 7680,
+        "unequal": 4153,
+        "text": 2677,
+        "foreground": 2423,
+        "background": 1406,
+        "modifiers": 11
+      },
+      "full_png": {
+        "native_sha256": "c9ba8d2eb75c3042895222cac32c50033ac5dee9838056e6d1ac59168476c594",
+        "reference_sha256": "9b44cb39a526286e76313d236c6f36478044645e9566eaac77644649262c4c93",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            1349,
+            768
+          ],
+          "reference": [
+            1349,
+            768
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 41,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 42,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": true,
+        "reference_header": true,
+        "native_run": true,
+        "reference_run": true
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-recompression-80x24",
+      "stage": "recompression",
+      "size": [
+        80,
+        24
+      ],
+      "full_grid": {
+        "cells": 1920,
+        "unequal": 1196,
+        "text": 782,
+        "foreground": 704,
+        "background": 458,
+        "modifiers": 3
+      },
+      "full_png": {
+        "native_sha256": "d1f3feb170fd2f93f81346d827966cb0eadd2e98e534315fb5099d5d308af4a2",
+        "reference_sha256": "9367bd3b5ddbe9dcb1602781e848a2f106aa9d9826f7d7a60c28bec0ecd55c04",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            674,
+            384
+          ],
+          "reference": [
+            674,
+            384
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 17,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 18,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": true,
+        "reference_header": true,
+        "native_run": true,
+        "reference_run": true
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-recompression-120x40",
+      "stage": "recompression",
+      "size": [
+        120,
+        40
+      ],
+      "full_grid": {
+        "cells": 4800,
+        "unequal": 2720,
+        "text": 1767,
+        "foreground": 1641,
+        "background": 930,
+        "modifiers": 3
+      },
+      "full_png": {
+        "native_sha256": "78d2ac37cace82289b0a903633c170a355d8d3bc14521d0ab4ced91a0b3c46bc",
+        "reference_sha256": "a953239e303239f248b1d3fa9945fbb79ccd3be885be366abce86ea75fdadc10",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            1011,
+            640
+          ],
+          "reference": [
+            1011,
+            640
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 33,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": true,
+        "reference_header": true,
+        "native_run": true,
+        "reference_run": true
+      },
+      "focused_card": {
+        "expected_header": "▣ DCP | -8.4K removed, +34 summary",
+        "expected_run": "▣ Compression #3 -0 removed, +6 summary",
+        "expected_bar": "│░░░░░░░░░░░░░░░░░░░░░░░░░░░███████████████████████│",
+        "native_header": true,
+        "reference_header": true,
+        "native_run": true,
+        "reference_run": true,
+        "native_bar": true,
+        "reference_bar": true,
+        "summary_visible": true
+      },
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-recompression-160x48",
+      "stage": "recompression",
+      "size": [
+        160,
+        48
+      ],
+      "full_grid": {
+        "cells": 7680,
+        "unequal": 3993,
+        "text": 2382,
+        "foreground": 2276,
+        "background": 1562,
+        "modifiers": 3
+      },
+      "full_png": {
+        "native_sha256": "73cff59643e55036d26aac7bc31678c6da614b104ef56188e9a576e4757a4ab8",
+        "reference_sha256": "580bb0da500c3af5f567305c15bac18fe17b2d84135f5c1d1f570bdf82b6d348",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            1349,
+            768
+          ],
+          "reference": [
+            1349,
+            768
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 41,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 42,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": true,
+        "reference_header": true,
+        "native_run": true,
+        "reference_run": true
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-restart-80x24",
+      "stage": "restart",
+      "size": [
+        80,
+        24
+      ],
+      "full_grid": {
+        "cells": 1920,
+        "unequal": 1286,
+        "text": 845,
+        "foreground": 888,
+        "background": 458,
+        "modifiers": 9
+      },
+      "full_png": {
+        "native_sha256": "d9f353dd6d78bb8ef4bbf6f9fa11b955c6e2e226a1fc5443aa1b1e130074e4f8",
+        "reference_sha256": "9cf95b55f82cbb2c28a62b2f5c6e992ddb6bfb258bc89205c089806a78c98eb2",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            674,
+            384
+          ],
+          "reference": [
+            674,
+            384
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 17,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 18,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": false,
+        "reference_header": false,
+        "native_run": false,
+        "reference_run": false
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom",
+        "scroll-0",
+        "scroll-1"
+      ],
+      "reference_frames": [
+        "bottom",
+        "scroll-0",
+        "scroll-1"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-restart-120x40",
+      "stage": "restart",
+      "size": [
+        120,
+        40
+      ],
+      "full_grid": {
+        "cells": 4800,
+        "unequal": 2635,
+        "text": 1482,
+        "foreground": 1488,
+        "background": 1162,
+        "modifiers": 9
+      },
+      "full_png": {
+        "native_sha256": "0b40088d856970b952894e0f7d5f49932b45b0a782f6551d866745d77ee9de55",
+        "reference_sha256": "1a5af614d7f2216f907434a020debf52adecf0f6030b47f208a1ee90f7e6e8ab",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            1011,
+            640
+          ],
+          "reference": [
+            1011,
+            640
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 33,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": true,
+        "reference_header": true,
+        "native_run": true,
+        "reference_run": true
+      },
+      "focused_card": {
+        "expected_header": "▣ DCP | -8.4K removed, +34 summary",
+        "expected_run": "▣ Compression #3 -0 removed, +6 summary",
+        "expected_bar": "│░░░░░░░░░░░░░░░░░░░░░░░░░░░███████████████████████│",
+        "native_header": true,
+        "reference_header": true,
+        "native_run": true,
+        "reference_run": true,
+        "native_bar": true,
+        "reference_bar": true,
+        "summary_visible": true
+      },
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-restart-160x48",
+      "stage": "restart",
+      "size": [
+        160,
+        48
+      ],
+      "full_grid": {
+        "cells": 7680,
+        "unequal": 3951,
+        "text": 2333,
+        "foreground": 2322,
+        "background": 1562,
+        "modifiers": 9
+      },
+      "full_png": {
+        "native_sha256": "e7243483bb984d06b6f009ef354a55db1d0c182b5b510400e236d7a13984184a",
+        "reference_sha256": "74a5d88ac9cafcb0e917a0a09dca11f2922aeb93e52c971396aea75e06a78cc7",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            1349,
+            768
+          ],
+          "reference": [
+            1349,
+            768
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 41,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 42,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": true,
+        "reference_header": true,
+        "native_run": true,
+        "reference_run": true
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "minimal",
+      "size": [
+        80,
+        24
+      ],
+      "full_grid": {
+        "cells": 1920,
+        "unequal": 1291,
+        "text": 840,
+        "foreground": 920,
+        "background": 458,
+        "modifiers": 9
+      },
+      "full_png": {
+        "native_sha256": "dc6903215c3267b39f8d32eaef21f2a18a99971577f08dc4b7beef5498585887",
+        "reference_sha256": "a3a8f572c48f84641dc33c25d2266ff5846e114893fbbd99def6bdb4a4468a6b",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            674,
+            384
+          ],
+          "reference": [
+            674,
+            384
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 17,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 18,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": true,
+        "reference_header": true,
+        "native_run": false,
+        "reference_run": false
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "minimal",
+      "size": [
+        120,
+        40
+      ],
+      "full_grid": {
+        "cells": 4800,
+        "unequal": 2867,
+        "text": 1454,
+        "foreground": 1606,
+        "background": 1394,
+        "modifiers": 9
+      },
+      "full_png": {
+        "native_sha256": "b029c9c9853182a68e780c3d4481143e11fc8dab1201c91577fc6e89c3d0abd5",
+        "reference_sha256": "52bbf4378ed8f439bb0b5e55fd16ad134d8f433d73cfcf617a1da902b76e746b",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            1011,
+            640
+          ],
+          "reference": [
+            1011,
+            640
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 33,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": true,
+        "reference_header": true,
+        "native_run": false,
+        "reference_run": false
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "minimal",
+      "size": [
+        160,
+        48
+      ],
+      "full_grid": {
+        "cells": 7680,
+        "unequal": 4029,
+        "text": 1826,
+        "foreground": 2018,
+        "background": 2186,
+        "modifiers": 9
+      },
+      "full_png": {
+        "native_sha256": "77d285d4bab2ee6b2acbb3ff4fe04bdd47f6b0aa65e448a9c7660133781fecd5",
+        "reference_sha256": "c45188b438f75bedaf998224caff5942e4b1b51cbe2eb0cd8b1bf8f77580ad99",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            1349,
+            768
+          ],
+          "reference": [
+            1349,
+            768
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 41,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 42,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": true,
+        "reference_header": true,
+        "native_run": false,
+        "reference_run": false
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-off-80x24",
+      "stage": "off",
+      "size": [
+        80,
+        24
+      ],
+      "full_grid": {
+        "cells": 1920,
+        "unequal": 1331,
+        "text": 882,
+        "foreground": 964,
+        "background": 458,
+        "modifiers": 13
+      },
+      "full_png": {
+        "native_sha256": "1999f4d0800956885d563e5502e1f6daa9b96bbd3fb2a7f7f599995ab6bda994",
+        "reference_sha256": "c6bacd810954ee44c56a6020ed3d0b7c025957834d074e3e22bcf08da69a07fb",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            674,
+            384
+          ],
+          "reference": [
+            674,
+            384
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 17,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 18,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": false,
+        "reference_header": false,
+        "native_run": false,
+        "reference_run": false
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-off-120x40",
+      "stage": "off",
+      "size": [
+        120,
+        40
+      ],
+      "full_grid": {
+        "cells": 4800,
+        "unequal": 2745,
+        "text": 1560,
+        "foreground": 1718,
+        "background": 1162,
+        "modifiers": 13
+      },
+      "full_png": {
+        "native_sha256": "ee61fc8e7cc066dd53d6e5f27276d3fe6f6b824dea5723683ec74715ab185b92",
+        "reference_sha256": "efa86f6013cafb3b9a97bd054d49e1bb70e127960a3870aa766d9776327d10eb",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            1011,
+            640
+          ],
+          "reference": [
+            1011,
+            640
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 33,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": false,
+        "reference_header": false,
+        "native_run": false,
+        "reference_run": false
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-off-160x48",
+      "stage": "off",
+      "size": [
+        160,
+        48
+      ],
+      "full_grid": {
+        "cells": 7680,
+        "unequal": 4031,
+        "text": 2113,
+        "foreground": 2272,
+        "background": 1876,
+        "modifiers": 13
+      },
+      "full_png": {
+        "native_sha256": "b5324e906eb5520e6a72cb49329e3f9813bbf7dc74308604c24b8398573d0d51",
+        "reference_sha256": "4c6d6575eafb8b9448f10d287a5ab6f9a2eeac28c91958f6a6ab2c914173266f",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            1349,
+            768
+          ],
+          "reference": [
+            1349,
+            768
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 41,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 42,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": false,
+        "reference_header": false,
+        "native_run": false,
+        "reference_run": false
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-show-false-80x24",
+      "stage": "show-false",
+      "size": [
+        80,
+        24
+      ],
+      "full_grid": {
+        "cells": 1920,
+        "unequal": 1245,
+        "text": 808,
+        "foreground": 847,
+        "background": 458,
+        "modifiers": 6
+      },
+      "full_png": {
+        "native_sha256": "88870350eda8b1b3a8d65e1990d4681166cda01b844d5f670209f74f805d078d",
+        "reference_sha256": "f0e4700c38fc88b622dd8ed6375e41a5b732ee245f9c007b9114ab600f05de25",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            674,
+            384
+          ],
+          "reference": [
+            674,
+            384
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 17,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 18,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": false,
+        "reference_header": false,
+        "native_run": false,
+        "reference_run": false
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom",
+        "scroll-0",
+        "scroll-1"
+      ],
+      "reference_frames": [
+        "bottom",
+        "scroll-0",
+        "scroll-1"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-show-false-120x40",
+      "stage": "show-false",
+      "size": [
+        120,
+        40
+      ],
+      "full_grid": {
+        "cells": 4800,
+        "unequal": 2596,
+        "text": 1443,
+        "foreground": 1473,
+        "background": 1162,
+        "modifiers": 6
+      },
+      "full_png": {
+        "native_sha256": "1e813fab7ddfee37d5ef99093f644088dfc4aae8bcc852084ff4f6be9c82bfad",
+        "reference_sha256": "d042e0d0619ff78a183eea6045a095d7400f69efd9115ea9b0dd35647abfb6e8",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            1011,
+            640
+          ],
+          "reference": [
+            1011,
+            640
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 33,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": true,
+        "reference_header": true,
+        "native_run": true,
+        "reference_run": true
+      },
+      "focused_card": {
+        "expected_header": "▣ DCP | -8.4K removed, +34 summary",
+        "expected_run": "▣ Compression #3 -0 removed, +6 summary",
+        "expected_bar": "│░░░░░░░░░░░░░░░░░░░░░░░░░░░███████████████████████│",
+        "native_header": true,
+        "reference_header": true,
+        "native_run": true,
+        "reference_run": true,
+        "native_bar": true,
+        "reference_bar": true,
+        "summary_visible": false
+      },
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-show-false-160x48",
+      "stage": "show-false",
+      "size": [
+        160,
+        48
+      ],
+      "full_grid": {
+        "cells": 7680,
+        "unequal": 3822,
+        "text": 1957,
+        "foreground": 1920,
+        "background": 1874,
+        "modifiers": 6
+      },
+      "full_png": {
+        "native_sha256": "d0d85119b899bea368366200a7aa797f49aaee233e869680c208ca970d9524aa",
+        "reference_sha256": "f274d7fb8db4a0bd38625db076652854ee64d13282b6c21a2d668f7a2f4cd3a0",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            1349,
+            768
+          ],
+          "reference": [
+            1349,
+            768
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 41,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 42,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": true,
+        "reference_header": true,
+        "native_run": true,
+        "reference_run": true
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-toast-80x24",
+      "stage": "toast",
+      "size": [
+        80,
+        24
+      ],
+      "full_grid": {
+        "cells": 1920,
+        "unequal": 1330,
+        "text": 881,
+        "foreground": 962,
+        "background": 458,
+        "modifiers": 11
+      },
+      "full_png": {
+        "native_sha256": "1999f4d0800956885d563e5502e1f6daa9b96bbd3fb2a7f7f599995ab6bda994",
+        "reference_sha256": "19ac443f207faf531ee63de288a8ad7996429a29e6a7cee5b7b951937b7ff24b",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            674,
+            384
+          ],
+          "reference": [
+            674,
+            384
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 17,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 18,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": false,
+        "reference_header": false,
+        "native_run": false,
+        "reference_run": false
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-toast-120x40",
+      "stage": "toast",
+      "size": [
+        120,
+        40
+      ],
+      "full_grid": {
+        "cells": 4800,
+        "unequal": 2742,
+        "text": 1557,
+        "foreground": 1714,
+        "background": 1162,
+        "modifiers": 11
+      },
+      "full_png": {
+        "native_sha256": "ee61fc8e7cc066dd53d6e5f27276d3fe6f6b824dea5723683ec74715ab185b92",
+        "reference_sha256": "f5024def7900294709615bb1608926450ab419cc63e22b9a3ff6ce7f9fc879bb",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            1011,
+            640
+          ],
+          "reference": [
+            1011,
+            640
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 33,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": false,
+        "reference_header": false,
+        "native_run": false,
+        "reference_run": false
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    },
+    {
+      "name": "native-toast-160x48",
+      "stage": "toast",
+      "size": [
+        160,
+        48
+      ],
+      "full_grid": {
+        "cells": 7680,
+        "unequal": 4031,
+        "text": 2113,
+        "foreground": 2271,
+        "background": 1876,
+        "modifiers": 11
+      },
+      "full_png": {
+        "native_sha256": "b5324e906eb5520e6a72cb49329e3f9813bbf7dc74308604c24b8398573d0d51",
+        "reference_sha256": "adb7a7626eb2562a06c55ac9800ea701ff886599d54d22a859d1d4b50b5c3778",
+        "equal": false,
+        "dimensions": {
+          "native": [
+            1349,
+            768
+          ],
+          "reference": [
+            1349,
+            768
+          ]
+        }
+      },
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 41,
+          "visible": true,
+          "shape": "block"
+        },
+        "reference": {
+          "x": 5,
+          "y": 42,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": false
+      },
+      "visible": {
+        "native_header": false,
+        "reference_header": false,
+        "native_run": false,
+        "reference_run": false
+      },
+      "focused_card": null,
+      "native_frames": [
+        "bottom"
+      ],
+      "reference_frames": [
+        "bottom"
+      ],
+      "title_time_path_footer_are_unmasked": true,
+      "delivery": "Actual native committed tool card vs unchanged D05 payload imported into original U34"
+    }
+  ],
+  "file_seals": [
+    {
+      "name": "native-single-80x24",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "4eca0922885628575cccf0017409a6f4b34af540683bababbf4bfb88a30b9703",
+      "bytes": 258900
+    },
+    {
+      "name": "native-single-80x24",
+      "origin": "native",
+      "file": "png",
+      "sha256": "d89fc8e08165e8489b713c34bc9b183bb7ca06975b8916551539868e19a6e07a",
+      "bytes": 40909
+    },
+    {
+      "name": "native-single-80x24",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "a42d9ad9c92c7cc4ad9858ef7afcfdc90b297ac9d3aaecd02e9bbb4e00964b3c",
+      "bytes": 2141
+    },
+    {
+      "name": "native-single-80x24",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "3873130b0a8230ba343cf81990bc8a3a1d7413c40a7d9af931cdf249600ec8a7",
+      "bytes": 5408
+    },
+    {
+      "name": "native-single-80x24",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "cef7a123f2a3e80837d174c512f63d1294d1cb635383db91c0e9c08b1606c763",
+      "bytes": 13271
+    },
+    {
+      "name": "native-single-80x24",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "3b8942bc789adf840f38a0afa1518446dd6cac02b2084b1e819115563cdc3c3a",
+      "bytes": 258750
+    },
+    {
+      "name": "native-single-80x24",
+      "origin": "original",
+      "file": "png",
+      "sha256": "1da168ff064671c1d6ab9745b6cc331af5a5340c39b4bddb60217bca22f3665a",
+      "bytes": 38253
+    },
+    {
+      "name": "native-single-80x24",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "9c710c3e322a7697ffce73882206cf91feeb5d638534900674955999436319cf",
+      "bytes": 2245
+    },
+    {
+      "name": "native-single-80x24",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "fb6d106d1945fc3dbc87b0890395d55ad127df4d61b1d582ce33faac9c9b35ab",
+      "bytes": 12026
+    },
+    {
+      "name": "native-single-80x24",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595",
+      "bytes": 15315
+    },
+    {
+      "name": "native-single-120x40",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "83055324a67e5c6b345424d330449793d9e76b160b89632fa99adbe45a71dc1a",
+      "bytes": 645354
+    },
+    {
+      "name": "native-single-120x40",
+      "origin": "native",
+      "file": "png",
+      "sha256": "4c74fe4fa04144ee0b0a614dbf96158c86e921c15b0d913576de36160a8fad21",
+      "bytes": 88071
+    },
+    {
+      "name": "native-single-120x40",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "95d07d42c0be54fa79a91ee4cf384b5d058ca1eb9f3c2f0b0c6221e9a5c5b111",
+      "bytes": 5377
+    },
+    {
+      "name": "native-single-120x40",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "5fd737162558ec029d532a17615fcd7b193b3b0cb96ef9b07b35d9a63eaf0650",
+      "bytes": 10569
+    },
+    {
+      "name": "native-single-120x40",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "3fc4d94379e7038f4404189b926a5637b1847a3f21b5d480bfba39ef6cf7e7b5",
+      "bytes": 13350
+    },
+    {
+      "name": "native-single-120x40",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "7b370bd2b52db6e6f199089ef3fe7f0b7e0f684eff2e6ba259d02d4f83922631",
+      "bytes": 645131
+    },
+    {
+      "name": "native-single-120x40",
+      "origin": "original",
+      "file": "png",
+      "sha256": "3cb1bef176e179c12c3ec5f483ccb93d05f417e820be79a8d99ed4b6acf07c03",
+      "bytes": 89622
+    },
+    {
+      "name": "native-single-120x40",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "4e6b72aa67d41ccd23f7b41037a2c4a27779926b64961b4113acd28b2b4fce36",
+      "bytes": 5408
+    },
+    {
+      "name": "native-single-120x40",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "8af786740d8095fad250c17a7df29285e26db95f3dcb0e1ed1d784b6a3fafb96",
+      "bytes": 25302
+    },
+    {
+      "name": "native-single-120x40",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda",
+      "bytes": 15390
+    },
+    {
+      "name": "native-single-160x48",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "ad2fbaeab3997951e08cfd21c06ae9eb5a4a702b8da9032a797a8992704c7f5c",
+      "bytes": 1031961
+    },
+    {
+      "name": "native-single-160x48",
+      "origin": "native",
+      "file": "png",
+      "sha256": "095b39640858f12892d8b90e0af811ada9a321bf11771e93c2dddfa1d1ca5819",
+      "bytes": 153310
+    },
+    {
+      "name": "native-single-160x48",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "c6cf16dff5763cce6b32493cae92563d79c5af6f443aed6d7fd58f9070ba8cbc",
+      "bytes": 8856
+    },
+    {
+      "name": "native-single-160x48",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "bda77661677055864580bf436f14dc29cdc76323ba93b136d06abc3107405558",
+      "bytes": 16879
+    },
+    {
+      "name": "native-single-160x48",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "50a5a84e2d4eb319407d73d02eb11e33a257a4ec6b82dd6903095d38a8efafb7",
+      "bytes": 13356
+    },
+    {
+      "name": "native-single-160x48",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "61949318f2cd57f1695b79562683f31e32f17f33a65c84be9f6b5f3456d8a0ec",
+      "bytes": 1031805
+    },
+    {
+      "name": "native-single-160x48",
+      "origin": "original",
+      "file": "png",
+      "sha256": "d1fe7071d6ab0629436a1ab1b55671c3f02e3642d89aaf36ac4ec751c9408080",
+      "bytes": 160710
+    },
+    {
+      "name": "native-single-160x48",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "c8f9a84704917148d2f1497b72f632d237c78431280d3f9172369bb9d2f6c078",
+      "bytes": 8954
+    },
+    {
+      "name": "native-single-160x48",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "87b76f6c5790ba0c2373bd9e0ff355af4b944a7484ec06af70d9ad8422833952",
+      "bytes": 44671
+    },
+    {
+      "name": "native-single-160x48",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd",
+      "bytes": 15416
+    },
+    {
+      "name": "native-multi-80x24",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "cbc9286fe189ad2cef745c61c0470c52abb5e918e7d628696096c6d9268195d1",
+      "bytes": 258923
+    },
+    {
+      "name": "native-multi-80x24",
+      "origin": "native",
+      "file": "png",
+      "sha256": "69e721b542d60f2ae74a93f93b4e93d233d62aaba79b9f8b3c2658891558f96f",
+      "bytes": 48556
+    },
+    {
+      "name": "native-multi-80x24",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "bc70bd607c86c3105ebf04742385987dfdebb27b1338b10e5e5b2a626326033b",
+      "bytes": 2165
+    },
+    {
+      "name": "native-multi-80x24",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "55cbcfef1b2b280c47e96ce24a65987541fb098baaf594a9bb249971ff7edff1",
+      "bytes": 5430
+    },
+    {
+      "name": "native-multi-80x24",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "cef7a123f2a3e80837d174c512f63d1294d1cb635383db91c0e9c08b1606c763",
+      "bytes": 13271
+    },
+    {
+      "name": "native-multi-80x24",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "40756767d2bb4d337d247007135ab71e179c0328dc4cf89542ec5dbab480988e",
+      "bytes": 258643
+    },
+    {
+      "name": "native-multi-80x24",
+      "origin": "original",
+      "file": "png",
+      "sha256": "82233e65c8406ba312bd4038e6cc5a6d9d95846baa971f66bb30ba09aa3c24a4",
+      "bytes": 47761
+    },
+    {
+      "name": "native-multi-80x24",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "4f6fc1ab8cf90929e8771ff92939fe513e5cc461530136d1a6cfbc747bbc5df9",
+      "bytes": 2165
+    },
+    {
+      "name": "native-multi-80x24",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "ead8be75e7783f7d13a03ee9ff5e8a2db81eb51dd5354ef099df49a1cb50ae58",
+      "bytes": 12091
+    },
+    {
+      "name": "native-multi-80x24",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595",
+      "bytes": 15315
+    },
+    {
+      "name": "native-multi-120x40",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "7916d8b65814e21a82b9699f437a64b406917b9ed16c659459a523488f8866c5",
+      "bytes": 645263
+    },
+    {
+      "name": "native-multi-120x40",
+      "origin": "native",
+      "file": "png",
+      "sha256": "f1e16a3a8c959a0057b94a710a062366206ba271ced56797335235acf6e64671",
+      "bytes": 84337
+    },
+    {
+      "name": "native-multi-120x40",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "31a63d42418d436f1a734be2af77c44f623e73721e7f90166d4c144b7ed60072",
+      "bytes": 5287
+    },
+    {
+      "name": "native-multi-120x40",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "aa37784dad0a2310c670f523b703eb2e0d44178130f87f4f94ec17fd1c1cf156",
+      "bytes": 10166
+    },
+    {
+      "name": "native-multi-120x40",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "3fc4d94379e7038f4404189b926a5637b1847a3f21b5d480bfba39ef6cf7e7b5",
+      "bytes": 13350
+    },
+    {
+      "name": "native-multi-120x40",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "5d9cd2884ba6bb8d820c091dff773280252e3bbcf21fdbe882e9af00bea90bef",
+      "bytes": 644981
+    },
+    {
+      "name": "native-multi-120x40",
+      "origin": "original",
+      "file": "png",
+      "sha256": "83ac8c2a69c5d41b3387272f4a86d5728dc3f4d8a359404fe2a4659014c4c7c6",
+      "bytes": 84061
+    },
+    {
+      "name": "native-multi-120x40",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "a6793eec01caf8196a17a188781d05c489f246027c7c3a2100c3ee1c05cf14d0",
+      "bytes": 5285
+    },
+    {
+      "name": "native-multi-120x40",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "70229b981429cf5db9cfd8f100bb3aca576a639578e168cec6335a128f40b92f",
+      "bytes": 16657
+    },
+    {
+      "name": "native-multi-120x40",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda",
+      "bytes": 15390
+    },
+    {
+      "name": "native-multi-160x48",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "3c8ecb1b50eb17277e066c23fa9945213f370bf24a269e77b20778fb3314b5ac",
+      "bytes": 1031485
+    },
+    {
+      "name": "native-multi-160x48",
+      "origin": "native",
+      "file": "png",
+      "sha256": "c9ba8d2eb75c3042895222cac32c50033ac5dee9838056e6d1ac59168476c594",
+      "bytes": 113761
+    },
+    {
+      "name": "native-multi-160x48",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "3f948b2abcdc3b135a4840fd2bf1b4da5ad9e3831bd329ad5dcd843b5119e049",
+      "bytes": 8381
+    },
+    {
+      "name": "native-multi-160x48",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "72f5e15eec702767a290b9cb65bba0cfcdce6e9b5e43aea6bb923002341de181",
+      "bytes": 14488
+    },
+    {
+      "name": "native-multi-160x48",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "50a5a84e2d4eb319407d73d02eb11e33a257a4ec6b82dd6903095d38a8efafb7",
+      "bytes": 13356
+    },
+    {
+      "name": "native-multi-160x48",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "e8df0e4e600091edbc04fd06c1675c76c91bc9f3d0604ceea6ccc9db29e98906",
+      "bytes": 1031207
+    },
+    {
+      "name": "native-multi-160x48",
+      "origin": "original",
+      "file": "png",
+      "sha256": "9b44cb39a526286e76313d236c6f36478044645e9566eaac77644649262c4c93",
+      "bytes": 112468
+    },
+    {
+      "name": "native-multi-160x48",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "31beede2c077d045deb95f4dcad89f1ba02cbf89392f6e1a063a67792a51e81f",
+      "bytes": 8383
+    },
+    {
+      "name": "native-multi-160x48",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "cc6267a9ff658ff32ff86d452dbbfe18d8d8e74c8c025384ba3a202055fefa5a",
+      "bytes": 33378
+    },
+    {
+      "name": "native-multi-160x48",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd",
+      "bytes": 15416
+    },
+    {
+      "name": "native-recompression-80x24",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "3d73f3696dad75fc386d6690e98ce9499a47eefa2d9ea5ff905b414663e60fb7",
+      "bytes": 259011
+    },
+    {
+      "name": "native-recompression-80x24",
+      "origin": "native",
+      "file": "png",
+      "sha256": "d1f3feb170fd2f93f81346d827966cb0eadd2e98e534315fb5099d5d308af4a2",
+      "bytes": 39106
+    },
+    {
+      "name": "native-recompression-80x24",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "d4aa7bb94f0be6728b526a57d674cd885cc85a97f0a6b2302653927fb7275714",
+      "bytes": 2245
+    },
+    {
+      "name": "native-recompression-80x24",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "cdbb51ed6e142b03f9a689c251e96dbc90d87b5b3d4bdfffc84e2507f08654b8",
+      "bytes": 5216
+    },
+    {
+      "name": "native-recompression-80x24",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "cef7a123f2a3e80837d174c512f63d1294d1cb635383db91c0e9c08b1606c763",
+      "bytes": 13271
+    },
+    {
+      "name": "native-recompression-80x24",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "1fc045ffa78da2eede27a9db61f7f7a9c8d445b79714679554ebfbb7f3b79b7f",
+      "bytes": 258939
+    },
+    {
+      "name": "native-recompression-80x24",
+      "origin": "original",
+      "file": "png",
+      "sha256": "9367bd3b5ddbe9dcb1602781e848a2f106aa9d9826f7d7a60c28bec0ecd55c04",
+      "bytes": 36987
+    },
+    {
+      "name": "native-recompression-80x24",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "d884589cc23a52912c43a7e1ce2796f536dba9f44616edba34e0c032660bd803",
+      "bytes": 2245
+    },
+    {
+      "name": "native-recompression-80x24",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "a55acad1a23553312a4456e66de2d6d6d7623f040d127c3b75d5014e11d982c3",
+      "bytes": 8594
+    },
+    {
+      "name": "native-recompression-80x24",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595",
+      "bytes": 15315
+    },
+    {
+      "name": "native-recompression-120x40",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "e6693906aba0c871a3bd3f2d3992c1823ff25d0e4a5f145f943753f6bfcaabf0",
+      "bytes": 645259
+    },
+    {
+      "name": "native-recompression-120x40",
+      "origin": "native",
+      "file": "png",
+      "sha256": "78d2ac37cace82289b0a903633c170a355d8d3bc14521d0ab4ced91a0b3c46bc",
+      "bytes": 83255
+    },
+    {
+      "name": "native-recompression-120x40",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "29234b73c3ea7adae1d225d196e114a0bec65e4983ecc843d11c980e86876e4a",
+      "bytes": 5275
+    },
+    {
+      "name": "native-recompression-120x40",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "414765beefb1a7e9a881e9843458ed977cd898c6dc8b40a2ce9483a60c242c83",
+      "bytes": 10110
+    },
+    {
+      "name": "native-recompression-120x40",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "3fc4d94379e7038f4404189b926a5637b1847a3f21b5d480bfba39ef6cf7e7b5",
+      "bytes": 13350
+    },
+    {
+      "name": "native-recompression-120x40",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "6efc5b487576b6458abc279feabc4956e4381045dfbdb234fed659a5518a3452",
+      "bytes": 645189
+    },
+    {
+      "name": "native-recompression-120x40",
+      "origin": "original",
+      "file": "png",
+      "sha256": "a953239e303239f248b1d3fa9945fbb79ccd3be885be366abce86ea75fdadc10",
+      "bytes": 83790
+    },
+    {
+      "name": "native-recompression-120x40",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "c104d9f50699065032e73db2382a260f503954a0a3711d27f8af914de1848c51",
+      "bytes": 5277
+    },
+    {
+      "name": "native-recompression-120x40",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "19d1e3132716d67a6526eef39fdb8caf024440b938601fd95746b57c3643880f",
+      "bytes": 22862
+    },
+    {
+      "name": "native-recompression-120x40",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda",
+      "bytes": 15390
+    },
+    {
+      "name": "native-recompression-160x48",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "7ae85266e686ff9704d045d4b5c9ad85bbf85cc187635490bed0ee424be9d0a0",
+      "bytes": 1031491
+    },
+    {
+      "name": "native-recompression-160x48",
+      "origin": "native",
+      "file": "png",
+      "sha256": "73cff59643e55036d26aac7bc31678c6da614b104ef56188e9a576e4757a4ab8",
+      "bytes": 102753
+    },
+    {
+      "name": "native-recompression-160x48",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "f01f9478690ce687fd64766fa9019a3c2addb02da487c2f19c6920bcafdaf8b7",
+      "bytes": 8379
+    },
+    {
+      "name": "native-recompression-160x48",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "ec5f9c46bcd6e381e6acb16704811b0e038ba35fb75ea8d122bec95838418941",
+      "bytes": 14252
+    },
+    {
+      "name": "native-recompression-160x48",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "50a5a84e2d4eb319407d73d02eb11e33a257a4ec6b82dd6903095d38a8efafb7",
+      "bytes": 13356
+    },
+    {
+      "name": "native-recompression-160x48",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "92be106e3ecce13341e136320bc5fcc994d8e46649e85053de1e5fb027f3c33c",
+      "bytes": 1031423
+    },
+    {
+      "name": "native-recompression-160x48",
+      "origin": "original",
+      "file": "png",
+      "sha256": "580bb0da500c3af5f567305c15bac18fe17b2d84135f5c1d1f570bdf82b6d348",
+      "bytes": 106541
+    },
+    {
+      "name": "native-recompression-160x48",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "0aa498d3fd58025c8a1de7d86f2931f623a07886be64766d67946cec84d36230",
+      "bytes": 8383
+    },
+    {
+      "name": "native-recompression-160x48",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "09e5956925d28526c36434bdaf59d22351e4bb17d2fa2cbc5169ae2f87cd8533",
+      "bytes": 33014
+    },
+    {
+      "name": "native-recompression-160x48",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd",
+      "bytes": 15416
+    },
+    {
+      "name": "native-restart-80x24",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "ad65e35e179292a3b9705dab15ac35b9b38baeae67896fd6ab19abd2547a821a",
+      "bytes": 258887
+    },
+    {
+      "name": "native-restart-80x24",
+      "origin": "native",
+      "file": "png",
+      "sha256": "d9f353dd6d78bb8ef4bbf6f9fa11b955c6e2e226a1fc5443aa1b1e130074e4f8",
+      "bytes": 39281
+    },
+    {
+      "name": "native-restart-80x24",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "47c28fd1722722a56c4e418d80d3fba84b93665b1ae4615661fcff4271153ec1",
+      "bytes": 2127
+    },
+    {
+      "name": "native-restart-80x24",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "e6c25e98135621057ece397b3c335baf33abbea391c653ece084159dbfa0511f",
+      "bytes": 4606
+    },
+    {
+      "name": "native-restart-80x24",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "cef7a123f2a3e80837d174c512f63d1294d1cb635383db91c0e9c08b1606c763",
+      "bytes": 13271
+    },
+    {
+      "name": "native-restart-80x24",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "123be0af89724c22efbfe808bcf650ca99a442c2ab77a806976c2e623f0cf4f5",
+      "bytes": 258661
+    },
+    {
+      "name": "native-restart-80x24",
+      "origin": "original",
+      "file": "png",
+      "sha256": "9cf95b55f82cbb2c28a62b2f5c6e992ddb6bfb258bc89205c089806a78c98eb2",
+      "bytes": 38194
+    },
+    {
+      "name": "native-restart-80x24",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "7b38d3e944212502ee22e092f811f6a287ddae7c899bb574c1a9f0672cf736a5",
+      "bytes": 2129
+    },
+    {
+      "name": "native-restart-80x24",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "bb3b7b126494e66a5a588499b38c220d4ee273f87089de46f6fa5f2529d9da9b",
+      "bytes": 7941
+    },
+    {
+      "name": "native-restart-80x24",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595",
+      "bytes": 15315
+    },
+    {
+      "name": "native-restart-120x40",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "d8b626e0b6aceca764bed60e5ac89d553951f5c816b5d7b102b1caeee709aa79",
+      "bytes": 645215
+    },
+    {
+      "name": "native-restart-120x40",
+      "origin": "native",
+      "file": "png",
+      "sha256": "0b40088d856970b952894e0f7d5f49932b45b0a782f6551d866745d77ee9de55",
+      "bytes": 70369
+    },
+    {
+      "name": "native-restart-120x40",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "1e84a9293921a9944534bf132aeed259209303d13611186232bff8692810556a",
+      "bytes": 5237
+    },
+    {
+      "name": "native-restart-120x40",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "2a0c229af792edfaefb12a9096e20d094a4b570be9f1e108a2eacbab62a28e81",
+      "bytes": 9352
+    },
+    {
+      "name": "native-restart-120x40",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "3fc4d94379e7038f4404189b926a5637b1847a3f21b5d480bfba39ef6cf7e7b5",
+      "bytes": 13350
+    },
+    {
+      "name": "native-restart-120x40",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "73a97c09b9927c9dff6175f9432aa07a922e40934bbcf0a7f9531974031bd61c",
+      "bytes": 644985
+    },
+    {
+      "name": "native-restart-120x40",
+      "origin": "original",
+      "file": "png",
+      "sha256": "1a5af614d7f2216f907434a020debf52adecf0f6030b47f208a1ee90f7e6e8ab",
+      "bytes": 67943
+    },
+    {
+      "name": "native-restart-120x40",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "7e7bbd1d055baa284b89c78eaa921d3e9f983f68ada1a37aedf47d4b88e854f3",
+      "bytes": 5235
+    },
+    {
+      "name": "native-restart-120x40",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "fcd6b37c51f57ab938aad841610a89d3d598b82ba52b8bb67cb759a0f4692b56",
+      "bytes": 21131
+    },
+    {
+      "name": "native-restart-120x40",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda",
+      "bytes": 15390
+    },
+    {
+      "name": "native-restart-160x48",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "08aa117d20eb04d9b3deb76efe46c4ab145eb48348305c923f64bb311272c4c6",
+      "bytes": 1031355
+    },
+    {
+      "name": "native-restart-160x48",
+      "origin": "native",
+      "file": "png",
+      "sha256": "e7243483bb984d06b6f009ef354a55db1d0c182b5b510400e236d7a13984184a",
+      "bytes": 99733
+    },
+    {
+      "name": "native-restart-160x48",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "da401ebe69725f74fcbb59d96fb1e9c47542d0f3a35cfe0302db671a630cee20",
+      "bytes": 8249
+    },
+    {
+      "name": "native-restart-160x48",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "cf97da007a51bbcc042c97cc3e73cb346402819f3ad0e35851ba99e790fdf374",
+      "bytes": 13656
+    },
+    {
+      "name": "native-restart-160x48",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "50a5a84e2d4eb319407d73d02eb11e33a257a4ec6b82dd6903095d38a8efafb7",
+      "bytes": 13356
+    },
+    {
+      "name": "native-restart-160x48",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "f05f6e3f37b3e6a00b5c02e4e317c2ad0c7234798122aef45c09bee1a36f2e07",
+      "bytes": 1031147
+    },
+    {
+      "name": "native-restart-160x48",
+      "origin": "original",
+      "file": "png",
+      "sha256": "74a5d88ac9cafcb0e917a0a09dca11f2922aeb93e52c971396aea75e06a78cc7",
+      "bytes": 105509
+    },
+    {
+      "name": "native-restart-160x48",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "087ed537765d8024d60ed0b498c85198e74226779992b6ceeaacc24e7399d9d6",
+      "bytes": 8269
+    },
+    {
+      "name": "native-restart-160x48",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "1c855e2754415071fd49c432b7828b032623cb5938dc7eb37dc72ee817b3205d",
+      "bytes": 22675
+    },
+    {
+      "name": "native-restart-160x48",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd",
+      "bytes": 15416
+    },
+    {
+      "name": "native-minimal-80x24",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "2cf87bc2e4a35d825b97c9a7eaeddbce5dafe077503f52fd72633cfb3499f478",
+      "bytes": 258889
+    },
+    {
+      "name": "native-minimal-80x24",
+      "origin": "native",
+      "file": "png",
+      "sha256": "dc6903215c3267b39f8d32eaef21f2a18a99971577f08dc4b7beef5498585887",
+      "bytes": 39539
+    },
+    {
+      "name": "native-minimal-80x24",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "d85dedf1fc006ba985648df3c749397dfe8b3134f066c10b27a695f5e32be7a7",
+      "bytes": 2129
+    },
+    {
+      "name": "native-minimal-80x24",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "140b52c04983a8cdefe071d754b9502ae6579d3d8a3bbcd93e38ae1493e02e4a",
+      "bytes": 4608
+    },
+    {
+      "name": "native-minimal-80x24",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "cef7a123f2a3e80837d174c512f63d1294d1cb635383db91c0e9c08b1606c763",
+      "bytes": 13271
+    },
+    {
+      "name": "native-minimal-80x24",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "6fd6c0a9b8ab9e25e5c59c6539b25d953a91501d117069838e4df458cd47d493",
+      "bytes": 258661
+    },
+    {
+      "name": "native-minimal-80x24",
+      "origin": "original",
+      "file": "png",
+      "sha256": "a3a8f572c48f84641dc33c25d2266ff5846e114893fbbd99def6bdb4a4468a6b",
+      "bytes": 36459
+    },
+    {
+      "name": "native-minimal-80x24",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "132514525378e7558c61f125026ebab717659709c4c1aa5cddb8d3f317d3f137",
+      "bytes": 2129
+    },
+    {
+      "name": "native-minimal-80x24",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "13fb5f76a440b4702d78b3a4bcf2b33415200a493970954d89f3eb1d526e707d",
+      "bytes": 10700
+    },
+    {
+      "name": "native-minimal-80x24",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595",
+      "bytes": 15315
+    },
+    {
+      "name": "native-minimal-120x40",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "d37a401ae08e16d551989c2b7a000d5dce700060bf78c01aa48f10df70ab8438",
+      "bytes": 645107
+    },
+    {
+      "name": "native-minimal-120x40",
+      "origin": "native",
+      "file": "png",
+      "sha256": "b029c9c9853182a68e780c3d4481143e11fc8dab1201c91577fc6e89c3d0abd5",
+      "bytes": 65601
+    },
+    {
+      "name": "native-minimal-120x40",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "6c64109393ac77bbeed1356c799d24d6cd295ecc62ec6894476f64663573d4c4",
+      "bytes": 5129
+    },
+    {
+      "name": "native-minimal-120x40",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "7e2183658f7cc2be2b917c431fc0ae9cd875938e0a8e371b0ec556cbdf8d13d2",
+      "bytes": 8948
+    },
+    {
+      "name": "native-minimal-120x40",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "3fc4d94379e7038f4404189b926a5637b1847a3f21b5d480bfba39ef6cf7e7b5",
+      "bytes": 13350
+    },
+    {
+      "name": "native-minimal-120x40",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "1346b0ac4b493d95f26f36e3abefc73b8a7bc34d502ed7d4a6aed2a1c1b9f847",
+      "bytes": 644877
+    },
+    {
+      "name": "native-minimal-120x40",
+      "origin": "original",
+      "file": "png",
+      "sha256": "52bbf4378ed8f439bb0b5e55fd16ad134d8f433d73cfcf617a1da902b76e746b",
+      "bytes": 62983
+    },
+    {
+      "name": "native-minimal-120x40",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "4b03df6ad31c51e113321ebecb0e589e284e9574ed3fcd50164cc6deda5c5d25",
+      "bytes": 5127
+    },
+    {
+      "name": "native-minimal-120x40",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "92d96467c96dcaef3977f287d3d1cd61af0c967ef9baaa842bd8183a4cf1af80",
+      "bytes": 21181
+    },
+    {
+      "name": "native-minimal-120x40",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda",
+      "bytes": 15390
+    },
+    {
+      "name": "native-minimal-160x48",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "c3b405eee81e4375783f578db344ea48fb74dff744d52ac1bc23b950f44757ae",
+      "bytes": 1031211
+    },
+    {
+      "name": "native-minimal-160x48",
+      "origin": "native",
+      "file": "png",
+      "sha256": "77d285d4bab2ee6b2acbb3ff4fe04bdd47f6b0aa65e448a9c7660133781fecd5",
+      "bytes": 81191
+    },
+    {
+      "name": "native-minimal-160x48",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "3c9e52b8288426aea5d182baa5cea953bb5e7a3d48b0ff6076b03a4619b0af6b",
+      "bytes": 8105
+    },
+    {
+      "name": "native-minimal-160x48",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "88f72f727985665a35d26090a17fb0861c36212afabbb95f43175fce1e36fd4c",
+      "bytes": 12496
+    },
+    {
+      "name": "native-minimal-160x48",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "50a5a84e2d4eb319407d73d02eb11e33a257a4ec6b82dd6903095d38a8efafb7",
+      "bytes": 13356
+    },
+    {
+      "name": "native-minimal-160x48",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "e9dca9198e667bbeb771d0e7f3808098a1b59b37be97081ea42d9a00446c4bc7",
+      "bytes": 1030987
+    },
+    {
+      "name": "native-minimal-160x48",
+      "origin": "original",
+      "file": "png",
+      "sha256": "c45188b438f75bedaf998224caff5942e4b1b51cbe2eb0cd8b1bf8f77580ad99",
+      "bytes": 79706
+    },
+    {
+      "name": "native-minimal-160x48",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "48777dbefa32001cb9f2e9deb88f2c8e2d74598cdb8ddd6584b8ef0625553593",
+      "bytes": 8109
+    },
+    {
+      "name": "native-minimal-160x48",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "77c0e43cc2b4e9a3c29e5fa4c8650c7536ff5a770b6695e15e129227832ac47a",
+      "bytes": 29802
+    },
+    {
+      "name": "native-minimal-160x48",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd",
+      "bytes": 15416
+    },
+    {
+      "name": "native-off-80x24",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "284bcc11ba264138690d1378e13134c843cfdbd6e27541b4d8291f4da2c2cba0",
+      "bytes": 258881
+    },
+    {
+      "name": "native-off-80x24",
+      "origin": "native",
+      "file": "png",
+      "sha256": "1999f4d0800956885d563e5502e1f6daa9b96bbd3fb2a7f7f599995ab6bda994",
+      "bytes": 40066
+    },
+    {
+      "name": "native-off-80x24",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "6072a3b5521924757c1933df706f35ee74297b1f35c8588e6aa0f21083c8be2e",
+      "bytes": 2125
+    },
+    {
+      "name": "native-off-80x24",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "e31c815a28f76792da788ed107793bfca0673deb746172324c7907520927d133",
+      "bytes": 4604
+    },
+    {
+      "name": "native-off-80x24",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "cef7a123f2a3e80837d174c512f63d1294d1cb635383db91c0e9c08b1606c763",
+      "bytes": 13271
+    },
+    {
+      "name": "native-off-80x24",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "c8c8d2eb22c2fc0a46ae8b2d7ad057af1d2ee660f142c364c4f0533a58c47349",
+      "bytes": 258549
+    },
+    {
+      "name": "native-off-80x24",
+      "origin": "original",
+      "file": "png",
+      "sha256": "c6bacd810954ee44c56a6020ed3d0b7c025957834d074e3e22bcf08da69a07fb",
+      "bytes": 36844
+    },
+    {
+      "name": "native-off-80x24",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "f58c01e897a92efaa2105bcf7aad5ec5004d2e4f10f0f724ca9811e4303a54c5",
+      "bytes": 2125
+    },
+    {
+      "name": "native-off-80x24",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "f7ea2b5d68f73f7f4c45735f3df9561d3787e163e21f828e2fd3757962911fba",
+      "bytes": 10779
+    },
+    {
+      "name": "native-off-80x24",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595",
+      "bytes": 15315
+    },
+    {
+      "name": "native-off-120x40",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "053636289e75206e76e42c76cb09ddb76aae02c3f86cb89a0aa1e1190d89dd2f",
+      "bytes": 645091
+    },
+    {
+      "name": "native-off-120x40",
+      "origin": "native",
+      "file": "png",
+      "sha256": "ee61fc8e7cc066dd53d6e5f27276d3fe6f6b824dea5723683ec74715ab185b92",
+      "bytes": 69595
+    },
+    {
+      "name": "native-off-120x40",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "2857f0447a8308ec132ed964b531c5fe0c08ccfeae1a096b94f149e2cae2327b",
+      "bytes": 5117
+    },
+    {
+      "name": "native-off-120x40",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "ce9c2b9ebe3436120647322436f3e245209710352f4a43e16bad80d99b2c2bae",
+      "bytes": 8740
+    },
+    {
+      "name": "native-off-120x40",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "3fc4d94379e7038f4404189b926a5637b1847a3f21b5d480bfba39ef6cf7e7b5",
+      "bytes": 13350
+    },
+    {
+      "name": "native-off-120x40",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "603aadbc6db22b98fc2c2b647033284c3698de86743a9cd4b081d84f35c913ca",
+      "bytes": 644759
+    },
+    {
+      "name": "native-off-120x40",
+      "origin": "original",
+      "file": "png",
+      "sha256": "efa86f6013cafb3b9a97bd054d49e1bb70e127960a3870aa766d9776327d10eb",
+      "bytes": 66725
+    },
+    {
+      "name": "native-off-120x40",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "37e0b8e766a3b75c127d03ea17140f996e62bd8a950cfb5255f21d0117327c57",
+      "bytes": 5117
+    },
+    {
+      "name": "native-off-120x40",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "71ee528b0f83c5b3776ae36e722d02da142cc2ef8e47b968457b69d1b450e5ba",
+      "bytes": 13400
+    },
+    {
+      "name": "native-off-120x40",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda",
+      "bytes": 15390
+    },
+    {
+      "name": "native-off-160x48",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "f5f188b6d412c5fe88f6429f554d7e2901bde047ffe3a7f6a718b4134c138f7a",
+      "bytes": 1031215
+    },
+    {
+      "name": "native-off-160x48",
+      "origin": "native",
+      "file": "png",
+      "sha256": "b5324e906eb5520e6a72cb49329e3f9813bbf7dc74308604c24b8398573d0d51",
+      "bytes": 85843
+    },
+    {
+      "name": "native-off-160x48",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "505b04233cdc77874e16180e46bcf83f49195f876c6c9b34f7d38772880d8220",
+      "bytes": 8113
+    },
+    {
+      "name": "native-off-160x48",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "38e0cdec9ca724ca342881f97011dcc007b24ff367f603647606c745e6ea12be",
+      "bytes": 12372
+    },
+    {
+      "name": "native-off-160x48",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "50a5a84e2d4eb319407d73d02eb11e33a257a4ec6b82dd6903095d38a8efafb7",
+      "bytes": 13356
+    },
+    {
+      "name": "native-off-160x48",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "17d6fe0436667754b9d9a031b39eb3d0d22c61c93189c4159aab4b1a1e25ae2e",
+      "bytes": 1030968
+    },
+    {
+      "name": "native-off-160x48",
+      "origin": "original",
+      "file": "png",
+      "sha256": "4c6d6575eafb8b9448f10d287a5ab6f9a2eeac28c91958f6a6ab2c914173266f",
+      "bytes": 92290
+    },
+    {
+      "name": "native-off-160x48",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "ce029e6d66cb4e0e9ac4246ea6548e9affff86e18446f5ec74013565f0466ce4",
+      "bytes": 8198
+    },
+    {
+      "name": "native-off-160x48",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "1efe18e7d28e92145c21114e9e6113e222826007ae5ece8555fb8f4533de35e8",
+      "bytes": 31109
+    },
+    {
+      "name": "native-off-160x48",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd",
+      "bytes": 15416
+    },
+    {
+      "name": "native-show-false-80x24",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "3f4b136c987214e4862733b933de64acedeae62077a9972c1ddf218e3e4bd2bc",
+      "bytes": 258890
+    },
+    {
+      "name": "native-show-false-80x24",
+      "origin": "native",
+      "file": "png",
+      "sha256": "88870350eda8b1b3a8d65e1990d4681166cda01b844d5f670209f74f805d078d",
+      "bytes": 38251
+    },
+    {
+      "name": "native-show-false-80x24",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "7fa2d327997d9b880eff67774aedfedee7688938c7179b9508cc057020aa30b4",
+      "bytes": 2127
+    },
+    {
+      "name": "native-show-false-80x24",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "94f1bdecc2c35dbd7046841701ace94394dcb4470bad5469724126f99118324a",
+      "bytes": 4606
+    },
+    {
+      "name": "native-show-false-80x24",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "cef7a123f2a3e80837d174c512f63d1294d1cb635383db91c0e9c08b1606c763",
+      "bytes": 13271
+    },
+    {
+      "name": "native-show-false-80x24",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "b7380994fe5b77a8eec542b4d80cccbd750d1be5fad2c79d1919019925cab6a5",
+      "bytes": 258742
+    },
+    {
+      "name": "native-show-false-80x24",
+      "origin": "original",
+      "file": "png",
+      "sha256": "f0e4700c38fc88b622dd8ed6375e41a5b732ee245f9c007b9114ab600f05de25",
+      "bytes": 37831
+    },
+    {
+      "name": "native-show-false-80x24",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "b05bcafa36608a0bf7f499e580dfc83fc3cb21afcd9d8c3b1e6f454eb19fc075",
+      "bytes": 2129
+    },
+    {
+      "name": "native-show-false-80x24",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "76804cc362b9b70c1e19d64c57b1006f4dc4cd6fb2cb5e9c26fa8cead19f9fce",
+      "bytes": 7458
+    },
+    {
+      "name": "native-show-false-80x24",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595",
+      "bytes": 15315
+    },
+    {
+      "name": "native-show-false-120x40",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "d4c41bb5b53ebbdf46ec29e1c1f6e05cdfae82bed2d86ccbe5955b91d2f86e84",
+      "bytes": 645216
+    },
+    {
+      "name": "native-show-false-120x40",
+      "origin": "native",
+      "file": "png",
+      "sha256": "1e813fab7ddfee37d5ef99093f644088dfc4aae8bcc852084ff4f6be9c82bfad",
+      "bytes": 66880
+    },
+    {
+      "name": "native-show-false-120x40",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "ecba83122397baabc41d7af30be83edb61f7a24d847f18752444216dcdb9a47d",
+      "bytes": 5235
+    },
+    {
+      "name": "native-show-false-120x40",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "c30b69cf82197e1ddc9778ea2478e34749f00f1a5ea1855557c0048d6abb56a9",
+      "bytes": 9284
+    },
+    {
+      "name": "native-show-false-120x40",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "3fc4d94379e7038f4404189b926a5637b1847a3f21b5d480bfba39ef6cf7e7b5",
+      "bytes": 13350
+    },
+    {
+      "name": "native-show-false-120x40",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "3fdfb7dbd4b6770763ffc5dece605b6df9d85305155c8e49914f416cc7431a02",
+      "bytes": 645066
+    },
+    {
+      "name": "native-show-false-120x40",
+      "origin": "original",
+      "file": "png",
+      "sha256": "d042e0d0619ff78a183eea6045a095d7400f69efd9115ea9b0dd35647abfb6e8",
+      "bytes": 67098
+    },
+    {
+      "name": "native-show-false-120x40",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "17d2400be1d42ed5af4e1f19690113c5df31bbc2db122ec736c561112d713d20",
+      "bytes": 5235
+    },
+    {
+      "name": "native-show-false-120x40",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "485dd9ee4368cda526cf59a4757721a145513b0440da52a5b0840ff5e3692f22",
+      "bytes": 15311
+    },
+    {
+      "name": "native-show-false-120x40",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda",
+      "bytes": 15390
+    },
+    {
+      "name": "native-show-false-160x48",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "c777bab017594db263ff3b57e669aff85f40c12ce3c94e7a5bd1ba2ae5ee8db4",
+      "bytes": 1031448
+    },
+    {
+      "name": "native-show-false-160x48",
+      "origin": "native",
+      "file": "png",
+      "sha256": "d0d85119b899bea368366200a7aa797f49aaee233e869680c208ca970d9524aa",
+      "bytes": 88121
+    },
+    {
+      "name": "native-show-false-160x48",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "01c39c545c7f35d1fd7d9c4f165b85d13df8e87d1d94f87098d59d474578512a",
+      "bytes": 8339
+    },
+    {
+      "name": "native-show-false-160x48",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "17d8c2209614b5beedb6f0645401c2df8589368bdc39efc13b66bc3cd76866e0",
+      "bytes": 13484
+    },
+    {
+      "name": "native-show-false-160x48",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "50a5a84e2d4eb319407d73d02eb11e33a257a4ec6b82dd6903095d38a8efafb7",
+      "bytes": 13356
+    },
+    {
+      "name": "native-show-false-160x48",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "efb1d0a78ab72bbd846103fd1b58975a455aba9aa9ad88f5aec784f6ef6279d8",
+      "bytes": 1031300
+    },
+    {
+      "name": "native-show-false-160x48",
+      "origin": "original",
+      "file": "png",
+      "sha256": "f274d7fb8db4a0bd38625db076652854ee64d13282b6c21a2d668f7a2f4cd3a0",
+      "bytes": 87255
+    },
+    {
+      "name": "native-show-false-160x48",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "fc899d0f47c98324fadbe68bfa42d518deaf5c997167acd3aa88128b7c55fc47",
+      "bytes": 8341
+    },
+    {
+      "name": "native-show-false-160x48",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "31ca2bf1806f2bb7e6cba4c864ba78987312bedfde8964b01846728c1b2d74b4",
+      "bytes": 22133
+    },
+    {
+      "name": "native-show-false-160x48",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd",
+      "bytes": 15416
+    },
+    {
+      "name": "native-toast-80x24",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "e6d8226924340f7832b1f65897a0b26e43b1c8536a515de1389ede9781e41f13",
+      "bytes": 258883
+    },
+    {
+      "name": "native-toast-80x24",
+      "origin": "native",
+      "file": "png",
+      "sha256": "1999f4d0800956885d563e5502e1f6daa9b96bbd3fb2a7f7f599995ab6bda994",
+      "bytes": 40066
+    },
+    {
+      "name": "native-toast-80x24",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "6072a3b5521924757c1933df706f35ee74297b1f35c8588e6aa0f21083c8be2e",
+      "bytes": 2125
+    },
+    {
+      "name": "native-toast-80x24",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "e31c815a28f76792da788ed107793bfca0673deb746172324c7907520927d133",
+      "bytes": 4604
+    },
+    {
+      "name": "native-toast-80x24",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "cef7a123f2a3e80837d174c512f63d1294d1cb635383db91c0e9c08b1606c763",
+      "bytes": 13271
+    },
+    {
+      "name": "native-toast-80x24",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "dc6b60eda52628ca39895874bb2e93ad78886c07462c0180849bdf1487eea52c",
+      "bytes": 258603
+    },
+    {
+      "name": "native-toast-80x24",
+      "origin": "original",
+      "file": "png",
+      "sha256": "19ac443f207faf531ee63de288a8ad7996429a29e6a7cee5b7b951937b7ff24b",
+      "bytes": 37140
+    },
+    {
+      "name": "native-toast-80x24",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "50aa26a76c7f8050c7c66e74e3a071e76ac93bc52960242eac159e5fec525594",
+      "bytes": 2125
+    },
+    {
+      "name": "native-toast-80x24",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "0e1b4e69588ee8b06c149fd5881febc31b202280dac25eb6aff022d4de759f25",
+      "bytes": 10787
+    },
+    {
+      "name": "native-toast-80x24",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "82506c1abd5197c858e4871bcc1de16fd840cdbadf8aa976d6ad9f534ccc1595",
+      "bytes": 15315
+    },
+    {
+      "name": "native-toast-120x40",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "5af63ac1c850a0591f736dad8fc2e6ed96bc967dfdb8af682cfc061e2bd0620b",
+      "bytes": 645093
+    },
+    {
+      "name": "native-toast-120x40",
+      "origin": "native",
+      "file": "png",
+      "sha256": "ee61fc8e7cc066dd53d6e5f27276d3fe6f6b824dea5723683ec74715ab185b92",
+      "bytes": 69595
+    },
+    {
+      "name": "native-toast-120x40",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "2857f0447a8308ec132ed964b531c5fe0c08ccfeae1a096b94f149e2cae2327b",
+      "bytes": 5117
+    },
+    {
+      "name": "native-toast-120x40",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "ce9c2b9ebe3436120647322436f3e245209710352f4a43e16bad80d99b2c2bae",
+      "bytes": 8740
+    },
+    {
+      "name": "native-toast-120x40",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "3fc4d94379e7038f4404189b926a5637b1847a3f21b5d480bfba39ef6cf7e7b5",
+      "bytes": 13350
+    },
+    {
+      "name": "native-toast-120x40",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "16c50ac4a921b14be28ca1c7ffdb5c0f4b1cd2c04246936c5a1a79ae4c39a970",
+      "bytes": 644811
+    },
+    {
+      "name": "native-toast-120x40",
+      "origin": "original",
+      "file": "png",
+      "sha256": "f5024def7900294709615bb1608926450ab419cc63e22b9a3ff6ce7f9fc879bb",
+      "bytes": 67015
+    },
+    {
+      "name": "native-toast-120x40",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "232325481e93bbae2191ed2038c87ab0fa62be27d0a19ce068e3bbf31fd93d2e",
+      "bytes": 5115
+    },
+    {
+      "name": "native-toast-120x40",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "acd9b217882bcceed04d42d684691c8a29cf4c0c3134ce255b8b85e215a568d6",
+      "bytes": 20170
+    },
+    {
+      "name": "native-toast-120x40",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "57b9d31d43591650ca7f5a759fdd4a922e70b1f8c09142a89cb9edb50ef45eda",
+      "bytes": 15390
+    },
+    {
+      "name": "native-toast-160x48",
+      "origin": "native",
+      "file": "cells.json",
+      "sha256": "e361772d787a514c0a75bcdbc697b7cd31cac49f976ff235e9797499765c2260",
+      "bytes": 1031217
+    },
+    {
+      "name": "native-toast-160x48",
+      "origin": "native",
+      "file": "png",
+      "sha256": "b5324e906eb5520e6a72cb49329e3f9813bbf7dc74308604c24b8398573d0d51",
+      "bytes": 85843
+    },
+    {
+      "name": "native-toast-160x48",
+      "origin": "native",
+      "file": "txt",
+      "sha256": "505b04233cdc77874e16180e46bcf83f49195f876c6c9b34f7d38772880d8220",
+      "bytes": 8113
+    },
+    {
+      "name": "native-toast-160x48",
+      "origin": "native",
+      "file": "vt",
+      "sha256": "38e0cdec9ca724ca342881f97011dcc007b24ff367f603647606c745e6ea12be",
+      "bytes": 12372
+    },
+    {
+      "name": "native-toast-160x48",
+      "origin": "native",
+      "file": "render.json",
+      "sha256": "50a5a84e2d4eb319407d73d02eb11e33a257a4ec6b82dd6903095d38a8efafb7",
+      "bytes": 13356
+    },
+    {
+      "name": "native-toast-160x48",
+      "origin": "original",
+      "file": "cells.json",
+      "sha256": "e9e7d3ca2628c94fd932ed4990a25639ece438924a0e86ef836b654d6ea4089c",
+      "bytes": 1031024
+    },
+    {
+      "name": "native-toast-160x48",
+      "origin": "original",
+      "file": "png",
+      "sha256": "adb7a7626eb2562a06c55ac9800ea701ff886599d54d22a859d1d4b50b5c3778",
+      "bytes": 92526
+    },
+    {
+      "name": "native-toast-160x48",
+      "origin": "original",
+      "file": "txt",
+      "sha256": "722687d1c66bd59d1a0c21ac07e45c831e0e043f3beef8f5057b92fd313190bf",
+      "bytes": 8200
+    },
+    {
+      "name": "native-toast-160x48",
+      "origin": "original",
+      "file": "vt",
+      "sha256": "84682ba392fa712c947f81fd794bd72d8393f6fb2d8911796ffadfbc77d9dca3",
+      "bytes": 20369
+    },
+    {
+      "name": "native-toast-160x48",
+      "origin": "original",
+      "file": "render.json",
+      "sha256": "6195493626c802909bc17a545d74e0a253a068f726fd9ff54c0c088a14db30dd",
+      "bytes": 15416
+    }
+  ],
+  "limitations": [
+    "Full frame metrics include truthful original/native timings, session title, isolated cwd, native runtime footer and original agent hints",
+    "Original public import maps intercepted D05 ignored user text into U34, not a legacy JS plugin compatibility or live native toast proof",
+    "Bottom frames of long cards at 80x24 may clip headers; immutable unmasked scrolled frames are retained separately",
+    "No claim of failure/cancel/no-gain, public DTO, Undo/Redo or resource gate"
+  ]
+}

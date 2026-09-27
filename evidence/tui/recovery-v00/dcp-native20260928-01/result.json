@@ -1,0 +1,29 @@
+{
+  "status": "FAILED_ACTUAL_OWNER_PROBE",
+  "qualification": "Actual native compression/continuation and durable typed snapshot, independent of display reference",
+  "oc_binary_sha256": "4070639b7d0e9814f862b577ee7a4014f06a21567054c534fd6f6baf9b076f19",
+  "parent_released_sha256": "4070639b7d0e9814f862b577ee7a4014f06a21567054c534fd6f6baf9b076f19",
+  "build_source_association": "Explicit parent-attested digest; parent retains build/source proof",
+  "source_HEAD": "8fda54ad25667ea6cf0115c3a77b32d182baaf9b",
+  "checks": [],
+  "not_qualified": [
+    "recompression",
+    "failure/cancel/no-gain",
+    "Undo/Redo routing",
+    "bounded archive/resources",
+    "live ToolCallFinished publication / public ToolOpView and summary paging",
+    "paired native TUI styled-cell/PNG/cursor frames"
+  ],
+  "reason": "Actual next provider input did not shrink",
+  "provider_requests": 6,
+  "evidence_seals": {
+    "commands.json": "49f810bb887b1a6932d084efb7f552f8097cfd33efd2df2b3303399fada87333",
+    "compress-single-before.json": "c36b2ebf69c5ca83dc71f6a22f6fdbf045849c174c76fcdc81d72b87b61553d2",
+    "compress-single-snapshot.json": "95f4cd09be4d41e75d27326458ec62f6c8938f883090a9108db5d0fd0780bde5",
+    "requests.json": "5d53b0e0d6b05586d563b82436b2b32f2f57b9adb80611d852e60114a9d02c68",
+    "seed-A-snapshot.json": "7f166a1ef8ef16b1285d68670a65b6c8f010040a4b3ea112b957b858a41f7464",
+    "seed-B-snapshot.json": "bf691eab35c379ee52f05654f3cfe59ca5896116aa2fd86197235d703701fc8c",
+    "seed-C-snapshot.json": "c36b2ebf69c5ca83dc71f6a22f6fdbf045849c174c76fcdc81d72b87b61553d2"
+  },
+  "helper_sha256": "f19775f6aba881687cce90d63bb9e3918901d0e045526c407830c2bc8c15d86a"
+}

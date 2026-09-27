@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/usr/bin/node",
+    "/home/opencode/ai/oc/scripts/tui_capture/dcp_reference_capture.mjs",
+    "--native-spec",
+    "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-native20260928-02/native-tui-multi-spec.json",
+    "--output",
+    "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-02-multi"
+  ],
+  "exit_code": 1,
+  "stdout": "{\"output\":\"/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-02-multi\",\"captures\":4,\"attempts\":[{\"name\":\"native-multi-80x24\",\"status\":\"FAILED_REFERENCE_CAPTURE\",\"reason\":\"Timeout card scroll\"},{\"name\":\"native-multi-120x40\",\"status\":\"PASS_NATIVE_STAGE_CAPTURE\",\"genuine_session\":true},{\"name\":\"native-multi-160x48\",\"status\":\"PASS_NATIVE_STAGE_CAPTURE\",\"genuine_session\":true}]}\n",
+  "stderr": "native-multi-80x24: Timeout card scroll\n",
+  "output": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-02-multi",
+  "lock_sha256": "3216025ea9802fa21de649e873f5e6b039e1a55c3dc2f86c8f7fe7b30b812e69",
+  "provider_requests_before": 8,
+  "provider_requests_after": 8
+}

@@ -193,6 +193,7 @@ impl Db {
             }
         }
         tx.execute("INSERT INTO session_checkpoint VALUES(?1,?2,?3,?4,?5,?6) ON CONFLICT(session_id) DO UPDATE SET boundary_message=excluded.boundary_message,summary=excluded.summary,route=excluded.route,opaque=excluded.opaque,operation_id=excluded.operation_id",params![snapshot.session,boundary,snapshot.summary,native.map(|n|n.0),native.map(|n|n.1),snapshot.id])?;
+        Self::refresh_checkpoint_dcp_accounting(&tx, &snapshot.session)?;
         // A summarizer's usage is not a measurement of the replacement window.
         tx.execute(
             "DELETE FROM session_usage_anchor WHERE session_id=?1",
@@ -206,22 +207,53 @@ impl Db {
         // Standalone compaction is a real settled context fact at the current
         // tip. Redo must restore it even when no later user turn was admitted.
         // During a running turn, that turn's normal settlement saves the revision.
-        let tip: Option<String>=tx.query_row("SELECT turn_id FROM conversation_points WHERE session_id=?1 AND active=1 ORDER BY pre_seq DESC LIMIT 1",[&snapshot.session],|r|r.get(0)).optional()?;
-        if let Some(tip) = tip {
-            let settled: bool = tx.query_row(
-                "SELECT post_context IS NOT NULL FROM conversation_points WHERE turn_id=?1",
-                [&tip],
-                |r| r.get(0),
-            )?;
-            if settled {
-                let revision = Self::save_context(&tx, &snapshot.session)?;
-                tx.execute(
-                    "UPDATE conversation_points SET post_context=?2 WHERE turn_id=?1",
-                    params![tip, revision],
-                )?;
-            }
-        }
+        Self::publish_settled_context(&tx, &snapshot.session)?;
         tx.commit()?;
+        Ok(())
+    }
+
+    fn refresh_checkpoint_dcp_accounting(
+        conn: &Connection,
+        session: &str,
+    ) -> Result<(), StorageError> {
+        // No backfill: legacy/unmeasured sessions still have no accounting.
+        let raw: Option<String> = conn.query_row(
+            "SELECT CASE WHEN length(CAST(snapshot AS BLOB))<=16384 THEN snapshot END FROM dcp_accounting WHERE session_id=?1",
+            [session], |r| r.get(0),
+        ).optional()?.flatten();
+        let Some(raw) = raw else { return Ok(()) };
+        let mut accounting: oc_core::dcp_view::DcpAccounting =
+            serde_json::from_str(&raw).map_err(|_| StorageError::CompressionConflict)?;
+        let after: i64 = conn.query_row(
+            "SELECT MAX(COALESCE((SELECT m.seq FROM session_checkpoint c JOIN conversation_messages m ON m.id=c.boundary_message AND m.session_id=c.session_id WHERE c.session_id=?1),0),COALESCE((SELECT m.seq FROM prune_marks p JOIN conversation_messages m ON m.id=p.up_to_msg AND m.session_id=p.session_id WHERE p.session_id=?1),0))",
+            [session], |r| r.get(0),
+        )?;
+        let graph = Self::active_compression_graph_in(conn, session, after)?;
+        let by_id = graph.into_iter().map(|b| (b.id.clone(), b)).collect();
+        let mut roots = conn.prepare("SELECT cb.id FROM compression_blocks cb WHERE cb.session_id=?1 AND EXISTS(SELECT 1 FROM compression_members cm JOIN conversation_messages m ON m.id=cm.message_id WHERE cm.block_id=cb.id AND m.session_id=?1 AND m.seq>?2) LIMIT 4097")?;
+        let mut active_summary = 0u64;
+        let mut expanded_bytes = 0usize;
+        for root in roots.query_map(params![session, after], |r| r.get::<_, String>(0))? {
+            let summary = crate::dcp::expand_block(&by_id, &root?, 0, &mut Vec::new())
+                .map_err(|_| StorageError::CompressionConflict)?;
+            expanded_bytes = expanded_bytes.saturating_add(summary.len());
+            if expanded_bytes > crate::runtime::ACTIVE_CONTEXT_BYTES_CAP {
+                return Err(StorageError::CompressionConflict);
+            }
+            active_summary =
+                active_summary.saturating_add(oc_core::dcp_view::estimate_content(&summary));
+        }
+        accounting.active_summary = active_summary;
+        // Checkpoint text is not a DCP range summary. Historical run snapshots
+        // and cumulative removal/savings counters are deliberately frozen.
+        conn.execute(
+            "UPDATE dcp_accounting SET snapshot=?2 WHERE session_id=?1",
+            params![
+                session,
+                serde_json::to_string(&accounting)
+                    .map_err(|_| StorageError::CompressionConflict)?
+            ],
+        )?;
         Ok(())
     }
 }
@@ -287,3 +319,11 @@ mod tests {
         assert!(db.session_checkpoint("s").unwrap().is_some());
     }
 }
+
+#[cfg(test)]
+#[path = "storage_dcp_lifecycle_fixture.rs"]
+pub(super) mod dcp_lifecycle_fixture;
+
+#[cfg(test)]
+#[path = "storage_checkpoint_dcp_tests.rs"]
+mod dcp_tests;

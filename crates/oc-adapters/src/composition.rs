@@ -969,6 +969,15 @@ async fn load_stages(
         dir: admitted.dir.try_clone().map_err(|e| e.to_string())?,
     };
     let mut tui_chrome = oc_core::queries::TuiChrome {
+        dcp: oc_core::dcp_view::DcpDisplayConfig {
+            notification: dcp_config.prune_notification,
+            channel: if dcp_config.prune_notification_type == "toast" {
+                oc_core::dcp_view::DcpNotificationChannel::Toast
+            } else {
+                oc_core::dcp_view::DcpNotificationChannel::Chat
+            },
+            show_compression: dcp_config.show_compression,
+        },
         config_diagnostics: generation.config_diagnostics.clone(),
         location: Some(project.to_string_lossy().into_owned()),
         terminal_copy,

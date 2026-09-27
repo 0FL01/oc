@@ -40,6 +40,13 @@ const TABLES: &[(&str, &str, &str)] = &[
         "session_id=?1",
     ),
     ("session_usage_anchor", "session_id,anchor", "session_id=?1"),
+    ("dcp_accounting", "session_id,snapshot", "session_id=?1"),
+    (
+        "dcp_run_views",
+        "operation_id,session_id,snapshot",
+        "session_id=?1",
+    ),
+    ("dcp_coverage", "session_id,kind,identity", "session_id=?1"),
 ];
 
 fn unavailable(message: &str) -> StorageError {
@@ -52,13 +59,14 @@ fn unavailable(message: &str) -> StorageError {
 fn key_count(kind: usize) -> usize {
     match kind {
         1 | 3 => 2,
-        4 => 3,
+        4 | 10 => 3,
         _ => 1,
     }
 }
 
 impl Db {
     pub(super) fn conversation_schema(conn: &Connection) -> Result<(), StorageError> {
+        Self::dcp_view_schema(conn)?;
         conn.execute_batch("CREATE TABLE IF NOT EXISTS conversation_state(
             session_id TEXT PRIMARY KEY REFERENCES sessions(id), upper_seq INTEGER);
           CREATE TABLE IF NOT EXISTS conversation_exclusions(
@@ -209,6 +217,29 @@ impl Db {
         Ok(digest)
     }
 
+    /// Publish a completed standalone context mutation at the genuinely settled
+    /// conversation tip. Call after all projection/accounting/outcome/preferences
+    /// have changed, in the same transaction. A running or legacy tip has no post
+    /// to replace; normal turn settlement owns it. Staged boundaries stay staged.
+    pub(super) fn publish_settled_context(
+        conn: &Connection,
+        session: &str,
+    ) -> Result<(), StorageError> {
+        let tip: Option<String> = conn.query_row(
+            "SELECT p.turn_id FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id AND a.session_id=p.session_id WHERE p.session_id=?1 AND p.active=1 AND p.post_context IS NOT NULL AND a.user_message=(SELECT id FROM conversation_messages WHERE session_id=?1 AND role='user' ORDER BY seq DESC LIMIT 1) AND NOT EXISTS(SELECT 1 FROM conversation_state WHERE session_id=?1 AND upper_seq IS NOT NULL)",
+            [session],
+            |r| r.get(0),
+        ).optional()?;
+        if let Some(tip) = tip {
+            let revision = Self::save_context(conn, session)?;
+            conn.execute(
+                "UPDATE conversation_points SET post_context=?2 WHERE turn_id=?1",
+                params![tip, revision],
+            )?;
+        }
+        Ok(())
+    }
+
     fn restore_context(conn: &Connection, session: &str, digest: &str) -> Result<(), StorageError> {
         Self::load_context_restore(conn, session, digest)?;
         Self::apply_context_restore(conn, session)
@@ -275,7 +306,7 @@ impl Db {
         // Reconcile only changed/deleted rows. Unchanged objects AND validity
         // intervals survive restore, rather than copying a full reference set
         // whenever the boundary moves. Members are removed before parents.
-        for index in [1, 0, 2, 3, 4, 5, 6, 7] {
+        for index in [1, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10] {
             if !exists && index < 5 {
                 continue;
             }

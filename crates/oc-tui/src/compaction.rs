@@ -525,6 +525,8 @@ mod tests {
                                 output_bytes: 0,
                                 output_truncated: false,
                                 patch_effects: None,
+                                dcp: None,
+                                dcp_topic: None,
                             }),
                             TranscriptPart::Text("final".into()),
                         ],

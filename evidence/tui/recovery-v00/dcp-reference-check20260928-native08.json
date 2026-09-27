@@ -1,0 +1,6686 @@
+{
+  "status": "PASS_REFERENCE_INTEGRITY_AND_U34_GEOMETRY",
+  "qualification": "Source-derived pinned display reference only; no native/parity PASS",
+  "notification_cases": 8,
+  "bar_cases": 0,
+  "token_cases": 0,
+  "captures": 31,
+  "imports": 24,
+  "provider_requests": 0,
+  "source_hashes": {
+    "D05": "626a8978c1386ea206ae1600642a0c268e00f6db85b30670049dd2d33ffb319b",
+    "D06": "3a7f92b604906530d7494511d07330db3c2b6d8ad695c8cea3bca2b819fec7cb",
+    "D07": "ea109d2ae177cb3386d635b0955ce8b65274906a02f20c259e1195ac51769185",
+    "D08": "b505a347324507f13f6a2e63d5971e950351be0dce2309ce7e37702e029c6c90",
+    "D09": "8206128a441226c0e67f0836646103bbfde616bd7ae15ea5005574fc201def8e",
+    "D10": "47e1d1693698f31be16371b7172658d0b446469be0608ed2c1aceabf98e5eaf2",
+    "U34": "e4af9db141d101d47a61d4ca761f9c1b38e375288442490ce609732450283734"
+  },
+  "named_number_differences": [],
+  "measurements": [
+    {
+      "name": "native-single-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "png": [
+        674,
+        384
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [],
+        "│": [
+          {
+            "x": 5,
+            "y": 1,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 1,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 2,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 3,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 4,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": false
+    },
+    {
+      "name": "native-single-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "png": [
+        674,
+        384
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 2,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [
+          {
+            "x": 5,
+            "y": 4,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 4,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 5,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 6,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 7,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": true
+    },
+    {
+      "name": "native-single-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "png": [
+        1011,
+        640
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 17,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [
+          {
+            "x": 5,
+            "y": 19,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 19,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 20,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 21,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 22,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": true
+    },
+    {
+      "name": "native-single-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "png": [
+        1349,
+        768
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 42,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 26,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [
+          {
+            "x": 5,
+            "y": 28,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 28,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 29,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 30,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 31,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": true
+    },
+    {
+      "name": "native-multi-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "png": [
+        674,
+        384
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [],
+        "│": [],
+        "▣ Compression": [],
+        "→ Topic:": [],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 2,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": false
+    },
+    {
+      "name": "native-multi-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "png": [
+        674,
+        384
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [],
+        "│": [
+          {
+            "x": 5,
+            "y": 1,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 1,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 2,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 3,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 5,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": false
+    },
+    {
+      "name": "native-multi-80x24",
+      "stage": "scroll-1",
+      "columns": 80,
+      "rows": 24,
+      "png": [
+        674,
+        384
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 2,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [
+          {
+            "x": 5,
+            "y": 4,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 4,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 5,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 6,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 8,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": true
+    },
+    {
+      "name": "native-multi-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "png": [
+        1011,
+        640
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 13,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [
+          {
+            "x": 5,
+            "y": 15,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 15,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 16,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 17,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 19,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": true
+    },
+    {
+      "name": "native-multi-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "png": [
+        1349,
+        768
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 42,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 3,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 23,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [
+          {
+            "x": 5,
+            "y": 5,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 5,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 25,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 25,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 6,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 26,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 7,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 27,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 8,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 28,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": true
+    },
+    {
+      "name": "native-recompression-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "png": [
+        674,
+        384
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 4,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [
+          {
+            "x": 5,
+            "y": 6,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 6,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 7,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 8,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 9,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": true
+    },
+    {
+      "name": "native-recompression-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "png": [
+        1011,
+        640
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 20,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [
+          {
+            "x": 5,
+            "y": 22,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 22,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 23,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 24,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 1,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 25,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": true
+    },
+    {
+      "name": "native-recompression-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "png": [
+        1349,
+        768
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 42,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 5,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 28,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [
+          {
+            "x": 5,
+            "y": 7,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 7,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 30,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 30,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 8,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 31,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 9,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 32,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 10,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 33,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": true
+    },
+    {
+      "name": "native-restart-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "png": [
+        674,
+        384
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [],
+        "│": [],
+        "▣ Compression": [],
+        "→ Topic:": [],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 1,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": false
+    },
+    {
+      "name": "native-restart-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "png": [
+        674,
+        384
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [],
+        "│": [
+          {
+            "x": 5,
+            "y": 1,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 1,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 2,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 3,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 4,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": false
+    },
+    {
+      "name": "native-restart-80x24",
+      "stage": "scroll-1",
+      "columns": 80,
+      "rows": 24,
+      "png": [
+        674,
+        384
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 2,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [
+          {
+            "x": 5,
+            "y": 4,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 4,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 5,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 6,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 7,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": true
+    },
+    {
+      "name": "native-restart-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "png": [
+        1011,
+        640
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 12,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [
+          {
+            "x": 5,
+            "y": 14,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 14,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 15,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 16,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 17,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": true
+    },
+    {
+      "name": "native-restart-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "png": [
+        1349,
+        768
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 42,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 20,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [
+          {
+            "x": 5,
+            "y": 22,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 22,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 23,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 1,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 24,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 2,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 25,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": true
+    },
+    {
+      "name": "native-minimal-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "png": [
+        674,
+        384
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 2,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [],
+        "▣ Compression": [],
+        "→ Topic:": [],
+        "→ Items:": []
+      },
+      "selected_header_visible": false
+    },
+    {
+      "name": "native-minimal-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "png": [
+        1011,
+        640
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 6,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 18,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [],
+        "▣ Compression": [],
+        "→ Topic:": [],
+        "→ Items:": []
+      },
+      "selected_header_visible": false
+    },
+    {
+      "name": "native-minimal-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "png": [
+        1349,
+        768
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 42,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 2,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 14,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 26,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [],
+        "▣ Compression": [],
+        "→ Topic:": [],
+        "→ Items:": []
+      },
+      "selected_header_visible": false
+    },
+    {
+      "name": "native-off-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "png": [
+        674,
+        384
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [],
+        "│": [],
+        "▣ Compression": [],
+        "→ Topic:": [],
+        "→ Items:": []
+      },
+      "selected_header_visible": false
+    },
+    {
+      "name": "native-off-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "png": [
+        1011,
+        640
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [],
+        "│": [],
+        "▣ Compression": [],
+        "→ Topic:": [],
+        "→ Items:": []
+      },
+      "selected_header_visible": false
+    },
+    {
+      "name": "native-off-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "png": [
+        1349,
+        768
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 42,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [],
+        "│": [],
+        "▣ Compression": [],
+        "→ Topic:": [],
+        "→ Items:": []
+      },
+      "selected_header_visible": false
+    },
+    {
+      "name": "native-show-false-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "png": [
+        674,
+        384
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [],
+        "│": [],
+        "▣ Compression": [],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 1,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 2,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": false
+    },
+    {
+      "name": "native-show-false-80x24",
+      "stage": "scroll-0",
+      "columns": 80,
+      "rows": 24,
+      "png": [
+        674,
+        384
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [],
+        "│": [
+          {
+            "x": 5,
+            "y": 2,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 2,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 3,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 4,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 5,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": false
+    },
+    {
+      "name": "native-show-false-80x24",
+      "stage": "scroll-1",
+      "columns": 80,
+      "rows": 24,
+      "png": [
+        674,
+        384
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 3,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [
+          {
+            "x": 5,
+            "y": 5,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 5,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 6,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 7,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 8,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#1e1e1e",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": true
+    },
+    {
+      "name": "native-show-false-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "png": [
+        1011,
+        640
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 13,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [
+          {
+            "x": 5,
+            "y": 15,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 15,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 16,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 17,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 1,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 18,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": true
+    },
+    {
+      "name": "native-show-false-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "png": [
+        1349,
+        768
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 42,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [
+          {
+            "x": 5,
+            "y": 4,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 21,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "│": [
+          {
+            "x": 5,
+            "y": 6,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 6,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 23,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 56,
+            "y": 23,
+            "cell": {
+              "symbol": "│",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "▣ Compression": [
+          {
+            "x": 5,
+            "y": 7,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 24,
+            "cell": {
+              "symbol": "▣",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Topic:": [
+          {
+            "x": 5,
+            "y": 8,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 25,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ],
+        "→ Items:": [
+          {
+            "x": 5,
+            "y": 9,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          },
+          {
+            "x": 5,
+            "y": 26,
+            "cell": {
+              "symbol": "→",
+              "fg": "#eeeeee",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_border": {
+              "symbol": "┃",
+              "fg": "#5c9cf5",
+              "bg": "#141414",
+              "width": 1,
+              "modifiers": []
+            },
+            "left_padding": [
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#141414",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "row_last_cell": {
+              "symbol": " ",
+              "fg": "#ffffff",
+              "bg": "#0a0a0a",
+              "width": 1,
+              "modifiers": []
+            }
+          }
+        ]
+      },
+      "selected_header_visible": true
+    },
+    {
+      "name": "native-toast-80x24",
+      "stage": "bottom",
+      "columns": 80,
+      "rows": 24,
+      "png": [
+        674,
+        384
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [],
+        "│": [],
+        "▣ Compression": [],
+        "→ Topic:": [],
+        "→ Items:": []
+      },
+      "selected_header_visible": false
+    },
+    {
+      "name": "native-toast-120x40",
+      "stage": "bottom",
+      "columns": 120,
+      "rows": 40,
+      "png": [
+        1011,
+        640
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [],
+        "│": [],
+        "▣ Compression": [],
+        "→ Topic:": [],
+        "→ Items:": []
+      },
+      "selected_header_visible": false
+    },
+    {
+      "name": "native-toast-160x48",
+      "stage": "bottom",
+      "columns": 160,
+      "rows": 48,
+      "png": [
+        1349,
+        768
+      ],
+      "cursor": {
+        "x": 5,
+        "y": 42,
+        "visible": true,
+        "shape": "block"
+      },
+      "markers": {
+        "▣ DCP": [],
+        "│": [],
+        "▣ Compression": [],
+        "→ Topic:": [],
+        "→ Items:": []
+      },
+      "selected_header_visible": false
+    }
+  ]
+}

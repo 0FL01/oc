@@ -1,0 +1,299 @@
+{
+  "status": "FAILED_ACTUAL_OWNER_PROBE",
+  "qualification": "Actual native compression/continuation and durable typed snapshot, independent of display reference",
+  "oc_binary_sha256": "4070639b7d0e9814f862b577ee7a4014f06a21567054c534fd6f6baf9b076f19",
+  "parent_released_sha256": "4070639b7d0e9814f862b577ee7a4014f06a21567054c534fd6f6baf9b076f19",
+  "build_source_association": "Explicit parent-attested digest; parent retains build/source proof",
+  "source_HEAD": "8fda54ad25667ea6cf0115c3a77b32d182baaf9b",
+  "checks": [
+    {
+      "stage": "single",
+      "operation_id": "ts-vis38-actual-owner-1790546994962-1608556-0-r1-c0-call_vis38_compress-single",
+      "ordinal": 1,
+      "before_input_bytes": 48545,
+      "after_input_bytes": 34034,
+      "independent_removed": 2788,
+      "independent_summary": 83,
+      "independent_net_saved": 2700,
+      "new_messages": 2,
+      "ranges": 1,
+      "typed_snapshot": {
+        "session": "s-vis38-actual-owner",
+        "operation_id": "ts-vis38-actual-owner-1790546994962-1608556-0-r1-c0-call_vis38_compress-single",
+        "ordinal": 1,
+        "topic": "VIS38 single",
+        "block_ids": [
+          "b0001"
+        ],
+        "removed": 2788,
+        "summary": 83,
+        "net_saved": 2700,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 2,
+        "new_tools": 0,
+        "cumulative": {
+          "gross_removed": 2788,
+          "active_summary": 83,
+          "net_saved": 2700,
+          "compressions": 1,
+          "prunes": 0,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿████████████████████████████████████"
+      },
+      "commit_message_ids": [
+        "m0001",
+        "m0002",
+        "m0003",
+        "m0004",
+        "m0005",
+        "m0006",
+        "m0007"
+      ],
+      "prior_message_ids": [],
+      "new_message_ids": [
+        "m0001",
+        "m0002"
+      ],
+      "new_tool_ids": [],
+      "range_inputs": [
+        {
+          "block_id": "b0001",
+          "topic": "VIS38 single",
+          "summary": "Closed range 1; preserve requirements; continue safely. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression.",
+          "removed": 2788,
+          "summary_tokens": 83,
+          "new_message_ids": [
+            "m0001",
+            "m0002"
+          ],
+          "new_tool_ids": []
+        }
+      ],
+      "active_summaries": [
+        {
+          "block_id": "b0001",
+          "summary_tokens": 83
+        }
+      ],
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": true
+      },
+      "categorical_bar_independently_checked": true
+    },
+    {
+      "stage": "multi",
+      "operation_id": "ts-vis38-actual-owner-1790547009253-1608954-0-r1-c0-call_vis38_compress-multi",
+      "ordinal": 2,
+      "before_input_bytes": 34456,
+      "after_input_bytes": 4074,
+      "independent_removed": 5576,
+      "independent_summary": 28,
+      "independent_net_saved": 5538,
+      "new_messages": 4,
+      "ranges": 2,
+      "typed_snapshot": {
+        "session": "s-vis38-actual-owner",
+        "operation_id": "ts-vis38-actual-owner-1790547009253-1608954-0-r1-c0-call_vis38_compress-multi",
+        "ordinal": 2,
+        "topic": "VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries",
+        "block_ids": [
+          "b0002",
+          "b0003"
+        ],
+        "removed": 5576,
+        "summary": 28,
+        "net_saved": 5538,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 4,
+        "new_tools": 0,
+        "cumulative": {
+          "gross_removed": 8364,
+          "active_summary": 111,
+          "net_saved": 8238,
+          "compressions": 2,
+          "prunes": 0,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████"
+      },
+      "commit_message_ids": [
+        "m0001",
+        "m0002",
+        "m0003",
+        "m0004",
+        "m0005",
+        "m0006",
+        "m0007",
+        "m0008",
+        "m0009"
+      ],
+      "prior_message_ids": [
+        "m0001",
+        "m0002"
+      ],
+      "new_message_ids": [
+        "m0003",
+        "m0004",
+        "m0005",
+        "m0006"
+      ],
+      "new_tool_ids": [],
+      "range_inputs": [
+        {
+          "block_id": "b0002",
+          "topic": "VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries",
+          "summary": "Closed range 1; preserve requirements; continue safely.",
+          "removed": 2788,
+          "summary_tokens": 14,
+          "new_message_ids": [
+            "m0003",
+            "m0004"
+          ],
+          "new_tool_ids": []
+        },
+        {
+          "block_id": "b0003",
+          "topic": "VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries",
+          "summary": "Closed range 2; preserve requirements; continue safely.",
+          "removed": 2788,
+          "summary_tokens": 14,
+          "new_message_ids": [
+            "m0005",
+            "m0006"
+          ],
+          "new_tool_ids": []
+        }
+      ],
+      "active_summaries": [
+        {
+          "block_id": "b0001",
+          "summary_tokens": 83
+        },
+        {
+          "block_id": "b0002",
+          "summary_tokens": 14
+        },
+        {
+          "block_id": "b0003",
+          "summary_tokens": 14
+        }
+      ],
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": true
+      },
+      "categorical_bar_independently_checked": true
+    }
+  ],
+  "display_cases": [
+    {
+      "stage": "single",
+      "context_snapshot": "compress-single-snapshot.json",
+      "typed_snapshot": {
+        "session": "s-vis38-actual-owner",
+        "operation_id": "ts-vis38-actual-owner-1790546994962-1608556-0-r1-c0-call_vis38_compress-single",
+        "ordinal": 1,
+        "topic": "VIS38 single",
+        "block_ids": [
+          "b0001"
+        ],
+        "removed": 2788,
+        "summary": 83,
+        "net_saved": 2700,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 2,
+        "new_tools": 0,
+        "cumulative": {
+          "gross_removed": 2788,
+          "active_summary": 83,
+          "net_saved": 2700,
+          "compressions": 1,
+          "prunes": 0,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿████████████████████████████████████"
+      },
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": true
+      },
+      "output": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-03-single",
+      "provider_requests": 0,
+      "owner_state_unchanged": true
+    },
+    {
+      "stage": "multi",
+      "context_snapshot": "compress-multi-snapshot.json",
+      "typed_snapshot": {
+        "session": "s-vis38-actual-owner",
+        "operation_id": "ts-vis38-actual-owner-1790547009253-1608954-0-r1-c0-call_vis38_compress-multi",
+        "ordinal": 2,
+        "topic": "VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries",
+        "block_ids": [
+          "b0002",
+          "b0003"
+        ],
+        "removed": 5576,
+        "summary": 28,
+        "net_saved": 5538,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 4,
+        "new_tools": 0,
+        "cumulative": {
+          "gross_removed": 8364,
+          "active_summary": 111,
+          "net_saved": 8238,
+          "compressions": 2,
+          "prunes": 0,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████"
+      },
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": true
+      },
+      "output": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-03-multi",
+      "provider_requests": 0,
+      "owner_state_unchanged": true
+    }
+  ],
+  "not_qualified": [
+    "failure/cancel/no-gain",
+    "Undo/Redo routing",
+    "bounded archive/resources",
+    "live ToolCallFinished publication / public ToolOpView DTO equality"
+  ],
+  "reason": "Actual next provider input did not shrink",
+  "provider_requests": 10,
+  "evidence_seals": {
+    "commands.json": "f9ff35f27625ec47561151a869a7890a38aae70fb7a63bf6c2b18100c7e95be5",
+    "compress-multi-before.json": "bc4edce107842a01aeecb1cccad95e67d51c690f18d9a2741100161dfbb7a67b",
+    "compress-multi-measurement.json": "f613dd5c8df7a107e8a0c3be40e549b417fb84ddd91e8cb9e6e77e3a5cb94744",
+    "compress-multi-snapshot.json": "582d9d30490397c8f75af94b1a8dd4fcd8010f8815dd6c53d37973c6ba699c9a",
+    "compress-recompression-before.json": "582d9d30490397c8f75af94b1a8dd4fcd8010f8815dd6c53d37973c6ba699c9a",
+    "compress-recompression-snapshot.json": "7a4cad12c01dc3300709056c3763d2d9cac844701c9a03028a77c1ce9b92cfc7",
+    "compress-single-before.json": "ec5f02f22cd753a2e94da686d115a74cf16b253b6959f924de9dcc51319a6b46",
+    "compress-single-measurement.json": "09f1fa914f35e932bf24ab121b2c75153fd4b3a6e2db09d6f77413cdd6d266a8",
+    "compress-single-snapshot.json": "bc4edce107842a01aeecb1cccad95e67d51c690f18d9a2741100161dfbb7a67b",
+    "native-capture-multi.json": "fee8432e365a3e25454e365265efff73d88b3e504d6933c431c84f9ccfd133fa",
+    "native-capture-single.json": "515773fb3f3682d32e63fe734833d21218607e9dd1d1a853409234f175d8b9ec",
+    "native-tui-multi-spec.json": "c80266f6ab2a10f9a56c9959b4e326ae88cf04622e4d86166c3d6b201bcc90bc",
+    "native-tui-single-spec.json": "3f63baf18de994d554d2ad7189b08ec19903bf78c20c2debd9700337e5a1d83f",
+    "requests.json": "117fc3bd053f75c841a9958b173d54e099c153b638b858b48fb5b3f8d38f90d1",
+    "seed-A-snapshot.json": "428b1f99ff3c3fea88a0386bf63171c6f7b8b0d3d6d5fd30d5e3d72786b95e4f",
+    "seed-B-snapshot.json": "3aef3c2f17b56a43c55848b022873e9b3fe5e88b7fa2ce920046c7a4a5126168",
+    "seed-C-snapshot.json": "ec5f02f22cd753a2e94da686d115a74cf16b253b6959f924de9dcc51319a6b46"
+  },
+  "helper_sha256": "26e3715c9ea0611f3fe8e016551c19ef9cac99186796063c035973d25a230390"
+}

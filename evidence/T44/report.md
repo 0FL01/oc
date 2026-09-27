@@ -1,4 +1,44 @@
-# T44 — parity qualification remains open (2026-09-27)
+# T44 — parity qualification remains open (2026-09-28)
+
+VIS38 now persists one typed DCP snapshot per genuine successful compression
+operation, with session-local stable ordinal, distinct gross-removed/active-summary
+and run-local estimates, unique newly covered message/call-occurrence counts,
+frozen 50-cell map and separately measured net savings. The declared method is
+UTF-16 half-up quarter-length fallback, **not tokenizer counts or provider billing**.
+Projection/accounting/outcome commit atomically; no-gain, failed and cancelled
+operations do not publish success. Current-turn wire pruning uses a request-local
+projection without rewriting the durable journal. Recompression resolves bounded
+block membership without reloading covered raw payloads. Checkpoint, Undo/Redo and
+fork integrate the versioned accounting; historical cards remain frozen.
+
+The transcript consumes real operation metadata and bounded saved summaries,
+using independent off/minimal/detailed, chat/toast and showCompression controls.
+One integer half-up K/M formatter serves header/run/panel/notice labels. No new
+user message or duplicate persistent toast is created. Legacy missing metadata
+remains unavailable. Pinned AGPL/MIT provenance is preserved in
+[`DCP_VIS38_PROVENANCE.md`](../../docs/DCP_VIS38_PROVENANCE.md) and oracle artifacts.
+
+Final [`dcp-report20260928-02.md`](../tui/recovery-v00/dcp-report20260928-02.md)
+qualifies the source-built binary with 11 bounded local requests, three genuine
+single/multi-range/recompression runs, exact coverage/bar and independent content
+measurements, immutable raw history and restart without replay. Pure recompression
+has zero new Items, gross removed 0 and real net savings 77; active summaries 34.
+The unchanged pinned DCP formatter payload is imported via the original public
+session API and rendered by actual OC2 U34: **source-derived display comparison,
+not legacy plugin runtime compatibility**. Eight stages at 80×24/120×40/160×48
+retain 31 full frames per side. Across 24 full bottom pairs, 64,597/115,200 styled
+cells differ, all 24 cursors differ and 0 PNG pairs are identical. Paths, clocks,
+titles and all unrelated geometry remain unmasked. **No VIS38/V09 parity PASS.**
+
+Final serial workspace fmt/locked tests (304 adapter, 396 TUI, 91 runtime; zero
+failures), strict all-target Clippy, debug+release builds, frontend/docs/progress/
+diff checks **PASS**: `tool_0e51bf7ae001L43hkvwsvd4nD9`. An earlier mandatory crash
+test exposed a CPU-bound active-view endpoint join taking over 10 seconds before
+the restart request. Indexed sequence point lookups reduce that measured lookup
+to about 4 ms and the request to about 70 ms; the 32×56 fixture, barrier and
+10-second deadline were preserved. Earlier captures/binaries are historical;
+final debug SHA is `8f7b79887e7c0fa3296800388819bca72f68c7aeae459d891ce0eb2690c4df93`.
+Other approved T44 presentation and whole-frame gates remain open.
 
 VIS07 now shares word-wrapped prompt layout and raw caret mappings for paint,
 vertical movement and mouse targets. Paste chips are bold, expand on a painted

@@ -1,0 +1,222 @@
+{
+  "status": "FAILED_ACTUAL_OWNER_PROBE",
+  "qualification": "Actual native compression/continuation and durable typed snapshot, independent of display reference",
+  "oc_binary_sha256": "4070639b7d0e9814f862b577ee7a4014f06a21567054c534fd6f6baf9b076f19",
+  "parent_released_sha256": "4070639b7d0e9814f862b577ee7a4014f06a21567054c534fd6f6baf9b076f19",
+  "build_source_association": "Explicit parent-attested digest; parent retains build/source proof",
+  "source_HEAD": "8fda54ad25667ea6cf0115c3a77b32d182baaf9b",
+  "checks": [
+    {
+      "stage": "single",
+      "operation_id": "ts-vis38-actual-owner-1790546768700-1605415-0-r1-c0-call_vis38_compress-single",
+      "ordinal": 1,
+      "before_input_bytes": 48545,
+      "after_input_bytes": 34034,
+      "independent_removed": 2788,
+      "independent_summary": 83,
+      "independent_net_saved": 2700,
+      "new_messages": 2,
+      "ranges": 1,
+      "typed_snapshot": {
+        "session": "s-vis38-actual-owner",
+        "operation_id": "ts-vis38-actual-owner-1790546768700-1605415-0-r1-c0-call_vis38_compress-single",
+        "ordinal": 1,
+        "topic": "VIS38 single",
+        "block_ids": [
+          "b0001"
+        ],
+        "removed": 2788,
+        "summary": 83,
+        "net_saved": 2700,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 2,
+        "new_tools": 0,
+        "cumulative": {
+          "gross_removed": 2788,
+          "active_summary": 83,
+          "net_saved": 2700,
+          "compressions": 1,
+          "prunes": 0,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿████████████████████████████████████"
+      },
+      "commit_message_ids": [
+        "m0001",
+        "m0002",
+        "m0003",
+        "m0004",
+        "m0005",
+        "m0006",
+        "m0007"
+      ],
+      "prior_message_ids": [],
+      "new_message_ids": [
+        "m0001",
+        "m0002"
+      ],
+      "new_tool_ids": [],
+      "range_inputs": [
+        {
+          "block_id": "b0001",
+          "topic": "VIS38 single",
+          "summary": "Closed range 1; preserve requirements; continue safely. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression.",
+          "removed": 2788,
+          "summary_tokens": 83,
+          "new_message_ids": [
+            "m0001",
+            "m0002"
+          ],
+          "new_tool_ids": []
+        }
+      ],
+      "active_summaries": [
+        {
+          "block_id": "b0001",
+          "summary_tokens": 83
+        }
+      ],
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": true
+      },
+      "categorical_bar_independently_checked": true
+    },
+    {
+      "stage": "multi",
+      "operation_id": "ts-vis38-actual-owner-1790546780105-1605728-0-r1-c0-call_vis38_compress-multi",
+      "ordinal": 2,
+      "before_input_bytes": 34456,
+      "after_input_bytes": 4074,
+      "independent_removed": 5576,
+      "independent_summary": 28,
+      "independent_net_saved": 5538,
+      "new_messages": 4,
+      "ranges": 2,
+      "typed_snapshot": {
+        "session": "s-vis38-actual-owner",
+        "operation_id": "ts-vis38-actual-owner-1790546780105-1605728-0-r1-c0-call_vis38_compress-multi",
+        "ordinal": 2,
+        "topic": "VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries",
+        "block_ids": [
+          "b0002",
+          "b0003"
+        ],
+        "removed": 5576,
+        "summary": 28,
+        "net_saved": 5538,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 4,
+        "new_tools": 0,
+        "cumulative": {
+          "gross_removed": 8364,
+          "active_summary": 111,
+          "net_saved": 8238,
+          "compressions": 2,
+          "prunes": 0,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████"
+      },
+      "commit_message_ids": [
+        "m0001",
+        "m0002",
+        "m0003",
+        "m0004",
+        "m0005",
+        "m0006",
+        "m0007",
+        "m0008",
+        "m0009"
+      ],
+      "prior_message_ids": [
+        "m0001",
+        "m0002"
+      ],
+      "new_message_ids": [
+        "m0003",
+        "m0004",
+        "m0005",
+        "m0006"
+      ],
+      "new_tool_ids": [],
+      "range_inputs": [
+        {
+          "block_id": "b0002",
+          "topic": "VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries",
+          "summary": "Closed range 1; preserve requirements; continue safely.",
+          "removed": 2788,
+          "summary_tokens": 14,
+          "new_message_ids": [
+            "m0003",
+            "m0004"
+          ],
+          "new_tool_ids": []
+        },
+        {
+          "block_id": "b0003",
+          "topic": "VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries",
+          "summary": "Closed range 2; preserve requirements; continue safely.",
+          "removed": 2788,
+          "summary_tokens": 14,
+          "new_message_ids": [
+            "m0005",
+            "m0006"
+          ],
+          "new_tool_ids": []
+        }
+      ],
+      "active_summaries": [
+        {
+          "block_id": "b0001",
+          "summary_tokens": 83
+        },
+        {
+          "block_id": "b0002",
+          "summary_tokens": 14
+        },
+        {
+          "block_id": "b0003",
+          "summary_tokens": 14
+        }
+      ],
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": true
+      },
+      "categorical_bar_independently_checked": true
+    }
+  ],
+  "not_qualified": [
+    "recompression",
+    "failure/cancel/no-gain",
+    "Undo/Redo routing",
+    "bounded archive/resources",
+    "live ToolCallFinished publication / public ToolOpView and summary paging",
+    "paired native TUI styled-cell/PNG/cursor frames"
+  ],
+  "reason": "native-multi-80x24: Timeout card scroll\n",
+  "provider_requests": 8,
+  "evidence_seals": {
+    "commands.json": "49940a2fa38fa9e4acfc680fdd5bf33badf2a9a5637f6a23e2bc99c1d8b87a6d",
+    "compress-multi-before.json": "f17f6b40c724ff5cd31053c9013b104ec75626ffde32a64d0e4e3089cf3082ee",
+    "compress-multi-measurement.json": "828a5e7cc2fc51ee310d360f423463c114c1ccd8de222293f5c99cbcfbb630de",
+    "compress-multi-snapshot.json": "78b4abf4b38c5e392dba49afbbd16f10258ad77d3467f1819dd9db6cf7330803",
+    "compress-single-before.json": "3c447da550d8e3b848c1c2bbcf0a06f420c6f3b9cc0dcf8d4c2a0456b895c32b",
+    "compress-single-measurement.json": "b3f3f07cd249fd135a0046f921d153bccd8b46bb2872d3552700ffcb942f3ac9",
+    "compress-single-snapshot.json": "f17f6b40c724ff5cd31053c9013b104ec75626ffde32a64d0e4e3089cf3082ee",
+    "native-capture-multi.json": "cd1bdc8b06ea439d0d58b90bd6da427bc81ebb6ca54f262642648e19c020d0ec",
+    "native-capture-single.json": "59d66e55343e4b329b4cbeea7a7a55d5a72848b559075f637af7fc955794e508",
+    "native-tui-multi-spec.json": "9eb1a4bf9d1d3abda6cc39893e0d11852e5352f289371d23e31534e66f80cd89",
+    "native-tui-single-spec.json": "855d66bca736e62da53eabc4fe10e4d3b1141ab61e0247a879714ceee65d8811",
+    "requests.json": "af6cb5f45e126a334ef8211abcc69d626688c13c3aeadbbd38bb2e51bab03353",
+    "seed-A-snapshot.json": "013ea976413f1582fa1020acff87c774ccc01476d227f9273e1664b90a27858e",
+    "seed-B-snapshot.json": "83752015dc13b07ff5f02cc57c40cac64bece44e672568be4812f0f5c807af77",
+    "seed-C-snapshot.json": "3c447da550d8e3b848c1c2bbcf0a06f420c6f3b9cc0dcf8d4c2a0456b895c32b"
+  },
+  "helper_sha256": "6ffd48b406b98358bdeda572e39d0998d2dc05f8ada9643ce340bdbbeefc914e"
+}

@@ -1,0 +1,23 @@
+{
+  "original_sha256": "47e1d1693698f31be16371b7172658d0b446469be0608ed2c1aceabf98e5eaf2",
+  "executable_sha256": "74b436f5e8ee517201096f5470a72cb573481852c20e956d26c070389469e311",
+  "changes": [
+    {
+      "original": "import type {\n    CompressionBlock,\n    PruneMessagesState,\n    PrunedMessageEntry,\n    SessionState,\n    WithParts,\n} from \"./types\"\n",
+      "replacement": ""
+    },
+    {
+      "original": "import { isIgnoredUserMessage, messageHasCompress } from \"../messages/query\"\n",
+      "replacement": "import { isIgnoredUserMessage, messageHasCompress } from \"./services.ts\"\n"
+    },
+    {
+      "original": "import { isMessageWithInfo } from \"../messages/shape\"\n",
+      "replacement": "import { isMessageWithInfo } from \"./services.ts\"\n"
+    },
+    {
+      "original": "import { countTokens } from \"../token-utils\"\n\n",
+      "replacement": "import { countTokens } from \"./services.ts\"\n\n"
+    }
+  ],
+  "body_change": false
+}

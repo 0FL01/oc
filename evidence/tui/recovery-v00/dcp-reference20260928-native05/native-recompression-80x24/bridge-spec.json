@@ -1,0 +1,8 @@
+{
+  "binary": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+  "case": "native-recompression",
+  "columns": 80,
+  "rows": 24,
+  "goldens": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-oracle20260928-native04/goldens.json",
+  "isolated_root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference20260928-native05-f1d47e8668f5/native-recompression-80x24"
+}

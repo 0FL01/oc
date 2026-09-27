@@ -247,6 +247,11 @@ pub struct PartState {
 
 /// Public transcript content only. Never contains opaque provider payloads.
 #[derive(Debug, Clone, PartialEq, Eq)]
+// One operation is the indivisible live/history presentation unit. Its compact
+// frozen DCP snapshot intentionally shares the existing tool variant; producers
+// bound the number of parts and transferred metadata rather than splitting it
+// into a second event/message identity.
+#[allow(clippy::large_enum_variant)]
 pub enum TranscriptPart {
     /// Bounded text projected from an existing wire message.
     Text(String),
@@ -396,6 +401,8 @@ pub struct CatalogSnapshot {
 /// Presentation-only settings; no runtime policy or credentials.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct TuiChrome {
+    /// Independent, effective DCP transcript display controls.
+    pub dcp: crate::dcp_view::DcpDisplayConfig,
     /// Admitted CLI session permission preference. Consumer registration is explicit.
     pub permissions_auto: bool,
     pub permission_shortcuts: PermissionShortcuts,
@@ -694,6 +701,12 @@ pub struct SkillCard {
 /// DCP context/stats snapshot (counts only, no transcript).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DcpSnapshot {
+    /// False if the bounded active projection cannot be hydrated. Numeric zero
+    /// then denotes unavailable, never a fabricated UTF-8/serialized estimate.
+    pub estimated_tokens_available: bool,
+    pub estimate_method: crate::dcp_view::DcpEstimateMethod,
+    /// Durable branch/revision accounting; absent for unmeasured legacy state.
+    pub accounting: Option<crate::dcp_view::DcpAccounting>,
     /// Estimated context tokens.
     pub estimated_tokens: u64,
     /// Effective max context tokens.
@@ -713,6 +726,11 @@ pub struct DcpSnapshot {
 /// One tool operation as recorded durably.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolOpView {
+    /// Owner-validated compression topic; never extracted from raw JSON text.
+    /// Pending streams/unavailable arguments and other tools have no topic.
+    pub dcp_topic: Option<String>,
+    /// Frozen successful DCP run; None honestly denotes unavailable metadata.
+    pub dcp: Option<crate::dcp_view::DcpRunSnapshot>,
     /// Confirmed mutation metadata; absent for legacy records and other tools.
     pub patch_effects: Option<crate::patch::PatchEffects>,
     /// Operation id.
