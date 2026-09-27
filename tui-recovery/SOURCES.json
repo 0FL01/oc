@@ -696,6 +696,42 @@
       "locator": "17–132 details geometry/scroll/copy/investigate/back; util/error-details.ts:1–21 copied text and explicit investigation draft",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-error-details.tsx#L17-L132",
       "purpose": "Real MCP error-details interaction and safe draft/clipboard consumer; native diagnostics remain sanitized rather than raw donor exceptions"
+    },
+    {
+      "id": "U56",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/session-tabs.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "75–79 fade/delay/cadence; 229–235 fadeTitleColor; 276–367 createMarquee/createTabMarquee one-cycle/deferred-leave/off-mode; 549–554,594–595 vertical reset; 725–750,840–868 vertical widths/fades/compact Infinity; 1343–1346,1564–1605,1628–1657 horizontal width/title/hover reconciliation",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/session-tabs.tsx#L276-L367",
+      "purpose": "VIS41 real hover overflow, delay600/steps80/one-cycle and styled geometry; animations:false only changes fade tween, not title stepping; distinct from rename shimmer and VIS39 spinner"
+    },
+    {
+      "id": "U57",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/util/marquee.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "4–50 GAP, marqueeCycleWidth/Overflows/TextParts: cell-width cursor, grapheme-safe clipping and generated separator identity",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/util/marquee.ts#L4-L50",
+      "purpose": "Exact-fit versus overflow, one spaced-dot cycle and Unicode slicing without splitting a wide glyph or dimming a dot already in the title"
+    },
+    {
+      "id": "U58",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/test/component/session-tabs-marquee.test.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "7–67 controller fake-clock scenarios: hovered width, delay600, one-cycle active identity retained, short-next/leave/rail-reset; animations callback false",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/test/component/session-tabs-marquee.test.ts#L7-L67",
+      "purpose": "Source behavioral oracle for timer/reset/off-mode interpretation, not executed native or paired-render qualification"
+    },
+    {
+      "id": "U59",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/test/util/marquee.test.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "5–44 short/exact-fit, offsets/spaced-dot loop, generated-dot versus title-dot and wide-grapheme examples",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/test/util/marquee.test.ts#L5-L44",
+      "purpose": "Reuse pinned text fixtures for the nearest Rust regression, not a second implementation or screenshot-derived expected"
     }
   ],
   "external_primary_sources": [

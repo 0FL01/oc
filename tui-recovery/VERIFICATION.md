@@ -110,7 +110,9 @@ Comparator выдаёт bounding box различий; дополнительн�
 
 Анимации: предпочтительнее остановленные завершённые состояния для исходных трёх кадров.
 Для отдельного running fixture захватывать одинаковую заданную фазу средствами test
-clock reference либо поддержанным animation-off mode обеих сторон. Не требовать чудесного
+clock reference либо animation-off mode обеих сторон, только если он действительно
+останавливает данный component. VIS41 marquee продолжает шаговое движение даже off.
+Не требовать чудесного
 совпадения разных wall clocks. Сначала стабилизировать условие; нельзя превращать diff
 в PASS допуском или замазыванием всего status area.
 Для VIS28 отдельно сохранить последовательность кадров running footer при включённых
@@ -127,6 +129,21 @@ PNG и cursor сохраняют RGB/alpha, attributes и blank backgrounds; no 
 Reuse VIS28/VIS31 active-deadline measurements: после конечных transitions нет
 периодического idle work, static glow не требует timer. Истинность child/notice/
 Ctrl+B подтверждается shared SUB01/SUB02 protocol/SQLite/PTY, а не анимацией.
+VIS41 adds full paired title-hover sequences using U56–U59 plus U47/U49: resting →
+hover-width overflow → delay600 → offset1/steps80 → one cycle/offset0 → settled/leave.
+Compare matched phases, leading/trailing fade, generated separator tint, Unicode cell
+widths, selected/inactive/busy hover, close control, resize and horizontal/vertical
+geometry with compact-rail no-marquee. Short/exact-hover-fit titles remain stationary;
+resting fit alone does not imply hovered fit. Animations off retains stepwise marquee,
+only the leading-opacity tween jumps; it is not an off-mode static capture shortcut.
+A motionless pointer must progress and then stop without additional input. Use actual
+binary/fake-provider running→completion/cancel for the independent VIS39 own-tab spinner,
+while family/attention truth still uses SUB01/SUB02. Do not infer PASS from ⠋ or the
+native close-mark/fade golden. Reuse VIS31 measurements after the one cycle/finite fades
+and other pending deadlines settle: then zero periodic idle work; no per-widget polling,
+extra prompt submission/tool effect or global session spinner. Own-tab/VIS41 results
+are independent of all-T45 completion and do not qualify the rest of VIS39. Keep full
+styled-cell/PNG/cursor/provenance and failed attempts, not cropped or masked tab areas.
 VIS40 compares actual pending/connect/disconnect/retry and focus/error-detail transitions
 using U50–U55/U02/U49. DialogMcp `Connecting …` has no Spinner/shimmer/fade: do not copy
 the VIS39 animation into this modal. Capture normal/focused/footer-focused/disabled

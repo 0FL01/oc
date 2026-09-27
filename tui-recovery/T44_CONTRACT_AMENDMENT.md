@@ -595,6 +595,9 @@ children и completion notices, включая цвета и анимации. O
 T44 owns R4/R5/V06/VIS39; T45 owns R3/SUB01/SUB02 lifecycle и необходимые typed
 history/query/event projections. Сначала lifecycle slice, затем UI qualification,
 не all-T45 completion dependency и не второй task/store/job/event framework.
+Это порядок family/subagent qualification, не запрет независимой работы над own-tab
+spinner и VIS41 hover-marquee; их утверждённый срез описан ниже. Full VIS39 всё ещё
+требует реальных SUB01/SUB02 family facts, не локальный фиктивный busy flag.
 
 1. **Truthful phases before paint.** Distinguish arguments streaming, admitted call,
    permission wait, foreground child running, completed background launch/child running,
@@ -829,6 +832,88 @@ Sources U50–U55 plus existing U02/U49; preserve pinned provenance/license noti
 VIS40 mandatory, NOT_RUN/evidence empty until actual qualification. Plan approval
 does not change task statuses, previous evidence or baseline. Independent T44 work
 continues while the minimum MCP08 prerequisite is delivered by the existing owner.
+
+## Session tab spinner and hover-marquee parity — VIS39/VIS41
+
+Owner-approved 2026-09-27 после RECON: вращающийся индикатор работающей вкладки
+остаётся под VIS39; **VIS41 / R3/R5/V03** добавляет бегущее название при hover.
+Reference — pinned OC2 v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`,
+U46–U49 и новые U56–U59. Один T44 owner, без второго spinner gate/task/store.
+Own-session spinner и marquee независимы от T45; family busy/attention/unread
+по-прежнему потребляют его минимальный R3/SUB01/SUB02 projection/lifecycle slice.
+
+RECON native: `shell.rs::deck_tab_line` рисует постоянный `⠋` и начало title с
+trailing fade, а `app.rs::next_ui_deadline/tick_ui` не имеют вкладочной фазы/offset.
+`render_deck_tabs` определяет hover через `tab_close_cell`, который запрещён при busy:
+визуальное наведение ошибочно связано с возможностью закрытия. Существующий тест
+`close_glyph_only_on_hovered_eligible_tab_and_title_fade_moves_left` проверяет резерв
+для крестика/fade, не прокрутку текста во времени. Это source-level finding, не PASS.
+
+1. **Working-tab indicator — existing VIS39.** Follow U46/U47 actual typed state:
+   runs = busy without attention; permission wins question. Status mode dots frames
+   `⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏`, 80 ms; attention `!`/`?`, numbers mode keeps the
+   ordinal. Animations off keeps first frame `⠋`, not row `⋯` or scanner `[⋯]`.
+   Preserve source mount/phase/transition/color rules and U48 pulse/glow evidence,
+   not global frame synchronization. Existing source-only spinner variants do not
+   authorize new config options. Parent own-running, root-family busy, permission
+   wait and actual terminal/unknown outcomes remain distinct; no prose inference.
+2. **Hover and width.** Use real pointer hit testing and stable session ID from the
+   existing bounded owner projection, not title text or deck index as identity.
+   Separate presentation hover/marquee from close/switch eligibility: busy tabs can
+   receive visual hover without permitting a forbidden action. Do not change busy/
+   permission/Location action guards or invent switch/close/interruption semantics.
+   Resolve U56 actual resting/hovered widths, ordinal prefix and close reservation:
+   horizontal hover reserves two more title cells; vertical noncompact one more.
+   Short/exact-hover-fit titles do not move; a resting fit may overflow on hover.
+   Compact vertical rail passes Infinity and has no title marquee. Reconcile actual
+   title updates, resize/layout, hidden/removed tabs and modal routing by source rules
+   and painted geometry; do not restart an unchanged hover on status-only updates.
+3. **One cycle, not an infinite ticker.** U56 enter starts at offset0, waits600 ms,
+   sets offset1, then advances by one display cell every80 ms. U57 cycle width is
+   title plus ` · `; after one cycle return offset0, stop the step deadline and fade
+   the leading edge out. Active hovered identity remains until leave/reset: repeated
+   motion within the same tab must not start a second cycle. Match U56 deferred
+   hover-leave cleanup when moving into nested tab controls, ordinary leave/reset
+   and component disposal; no stale continuation on another session/Location.
+4. **Text and styled cells.** Use source grapheme/display-width slicing without
+   splitting wide glyphs; title comes from current metadata, never screenshot text.
+   Four-grapheme trailing/leading fade uses U56 alpha/tints and source250-ms leading
+   opacity tween/easing. Generated separator dot blends toward background at0.55;
+   a dot already in the title is not that separator. Match actual selected/inactive/
+   hovered source fg/bg, attributes and blank backgrounds through U49 and R2.
+   Hover marquee is distinct from automatic-rename `title_shimmer` and from VIS28.
+   **Animations off is component-specific:** tab spinner is static, but U56/U58
+   still advance marquee after600/every80 ms with one cycle. Only its leading fade
+   tween jumps instead of interpolating. Do not freeze the title or force a universal
+   `⋯` fallback because `animations:false` was set.
+5. **Implementation/scheduling slice.** Extend existing `app.rs` tab state and
+   `tui_cmd.rs` projection only as needed for stable IDs, phases and actual status;
+   render in `shell.rs`. Reuse monotonic `next_ui_deadline`/`tick_ui`, not a separate
+   animation engine, per-widget timer or polling loop. Render/input/status updates
+   do not reset animation clocks. A motionless pointer still progresses the delayed
+   marquee; off-mode marquee still has active deadlines. Once the one cycle/fade and
+   other visible animations settle, no periodic wakeup/redraw remains. Spinner work
+   remains only for actual visible running status indicators. Bound state/queries/
+   caches to the retained/visible deck, not all archived sessions/transcripts.
+6. **Checks and qualification.** Extend nearest Rust clock/state/render regressions
+   for spinner branch/cadence and marquee delay/one-cycle/leave/Unicode; source U58/U59
+   fixtures are an oracle, not executed proof. Actual rebuilt binary with bounded
+   fake-provider barriers proves running→completion/cancel and hover→delay→motion→
+   settled/leave without extra input, submission, selection or tool effects. Then
+   paired running-original/native full styled-cell/PNG/cursor sequences at existing
+   80x24/120x40/160x48 profiles compare matched phases, on/off behavior, short/long/
+   exact-hover-fit and representative Unicode titles, active/inactive/busy hover,
+   close-cell movement, resize and applicable vertical/compact branches. Reuse VIS39
+   family/attention and SUB01/SUB02 evidence when available, VIS05/06/11/21/22/23/28/31
+   and S04/S06/S07 invariants; no duplicated backend/theme×width×state matrix or paid
+   campaign. Static/native-only goldens or animation-off-only captures are not PASS.
+   Record actual effects, idle deadlines/counters and capture provenance separately;
+   preserve failed attempts. Missing reference is BLOCKED_REFERENCE, not a masked
+   region, crop, relaxed tolerance or rewritten baseline.
+
+VIS41 mandatory, NOT_RUN/evidence empty until qualification; VIS39 remains open.
+Plan approval changes neither task execution statuses, historical reports/evidence
+nor baseline. This plan-only delivery does not implement either animation.
 
 ## Обязательные результаты нового прохода
 

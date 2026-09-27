@@ -118,6 +118,36 @@ delivery/reexecution; bounded paging/family queries/queues and no periodic idle 
 Backend and visual results separate, missing reference BLOCKED_REFERENCE, no all-T45
 completion dependency, new task/store/framework, policy widening or historical PASS.
 
+## Session tab qualification — VIS39 / VIS41 (approved 2026-09-27; pending)
+
+T44 owns the task-local tab slice in its amendment: existing VIS39 busy spinner and
+new VIS41/V03 hover-marquee, no duplicate spinner gate or task. Own-session spinner
+and title work do not wait for T45; family busy/attention/unread still require actual
+SUB01/SUB02 projection/lifecycle evidence before full VIS39 qualification.
+
+First nearest clock/state/render tests follow U46–U49/U56–U59: dots80 ms and actual
+status/attention/numbers/off branches, title hover-width overflow, delay600, steps80,
+one cycle through ` · `, stop/leave/reset, grapheme/cell widths and source fades/tints.
+Repeated motion/status/redraw does not restart an unchanged hover. Animations off
+keeps the tab first frame but continues stepwise marquee; the leading-opacity tween
+jumps instead of interpolating. Check actual horizontal/vertical geometry and compact
+rail no-marquee, not a universal static-title fallback. Separate visual hover from
+action eligibility without weakening busy/permission/Location guards.
+
+Actual rebuilt binary with bounded fake-provider barriers proves running→completion/
+cancel and pointer hover→delay→motion→settled/leave without further input or extra
+submission/tool effects. Then paired running-original/native full styled-cell/PNG/
+cursor sequences at existing 80x24/120x40/160x48 profiles and representative short/
+long/exact-hover-fit/Unicode titles compare matched phases, on/off, active/inactive/
+busy hover, close-cell routing and resize. Reuse VIS05/06/11/21/22/23/28/31 and shared
+family/attention evidence, no duplicate backend/theme×width×state matrix or paid
+campaign. VIS31 measures idle after one cycle/finite fades and other deadlines settle,
+not by agent-idle or animations-off alone; no per-widget polling/new clock framework.
+Static ⠋ or the native fade/close golden cannot qualify. Missing executable reference
+is BLOCKED_REFERENCE; preserve provenance/failed attempts, no crop/mask/tolerance or
+baseline rewrite. VIS41 NOT_RUN/evidence empty and full VIS39 still open until real
+qualification; approval leaves previous task statuses/evidence unchanged.
+
 ## MCP modal prerequisite and qualification — MCP08 / VIS40 (approved 2026-09-27; pending)
 
 MCP08 in planning/acceptance.json belongs only to T46/R5; VIS40 is T44-owned in its

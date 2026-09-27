@@ -77,6 +77,12 @@ view при малом/большом архиве. Ограничение 20 в
 Нельзя каждый frame копировать всё durable history или создавать cache всех посещённых сессий.
 Нельзя «убрать лимиты» как отказ от safety budgeting: разрешить нормальные user размеры
 через bounded serving, pagination и explicit overflow.
+VIS39/VIS41 tab slice переиспользует VIS31 deadlines: active own/family spinner и
+один hover cycle не становятся polling/timer на каждую archived session. После
+cycle/fades и остальных deadlines нет periodic idle wakeups/redraws; off-mode marquee
+всё ещё движется, поэтому `animations:false` не доказывает settled idle. Visual hover
+не разрешает busy close/switch/tool effects; identity/late-event и terminal-title
+sanitization сохраняют S04/S06 без нового отрицательного cross-product.
 
 ## S08 — не сломать прежние security/runtime contracts
 

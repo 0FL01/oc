@@ -168,7 +168,8 @@ TranscriptPart: stable part_id, turn_id, kind, status, bounded text/preview,
 5. Debug/devtools bar — условный. U06 использует `debug.devtools ?? channel == local`.
    Для screenshots нужен тот же mode; нельзя резервировать строку безусловно.
 6. Tabs используют реальные session titles/selection. Home, empty session, populated
-   session, attach error — разные состояния, не один пустой экран на всё.
+   session, attach error — разные состояния, не один пустой экран на всё. Для
+   spinner/hover-marquee применять утверждённый срез ниже, не статичный glyph/fade.
 7. Prompt высота растёт по строкам редактора в пределах видимой области; footer/status
    остаются на правильных местах. Narrow mode не должен терять input или controls.
 
@@ -189,6 +190,30 @@ let visible = &rendered_rows[start..end];
 Добавить edge widths 43/44,119/120/121, shrink→grow, hidden sidebar и child-session mode.
 **Тест:** при transcript >35 строк и высокой области видны >20 строк; sidebar есть при
 нужном wide mode. Сам `assert!(sidebar_auto(121))` не является проверкой отрисованного sidebar.
+
+### Session tab animation slice — VIS39/VIS41 (R3/R5)
+
+Следовать [утверждённому tab contract](T44_CONTRACT_AMENDMENT.md#session-tab-spinner-and-hover-marquee-parity--vis39vis41)
+и U46–U49/U56–U59. Spinner остаётся VIS39, marquee — новый mandatory VIS41/V03.
+Own-session busy spinner и hover-title slice не ждут T45; family status qualification
+по-прежнему требует его минимальные реальные SUB01/SUB02 facts, не весь task done.
+
+1. Existing bounded tab projection/state: stable session identity, actual busy/attention,
+   spinner phase и hovered title offset/delay/cycle. Отделить visual hover от close
+   eligibility; не менять busy/permission/Location action guards ради картинки.
+2. `app.rs::next_ui_deadline/tick_ui` + `shell.rs` renderer: dots80 ms, source status/
+   numbers/attention/off branches; hover overflow after600 ms, steps80 ms, один cycle
+   через ` · `, leave/reset и source fades/Unicode/close reservation. Не перезапускать
+   clocks на каждом redraw/mouse move. Compact vertical rail не прокручивает title.
+   `animations:false` оставляет tab first frame, но НЕ отключает шаговый marquee:
+   ведущий fade только jumps. No new timer framework/widget polling; после cycle/
+   finite fades и других активных deadlines нет периодической idle работы.
+3. Ближайшие clock/state/render tests, затем actual rebuilt binary/fake-provider PTY
+   running→terminal и hover→delay→motion→settled/leave без нового input/tool effects.
+   Full paired styled-cell/PNG/cursor phase/state sequences original/native, on/off,
+   representative titles/Unicode/resize/orientations; reuse VIS31 idle counters и
+   existing family evidence, без duplicate matrix/campaign. Static fade/close test
+   не доказывает marquee; own-tab result не закрывает весь VIS39. NOT_RUN до qualification.
 
 ## V04. Один реальный Dialog/Select вместо inline CLI-панелей
 
@@ -355,6 +380,8 @@ Subagent card связан с реальным parent/child session и status; T
 completion/recovery/Ctrl+B и bounded typed projections; затем T44 inline Delegating/
 running/continuation/Background, durable notices/parent footer, lower Subagents
 composer, actual navigation/filter/interrupt/draft/focus и family/tab indicators.
+Этот порядок относится к family/subagent qualification; independent own-tab spinner
+и VIS41 marquee slice из V03 можно делать раньше, не подменяя SUB01/SUB02 evidence.
 Не менять native closed-response-before-admission ради partial-call картинки.
 Launch badge/current child status, parent own scanner/family busy и Thought steps/
 child count различны. Цвета/attributes/hover/error/selection и анимации по original,

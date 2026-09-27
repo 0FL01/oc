@@ -590,6 +590,23 @@
       "mandatory": true,
       "execution_status": "NOT_RUN",
       "evidence": []
+    },
+    {
+      "id": "VIS41",
+      "step": "V03",
+      "title": "Session tab hover-marquee and full temporal styled parity",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md section Session tab spinner and hover-marquee parity — VIS39/VIS41. T44 owns this independent title slice; the working-tab spinner remains VIS39, no new backend task or all-T45 dependency. Use current real title/stable session identity from the existing bounded projection and actual pointer/painted geometry; visual hover is independent of close/switch eligibility without weakening action guards. Overflow is measured at source hovered title width, including ordinal/close reservation; short/exact-hover-fit titles stay stationary. Match horizontal/vertical geometry and compact vertical rail no-marquee. Wait 600 ms, set offset1, step one display cell every80 ms through title plus generated spaced-dot separator, complete exactly one cycle, return offset0 and stop; repeated motion/status/redraw within the same unchanged hovered tab does not restart it. Match source enter/deferred-leave/reset/disposal and title/layout/hidden-tab reconciliation. Grapheme/display-width slicing never splits wide glyphs; leading/trailing four-grapheme fades use actual fg/bg and the source250-ms opacity tween, generated separator dot tint0.55, not dots within the title. Preserve selected/inactive/hovered attributes and blank backgrounds. Animations:false still runs stepwise marquee; only leading fade tween jumps, unlike the static first-frame tab spinner. Do not substitute rename shimmer, VIS28 prompt scanner, an infinite ticker or static title fade. Extend nearest clock/state/render tests, then actual rebuilt binary/fake-provider PTY hover→delay→motion→settled/leave with a motionless pointer and no extra input/submission/tool effects, plus shared VIS39 running→terminal evidence. Require running pinned-original/native full paired temporal styled-cell/PNG/cursor sequences at existing profiles with matched phases, on/off and representative short/long/exact-hover-fit/Unicode titles, active/inactive/busy hover, close routing and resize. Reuse VIS05/06/11/21/22/23/28/31 and applicable family/attention evidence; family truth still requires SUB01/SUB02, not a fake busy flag. No permanent polling/widget timer/new clock framework, archived-session growth or duplicated backend/theme×width×state matrix/paid campaign. After the one cycle/finite fades and other visible deadlines settle, no periodic idle wakeup/redraw remains. Static/native-only/off-only goldens, crops/masks/tolerances or baseline rewrites do not qualify; missing reference is BLOCKED_REFERENCE. Preserve provenance/failed attempts and prior task statuses/evidence. Own-tab/VIS41 results do not close full VIS39.",
+      "sources": [
+        "U47",
+        "U49",
+        "U56",
+        "U57",
+        "U58",
+        "U59"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
     }
   ]
 }
