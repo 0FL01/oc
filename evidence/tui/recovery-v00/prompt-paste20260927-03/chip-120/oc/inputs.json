@@ -1,0 +1,117 @@
+[
+  {
+    "at_ms": 1790532894111,
+    "kind": "leader_variant_cycle",
+    "base64": "FA=="
+  },
+  {
+    "at_ms": 1790532894312,
+    "kind": "leader_draft",
+    "base64": "G1syMDB+VklTMTEgZnVsbCBkcmFmdCDOsc6yIGNhcmV0LW1pZGRsZSBwcmVzZXJ2aW5nIGV2ZXJ5IHdvcmQbWzIwMX4="
+  },
+  {
+    "at_ms": 1790532894513,
+    "kind": "leader_caret_middle",
+    "base64": "G1tEG1tEG1tE"
+  },
+  {
+    "at_ms": 1790532895232,
+    "kind": "leader_invalid_start",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790532895972,
+    "kind": "leader_invalid_next",
+    "base64": "eg=="
+  },
+  {
+    "at_ms": 1790532899603,
+    "kind": "leader_escape_start",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790532900376,
+    "kind": "leader_escape_next",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1790532904100,
+    "kind": "leader_backspace_start",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790532905052,
+    "kind": "leader_backspace_next",
+    "base64": "fw=="
+  },
+  {
+    "at_ms": 1790532909038,
+    "kind": "leader_repeated_start",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790532909930,
+    "kind": "leader_repeated_next",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790532913869,
+    "kind": "leader_idle_start",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790532916590,
+    "kind": "leader_success_start",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790532919467,
+    "kind": "leader_success_fresh_chord",
+    "base64": "GG0="
+  },
+  {
+    "at_ms": 1790532920589,
+    "kind": "leader_success_dismiss",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1790532921463,
+    "kind": "leader_modal_open",
+    "base64": "EA=="
+  },
+  {
+    "at_ms": 1790532922603,
+    "kind": "leader_modal_start",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790532923307,
+    "kind": "leader_modal_invalid",
+    "base64": "eg=="
+  },
+  {
+    "at_ms": 1790532924009,
+    "kind": "leader_modal_escape",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1790532925125,
+    "kind": "leader_end",
+    "base64": "G1tG"
+  },
+  {
+    "at_ms": 1790532925125,
+    "kind": "leader_chip_paste",
+    "base64": "G1syMDB+VklTMTEtUEFTVEUtMApWSVMxMS1QQVNURS0xClZJUzExLVBBU1RFLTIbWzIwMX4="
+  },
+  {
+    "at_ms": 1790532928685,
+    "kind": "leader_chip_start",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790532932726,
+    "kind": "leader_expand_actual_chip",
+    "base64": "G1s8MDs4MzsyMk0bWzwwOzgzOzIybQ=="
+  }
+]

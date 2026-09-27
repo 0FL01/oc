@@ -1,5 +1,31 @@
 # T44 — parity qualification remains open (2026-09-27)
 
+VIS07 now shares word-wrapped prompt layout and raw caret mappings for paint,
+vertical movement and mouse targets. Paste chips are bold, expand on a painted
+mouse-down or eligible repeat paste without duplicating the stored text, and
+retain leader-pending RGB. Suppressed wrap separators no longer shift raw UTF-8
+carets; permission feedback reuses the same map. History navigation first reaches
+the raw top/bottom boundary. A submission with a pointer left below a short painted
+transcript no longer indexes unpainted rows. The adjacent real resize/input stall
+was traced to Crossterm's edge-triggered reader discarding simultaneous stdin
+readiness after SIGWINCH; the existing level-triggered `use-dev-tty` backend fixes
+it, with 30 consecutive resize tests and 83 PTY-suite tests passing unchanged.
+
+Fresh immutable [`prompt-paste20260927-04/report.md`](../tui/recovery-v00/prompt-paste20260927-04/report.md)
+preserves attempts01–04 and ten source-built paired campaigns at79/80/120/121.
+All bounded behavior/provenance checks pass: real click/repeat expansion, ordinary
+suffix-space repeat creating two chips, visual-row navigation and full actual
+provider input. There are24 valid local requests (12 transcript/12 title), zero
+live/authenticated requests, zero unstable/blocked captures. All202 full grids
+and202 PNGs remain **DIFFERENT**, with16 differing cursors. The donor keeps an
+extra structural trailing/separator space after chip expansion; native preserves
+the exact stored paste bytes. This is an **unapproved parity gap**, not a waiver
+or VIS07 PASS; version/style/duration and other frame differences remain unmasked.
+Final serial workspace fmt/locked tests (386 TUI, zero failures)/strict all-target
+Clippy/debug+release builds/frontend/capture JS+Python/docs/progress/diff **PASS**:
+`tool_0e4622176001fRhobWNLI2t0QA`. The source-backed raw-boundary change required
+updating two PTY navigation sequences, not reducing their draft/wire assertions.
+
 VIS11 now uses the actual pending key sequence for both resolution and composer
 presentation. Effective `leader.timeout` takes precedence over admitted legacy
 `leader_timeout`, default 2000 ms. The dirty-frame scheduler restores normal

@@ -99,3 +99,5 @@ recovery-v00/permission*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/permission*/*/*.vt binary
 recovery-v00/leader-pending*/**/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/leader-pending*/**/*.vt binary
+recovery-v00/prompt-paste*/**/*.txt whitespace=-blank-at-eol,-blank-at-eof
+recovery-v00/prompt-paste*/**/*.vt binary

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-27T18:15:25+00:00
+State updated: 2026-09-27T19:46:01+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -13,18 +13,20 @@ Evidence target: evidence/T44/report.md
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-VIS11 actual pending leader state, owner timeout/keymap and no-input expiry delivered.
+VIS07 word wrapping, bold chips, painted click/repeat expansion and raw caret navigation corrected.
+Raw draft bytes are preserved; no VIS07/V09 parity PASS.
 
 ## Checks
-Serial workspace tests/fmt/strict Clippy/debug+release PASS: tool_0e3b99ef6001h0w3zwRQJDk6d3.
-Actual JS/Python/frontend/docs/progress checks PASS; details evidence/T44/leader-checkpoint.md.
+Serial workspace fmt/locked tests/strict Clippy/debug+release/frontend/syntax/docs/progress PASS: tool_0e4622176001fRhobWNLI2t0QA.
+Fresh paired prompt-paste04: ten builds, 24 valid local requests, behavior/provenance PASS; 202 grids/202 PNGs DIFFERENT, 16 cursor differences.
+Resize/input readiness defect traced and fixed via existing level-triggered Crossterm backend; 30 resize and 83 PTY tests PASS.
 
 ## Risks
-No VIS11/VIS07/V09 PASS: 152 grids and 152 PNGs DIFFERENT, 21 cursor differences.
-Chip wrapping/expansion remains open; inherited.opencode untouched.
+Original structural paste separator differs from exact native stored bytes; unapproved gap remains.
+Truthful identity/time and other full-frame gaps remain. Inherited .opencode untouched.
 
 ## Next
-Observed VIS07 composer gaps, then remaining approved T44 presentation qualification.
+Resolve remaining VIS07 separator semantics without losing draft integrity; continue independent approved T44 presentation slices.
 
 
 Ready (до 5): T45, T46, T47, T50, T51

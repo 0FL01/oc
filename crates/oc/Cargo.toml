@@ -23,7 +23,9 @@ anyhow.workspace = true
 clap.workspace = true
 libc.workspace = true
 ratatui.workspace = true
-crossterm = { workspace = true, features = ["event-stream"] }
+# Mio can discard stdin's edge when SIGWINCH is returned from the same poll.
+# Crossterm's level-triggered Unix backend preserves simultaneous resize/input.
+crossterm = { workspace = true, features = ["event-stream", "use-dev-tty"] }
 futures-util.workspace = true
 
 [dev-dependencies]

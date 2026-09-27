@@ -2569,7 +2569,7 @@ fn v05_raw_unicode_multiline_focus_and_one_durable_submit() {
     // unfinished draft. Neither navigation path submits a second turn.
     pty.send(b"unfinished");
     wait_screen_row(&pty, "unfinished", DEADLINE);
-    pty.send(b"\x1b[A");
+    pty.send(b"\x1b[H\x1b[A"); // first visual row start, then history boundary
     let started = Instant::now();
     while render_screen(&pty.snapshot())
         .rows()
@@ -2579,7 +2579,9 @@ fn v05_raw_unicode_multiline_focus_and_one_durable_submit() {
         assert!(started.elapsed() < DEADLINE, "Up did not recall history");
         std::thread::sleep(POLL);
     }
-    pty.send(b"\x1b[B");
+    // Recalled history starts at offset zero. Traverse its three visual rows,
+    // reach raw EOF, then a further Down restores the unfinished draft.
+    pty.send(b"\x1b[B\x1b[B\x1b[B\x1b[B");
     wait_screen_row(&pty, "unfinished", DEADLINE);
     pty.send(b"\x03"); // first Ctrl+C clears the restored unfinished draft
     wait_screen_absent(&pty, "unfinished");
@@ -2756,7 +2758,7 @@ fn v05_review_raw_history_edit_down_restores_chip_and_wire() {
     let draft = "draft\nline\nchip";
     pty.send(format!("\x1b[200~{draft}\x1b[201~").as_bytes());
     wait_screen_row(&pty, "[Pasted ~3 lines]", DEADLINE);
-    pty.send(b"\x1b[A");
+    pty.send(b"\x1b[H\x1b[A"); // Up recalls only at the draft's start
     let started = Instant::now();
     while render_screen(&pty.snapshot())
         .rows()
@@ -2769,7 +2771,7 @@ fn v05_review_raw_history_edit_down_restores_chip_and_wire() {
         );
         std::thread::sleep(POLL);
     }
-    pty.send(b" edited\x1b[B");
+    pty.send(b" edited\x1b[F\x1b[B");
     wait_screen_row(&pty, "[Pasted ~3 lines]", DEADLINE);
     assert!(fixture.requests.lock().unwrap().is_empty());
     pty.send(b"\r\r");

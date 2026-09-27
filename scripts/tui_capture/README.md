@@ -42,6 +42,47 @@ exit `2` denotes a runner blocker. Neither is parity success.
 
 ## What is captured
 
+### Current prompt/paste diagnostic (VIS07), serial fresh builds
+
+`node scripts/tui_capture/run_prompt_paste.mjs NEW_CAMPAIGN`
+creates a new immutable campaign. Do not run another Cargo command until it exits.
+Cold three-line chip frames wait for the actual chip and five unchanged full-grid
+polls 200 ms apart before capture; settlement timing/cursor are recorded. Pending
+leader frames keep their original short sampling delay. Navigation submissions
+require completed main + title requests and a stable restored frame.
+Each chip/default and extra/longdraft pair at 79/80/120/121×40 independently runs
+`cargo build --locked`, seals source hashes before/after build/capture and uses the
+explicit pinned reference plus `target/debug/oc`. Both real CLI configs set
+`session.tps=false`. The existing default sequence captures the same three-line
+chip normal/pending/restored and actual mouse expansion. The unchanged extra
+sequence inserts the bounded Enter text at the actual middle caret and records
+the full outgoing user input. Each side allows at most one main request and one
+auxiliary title; the default chip sequence makes zero requests.
+
+`--leader-paste-navigation true` is a thin exclusive alternative within
+`--leader-pending`: paste a wrapped prefix, paste the same three lines twice,
+capture actual expansion, three Up/three Down samples, then pending-leader Enter
+and the exact raw user wire. It checks that repeat-paste expands rather than
+duplicates input. It uses no renderer injection or live provider.
+Pinned OC2 inserts a raw trailing space outside the paste-chip extmark and
+preserves it on expansion; native sends only the original pasted input. The
+fixture accepts these explicitly different exact wires and the analyzer records
+the mismatch; it is not a raw-input parity waiver.
+The campaign also captures a second 120×40 pair with
+`--leader-paste-suffix-space true`: type an ordinary space after the first chip,
+repeat the identical paste, observe two separate chips, click-expand both and
+submit the exact two-paste wire with pending Enter. This distinguishes the real
+suffix-space false case from the raw-end true-expansion case. Both variants stay
+bounded to two local fixture requests per binary; full color/cursor frames remain.
+
+Run `node scripts/tui_capture/analyze_prompt_paste.mjs CAMPAIGN` once to create
+the immutable `prompt-paste-analysis.json`. It checks the current native/original
+true-expansion contract, source association, bounded request counts and exact
+raw drafts, and retains full unmasked grid/PNG/cursor comparisons including
+version, footer, token and geometry differences. Behavioral verification is
+separate from VIS07 PASS, which still requires every mandatory paired frame.
+The historical `analyze_leader_pairs.mjs` and prior evidence remain unchanged.
+
 ### Ordinary apply_patch / original patch (VIS35), opt-in
 
 ```sh

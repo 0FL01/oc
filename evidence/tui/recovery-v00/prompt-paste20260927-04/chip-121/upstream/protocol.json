@@ -1,0 +1,273 @@
+[
+  {
+    "kind": "leader_fixture_config",
+    "mode": "default",
+    "cli_config": {
+      "theme": {
+        "name": "opencode",
+        "mode": "dark"
+      },
+      "animations": false,
+      "session": {
+        "sidebar": "hide",
+        "tps": false
+      },
+      "tabs": {
+        "layout": "horizontal"
+      },
+      "attention": {
+        "notifications": false,
+        "sound": false
+      },
+      "cursor": {
+        "style": "block",
+        "blinking": false
+      },
+      "debug": {
+        "devtools": false
+      }
+    }
+  },
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/chip-121-b8b6dd3f0d9a/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/chip-121-b8b6dd3f0d9a/upstream/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/chip-121-b8b6dd3f0d9a/upstream/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/chip-121-b8b6dd3f0d9a/upstream/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/chip-121-b8b6dd3f0d9a/upstream/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/chip-121-b8b6dd3f0d9a/upstream/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/chip-121-b8b6dd3f0d9a/upstream/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"share\": \"disabled\", \"update\": \"disable\", \"plugins\": [\"-opencode.models.dev\"], \"providers\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"package\": \"@opencode/ai/providers/openai/responses\", \"settings\": {\"baseURL\": \"http://127.0.0.1:44797/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"MiMo-V2.6-Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}, \"variants\": [{\"id\": \"fast\", \"settings\": {\"reasoningEffort\": \"high\"}}, {\"id\": \"none\", \"settings\": {\"reasoningEffort\": \"low\"}}]}, \"fixture-model-2\": {\"name\": \"Muse Spark 1.3 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-3\": {\"name\": \"Ling 3.0 Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-4\": {\"name\": \"Nemotron 3.5 Lightning Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-5\": {\"name\": \"Muse Spark 1.2 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-6\": {\"name\": \"Nemotron 3 Ultra Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-7\": {\"name\": \"MiMo V2.5 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-8\": {\"name\": \"Big Pickle\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}}}}}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "opencode v2.0.12",
+    "version_exit": 0
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181449958547,
+    "base64": "G10xMDtyZ2I6ZWVlZS9lZWVlL2VlZWUbXA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181450394344,
+    "base64": "G10xMTtyZ2I6MGEwYS8wYTBhLzBhMGEbXA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181450978834,
+    "base64": "G1sxOzFS"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181451373049,
+    "base64": "G1s/MTAxNjsyJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181451732841,
+    "base64": "G1s/MjAyNzswJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181452184482,
+    "base64": "G1s/MjAzMTswJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181452615210,
+    "base64": "G1s/MTAwNDsyJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181453021863,
+    "base64": "G1s/MjAwNDsyJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181453410548,
+    "base64": "G1s/MjAyNjsyJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181453901749,
+    "base64": "G1s/MTsyYw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181454335843,
+    "base64": "G1sxOzFS"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181454733361,
+    "base64": "G1sxOzFS"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181511654850,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181525598719,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181535540196,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181540764658,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181542782709,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212181549550214,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212184197254368,
+    "base64": "FA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212184398122190,
+    "base64": "G1syMDB+VklTMTEgZnVsbCBkcmFmdCDOsc6yIGNhcmV0LW1pZGRsZSBwcmVzZXJ2aW5nIGV2ZXJ5IHdvcmQbWzIwMX4="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212184599300591,
+    "base64": "G1tEG1tEG1tE"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212185342017907,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212185981071669,
+    "base64": "eg=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212189506492020,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212190162213055,
+    "base64": "Gw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212193633606795,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212194256827324,
+    "base64": "fw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212197690456166,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212198310472347,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212201827191153,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212204522835882,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212207392694593,
+    "base64": "GG0="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212208538918248,
+    "base64": "Gw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212209426474449,
+    "base64": "EA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212210498048395,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212211197408646,
+    "base64": "eg=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212211909633119,
+    "base64": "Gw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212213046450963,
+    "base64": "G1tG"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212213046625636,
+    "base64": "G1syMDB+VklTMTEtUEFTVEUtMApWSVMxMS1QQVNURS0xClZJUzExLVBBU1RFLTIbWzIwMX4="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212216167622184,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212219858716364,
+    "base64": "G1s8MDs4MzsyMk0bWzwwOzgzOzIybQ=="
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": 130,
+    "termination": "forced_stop"
+  }
+]

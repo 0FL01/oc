@@ -1,0 +1,2462 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-27T19:21:14.210Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "0d2827054e4882b5e56952c59318806d1e9d2ec60c4988ddd64c7d83c058e6b9",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "a176aa4b63bff47fa019705012f067131230a8237576a15be68a297d904f9fe7",
+    "leader_pending.mjs": "6d2a25e727f196c407a1c400d4f79a240303ee8b05a33f3a44021f30829feeb7"
+  },
+  "fixture_sha256": "b979fda681ad4dab6ab99441fff2cb60030c41039b514a9b458d2cf6e792c5d3",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "f5af2499b07ca1f27cec9b3c348fa2ecdfdf4bf2",
+    "tree": "03bcbb0b3eed167107f65178ad36b9436f1d4dba",
+    "dirty_diff_sha256": "547b6d6eb782061236759af86820ae7ccd79449f49c4279238704b5fb55c9dcf",
+    "source_manifest_sha256": "99ac1a66b3c6695a284e0af5f0ca43f30818d1b7f1f189e7d6569090d72e7116",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "source_inputs_unchanged_after_build": true,
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "8f32da3b6a52db123ce6c8eb93108890812da81cd03915995a10b8d66c84f459",
+    "version": "oc 0.1.0",
+    "source_inputs_unchanged_after_capture": true
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "leader-normal",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-normal",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-invalid-pending",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-invalid-pending",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-invalid-next",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-invalid-next",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-invalid-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-invalid-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-escape-pending",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-escape-pending",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-escape-next",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-escape-next",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-escape-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-escape-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-backspace-pending",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-backspace-pending",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-backspace-next",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-backspace-next",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-backspace-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-backspace-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-repeated-pending",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-repeated-pending",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-repeated-next",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-repeated-next",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-repeated-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-repeated-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-idle-pending",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-idle-pending",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-idle-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-idle-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-success-pending",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-success-pending",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-success-next",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-success-next",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-success-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-success-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-modal-normal",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-modal-normal",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-modal-pending",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-modal-pending",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-modal-invalid-next",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-modal-invalid-next",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-modal-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-modal-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-chip-normal",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-chip-normal",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-chip-pending",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-chip-pending",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-chip-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-chip-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-chip-expanded-fulltext",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-chip-expanded-fulltext",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "leader-normal",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "97a42c7d7f3b0a525b89eca464b40c3cf09aee7b1177c9a540b497b2d08241a3",
+      "png_sha256": "83f1aa7f129482fc53063a44e57979327eca1d62f3f1305ece3e704ca30acf91",
+      "render_sha256": "fea64ba8adcc52ae0cf1f187415fb55703ded24a7afc07754dc381259dae6b6f",
+      "path": "upstream/leader-normal"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-invalid-pending",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "aaace564a0df785d99081da8b37ff76095b3d5d14e1cf8bab80280b9a8b30f71",
+      "png_sha256": "af68f28f4b69f764d610dac9b0462cc33df7dbae877818bdf08eb941a26132f8",
+      "render_sha256": "f410f70de924811e56f9547b0cca34bdd1c31058a4d8de30b12a90c4853f298d",
+      "path": "upstream/leader-invalid-pending"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-invalid-next",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "d0fbaf26945421e54ee949bd2defdaf0467c810abe63fba260206d595c1dbd90",
+      "png_sha256": "54944135ca4e270f23f8467be993ffc63ea851b4bb55b38c55f8ab1036e2beb8",
+      "render_sha256": "7b14260027a9e511d465c83b386397e36c26cafc137bbc71ee3c4092b4e3acfa",
+      "path": "upstream/leader-invalid-next"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-invalid-restored",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "e944f279e975fcfaf25cf43f8ca08f682264234a5b62d7551291387e33898007",
+      "png_sha256": "54944135ca4e270f23f8467be993ffc63ea851b4bb55b38c55f8ab1036e2beb8",
+      "render_sha256": "c326129da3fc3ee202f6f5bd385d673b3d61e438ca88dd3353f7fc6d727abb68",
+      "path": "upstream/leader-invalid-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-escape-pending",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "b9f4e8e2f9297cc92b9b975d5f9ea3b479eb4ab1fd6915287b3d5c168a14f72f",
+      "png_sha256": "1c98bccceca27853c4fbf421cb9a1affdea0b296040d7676b9aa03104b748f39",
+      "render_sha256": "4bd2c13d5399abb0e1e4b9ac6853fd3aa2cf9696a08ddab008a19beefe89ce0f",
+      "path": "upstream/leader-escape-pending"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-escape-next",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "ece889a779ac9b19237b48e41b518b4d88a6852dc9b0e31548ccc567a3800d65",
+      "png_sha256": "54944135ca4e270f23f8467be993ffc63ea851b4bb55b38c55f8ab1036e2beb8",
+      "render_sha256": "469c31551f866410f41203724607dd090251bab3dbd258bd9d19dc65bd9e6453",
+      "path": "upstream/leader-escape-next"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-escape-restored",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "632cdca65179cdf6bdc1197a5cc318ffb97d1a465ac2451937247359997d58d4",
+      "png_sha256": "54944135ca4e270f23f8467be993ffc63ea851b4bb55b38c55f8ab1036e2beb8",
+      "render_sha256": "659f90c327fab4c5dca0f1fb7a6d9cfe83413c61424370f9651feee873a0632d",
+      "path": "upstream/leader-escape-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-backspace-pending",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "bda2765241e4d9bac6ed5d6b988b2bf88a0b62ed56035c197b90c9c688bf48b1",
+      "png_sha256": "1c98bccceca27853c4fbf421cb9a1affdea0b296040d7676b9aa03104b748f39",
+      "render_sha256": "fe9aee3b8b9cd2c89e63feed9c94768f5e99cfc2d084634d16bad759b2265851",
+      "path": "upstream/leader-backspace-pending"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-backspace-next",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "2a717ccff5b5a9485fd9c53c6354c24af40973a665182f98a6ed753cc1fccbc6",
+      "png_sha256": "54944135ca4e270f23f8467be993ffc63ea851b4bb55b38c55f8ab1036e2beb8",
+      "render_sha256": "242e0d7c6a0d76ff8e94334d5859d341157124a688049293801791920229547e",
+      "path": "upstream/leader-backspace-next"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-backspace-restored",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "3f854ed3974db2b7cccfe53245bc1164a117c5148f9c03b4ae13c82bdc3a1dc3",
+      "png_sha256": "54944135ca4e270f23f8467be993ffc63ea851b4bb55b38c55f8ab1036e2beb8",
+      "render_sha256": "6303b808b0512d951b62de57ac588f3b56de23513c40f222c8d65ed7e3ad8174",
+      "path": "upstream/leader-backspace-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-repeated-pending",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "ca6422dd51bf485c1451272431f92baea092356eda76514b5e04c7b9904474e4",
+      "png_sha256": "1c98bccceca27853c4fbf421cb9a1affdea0b296040d7676b9aa03104b748f39",
+      "render_sha256": "cb6a6d586a6df66b58d06efedefdbcd3715327251ee7050784b7f6e8ed60abdd",
+      "path": "upstream/leader-repeated-pending"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-repeated-next",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "24e26eafd85143b5430f1c52f2f85b4be96a6837e1c0e4d0f809a6ef4977f477",
+      "png_sha256": "54944135ca4e270f23f8467be993ffc63ea851b4bb55b38c55f8ab1036e2beb8",
+      "render_sha256": "f701b8f56cca58baee38a57c8acb8a3827fdfa3ad8a05f689e7d4fa48fac035d",
+      "path": "upstream/leader-repeated-next"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-repeated-restored",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "caa05209989aa7fe19c059d1dbbdd4a0bb73652f89a7056bc46a1cc2a43b05a2",
+      "png_sha256": "54944135ca4e270f23f8467be993ffc63ea851b4bb55b38c55f8ab1036e2beb8",
+      "render_sha256": "aa207c90887cdcf637c57ea4be999407f6a95030c0d6e2f591327fd8fd58d7ee",
+      "path": "upstream/leader-repeated-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-idle-pending",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "e565355c0a58ee518f5e7a8fe6e76c4cd0cdf188effd4d7806b404f308602ba0",
+      "png_sha256": "1c98bccceca27853c4fbf421cb9a1affdea0b296040d7676b9aa03104b748f39",
+      "render_sha256": "71bfff05ff39acaae286a9b637749ad3b4e7d1ed893d6683260d0583bf935127",
+      "path": "upstream/leader-idle-pending"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-idle-restored",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "cb8b581660b2dfb035d70b6d86e2747938aff92b8b51f39edecc885921490499",
+      "png_sha256": "54944135ca4e270f23f8467be993ffc63ea851b4bb55b38c55f8ab1036e2beb8",
+      "render_sha256": "d6c728e30198769a4dde3c4d35c57be20ee7de4c280c79d9f3d28530f1420a40",
+      "path": "upstream/leader-idle-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-success-pending",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "40b83f53d4fb15145c9a1c73c1a9c3a1c7a3f638cd42ec85d2765f8a13084106",
+      "png_sha256": "1c98bccceca27853c4fbf421cb9a1affdea0b296040d7676b9aa03104b748f39",
+      "render_sha256": "78b7702166355e7b9a56c8e54e1bf61c2cbf6396a48fb0946befee544c89e7a7",
+      "path": "upstream/leader-success-pending"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-success-next",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "949798a5fc62cee787a678541ab5708680b4ab984fb781d06fbc91f0be3c1a4f",
+      "png_sha256": "4e238616829d152cdc2b83b272583813165f5e7258f86a579e370dc3a910b7a0",
+      "render_sha256": "6bee458cfaf85f16af86f6ae62580acdce0f78564407313805ac54973fce0d10",
+      "path": "upstream/leader-success-next"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-success-restored",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "f18ac62b521c77ce8574ce4e9688de4e69ddba5d8a4eb0317fdc95056c0d5ab0",
+      "png_sha256": "54944135ca4e270f23f8467be993ffc63ea851b4bb55b38c55f8ab1036e2beb8",
+      "render_sha256": "25b673afacc3ab6bd018c63aba7ade4e5a6bd0fb7f4df2229ce50b1618b7d706",
+      "path": "upstream/leader-success-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-modal-normal",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "7bc898059b73a0344dbd6ea28111f0a56dda281b81c4429bf54384a613615c76",
+      "png_sha256": "37bf6e496cadecd67643ccfc068d78722cb3fa5e4ac0dd231fd18f2fb049334e",
+      "render_sha256": "27301120b5522ace821bd111704d5b272e804f2bf499021d4de3dce3543c870d",
+      "path": "upstream/leader-modal-normal"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-modal-pending",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "2276d3b5a364fe1edf508aab659408e7f07dd270f1577dffec5efd74de8df75b",
+      "png_sha256": "4e5e1ab6e464e36306ec1c34a812233b7716d55e28924b696be580b6a394a268",
+      "render_sha256": "fe73839ed0fee192656f995eca32ed71550f89996b5800c922d462762a5c1c35",
+      "path": "upstream/leader-modal-pending"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-modal-invalid-next",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "3a2bc2f825a0a8b763861a60bc888ca47f118f76fd195faba5807814b0fa97ab",
+      "png_sha256": "575dffc3ef8bc220cc2b077d2026a5f519f9986a3114e3d294384f3b9680dd6c",
+      "render_sha256": "1b7f4d6d81d162caf1d9903be3aa7db9f61db4796e9b3ddb6f53c996c1c8d3cf",
+      "path": "upstream/leader-modal-invalid-next"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-modal-restored",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "037fc94e64c53472e71b50fb22e00fd51da195546e196a94146dadc20324e834",
+      "png_sha256": "54944135ca4e270f23f8467be993ffc63ea851b4bb55b38c55f8ab1036e2beb8",
+      "render_sha256": "9daa3a52c9f27ab1bd88b8179f79be07d2b25deed0621b08471bfffc671d9cfb",
+      "path": "upstream/leader-modal-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-chip-normal",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "23f57a7b0a1acc4a30a539caa3bdf8d52a1487cb615576175c8f57f68728309c",
+      "png_sha256": "dcd8f0b57b60fd06b8d24c0fc009ed3e53afd636b1c78d5667b2180714998eb7",
+      "render_sha256": "4fca7f2a7c82376f380042a2ef0091ff3e898a8ce7e25ef7201f4cce0aa76e83",
+      "path": "upstream/leader-chip-normal"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-chip-pending",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "b834d2062d794d083e771efadbadf70212ab0585f4371afd388d428f2b94ab99",
+      "png_sha256": "e2efc73d3b4ea9977400ce6373e7606ce4bee22de25f9035860efe1069a96dd3",
+      "render_sha256": "5acd264f2c62dfdef197f40edb2b3cf82dc0f105ef35a93aa97072d65acd77d6",
+      "path": "upstream/leader-chip-pending"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-chip-restored",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "c811d195b415252046280fb9a991571fe2fb2a76440c95447f1d19e15233f91b",
+      "png_sha256": "dcd8f0b57b60fd06b8d24c0fc009ed3e53afd636b1c78d5667b2180714998eb7",
+      "render_sha256": "68745e9b98549859a982d09706166a7f0a078c42874beadc220c7097c30e064f",
+      "path": "upstream/leader-chip-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-chip-expanded-fulltext",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "e23b2bc6f4ddbbc335cc82b963a522665affb4cbf2f3d322954cdae19d0a36a1",
+      "png_sha256": "4d9fe3687a7d9b2b8c307141d181d947f92798a3a96186c435404f26231763e3",
+      "render_sha256": "e8245739b22f9c19af89dad61ee35816605b59772f2624fc0e40eb58d1e10795",
+      "path": "upstream/leader-chip-expanded-fulltext"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-normal",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "4b1119ff1ff81428ff3d9c02968d16c929dad6a8d12dad8863d58311e45fdd7d",
+      "png_sha256": "275e5d065a059786a54c9ca3ea69e8e643c16813ae48089bc813b90c5da30d29",
+      "render_sha256": "0e7d74df9c53c0d8c179e944e738a8f985c393568f38d4afea67c8d351e868ee",
+      "path": "oc/leader-normal"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-invalid-pending",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "7da1e95691bc36c93f2c1cbc66b7146a33eec56f2a30f3282af7b356fc9267a3",
+      "png_sha256": "e0356b3852442f2cb436c1b2de4a411c20b59164ffba382edfd3550d19a75824",
+      "render_sha256": "024c0fcd33cba147c0cb2cc40d4aa254c96ecfbca0198d0bb19b52c9f877e06f",
+      "path": "oc/leader-invalid-pending"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-invalid-next",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "89c498818167be1bee25abf4ce791e6a0e6865fa4db842d0762d9ef3b1dcc414",
+      "png_sha256": "52c7ab502357b35c09815e3c63f00bba64e02ef8262c65231e265065eb816a6f",
+      "render_sha256": "233ddc774f8fb2e6808f24856a7f7c24d9d91f74133a60324fa869a9c030acbe",
+      "path": "oc/leader-invalid-next"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-invalid-restored",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "0b7aaea90921864fb78362d95d97517a30ac58b56fa344b9f16282b1f509f381",
+      "png_sha256": "52c7ab502357b35c09815e3c63f00bba64e02ef8262c65231e265065eb816a6f",
+      "render_sha256": "f7488c13541c8f7715c13ab73611d1536eb783d80cfd589a9d59ffe026f81df9",
+      "path": "oc/leader-invalid-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-escape-pending",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "ebbfb767dbfa9fede6ec9f581b6b1966378dcf0ccc60bf97b2d1fbd8a0a21a26",
+      "png_sha256": "8e8f284fdd3cc8d8fca07ac9849baef86f92e07cd5b7b905b42955551de65501",
+      "render_sha256": "8308d718d539ad6f434f3b0688fbadc2bdddf5d741593e740f2ef6402bb219a4",
+      "path": "oc/leader-escape-pending"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-escape-next",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "97439c0535fddbe63243ccdf1530466fa56d385adc93c534da559297f34eea12",
+      "png_sha256": "52c7ab502357b35c09815e3c63f00bba64e02ef8262c65231e265065eb816a6f",
+      "render_sha256": "e1dcbddbd7cc4ae725ae6a9902860752ad595e2ebab2755811e8a1a1679ed721",
+      "path": "oc/leader-escape-next"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-escape-restored",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "adf8f7d47b07fccf9710bc2b58f0f01369a52d1cffc7e7f69064249947b066b2",
+      "png_sha256": "52c7ab502357b35c09815e3c63f00bba64e02ef8262c65231e265065eb816a6f",
+      "render_sha256": "03df5e25a3c1dcc30702ce679f630bc6bd87a0e6120046ed883c07c594d7c1b6",
+      "path": "oc/leader-escape-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-backspace-pending",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "8372cf71309981fa473777fe4645e89ab1c46e2fa350a03a761599eb75fc5e42",
+      "png_sha256": "8e8f284fdd3cc8d8fca07ac9849baef86f92e07cd5b7b905b42955551de65501",
+      "render_sha256": "d4b17ad70065602d6dcdd20d1336bdb191fb3ff4c11181b49256a991dbadcc67",
+      "path": "oc/leader-backspace-pending"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-backspace-next",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "17d1a938ba797315596a035cac1d75290fcb269d35def077881ff1345b82b191",
+      "png_sha256": "52c7ab502357b35c09815e3c63f00bba64e02ef8262c65231e265065eb816a6f",
+      "render_sha256": "efe6b0162e64ee4ed6720bca9c03cda427c00d04f9b083f7fa307314add9a7e4",
+      "path": "oc/leader-backspace-next"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-backspace-restored",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "008bb0fcb1fa34d951e4c6e4bb988aa121da4d4ec1733851f172c549be61c307",
+      "png_sha256": "52c7ab502357b35c09815e3c63f00bba64e02ef8262c65231e265065eb816a6f",
+      "render_sha256": "02015a538460e58934ac73c116af2e62afddcb1df508cabcc6b80571ca9a34b1",
+      "path": "oc/leader-backspace-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-repeated-pending",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "5d9df1a1e7ba9ebb67fcd3de415203fd54df32061b1f04f8f07f81d4ec1f26c7",
+      "png_sha256": "8e8f284fdd3cc8d8fca07ac9849baef86f92e07cd5b7b905b42955551de65501",
+      "render_sha256": "024e3c509fbad5c4c2e97bcc5e3514ad6ebd201dd408382abd2d1a712d7cdbf7",
+      "path": "oc/leader-repeated-pending"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-repeated-next",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "96e6d7728b01ac48759f88f35d268cf1560ae8a4f74b38fedfdc2c36a27ec069",
+      "png_sha256": "52c7ab502357b35c09815e3c63f00bba64e02ef8262c65231e265065eb816a6f",
+      "render_sha256": "2c4cbbea1d9d3275a60dbe453539f42af921bf3d9fbf387225dba0a693333fab",
+      "path": "oc/leader-repeated-next"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-repeated-restored",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "30929116950c3ae168fbbf088cb9b5ef9e976109ad70ce4a561b8155eeb8004b",
+      "png_sha256": "52c7ab502357b35c09815e3c63f00bba64e02ef8262c65231e265065eb816a6f",
+      "render_sha256": "616b65fedb4e03a7843b434722aa1e8dda284e5c4ad76f3606f3180271d9b18b",
+      "path": "oc/leader-repeated-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-idle-pending",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "dd0d43c984ecefbe10c0b16865786664c130f2f95290abb55f8c4f049e21292d",
+      "png_sha256": "8e8f284fdd3cc8d8fca07ac9849baef86f92e07cd5b7b905b42955551de65501",
+      "render_sha256": "8d40a753a6efb7b5f9f53006d4f845d2b5d63c605e4105712bafe36d0ed7e9a8",
+      "path": "oc/leader-idle-pending"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-idle-restored",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "76e6f8f8d22bc06554d99a252821b41ae4007ae896525eb13a780ee38a7d67cd",
+      "png_sha256": "52c7ab502357b35c09815e3c63f00bba64e02ef8262c65231e265065eb816a6f",
+      "render_sha256": "031862becee67396688dd942997ff67bab73831ac69c118af6a1048af1c11e71",
+      "path": "oc/leader-idle-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-success-pending",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "cba9df920cfdc4f2aa40350bdae275fa0bfa7aa044cb50beaedfdda0aee2e328",
+      "png_sha256": "8e8f284fdd3cc8d8fca07ac9849baef86f92e07cd5b7b905b42955551de65501",
+      "render_sha256": "22318b8eadea85cf816ab7055fe0b02af51422ac03df77c3c6e087b1425220a5",
+      "path": "oc/leader-success-pending"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-success-next",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "33b2b717e4740fc9a04981b1276310427b9acd13f0d04d5da2e58c8f68f94525",
+      "png_sha256": "661038f9e03c3419a1ca6c37b5dc39908851005faee57784dbefbcf6e96f3ed3",
+      "render_sha256": "9cc40a259c0d226040cebcf852f5f74f8b4a7d5e791c58c71862e4d54735add7",
+      "path": "oc/leader-success-next"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-success-restored",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "dfe7bce6990a0d6f7018f95ca66eb9a565e7ead24d31b75c313698c1d77d0e9c",
+      "png_sha256": "52c7ab502357b35c09815e3c63f00bba64e02ef8262c65231e265065eb816a6f",
+      "render_sha256": "d52dee8cbfb04a92677f71966c76c7baeff9b19c23fd81c6dc50c5adde767349",
+      "path": "oc/leader-success-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-modal-normal",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "0cb2af9765b88e023dcc1943a065670f8393a41ebed49ded70328b20650bdc28",
+      "png_sha256": "362be1159a933beceaa8006766170adf87004a80e00ed0100e435928b70dcae1",
+      "render_sha256": "9f694fc9079296cac1b976d3022469533a331e0b09bc15f6b61b03ec30cc695f",
+      "path": "oc/leader-modal-normal"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-modal-pending",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "631a9561325b7859db811333b2da5d9d9669d0717fd67324a8ff2332e4e11dc1",
+      "png_sha256": "e73cebc6e113acdd0ed6a9cb2fee8412b73a3245445c4181c366fb90fe67aa9f",
+      "render_sha256": "f665e2dca37ed6ea72ad89105040791f9b8abc915ec3f42018efd504aaaf9696",
+      "path": "oc/leader-modal-pending"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-modal-invalid-next",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "f23110269d39eb37c956e38a148de1f72eb3a04733cc9f7fec31936c706a378b",
+      "png_sha256": "b7083ce6baf26316190d41f35529093a6313b2969287c248824bdd453e42fdab",
+      "render_sha256": "7bb789bde889231dc504090efe8f8aab33e2e2bb9e8adcb7e4727eb0dc09626b",
+      "path": "oc/leader-modal-invalid-next"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-modal-restored",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "693e9cc93b02a22aee8d85ae44b843f2ce2218f6c44e47192a17346a27efa996",
+      "png_sha256": "52c7ab502357b35c09815e3c63f00bba64e02ef8262c65231e265065eb816a6f",
+      "render_sha256": "90eabb3d0a05b0afc6a34c55c56c3c4d53a5c99f1dfc08d86392a8c990b586ee",
+      "path": "oc/leader-modal-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-chip-normal",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "71729865b94103dac1ce4c23ce97884e8c8b9161c7078f4084babfd25088c05f",
+      "png_sha256": "49fd6d65c7008c1e6287cb73f7cb3164205b8935f9a087f35065cabb01a2625a",
+      "render_sha256": "8a3e0a9681f029b7630634c24206fd02fe3ca7c39cf08db2d6281d2744f74564",
+      "path": "oc/leader-chip-normal"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-chip-pending",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "bd686d4ad7917aca24655addb103cf8a372734bdca72d381df27c8d39c8c0d1b",
+      "png_sha256": "a7a1caf213759d9d8600cf0c224e5c6214696f339fa2c5878302a93d0cdeb7cb",
+      "render_sha256": "73d5cce18785b582af378ca0b550ccc9f71dcc99f13e16ddf64971a8d43f1bb9",
+      "path": "oc/leader-chip-pending"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-chip-restored",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "8516294480a16b6baeefa075e40979860e7891ba8fe3cdab84f8e21495069e5e",
+      "png_sha256": "49fd6d65c7008c1e6287cb73f7cb3164205b8935f9a087f35065cabb01a2625a",
+      "render_sha256": "80f2d57dbf716c76e5aa1118330f8f6114bf8e8f9c91d70343a160f0e8af28d9",
+      "path": "oc/leader-chip-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-chip-expanded-fulltext",
+      "status": "CAPTURED",
+      "environment_id": "bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac",
+      "cells_sha256": "d409a8b7b539bb3ad9dcb77ff19b12ca4ddc6c57a6ff81a1764e91660eee3f16",
+      "png_sha256": "b60e6dcd19c83b205423987b479c807d6387b568706a450380ebee5efc4d2689",
+      "render_sha256": "ddad34ad9825273a46e8fb1e8c53a3294cfcfdd01b942fbc5d05ac009d1f81a4",
+      "path": "oc/leader-chip-expanded-fulltext"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 79,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "leader_pending": {
+    "upstream": {
+      "origin": "upstream",
+      "config": "default",
+      "status": "OBSERVED",
+      "observations": [
+        {
+          "name": "normal",
+          "status": "CAPTURED",
+          "at_ms": 6794.470444,
+          "cursor": {
+            "x": 56,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every word",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-pending",
+          "status": "CAPTURED",
+          "at_ms": 7450.067264,
+          "cursor": {
+            "x": 56,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every word",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-next",
+          "status": "CAPTURED",
+          "at_ms": 8044.997402,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-restored",
+          "status": "CAPTURED",
+          "at_ms": 10728.008985,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-pending",
+          "status": "CAPTURED",
+          "at_ms": 11243.777851,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-next",
+          "status": "CAPTURED",
+          "at_ms": 11828.476293,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-restored",
+          "status": "CAPTURED",
+          "at_ms": 14572.75374,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-pending",
+          "status": "CAPTURED",
+          "at_ms": 15156.191881,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-next",
+          "status": "CAPTURED",
+          "at_ms": 15670.924498,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-restored",
+          "status": "CAPTURED",
+          "at_ms": 18434.597536,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-pending",
+          "status": "CAPTURED",
+          "at_ms": 19028.371149,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-next",
+          "status": "CAPTURED",
+          "at_ms": 19534.281973,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-restored",
+          "status": "CAPTURED",
+          "at_ms": 22271.747664,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "idle-pending",
+          "status": "CAPTURED",
+          "at_ms": 22799.904947,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "idle-restored",
+          "status": "CAPTURED",
+          "at_ms": 24825.443446,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-pending",
+          "status": "CAPTURED",
+          "at_ms": 25382.607672,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-next",
+          "status": "CAPTURED",
+          "at_ms": 28615.257662,
+          "cursor": {
+            "x": 14,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11    Nemotron 3 Ultra Free                           Free",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#626262",
+            "bg": "#0c0c0c",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-restored",
+          "status": "CAPTURED",
+          "at_ms": 29411.232263,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-normal",
+          "status": "CAPTURED",
+          "at_ms": 30457.294237,
+          "cursor": {
+            "x": 14,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11    Stash prompt",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#626262",
+            "bg": "#0c0c0c",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-pending",
+          "status": "CAPTURED",
+          "at_ms": 30975.047593,
+          "cursor": {
+            "x": 14,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11    Stash prompt",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#353535",
+            "bg": "#0c0c0c",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-invalid-next",
+          "status": "CAPTURED",
+          "at_ms": 31704.052733,
+          "cursor": {
+            "x": 15,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#626262",
+            "bg": "#0c0c0c",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-restored",
+          "status": "CAPTURED",
+          "at_ms": 32736.425853,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-normal",
+          "status": "CAPTURED",
+          "at_ms": 35860.406853,
+          "cursor": {
+            "x": 12,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-pending",
+          "status": "CAPTURED",
+          "at_ms": 36546.818058,
+          "cursor": {
+            "x": 12,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-restored",
+          "status": "CAPTURED",
+          "at_ms": 39508.313048,
+          "cursor": {
+            "x": 12,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-expanded-fulltext",
+          "status": "CAPTURED",
+          "at_ms": 40710.813018,
+          "cursor": {
+            "x": 18,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzordVIS11-PASTE-0",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        }
+      ],
+      "idle": {
+        "expiry_ms": 2041.2941600000013,
+        "samples": [
+          {
+            "elapsed_ms": 533.1569959999979,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 561.839308999999,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 591.009227999999,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 623.090443000001,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 657.9082420000013,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 686.6139619999994,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 715.9989549999991,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 744.9264589999984,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 775.7875260000001,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 820.1314060000004,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 850.5602929999986,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 881.0849830000006,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 908.9630959999995,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 940.3067699999992,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 969.7070359999998,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1001.4435110000013,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1034.8568239999986,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1067.4841119999983,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1098.3701469999978,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1127.670431999999,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1156.7280019999998,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1186.0337760000002,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1227.6022850000008,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1259.079690999999,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1288.5448539999998,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1317.4949119999983,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1356.8854709999978,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1385.5848399999995,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1414.2806549999987,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1442.5894469999985,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1476.8260699999992,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1508.9716929999995,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1538.554823999999,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1568.8741550000013,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1598.974495999999,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1629.3795959999989,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1672.2243979999985,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1701.2879869999997,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1734.1823369999984,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1762.9610670000002,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1798.9649419999987,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1830.989383,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1859.7976549999985,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1894.0087109999986,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1922.6093519999995,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1952.395249000001,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1980.7788929999988,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 2012.528248999999,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 2041.2941600000013,
+            "pending": false
+          }
+        ],
+        "actual_inputs": [
+          {
+            "kind": "input_written",
+            "at_ns": 1211905947783077,
+            "base64": "GA=="
+          }
+        ],
+        "actual_output_writes": [
+          {
+            "at_ns": 1211905954482941,
+            "bytes": 488
+          },
+          {
+            "at_ns": 1211907956139771,
+            "bytes": 500
+          }
+        ]
+      },
+      "chip_settlement": {
+        "contract": "Actual chip plus unchanged full styled grid/cursor for five polls, 200 ms apart",
+        "elapsed_ms": 2455.757410000002,
+        "cursor": {
+          "x": 12,
+          "y": 22,
+          "visible": true,
+          "shape": "block"
+        }
+      },
+      "chip_fulltext_preserved": true,
+      "provider_requests": 0
+    },
+    "oc": {
+      "origin": "oc",
+      "config": "default",
+      "status": "OBSERVED",
+      "observations": [
+        {
+          "name": "normal",
+          "status": "CAPTURED",
+          "at_ms": 45532.590819,
+          "cursor": {
+            "x": 56,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every word",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-pending",
+          "status": "CAPTURED",
+          "at_ms": 46197.13073,
+          "cursor": {
+            "x": 56,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every word",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-next",
+          "status": "CAPTURED",
+          "at_ms": 46808.414402,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-restored",
+          "status": "CAPTURED",
+          "at_ms": 49636.419783,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-pending",
+          "status": "CAPTURED",
+          "at_ms": 50262.877337,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-next",
+          "status": "CAPTURED",
+          "at_ms": 50852.919626,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-restored",
+          "status": "CAPTURED",
+          "at_ms": 53649.763826,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-pending",
+          "status": "CAPTURED",
+          "at_ms": 54379.150278,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-next",
+          "status": "CAPTURED",
+          "at_ms": 54983.299551,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-restored",
+          "status": "CAPTURED",
+          "at_ms": 57748.004267,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-pending",
+          "status": "CAPTURED",
+          "at_ms": 58315.009065,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-next",
+          "status": "CAPTURED",
+          "at_ms": 58839.462605,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-restored",
+          "status": "CAPTURED",
+          "at_ms": 61554.117291,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "idle-pending",
+          "status": "CAPTURED",
+          "at_ms": 62160.479627,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "idle-restored",
+          "status": "CAPTURED",
+          "at_ms": 64170.712035,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-pending",
+          "status": "CAPTURED",
+          "at_ms": 64794.520777,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-next",
+          "status": "CAPTURED",
+          "at_ms": 68039.62246,
+          "cursor": {
+            "x": 13,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": null,
+          "draft_cell": null,
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-restored",
+          "status": "CAPTURED",
+          "at_ms": 68964.209558,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-normal",
+          "status": "CAPTURED",
+          "at_ms": 69996.00992,
+          "cursor": {
+            "x": 13,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": null,
+          "draft_cell": null,
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-pending",
+          "status": "CAPTURED",
+          "at_ms": 70608.710685,
+          "cursor": {
+            "x": 13,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": null,
+          "draft_cell": null,
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-invalid-next",
+          "status": "CAPTURED",
+          "at_ms": 71136.321721,
+          "cursor": {
+            "x": 14,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#626262",
+            "bg": "#0c0c0c",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-restored",
+          "status": "CAPTURED",
+          "at_ms": 72208.296481,
+          "cursor": {
+            "x": 57,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-normal",
+          "status": "CAPTURED",
+          "at_ms": 74911.545328,
+          "cursor": {
+            "x": 12,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-pending",
+          "status": "CAPTURED",
+          "at_ms": 75497.206795,
+          "cursor": {
+            "x": 12,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-restored",
+          "status": "CAPTURED",
+          "at_ms": 78278.145282,
+          "cursor": {
+            "x": 12,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-expanded-fulltext",
+          "status": "CAPTURED",
+          "at_ms": 79308.422106,
+          "cursor": {
+            "x": 18,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzordVIS11-PASTE-0",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        }
+      ],
+      "idle": {
+        "expiry_ms": 2045.9533179999999,
+        "samples": [
+          {
+            "elapsed_ms": 618.2873330000002,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 650.3468960000027,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 684.4084750000038,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 719.7690799999982,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 752.3393120000037,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 783.3745520000011,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 815.0092940000031,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 843.7460510000019,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 873.1379240000024,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 912.9518500000049,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 942.2223799999992,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 972.9089930000046,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1002.6558030000015,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1034.398457000003,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1064.0649449999983,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1092.8394069999995,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1123.2057580000037,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1157.4249049999999,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1186.0345000000016,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1215.2326210000028,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1246.315521000004,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1275.7130840000027,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1306.1545289999995,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1342.411304000001,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1376.5114130000002,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1412.6681769999996,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1446.4035650000005,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1478.6592830000009,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1509.459778000004,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1541.571941000002,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1574.1757629999993,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1603.893818000004,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1635.4026410000006,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1667.6191099999996,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1699.756199000003,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1738.2517480000024,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1790.6065090000047,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1822.6734219999998,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1856.9584079999986,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1886.2386430000042,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1922.4399860000049,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1952.3826990000016,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 1981.289251000002,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 2016.2597490000044,
+            "pending": true
+          },
+          {
+            "elapsed_ms": 2045.9533179999999,
+            "pending": false
+          }
+        ],
+        "actual_inputs": [
+          {
+            "kind": "input_written",
+            "at_ns": 1211945230021306,
+            "base64": "GA=="
+          }
+        ],
+        "actual_output_writes": [
+          {
+            "at_ns": 1211945234341706,
+            "bytes": 373
+          },
+          {
+            "at_ns": 1211947239372337,
+            "bytes": 373
+          },
+          {
+            "at_ns": 1211947240752265,
+            "bytes": 8
+          }
+        ]
+      },
+      "chip_settlement": {
+        "contract": "Actual chip plus unchanged full styled grid/cursor for five polls, 200 ms apart",
+        "elapsed_ms": 2159.3830129999988,
+        "cursor": {
+          "x": 12,
+          "y": 22,
+          "visible": true,
+          "shape": "block"
+        }
+      },
+      "chip_fulltext_preserved": true,
+      "provider_requests": 0
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_PROMPT_PASTE_ONLY",
+    "scenario": "default-chip",
+    "requested_columns": 79,
+    "session_tps_override": false,
+    "actual_requests": "Real PTY keys and bracketed paste; isolated local Responses fixture; actual user wire retained",
+    "unresolved": [
+      "Full styled grids, PNGs and cursors remain unmasked; behavior is not VIS07 PASS",
+      "This bounded scenario does not qualify every mandatory prompt/paste/resize/Unicode case"
+    ]
+  },
+  "finished": "2026-09-27T19:22:41.278Z",
+  "exit_code": 1
+}

@@ -1,0 +1,207 @@
+[
+  {
+    "at_ms": 1790529669069,
+    "kind": "terminal_reply",
+    "base64": "G10xMDtyZ2I6ZWVlZS9lZWVlL2VlZWUbXA=="
+  },
+  {
+    "at_ms": 1790529669071,
+    "kind": "terminal_reply",
+    "base64": "G10xMTtyZ2I6MGEwYS8wYTBhLzBhMGEbXA=="
+  },
+  {
+    "at_ms": 1790529669074,
+    "kind": "terminal_reply",
+    "base64": "G1sxOzFS"
+  },
+  {
+    "at_ms": 1790529669076,
+    "kind": "terminal_reply",
+    "base64": "G1s/MTAxNjsyJHk="
+  },
+  {
+    "at_ms": 1790529669077,
+    "kind": "terminal_reply",
+    "base64": "G1s/MjAyNzswJHk="
+  },
+  {
+    "at_ms": 1790529669078,
+    "kind": "terminal_reply",
+    "base64": "G1s/MjAzMTswJHk="
+  },
+  {
+    "at_ms": 1790529669078,
+    "kind": "terminal_reply",
+    "base64": "G1s/MTAwNDsyJHk="
+  },
+  {
+    "at_ms": 1790529669079,
+    "kind": "terminal_reply",
+    "base64": "G1s/MjAwNDsyJHk="
+  },
+  {
+    "at_ms": 1790529669079,
+    "kind": "terminal_reply",
+    "base64": "G1s/MjAyNjsyJHk="
+  },
+  {
+    "at_ms": 1790529669080,
+    "kind": "terminal_reply",
+    "base64": "G1s/MTsyYw=="
+  },
+  {
+    "at_ms": 1790529669085,
+    "kind": "terminal_reply",
+    "base64": "G1sxOzFS"
+  },
+  {
+    "at_ms": 1790529669085,
+    "kind": "terminal_reply",
+    "base64": "G1sxOzFS"
+  },
+  {
+    "at_ms": 1790529669137,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790529669152,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790529669159,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790529669169,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790529669178,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790529669190,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790529671365,
+    "kind": "leader_variant_cycle",
+    "base64": "FA=="
+  },
+  {
+    "at_ms": 1790529671566,
+    "kind": "leader_draft",
+    "base64": "G1syMDB+VklTMTEgZnVsbCBkcmFmdCDOsc6yIGNhcmV0LW1pZGRsZSBwcmVzZXJ2aW5nIGV2ZXJ5IHdvcmQbWzIwMX4="
+  },
+  {
+    "at_ms": 1790529671767,
+    "kind": "leader_caret_middle",
+    "base64": "G1tEG1tEG1tE"
+  },
+  {
+    "at_ms": 1790529672303,
+    "kind": "leader_invalid_start",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790529672803,
+    "kind": "leader_invalid_next",
+    "base64": "eg=="
+  },
+  {
+    "at_ms": 1790529675964,
+    "kind": "leader_escape_start",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790529676481,
+    "kind": "leader_escape_next",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1790529679621,
+    "kind": "leader_backspace_start",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790529680065,
+    "kind": "leader_backspace_next",
+    "base64": "fw=="
+  },
+  {
+    "at_ms": 1790529683260,
+    "kind": "leader_repeated_start",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790529683712,
+    "kind": "leader_repeated_next",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790529686919,
+    "kind": "leader_idle_start",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790529689473,
+    "kind": "leader_success_start",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790529692160,
+    "kind": "leader_success_fresh_chord",
+    "base64": "GG0="
+  },
+  {
+    "at_ms": 1790529693122,
+    "kind": "leader_success_dismiss",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1790529693876,
+    "kind": "leader_modal_open",
+    "base64": "EA=="
+  },
+  {
+    "at_ms": 1790529694799,
+    "kind": "leader_modal_start",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790529695299,
+    "kind": "leader_modal_invalid",
+    "base64": "eg=="
+  },
+  {
+    "at_ms": 1790529695786,
+    "kind": "leader_modal_escape",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1790529696674,
+    "kind": "leader_end",
+    "base64": "G1tG"
+  },
+  {
+    "at_ms": 1790529696674,
+    "kind": "leader_chip_paste",
+    "base64": "G1syMDB+VklTMTEtUEFTVEUtMApWSVMxMS1QQVNURS0xClZJUzExLVBBU1RFLTIbWzIwMX4="
+  },
+  {
+    "at_ms": 1790529697155,
+    "kind": "leader_chip_start",
+    "base64": "GA=="
+  },
+  {
+    "at_ms": 1790529700599,
+    "kind": "leader_expand_actual_chip",
+    "base64": "G1s8MDs2MjsyMk0bWzwwOzYyOzIybQ=="
+  }
+]

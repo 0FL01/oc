@@ -1,0 +1,239 @@
+[
+  {
+    "kind": "leader_fixture_config",
+    "mode": "default",
+    "cli_config": {
+      "session": {
+        "sidebar": "hide",
+        "tps": false
+      },
+      "tabs": {
+        "layout": "horizontal"
+      },
+      "debug": {
+        "devtools": false
+      }
+    }
+  },
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "tui"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/extra-121-39cfdb1e156a/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/extra-121-39cfdb1e156a/oc/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/extra-121-39cfdb1e156a/oc/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/extra-121-39cfdb1e156a/oc/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/extra-121-39cfdb1e156a/oc/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/extra-121-39cfdb1e156a/oc/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/extra-121-39cfdb1e156a/oc/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"provider\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"npm\": \"@ai-sdk/openai\", \"options\": {\"baseURL\": \"http://127.0.0.1:37105/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"MiMo-V2.6-Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}, \"variants\": {\"fast\": {\"reasoningEffort\": \"high\"}, \"none\": {\"reasoningEffort\": \"low\"}}}, \"fixture-model-2\": {\"name\": \"Muse Spark 1.3 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-3\": {\"name\": \"Ling 3.0 Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-4\": {\"name\": \"Nemotron 3.5 Lightning Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-5\": {\"name\": \"Muse Spark 1.2 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-6\": {\"name\": \"Nemotron 3 Ultra Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-7\": {\"name\": \"MiMo V2.5 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-8\": {\"name\": \"Big Pickle\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}}}}, \"permissions\": {\"read\": \"allow\"}}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "oc 0.1.0",
+    "version_exit": 0
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212304286217030,
+    "base64": "FA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212304487388047,
+    "base64": "G1syMDB+VklTMTEgZnVsbCBkcmFmdCDOsc6yIGNhcmV0LW1pZGRsZSBwcmVzZXJ2aW5nIGV2ZXJ5IHdvcmQbWzIwMX4="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212304688409970,
+    "base64": "G1tEG1tEG1tE"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212305439620785,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212306056628267,
+    "base64": "G1tE"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212310051279683,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212310815790677,
+    "base64": "G1tD"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212314872403604,
+    "base64": "EA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212316064203274,
+    "base64": "enp6ei1uby1zdWNoLWNvbW1hbmQ="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212317184751197,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212320839656005,
+    "base64": "Gw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212322005208010,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212322774792115,
+    "base64": "Aw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212326836123058,
+    "base64": "G1syMDB+VklTMTEgRW50ZXIgYm91bmRlZCBhY3R1YWwgcmVxdWVzdBtbMjAxfg=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212327237242550,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1212327939387450,
+    "base64": "DQ=="
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": false,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "ea979e8c5b6408ed831a29016691ffb2f4679e2d80c8ff0ee834af47928153e0",
+    "registered_tools": [
+      "read",
+      "glob",
+      "grep",
+      "apply_patch",
+      "bash",
+      "webfetch",
+      "skill"
+    ],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "reasoning",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "actual_input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded actual requestord"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "4cad7bd493cbe3ad49594a6e8045acdd8dd8b22f45f043ecf808f157c8ec3198"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": false,
+    "operation": "title",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "50ae4e46a8b4c96e4232e518504d29e4006b4ba4229b1fa384ef50291ba3c92e",
+    "registered_tools": [],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "reasoning",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "actual_input": [
+      {
+        "type": "message",
+        "role": "developer",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "Generate a short session title from the user's request. Output only the title, in at most 100 characters."
+          }
+        ]
+      },
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded actual requestord"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "title",
+    "response_text_sha256": "1d813e919dac6b6dd2b09b29e81ca7d93d503f841030b3118759525fd000beaa"
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": -15,
+    "termination": "forced_stop"
+  }
+]

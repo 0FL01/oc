@@ -1,0 +1,773 @@
+{
+  "origin": "upstream",
+  "config": "default",
+  "status": "OBSERVED",
+  "observations": [
+    {
+      "name": "normal",
+      "status": "CAPTURED",
+      "at_ms": 5871.392588,
+      "cursor": {
+        "x": 57,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every word",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#eeeeee",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "invalid-pending",
+      "status": "CAPTURED",
+      "at_ms": 6445.331946,
+      "cursor": {
+        "x": 57,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every word",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#808080",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "invalid-next",
+      "status": "CAPTURED",
+      "at_ms": 6934.337811,
+      "cursor": {
+        "x": 58,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#eeeeee",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "invalid-restored",
+      "status": "CAPTURED",
+      "at_ms": 9641.19134,
+      "cursor": {
+        "x": 58,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#eeeeee",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "escape-pending",
+      "status": "CAPTURED",
+      "at_ms": 10199.551837,
+      "cursor": {
+        "x": 58,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#808080",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "escape-next",
+      "status": "CAPTURED",
+      "at_ms": 10786.773117,
+      "cursor": {
+        "x": 58,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#eeeeee",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "escape-restored",
+      "status": "CAPTURED",
+      "at_ms": 13548.369742,
+      "cursor": {
+        "x": 58,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#eeeeee",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "backspace-pending",
+      "status": "CAPTURED",
+      "at_ms": 14043.306372,
+      "cursor": {
+        "x": 58,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#808080",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "backspace-next",
+      "status": "CAPTURED",
+      "at_ms": 14553.360037,
+      "cursor": {
+        "x": 58,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#eeeeee",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "backspace-restored",
+      "status": "CAPTURED",
+      "at_ms": 17320.804782,
+      "cursor": {
+        "x": 58,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#eeeeee",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "repeated-pending",
+      "status": "CAPTURED",
+      "at_ms": 17850.356304,
+      "cursor": {
+        "x": 58,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#808080",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "repeated-next",
+      "status": "CAPTURED",
+      "at_ms": 18398.83965,
+      "cursor": {
+        "x": 58,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#eeeeee",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "repeated-restored",
+      "status": "CAPTURED",
+      "at_ms": 21116.385725,
+      "cursor": {
+        "x": 58,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#eeeeee",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "idle-pending",
+      "status": "CAPTURED",
+      "at_ms": 21646.998675,
+      "cursor": {
+        "x": 58,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#808080",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "idle-restored",
+      "status": "CAPTURED",
+      "at_ms": 23683.57182,
+      "cursor": {
+        "x": 58,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#eeeeee",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "success-pending",
+      "status": "CAPTURED",
+      "at_ms": 24180.686242,
+      "cursor": {
+        "x": 58,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#808080",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "success-next",
+      "status": "CAPTURED",
+      "at_ms": 27335.175879,
+      "cursor": {
+        "x": 14,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": null,
+      "draft_cell": null,
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "success-restored",
+      "status": "CAPTURED",
+      "at_ms": 28182.665968,
+      "cursor": {
+        "x": 58,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#eeeeee",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "modal-normal",
+      "status": "CAPTURED",
+      "at_ms": 29146.51717,
+      "cursor": {
+        "x": 14,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": null,
+      "draft_cell": null,
+      "commands": true,
+      "provider_requests": 0
+    },
+    {
+      "name": "modal-pending",
+      "status": "CAPTURED",
+      "at_ms": 29668.27556,
+      "cursor": {
+        "x": 14,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": null,
+      "draft_cell": null,
+      "commands": true,
+      "provider_requests": 0
+    },
+    {
+      "name": "modal-invalid-next",
+      "status": "CAPTURED",
+      "at_ms": 30252.70307,
+      "cursor": {
+        "x": 15,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#626262",
+        "bg": "#0c0c0c",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": true,
+      "provider_requests": 0
+    },
+    {
+      "name": "modal-restored",
+      "status": "CAPTURED",
+      "at_ms": 31242.454834,
+      "cursor": {
+        "x": 58,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#eeeeee",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "chip-normal",
+      "status": "CAPTURED",
+      "at_ms": 33855.93752,
+      "cursor": {
+        "x": 13,
+        "y": 22,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#eeeeee",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "chip-pending",
+      "status": "CAPTURED",
+      "at_ms": 34326.486565,
+      "cursor": {
+        "x": 13,
+        "y": 22,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#808080",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "chip-restored",
+      "status": "CAPTURED",
+      "at_ms": 37028.187221,
+      "cursor": {
+        "x": 13,
+        "y": 22,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#eeeeee",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    },
+    {
+      "name": "chip-expanded-fulltext",
+      "status": "CAPTURED",
+      "at_ms": 37973.212449,
+      "cursor": {
+        "x": 19,
+        "y": 22,
+        "visible": true,
+        "shape": "block"
+      },
+      "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzordVIS11-PASTE-0",
+      "draft_cell": {
+        "symbol": "V",
+        "fg": "#eeeeee",
+        "bg": "#1e1e1e",
+        "width": 1,
+        "modifiers": []
+      },
+      "commands": false,
+      "provider_requests": 0
+    }
+  ],
+  "idle": {
+    "expiry_ms": 2046.8157570000003,
+    "samples": [
+      {
+        "elapsed_ms": 539.2621719999988,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 569.2759319999968,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 598.1258789999993,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 628.7629679999991,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 657.9807079999991,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 688.7229549999975,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 719.3483159999996,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 747.6446389999983,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 779.0341419999968,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 809.809197999999,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 838.5086379999993,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 866.8508489999986,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 898.5044899999994,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 926.4264589999984,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 955.0233129999979,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 984.9754509999984,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1014.0339709999971,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1045.0359199999984,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1079.063345999999,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1109.4823169999981,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1138.6360309999982,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1169.256975999997,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1199.2910359999987,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1232.0633219999982,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1261.1459389999982,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1293.7756799999988,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1324.8342940000002,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1354.6370659999993,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1383.0499039999995,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1411.6000879999992,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1443.0196159999978,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1472.1892740000003,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1501.4091279999993,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1530.8066489999983,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1559.4509259999977,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1588.0826629999974,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1620.6310319999975,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1648.6599019999994,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1680.349775999999,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1711.4809999999998,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1740.7010639999971,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1769.1390199999987,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1802.2428249999975,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1832.2261689999978,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1860.9481629999973,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1889.3103539999975,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1921.3750929999987,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1951.9095879999986,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 1982.760127999998,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 2015.5626999999986,
+        "pending": true
+      },
+      {
+        "elapsed_ms": 2046.8157570000003,
+        "pending": false
+      }
+    ],
+    "actual_inputs": [
+      {
+        "kind": "input_written",
+        "at_ns": 1212056745529149,
+        "base64": "GA=="
+      }
+    ],
+    "actual_output_writes": [
+      {
+        "at_ns": 1212056759373568,
+        "bytes": 488
+      },
+      {
+        "at_ns": 1212058763525546,
+        "bytes": 500
+      }
+    ]
+  },
+  "chip_settlement": {
+    "contract": "Actual chip plus unchanged full styled grid/cursor for five polls, 200 ms apart",
+    "elapsed_ms": 2035.0214449999985,
+    "cursor": {
+      "x": 13,
+      "y": 22,
+      "visible": true,
+      "shape": "block"
+    }
+  },
+  "chip_fulltext_preserved": true,
+  "provider_requests": 0
+}

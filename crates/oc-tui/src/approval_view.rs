@@ -77,33 +77,14 @@ pub(crate) fn binding(event: crossterm::event::KeyEvent) -> String {
 }
 impl ApprovalView {
     fn feedback_offset(&self, rect: Rect, top: usize, x: u16, y: u16) -> usize {
-        use unicode_segmentation::UnicodeSegmentation;
-        use unicode_width::UnicodeWidthStr;
         let (rows, _) = self
             .editor
             .layout_words(&self.feedback, usize::from(rect.width.max(1)));
         let target = top + usize::from(y.saturating_sub(rect.y).min(rect.height.saturating_sub(1)));
-        let mut offset = 0;
-        for row in rows.iter().take(target) {
-            offset += row.text.len();
-            if self.feedback.as_bytes().get(offset) == Some(&b'\n') {
-                offset += 1;
-            }
-        }
-        if let Some(row) = rows.get(target) {
-            let mut cells = 0;
-            for grapheme in row.text.graphemes(true) {
-                let width = grapheme.width();
-                if cells + width
-                    > usize::from(x.saturating_sub(rect.x).min(rect.width.saturating_sub(1)))
-                {
-                    break;
-                }
-                cells += width;
-                offset += grapheme.len();
-            }
-        }
-        offset.min(self.feedback.len())
+        let column = usize::from(x.saturating_sub(rect.x).min(rect.width.saturating_sub(1)));
+        rows.get(target)
+            .and_then(|row| row.offset_at(column))
+            .unwrap_or(self.feedback.len())
     }
     fn feedback_vertical(&mut self, down: bool, select: bool) {
         let input = self.painted.borrow().as_ref().and_then(|p| p.input);
@@ -1084,6 +1065,70 @@ mod tests {
                 .to_string()
                 .contains("preview truncated")
         );
+    }
+    #[tokio::test]
+    async fn vis07_feedback_wrap_click_keeps_raw_unicode_offsets_for_edits() {
+        use crossterm::event::KeyModifiers;
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, SessionId("root".into()));
+        state.handle_paste("preserved prompt");
+        for width in [79, 80, 120, 121] {
+            state
+                .approvals
+                .reconcile(vec![(request(u64::from(width), true), true)]);
+            state.handle_key(KeyAction::Left).await;
+            state.handle_key(KeyAction::Enter).await;
+            crate::views::render_test(&state, width, 40);
+            let input = state
+                .approvals
+                .painted
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .input
+                .unwrap()
+                .0;
+            let prefix = "a".repeat(usize::from(input.width));
+            let feedback = format!("{prefix} 界e");
+            state.handle_paste(&feedback);
+            crate::views::render_test(&state, width, 40);
+            let (input, top) = state
+                .approvals
+                .painted
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .input
+                .unwrap();
+            assert_eq!(top, 0);
+            assert!(input.height >= 2);
+            let event = |kind| MouseEvent {
+                kind,
+                column: input.x + 2,
+                row: input.y + 1,
+                modifiers: KeyModifiers::NONE,
+            };
+            state.handle_mouse(
+                event(MouseEventKind::Down(MouseButton::Left)),
+                Rect::new(0, 0, width, 40),
+            );
+            state.handle_mouse(
+                event(MouseEventKind::Up(MouseButton::Left)),
+                Rect::new(0, 0, width, 40),
+            );
+            assert_eq!(state.approvals.editor.cursor, format!("{prefix} 界").len());
+            state.handle_key(KeyAction::Backspace).await;
+            assert_eq!(state.approvals.feedback, format!("{prefix} e"));
+            state.handle_key(KeyAction::Undo).await;
+            assert_eq!(state.approvals.feedback, feedback);
+            state.handle_key(KeyAction::Char('🦊')).await;
+            assert_eq!(state.approvals.feedback, format!("{prefix} 界🦊e"));
+            state.handle_key(KeyAction::Backspace).await;
+            assert_eq!(state.approvals.feedback, feedback);
+            state.handle_key(KeyAction::Backspace).await;
+            assert_eq!(state.approvals.feedback, format!("{prefix} e"));
+            assert_eq!(state.input(), "preserved prompt");
+        }
     }
     #[tokio::test]
     async fn growing_feedback_paints_whole_capture_text_and_keeps_selection_in_textarea() {

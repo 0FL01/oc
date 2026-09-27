@@ -193,7 +193,22 @@ class Provider(BaseHTTPRequestHandler):
             leader_prompts = ['VIS11 full draft αβ caret-middle preserving every word',
                               'VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded actual requestord']
             expected_prompt = next((text for text in leader_prompts if text in serialized), leader_prompts[0])
-        valid = valid and (is_title or expected_prompt in serialized)
+            if spec.get('prompt_paste_expected'):
+                expected_prompt = spec['prompt_paste_expected']
+                user_text = [part.get('text', '') for message in body.get('input', [])
+                             if message.get('role') == 'user'
+                             for part in message.get('content', []) if part.get('type') == 'input_text']
+                valid = valid and (is_title or user_text == [expected_prompt])
+            # Bound every leader fixture to one main exchange plus one auxiliary title.
+            valid = valid and (title_round <= 1 if is_title else transcript_round <= 1)
+        prompt_present = expected_prompt in serialized
+        if spec.get('leader_pending'):
+            # JSON escapes embedded newlines; validate the original structured
+            # user text rather than searching its serialized representation.
+            prompt_present = expected_prompt in [part.get('text', '')
+                for message in body.get('input', []) if message.get('role') == 'user'
+                for part in message.get('content', []) if part.get('type') == 'input_text']
+        valid = valid and (is_title or prompt_present)
         profile_prompt_present = profile_prompt is not None and profile_prompt in system
         if profile_id and not is_title:
             valid = valid and profile_prompt_present
@@ -205,7 +220,7 @@ class Provider(BaseHTTPRequestHandler):
         if spec.get('sample') == 'reasoning-steps' and not is_title:
             valid = valid and not tool_results and turn_number == 0 and round_number == 0
         record = {'kind': 'provider', 'path': self.path, 'model': body.get('model'),
-                   'stream': body.get('stream'), 'prompt_present': expected_prompt in serialized,
+                    'stream': body.get('stream'), 'prompt_present': prompt_present,
                    'profile_prompt_present': profile_prompt_present,
                    'operation': 'title' if is_title else 'transcript', 'valid': valid,
                    'turn_number': turn_number, 'round_number': round_number,

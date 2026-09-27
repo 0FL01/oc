@@ -1,7 +1,7 @@
 // Observational oracle: real keys into the original, full unmasked VT/PNG output.
 import fs from 'node:fs';
 import path from 'node:path';
-export async function probeLeaderPending({origin,dir,send,frame,capture,visibleMatches,logs,config,sampleColor,extra=false,enterOnly=false,outputTimeline}) {
+export async function probeLeaderPending({origin,dir,send,frame,capture,waitFor,visibleMatches,logs,config,sampleColor,extra=false,enterOnly=false,outputTimeline}) {
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   const result={origin,config,status:'IN_PROGRESS',observations:[]};
   const save=()=>fs.writeFileSync(path.join(dir,'leader-checks.json'),JSON.stringify(result,null,2)+'\n');
@@ -59,6 +59,9 @@ export async function probeLeaderPending({origin,dir,send,frame,capture,visibleM
     send('\x1b','leader_modal_escape');await sleep(450);await shot('modal-restored');
     // Real summarized paste chip; do not inject a chip into the renderer.
     send('\x1b[F','leader_end');send('\x1b[200~'+Array.from({length:3},(_,i)=>'VIS11-PASTE-'+i).join('\n')+'\x1b[201~','leader_chip_paste');
+    const settleStart=performance.now();
+    const settled=await waitFor(f=>visibleMatches(f,'[Pasted').length===1,'cold three-line paste chip',5000);
+    result.chip_settlement={contract:'Actual chip plus unchanged full styled grid/cursor for five polls, 200 ms apart',elapsed_ms:performance.now()-settleStart,cursor:settled.cursor};save();
     await shot('chip-normal');send(leader,'leader_chip_start');await shot('chip-pending');await sleep(2200);await shot('chip-restored');
     const chipFrame=await frame(),chip=visibleMatches(chipFrame,'[Pasted')[0];
     if(chip){send(`\x1b[<0;${chip.x+2};${chip.y+1}M\x1b[<0;${chip.x+2};${chip.y+1}m`,'leader_expand_actual_chip');await sleep(250);const expanded=await shot('chip-expanded-fulltext');result.chip_fulltext_preserved=[0,1,2].every(i=>expanded.text.includes('VIS11-PASTE-'+i));}

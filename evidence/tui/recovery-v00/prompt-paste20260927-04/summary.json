@@ -1,0 +1,4567 @@
+{
+  "status": "VIS07_NOT_PASS",
+  "behavior_status": "BOUNDED_BEHAVIOR_VERIFIED_WITH_WIRE_DIFFERENCE",
+  "analysis_input": "prompt-paste-analysis.json",
+  "all": {
+    "runs": 10,
+    "captures": 404,
+    "comparisons": {
+      "grid": {
+        "DIFFERENT": 202
+      },
+      "png": {
+        "DIFFERENT": 202
+      }
+    },
+    "cursor_differences": 16,
+    "requests": {
+      "upstream": 12,
+      "oc": 12
+    },
+    "main": 12,
+    "title": 12,
+    "invalid": 0,
+    "unstable": 0
+  },
+  "current": {
+    "runs": 10,
+    "captures": 404,
+    "comparisons": {
+      "grid": {
+        "DIFFERENT": 202
+      },
+      "png": {
+        "DIFFERENT": 202
+      }
+    },
+    "cursor_differences": 16,
+    "requests": {
+      "upstream": 12,
+      "oc": 12
+    },
+    "main": 12,
+    "title": 12,
+    "invalid": 0,
+    "unstable": 0
+  },
+  "runs": {
+    "chip-120": {
+      "runs": 1,
+      "captures": 52,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 26
+        },
+        "png": {
+          "DIFFERENT": 26
+        }
+      },
+      "cursor_differences": 0,
+      "requests": {
+        "upstream": 0,
+        "oc": 0
+      },
+      "main": 0,
+      "title": 0,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "f5af2499b07ca1f27cec9b3c348fa2ecdfdf4bf2",
+      "binary_sha256": "8f32da3b6a52db123ce6c8eb93108890812da81cd03915995a10b8d66c84f459",
+      "rust_inputs_sha256": "b142801c2c34b75f4f8a7b0b352ca08c78c0f86a7d2e51e4a52dd72c64f18f5a",
+      "source_manifest_sha256": "99ac1a66b3c6695a284e0af5f0ca43f30818d1b7f1f189e7d6569090d72e7116",
+      "dirty_diff_sha256": "547b6d6eb782061236759af86820ae7ccd79449f49c4279238704b5fb55c9dcf",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "pending_rgb": {
+        "upstream": {
+          "normal": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "invalid-pending": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "escape-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "backspace-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "repeated-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "idle-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "success-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "modal-pending": {
+            "cursor": {
+              "x": 34,
+              "y": 13,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": []
+          },
+          "chip-normal": {
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3                             ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          },
+          "chip-pending": {
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3                             ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          },
+          "chip-restored": {
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3                             ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          }
+        },
+        "oc": {
+          "normal": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "invalid-pending": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "escape-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "backspace-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "repeated-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "idle-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "success-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "modal-pending": {
+            "cursor": {
+              "x": 34,
+              "y": 13,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": []
+          },
+          "chip-normal": {
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3                             ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          },
+          "chip-pending": {
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3                             ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          },
+          "chip-restored": {
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3                             ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          }
+        }
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-chip-normal",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            112,
+            38,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-normal",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 298,
+          "bbox": [
+            943,
+            611,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            112,
+            38,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 298,
+          "bbox": [
+            943,
+            611,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            112,
+            38,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 298,
+          "bbox": [
+            943,
+            611,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-expanded-fulltext",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 7,
+          "cursor_differs": false,
+          "bbox": [
+            39,
+            22,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-expanded-fulltext",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 298,
+          "bbox": [
+            943,
+            611,
+            992,
+            620
+          ]
+        }
+      ],
+      "completion_and_settlement": {
+        "upstream": {
+          "provider_completions": [],
+          "chip_settlement": {
+            "contract": "Actual chip plus unchanged full styled grid/cursor for five polls, 200 ms apart",
+            "elapsed_ms": 2443.771992000002,
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        },
+        "oc": {
+          "provider_completions": [],
+          "chip_settlement": {
+            "contract": "Actual chip plus unchanged full styled grid/cursor for five polls, 200 ms apart",
+            "elapsed_ms": 2332.432912999997,
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        }
+      }
+    },
+    "chip-121": {
+      "runs": 1,
+      "captures": 52,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 26
+        },
+        "png": {
+          "DIFFERENT": 26
+        }
+      },
+      "cursor_differences": 4,
+      "requests": {
+        "upstream": 0,
+        "oc": 0
+      },
+      "main": 0,
+      "title": 0,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "f5af2499b07ca1f27cec9b3c348fa2ecdfdf4bf2",
+      "binary_sha256": "8f32da3b6a52db123ce6c8eb93108890812da81cd03915995a10b8d66c84f459",
+      "rust_inputs_sha256": "b142801c2c34b75f4f8a7b0b352ca08c78c0f86a7d2e51e4a52dd72c64f18f5a",
+      "source_manifest_sha256": "99ac1a66b3c6695a284e0af5f0ca43f30818d1b7f1f189e7d6569090d72e7116",
+      "dirty_diff_sha256": "547b6d6eb782061236759af86820ae7ccd79449f49c4279238704b5fb55c9dcf",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "pending_rgb": {
+        "upstream": {
+          "normal": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "invalid-pending": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "escape-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "backspace-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "repeated-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "idle-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "success-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "modal-pending": {
+            "cursor": {
+              "x": 35,
+              "y": 13,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11    Stash prompt                                                                          ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#1e1e1e\",\"bg\":\"#040404\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#353535\",\"bg\":\"#0c0c0c\",\"modifiers\":[]}": 5,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#141414\",\"modifiers\":[]}": 11
+                }
+              }
+            ]
+          },
+          "chip-normal": {
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3                              ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          },
+          "chip-pending": {
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3                              ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          },
+          "chip-restored": {
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3                              ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          }
+        },
+        "oc": {
+          "normal": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "invalid-pending": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "escape-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "backspace-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "repeated-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "idle-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "success-pending": {
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "modal-pending": {
+            "cursor": {
+              "x": 34,
+              "y": 13,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": []
+          },
+          "chip-normal": {
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3                              ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          },
+          "chip-pending": {
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3                              ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          },
+          "chip-restored": {
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3                              ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          }
+        }
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-chip-normal",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            113,
+            38,
+            118,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-normal",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 303,
+          "bbox": [
+            952,
+            611,
+            1001,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            113,
+            38,
+            118,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 303,
+          "bbox": [
+            952,
+            611,
+            1001,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            113,
+            38,
+            118,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 303,
+          "bbox": [
+            952,
+            611,
+            1001,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-expanded-fulltext",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 7,
+          "cursor_differs": false,
+          "bbox": [
+            39,
+            22,
+            118,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-expanded-fulltext",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 303,
+          "bbox": [
+            952,
+            611,
+            1001,
+            620
+          ]
+        }
+      ],
+      "completion_and_settlement": {
+        "upstream": {
+          "provider_completions": [],
+          "chip_settlement": {
+            "contract": "Actual chip plus unchanged full styled grid/cursor for five polls, 200 ms apart",
+            "elapsed_ms": 2500.223036999996,
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        },
+        "oc": {
+          "provider_completions": [],
+          "chip_settlement": {
+            "contract": "Actual chip plus unchanged full styled grid/cursor for five polls, 200 ms apart",
+            "elapsed_ms": 2279.418061000004,
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        }
+      }
+    },
+    "chip-79": {
+      "runs": 1,
+      "captures": 52,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 26
+        },
+        "png": {
+          "DIFFERENT": 26
+        }
+      },
+      "cursor_differences": 4,
+      "requests": {
+        "upstream": 0,
+        "oc": 0
+      },
+      "main": 0,
+      "title": 0,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "f5af2499b07ca1f27cec9b3c348fa2ecdfdf4bf2",
+      "binary_sha256": "8f32da3b6a52db123ce6c8eb93108890812da81cd03915995a10b8d66c84f459",
+      "rust_inputs_sha256": "b142801c2c34b75f4f8a7b0b352ca08c78c0f86a7d2e51e4a52dd72c64f18f5a",
+      "source_manifest_sha256": "99ac1a66b3c6695a284e0af5f0ca43f30818d1b7f1f189e7d6569090d72e7116",
+      "dirty_diff_sha256": "547b6d6eb782061236759af86820ae7ccd79449f49c4279238704b5fb55c9dcf",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "pending_rgb": {
+        "upstream": {
+          "normal": {
+            "cursor": {
+              "x": 56,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "invalid-pending": {
+            "cursor": {
+              "x": 56,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "escape-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "backspace-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "repeated-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "idle-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "success-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "modal-pending": {
+            "cursor": {
+              "x": 14,
+              "y": 13,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11    Stash prompt                                                     ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#1e1e1e\",\"bg\":\"#040404\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#353535\",\"bg\":\"#0c0c0c\",\"modifiers\":[]}": 5,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#141414\",\"modifiers\":[]}": 11
+                }
+              }
+            ]
+          },
+          "chip-normal": {
+            "cursor": {
+              "x": 12,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          },
+          "chip-pending": {
+            "cursor": {
+              "x": 12,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          },
+          "chip-restored": {
+            "cursor": {
+              "x": 12,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          }
+        },
+        "oc": {
+          "normal": {
+            "cursor": {
+              "x": 56,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "invalid-pending": {
+            "cursor": {
+              "x": 56,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "escape-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "backspace-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "repeated-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "idle-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "success-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "modal-pending": {
+            "cursor": {
+              "x": 13,
+              "y": 13,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": []
+          },
+          "chip-normal": {
+            "cursor": {
+              "x": 12,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          },
+          "chip-pending": {
+            "cursor": {
+              "x": 12,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          },
+          "chip-restored": {
+            "cursor": {
+              "x": 12,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          }
+        }
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-chip-normal",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            71,
+            38,
+            76,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-normal",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 297,
+          "bbox": [
+            599,
+            611,
+            647,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            71,
+            38,
+            76,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 297,
+          "bbox": [
+            599,
+            611,
+            647,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            71,
+            38,
+            76,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 297,
+          "bbox": [
+            599,
+            611,
+            647,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-expanded-fulltext",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 7,
+          "cursor_differs": false,
+          "bbox": [
+            18,
+            22,
+            76,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-expanded-fulltext",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 297,
+          "bbox": [
+            599,
+            611,
+            647,
+            620
+          ]
+        }
+      ],
+      "completion_and_settlement": {
+        "upstream": {
+          "provider_completions": [],
+          "chip_settlement": {
+            "contract": "Actual chip plus unchanged full styled grid/cursor for five polls, 200 ms apart",
+            "elapsed_ms": 2455.757410000002,
+            "cursor": {
+              "x": 12,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        },
+        "oc": {
+          "provider_completions": [],
+          "chip_settlement": {
+            "contract": "Actual chip plus unchanged full styled grid/cursor for five polls, 200 ms apart",
+            "elapsed_ms": 2159.3830129999988,
+            "cursor": {
+              "x": 12,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        }
+      }
+    },
+    "chip-80": {
+      "runs": 1,
+      "captures": 52,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 26
+        },
+        "png": {
+          "DIFFERENT": 26
+        }
+      },
+      "cursor_differences": 0,
+      "requests": {
+        "upstream": 0,
+        "oc": 0
+      },
+      "main": 0,
+      "title": 0,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "f5af2499b07ca1f27cec9b3c348fa2ecdfdf4bf2",
+      "binary_sha256": "8f32da3b6a52db123ce6c8eb93108890812da81cd03915995a10b8d66c84f459",
+      "rust_inputs_sha256": "b142801c2c34b75f4f8a7b0b352ca08c78c0f86a7d2e51e4a52dd72c64f18f5a",
+      "source_manifest_sha256": "99ac1a66b3c6695a284e0af5f0ca43f30818d1b7f1f189e7d6569090d72e7116",
+      "dirty_diff_sha256": "547b6d6eb782061236759af86820ae7ccd79449f49c4279238704b5fb55c9dcf",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "pending_rgb": {
+        "upstream": {
+          "normal": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "invalid-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "escape-pending": {
+            "cursor": {
+              "x": 58,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "backspace-pending": {
+            "cursor": {
+              "x": 58,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "repeated-pending": {
+            "cursor": {
+              "x": 58,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "idle-pending": {
+            "cursor": {
+              "x": 58,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "success-pending": {
+            "cursor": {
+              "x": 58,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "modal-pending": {
+            "cursor": {
+              "x": 14,
+              "y": 13,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": []
+          },
+          "chip-normal": {
+            "cursor": {
+              "x": 13,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          },
+          "chip-pending": {
+            "cursor": {
+              "x": 13,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          },
+          "chip-restored": {
+            "cursor": {
+              "x": 13,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          }
+        },
+        "oc": {
+          "normal": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "invalid-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "escape-pending": {
+            "cursor": {
+              "x": 58,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "backspace-pending": {
+            "cursor": {
+              "x": 58,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "repeated-pending": {
+            "cursor": {
+              "x": 58,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "idle-pending": {
+            "cursor": {
+              "x": 58,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "success-pending": {
+            "cursor": {
+              "x": 58,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wzord                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48
+                }
+              }
+            ]
+          },
+          "modal-pending": {
+            "cursor": {
+              "x": 14,
+              "y": 13,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": []
+          },
+          "chip-normal": {
+            "cursor": {
+              "x": 13,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          },
+          "chip-pending": {
+            "cursor": {
+              "x": 13,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          },
+          "chip-restored": {
+            "cursor": {
+              "x": 13,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 48,
+                  "{\"fg\":\"#0a0a0a\",\"bg\":\"#f5a742\",\"modifiers\":[\"bold\"]}": 9
+                }
+              }
+            ]
+          }
+        }
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-chip-normal",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            72,
+            38,
+            77,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-normal",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 306,
+          "bbox": [
+            607,
+            611,
+            655,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            72,
+            38,
+            77,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 306,
+          "bbox": [
+            607,
+            611,
+            655,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            72,
+            38,
+            77,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 306,
+          "bbox": [
+            607,
+            611,
+            655,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-expanded-fulltext",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 7,
+          "cursor_differs": false,
+          "bbox": [
+            19,
+            22,
+            77,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-expanded-fulltext",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 306,
+          "bbox": [
+            607,
+            611,
+            655,
+            620
+          ]
+        }
+      ],
+      "completion_and_settlement": {
+        "upstream": {
+          "provider_completions": [],
+          "chip_settlement": {
+            "contract": "Actual chip plus unchanged full styled grid/cursor for five polls, 200 ms apart",
+            "elapsed_ms": 2035.0214449999985,
+            "cursor": {
+              "x": 13,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        },
+        "oc": {
+          "provider_completions": [],
+          "chip_settlement": {
+            "contract": "Actual chip plus unchanged full styled grid/cursor for five polls, 200 ms apart",
+            "elapsed_ms": 1972.3898150000023,
+            "cursor": {
+              "x": 13,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        }
+      }
+    },
+    "extra-120": {
+      "runs": 1,
+      "captures": 36,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 18
+        },
+        "png": {
+          "DIFFERENT": 18
+        }
+      },
+      "cursor_differences": 0,
+      "requests": {
+        "upstream": 2,
+        "oc": 2
+      },
+      "main": 2,
+      "title": 2,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "f5af2499b07ca1f27cec9b3c348fa2ecdfdf4bf2",
+      "binary_sha256": "8f32da3b6a52db123ce6c8eb93108890812da81cd03915995a10b8d66c84f459",
+      "rust_inputs_sha256": "b142801c2c34b75f4f8a7b0b352ca08c78c0f86a7d2e51e4a52dd72c64f18f5a",
+      "source_manifest_sha256": "99ac1a66b3c6695a284e0af5f0ca43f30818d1b7f1f189e7d6569090d72e7116",
+      "dirty_diff_sha256": "547b6d6eb782061236759af86820ae7ccd79449f49c4279238704b5fb55c9dcf",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "pending_rgb": {
+        "upstream": {
+          "normal": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-left-pending": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-right-pending": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-modal-pending": {
+            "cursor": {
+              "x": 54,
+              "y": 13,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#1e1e1e\",\"bg\":\"#040404\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#353535\",\"bg\":\"#0c0c0c\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-ctrlc-pending": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-enter-pending": {
+            "cursor": {
+              "x": 40,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 61
+                }
+              }
+            ]
+          }
+        },
+        "oc": {
+          "normal": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-left-pending": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-right-pending": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-modal-pending": {
+            "cursor": {
+              "x": 54,
+              "y": 13,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#1e1e1e\",\"bg\":\"#040404\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#353535\",\"bg\":\"#0c0c0c\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-ctrlc-pending": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-enter-pending": {
+            "cursor": {
+              "x": 40,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 61
+                }
+              }
+            ]
+          }
+        }
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-extra-enter-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            112,
+            38,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 298,
+          "bbox": [
+            943,
+            611,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-next",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 1,
+          "cursor_differs": false,
+          "bbox": [
+            38,
+            8,
+            38,
+            8
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-next",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 71,
+          "bbox": [
+            320,
+            131,
+            327,
+            140
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 1,
+          "cursor_differs": false,
+          "bbox": [
+            38,
+            8,
+            38,
+            8
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 71,
+          "bbox": [
+            320,
+            131,
+            327,
+            140
+          ]
+        }
+      ],
+      "completion_and_settlement": {
+        "upstream": {
+          "provider_completions": [
+            {
+              "operation": "title"
+            },
+            {
+              "operation": "transcript"
+            }
+          ]
+        },
+        "oc": {
+          "provider_completions": [
+            {
+              "operation": "transcript"
+            },
+            {
+              "operation": "title"
+            }
+          ]
+        }
+      }
+    },
+    "extra-121": {
+      "runs": 1,
+      "captures": 36,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 18
+        },
+        "png": {
+          "DIFFERENT": 18
+        }
+      },
+      "cursor_differences": 4,
+      "requests": {
+        "upstream": 2,
+        "oc": 2
+      },
+      "main": 2,
+      "title": 2,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "f5af2499b07ca1f27cec9b3c348fa2ecdfdf4bf2",
+      "binary_sha256": "8f32da3b6a52db123ce6c8eb93108890812da81cd03915995a10b8d66c84f459",
+      "rust_inputs_sha256": "b142801c2c34b75f4f8a7b0b352ca08c78c0f86a7d2e51e4a52dd72c64f18f5a",
+      "source_manifest_sha256": "99ac1a66b3c6695a284e0af5f0ca43f30818d1b7f1f189e7d6569090d72e7116",
+      "dirty_diff_sha256": "547b6d6eb782061236759af86820ae7ccd79449f49c4279238704b5fb55c9dcf",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "pending_rgb": {
+        "upstream": {
+          "normal": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-left-pending": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-right-pending": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-modal-pending": {
+            "cursor": {
+              "x": 55,
+              "y": 13,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#1e1e1e\",\"bg\":\"#040404\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#353535\",\"bg\":\"#0c0c0c\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-ctrlc-pending": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-enter-pending": {
+            "cursor": {
+              "x": 40,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded                         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 61
+                }
+              }
+            ]
+          }
+        },
+        "oc": {
+          "normal": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-left-pending": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-right-pending": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-modal-pending": {
+            "cursor": {
+              "x": 54,
+              "y": 13,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#1e1e1e\",\"bg\":\"#040404\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#353535\",\"bg\":\"#0c0c0c\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-ctrlc-pending": {
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every word                                         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-enter-pending": {
+            "cursor": {
+              "x": 40,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded                         ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 61
+                }
+              }
+            ]
+          }
+        }
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-extra-enter-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            113,
+            38,
+            118,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 303,
+          "bbox": [
+            952,
+            611,
+            1001,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-next",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 5,
+          "cursor_differs": false,
+          "bbox": [
+            36,
+            8,
+            40,
+            8
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-next",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 297,
+          "bbox": [
+            304,
+            131,
+            343,
+            140
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 5,
+          "cursor_differs": false,
+          "bbox": [
+            36,
+            8,
+            40,
+            8
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 297,
+          "bbox": [
+            304,
+            131,
+            343,
+            140
+          ]
+        }
+      ],
+      "completion_and_settlement": {
+        "upstream": {
+          "provider_completions": [
+            {
+              "operation": "title"
+            },
+            {
+              "operation": "transcript"
+            }
+          ]
+        },
+        "oc": {
+          "provider_completions": [
+            {
+              "operation": "transcript"
+            },
+            {
+              "operation": "title"
+            }
+          ]
+        }
+      }
+    },
+    "extra-79": {
+      "runs": 1,
+      "captures": 36,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 18
+        },
+        "png": {
+          "DIFFERENT": 18
+        }
+      },
+      "cursor_differences": 4,
+      "requests": {
+        "upstream": 2,
+        "oc": 2
+      },
+      "main": 2,
+      "title": 2,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "f5af2499b07ca1f27cec9b3c348fa2ecdfdf4bf2",
+      "binary_sha256": "8f32da3b6a52db123ce6c8eb93108890812da81cd03915995a10b8d66c84f459",
+      "rust_inputs_sha256": "b142801c2c34b75f4f8a7b0b352ca08c78c0f86a7d2e51e4a52dd72c64f18f5a",
+      "source_manifest_sha256": "99ac1a66b3c6695a284e0af5f0ca43f30818d1b7f1f189e7d6569090d72e7116",
+      "dirty_diff_sha256": "547b6d6eb782061236759af86820ae7ccd79449f49c4279238704b5fb55c9dcf",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "pending_rgb": {
+        "upstream": {
+          "normal": {
+            "cursor": {
+              "x": 56,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-left-pending": {
+            "cursor": {
+              "x": 56,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-right-pending": {
+            "cursor": {
+              "x": 56,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-modal-pending": {
+            "cursor": {
+              "x": 34,
+              "y": 13,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#1e1e1e\",\"bg\":\"#040404\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#353535\",\"bg\":\"#0c0c0c\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-ctrlc-pending": {
+            "cursor": {
+              "x": 56,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-enter-pending": {
+            "cursor": {
+              "x": 19,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 61
+                }
+              }
+            ]
+          }
+        },
+        "oc": {
+          "normal": {
+            "cursor": {
+              "x": 56,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-left-pending": {
+            "cursor": {
+              "x": 56,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-right-pending": {
+            "cursor": {
+              "x": 56,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-modal-pending": {
+            "cursor": {
+              "x": 33,
+              "y": 13,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#1e1e1e\",\"bg\":\"#040404\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#353535\",\"bg\":\"#0c0c0c\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-ctrlc-pending": {
+            "cursor": {
+              "x": 56,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-enter-pending": {
+            "cursor": {
+              "x": 19,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "  ┃  VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 61
+                }
+              }
+            ]
+          }
+        }
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-extra-enter-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            71,
+            38,
+            76,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 297,
+          "bbox": [
+            599,
+            611,
+            647,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-next",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 2,
+          "cursor_differs": false,
+          "bbox": [
+            37,
+            3,
+            75,
+            9
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-next",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 62,
+          "bbox": [
+            312,
+            147,
+            318,
+            156
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 2,
+          "cursor_differs": false,
+          "bbox": [
+            37,
+            3,
+            75,
+            9
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 62,
+          "bbox": [
+            312,
+            147,
+            318,
+            156
+          ]
+        }
+      ],
+      "completion_and_settlement": {
+        "upstream": {
+          "provider_completions": [
+            {
+              "operation": "title"
+            },
+            {
+              "operation": "transcript"
+            }
+          ]
+        },
+        "oc": {
+          "provider_completions": [
+            {
+              "operation": "transcript"
+            },
+            {
+              "operation": "title"
+            }
+          ]
+        }
+      }
+    },
+    "extra-80": {
+      "runs": 1,
+      "captures": 36,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 18
+        },
+        "png": {
+          "DIFFERENT": 18
+        }
+      },
+      "cursor_differences": 0,
+      "requests": {
+        "upstream": 2,
+        "oc": 2
+      },
+      "main": 2,
+      "title": 2,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "f5af2499b07ca1f27cec9b3c348fa2ecdfdf4bf2",
+      "binary_sha256": "8f32da3b6a52db123ce6c8eb93108890812da81cd03915995a10b8d66c84f459",
+      "rust_inputs_sha256": "b142801c2c34b75f4f8a7b0b352ca08c78c0f86a7d2e51e4a52dd72c64f18f5a",
+      "source_manifest_sha256": "99ac1a66b3c6695a284e0af5f0ca43f30818d1b7f1f189e7d6569090d72e7116",
+      "dirty_diff_sha256": "547b6d6eb782061236759af86820ae7ccd79449f49c4279238704b5fb55c9dcf",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "pending_rgb": {
+        "upstream": {
+          "normal": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-left-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-right-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-modal-pending": {
+            "cursor": {
+              "x": 34,
+              "y": 13,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#1e1e1e\",\"bg\":\"#040404\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#353535\",\"bg\":\"#0c0c0c\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-ctrlc-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-enter-pending": {
+            "cursor": {
+              "x": 20,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 61
+                }
+              }
+            ]
+          }
+        },
+        "oc": {
+          "normal": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-left-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-right-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-modal-pending": {
+            "cursor": {
+              "x": 34,
+              "y": 13,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#1e1e1e\",\"bg\":\"#040404\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#353535\",\"bg\":\"#0c0c0c\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-ctrlc-pending": {
+            "cursor": {
+              "x": 57,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every word                    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 47
+                }
+              }
+            ]
+          },
+          "extra-enter-pending": {
+            "cursor": {
+              "x": 20,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 21,
+                "text": "   ┃  VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded    ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 61
+                }
+              }
+            ]
+          }
+        }
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-extra-enter-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            72,
+            38,
+            77,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 306,
+          "bbox": [
+            607,
+            611,
+            655,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-next",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            36,
+            3,
+            75,
+            9
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-next",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 297,
+          "bbox": [
+            303,
+            147,
+            343,
+            156
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            36,
+            3,
+            75,
+            9
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 297,
+          "bbox": [
+            303,
+            147,
+            343,
+            156
+          ]
+        }
+      ],
+      "completion_and_settlement": {
+        "upstream": {
+          "provider_completions": [
+            {
+              "operation": "title"
+            },
+            {
+              "operation": "transcript"
+            }
+          ]
+        },
+        "oc": {
+          "provider_completions": [
+            {
+              "operation": "transcript"
+            },
+            {
+              "operation": "title"
+            }
+          ]
+        }
+      }
+    },
+    "repeat-nav-120": {
+      "runs": 1,
+      "captures": 22,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 11
+        },
+        "png": {
+          "DIFFERENT": 11
+        }
+      },
+      "cursor_differences": 0,
+      "requests": {
+        "upstream": 2,
+        "oc": 2
+      },
+      "main": 2,
+      "title": 2,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "f5af2499b07ca1f27cec9b3c348fa2ecdfdf4bf2",
+      "binary_sha256": "8f32da3b6a52db123ce6c8eb93108890812da81cd03915995a10b8d66c84f459",
+      "rust_inputs_sha256": "b142801c2c34b75f4f8a7b0b352ca08c78c0f86a7d2e51e4a52dd72c64f18f5a",
+      "source_manifest_sha256": "99ac1a66b3c6695a284e0af5f0ca43f30818d1b7f1f189e7d6569090d72e7116",
+      "dirty_diff_sha256": "547b6d6eb782061236759af86820ae7ccd79449f49c4279238704b5fb55c9dcf",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "pending_rgb": {
+        "upstream": {
+          "repeat-expanded": {
+            "cursor": {
+              "x": 39,
+              "y": 23,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 20,
+                "text": "                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 60
+                }
+              },
+              {
+                "y": 21,
+                "text": "                       ┃  boundary actual separator VIS11-PASTE-0                                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 36
+                }
+              },
+              {
+                "y": 22,
+                "text": "                       ┃  VIS11-PASTE-1                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              },
+              {
+                "y": 23,
+                "text": "                       ┃  VIS11-PASTE-2                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              }
+            ]
+          },
+          "repeat-enter-pending": {
+            "cursor": {
+              "x": 39,
+              "y": 23,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 20,
+                "text": "                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 60
+                }
+              },
+              {
+                "y": 21,
+                "text": "                       ┃  boundary actual separator VIS11-PASTE-0                                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 36
+                }
+              },
+              {
+                "y": 22,
+                "text": "                       ┃  VIS11-PASTE-1                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              },
+              {
+                "y": 23,
+                "text": "                       ┃  VIS11-PASTE-2                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              }
+            ]
+          }
+        },
+        "oc": {
+          "repeat-expanded": {
+            "cursor": {
+              "x": 39,
+              "y": 23,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 20,
+                "text": "                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 60
+                }
+              },
+              {
+                "y": 21,
+                "text": "                       ┃  boundary actual separator VIS11-PASTE-0                                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 36
+                }
+              },
+              {
+                "y": 22,
+                "text": "                       ┃  VIS11-PASTE-1                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              },
+              {
+                "y": 23,
+                "text": "                       ┃  VIS11-PASTE-2                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              }
+            ]
+          },
+          "repeat-enter-pending": {
+            "cursor": {
+              "x": 39,
+              "y": 23,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 20,
+                "text": "                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 60
+                }
+              },
+              {
+                "y": 21,
+                "text": "                       ┃  boundary actual separator VIS11-PASTE-0                                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 36
+                }
+              },
+              {
+                "y": 22,
+                "text": "                       ┃  VIS11-PASTE-1                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              },
+              {
+                "y": 23,
+                "text": "                       ┃  VIS11-PASTE-2                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              }
+            ]
+          }
+        }
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-repeat-expanded",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 7,
+          "cursor_differs": false,
+          "bbox": [
+            39,
+            23,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-repeat-expanded",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 298,
+          "bbox": [
+            943,
+            611,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-repeat-enter-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 7,
+          "cursor_differs": false,
+          "bbox": [
+            39,
+            23,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-repeat-enter-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 298,
+          "bbox": [
+            943,
+            611,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-repeat-enter-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 3,
+          "cursor_differs": false,
+          "bbox": [
+            18,
+            5,
+            37,
+            10
+          ]
+        },
+        {
+          "scenario": "leader-repeat-enter-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 130,
+          "bbox": [
+            303,
+            163,
+            318,
+            172
+          ]
+        }
+      ],
+      "completion_and_settlement": {
+        "upstream": {
+          "provider_completions": [
+            {
+              "operation": "title"
+            },
+            {
+              "operation": "transcript"
+            }
+          ],
+          "chip_settlement": {
+            "contract": "Actual chip plus unchanged full styled grid/cursor for five polls, 200 ms apart",
+            "elapsed_ms": 2520.8340739999994,
+            "cursor": {
+              "x": 70,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        },
+        "oc": {
+          "provider_completions": [
+            {
+              "operation": "transcript"
+            },
+            {
+              "operation": "title"
+            }
+          ],
+          "chip_settlement": {
+            "contract": "Actual chip plus unchanged full styled grid/cursor for five polls, 200 ms apart",
+            "elapsed_ms": 2539.337474,
+            "cursor": {
+              "x": 70,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        }
+      }
+    },
+    "suffix-space-120": {
+      "runs": 1,
+      "captures": 30,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 15
+        },
+        "png": {
+          "DIFFERENT": 15
+        }
+      },
+      "cursor_differences": 0,
+      "requests": {
+        "upstream": 2,
+        "oc": 2
+      },
+      "main": 2,
+      "title": 2,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "f5af2499b07ca1f27cec9b3c348fa2ecdfdf4bf2",
+      "binary_sha256": "8f32da3b6a52db123ce6c8eb93108890812da81cd03915995a10b8d66c84f459",
+      "rust_inputs_sha256": "b142801c2c34b75f4f8a7b0b352ca08c78c0f86a7d2e51e4a52dd72c64f18f5a",
+      "source_manifest_sha256": "99ac1a66b3c6695a284e0af5f0ca43f30818d1b7f1f189e7d6569090d72e7116",
+      "dirty_diff_sha256": "547b6d6eb782061236759af86820ae7ccd79449f49c4279238704b5fb55c9dcf",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "pending_rgb": {
+        "upstream": {
+          "repeat-expanded": {
+            "cursor": {
+              "x": 39,
+              "y": 24,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 19,
+                "text": "                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 60
+                }
+              },
+              {
+                "y": 20,
+                "text": "                       ┃  boundary actual separator VIS11-PASTE-0                                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 36
+                }
+              },
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11-PASTE-1                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              },
+              {
+                "y": 22,
+                "text": "                       ┃  VIS11-PASTE-2  VIS11-PASTE-0                                                                  ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 26
+                }
+              },
+              {
+                "y": 23,
+                "text": "                       ┃  VIS11-PASTE-1                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              },
+              {
+                "y": 24,
+                "text": "                       ┃  VIS11-PASTE-2                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              }
+            ]
+          },
+          "repeat-enter-pending": {
+            "cursor": {
+              "x": 39,
+              "y": 24,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 19,
+                "text": "                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 60
+                }
+              },
+              {
+                "y": 20,
+                "text": "                       ┃  boundary actual separator VIS11-PASTE-0                                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 36
+                }
+              },
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11-PASTE-1                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              },
+              {
+                "y": 22,
+                "text": "                       ┃  VIS11-PASTE-2  VIS11-PASTE-0                                                                  ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 26
+                }
+              },
+              {
+                "y": 23,
+                "text": "                       ┃  VIS11-PASTE-1                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              },
+              {
+                "y": 24,
+                "text": "                       ┃  VIS11-PASTE-2                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              }
+            ]
+          }
+        },
+        "oc": {
+          "repeat-expanded": {
+            "cursor": {
+              "x": 39,
+              "y": 24,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 19,
+                "text": "                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 60
+                }
+              },
+              {
+                "y": 20,
+                "text": "                       ┃  boundary actual separator VIS11-PASTE-0                                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 36
+                }
+              },
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11-PASTE-1                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              },
+              {
+                "y": 22,
+                "text": "                       ┃  VIS11-PASTE-2 VIS11-PASTE-0                                                                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 26
+                }
+              },
+              {
+                "y": 23,
+                "text": "                       ┃  VIS11-PASTE-1                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              },
+              {
+                "y": 24,
+                "text": "                       ┃  VIS11-PASTE-2                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#5c9cf5\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#eeeeee\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              }
+            ]
+          },
+          "repeat-enter-pending": {
+            "cursor": {
+              "x": 39,
+              "y": 24,
+              "visible": true,
+              "shape": "block"
+            },
+            "rows": [
+              {
+                "y": 19,
+                "text": "                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 60
+                }
+              },
+              {
+                "y": 20,
+                "text": "                       ┃  boundary actual separator VIS11-PASTE-0                                                       ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 36
+                }
+              },
+              {
+                "y": 21,
+                "text": "                       ┃  VIS11-PASTE-1                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              },
+              {
+                "y": 22,
+                "text": "                       ┃  VIS11-PASTE-2 VIS11-PASTE-0                                                                   ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 26
+                }
+              },
+              {
+                "y": 23,
+                "text": "                       ┃  VIS11-PASTE-1                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              },
+              {
+                "y": 24,
+                "text": "                       ┃  VIS11-PASTE-2                                                                                 ",
+                "styled_nonblank_cells": {
+                  "{\"fg\":\"#484848\",\"bg\":\"#0a0a0a\",\"modifiers\":[]}": 1,
+                  "{\"fg\":\"#808080\",\"bg\":\"#1e1e1e\",\"modifiers\":[]}": 13
+                }
+              }
+            ]
+          }
+        }
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-suffix-repeat-two-chips",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            112,
+            38,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-suffix-repeat-two-chips",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 298,
+          "bbox": [
+            943,
+            611,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-suffix-chip-expanded-1",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 25,
+          "cursor_differs": false,
+          "bbox": [
+            40,
+            23,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-suffix-chip-expanded-1",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 1481,
+          "bbox": [
+            337,
+            368,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-suffix-chip-expanded-2",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 20,
+          "cursor_differs": false,
+          "bbox": [
+            39,
+            22,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-suffix-chip-expanded-2",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 1032,
+          "bbox": [
+            337,
+            355,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-repeat-expanded",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 20,
+          "cursor_differs": false,
+          "bbox": [
+            39,
+            22,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-repeat-expanded",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 1032,
+          "bbox": [
+            337,
+            355,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-repeat-enter-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 20,
+          "cursor_differs": false,
+          "bbox": [
+            39,
+            22,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-repeat-enter-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 1020,
+          "bbox": [
+            337,
+            355,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-repeat-enter-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 16,
+          "cursor_differs": false,
+          "bbox": [
+            18,
+            5,
+            38,
+            12
+          ]
+        },
+        {
+          "scenario": "leader-repeat-enter-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 875,
+          "bbox": [
+            160,
+            83,
+            327,
+            204
+          ]
+        }
+      ],
+      "completion_and_settlement": {
+        "upstream": {
+          "provider_completions": [
+            {
+              "operation": "title"
+            },
+            {
+              "operation": "transcript"
+            }
+          ],
+          "chip_settlement": {
+            "contract": "Actual chip plus unchanged full styled grid/cursor for five polls, 200 ms apart",
+            "elapsed_ms": 2443.6552599999995,
+            "cursor": {
+              "x": 70,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        },
+        "oc": {
+          "provider_completions": [
+            {
+              "operation": "transcript"
+            },
+            {
+              "operation": "title"
+            }
+          ],
+          "chip_settlement": {
+            "contract": "Actual chip plus unchanged full styled grid/cursor for five polls, 200 ms apart",
+            "elapsed_ms": 2735.619891999995,
+            "cursor": {
+              "x": 70,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        }
+      }
+    }
+  },
+  "source_files": {
+    "Cargo.toml": {
+      "captured_sha256": "e5e3d488f5381f9b7452d51981a42096fc370f5e2f074c56c37e525210b9e76a",
+      "current_sha256": "e5e3d488f5381f9b7452d51981a42096fc370f5e2f074c56c37e525210b9e76a",
+      "matches_current": true
+    },
+    "Cargo.lock": {
+      "captured_sha256": "8d8718e1966bf60373a514d2a5b4bdfa516c8e11b054d9c09373a28684a4453d",
+      "current_sha256": "8d8718e1966bf60373a514d2a5b4bdfa516c8e11b054d9c09373a28684a4453d",
+      "matches_current": true
+    },
+    "rust-toolchain.toml": {
+      "captured_sha256": "b364b7e44eff5aaa6f8f8357d2536dd284fe5af3c3a64eea4f6d0555d79c2c7a",
+      "current_sha256": "b364b7e44eff5aaa6f8f8357d2536dd284fe5af3c3a64eea4f6d0555d79c2c7a",
+      "matches_current": true
+    },
+    "crates/oc/Cargo.toml": {
+      "captured_sha256": "d06d1a6ae71b91640ec804d38b3fdcb868aa8294d14f0d2454b2c86ea070f140",
+      "current_sha256": "d06d1a6ae71b91640ec804d38b3fdcb868aa8294d14f0d2454b2c86ea070f140",
+      "matches_current": true
+    },
+    "crates/oc-tui/src/app.rs": {
+      "captured_sha256": "477210f63c6a045e512427f96ed459eb7c894af1948d8632e442c8432c04d42c",
+      "current_sha256": "477210f63c6a045e512427f96ed459eb7c894af1948d8632e442c8432c04d42c",
+      "matches_current": true
+    },
+    "crates/oc-tui/src/approval_view.rs": {
+      "captured_sha256": "8936b7b4d6c55d424de6d1194ea784d54ed4f5ee0a3d334f6e867f47b20df711",
+      "current_sha256": "8936b7b4d6c55d424de6d1194ea784d54ed4f5ee0a3d334f6e867f47b20df711",
+      "matches_current": true
+    },
+    "crates/oc-tui/src/editor.rs": {
+      "captured_sha256": "d39c42ce8257997d57bc5bc0943473c557d13c60548ae37329302f7374d75419",
+      "current_sha256": "d39c42ce8257997d57bc5bc0943473c557d13c60548ae37329302f7374d75419",
+      "matches_current": true
+    },
+    "crates/oc-tui/src/shell.rs": {
+      "captured_sha256": "8ed45964899c064760b1bea42e6a2a9bfd33281f0b97cf8d4ef498331ae622ae",
+      "current_sha256": "8ed45964899c064760b1bea42e6a2a9bfd33281f0b97cf8d4ef498331ae622ae",
+      "matches_current": true
+    },
+    "crates/oc/tests/pty.rs": {
+      "captured_sha256": "5ccb72bc231a23f34edf82e6a1b8b55669910e11b137954b8c5b33aaa3e48a93",
+      "current_sha256": "5ccb72bc231a23f34edf82e6a1b8b55669910e11b137954b8c5b33aaa3e48a93",
+      "matches_current": true
+    },
+    "crates/oc/tests/pty_t39.rs": {
+      "captured_sha256": "b564154523d14fca615d31e9c99ee6fbe714fd694866258717acad68472e27dd",
+      "current_sha256": "b564154523d14fca615d31e9c99ee6fbe714fd694866258717acad68472e27dd",
+      "matches_current": true
+    }
+  },
+  "provenance_failures": [],
+  "current_behavior_failures": [],
+  "retained_attempt_failures": [],
+  "wire_differences": [
+    {
+      "run": "repeat-nav-120",
+      "upstream": [
+        "VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2 "
+      ],
+      "oc": [
+        "VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2"
+      ],
+      "exact_equal": false,
+      "source": "opencode/packages/tui/src/component/prompt/index.tsx:1393,1422–1424"
+    },
+    {
+      "run": "suffix-space-120",
+      "upstream": [
+        "VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2  VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2 "
+      ],
+      "oc": [
+        "VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2 VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2"
+      ],
+      "exact_equal": false,
+      "source": "opencode/packages/tui/src/component/prompt/index.tsx:1393,1422–1424"
+    }
+  ],
+  "captured_heads": [
+    "f5af2499b07ca1f27cec9b3c348fa2ecdfdf4bf2"
+  ],
+  "native_binary_sha256": [
+    "8f32da3b6a52db123ce6c8eb93108890812da81cd03915995a10b8d66c84f459"
+  ],
+  "rust_inputs_sha256": [
+    "b142801c2c34b75f4f8a7b0b352ca08c78c0f86a7d2e51e4a52dd72c64f18f5a"
+  ],
+  "evidence_bytes_before_closeout": 150964244
+}

@@ -1,0 +1,170 @@
+[
+  {
+    "kind": "leader_fixture_config",
+    "mode": "default",
+    "cli_config": {
+      "session": {
+        "sidebar": "hide",
+        "tps": false
+      },
+      "tabs": {
+        "layout": "horizontal"
+      },
+      "debug": {
+        "devtools": false
+      }
+    }
+  },
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "tui"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/chip-121-dd2000f4af49/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/chip-121-dd2000f4af49/oc/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/chip-121-dd2000f4af49/oc/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/chip-121-dd2000f4af49/oc/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/chip-121-dd2000f4af49/oc/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/chip-121-dd2000f4af49/oc/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/chip-121-dd2000f4af49/oc/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"provider\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"npm\": \"@ai-sdk/openai\", \"options\": {\"baseURL\": \"http://127.0.0.1:34647/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"MiMo-V2.6-Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}, \"variants\": {\"fast\": {\"reasoningEffort\": \"high\"}, \"none\": {\"reasoningEffort\": \"low\"}}}, \"fixture-model-2\": {\"name\": \"Muse Spark 1.3 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-3\": {\"name\": \"Ling 3.0 Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-4\": {\"name\": \"Nemotron 3.5 Lightning Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-5\": {\"name\": \"Muse Spark 1.2 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-6\": {\"name\": \"Nemotron 3 Ultra Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-7\": {\"name\": \"MiMo V2.5 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-8\": {\"name\": \"Big Pickle\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}}}}, \"permissions\": {\"read\": \"allow\"}}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "oc 0.1.0",
+    "version_exit": 0
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207134864514448,
+    "base64": "FA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207135065717760,
+    "base64": "G1syMDB+VklTMTEgZnVsbCBkcmFmdCDOsc6yIGNhcmV0LW1pZGRsZSBwcmVzZXJ2aW5nIGV2ZXJ5IHdvcmQbWzIwMX4="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207135269729531,
+    "base64": "G1tEG1tEG1tE"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207136103820400,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207136792835527,
+    "base64": "eg=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207140380435379,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207141151081677,
+    "base64": "Gw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207144820516023,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207145564488684,
+    "base64": "fw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207149339331649,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207150157983848,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207153926744967,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207156736227339,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207159680190528,
+    "base64": "GG0="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207160871617724,
+    "base64": "Gw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207161868210344,
+    "base64": "EA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207163084568978,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207163885869383,
+    "base64": "eg=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207164663183412,
+    "base64": "Gw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207165864323039,
+    "base64": "G1tG"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207165864592155,
+    "base64": "G1syMDB+VklTMTEtUEFTVEUtMApWSVMxMS1QQVNURS0xClZJUzExLVBBU1RFLTIbWzIwMX4="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207166657831185,
+    "base64": "GA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1207170584265624,
+    "base64": "G1s8MDs4MzsyMk0bWzwwOzgzOzIybQ=="
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": -15,
+    "termination": "forced_stop"
+  }
+]

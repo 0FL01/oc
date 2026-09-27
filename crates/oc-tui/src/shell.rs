@@ -162,6 +162,7 @@ pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
 /// Render one whole frame: root background, tab strip, session area,
 /// devtools bar, then the toast overlay.
 pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
+    state.clear_prompt_paint();
     let theme = Theme::dark();
     let area = frame.area();
     // Upstream paints the whole frame with `background.base` (`app.tsx:1310-1314`).
@@ -280,6 +281,10 @@ fn session_main(state: &TuiState, area: Rect) -> Rect {
         }),
         ..area
     }
+}
+
+pub(crate) fn prompt_main(state: &TuiState, frame: Rect) -> Rect {
+    session_main(state, shell_regions(state, frame).session)
 }
 
 fn session_regions(state: &TuiState, area: Rect, terminal_height: u16) -> layout::SessionRegions {
@@ -1217,6 +1222,20 @@ fn render_prompt(
         };
         if body.height > 1 {
             let (input_rows, caret) = state.prompt_layout(text_width as usize);
+            let visible = body.height.saturating_sub(3) as usize;
+            let start = caret
+                .0
+                .saturating_sub(visible.saturating_sub(1))
+                .min(input_rows.len().saturating_sub(visible));
+            state.observe_prompt_paint(
+                frame.area(),
+                Rect {
+                    height: body.height.saturating_sub(3),
+                    ..row(1)
+                },
+                start,
+                &input_rows,
+            );
             let input_lines: Vec<_> = input_rows
                 .into_iter()
                 .map(|row| {
@@ -1230,7 +1249,8 @@ fn render_prompt(
                                     if chip {
                                         let style = Style::default()
                                             .fg(theme.background())
-                                            .bg(theme.warning());
+                                            .bg(theme.warning())
+                                            .add_modifier(Modifier::BOLD);
                                         if selected {
                                             style.add_modifier(Modifier::REVERSED)
                                         } else {
@@ -1255,11 +1275,6 @@ fn render_prompt(
                     )
                 })
                 .collect();
-            let visible = body.height.saturating_sub(3) as usize;
-            let start = caret
-                .0
-                .saturating_sub(visible.saturating_sub(1))
-                .min(input_lines.len().saturating_sub(visible));
             frame.render_widget(
                 Paragraph::new(
                     crate::styled::Lines::from(input_lines[start..].to_vec()).into_text(),
@@ -1999,6 +2014,7 @@ mod tests {
         );
         for index in chip_cells {
             assert_eq!(normal.content[index].fg, theme.background());
+            assert!(normal.content[index].modifier.contains(Modifier::BOLD));
             assert_eq!(normal.content[index], pending.content[index]);
         }
         for y in 0..40 {

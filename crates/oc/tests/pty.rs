@@ -530,7 +530,10 @@ impl PtySession {
                 None => {
                     if start.elapsed() > timeout {
                         let _ = self.child.kill();
-                        panic!("child did not exit in time");
+                        panic!(
+                            "child did not exit in time; screen: {:?}",
+                            render_screen(&self.snapshot()).rows()
+                        );
                     }
                     std::thread::sleep(POLL);
                 }
@@ -1185,6 +1188,10 @@ fn t44_two_accepted_turns_keep_footer_to_user_spacing_after_restart() {
 fn pty_smoke_type_echo_quit() {
     let mut pty = spawn_session("s-smoke");
     pty.wait_visible(READY, DEADLINE);
+    // READY may arrive in an earlier terminal write than the full underline.
+    // Wait for the actual bytes being asserted rather than sampling a partial
+    // first frame; the geometry assertion remains exact.
+    pty.wait_visible(std::str::from_utf8(&underline_run(80)).unwrap(), DEADLINE);
     assert!(
         contains(&pty.snapshot(), &underline_run(80)),
         "80-col prompt underline"

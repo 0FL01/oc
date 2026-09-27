@@ -1,0 +1,1350 @@
+{
+  "status": "VIS07_NOT_PASS",
+  "behavior_status": "BOUNDED_BEHAVIOR_VERIFIED_WITH_WIRE_DIFFERENCE",
+  "all": {
+    "runs": 11,
+    "captures": 418,
+    "comparisons": {
+      "grid": {
+        "DIFFERENT": 208,
+        "BLOCKED": 2
+      },
+      "png": {
+        "DIFFERENT": 208,
+        "BLOCKED": 2
+      }
+    },
+    "cursor_differences": 16,
+    "requests": {
+      "upstream": 14,
+      "oc": 14
+    },
+    "main": 14,
+    "title": 14,
+    "invalid": 3,
+    "unstable": 0
+  },
+  "current": {
+    "runs": 9,
+    "captures": 374,
+    "comparisons": {
+      "grid": {
+        "DIFFERENT": 187
+      },
+      "png": {
+        "DIFFERENT": 187
+      }
+    },
+    "cursor_differences": 16,
+    "requests": {
+      "upstream": 10,
+      "oc": 10
+    },
+    "main": 10,
+    "title": 10,
+    "invalid": 0,
+    "unstable": 0
+  },
+  "runs": {
+    "chip-120": {
+      "runs": 1,
+      "captures": 52,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 26
+        },
+        "png": {
+          "DIFFERENT": 26
+        }
+      },
+      "cursor_differences": 0,
+      "requests": {
+        "upstream": 0,
+        "oc": 0
+      },
+      "main": 0,
+      "title": 0,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "5a2ec11411ab4276d2e13cf4379065aadc64475b",
+      "binary_sha256": "640edbd02839af8d3557e674985f80681718015b0d962ce62a7ce47ef0d6225c",
+      "rust_inputs_sha256": "b545f31f6cb8ba7468cc8a120b062a85d9281d9225cfde45b60f166ce1ad71b4",
+      "source_manifest_sha256": "1fd2c53b66bd3f42e1d1316987e534570a66077210cdfe97c52d8b8750765ac3",
+      "dirty_diff_sha256": "3231675ea14bb0ea497f6ce3d6b7455d7b16e46b2bd2e16819945f3b6d312303",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-chip-normal",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            112,
+            38,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-normal",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 298,
+          "bbox": [
+            943,
+            611,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            112,
+            38,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 298,
+          "bbox": [
+            943,
+            611,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            112,
+            38,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 298,
+          "bbox": [
+            943,
+            611,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-expanded-fulltext",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 7,
+          "cursor_differs": false,
+          "bbox": [
+            39,
+            22,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-expanded-fulltext",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 298,
+          "bbox": [
+            943,
+            611,
+            992,
+            620
+          ]
+        }
+      ]
+    },
+    "chip-121": {
+      "runs": 1,
+      "captures": 52,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 26
+        },
+        "png": {
+          "DIFFERENT": 26
+        }
+      },
+      "cursor_differences": 4,
+      "requests": {
+        "upstream": 0,
+        "oc": 0
+      },
+      "main": 0,
+      "title": 0,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "5a2ec11411ab4276d2e13cf4379065aadc64475b",
+      "binary_sha256": "640edbd02839af8d3557e674985f80681718015b0d962ce62a7ce47ef0d6225c",
+      "rust_inputs_sha256": "b545f31f6cb8ba7468cc8a120b062a85d9281d9225cfde45b60f166ce1ad71b4",
+      "source_manifest_sha256": "1fd2c53b66bd3f42e1d1316987e534570a66077210cdfe97c52d8b8750765ac3",
+      "dirty_diff_sha256": "3231675ea14bb0ea497f6ce3d6b7455d7b16e46b2bd2e16819945f3b6d312303",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-chip-normal",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            113,
+            38,
+            118,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-normal",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 303,
+          "bbox": [
+            952,
+            611,
+            1001,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            113,
+            38,
+            118,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 303,
+          "bbox": [
+            952,
+            611,
+            1001,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            113,
+            38,
+            118,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 303,
+          "bbox": [
+            952,
+            611,
+            1001,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-expanded-fulltext",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 7,
+          "cursor_differs": false,
+          "bbox": [
+            39,
+            22,
+            118,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-expanded-fulltext",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 303,
+          "bbox": [
+            952,
+            611,
+            1001,
+            620
+          ]
+        }
+      ]
+    },
+    "chip-79": {
+      "runs": 1,
+      "captures": 52,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 26
+        },
+        "png": {
+          "DIFFERENT": 26
+        }
+      },
+      "cursor_differences": 4,
+      "requests": {
+        "upstream": 0,
+        "oc": 0
+      },
+      "main": 0,
+      "title": 0,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "5a2ec11411ab4276d2e13cf4379065aadc64475b",
+      "binary_sha256": "640edbd02839af8d3557e674985f80681718015b0d962ce62a7ce47ef0d6225c",
+      "rust_inputs_sha256": "b545f31f6cb8ba7468cc8a120b062a85d9281d9225cfde45b60f166ce1ad71b4",
+      "source_manifest_sha256": "1fd2c53b66bd3f42e1d1316987e534570a66077210cdfe97c52d8b8750765ac3",
+      "dirty_diff_sha256": "3231675ea14bb0ea497f6ce3d6b7455d7b16e46b2bd2e16819945f3b6d312303",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-chip-normal",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            71,
+            38,
+            76,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-normal",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 297,
+          "bbox": [
+            599,
+            611,
+            647,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            71,
+            38,
+            76,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 297,
+          "bbox": [
+            599,
+            611,
+            647,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            71,
+            38,
+            76,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 297,
+          "bbox": [
+            599,
+            611,
+            647,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-expanded-fulltext",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 7,
+          "cursor_differs": false,
+          "bbox": [
+            18,
+            22,
+            76,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-expanded-fulltext",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 297,
+          "bbox": [
+            599,
+            611,
+            647,
+            620
+          ]
+        }
+      ]
+    },
+    "chip-80": {
+      "runs": 1,
+      "captures": 52,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 26
+        },
+        "png": {
+          "DIFFERENT": 26
+        }
+      },
+      "cursor_differences": 0,
+      "requests": {
+        "upstream": 0,
+        "oc": 0
+      },
+      "main": 0,
+      "title": 0,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "5a2ec11411ab4276d2e13cf4379065aadc64475b",
+      "binary_sha256": "640edbd02839af8d3557e674985f80681718015b0d962ce62a7ce47ef0d6225c",
+      "rust_inputs_sha256": "b545f31f6cb8ba7468cc8a120b062a85d9281d9225cfde45b60f166ce1ad71b4",
+      "source_manifest_sha256": "1fd2c53b66bd3f42e1d1316987e534570a66077210cdfe97c52d8b8750765ac3",
+      "dirty_diff_sha256": "3231675ea14bb0ea497f6ce3d6b7455d7b16e46b2bd2e16819945f3b6d312303",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-chip-normal",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            72,
+            38,
+            77,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-normal",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 306,
+          "bbox": [
+            607,
+            611,
+            655,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            72,
+            38,
+            77,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 306,
+          "bbox": [
+            607,
+            611,
+            655,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            72,
+            38,
+            77,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 306,
+          "bbox": [
+            607,
+            611,
+            655,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-chip-expanded-fulltext",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 7,
+          "cursor_differs": false,
+          "bbox": [
+            19,
+            22,
+            77,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-chip-expanded-fulltext",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 306,
+          "bbox": [
+            607,
+            611,
+            655,
+            620
+          ]
+        }
+      ]
+    },
+    "extra-120": {
+      "runs": 1,
+      "captures": 36,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 18
+        },
+        "png": {
+          "DIFFERENT": 18
+        }
+      },
+      "cursor_differences": 0,
+      "requests": {
+        "upstream": 2,
+        "oc": 2
+      },
+      "main": 2,
+      "title": 2,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "5a2ec11411ab4276d2e13cf4379065aadc64475b",
+      "binary_sha256": "640edbd02839af8d3557e674985f80681718015b0d962ce62a7ce47ef0d6225c",
+      "rust_inputs_sha256": "b545f31f6cb8ba7468cc8a120b062a85d9281d9225cfde45b60f166ce1ad71b4",
+      "source_manifest_sha256": "1fd2c53b66bd3f42e1d1316987e534570a66077210cdfe97c52d8b8750765ac3",
+      "dirty_diff_sha256": "3231675ea14bb0ea497f6ce3d6b7455d7b16e46b2bd2e16819945f3b6d312303",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-extra-enter-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            112,
+            38,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 298,
+          "bbox": [
+            943,
+            611,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-next",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 5,
+          "cursor_differs": false,
+          "bbox": [
+            36,
+            8,
+            40,
+            8
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-next",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 288,
+          "bbox": [
+            303,
+            131,
+            343,
+            140
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 5,
+          "cursor_differs": false,
+          "bbox": [
+            36,
+            8,
+            40,
+            8
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 288,
+          "bbox": [
+            303,
+            131,
+            343,
+            140
+          ]
+        }
+      ]
+    },
+    "extra-121": {
+      "runs": 1,
+      "captures": 36,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 18
+        },
+        "png": {
+          "DIFFERENT": 18
+        }
+      },
+      "cursor_differences": 4,
+      "requests": {
+        "upstream": 2,
+        "oc": 2
+      },
+      "main": 2,
+      "title": 2,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "5a2ec11411ab4276d2e13cf4379065aadc64475b",
+      "binary_sha256": "640edbd02839af8d3557e674985f80681718015b0d962ce62a7ce47ef0d6225c",
+      "rust_inputs_sha256": "b545f31f6cb8ba7468cc8a120b062a85d9281d9225cfde45b60f166ce1ad71b4",
+      "source_manifest_sha256": "339aff64f089c5dda87010fd7f308079b51458aeecf7a4815fbe8d5c47a5f8f9",
+      "dirty_diff_sha256": "3d1157809a50c365427062d56396ba162bbc92b3b93f217f214a6e22e973208e",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-extra-enter-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            113,
+            38,
+            118,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 303,
+          "bbox": [
+            952,
+            611,
+            1001,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-next",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 5,
+          "cursor_differs": false,
+          "bbox": [
+            36,
+            8,
+            40,
+            8
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-next",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 277,
+          "bbox": [
+            304,
+            131,
+            343,
+            140
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 5,
+          "cursor_differs": false,
+          "bbox": [
+            36,
+            8,
+            40,
+            8
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 277,
+          "bbox": [
+            304,
+            131,
+            343,
+            140
+          ]
+        }
+      ]
+    },
+    "extra-79": {
+      "runs": 1,
+      "captures": 36,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 18
+        },
+        "png": {
+          "DIFFERENT": 18
+        }
+      },
+      "cursor_differences": 4,
+      "requests": {
+        "upstream": 2,
+        "oc": 2
+      },
+      "main": 2,
+      "title": 2,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "5a2ec11411ab4276d2e13cf4379065aadc64475b",
+      "binary_sha256": "640edbd02839af8d3557e674985f80681718015b0d962ce62a7ce47ef0d6225c",
+      "rust_inputs_sha256": "b545f31f6cb8ba7468cc8a120b062a85d9281d9225cfde45b60f166ce1ad71b4",
+      "source_manifest_sha256": "1fd2c53b66bd3f42e1d1316987e534570a66077210cdfe97c52d8b8750765ac3",
+      "dirty_diff_sha256": "3231675ea14bb0ea497f6ce3d6b7455d7b16e46b2bd2e16819945f3b6d312303",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-extra-enter-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            71,
+            38,
+            76,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 297,
+          "bbox": [
+            599,
+            611,
+            647,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-next",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            36,
+            3,
+            75,
+            9
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-next",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 289,
+          "bbox": [
+            304,
+            147,
+            343,
+            156
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            36,
+            3,
+            75,
+            9
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 289,
+          "bbox": [
+            304,
+            147,
+            343,
+            156
+          ]
+        }
+      ]
+    },
+    "extra-80": {
+      "runs": 1,
+      "captures": 36,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 18
+        },
+        "png": {
+          "DIFFERENT": 18
+        }
+      },
+      "cursor_differences": 0,
+      "requests": {
+        "upstream": 2,
+        "oc": 2
+      },
+      "main": 2,
+      "title": 2,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "5a2ec11411ab4276d2e13cf4379065aadc64475b",
+      "binary_sha256": "640edbd02839af8d3557e674985f80681718015b0d962ce62a7ce47ef0d6225c",
+      "rust_inputs_sha256": "b545f31f6cb8ba7468cc8a120b062a85d9281d9225cfde45b60f166ce1ad71b4",
+      "source_manifest_sha256": "1fd2c53b66bd3f42e1d1316987e534570a66077210cdfe97c52d8b8750765ac3",
+      "dirty_diff_sha256": "3231675ea14bb0ea497f6ce3d6b7455d7b16e46b2bd2e16819945f3b6d312303",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-extra-enter-pending",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            72,
+            38,
+            77,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-pending",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 306,
+          "bbox": [
+            607,
+            611,
+            655,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-next",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            36,
+            3,
+            75,
+            9
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-next",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 279,
+          "bbox": [
+            303,
+            147,
+            343,
+            156
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            36,
+            3,
+            75,
+            9
+          ]
+        },
+        {
+          "scenario": "leader-extra-enter-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 279,
+          "bbox": [
+            303,
+            147,
+            343,
+            156
+          ]
+        }
+      ]
+    },
+    "repeat-nav-120": {
+      "runs": 1,
+      "captures": 22,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 11
+        },
+        "png": {
+          "DIFFERENT": 11
+        }
+      },
+      "cursor_differences": 0,
+      "requests": {
+        "upstream": 2,
+        "oc": 2
+      },
+      "main": 2,
+      "title": 2,
+      "invalid": 2,
+      "unstable": 0,
+      "commit": "5a2ec11411ab4276d2e13cf4379065aadc64475b",
+      "binary_sha256": "640edbd02839af8d3557e674985f80681718015b0d962ce62a7ce47ef0d6225c",
+      "rust_inputs_sha256": "b545f31f6cb8ba7468cc8a120b062a85d9281d9225cfde45b60f166ce1ad71b4",
+      "source_manifest_sha256": "1fd2c53b66bd3f42e1d1316987e534570a66077210cdfe97c52d8b8750765ac3",
+      "dirty_diff_sha256": "3231675ea14bb0ea497f6ce3d6b7455d7b16e46b2bd2e16819945f3b6d312303",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "FAIL",
+        "oc": "FAIL"
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-repeat-expanded",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 7,
+          "cursor_differs": false,
+          "bbox": [
+            39,
+            23,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-repeat-expanded",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 298,
+          "bbox": [
+            943,
+            611,
+            992,
+            620
+          ]
+        }
+      ]
+    },
+    "repeat-nav-120-02": {
+      "runs": 1,
+      "captures": 22,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 10,
+          "BLOCKED": 2
+        },
+        "png": {
+          "DIFFERENT": 10,
+          "BLOCKED": 2
+        }
+      },
+      "cursor_differences": 0,
+      "requests": {
+        "upstream": 2,
+        "oc": 2
+      },
+      "main": 2,
+      "title": 2,
+      "invalid": 1,
+      "unstable": 0,
+      "commit": "5a2ec11411ab4276d2e13cf4379065aadc64475b",
+      "binary_sha256": "640edbd02839af8d3557e674985f80681718015b0d962ce62a7ce47ef0d6225c",
+      "rust_inputs_sha256": "b545f31f6cb8ba7468cc8a120b062a85d9281d9225cfde45b60f166ce1ad71b4",
+      "source_manifest_sha256": "339aff64f089c5dda87010fd7f308079b51458aeecf7a4815fbe8d5c47a5f8f9",
+      "dirty_diff_sha256": "3d1157809a50c365427062d56396ba162bbc92b3b93f217f214a6e22e973208e",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "FAIL",
+        "oc": "OBSERVED"
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-repeat-expanded",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 7,
+          "cursor_differs": false,
+          "bbox": [
+            39,
+            23,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-repeat-expanded",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 298,
+          "bbox": [
+            943,
+            611,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-repeat-enter-restored",
+          "mode": "grid",
+          "status": "BLOCKED"
+        },
+        {
+          "scenario": "leader-repeat-enter-restored",
+          "mode": "png",
+          "status": "BLOCKED"
+        }
+      ]
+    },
+    "repeat-nav-120-03": {
+      "runs": 1,
+      "captures": 22,
+      "comparisons": {
+        "grid": {
+          "DIFFERENT": 11
+        },
+        "png": {
+          "DIFFERENT": 11
+        }
+      },
+      "cursor_differences": 0,
+      "requests": {
+        "upstream": 2,
+        "oc": 2
+      },
+      "main": 2,
+      "title": 2,
+      "invalid": 0,
+      "unstable": 0,
+      "commit": "5a2ec11411ab4276d2e13cf4379065aadc64475b",
+      "binary_sha256": "640edbd02839af8d3557e674985f80681718015b0d962ce62a7ce47ef0d6225c",
+      "rust_inputs_sha256": "b545f31f6cb8ba7468cc8a120b062a85d9281d9225cfde45b60f166ce1ad71b4",
+      "source_manifest_sha256": "fffaee74eca10e51820e2a80b6baef61100349dddfe6aad0554be7c1de04e1f5",
+      "dirty_diff_sha256": "69125813f117f1c36c56995851beae92e810e6031ecfc15c070f52ba35eaba20",
+      "source_unchanged_after_build": true,
+      "source_unchanged_after_capture": true,
+      "behavior": {
+        "upstream": "OBSERVED",
+        "oc": "OBSERVED"
+      },
+      "key_frames": [
+        {
+          "scenario": "leader-repeat-expanded",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 7,
+          "cursor_differs": false,
+          "bbox": [
+            39,
+            23,
+            117,
+            38
+          ]
+        },
+        {
+          "scenario": "leader-repeat-expanded",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 298,
+          "bbox": [
+            943,
+            611,
+            992,
+            620
+          ]
+        },
+        {
+          "scenario": "leader-repeat-enter-restored",
+          "mode": "grid",
+          "status": "DIFFERENT",
+          "different_cells": 6,
+          "cursor_differs": false,
+          "bbox": [
+            18,
+            5,
+            40,
+            10
+          ]
+        },
+        {
+          "scenario": "leader-repeat-enter-restored",
+          "mode": "png",
+          "status": "DIFFERENT",
+          "different_pixels": 279,
+          "bbox": [
+            303,
+            163,
+            343,
+            172
+          ]
+        }
+      ]
+    }
+  },
+  "source_files": {
+    "crates/oc-tui/src/app.rs": {
+      "captured_sha256": "a3791bd37e09c25756c687b3bf4581a4878a441e4fb04db6f753c2ce27efd6f9",
+      "current_sha256": "a3791bd37e09c25756c687b3bf4581a4878a441e4fb04db6f753c2ce27efd6f9",
+      "matches_current": true
+    },
+    "crates/oc-tui/src/editor.rs": {
+      "captured_sha256": "0fee05cb6b1d4aaf1ec4c82e7790ba9f0251287729aad7791d5426ad547c2d20",
+      "current_sha256": "0fee05cb6b1d4aaf1ec4c82e7790ba9f0251287729aad7791d5426ad547c2d20",
+      "matches_current": true
+    },
+    "crates/oc-tui/src/shell.rs": {
+      "captured_sha256": "8ed45964899c064760b1bea42e6a2a9bfd33281f0b97cf8d4ef498331ae622ae",
+      "current_sha256": "8ed45964899c064760b1bea42e6a2a9bfd33281f0b97cf8d4ef498331ae622ae",
+      "matches_current": true
+    }
+  },
+  "provenance_failures": [],
+  "current_behavior_failures": [],
+  "retained_attempt_failures": [
+    {
+      "name": "repeat-nav-120: upstream observed scenario",
+      "ok": false,
+      "observed": "Error: Timed out waiting for repeat paste actual completion"
+    },
+    {
+      "name": "repeat-nav-120: upstream valid bounded requests",
+      "ok": false,
+      "observed": [
+        {
+          "operation": "title",
+          "valid": true
+        },
+        {
+          "operation": "transcript",
+          "valid": false
+        }
+      ]
+    },
+    {
+      "name": "repeat-nav-120: oc observed scenario",
+      "ok": false,
+      "observed": "Error: Timed out waiting for repeat paste actual completion"
+    },
+    {
+      "name": "repeat-nav-120: oc valid bounded requests",
+      "ok": false,
+      "observed": [
+        {
+          "operation": "transcript",
+          "valid": false
+        },
+        {
+          "operation": "title",
+          "valid": true
+        }
+      ]
+    },
+    {
+      "name": "repeat-nav-120-02: upstream observed scenario",
+      "ok": false,
+      "observed": "Error: Timed out waiting for repeat paste actual completion"
+    },
+    {
+      "name": "repeat-nav-120-02: upstream valid bounded requests",
+      "ok": false,
+      "observed": [
+        {
+          "operation": "title",
+          "valid": true
+        },
+        {
+          "operation": "transcript",
+          "valid": false
+        }
+      ]
+    }
+  ],
+  "wire_differences": [
+    {
+      "run": "repeat-nav-120",
+      "upstream": [
+        "VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2 "
+      ],
+      "oc": [
+        "VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2"
+      ],
+      "exact_equal": false,
+      "source": "opencode/packages/tui/src/component/prompt/index.tsx:1393,1422–1424"
+    },
+    {
+      "run": "repeat-nav-120-02",
+      "upstream": [
+        "VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2 "
+      ],
+      "oc": [
+        "VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2"
+      ],
+      "exact_equal": false,
+      "source": "opencode/packages/tui/src/component/prompt/index.tsx:1393,1422–1424"
+    },
+    {
+      "run": "repeat-nav-120-03",
+      "upstream": [
+        "VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2 "
+      ],
+      "oc": [
+        "VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2"
+      ],
+      "exact_equal": false,
+      "source": "opencode/packages/tui/src/component/prompt/index.tsx:1393,1422–1424"
+    }
+  ],
+  "evidence_bytes_before_closeout": 156608165
+}

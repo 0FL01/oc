@@ -1,0 +1,846 @@
+[
+  {
+    "argv": [
+      "/usr/local/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--leader-pending",
+      "true",
+      "--leader-config",
+      "default",
+      "--geometry",
+      "true",
+      "--sidebar",
+      "hide",
+      "--sample",
+      "short",
+      "--columns",
+      "79",
+      "--rows",
+      "40",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "5a2ec11411ab4276d2e13cf4379065aadc64475b\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "9fb8609c9dd61521727212ed037a5e871dc063c2\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/app.rs b/crates/oc-tui/src/app.rs\nindex e7167572..528900fd 100644\n--- a/crates/oc-tui/src/app.rs\n+++ b/crates/oc-tui/src/app.rs\n@@ -483,6 +483,19 @@ struct TranscriptViewport {\n     displayed_scroll: usize,\n }\n \n+/// Only actual visible chip cells from the latest prompt paint are actionable.\n+struct PaintedPrompt {\n+    frame: Rect,\n+    main: Rect,\n+    home: bool,\n+    session: Option<SessionId>,\n+    revision: u64,\n+    generation: u64,\n+    cursor: usize,\n+    anchor: Option<usize>,\n+    chips: Vec<(Rect, usize)>,\n+}\n+\n struct CompletionAnchor {\n     message: std::sync::Arc<oc_core::session::MessageId>,\n     part: usize,\n@@ -519,6 +532,8 @@ pub struct TuiState {\n     viewport: std::cell::Cell<Option<TranscriptViewport>>,\n     completion_anchor: std::cell::RefCell<Option<CompletionAnchor>>,\n     painted_transcript: std::cell::RefCell<Option<PaintedTranscript>>,\n+    painted_prompt: std::cell::RefCell<Option<PaintedPrompt>>,\n+    prompt_width: std::cell::Cell<Option<usize>>,\n     paint_generation: std::cell::Cell<u64>,\n     message_down: Option<(oc_core::session::MessageId, u64, Rect)>,\n     clipboard_mode: ClipboardMode,\n@@ -699,6 +714,8 @@ impl TuiState {\n             viewport: std::cell::Cell::new(None),\n             completion_anchor: std::cell::RefCell::new(None),\n             painted_transcript: std::cell::RefCell::new(None),\n+            painted_prompt: std::cell::RefCell::new(None),\n+            prompt_width: std::cell::Cell::new(None),\n             paint_generation: std::cell::Cell::new(0),\n             message_down: None,\n             clipboard_mode: ClipboardMode::default(),\n@@ -866,6 +883,7 @@ impl TuiState {\n \n     /// Clear the recorded SGR coordinate when a resize invalidates its frame.\n     pub fn clear_mouse_position(&mut self) {\n+        self.painted_prompt.borrow_mut().take();\n         self.clear_transcript_selection();\n         self.last_mouse = None;\n         self.toast_down = false;\n@@ -1798,6 +1816,73 @@ impl TuiState {\n         self.editor.layout(&self.input, width)\n     }\n \n+    pub(crate) fn clear_prompt_paint(&self) {\n+        self.painted_prompt.borrow_mut().take();\n+    }\n+\n+    pub(crate) fn observe_prompt_paint(\n+        &self,\n+        frame: Rect,\n+        input: Rect,\n+        top: usize,\n+        rows: &[crate::editor::PromptRow],\n+    ) {\n+        self.prompt_width.set(Some(input.width as usize));\n+        if self.panel != TuiPanel::None || self.approvals.active().is_some() {\n+            return;\n+        }\n+        let toast = crate::shell::toast_rect(self, frame);\n+        let mut chips = Vec::new();\n+        for (index, row) in rows\n+            .iter()\n+            .skip(top)\n+            .take(input.height as usize)\n+            .enumerate()\n+        {\n+            for &(from, to, start) in &row.chip_hits {\n+                // Clip to both the viewport and final toast overpaint. The map\n+                // contains painted intervals only, never virtual separator cells.\n+                let mut run = None;\n+                let y = input.y + index as u16;\n+                for column in from..to.min(input.width as usize) {\n+                    let x = input.x + column as u16;\n+                    if toast.is_some_and(|rect| rect.contains((x, y).into())) {\n+                        if let Some(a) = run.take() {\n+                            chips.push((Rect::new(a, y, x - a, 1), start));\n+                        }\n+                    } else {\n+                        run.get_or_insert(x);\n+                    }\n+                }\n+                if let Some(a) = run {\n+                    chips.push((\n+                        Rect::new(a, y, input.x + to.min(input.width as usize) as u16 - a, 1),\n+                        start,\n+                    ));\n+                }\n+            }\n+        }\n+        *self.painted_prompt.borrow_mut() = Some(PaintedPrompt {\n+            frame,\n+            main: crate::shell::prompt_main(self, frame),\n+            home: self.home,\n+            session: self.session.clone(),\n+            revision: self.input_revision,\n+            generation: self.generation,\n+            cursor: self.editor.cursor,\n+            anchor: self.editor.anchor,\n+            chips,\n+        });\n+    }\n+\n+    fn prompt_vertical(&mut self, down: bool, select: bool) -> bool {\n+        // Keyboard input uses the last painted width even after draft edits;\n+        // after a resize, the next paint establishes the new width.\n+        let width = self.prompt_width.get().unwrap_or(usize::MAX);\n+        self.editor\n+            .vertical_wrapped(&self.input, width, down, select)\n+    }\n+\n     /// Only the focused prompt, not a dialog or a dismissed revision, owns the overlay.\n     pub(crate) fn slash_options(&self) -> Option<Vec<crate::autocomplete::SlashOption>> {\n         if self.panel != TuiPanel::None || self.slash_dismissed == Some(self.input_revision) {\n@@ -2451,6 +2536,44 @@ impl TuiState {\n             return KeyOutcome::default();\n         }\n         if self.panel == TuiPanel::None {\n+            if matches!(event.kind, MouseEventKind::Down(MouseButton::Left))\n+                && !self.transcript_overpainted(area, event.column, event.row)\n+            {\n+                let start = self\n+                    .painted_prompt\n+                    .borrow()\n+                    .as_ref()\n+                    .filter(|p| {\n+                        p.frame == area\n+                            && p.main == crate::shell::prompt_main(self, area)\n+                            && p.home == self.home\n+                            && p.session == self.session\n+                            && p.revision == self.input_revision\n+                            && p.generation == self.generation\n+                            && p.cursor == self.editor.cursor\n+                            && p.anchor == self.editor.anchor\n+                    })\n+                    .and_then(|p| {\n+                        p.chips\n+                            .iter()\n+                            .find(|(rect, _)| rect.contains((event.column, event.row).into()))\n+                            .map(|&(_, start)| start)\n+                    });\n+                if let Some(start) = start\n+                    && self.editor.expand_chip(&self.input, start)\n+                {\n+                    self.input_revision += 1;\n+                    self.slash_selected = 0;\n+                    self.mention_selected = 0;\n+                    self.selection_gesture = false;\n+                    self.click = None;\n+                    self.tab_down = None;\n+                    self.exploration_down = None;\n+                    self.reasoning_down = None;\n+                    self.clear_prompt_paint();\n+                    return KeyOutcome::default();\n+                }\n+            }\n             self.handle_transcript_selection(event, area);\n             if matches!(event.kind, MouseEventKind::Up(MouseButton::Left))\n                 && self.transcript_overpainted(area, event.column, event.row)\n@@ -4244,7 +4367,18 @@ impl TuiState {\n             clean.push_str(safe);\n         }\n         let chip_count = self.editor.chip_count();\n-        let paste = self.editor.paste(&mut self.input, &clean, MAX_INPUT_BYTES);\n+        let paste = if exceeded {\n+            self.editor\n+                .paste_clipped(&mut self.input, &clean, MAX_INPUT_BYTES)\n+        } else {\n+            self.editor.paste(&mut self.input, &clean, MAX_INPUT_BYTES)\n+        };\n+        if paste.expanded {\n+            self.input_revision += 1;\n+            self.slash_selected = 0;\n+            self.mention_selected = 0;\n+            return KeyOutcome::default();\n+        }\n         let dropped = text.len().saturating_sub(paste.inserted);\n         if paste.inserted > 0 {\n             self.input_revision += 1;\n@@ -4915,8 +5049,7 @@ impl TuiState {\n                 KeyOutcome::default()\n             }\n             KeyAction::SelectUp | KeyAction::SelectDown => {\n-                self.editor\n-                    .vertical(&self.input, action == KeyAction::SelectDown, true);\n+                self.prompt_vertical(action == KeyAction::SelectDown, true);\n                 KeyOutcome::default()\n             }\n             KeyAction::PageUp | KeyAction::PageDown => KeyOutcome::default(),\n@@ -4980,7 +5113,7 @@ impl TuiState {\n                 KeyOutcome::default()\n             }\n             KeyAction::Up => {\n-                if self.editor.vertical(&self.input, false, false) {\n+                if self.prompt_vertical(false, false) {\n                     return KeyOutcome::default();\n                 }\n                 if self.recall_history(true) {\n@@ -4989,7 +5122,7 @@ impl TuiState {\n                 self.scroll_transcript(true)\n             }\n             KeyAction::Down => {\n-                if self.editor.vertical(&self.input, true, false) {\n+                if self.prompt_vertical(true, false) {\n                     return KeyOutcome::default();\n                 }\n                 if self.recall_history(false) {\n@@ -9724,6 +9857,24 @@ mod tests {\n             note.contains(\"paste\") && note.contains(&MAX_INPUT_BYTES.to_string()),\n             \"note must name the paste and the budget: {note}\"\n         );\n+        state.handle_key(KeyAction::Interrupt).await;\n+        let full = &huge[..MAX_INPUT_BYTES];\n+        state.handle_paste(full);\n+        assert_eq!(state.editor.chip_count(), 1);\n+        assert!(state.handle_paste(&huge).note.is_some());\n+        assert_eq!(\n+            state.editor.chip_count(),\n+            1,\n+            \"truncated prefix is not an identical paste\"\n+        );\n+        assert_eq!(state.input(), full);\n+        assert!(state.handle_paste(full).note.is_none());\n+        assert_eq!(\n+            state.editor.chip_count(),\n+            0,\n+            \"identical full-budget paste can expand\"\n+        );\n+        assert_eq!(state.input(), full);\n     }\n \n     async fn type_text(state: &mut TuiState, text: &str) {\n@@ -10098,6 +10249,199 @@ mod tests {\n         assert_eq!(state.prompt_layout(80).0.len(), 3);\n     }\n \n+    #[tokio::test]\n+    async fn vis07_paste_mouse_expands_only_live_painted_prompt_cells() {\n+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};\n+        use ratatui::{Terminal, backend::TestBackend};\n+        let (app, _, _) = CoreApp::channel(4);\n+        let mut state = TuiState::new_home(app);\n+        let area = Rect::new(0, 0, 120, 40);\n+        let prefix = \"VIS11 full draft αβ caret-middle preserving every wzord\";\n+        let pasted = \"VIS11-PASTE-0\\nVIS11-PASTE-1\\nVIS11-PASTE-2\";\n+        state.handle_paste(prefix);\n+        state.handle_paste(pasted);\n+        let mut actual = state.input().to_owned();\n+        let chip_end = actual.len();\n+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();\n+        let mouse = |kind, x, y| MouseEvent {\n+            kind,\n+            column: x,\n+            row: y,\n+            modifiers: KeyModifiers::NONE,\n+        };\n+        let down = MouseEventKind::Down(MouseButton::Left);\n+        state.handle_mouse(mouse(down, 81, 21), area);\n+        assert_eq!(\n+            state.editor.chip_count(),\n+            1,\n+            \"unpainted prompt has no targets\"\n+        );\n+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();\n+        let (first, second) = {\n+            let paint = state.painted_prompt.borrow();\n+            let paint = paint.as_ref().unwrap();\n+            assert_eq!(state.prompt_width.get(), Some(70));\n+            assert_eq!(paint.chips.len(), 2);\n+            (paint.chips[0].0, paint.chips[1].0)\n+        };\n+        assert_eq!(\n+            (first.x, first.width, second.x, second.width),\n+            (81, 11, 26, 6)\n+        );\n+        // Styles and caret come from the exact observed 70-cell projection.\n+        let buffer = terminal.backend().buffer();\n+        for rect in [first, second] {\n+            for x in rect.x..rect.right() {\n+                let cell = &buffer[(x, rect.y)];\n+                assert_eq!(cell.fg, ratatui::style::Color::Rgb(10, 10, 10));\n+                assert_eq!(cell.bg, ratatui::style::Color::Rgb(245, 167, 66));\n+                assert!(cell.modifier.contains(ratatui::style::Modifier::BOLD));\n+            }\n+        }\n+        assert_eq!(\n+            terminal.get_cursor_position().unwrap(),\n+            (33, second.y).into()\n+        );\n+        for _ in 0..20 {\n+            state.handle_key(KeyAction::Newline).await;\n+        }\n+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();\n+        assert!(\n+            state\n+                .painted_prompt\n+                .borrow()\n+                .as_ref()\n+                .unwrap()\n+                .chips\n+                .is_empty()\n+        );\n+        state.handle_mouse(mouse(down, first.x, first.y), area);\n+        assert_eq!(state.editor.chip_count(), 1, \"offscreen chip has no target\");\n+        for _ in 0..20 {\n+            state.handle_key(KeyAction::Undo).await;\n+        }\n+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();\n+        state.handle_mouse(mouse(MouseEventKind::Moved, first.x, first.y), area);\n+        state.handle_mouse(\n+            mouse(MouseEventKind::Down(MouseButton::Right), first.x, first.y),\n+            area,\n+        );\n+        state.handle_mouse(mouse(down, second.right(), second.y), area);\n+        assert_eq!(\n+            state.editor.chip_count(),\n+            1,\n+            \"virtual space is not an extmark cell\"\n+        );\n+        state.handle_mouse(mouse(down, first.x, first.y), Rect::new(0, 0, 119, 40));\n+        assert_eq!(\n+            state.editor.chip_count(),\n+            1,\n+            \"resize invalidates coordinates\"\n+        );\n+        state.handle_key(KeyAction::Commands).await;\n+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();\n+        state.handle_mouse(mouse(down, first.x, first.y), area);\n+        state.close_panel();\n+        state.handle_mouse(mouse(down, first.x, first.y), area);\n+        assert_eq!(\n+            state.editor.chip_count(),\n+            1,\n+            \"modal paint removed the prompt map\"\n+        );\n+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();\n+        state.handle_key(KeyAction::Left).await;\n+        state.handle_mouse(mouse(down, first.x, first.y), area);\n+        assert_eq!(\n+            state.editor.chip_count(),\n+            1,\n+            \"caret/viewport identity is stale\"\n+        );\n+        state.handle_key(KeyAction::Right).await;\n+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();\n+        state.handle_key(KeyAction::Char('!')).await;\n+        state.handle_mouse(mouse(down, first.x, first.y), area);\n+        assert_eq!(state.editor.chip_count(), 1, \"edited draft is stale\");\n+        state.handle_key(KeyAction::Undo).await;\n+        state.push_note(&format!(\"{}\\n\", \"toast \".repeat(8)).repeat(30));\n+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();\n+        let toast = crate::shell::toast_rect(&state, area).unwrap();\n+        assert!(toast.contains((first.x, first.y).into()));\n+        state.handle_mouse(mouse(down, first.x, first.y), area);\n+        state.note = None;\n+        state.handle_mouse(mouse(down, first.x, first.y), area);\n+        assert_eq!(\n+            state.editor.chip_count(),\n+            1,\n+            \"toast-covered cells were not painted prompt\"\n+        );\n+        state.handle_paste(\" suffix\");\n+        actual.push_str(\" suffix\");\n+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();\n+        state.handle_mouse(mouse(down, second.x + 2, second.y), area);\n+        assert_eq!(\n+            state.editor.chip_count(),\n+            0,\n+            \"left-down expands the wrapped continuation\"\n+        );\n+        assert_eq!(state.input(), actual);\n+        assert_eq!(state.editor.cursor, chip_end);\n+        assert!(state.editor.selected().is_none());\n+        state.handle_key(KeyAction::Undo).await;\n+        assert_eq!(state.editor.chip_count(), 1);\n+        state.handle_key(KeyAction::Redo).await;\n+        assert_eq!(state.editor.chip_count(), 0);\n+        assert_eq!(state.input(), actual);\n+        // Repeat paste follows the same extmark expansion and preserves suffix.\n+        state.handle_key(KeyAction::Undo).await;\n+        state.editor.move_to(chip_end, false);\n+        assert!(state.handle_paste(pasted).note.is_none());\n+        assert_eq!(state.editor.chip_count(), 0);\n+        assert_eq!(state.input(), actual);\n+    }\n+\n+    #[tokio::test]\n+    async fn vis07_up_down_use_painted_width_before_history_and_select_raw_wrap() {\n+        use ratatui::{Terminal, backend::TestBackend};\n+        let (app, _, _) = CoreApp::channel(4);\n+        let mut state = TuiState::new_home(app);\n+        state.attach_page(&page(\n+            vec![msg(1, Role::User, \"previous prompt\")],\n+            1,\n+            false,\n+            false,\n+        ));\n+        // Home is the 70-cell textarea at 120 columns, independent of session width.\n+        state.home = true;\n+        let text = \"VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded actual requestord\";\n+        state.restore_prompt(text.into());\n+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();\n+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();\n+        assert_eq!(state.prompt_layout(70).1, (1, 17));\n+        state.handle_key(KeyAction::Up).await;\n+        assert_eq!(\n+            state.input(),\n+            text,\n+            \"first Up moves within the visual draft\"\n+        );\n+        assert_eq!(state.prompt_layout(70).1, (0, 17));\n+        state.handle_key(KeyAction::Down).await;\n+        assert_eq!(state.prompt_layout(70).1, (1, 17));\n+        state.handle_key(KeyAction::SelectUp).await;\n+        assert_eq!(state.editor.selected(), Some((17, text.len())));\n+        assert!(state.prompt_layout(70).0[1].spans.iter().all(|s| s.1));\n+        state.handle_key(KeyAction::Right).await;\n+        state.handle_key(KeyAction::Up).await;\n+        state.handle_key(KeyAction::Up).await;\n+        assert_eq!(\n+            state.input(),\n+            \"previous prompt\",\n+            \"history is only at the visual edge\"\n+        );\n+        state.handle_key(KeyAction::Down).await;\n+        assert_eq!(state.input(), text);\n+        assert_eq!(state.prompt_layout(70).1, (0, 17));\n+    }\n+\n     #[tokio::test]\n     async fn v05_review_trimmed_chip_edit_during_pending_keeps_receipt_immutable() {\n         use oc_core::core_app::InboxMsg;\ndiff --git a/crates/oc-tui/src/editor.rs b/crates/oc-tui/src/editor.rs\nindex 03f121df..e29eca3a 100644\n--- a/crates/oc-tui/src/editor.rs\n+++ b/crates/oc-tui/src/editor.rs\n@@ -9,6 +9,7 @@ const MAX_FILE_MENTIONS: usize = 1024;\n pub struct PasteOutcome {\n     pub inserted: usize,\n     pub trimmed: usize,\n+    pub expanded: bool,\n }\n \n pub fn chip_worthy(content: &str) -> Option<usize> {\n@@ -141,9 +142,48 @@ impl Editor {\n     }\n \n     pub fn paste(&mut self, text: &mut String, inserted: &str, limit: usize) -> PasteOutcome {\n+        let normalized = inserted.replace(\"\\r\\n\", \"\\n\").replace('\\r', \"\\n\");\n+        if chip_worthy(&normalized).is_some()\n+            && let Some(start) = self.chips.iter().find_map(|chip| {\n+                ((self.cursor == chip.end\n+                    || (self.cursor == chip.end + 1 && text[chip.end..].starts_with(' ')))\n+                    && text[chip.start..chip.end] == *normalized.trim())\n+                .then_some(chip.start)\n+            })\n+        {\n+            self.expand_chip(text, start);\n+            return PasteOutcome {\n+                inserted: 0,\n+                trimmed: 0,\n+                expanded: true,\n+            };\n+        }\n+        self.insert(text, &normalized, limit, true)\n+    }\n+\n+    /// The app has already normalized this truncated clipboard. A matching\n+    /// prefix is not an identical paste and must not expand an existing chip.\n+    pub(crate) fn paste_clipped(\n+        &mut self,\n+        text: &mut String,\n+        inserted: &str,\n+        limit: usize,\n+    ) -> PasteOutcome {\n         self.insert(text, inserted, limit, true)\n     }\n \n+    /// Removing the display extmark exposes the existing draft bytes exactly once.\n+    /// Like the donor's selection replacement, expansion ends at the stored text.\n+    pub fn expand_chip(&mut self, text: &str, start: usize) -> bool {\n+        let Some(index) = self.chips.iter().position(|chip| chip.start == start) else {\n+            return false;\n+        };\n+        self.save(text);\n+        self.cursor = self.chips.remove(index).end;\n+        self.anchor = None;\n+        true\n+    }\n+\n     fn insert(\n         &mut self,\n         text: &mut String,\n@@ -167,6 +207,7 @@ impl Editor {\n             return PasteOutcome {\n                 inserted: 0,\n                 trimmed: 0,\n+                expanded: false,\n             };\n         }\n         let clipped = &inserted[..kept];\n@@ -206,6 +247,7 @@ impl Editor {\n         PasteOutcome {\n             inserted: kept,\n             trimmed,\n+            expanded: false,\n         }\n     }\n \n@@ -443,6 +485,32 @@ impl Editor {\n         true\n     }\n \n+    /// Navigate the same word-wrapped, collapsed-chip projection that is painted.\n+    pub fn vertical_wrapped(&mut self, text: &str, width: usize, down: bool, select: bool) -> bool {\n+        let (rows, (row, column)) = self.layout(text, width);\n+        // A chip may fill several narrow rows with no legal insertion stop.\n+        // Skip those interior extmark rows while keeping the chip atomic.\n+        let target = if down {\n+            rows.iter().skip(row + 1).find(|r| !r.positions.is_empty())\n+        } else {\n+            rows[..row].iter().rev().find(|r| !r.positions.is_empty())\n+        };\n+        let Some(row) = target else {\n+            return false;\n+        };\n+        let Some(&(_, offset)) = row\n+            .positions\n+            .iter()\n+            .rev()\n+            .find(|&&(cell, _)| cell <= column)\n+            .or_else(|| row.positions.first())\n+        else {\n+            return false;\n+        };\n+        self.move_to(offset, select);\n+        true\n+    }\n+\n     fn project(&self, text: &str) -> (String, Vec<(usize, usize, usize, usize)>) {\n         let mut visible = String::new();\n         let mut map = Vec::with_capacity(self.chips.len());\n@@ -476,16 +544,31 @@ impl Editor {\n             .iter()\n             .map(|&(_, _, start, end)| (start, end - 1))\n             .collect();\n-        layout_wrapped(\n+        let (mut rows, caret) = layout_wrapped(\n             &visible,\n             raw_to_visual(self.cursor, &map),\n             self.selected()\n                 .map(|(a, b)| (raw_to_visual(a, &map), raw_to_visual(b, &map))),\n             width,\n             &mentions,\n-            false,\n+            true,\n             &chips,\n-        )\n+        );\n+        for row in &mut rows {\n+            // Interior label cells are mouse targets, not legal caret stops:\n+            // the raw chip remains atomic until it is expanded.\n+            row.positions.retain(|&(_, offset)| {\n+                let index = map.partition_point(|&(_, _, start, _)| start < offset);\n+                index == 0 || map[index - 1].3 <= offset\n+            });\n+            for (_, offset) in &mut row.positions {\n+                *offset = visual_to_raw(*offset, &map, true);\n+            }\n+            for (_, _, start) in &mut row.chip_hits {\n+                *start = visual_to_raw(*start, &map, false);\n+            }\n+        }\n+        (rows, caret)\n     }\n     /// Textarea layout preserves raw offsets/selection while preferring whole words.\n     pub(crate) fn layout_words(\n@@ -598,39 +681,28 @@ impl Editor {\n \n // Offset maps are ephemeral layout projections; raw text alone is submitted.\n fn raw_to_visual(offset: usize, map: &[(usize, usize, usize, usize)]) -> usize {\n-    let mut raw = 0;\n-    let mut visual = 0;\n-    for &(start, end, _, ve) in map {\n-        if offset <= start {\n-            return visual + offset - raw;\n-        }\n-        if offset <= end {\n-            return ve;\n-        }\n-        raw = end;\n-        visual = ve;\n+    let index = map.partition_point(|&(start, _, _, _)| start < offset);\n+    if index == 0 {\n+        return offset;\n     }\n-    visual + offset - raw\n+    let (_, end, _, visual_end) = map[index - 1];\n+    visual_end + offset.saturating_sub(end)\n }\n \n fn visual_to_raw(offset: usize, map: &[(usize, usize, usize, usize)], right: bool) -> usize {\n-    let mut raw = 0;\n-    let mut visual = 0;\n-    for &(start, end, vs, ve) in map {\n-        if offset <= vs {\n-            return raw + offset - visual;\n-        }\n-        if offset <= ve {\n-            return if offset - vs > ve - offset || (offset - vs == ve - offset && right) {\n-                end\n-            } else {\n-                start\n-            };\n-        }\n-        raw = end;\n-        visual = ve;\n+    let index = map.partition_point(|&(_, _, start, _)| start < offset);\n+    if index == 0 {\n+        return offset;\n     }\n-    raw + offset - visual\n+    let (start, end, vs, ve) = map[index - 1];\n+    if offset <= ve {\n+        return if offset - vs > ve - offset || (offset - vs == ve - offset && right) {\n+            end\n+        } else {\n+            start\n+        };\n+    }\n+    end + offset - ve\n }\n \n fn vertical_target(text: &str, cursor: usize, down: bool) -> Option<usize> {\n@@ -727,6 +799,22 @@ pub struct PromptRow {\n     pub spans: Vec<(String, bool, bool)>,\n     /// One semantic paste-chip flag per span; derived from actual editor chips.\n     pub chip_spans: Vec<bool>,\n+    /// Legal insertion stops (display column, draft byte offset).\n+    pub(crate) positions: Vec<(usize, usize)>,\n+    /// Painted label intervals (start/end columns, chip's raw start).\n+    pub(crate) chip_hits: Vec<(usize, usize, usize)>,\n+}\n+\n+impl PromptRow {\n+    fn empty() -> Self {\n+        Self {\n+            text: String::new(),\n+            spans: Vec::new(),\n+            chip_spans: Vec::new(),\n+            positions: Vec::new(),\n+            chip_hits: Vec::new(),\n+        }\n+    }\n }\n #[cfg(test)]\n pub fn layout(\n@@ -745,7 +833,7 @@ fn layout_with_mentions(\n     width: usize,\n     mentions: &[(usize, usize)],\n ) -> (Vec<PromptRow>, (usize, usize)) {\n-    layout_wrapped(text, cursor, selection, width, mentions, false, &[])\n+    layout_wrapped(text, cursor, selection, width, mentions, true, &[])\n }\n \n fn layout_wrapped(\n@@ -758,27 +846,26 @@ fn layout_wrapped(\n     chips: &[(usize, usize)],\n ) -> (Vec<PromptRow>, (usize, usize)) {\n     let width = width.max(1);\n-    let mut rows = vec![PromptRow {\n-        text: String::new(),\n-        spans: Vec::new(),\n-        chip_spans: Vec::new(),\n-    }];\n+    let mut rows = vec![PromptRow::empty()];\n     let mut column = 0;\n     let mut caret = (0, 0);\n+    let mut suppressed = false;\n     for (offset, grapheme) in text.grapheme_indices(true) {\n-        if offset == cursor {\n-            caret = (rows.len() - 1, column);\n-        }\n         if grapheme == \"\\n\" {\n-            rows.push(PromptRow {\n-                text: String::new(),\n-                spans: Vec::new(),\n-                chip_spans: Vec::new(),\n-            });\n+            rows.last_mut()\n+                .expect(\"one row\")\n+                .positions\n+                .push((column, offset));\n+            if offset == cursor {\n+                caret = (rows.len() - 1, column);\n+            }\n+            rows.push(PromptRow::empty());\n             column = 0;\n+            suppressed = false;\n             continue;\n         }\n         let cells = UnicodeWidthStr::width(grapheme);\n+        let whitespace = grapheme.chars().all(char::is_whitespace);\n         let word = words\n             && !grapheme.chars().all(char::is_whitespace)\n             && (offset == 0\n@@ -791,27 +878,52 @@ fn layout_wrapped(\n         } else {\n             0\n         };\n+        // OpenTUI drops a separator overflowing the row, rather than painting\n+        // it at the next row's start. Keep its offsets at that visual boundary.\n+        if words && whitespace && (suppressed || column + cells > width) {\n+            if !suppressed {\n+                rows.push(PromptRow::empty());\n+                column = 0;\n+                suppressed = true;\n+            }\n+            rows.last_mut()\n+                .expect(\"one row\")\n+                .positions\n+                .push((0, offset));\n+            if offset == cursor {\n+                caret = (rows.len() - 1, 0);\n+            }\n+            continue;\n+        }\n         if column > 0\n             && (column + cells > width || (word_cells <= width && column + word_cells > width))\n         {\n-            rows.push(PromptRow {\n-                text: String::new(),\n-                spans: Vec::new(),\n-                chip_spans: Vec::new(),\n-            });\n+            rows.push(PromptRow::empty());\n             column = 0;\n-            if offset == cursor {\n-                caret = (rows.len() - 1, 0);\n-            }\n+        }\n+        suppressed = false;\n+        if offset == cursor {\n+            caret = (rows.len() - 1, column);\n         }\n         let selected = selection.is_some_and(|(start, end)| offset >= start && offset < end);\n         let mentioned = mentions\n             .get(mentions.partition_point(|&(_, end)| end <= offset))\n             .is_some_and(|&(start, _)| start <= offset);\n         let row = rows.last_mut().expect(\"one row\");\n-        let chip = chips\n-            .iter()\n-            .any(|&(start, end)| offset >= start && offset < end);\n+        row.positions.push((column, offset));\n+        let mark = chips\n+            .get(chips.partition_point(|&(_, end)| end <= offset))\n+            .filter(|&&(start, _)| start <= offset);\n+        let chip = mark.is_some();\n+        if let Some(&(start, _)) = mark {\n+            if let Some((_, end, previous)) = row.chip_hits.last_mut()\n+                && *previous == start\n+            {\n+                *end = column + cells;\n+            } else {\n+                row.chip_hits.push((column, column + cells, start));\n+            }\n+        }\n         row.text.push_str(grapheme);\n         if let Some((last, was_selected, was_mentioned)) = row.spans.last_mut()\n             && *was_selected == selected\n@@ -825,24 +937,185 @@ fn layout_wrapped(\n         }\n         column += cells;\n     }\n+    if column >= width && !text.is_empty() {\n+        rows.push(PromptRow::empty());\n+        column = 0;\n+    }\n+    rows.last_mut()\n+        .expect(\"one row\")\n+        .positions\n+        .push((column, text.len()));\n     if cursor == text.len() {\n-        if column >= width && !text.is_empty() {\n-            rows.push(PromptRow {\n-                text: String::new(),\n-                spans: Vec::new(),\n-                chip_spans: Vec::new(),\n-            });\n-            caret = (rows.len() - 1, 0);\n-        } else {\n-            caret = (rows.len() - 1, column);\n-        }\n+        caret = (rows.len() - 1, column);\n     }\n     (rows, caret)\n }\n \n #[cfg(test)]\n mod tests {\n-    use super::{Editor, MAX_FILE_MENTIONS, layout};\n+    use super::{Editor, MAX_FILE_MENTIONS, MAX_PASTE_CHIPS, layout};\n+    use unicode_segmentation::UnicodeSegmentation;\n+\n+    #[test]\n+    fn vis07_observed_seventy_cell_word_wrap_and_raw_separator_offsets() {\n+        let mut editor = Editor::default();\n+        let mut text = \"VIS11 full draft αβ caret-middle preserving every wzord\".to_string();\n+        let prefix = text.clone();\n+        editor.cursor = text.len();\n+        editor.paste(\n+            &mut text,\n+            \"VIS11-PASTE-0\\nVIS11-PASTE-1\\nVIS11-PASTE-2\",\n+            4096,\n+        );\n+        let (rows, caret) = editor.layout(&text, 70);\n+        assert_eq!(\n+            rows.iter().map(|r| r.text.as_str()).collect::<Vec<_>>(),\n+            vec![format!(\"{prefix}[Pasted ~3 \"), \"lines] \".into()]\n+        );\n+        assert_eq!(caret, (1, 7));\n+        assert_eq!(rows[0].chip_hits, vec![(55, 66, prefix.len())]);\n+        assert_eq!(rows[1].chip_hits, vec![(0, 6, prefix.len())]);\n+        editor.horizontal(&text, false, false, true);\n+        let (rows, _) = editor.layout(&text, 70);\n+        for row in rows {\n+            for ((_, selected, _), chip) in row.spans.iter().zip(row.chip_spans) {\n+                assert_eq!(*selected, chip || row.text == \"lines] \");\n+            }\n+        }\n+\n+        let text = \"VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded actual requestord\";\n+        editor.clear();\n+        editor.cursor = text.len();\n+        let (rows, caret) = editor.layout(text, 70);\n+        assert_eq!(\n+            rows.iter().map(|r| r.text.as_str()).collect::<Vec<_>>(),\n+            vec![\n+                \"VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded\",\n+                \"actual requestord\"\n+            ]\n+        );\n+        assert_eq!(caret, (1, 17));\n+        let boundary = text.find(\" actual\").unwrap();\n+        for cursor in [boundary, boundary + 1] {\n+            editor.cursor = cursor;\n+            assert_eq!(editor.layout(text, 70).1, (1, 0));\n+        }\n+        // The invisible separator is still selected, deleted and restored in\n+        // raw text; projection never changes the draft to achieve wrapping.\n+        let mut text = text.to_owned();\n+        editor.move_to(boundary, false);\n+        editor.move_to(boundary + 1, true);\n+        assert!(editor.delete(&mut text, true, false));\n+        assert!(!text.contains(\"bounded actual\"));\n+        assert!(editor.undo(&mut text, false));\n+        assert!(text.contains(\"bounded actual\"));\n+    }\n+\n+    #[test]\n+    fn vis07_repeat_paste_expands_at_chip_end_without_inserting_again() {\n+        for separator in [false, true] {\n+            let mut editor = Editor::default();\n+            let mut text = \"prefix \".to_owned();\n+            editor.cursor = text.len();\n+            let pasted = \"е\\u{301}🧑‍💻\\n界\\nlast\";\n+            editor.paste(\n+                &mut text,\n+                &format!(\" \\r\\n{}\\r\\n \", pasted.replace('\\n', \"\\r\\n\")),\n+                4096,\n+            );\n+            let end = text.len();\n+            if separator {\n+                editor.replace(&mut text, \" suffix\", 4096);\n+                editor.move_to(end + 1, false);\n+            }\n+            let original = text.clone();\n+            let limit = text.len();\n+            let outcome = editor.paste(&mut text, pasted, limit);\n+            assert!(\n+                outcome.expanded,\n+                \"even a full draft can expand an identical paste\"\n+            );\n+            assert_eq!(outcome.inserted, 0);\n+            assert_eq!(text, original);\n+            assert_eq!(editor.cursor, end);\n+            assert_eq!(editor.chip_count(), 0);\n+            assert!(editor.undo(&mut text, false));\n+            assert_eq!(editor.chip_count(), 1);\n+            assert_eq!(text, original);\n+            assert!(editor.undo(&mut text, true));\n+            assert_eq!(editor.chip_count(), 0);\n+            assert_eq!(text, original);\n+        }\n+        let mut editor = Editor::default();\n+        let mut text = String::new();\n+        editor.paste(&mut text, \"a\\nb\\nc\", 100);\n+        editor.move_to(0, false);\n+        editor.move_to(text.len(), true);\n+        // Donor repeat detection uses the caret, then replaces the extmark's\n+        // selection even when another editor selection was already active.\n+        assert!(editor.paste(&mut text, \"a\\nb\\nc\", 100).expanded);\n+        assert_eq!(text, \"a\\nb\\nc\");\n+        assert!(editor.selected().is_none());\n+        assert_eq!(editor.chip_count(), 0);\n+        editor.undo(&mut text, false);\n+        assert!(\n+            !editor.paste(&mut text, \"a\\nb\\nd\", 100).expanded,\n+            \"a different paste replaces the selection\"\n+        );\n+        assert_eq!(text, \"a\\nb\\nd\");\n+        assert_eq!(editor.chip_count(), 1);\n+    }\n+\n+    #[test]\n+    fn vis07_wrapped_unicode_vertical_selection_and_width_edges() {\n+        let mut editor = Editor::default();\n+        let mut text = \"е\\u{301}界 🧑‍💻fox abcdef\".to_owned();\n+        editor.cursor = text.len();\n+        assert_eq!(editor.layout(&text, 6).1, (3, 0));\n+        assert!(editor.vertical_wrapped(&text, 6, false, true));\n+        assert_eq!(editor.layout(&text, 6).1, (2, 0));\n+        assert_eq!(\n+            editor.selected(),\n+            Some((\"е\\u{301}界 🧑‍💻fox \".len(), text.len()))\n+        );\n+        assert!(editor.delete(&mut text, true, false));\n+        assert_eq!(text, \"е\\u{301}界 🧑‍💻fox \");\n+        assert!(editor.undo(&mut text, false));\n+        assert_eq!(editor.layout(&text, 6).1, (2, 0));\n+        assert!(editor.undo(&mut text, true));\n+        assert_eq!(text, \"е\\u{301}界 🧑‍💻fox \");\n+        for width in [0, 1, 2, 5, 6, 7, 69, 70, 71] {\n+            let mut editor = Editor::default();\n+            let text = \"界е\\u{301} 🧑‍💻fox abcdef\";\n+            editor.cursor = text.len();\n+            let (rows, caret) = editor.layout(text, width);\n+            assert!(caret.0 < rows.len());\n+            for row in &rows {\n+                for &(_, offset) in &row.positions {\n+                    assert!(text.is_char_boundary(offset));\n+                    assert!(\n+                        text.grapheme_indices(true).any(|(at, _)| at == offset)\n+                            || offset == text.len()\n+                    );\n+                }\n+            }\n+            while editor.vertical_wrapped(text, width, false, false) {}\n+            assert_eq!(editor.layout(text, width).1.0, 0);\n+        }\n+        // Extremely narrow labels have rows with no raw caret stop. Vertical\n+        // movement must cross them instead of getting stuck on an atomic chip.\n+        for width in [1, 2, 16, 17, 70] {\n+            let mut editor = Editor::default();\n+            let mut text = String::new();\n+            editor.paste(&mut text, \"a\\nb\\nc\", 100);\n+            if editor.layout(&text, width).1.0 > 0 {\n+                assert!(editor.vertical_wrapped(&text, width, false, false));\n+                assert_eq!(editor.cursor, 0);\n+                assert!(editor.vertical_wrapped(&text, width, true, false));\n+                assert_eq!(editor.cursor, text.len());\n+            }\n+        }\n+    }\n \n     #[test]\n     fn large_draft_mention_validation_does_not_retain_grapheme_boundaries() {\n@@ -1092,6 +1365,21 @@ mod tests {\n         assert_eq!(editor.chip_count(), 1);\n         assert_eq!(editor.layout(&text, 80).0[0].text, \"[Pasted ~1 lines] \");\n         assert_eq!(text, \"🦊\".repeat(76));\n+\n+        editor.clear();\n+        text.clear();\n+        for index in 0..=MAX_PASTE_CHIPS {\n+            editor.paste(&mut text, &format!(\"{index}\\n界\\nz\"), 64 * 1024);\n+        }\n+        assert_eq!(editor.chip_count(), MAX_PASTE_CHIPS);\n+        assert!(text.ends_with(&format!(\"{MAX_PASTE_CHIPS}\\n界\\nz\")));\n+        let rows = editor.layout(&text, 70).0;\n+        assert!(\n+            rows.iter()\n+                .any(|row| row.text.contains(&MAX_PASTE_CHIPS.to_string())),\n+            \"the over-cap paste remains ordinary visible text\"\n+        );\n+        assert!(editor.retained_bytes() < 3 * 1024 * 1024);\n     }\n \n     #[test]\ndiff --git a/crates/oc-tui/src/shell.rs b/crates/oc-tui/src/shell.rs\nindex d3459880..a706a91b 100644\n--- a/crates/oc-tui/src/shell.rs\n+++ b/crates/oc-tui/src/shell.rs\n@@ -162,6 +162,7 @@ pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {\n /// Render one whole frame: root background, tab strip, session area,\n /// devtools bar, then the toast overlay.\n pub fn render(frame: &mut Frame<'_>, state: &TuiState) {\n+    state.clear_prompt_paint();\n     let theme = Theme::dark();\n     let area = frame.area();\n     // Upstream paints the whole frame with `background.base` (`app.tsx:1310-1314`).\n@@ -282,6 +283,10 @@ fn session_main(state: &TuiState, area: Rect) -> Rect {\n     }\n }\n \n+pub(crate) fn prompt_main(state: &TuiState, frame: Rect) -> Rect {\n+    session_main(state, shell_regions(state, frame).session)\n+}\n+\n fn session_regions(state: &TuiState, area: Rect, terminal_height: u16) -> layout::SessionRegions {\n     if state.approvals.active().is_some() {\n         let mut regions = layout::dynamic_session_regions(area, 0, 0);\n@@ -1217,6 +1222,20 @@ fn render_prompt(\n         };\n         if body.height > 1 {\n             let (input_rows, caret) = state.prompt_layout(text_width as usize);\n+            let visible = body.height.saturating_sub(3) as usize;\n+            let start = caret\n+                .0\n+                .saturating_sub(visible.saturating_sub(1))\n+                .min(input_rows.len().saturating_sub(visible));\n+            state.observe_prompt_paint(\n+                frame.area(),\n+                Rect {\n+                    height: body.height.saturating_sub(3),\n+                    ..row(1)\n+                },\n+                start,\n+                &input_rows,\n+            );\n             let input_lines: Vec<_> = input_rows\n                 .into_iter()\n                 .map(|row| {\n@@ -1230,7 +1249,8 @@ fn render_prompt(\n                                     if chip {\n                                         let style = Style::default()\n                                             .fg(theme.background())\n-                                            .bg(theme.warning());\n+                                            .bg(theme.warning())\n+                                            .add_modifier(Modifier::BOLD);\n                                         if selected {\n                                             style.add_modifier(Modifier::REVERSED)\n                                         } else {\n@@ -1255,11 +1275,6 @@ fn render_prompt(\n                     )\n                 })\n                 .collect();\n-            let visible = body.height.saturating_sub(3) as usize;\n-            let start = caret\n-                .0\n-                .saturating_sub(visible.saturating_sub(1))\n-                .min(input_lines.len().saturating_sub(visible));\n             frame.render_widget(\n                 Paragraph::new(\n                     crate::styled::Lines::from(input_lines[start..].to_vec()).into_text(),\n@@ -1999,6 +2014,7 @@ mod tests {\n         );\n         for index in chip_cells {\n             assert_eq!(normal.content[index].fg, theme.background());\n+            assert!(normal.content[index].modifier.contains(Modifier::BOLD));\n             assert_eq!(normal.content[index], pending.content[index]);\n         }\n         for y in 0..40 {\ndiff --git a/scripts/tui_capture/README.md b/scripts/tui_capture/README.md\nindex ce5c02d2..70227e9c 100644\n--- a/scripts/tui_capture/README.md\n+++ b/scripts/tui_capture/README.md\n@@ -42,6 +42,33 @@ exit `2` denotes a runner blocker. Neither is parity success.\n \n ## What is captured\n \n+### Current prompt/paste diagnostic (VIS07), serial fresh builds\n+\n+`node scripts/tui_capture/run_prompt_paste.mjs evidence/tui/recovery-v00/prompt-paste20260927-01`\n+creates a new immutable campaign. Do not run another Cargo command until it exits.\n+Each chip/default and extra/longdraft pair at 79/80/120/121×40 independently runs\n+`cargo build --locked`, seals source hashes before/after build/capture and uses the\n+explicit pinned reference plus `target/debug/oc`. Both real CLI configs set\n+`session.tps=false`. The existing default sequence captures the same three-line\n+chip normal/pending/restored and actual mouse expansion. The unchanged extra\n+sequence inserts the bounded Enter text at the actual middle caret and records\n+the full outgoing user input. Each side allows at most one main request and one\n+auxiliary title; the default chip sequence makes zero requests.\n+\n+`--leader-paste-navigation true` is a thin exclusive alternative within\n+`--leader-pending`: paste a wrapped prefix, paste the same three lines twice,\n+capture actual expansion, three Up/three Down samples, then pending-leader Enter\n+and the exact raw user wire. It checks that repeat-paste expands rather than\n+duplicates input. It uses no renderer injection or live provider.\n+\n+Run `node scripts/tui_capture/analyze_prompt_paste.mjs CAMPAIGN` once to create\n+the immutable `prompt-paste-analysis.json`. It checks the current native/original\n+true-expansion contract, source association, bounded request counts and exact\n+raw drafts, and retains full unmasked grid/PNG/cursor comparisons including\n+version, footer, token and geometry differences. Behavioral verification is\n+separate from VIS07 PASS, which still requires every mandatory paired frame.\n+The historical `analyze_leader_pairs.mjs` and prior evidence remain unchanged.\n+\n ### Ordinary apply_patch / original patch (VIS35), opt-in\n \n ```sh\ndiff --git a/scripts/tui_capture/bridge.py b/scripts/tui_capture/bridge.py\nindex 5bf02e5c..94bb27a7 100644\n--- a/scripts/tui_capture/bridge.py\n+++ b/scripts/tui_capture/bridge.py\n@@ -193,6 +193,14 @@ class Provider(BaseHTTPRequestHandler):\n             leader_prompts = ['VIS11 full draft αβ caret-middle preserving every word',\n                               'VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded actual requestord']\n             expected_prompt = next((text for text in leader_prompts if text in serialized), leader_prompts[0])\n+            if spec.get('prompt_paste_expected'):\n+                expected_prompt = spec['prompt_paste_expected']\n+                user_text = [part.get('text', '') for message in body.get('input', [])\n+                             if message.get('role') == 'user'\n+                             for part in message.get('content', []) if part.get('type') == 'input_text']\n+                valid = valid and (is_title or user_text == [expected_prompt])\n+            # Bound every leader fixture to one main exchange plus one auxiliary title.\n+            valid = valid and (title_round <= 1 if is_title else transcript_round <= 1)\n         valid = valid and (is_title or expected_prompt in serialized)\n         profile_prompt_present = profile_prompt is not None and profile_prompt in system\n         if profile_id and not is_title:\ndiff --git a/scripts/tui_capture/capture.mjs b/scripts/tui_capture/capture.mjs\nindex bdadfa22..65c1769f 100644\n--- a/scripts/tui_capture/capture.mjs\n+++ b/scripts/tui_capture/capture.mjs\n@@ -16,6 +16,7 @@ import {probeCompaction} from './compaction.mjs';\n import {probeApplyPatch} from './apply_patch.mjs';\n import {probePermission} from './permission.mjs';\n import {probeLeaderPending} from './leader_pending.mjs';\n+import {probePasteNavigation, pasteNavigationDraft} from './prompt_paste.mjs';\n \n const here = path.dirname(fileURLToPath(import.meta.url));\n const repo = path.resolve(here, '../..');\n@@ -28,7 +29,10 @@ const applyPatch = args['apply-patch'] === 'true';\n const permission = args.permission === 'true';\n const leaderPending = args['leader-pending'] === 'true';\n const leaderConfig = args['leader-config'] || 'default';\n-if(leaderPending && (!['default','nested','configured','legacy','legacy-v1','precedence'].includes(leaderConfig) || args.geometry!=='true' || args.sidebar!=='hide' || args.sample!=='short' || Number(args.columns)!==120 || Number(args.rows)!==40 || !args.reference || args.session || args['seed-root'] || Object.entries(args).some(([k,v])=>v==='true'&&!['leader-pending','leader-extra','leader-enter-only','geometry','build-oc'].includes(k))))throw Error('--leader-pending requires exclusive short 120x40 geometry sidebar hide');\n+const pasteNavigation = args['leader-paste-navigation'] === 'true';\n+if(args['leader-paste-navigation']!==undefined&&(!leaderPending||!['true','false'].includes(args['leader-paste-navigation'])))throw Error('--leader-paste-navigation requires leader-pending and true|false');\n+if(pasteNavigation&&(args['leader-extra']==='true'||args['leader-enter-only']==='true'))throw Error('--leader-paste-navigation is an exclusive leader scenario');\n+if(leaderPending && (!['default','nested','configured','legacy','legacy-v1','precedence'].includes(leaderConfig) || args.geometry!=='true' || args.sidebar!=='hide' || args.sample!=='short' || ![79,80,120,121].includes(Number(args.columns)) || Number(args.rows)!==40 || !args.reference || args.session || args['seed-root'] || Object.entries(args).some(([k,v])=>v==='true'&&!['leader-pending','leader-extra','leader-enter-only','leader-paste-navigation','geometry','build-oc'].includes(k))))throw Error('--leader-pending requires exclusive short 79/80/120/121x40 geometry sidebar hide');\n const permissionMode = args['permission-mode'] || 'prompt';\n if(args['permission-mode']&&(!permission||!['prompt','auto-config','auto-cli'].includes(permissionMode)))throw Error('--permission-mode requires permission and prompt|auto-config|auto-cli');\n if(args.permission!==undefined&&!['true','false'].includes(args.permission))throw Error('--permission must be true|false');\n@@ -296,6 +300,7 @@ const json = (name, value) => fs.writeFileSync(path.join(output, name), JSON.str\n const fixture = path.join(repo, 'tui-recovery/fixtures');\n const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));\n const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',\n+    ...(leaderPending ? {leader_pending:true,leader_config:leaderConfig,extra:args['leader-extra']==='true',enter_only:args['leader-enter-only']==='true',paste_navigation:pasteNavigation,probe_sha256:sha(fs.readFileSync(path.join(here,'leader_pending.mjs'))),...(pasteNavigation?{navigation_probe_sha256:sha(fs.readFileSync(path.join(here,'prompt_paste.mjs')))}:{})} : {}),\n     ...(applyPatch ? {apply_patch:true,view:args['patch-view'],wrap:args['patch-wrap'],probe:sha(fs.readFileSync(path.join(here,'apply_patch.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'apply_patch_fixture.py'))),admission:sha(fs.readFileSync(path.join(here,'apply_patch_admission.mjs')))} : {}),\n     ...(compaction ? {compaction:true,compaction_trigger:compactionTrigger,compaction_animation:compactionAnimation,compaction_tps:compactionTps,probe_sha256:sha(fs.readFileSync(path.join(here,'compaction.mjs'))),fixture_protocol_sha256:sha(fs.readFileSync(path.join(here,'compaction_fixture.py')))} : {}),\n     ...(revertRedo ? {revert_redo:true,probe_sha256:sha(fs.readFileSync(path.join(here,'revert_redo.mjs')))} : {}),\n@@ -328,12 +333,17 @@ const lock = {schema_version: 1, started: new Date().toISOString(), runner_versi\n   fixture_sha256: fixtureSha, fixture_files: fixtureFiles, oc: {commit, tree, dirty_diff_sha256: sha(diff),\n     source_manifest_sha256: sha(canonical(sourceManifest))},\n   sources: {upstream_commit: '2670273ff17da96f85c5826ced57aa1b368754fa'}, attempts: [], captures: []};\n+if(leaderPending)for(const n of ['leader_pending.mjs',...(pasteNavigation?['prompt_paste.mjs']:[])])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));\n if(applyPatch)lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Fixture context hook admits existing bundled U19; executor is not replaced'};\n if(permission){for(const n of ['permission.mjs','permission_fixture.py','permission_mcp.py','apply_patch_fixture.py','apply_patch_admission.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Existing U19 admitted; real permission backend and executor unchanged'};}\n if(args['build-oc'] === 'true') {\n   const build = execute(['cargo', 'build', '--locked']);\n   if(build.status !== 0) throw Error('Rust build failed (see commands.json)');\n   lock.oc.build_command = ['cargo','build','--locked'];\n+  if(leaderPending) {\n+    lock.oc.source_inputs_unchanged_after_build=Object.entries(sourceManifest).every(([name,hash])=>fs.existsSync(path.join(repo,name))&&sha(fs.readFileSync(path.join(repo,name)))===hash);\n+    if(!lock.oc.source_inputs_unchanged_after_build)throw Error('Source inputs changed during leader build');\n+  }\n } else lock.oc.build_provenance = 'Existing binary; build/source association not attested by this run';\n fs.copyFileSync(path.join(tools, 'package-lock.json'), path.join(output, 'tooling.package-lock.json'));\n if(args['sessions-root'] && (!sessionsInteraction || !path.resolve(args['sessions-root']).startsWith(path.join(tools,'runs')+path.sep)))\n@@ -408,7 +418,8 @@ try {\n       sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,\n        tabs: profile.settings.tabs, variants: leaderPending || args.variants === 'true', startup_error: args['startup-error'] === 'true',\n           agent_profile: args['agent-profile'] === 'true', bounded_mode:boundedMode==='wheel'?'shell':boundedMode, wheel_probe:boundedMode==='wheel', metrics_path:path.join(dir,'scheduler.json'), sessions_interaction:sessionsInteraction,\n-             revert_redo:revertRedo, compaction, compaction_trigger:compactionTrigger, leader_pending:leaderPending, leader_config:leaderConfig,\n+              revert_redo:revertRedo, compaction, compaction_trigger:compactionTrigger, leader_pending:leaderPending, leader_config:leaderConfig,\n+              ...(pasteNavigation?{prompt_paste_expected:pasteNavigationDraft}:{}),\n              apply_patch:applyPatch,permission,permission_mode:permissionMode,permission_strace_path:permission&&args['permission-strace']==='true'&&origin==='oc'?path.join(dir,'permission.strace'):undefined,patch_view:args['patch-view'],patch_wrap:args['patch-wrap'],\n            ...(compaction ? {compaction_animation:compactionAnimation,compaction_tps:compactionTps,animations:compactionAnimation} : {}),\n         sessions_resume:!!args['sessions-root'],\n@@ -543,8 +554,8 @@ try {\n       }\n        const initial = await waitFor(f => /Build|Untitled session|MiMo-V2.6-Flash Free/.test(f.text) ||\n          (sessionsInteraction && f.text.includes('Ask anything')), 'initial prompt');\n-       if(leaderPending) {\n-         const checks=await probeLeaderPending({origin,dir,send,frame,capture,visibleMatches,logs,config:leaderConfig,extra:args['leader-extra']==='true',enterOnly:args['leader-enter-only']==='true',outputTimeline,\n+        if(leaderPending) {\n+          const checks=await (pasteNavigation?probePasteNavigation:probeLeaderPending)({origin,dir,send,frame,capture,waitFor,visibleMatches,logs,config:leaderConfig,extra:args['leader-extra']==='true',enterOnly:args['leader-enter-only']==='true',outputTimeline,\n            sampleColor:p=>page.evaluate(p=>readTerminal().cells[p.y][p.x].fg,p)});\n          lock.leader_pending ??= {};lock.leader_pending[origin]=checks;\n          if(checks.status!=='OBSERVED')result=1;\n@@ -2898,6 +2909,7 @@ try {\n     mcp_error_and_stall: 'NOT_RUN (V00 three-screen capture only)'\n   };\n     if(permission)lock.qualification={status:'DIAGNOSTIC_PERMISSION_ONLY',mode:permissionMode,actual_requests:'Real ordinary function tools and pinned original U19 executor; local fake provider/MCP only',filesystem:'Independent bytes/hash/mtime/modes; SQLite mode=ro',unresolved:['Full grids/PNGs are unmasked and must be compared independently','Typed owner lifecycle evidence is separate from the PTY/SQLite audit','Unit/atomic-failure/security matrices and release binary are not qualified by PTY capture']};\n+    if(leaderPending)lock.qualification={status:'DIAGNOSTIC_PROMPT_PASTE_ONLY',scenario:pasteNavigation?'repeat-paste-visual-navigation':args['leader-extra']==='true'?'extra-longdraft':'default-chip',requested_columns:profile.columns,session_tps_override:false,actual_requests:'Real PTY keys and bracketed paste; isolated local Responses fixture; actual user wire retained',unresolved:['Full styled grids, PNGs and cursors remain unmasked; behavior is not VIS07 PASS','This bounded scenario does not qualify every mandatory prompt/paste/resize/Unicode case']};\n    for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))]\n     .filter(s=>!scanner || !s.includes('-candidate-')) : ['session-wide-completed','commands-over-session','models-over-session', ...(args.variants === 'true' ? ['variants-over-session'] : [])]) {\n     for (const mode of ['grid','png']) {\n@@ -2926,6 +2938,10 @@ try {\n } catch(e) {lock.attempts.push({status:'BLOCKED',reason:e.stack});result=2;}\n finally {\n   if(browser)await browser.close();\n+  if(leaderPending) {\n+    lock.oc.source_inputs_unchanged_after_capture=Object.entries(sourceManifest).every(([name,hash])=>fs.existsSync(path.join(repo,name))&&sha(fs.readFileSync(path.join(repo,name)))===hash);\n+    if(!lock.oc.source_inputs_unchanged_after_capture){lock.attempts.push({status:'BLOCKED',reason:'Source inputs changed during capture'});result=2;}\n+  }\n   lock.finished=new Date().toISOString(); lock.exit_code=result;\n   commands[0].exit_code=result;\n   json('commands.json',commands);json('capture.lock.json',lock);\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "scripts/tui_capture/analyze_prompt_paste.mjs\u0000scripts/tui_capture/prompt_paste.mjs\u0000scripts/tui_capture/run_prompt_paste.mjs\u0000Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/assets/upstream/PROVENANCE.md\u0000crates/oc-adapters/assets/upstream/v2/review.txt\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_conversation_tests.rs\u0000crates/oc-adapters/src/application_fork_tests.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/approval.rs\u0000crates/oc-adapters/src/approval_tests.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/cli_permissions.rs\u0000crates/oc-adapters/src/compaction.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/effects.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/runtime/tool_stream.rs\u0000crates/oc-adapters/src/runtime_compaction.rs\u0000crates/oc-adapters/src/runtime_compaction_tests.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/storage_compaction.rs\u0000crates/oc-adapters/src/storage_conversation.rs\u0000crates/oc-adapters/src/storage_conversation_tests.rs\u0000crates/oc-adapters/src/storage_fork.rs\u0000crates/oc-adapters/src/storage_fork_context.rs\u0000crates/oc-adapters/src/storage_grants.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/fixtures/approval_lifecycle.rs\u0000crates/oc-adapters/tests/fixtures/compaction_normalization.json\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/patch_effects.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/approval.rs\u0000crates/oc-core/src/compaction.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/patch.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-core/src/tool_stream.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/approval_view.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/compaction.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/patch_view.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/scanner.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/approval_tests.rs\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/clipboard.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/approval_binary.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/terminal.rs\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/analyze_apply_patch.mjs\u0000scripts/tui_capture/analyze_compaction_frames.mjs\u0000scripts/tui_capture/analyze_leader_pairs.mjs\u0000scripts/tui_capture/analyze_leader_pending.mjs\u0000scripts/tui_capture/analyze_permission.mjs\u0000scripts/tui_capture/apply_patch.mjs\u0000scripts/tui_capture/apply_patch_admission.mjs\u0000scripts/tui_capture/apply_patch_fixture.py\u0000scripts/tui_capture/bounded.mjs\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_compaction_evidence.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_leader_roles.mjs\u0000scripts/tui_capture/check_permission_evidence.mjs\u0000scripts/tui_capture/check_permission_headless_pair.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/check_revert_redo_evidence.mjs\u0000scripts/tui_capture/compaction.mjs\u0000scripts/tui_capture/compaction_fixture.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000scripts/tui_capture/leader_pending.mjs\u0000scripts/tui_capture/message_actions.mjs\u0000scripts/tui_capture/observe_compaction_timeline.mjs\u0000scripts/tui_capture/permission.mjs\u0000scripts/tui_capture/permission_association.mjs\u0000scripts/tui_capture/permission_fix_cells.mjs\u0000scripts/tui_capture/permission_fixture.py\u0000scripts/tui_capture/permission_headless.py\u0000scripts/tui_capture/permission_mcp.py\u0000scripts/tui_capture/permission_reference_headless.py\u0000scripts/tui_capture/permission_rejection_audit.mjs\u0000scripts/tui_capture/permission_syscall_audit.py\u0000scripts/tui_capture/revert_redo.mjs\u0000scripts/tui_capture/sessions.mjs\u0000scripts/tui_capture/summarize_permission.mjs\u0000scripts/tui_capture/summarize_wheel.mjs\u0000scripts/tui_capture/wheel.mjs\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.33s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-normal.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-normal.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-normal.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-normal\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"d455e3a956c5211d8cd505781632b251ee309bc183fbcc88294983d2bcec8ed3\", \"actual_sha256\": \"da40156d3e8139fb12002e6d1a2032c2c7a773b672637aebcde0cf4846a4bc1a\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-normal.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-normal.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-normal.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"56bec8c4ab604203b11977e0d07fd3d782474dcd003e395003584fdadcb60851\", \"actual_sha256\": \"6e50ffb1401537f0f51a44238f5ad4de0f258653ab4ad24839213d251518f0b6\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-invalid-pending.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-invalid-pending.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-invalid-pending.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-invalid-pending\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"79b9a16dfe493f982651354c057c4149c06dd00ede9af846528a848897e6ffdd\", \"actual_sha256\": \"bbf3531d1982bd85742e87c2fc47c683e9624002a75aa7808c65911049dad833\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-invalid-pending.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-invalid-pending.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-invalid-pending.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"fdf0cee2fc7bd05072c3518b46a5853866a788ed4e6c32f2ad5047ece1b41521\", \"actual_sha256\": \"8ff363f0fc73ffe97eaa499fce7c9570a9cbf8f1dee4623b3f17eeac129f0e09\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-invalid-next.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-invalid-next.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-invalid-next.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-invalid-next\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"9dcfd1df09fadbe7da7b3e1c66254234b5e2e07e086d736242994a620c6bcd62\", \"actual_sha256\": \"5f505ce113bc42accb26d3f3d5f4323c4b3be1b467462dafcdf39e095fcf1e70\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-invalid-next.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-invalid-next.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-invalid-next.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"c4de42e357e95dacaaa8cd83b24f4914b6a31b7535f4313dfeacf4c3fb7631e2\", \"actual_sha256\": \"60a449b5d25da91f56583d7aa85b4f362f2abc130f0a8c3aacc0a286de318dca\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-invalid-restored.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-invalid-restored.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-invalid-restored.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-invalid-restored\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"b462df76921637509bb8182a01af297fa0d60a2f66f77ff0a1b5639c495c3e86\", \"actual_sha256\": \"dde8d65545d60441a1a4b77344c9886fc3f19ee09f5755c6c877f9bf6cee779d\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-invalid-restored.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-invalid-restored.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-invalid-restored.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"c4de42e357e95dacaaa8cd83b24f4914b6a31b7535f4313dfeacf4c3fb7631e2\", \"actual_sha256\": \"60a449b5d25da91f56583d7aa85b4f362f2abc130f0a8c3aacc0a286de318dca\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-escape-pending.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-escape-pending.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-escape-pending.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-escape-pending\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"428db522a36331324a075fc1a97e401d565abf011491a8a8fe71becbd4f59d16\", \"actual_sha256\": \"3bee322236506278e3dadf7095e42a98ad8f8c4ada35ea83506a01c33942f346\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-escape-pending.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-escape-pending.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-escape-pending.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"aa554fcdb85e68f1b10ed57e3739cdab2ef02a8f4df441a294ac4bc5cf69ccac\", \"actual_sha256\": \"a404f51b43e3d90ab57f46b7318ff5d29c745f4601f426dbf3bf7ff16b09ce58\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-escape-next.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-escape-next.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-escape-next.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-escape-next\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"3da2cde5c7986d3e2df4c9bd805b6eecfbb712ab04ed5683d9b4d877f343fb72\", \"actual_sha256\": \"4c129fb8cc7c6217367ccfa672c8f2c0874c5ffa6e20f593b35bdbb976cf0325\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-escape-next.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-escape-next.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-escape-next.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"c4de42e357e95dacaaa8cd83b24f4914b6a31b7535f4313dfeacf4c3fb7631e2\", \"actual_sha256\": \"60a449b5d25da91f56583d7aa85b4f362f2abc130f0a8c3aacc0a286de318dca\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-escape-restored.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-escape-restored.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-escape-restored.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-escape-restored\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"b547b0cdf5c4e7000fb6d60c371166df1dc79d4f1e8efc73321dbd536a9e58e2\", \"actual_sha256\": \"554f910624fd874ec0bc6b95a4cf6617cac2597810f91f720a2b54ec97e33231\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-escape-restored.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-escape-restored.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-escape-restored.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"c4de42e357e95dacaaa8cd83b24f4914b6a31b7535f4313dfeacf4c3fb7631e2\", \"actual_sha256\": \"60a449b5d25da91f56583d7aa85b4f362f2abc130f0a8c3aacc0a286de318dca\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-backspace-pending.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-backspace-pending.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-backspace-pending.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-backspace-pending\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"5cf9e131090404b87b0c2408c4c0e6d1a7018dc76dfef2a7f37b173ca626abc6\", \"actual_sha256\": \"1c1109920a27166c238e6423fa556222b8a50c4e4beb987a99861f2a8b535724\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-backspace-pending.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-backspace-pending.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-backspace-pending.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"aa554fcdb85e68f1b10ed57e3739cdab2ef02a8f4df441a294ac4bc5cf69ccac\", \"actual_sha256\": \"a404f51b43e3d90ab57f46b7318ff5d29c745f4601f426dbf3bf7ff16b09ce58\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-backspace-next.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-backspace-next.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-backspace-next.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-backspace-next\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"f957cf5bb48c78034b653de8770dc9d55876676485e80dd2954e0ed08f16e27b\", \"actual_sha256\": \"90560fbe1ed10e0ffa958fc43f05b8ae0ec0c826d2d13605144db8861ae00c67\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-backspace-next.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-backspace-next.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-backspace-next.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"c4de42e357e95dacaaa8cd83b24f4914b6a31b7535f4313dfeacf4c3fb7631e2\", \"actual_sha256\": \"60a449b5d25da91f56583d7aa85b4f362f2abc130f0a8c3aacc0a286de318dca\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-backspace-restored.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-backspace-restored.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-backspace-restored.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-backspace-restored\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"3abaea408d5b52c98ea2d9a8f0f99d8d248b0ef30ce20749d895b4d783011222\", \"actual_sha256\": \"e4fb30fda118b7ad654411841de5f48332c66d2cb283ab34a877f512d663d2e2\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-backspace-restored.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-backspace-restored.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-backspace-restored.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"c4de42e357e95dacaaa8cd83b24f4914b6a31b7535f4313dfeacf4c3fb7631e2\", \"actual_sha256\": \"60a449b5d25da91f56583d7aa85b4f362f2abc130f0a8c3aacc0a286de318dca\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-repeated-pending.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-repeated-pending.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-repeated-pending.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-repeated-pending\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"a5e956e359fd0a19ff602effe4a578c631b880a830f6748ca2f82028a050a0f0\", \"actual_sha256\": \"5995570c06e6c6e2f63251a28622e030dbe0e0936fad86fb68e0fbba027c7e66\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-repeated-pending.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-repeated-pending.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-repeated-pending.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"aa554fcdb85e68f1b10ed57e3739cdab2ef02a8f4df441a294ac4bc5cf69ccac\", \"actual_sha256\": \"a404f51b43e3d90ab57f46b7318ff5d29c745f4601f426dbf3bf7ff16b09ce58\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-repeated-next.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-repeated-next.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-repeated-next.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-repeated-next\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"a5ae44897ef0ff3476affb538848343e7424b6e797d03ad8316e0b5f54fa98d1\", \"actual_sha256\": \"1b2f69de8e77642447e4b3033d1dc1be30fa5562f33c5a98562db52abbee8b15\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-repeated-next.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-repeated-next.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-repeated-next.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"c4de42e357e95dacaaa8cd83b24f4914b6a31b7535f4313dfeacf4c3fb7631e2\", \"actual_sha256\": \"60a449b5d25da91f56583d7aa85b4f362f2abc130f0a8c3aacc0a286de318dca\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-repeated-restored.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-repeated-restored.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-repeated-restored.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-repeated-restored\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"cd20fce56a6428a9b8f4727422b9ca05a05b435337d9c6fc6f0455a7119f3c8c\", \"actual_sha256\": \"82845cd62138230f1f1f8e4bb623d4b55fc294d2d2125e9c751b2a7a35cd9f05\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-repeated-restored.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-repeated-restored.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-repeated-restored.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"c4de42e357e95dacaaa8cd83b24f4914b6a31b7535f4313dfeacf4c3fb7631e2\", \"actual_sha256\": \"60a449b5d25da91f56583d7aa85b4f362f2abc130f0a8c3aacc0a286de318dca\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-idle-pending.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-idle-pending.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-idle-pending.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-idle-pending\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"fe2625f6b2057fed8a339e7717dd969c40a0f9910692a03b79f912f09a473d62\", \"actual_sha256\": \"12474ae8a627b0ef97d342e83134ab681fd855a80f92e51bee8959c34ab123fe\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-idle-pending.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-idle-pending.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-idle-pending.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"aa554fcdb85e68f1b10ed57e3739cdab2ef02a8f4df441a294ac4bc5cf69ccac\", \"actual_sha256\": \"a404f51b43e3d90ab57f46b7318ff5d29c745f4601f426dbf3bf7ff16b09ce58\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-idle-restored.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-idle-restored.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-idle-restored.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-idle-restored\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"362733b1b4d96bfe77be2f4c43aa2310e09d4ad40eec48ed1ce46d9ad8c5dfe9\", \"actual_sha256\": \"46f23f49dbe15378875dae988fa45cc4dcc4596622ad01eaf86b19b67ec9a96b\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-idle-restored.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-idle-restored.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-idle-restored.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"c4de42e357e95dacaaa8cd83b24f4914b6a31b7535f4313dfeacf4c3fb7631e2\", \"actual_sha256\": \"60a449b5d25da91f56583d7aa85b4f362f2abc130f0a8c3aacc0a286de318dca\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-success-pending.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-success-pending.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-success-pending.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-success-pending\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"db81b3e31ac0400542cf3490763a460743ed7a38c1d6450ecf6d96e38190b45c\", \"actual_sha256\": \"cc730753ec526b8579eabebbd18c810beebe10b48f774c78ed1f2dab0eacae46\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-success-pending.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-success-pending.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-success-pending.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"aa554fcdb85e68f1b10ed57e3739cdab2ef02a8f4df441a294ac4bc5cf69ccac\", \"actual_sha256\": \"a404f51b43e3d90ab57f46b7318ff5d29c745f4601f426dbf3bf7ff16b09ce58\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-success-next.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-success-next.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-success-next.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-success-next\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"84519066181930259e871890b8ab7d0e3fed1f2f783b0cf9f20825fa8cc7ae74\", \"actual_sha256\": \"0c38c8a8fb3d2d23b49d0fcf1c9dda1c8433127b0141e326856346d1ef5feaaf\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 334, \"cursor_differs\": true, \"difference_bbox_inclusive\": [9, 10, 76, 38], \"samples\": [{\"x\": 9, \"y\": 10, \"different_fields\": [\"bg\"]}, {\"x\": 69, \"y\": 10, \"different_fields\": [\"bg\"]}, {\"x\": 9, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 13, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 14, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 62, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 63, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 64, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 65, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-success-next.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-success-next.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-success-next.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"4e238616829d152cdc2b83b272583813165f5e7258f86a579e370dc3a910b7a0\", \"actual_sha256\": \"48930d2523f97557273997afb5f6d91268f3b6a72599091cede6fffd9d2a4bf4\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 24812, \"changed_fraction_diagnostic_only\": 0.058211336336336336, \"difference_bbox_inclusive\": [75, 160, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-success-restored.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-success-restored.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-success-restored.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-success-restored\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"dfd80a39093364f99ea61e9270f214091315650ac3c0d46b0ba9bea0513a4ee0\", \"actual_sha256\": \"be30ac9db44ed57f00f573d5ad90be72938f62756f8b1a4ee709ecbda52fdfce\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-success-restored.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-success-restored.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-success-restored.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"c4de42e357e95dacaaa8cd83b24f4914b6a31b7535f4313dfeacf4c3fb7631e2\", \"actual_sha256\": \"60a449b5d25da91f56583d7aa85b4f362f2abc130f0a8c3aacc0a286de318dca\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-modal-normal.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-modal-normal.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-modal-normal.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-modal-normal\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"425b51f9addffdda5b346dfe5f382079c6e18fe51dfa9be525435fdd26319bbe\", \"actual_sha256\": \"b1ddc5a97a88f731fa9f19ea1c87cbcc7d2b7db13196473bcb482f2332551c88\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 323, \"cursor_differs\": true, \"difference_bbox_inclusive\": [9, 10, 76, 38], \"samples\": [{\"x\": 9, \"y\": 10, \"different_fields\": [\"bg\"]}, {\"x\": 69, \"y\": 10, \"different_fields\": [\"bg\"]}, {\"x\": 9, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 13, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 14, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 62, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 63, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 64, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 65, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 69, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 9, \"y\": 12, \"different_fields\": [\"bg\"]}, {\"x\": 69, \"y\": 12, \"different_fields\": [\"bg\"]}, {\"x\": 9, \"y\": 13, \"different_fields\": [\"bg\"]}, {\"x\": 13, \"y\": 13, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-modal-normal.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-modal-normal.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-modal-normal.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"37bf6e496cadecd67643ccfc068d78722cb3fa5e4ac0dd231fd18f2fb049334e\", \"actual_sha256\": \"362be1159a933beceaa8006766170adf87004a80e00ed0100e435928b70dcae1\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 18662, \"changed_fraction_diagnostic_only\": 0.04378284534534534, \"difference_bbox_inclusive\": [75, 160, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-modal-pending.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-modal-pending.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-modal-pending.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-modal-pending\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"bfc67fddece169337ccefe2490e5a2d3d66e5f7cfaafa93f75ea9e2f93adf849\", \"actual_sha256\": \"890c4291d328f846ecfb86455d558c05c19c2b385cebf34dd05be46eaa6dddc7\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 323, \"cursor_differs\": true, \"difference_bbox_inclusive\": [9, 10, 76, 38], \"samples\": [{\"x\": 9, \"y\": 10, \"different_fields\": [\"bg\"]}, {\"x\": 69, \"y\": 10, \"different_fields\": [\"bg\"]}, {\"x\": 9, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 13, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 14, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 62, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 63, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 64, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 65, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 69, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 9, \"y\": 12, \"different_fields\": [\"bg\"]}, {\"x\": 69, \"y\": 12, \"different_fields\": [\"bg\"]}, {\"x\": 9, \"y\": 13, \"different_fields\": [\"bg\"]}, {\"x\": 13, \"y\": 13, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-modal-pending.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-modal-pending.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-modal-pending.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"4e5e1ab6e464e36306ec1c34a812233b7716d55e28924b696be580b6a394a268\", \"actual_sha256\": \"e73cebc6e113acdd0ed6a9cb2fee8412b73a3245445c4181c366fb90fe67aa9f\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 18662, \"changed_fraction_diagnostic_only\": 0.04378284534534534, \"difference_bbox_inclusive\": [75, 160, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-modal-invalid-next.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-modal-invalid-next.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-modal-invalid-next.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-modal-invalid-next\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"2e45acbb6c463fef5050a0d99e570eb309132646632eaf810dc75c383e28d7a5\", \"actual_sha256\": \"11d997458f24aee09bbe0d054cb9c9e07eeade89f2db249bc0990568a8aa6a13\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 53, \"cursor_differs\": true, \"difference_bbox_inclusive\": [9, 10, 76, 38], \"samples\": [{\"x\": 9, \"y\": 10, \"different_fields\": [\"bg\"]}, {\"x\": 69, \"y\": 10, \"different_fields\": [\"bg\"]}, {\"x\": 9, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 13, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 14, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 62, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 63, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 64, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 65, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 69, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 9, \"y\": 12, \"different_fields\": [\"bg\"]}, {\"x\": 69, \"y\": 12, \"different_fields\": [\"bg\"]}, {\"x\": 9, \"y\": 13, \"different_fields\": [\"bg\"]}, {\"x\": 13, \"y\": 13, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-modal-invalid-next.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-modal-invalid-next.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-modal-invalid-next.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"64c2a2447b0c38f596fa6fe5e8983b18733ce7778aa0e06e06a80ff2d238c6a2\", \"actual_sha256\": \"1d0c67ba31959a5411c0eb724e589bd60104c238cf25d350cfbaa64aa883831a\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 4216, \"changed_fraction_diagnostic_only\": 0.009891141141141141, \"difference_bbox_inclusive\": [76, 160, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-modal-restored.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-modal-restored.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-modal-restored.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-modal-restored\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"c305cafb8700c1ed3f83678aae1af42baa1b29c668f0cf2a373d240cbabc3003\", \"actual_sha256\": \"8c8c41652ae83189e1d1d117755e934da5a8437709be1e17f6716807aeb7c109\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-modal-restored.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-modal-restored.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-modal-restored.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"c4de42e357e95dacaaa8cd83b24f4914b6a31b7535f4313dfeacf4c3fb7631e2\", \"actual_sha256\": \"60a449b5d25da91f56583d7aa85b4f362f2abc130f0a8c3aacc0a286de318dca\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-chip-normal.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-chip-normal.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-chip-normal.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-chip-normal\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"e3eadd557bc369b753abced084d28b9f0d06e80a582db01e943e837839581dd7\", \"actual_sha256\": \"08a0870df6f2f27daaef270188040cb5c6fbbcafd00a444650df0ccef16a907c\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-chip-normal.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-chip-normal.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-chip-normal.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"16968535934f215666d55eee4a5ac68d1e6f536bd256d35b4f747e79e8a70c61\", \"actual_sha256\": \"6b7f39407c6de00eecd93c8aa1f169144f3dcb82c264f7a76aa5f0f78cd033dc\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-chip-pending.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-chip-pending.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-chip-pending.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-chip-pending\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"a674d5ce660375ca838a45534938cdaadd62628601c567b002a1c3aea16b293f\", \"actual_sha256\": \"a3d85d5010eed225bc69bb42c5c703166c145773e3cdde7f027ffd1c060c8344\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-chip-pending.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-chip-pending.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-chip-pending.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"4ca1e4598f4dd69edd0a63bb8aeaf0642be9f3c810e2fce9942f5f639b78d3ad\", \"actual_sha256\": \"c5836bde5eb10239c65ef3856ab201561a07e43e77ea1fb1219630005bd87cc6\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-chip-restored.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-chip-restored.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-chip-restored.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-chip-restored\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"0f3e6b2665d1c7b76388573c1b7e417cff2174023814b2cf6bd1ba8d4e421cb9\", \"actual_sha256\": \"8e22b88d74c1c6722a0cfdcfc38009e9ddae0444a65498a6a9219dee309b62fb\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [71, 38, 76, 38], \"samples\": [{\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-chip-restored.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-chip-restored.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-chip-restored.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"16968535934f215666d55eee4a5ac68d1e6f536bd256d35b4f747e79e8a70c61\", \"actual_sha256\": \"6b7f39407c6de00eecd93c8aa1f169144f3dcb82c264f7a76aa5f0f78cd033dc\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-chip-expanded-fulltext.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-chip-expanded-fulltext.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-chip-expanded-fulltext.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"leader-chip-expanded-fulltext\", \"fixture_sha256\": \"508479d890678f559b383ad65598cbbbc36d41db6841f4f3eabeb0dc46e2c3a5\", \"environment_id\": \"bfe03da047facb64db22fdc86876e84909b876aa08a7f804327b828929823bac\", \"reference_sha256\": \"cfa1a7efc925076e70cf647dcaf3c86e162d01dc88a0fbe5ce7fc7bc886bbba9\", \"actual_sha256\": \"d5d9fe7ac48ecf88a719ac088cc20f520d8a5375d76ec5d86d539f924005015c\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5a2ec11411ab4276d2e13cf4379065aadc64475b\", \"cells_checked\": 3160, \"different_cells\": 7, \"cursor_differs\": false, \"difference_bbox_inclusive\": [18, 22, 76, 38], \"samples\": [{\"x\": 18, \"y\": 22, \"different_fields\": [\"fg\"]}, {\"x\": 71, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/upstream/leader-chip-expanded-fulltext.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/oc/leader-chip-expanded-fulltext.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v00/prompt-paste20260927-01/chip-79/leader-chip-expanded-fulltext.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"131fe94bca6c93d6efd47e6fd2d967165789a03cc0443e4936576cdd3cb11931\", \"actual_sha256\": \"585c6ddd6b041174a163db32ca8db43d626c8afc703e556c04e6a6ecaac9dbc8\", \"width\": 666, \"height\": 640, \"pixels_checked\": 426240, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.0006967905405405406, \"difference_bbox_inclusive\": [599, 611, 647, 620]}\n",
+    "stderr": ""
+  }
+]

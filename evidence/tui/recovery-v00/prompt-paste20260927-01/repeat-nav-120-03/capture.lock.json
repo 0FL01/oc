@@ -1,0 +1,735 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-27T17:32:48.248Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "95386b7fa61d05a5bd556e88e88b6250db9afcb1d92f842664a163a2bc1a47fe",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "a176aa4b63bff47fa019705012f067131230a8237576a15be68a297d904f9fe7",
+    "leader_pending.mjs": "56ac9d3218f4d3c9dfe06ea01a259f49714e2155dd00c55e36beddbf87fcdbf4",
+    "prompt_paste.mjs": "28199cfd7d93e40fef40b65a5ed42d329e014d315d96e96bd240843ab1bc05bb"
+  },
+  "fixture_sha256": "2936aca21fbadc668b63acf7213322b222d88c83b366ff48910a2e0ad3d4da3e",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "5a2ec11411ab4276d2e13cf4379065aadc64475b",
+    "tree": "9fb8609c9dd61521727212ed037a5e871dc063c2",
+    "dirty_diff_sha256": "69125813f117f1c36c56995851beae92e810e6031ecfc15c070f52ba35eaba20",
+    "source_manifest_sha256": "fffaee74eca10e51820e2a80b6baef61100349dddfe6aad0554be7c1de04e1f5",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "source_inputs_unchanged_after_build": true,
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "640edbd02839af8d3557e674985f80681718015b0d962ce62a7ce47ef0d6225c",
+    "version": "oc 0.1.0",
+    "source_inputs_unchanged_after_capture": true
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "leader-repeat-chip-normal",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-repeat-chip-normal",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-repeat-expanded",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-repeat-expanded",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-visual-up-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-visual-up-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-visual-up-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-visual-up-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-visual-up-3",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-visual-up-3",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-visual-down-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-visual-down-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-visual-down-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-visual-down-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-visual-down-3",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-visual-down-3",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-repeat-enter-pending",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-repeat-enter-pending",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-repeat-enter-next",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-repeat-enter-next",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-repeat-enter-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "leader-repeat-enter-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "leader-repeat-chip-normal",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "dee500e984e7c51e24bcb07851bd4678ca981a409c1490bfc62960fa9ca0f72e",
+      "png_sha256": "df34ceaedfb614bebf4f510b0261048d0d3cbc26426e68eb76b65d8154076932",
+      "render_sha256": "7792c6831100152f41cf285e4e0bb83e215c73c8d9b47bd3236f2ae7a7894cdd",
+      "path": "upstream/leader-repeat-chip-normal"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-repeat-expanded",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "cb55cc3ee613f1b2eb0b7198aeeb67ea3dbd8c2761cdac4f623633e6ec7526ba",
+      "png_sha256": "47e427a1ab57bb3b0ca570307aae37b69f5338f1126b23354fc102827ab6b9f2",
+      "render_sha256": "8f46f8e1c3442fc8df45308ec81df644a023e31b8f9e962e6b11c2a7a6eaee23",
+      "path": "upstream/leader-repeat-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-visual-up-1",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "54c7845a6d11772fb46a5b24587799885dab44f99e43845466808e1a85348ff0",
+      "png_sha256": "038475b2d774c73155457aa308d6c38f783bd874d5d6d5ec23c31b0fe6971a05",
+      "render_sha256": "2954ecf39a5408460e37413c001f148f1a634e67d9ffc061582b5629dc752232",
+      "path": "upstream/leader-visual-up-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-visual-up-2",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "e16da9a041fdc2b4283b433f2095cb8bb1b0790e649b01435900f8cb07ddb8e5",
+      "png_sha256": "e47290f347f521335a58d4448ebf2736f9911aba70f87a931394d13472835089",
+      "render_sha256": "750303b7ad63f0d5e21c5590f003e2462e7e5a7b474069a937eed91d860d97cf",
+      "path": "upstream/leader-visual-up-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-visual-up-3",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "6bda7111a7587247de2bd5d466f54244ad6e32fd358abb329a4c12c5ae5d5f2d",
+      "png_sha256": "c391f0b1ebe22d7a21231a95fabe61f9845032da1c69d7d09d50cc9d6017cc23",
+      "render_sha256": "9d8fbbab4f189e9fe506388a55f0539f5dc5d1044669e3a9e988952df72c1781",
+      "path": "upstream/leader-visual-up-3"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-visual-down-1",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2856f069bef55170eb7a9b2dce8b0df0cfb53c532bb43f1260a2e14a1b217f85",
+      "png_sha256": "e47290f347f521335a58d4448ebf2736f9911aba70f87a931394d13472835089",
+      "render_sha256": "d6281a0bf5f181c4f74f652495ffc02f2f51336abf3494b7590b4fd30fe4ccb1",
+      "path": "upstream/leader-visual-down-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-visual-down-2",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "e0ad0d054e7cb5af6a2e099ffec0748efccabb27785c803a93cf74cc5c6a565a",
+      "png_sha256": "038475b2d774c73155457aa308d6c38f783bd874d5d6d5ec23c31b0fe6971a05",
+      "render_sha256": "93d9c90a94e3fa0b1c1cf01f0729aa842816eb388baec2eceb1171f79307fd9c",
+      "path": "upstream/leader-visual-down-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-visual-down-3",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "246fbf9676865770edf624522c1ca872f7be3eaf5e47b614d28862c17a4006fb",
+      "png_sha256": "47e427a1ab57bb3b0ca570307aae37b69f5338f1126b23354fc102827ab6b9f2",
+      "render_sha256": "e9ddac6a2afcdc1d1eb71a20ef6b414e8d3687a1d88d2ed69292acef7af49b8e",
+      "path": "upstream/leader-visual-down-3"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-repeat-enter-pending",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "5a921cb0c41e265fa15d6805d8bc26177054b78f8f73cd3dee0620a14eb28b18",
+      "png_sha256": "c47f6c0d0e76aeee1f25c8696bee1a36ec814e67e643e1f378c57832af3d19d7",
+      "render_sha256": "1a8885fe40193fd6d84d1c87930ec0753d3bb0cc718a47038c4a7264e835d92e",
+      "path": "upstream/leader-repeat-enter-pending"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-repeat-enter-next",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "53ae246bee7d1d1f8da2f246cbca2e01db98736c3afd01ed1d8369f11ec59ae9",
+      "png_sha256": "ca06b04a6b819542a1b7060fddbaaae1b32b05bd327a5fdf24ab2157d6517d36",
+      "render_sha256": "a05820712a25ce6903b9d4cc74baf9c7292fa4bf260de4be0a834b22a133a6be",
+      "path": "upstream/leader-repeat-enter-next"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "leader-repeat-enter-restored",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "37dac551ab009477d50af3da179a06d33c5a740dd8690004aaa8d2a7cc78a89f",
+      "png_sha256": "ca06b04a6b819542a1b7060fddbaaae1b32b05bd327a5fdf24ab2157d6517d36",
+      "render_sha256": "86ead77a7c203d26a4e5c36c5c46139c3e04ac3fc292f90d02da07acf1fb6f27",
+      "path": "upstream/leader-repeat-enter-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-repeat-chip-normal",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c2afdbb2b5e930bac4737e7b11a050fd7e7333114c8c1224539032538ffa062a",
+      "png_sha256": "e1eeb6db7e9d51823cf6487fa650d216fa5d669bc91e65d43cf7eb25bb84b033",
+      "render_sha256": "82003d7953532fbf2337285268d76b5da24fe491ed3a2e3dcfbb589a2054a9c4",
+      "path": "oc/leader-repeat-chip-normal"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-repeat-expanded",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "fc0f351345cbfb29512453554380c2c8a539a0834194e2fe907cdc530919677d",
+      "png_sha256": "fd5af34c445f93acfccba1bc931b9f715231163dc315b3a067b0f0d16b67a2fe",
+      "render_sha256": "f3345e3b6fa894323415b02a1bf7b9be3d36ff8ae2aee8fb6c9243a247716990",
+      "path": "oc/leader-repeat-expanded"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-visual-up-1",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "0c6a51c194ecc72ea611d4727850128b1b8e92dfca27d026b7bd4e85382cb2d2",
+      "png_sha256": "649f610feed172428cc6d7102ea4ef62b52e2884e538c80c6f7a4469a24912d9",
+      "render_sha256": "ae30e0b3fc27f9266cd8184d1f366ac844218f695130ae21fd92af46fbe30945",
+      "path": "oc/leader-visual-up-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-visual-up-2",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "a02f7fa420731d7ab5011a9426c8752b409d7b988a0eee4dbd310a11329a55ad",
+      "png_sha256": "3aa0799043ed2e59e5827a2db6d8b3e46fe5fbbb213d7c626afaf1eacac182f2",
+      "render_sha256": "e05f32573e939ae1798b1aaa277dbaef6117ba34c9895dc7bcd1cb7ced5b0fd5",
+      "path": "oc/leader-visual-up-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-visual-up-3",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "0717197ac84a19fe68d01bce76f4f0b07ca3bf5a7be9da16a283fa873d7959f2",
+      "png_sha256": "0ee2bb567f14c96c805bbbc564a04f31d6ac0c4bd5a44db9f339dd87e4831524",
+      "render_sha256": "e7637734a48a5767b212a9bf8fc232c9cdedd45aedfc5cf4609fd47c42c84c96",
+      "path": "oc/leader-visual-up-3"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-visual-down-1",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "0beacbd81a4683d89ee586bcb77302480a84df40f44caf9a8c18b427f44d556a",
+      "png_sha256": "3aa0799043ed2e59e5827a2db6d8b3e46fe5fbbb213d7c626afaf1eacac182f2",
+      "render_sha256": "5f24cf0a072a222598759a05223ad699a5c3647aceaec64d9c58ebba9826fa81",
+      "path": "oc/leader-visual-down-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-visual-down-2",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "22653f51472e71268eac2d805bd8288279c1dd7029e819b614ec4947fd5a7b31",
+      "png_sha256": "649f610feed172428cc6d7102ea4ef62b52e2884e538c80c6f7a4469a24912d9",
+      "render_sha256": "29a2356e3695ab596e9431b1b55a79ae78903c0f1e434f84988a185f726bc492",
+      "path": "oc/leader-visual-down-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-visual-down-3",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "ce3872127011104a0f68582fc7794248333fb15d7b91a8b993639ffd9b7e12c1",
+      "png_sha256": "fd5af34c445f93acfccba1bc931b9f715231163dc315b3a067b0f0d16b67a2fe",
+      "render_sha256": "64ba6a31167003103632ad9e4b1dd3ae125a30584bd9a0383e500429a4df4699",
+      "path": "oc/leader-visual-down-3"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-repeat-enter-pending",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "6c01b04c61fd2aef89992a01c2fe70c6588ad2d50e1491dbea4726358c2837a8",
+      "png_sha256": "83012efecc3409180c5740d99fb6a1b77ec013bcb4260b829ccb0c09f101a785",
+      "render_sha256": "fc84437909e00c9edc0ad6492609f89854cd23b6ce234bb94d971e5cd5ee1af2",
+      "path": "oc/leader-repeat-enter-pending"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-repeat-enter-next",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "8206d2d42cdc9e39affe20f272a818536e8eaadbc039cf35fa344945feccad61",
+      "png_sha256": "1635b0b83988777a8f593d1c69b84d3d6b5f2d3622c85fb181ca894c300b9564",
+      "render_sha256": "c6097daa8b8a93102469c72b45f35b38eeaf30f6c7930813546f0a22927815b5",
+      "path": "oc/leader-repeat-enter-next"
+    },
+    {
+      "origin": "oc",
+      "scenario": "leader-repeat-enter-restored",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "64e7592e9e4ddf5a3736d423d87bc5325afd308a4426bd14fc608781634f3da0",
+      "png_sha256": "1635b0b83988777a8f593d1c69b84d3d6b5f2d3622c85fb181ca894c300b9564",
+      "render_sha256": "8b60b5ca979140fb59582057c72e2e43c9bfc7c7e30c673ba5251bdb8b8af8f9",
+      "path": "oc/leader-repeat-enter-restored"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "leader_pending": {
+    "upstream": {
+      "origin": "upstream",
+      "config": "default",
+      "status": "OBSERVED",
+      "typed_raw_draft": "VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2",
+      "expected_raw_draft": "VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2 ",
+      "donor_difference": "Original pasteText inserts a raw trailing spacer outside the chip extmark; native retains only original pasted input",
+      "observations": [
+        {
+          "name": "repeat-chip-normal",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 70,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator [Pasted ~3 lines]                                                   \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                2.0.12  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "repeat-expanded",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 39,
+            "y": 23,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator VIS11-PASTE-0                                                       \n                       ┃  VIS11-PASTE-1                                                                                 \n                       ┃  VIS11-PASTE-2                                                                                 \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                2.0.12  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "visual-up-1",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 39,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator VIS11-PASTE-0                                                       \n                       ┃  VIS11-PASTE-1                                                                                 \n                       ┃  VIS11-PASTE-2                                                                                 \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                2.0.12  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "visual-up-2",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 39,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator VIS11-PASTE-0                                                       \n                       ┃  VIS11-PASTE-1                                                                                 \n                       ┃  VIS11-PASTE-2                                                                                 \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                2.0.12  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "visual-up-3",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 39,
+            "y": 20,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator VIS11-PASTE-0                                                       \n                       ┃  VIS11-PASTE-1                                                                                 \n                       ┃  VIS11-PASTE-2                                                                                 \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                2.0.12  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "visual-down-1",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 39,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator VIS11-PASTE-0                                                       \n                       ┃  VIS11-PASTE-1                                                                                 \n                       ┃  VIS11-PASTE-2                                                                                 \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                2.0.12  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "visual-down-2",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 39,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator VIS11-PASTE-0                                                       \n                       ┃  VIS11-PASTE-1                                                                                 \n                       ┃  VIS11-PASTE-2                                                                                 \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                2.0.12  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "visual-down-3",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 39,
+            "y": 23,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator VIS11-PASTE-0                                                       \n                       ┃  VIS11-PASTE-1                                                                                 \n                       ┃  VIS11-PASTE-2                                                                                 \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                2.0.12  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "repeat-enter-pending",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 39,
+            "y": 23,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator VIS11-PASTE-0                                                       \n                       ┃  VIS11-PASTE-1                                                                                 \n                       ┃  VIS11-PASTE-2                                                                                 \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                2.0.12  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "repeat-enter-next",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "   Какие инструменты доступны ас +                                                                                      \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0     \n  ┃  VIS11-PASTE-1                                                                                                      \n  ┃  VIS11-PASTE-2                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n     GEOMETRY-SHORT: one short answer.                                                                                  \n                                                                                                                        \n     Build · MiMo-V2.6-Flash Free · 75ms                                                                                \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃                                                                                                                     \n  ┃                                                                                                                     \n  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                                                   \n  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  \n  /…/.cac…/opencode-tmp/opencode/t44-reference/runs/repeat-nav-120-03-9e08aa32f2d2/project  6.8K (3%)  ctrl+p commands  \n                                                                                                                        ",
+          "provider_requests": 2
+        },
+        {
+          "name": "repeat-enter-restored",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "   Какие инструменты доступны ас +                                                                                      \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0     \n  ┃  VIS11-PASTE-1                                                                                                      \n  ┃  VIS11-PASTE-2                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n     GEOMETRY-SHORT: one short answer.                                                                                  \n                                                                                                                        \n     Build · MiMo-V2.6-Flash Free · 75ms                                                                                \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃                                                                                                                     \n  ┃                                                                                                                     \n  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                                                   \n  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  \n  /…/.cac…/opencode-tmp/opencode/t44-reference/runs/repeat-nav-120-03-9e08aa32f2d2/project  6.8K (3%)  ctrl+p commands  \n                                                                                                                        ",
+          "provider_requests": 2
+        }
+      ],
+      "chip_fulltext_preserved": true,
+      "provider_requests": 2
+    },
+    "oc": {
+      "origin": "oc",
+      "config": "default",
+      "status": "OBSERVED",
+      "typed_raw_draft": "VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2",
+      "expected_raw_draft": "VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2",
+      "donor_difference": "Original pasteText inserts a raw trailing spacer outside the chip extmark; native retains only original pasted input",
+      "observations": [
+        {
+          "name": "repeat-chip-normal",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 70,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator [Pasted ~3 lines]                                                   \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                 0.1.0  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "repeat-expanded",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 39,
+            "y": 23,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator VIS11-PASTE-0                                                       \n                       ┃  VIS11-PASTE-1                                                                                 \n                       ┃  VIS11-PASTE-2                                                                                 \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                 0.1.0  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "visual-up-1",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 39,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator VIS11-PASTE-0                                                       \n                       ┃  VIS11-PASTE-1                                                                                 \n                       ┃  VIS11-PASTE-2                                                                                 \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                 0.1.0  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "visual-up-2",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 39,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator VIS11-PASTE-0                                                       \n                       ┃  VIS11-PASTE-1                                                                                 \n                       ┃  VIS11-PASTE-2                                                                                 \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                 0.1.0  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "visual-up-3",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 39,
+            "y": 20,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator VIS11-PASTE-0                                                       \n                       ┃  VIS11-PASTE-1                                                                                 \n                       ┃  VIS11-PASTE-2                                                                                 \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                 0.1.0  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "visual-down-1",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 39,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator VIS11-PASTE-0                                                       \n                       ┃  VIS11-PASTE-1                                                                                 \n                       ┃  VIS11-PASTE-2                                                                                 \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                 0.1.0  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "visual-down-2",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 39,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator VIS11-PASTE-0                                                       \n                       ┃  VIS11-PASTE-1                                                                                 \n                       ┃  VIS11-PASTE-2                                                                                 \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                 0.1.0  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "visual-down-3",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 39,
+            "y": 23,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator VIS11-PASTE-0                                                       \n                       ┃  VIS11-PASTE-1                                                                                 \n                       ┃  VIS11-PASTE-2                                                                                 \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                 0.1.0  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "repeat-enter-pending",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 39,
+            "y": 23,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                          ▄                                             \n                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        \n                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        \n                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        \n                                                                                                                        \n                                                                                                                        \n                       ┃                                                                                                \n                       ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a                        \n                       ┃  boundary actual separator VIS11-PASTE-0                                                       \n                       ┃  VIS11-PASTE-1                                                                                 \n                       ┃  VIS11-PASTE-2                                                                                 \n                       ┃                                                                                                \n                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                              \n                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      \n                       /…/repeat-nav-120-03-9e08aa32f2…/project  shift+tab agents  ctrl+p commands                      \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                 0.1.0  \n                                                                                                                        ",
+          "provider_requests": 0
+        },
+        {
+          "name": "repeat-enter-next",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "   Какие инструменты доступны ас +                                                                                      \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0     \n  ┃  VIS11-PASTE-1                                                                                                      \n  ┃  VIS11-PASTE-2                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n     GEOMETRY-SHORT: one short answer.                                                                                  \n                                                                                                                        \n     Build · MiMo-V2.6-Flash Free · 100ms                                                                               \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃                                                                                                                     \n  ┃                                                                                                                     \n  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                                                   \n  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  \n  /…/.cac…/opencode-tmp/opencode/t44-reference/runs/repeat-nav-120-03-9e08aa32f2d2/project  6.8K (3%)  ctrl+p commands  \n                                                                                                                        ",
+          "provider_requests": 2
+        },
+        {
+          "name": "repeat-enter-restored",
+          "status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "text": "   Какие инструменты доступны ас +                                                                                      \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  VIS07 visual UpDown draft αβ caret-middle preserving every word with a boundary actual separator VIS11-PASTE-0     \n  ┃  VIS11-PASTE-1                                                                                                      \n  ┃  VIS11-PASTE-2                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n     GEOMETRY-SHORT: one short answer.                                                                                  \n                                                                                                                        \n     Build · MiMo-V2.6-Flash Free · 100ms                                                                               \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃                                                                                                                     \n  ┃                                                                                                                     \n  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen · fast                                                                   \n  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  \n  /…/.cac…/opencode-tmp/opencode/t44-reference/runs/repeat-nav-120-03-9e08aa32f2d2/project  6.8K (3%)  ctrl+p commands  \n                                                                                                                        ",
+          "provider_requests": 2
+        }
+      ],
+      "chip_fulltext_preserved": true,
+      "provider_requests": 2
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_PROMPT_PASTE_ONLY",
+    "scenario": "repeat-paste-visual-navigation",
+    "requested_columns": 120,
+    "session_tps_override": false,
+    "actual_requests": "Real PTY keys and bracketed paste; isolated local Responses fixture; actual user wire retained",
+    "unresolved": [
+      "Full styled grids, PNGs and cursors remain unmasked; behavior is not VIS07 PASS",
+      "This bounded scenario does not qualify every mandatory prompt/paste/resize/Unicode case"
+    ]
+  },
+  "finished": "2026-09-27T17:33:26.476Z",
+  "exit_code": 1
+}

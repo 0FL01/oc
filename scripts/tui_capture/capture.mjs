@@ -16,6 +16,7 @@ import {probeCompaction} from './compaction.mjs';
 import {probeApplyPatch} from './apply_patch.mjs';
 import {probePermission} from './permission.mjs';
 import {probeLeaderPending} from './leader_pending.mjs';
+import {probePasteNavigation, expectedPasteDraft} from './prompt_paste.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
@@ -28,7 +29,12 @@ const applyPatch = args['apply-patch'] === 'true';
 const permission = args.permission === 'true';
 const leaderPending = args['leader-pending'] === 'true';
 const leaderConfig = args['leader-config'] || 'default';
-if(leaderPending && (!['default','nested','configured','legacy','legacy-v1','precedence'].includes(leaderConfig) || args.geometry!=='true' || args.sidebar!=='hide' || args.sample!=='short' || Number(args.columns)!==120 || Number(args.rows)!==40 || !args.reference || args.session || args['seed-root'] || Object.entries(args).some(([k,v])=>v==='true'&&!['leader-pending','leader-extra','leader-enter-only','geometry','build-oc'].includes(k))))throw Error('--leader-pending requires exclusive short 120x40 geometry sidebar hide');
+const pasteNavigation = args['leader-paste-navigation'] === 'true';
+const pasteSuffixSpace = args['leader-paste-suffix-space'] === 'true';
+if(args['leader-paste-suffix-space']!==undefined&&(!pasteNavigation||!['true','false'].includes(args['leader-paste-suffix-space'])))throw Error('--leader-paste-suffix-space requires paste-navigation and true|false');
+if(args['leader-paste-navigation']!==undefined&&(!leaderPending||!['true','false'].includes(args['leader-paste-navigation'])))throw Error('--leader-paste-navigation requires leader-pending and true|false');
+if(pasteNavigation&&(args['leader-extra']==='true'||args['leader-enter-only']==='true'))throw Error('--leader-paste-navigation is an exclusive leader scenario');
+if(leaderPending && (!['default','nested','configured','legacy','legacy-v1','precedence'].includes(leaderConfig) || args.geometry!=='true' || args.sidebar!=='hide' || args.sample!=='short' || ![79,80,120,121].includes(Number(args.columns)) || Number(args.rows)!==40 || !args.reference || args.session || args['seed-root'] || Object.entries(args).some(([k,v])=>v==='true'&&!['leader-pending','leader-extra','leader-enter-only','leader-paste-navigation','leader-paste-suffix-space','geometry','build-oc'].includes(k))))throw Error('--leader-pending requires exclusive short 79/80/120/121x40 geometry sidebar hide');
 const permissionMode = args['permission-mode'] || 'prompt';
 if(args['permission-mode']&&(!permission||!['prompt','auto-config','auto-cli'].includes(permissionMode)))throw Error('--permission-mode requires permission and prompt|auto-config|auto-cli');
 if(args.permission!==undefined&&!['true','false'].includes(args.permission))throw Error('--permission must be true|false');
@@ -296,6 +302,7 @@ const json = (name, value) => fs.writeFileSync(path.join(output, name), JSON.str
 const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
 const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
+    ...(leaderPending ? {leader_pending:true,leader_config:leaderConfig,extra:args['leader-extra']==='true',enter_only:args['leader-enter-only']==='true',paste_navigation:pasteNavigation,paste_suffix_space:pasteSuffixSpace,probe_sha256:sha(fs.readFileSync(path.join(here,'leader_pending.mjs'))),...(pasteNavigation?{navigation_probe_sha256:sha(fs.readFileSync(path.join(here,'prompt_paste.mjs')))}:{})} : {}),
     ...(applyPatch ? {apply_patch:true,view:args['patch-view'],wrap:args['patch-wrap'],probe:sha(fs.readFileSync(path.join(here,'apply_patch.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'apply_patch_fixture.py'))),admission:sha(fs.readFileSync(path.join(here,'apply_patch_admission.mjs')))} : {}),
     ...(compaction ? {compaction:true,compaction_trigger:compactionTrigger,compaction_animation:compactionAnimation,compaction_tps:compactionTps,probe_sha256:sha(fs.readFileSync(path.join(here,'compaction.mjs'))),fixture_protocol_sha256:sha(fs.readFileSync(path.join(here,'compaction_fixture.py')))} : {}),
     ...(revertRedo ? {revert_redo:true,probe_sha256:sha(fs.readFileSync(path.join(here,'revert_redo.mjs')))} : {}),
@@ -328,12 +335,17 @@ const lock = {schema_version: 1, started: new Date().toISOString(), runner_versi
   fixture_sha256: fixtureSha, fixture_files: fixtureFiles, oc: {commit, tree, dirty_diff_sha256: sha(diff),
     source_manifest_sha256: sha(canonical(sourceManifest))},
   sources: {upstream_commit: '2670273ff17da96f85c5826ced57aa1b368754fa'}, attempts: [], captures: []};
+if(leaderPending)for(const n of ['leader_pending.mjs',...(pasteNavigation?['prompt_paste.mjs']:[])])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(applyPatch)lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Fixture context hook admits existing bundled U19; executor is not replaced'};
 if(permission){for(const n of ['permission.mjs','permission_fixture.py','permission_mcp.py','apply_patch_fixture.py','apply_patch_admission.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Existing U19 admitted; real permission backend and executor unchanged'};}
 if(args['build-oc'] === 'true') {
   const build = execute(['cargo', 'build', '--locked']);
   if(build.status !== 0) throw Error('Rust build failed (see commands.json)');
   lock.oc.build_command = ['cargo','build','--locked'];
+  if(leaderPending) {
+    lock.oc.source_inputs_unchanged_after_build=Object.entries(sourceManifest).every(([name,hash])=>fs.existsSync(path.join(repo,name))&&sha(fs.readFileSync(path.join(repo,name)))===hash);
+    if(!lock.oc.source_inputs_unchanged_after_build)throw Error('Source inputs changed during leader build');
+  }
 } else lock.oc.build_provenance = 'Existing binary; build/source association not attested by this run';
 fs.copyFileSync(path.join(tools, 'package-lock.json'), path.join(output, 'tooling.package-lock.json'));
 if(args['sessions-root'] && (!sessionsInteraction || !path.resolve(args['sessions-root']).startsWith(path.join(tools,'runs')+path.sep)))
@@ -408,7 +420,10 @@ try {
       sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,
        tabs: profile.settings.tabs, variants: leaderPending || args.variants === 'true', startup_error: args['startup-error'] === 'true',
           agent_profile: args['agent-profile'] === 'true', bounded_mode:boundedMode==='wheel'?'shell':boundedMode, wheel_probe:boundedMode==='wheel', metrics_path:path.join(dir,'scheduler.json'), sessions_interaction:sessionsInteraction,
-             revert_redo:revertRedo, compaction, compaction_trigger:compactionTrigger, leader_pending:leaderPending, leader_config:leaderConfig,
+              revert_redo:revertRedo, compaction, compaction_trigger:compactionTrigger, leader_pending:leaderPending, leader_config:leaderConfig,
+              // Pinned prompt/index.tsx:1393 inserts a spacer outside the chip
+              // extmark. Expansion preserves that raw spacer (:1422–1424).
+               ...(pasteNavigation?{prompt_paste_expected:expectedPasteDraft(origin,pasteSuffixSpace)}:{}),
              apply_patch:applyPatch,permission,permission_mode:permissionMode,permission_strace_path:permission&&args['permission-strace']==='true'&&origin==='oc'?path.join(dir,'permission.strace'):undefined,patch_view:args['patch-view'],patch_wrap:args['patch-wrap'],
            ...(compaction ? {compaction_animation:compactionAnimation,compaction_tps:compactionTps,animations:compactionAnimation} : {}),
         sessions_resume:!!args['sessions-root'],
@@ -543,8 +558,8 @@ try {
       }
        const initial = await waitFor(f => /Build|Untitled session|MiMo-V2.6-Flash Free/.test(f.text) ||
          (sessionsInteraction && f.text.includes('Ask anything')), 'initial prompt');
-       if(leaderPending) {
-         const checks=await probeLeaderPending({origin,dir,send,frame,capture,visibleMatches,logs,config:leaderConfig,extra:args['leader-extra']==='true',enterOnly:args['leader-enter-only']==='true',outputTimeline,
+        if(leaderPending) {
+           const checks=await (pasteNavigation?probePasteNavigation:probeLeaderPending)({origin,dir,send,frame,capture,waitFor,visibleMatches,logs,config:leaderConfig,suffixSpace:pasteSuffixSpace,extra:args['leader-extra']==='true',enterOnly:args['leader-enter-only']==='true',outputTimeline,
            sampleColor:p=>page.evaluate(p=>readTerminal().cells[p.y][p.x].fg,p)});
          lock.leader_pending ??= {};lock.leader_pending[origin]=checks;
          if(checks.status!=='OBSERVED')result=1;
@@ -2898,6 +2913,7 @@ try {
     mcp_error_and_stall: 'NOT_RUN (V00 three-screen capture only)'
   };
     if(permission)lock.qualification={status:'DIAGNOSTIC_PERMISSION_ONLY',mode:permissionMode,actual_requests:'Real ordinary function tools and pinned original U19 executor; local fake provider/MCP only',filesystem:'Independent bytes/hash/mtime/modes; SQLite mode=ro',unresolved:['Full grids/PNGs are unmasked and must be compared independently','Typed owner lifecycle evidence is separate from the PTY/SQLite audit','Unit/atomic-failure/security matrices and release binary are not qualified by PTY capture']};
+     if(leaderPending)lock.qualification={status:'DIAGNOSTIC_PROMPT_PASTE_ONLY',scenario:pasteNavigation?(pasteSuffixSpace?'repeat-paste-real-suffix-space':'repeat-paste-visual-navigation'):args['leader-extra']==='true'?'extra-longdraft':'default-chip',requested_columns:profile.columns,session_tps_override:false,actual_requests:'Real PTY keys and bracketed paste; isolated local Responses fixture; actual user wire retained',unresolved:['Full styled grids, PNGs and cursors remain unmasked; behavior is not VIS07 PASS','This bounded scenario does not qualify every mandatory prompt/paste/resize/Unicode case']};
    for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))]
     .filter(s=>!scanner || !s.includes('-candidate-')) : ['session-wide-completed','commands-over-session','models-over-session', ...(args.variants === 'true' ? ['variants-over-session'] : [])]) {
     for (const mode of ['grid','png']) {
@@ -2926,6 +2942,10 @@ try {
 } catch(e) {lock.attempts.push({status:'BLOCKED',reason:e.stack});result=2;}
 finally {
   if(browser)await browser.close();
+  if(leaderPending) {
+    lock.oc.source_inputs_unchanged_after_capture=Object.entries(sourceManifest).every(([name,hash])=>fs.existsSync(path.join(repo,name))&&sha(fs.readFileSync(path.join(repo,name)))===hash);
+    if(!lock.oc.source_inputs_unchanged_after_capture){lock.attempts.push({status:'BLOCKED',reason:'Source inputs changed during capture'});result=2;}
+  }
   lock.finished=new Date().toISOString(); lock.exit_code=result;
   commands[0].exit_code=result;
   json('commands.json',commands);json('capture.lock.json',lock);

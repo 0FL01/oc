@@ -9,6 +9,7 @@ const MAX_FILE_MENTIONS: usize = 1024;
 pub struct PasteOutcome {
     pub inserted: usize,
     pub trimmed: usize,
+    pub expanded: bool,
 }
 
 pub fn chip_worthy(content: &str) -> Option<usize> {
@@ -141,7 +142,46 @@ impl Editor {
     }
 
     pub fn paste(&mut self, text: &mut String, inserted: &str, limit: usize) -> PasteOutcome {
+        let normalized = inserted.replace("\r\n", "\n").replace('\r', "\n");
+        if chip_worthy(&normalized).is_some()
+            && let Some(start) = self.chips.iter().find_map(|chip| {
+                // Raw end already projects past the chip's virtual separator.
+                // A real suffix space advances beyond the repeat boundary.
+                (self.cursor == chip.end && text[chip.start..chip.end] == *normalized.trim())
+                    .then_some(chip.start)
+            })
+        {
+            self.expand_chip(text, start);
+            return PasteOutcome {
+                inserted: 0,
+                trimmed: 0,
+                expanded: true,
+            };
+        }
+        self.insert(text, &normalized, limit, true)
+    }
+
+    /// The app has already normalized this truncated clipboard. A matching
+    /// prefix is not an identical paste and must not expand an existing chip.
+    pub(crate) fn paste_clipped(
+        &mut self,
+        text: &mut String,
+        inserted: &str,
+        limit: usize,
+    ) -> PasteOutcome {
         self.insert(text, inserted, limit, true)
+    }
+
+    /// Removing the display extmark exposes the existing draft bytes exactly once.
+    /// Like the donor's selection replacement, expansion ends at the stored text.
+    pub fn expand_chip(&mut self, text: &str, start: usize) -> bool {
+        let Some(index) = self.chips.iter().position(|chip| chip.start == start) else {
+            return false;
+        };
+        self.save(text);
+        self.cursor = self.chips.remove(index).end;
+        self.anchor = None;
+        true
     }
 
     fn insert(
@@ -167,6 +207,7 @@ impl Editor {
             return PasteOutcome {
                 inserted: 0,
                 trimmed: 0,
+                expanded: false,
             };
         }
         let clipped = &inserted[..kept];
@@ -206,6 +247,7 @@ impl Editor {
         PasteOutcome {
             inserted: kept,
             trimmed,
+            expanded: false,
         }
     }
 
@@ -443,6 +485,26 @@ impl Editor {
         true
     }
 
+    /// Navigate the same word-wrapped, collapsed-chip projection that is painted.
+    pub fn vertical_wrapped(&mut self, text: &str, width: usize, down: bool, select: bool) -> bool {
+        let (rows, (row, column)) = self.layout(text, width);
+        // A chip may fill several narrow rows with no legal insertion stop.
+        // Skip those interior extmark rows while keeping the chip atomic.
+        let target = if down {
+            rows.iter().skip(row + 1).find(|r| !r.positions.is_empty())
+        } else {
+            rows[..row].iter().rev().find(|r| !r.positions.is_empty())
+        };
+        let Some(row) = target else {
+            return false;
+        };
+        let Some(offset) = row.offset_at(column) else {
+            return false;
+        };
+        self.move_to(offset, select);
+        true
+    }
+
     fn project(&self, text: &str) -> (String, Vec<(usize, usize, usize, usize)>) {
         let mut visible = String::new();
         let mut map = Vec::with_capacity(self.chips.len());
@@ -476,16 +538,31 @@ impl Editor {
             .iter()
             .map(|&(_, _, start, end)| (start, end - 1))
             .collect();
-        layout_wrapped(
+        let (mut rows, caret) = layout_wrapped(
             &visible,
             raw_to_visual(self.cursor, &map),
             self.selected()
                 .map(|(a, b)| (raw_to_visual(a, &map), raw_to_visual(b, &map))),
             width,
             &mentions,
-            false,
+            true,
             &chips,
-        )
+        );
+        for row in &mut rows {
+            // Interior label cells are mouse targets, not legal caret stops:
+            // the raw chip remains atomic until it is expanded.
+            row.positions.retain(|&(_, offset)| {
+                let index = map.partition_point(|&(_, _, start, _)| start < offset);
+                index == 0 || map[index - 1].3 <= offset
+            });
+            for (_, offset) in &mut row.positions {
+                *offset = visual_to_raw(*offset, &map, true);
+            }
+            for (_, _, start) in &mut row.chip_hits {
+                *start = visual_to_raw(*start, &map, false);
+            }
+        }
+        (rows, caret)
     }
     /// Textarea layout preserves raw offsets/selection while preferring whole words.
     pub(crate) fn layout_words(
@@ -598,39 +675,28 @@ impl Editor {
 
 // Offset maps are ephemeral layout projections; raw text alone is submitted.
 fn raw_to_visual(offset: usize, map: &[(usize, usize, usize, usize)]) -> usize {
-    let mut raw = 0;
-    let mut visual = 0;
-    for &(start, end, _, ve) in map {
-        if offset <= start {
-            return visual + offset - raw;
-        }
-        if offset <= end {
-            return ve;
-        }
-        raw = end;
-        visual = ve;
+    let index = map.partition_point(|&(start, _, _, _)| start < offset);
+    if index == 0 {
+        return offset;
     }
-    visual + offset - raw
+    let (_, end, _, visual_end) = map[index - 1];
+    visual_end + offset.saturating_sub(end)
 }
 
 fn visual_to_raw(offset: usize, map: &[(usize, usize, usize, usize)], right: bool) -> usize {
-    let mut raw = 0;
-    let mut visual = 0;
-    for &(start, end, vs, ve) in map {
-        if offset <= vs {
-            return raw + offset - visual;
-        }
-        if offset <= ve {
-            return if offset - vs > ve - offset || (offset - vs == ve - offset && right) {
-                end
-            } else {
-                start
-            };
-        }
-        raw = end;
-        visual = ve;
+    let index = map.partition_point(|&(_, _, start, _)| start < offset);
+    if index == 0 {
+        return offset;
     }
-    raw + offset - visual
+    let (start, end, vs, ve) = map[index - 1];
+    if offset <= ve {
+        return if offset - vs > ve - offset || (offset - vs == ve - offset && right) {
+            end
+        } else {
+            start
+        };
+    }
+    end + offset - ve
 }
 
 fn vertical_target(text: &str, cursor: usize, down: bool) -> Option<usize> {
@@ -727,6 +793,32 @@ pub struct PromptRow {
     pub spans: Vec<(String, bool, bool)>,
     /// One semantic paste-chip flag per span; derived from actual editor chips.
     pub chip_spans: Vec<bool>,
+    /// Legal insertion stops (display column, draft byte offset).
+    pub(crate) positions: Vec<(usize, usize)>,
+    /// Painted label intervals (start/end columns, chip's raw start).
+    pub(crate) chip_hits: Vec<(usize, usize, usize)>,
+}
+
+impl PromptRow {
+    /// Resolve a painted column using grapheme-safe raw insertion stops.
+    pub(crate) fn offset_at(&self, column: usize) -> Option<usize> {
+        self.positions
+            .iter()
+            .rev()
+            .find(|&&(cell, _)| cell <= column)
+            .or_else(|| self.positions.first())
+            .map(|&(_, offset)| offset)
+    }
+
+    fn empty() -> Self {
+        Self {
+            text: String::new(),
+            spans: Vec::new(),
+            chip_spans: Vec::new(),
+            positions: Vec::new(),
+            chip_hits: Vec::new(),
+        }
+    }
 }
 #[cfg(test)]
 pub fn layout(
@@ -745,7 +837,7 @@ fn layout_with_mentions(
     width: usize,
     mentions: &[(usize, usize)],
 ) -> (Vec<PromptRow>, (usize, usize)) {
-    layout_wrapped(text, cursor, selection, width, mentions, false, &[])
+    layout_wrapped(text, cursor, selection, width, mentions, true, &[])
 }
 
 fn layout_wrapped(
@@ -758,27 +850,26 @@ fn layout_wrapped(
     chips: &[(usize, usize)],
 ) -> (Vec<PromptRow>, (usize, usize)) {
     let width = width.max(1);
-    let mut rows = vec![PromptRow {
-        text: String::new(),
-        spans: Vec::new(),
-        chip_spans: Vec::new(),
-    }];
+    let mut rows = vec![PromptRow::empty()];
     let mut column = 0;
     let mut caret = (0, 0);
+    let mut suppressed = false;
     for (offset, grapheme) in text.grapheme_indices(true) {
-        if offset == cursor {
-            caret = (rows.len() - 1, column);
-        }
         if grapheme == "\n" {
-            rows.push(PromptRow {
-                text: String::new(),
-                spans: Vec::new(),
-                chip_spans: Vec::new(),
-            });
+            rows.last_mut()
+                .expect("one row")
+                .positions
+                .push((column, offset));
+            if offset == cursor {
+                caret = (rows.len() - 1, column);
+            }
+            rows.push(PromptRow::empty());
             column = 0;
+            suppressed = false;
             continue;
         }
         let cells = UnicodeWidthStr::width(grapheme);
+        let whitespace = grapheme.chars().all(char::is_whitespace);
         let word = words
             && !grapheme.chars().all(char::is_whitespace)
             && (offset == 0
@@ -791,27 +882,52 @@ fn layout_wrapped(
         } else {
             0
         };
-        if column > 0
-            && (column + cells > width || (word_cells <= width && column + word_cells > width))
-        {
-            rows.push(PromptRow {
-                text: String::new(),
-                spans: Vec::new(),
-                chip_spans: Vec::new(),
-            });
-            column = 0;
+        // OpenTUI drops a separator overflowing the row, rather than painting
+        // it at the next row's start. Keep its offsets at that visual boundary.
+        if words && whitespace && (suppressed || column + cells > width) {
+            if !suppressed {
+                rows.push(PromptRow::empty());
+                column = 0;
+                suppressed = true;
+            }
+            rows.last_mut()
+                .expect("one row")
+                .positions
+                .push((0, offset));
             if offset == cursor {
                 caret = (rows.len() - 1, 0);
             }
+            continue;
+        }
+        if column > 0
+            && (column + cells > width || (word_cells <= width && column + word_cells > width))
+        {
+            rows.push(PromptRow::empty());
+            column = 0;
+        }
+        suppressed = false;
+        if offset == cursor {
+            caret = (rows.len() - 1, column);
         }
         let selected = selection.is_some_and(|(start, end)| offset >= start && offset < end);
         let mentioned = mentions
             .get(mentions.partition_point(|&(_, end)| end <= offset))
             .is_some_and(|&(start, _)| start <= offset);
         let row = rows.last_mut().expect("one row");
-        let chip = chips
-            .iter()
-            .any(|&(start, end)| offset >= start && offset < end);
+        row.positions.push((column, offset));
+        let mark = chips
+            .get(chips.partition_point(|&(_, end)| end <= offset))
+            .filter(|&&(start, _)| start <= offset);
+        let chip = mark.is_some();
+        if let Some(&(start, _)) = mark {
+            if let Some((_, end, previous)) = row.chip_hits.last_mut()
+                && *previous == start
+            {
+                *end = column + cells;
+            } else {
+                row.chip_hits.push((column, column + cells, start));
+            }
+        }
         row.text.push_str(grapheme);
         if let Some((last, was_selected, was_mentioned)) = row.spans.last_mut()
             && *was_selected == selected
@@ -825,24 +941,185 @@ fn layout_wrapped(
         }
         column += cells;
     }
+    if column >= width && !text.is_empty() {
+        rows.push(PromptRow::empty());
+        column = 0;
+    }
+    rows.last_mut()
+        .expect("one row")
+        .positions
+        .push((column, text.len()));
     if cursor == text.len() {
-        if column >= width && !text.is_empty() {
-            rows.push(PromptRow {
-                text: String::new(),
-                spans: Vec::new(),
-                chip_spans: Vec::new(),
-            });
-            caret = (rows.len() - 1, 0);
-        } else {
-            caret = (rows.len() - 1, column);
-        }
+        caret = (rows.len() - 1, column);
     }
     (rows, caret)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Editor, MAX_FILE_MENTIONS, layout};
+    use super::{Editor, MAX_FILE_MENTIONS, MAX_PASTE_CHIPS, layout};
+    use unicode_segmentation::UnicodeSegmentation;
+
+    #[test]
+    fn vis07_observed_seventy_cell_word_wrap_and_raw_separator_offsets() {
+        let mut editor = Editor::default();
+        let mut text = "VIS11 full draft αβ caret-middle preserving every wzord".to_string();
+        let prefix = text.clone();
+        editor.cursor = text.len();
+        editor.paste(
+            &mut text,
+            "VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2",
+            4096,
+        );
+        let (rows, caret) = editor.layout(&text, 70);
+        assert_eq!(
+            rows.iter().map(|r| r.text.as_str()).collect::<Vec<_>>(),
+            vec![format!("{prefix}[Pasted ~3 "), "lines] ".into()]
+        );
+        assert_eq!(caret, (1, 7));
+        assert_eq!(rows[0].chip_hits, vec![(55, 66, prefix.len())]);
+        assert_eq!(rows[1].chip_hits, vec![(0, 6, prefix.len())]);
+        editor.horizontal(&text, false, false, true);
+        let (rows, _) = editor.layout(&text, 70);
+        for row in rows {
+            for ((_, selected, _), chip) in row.spans.iter().zip(row.chip_spans) {
+                assert_eq!(*selected, chip || row.text == "lines] ");
+            }
+        }
+
+        let text = "VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded actual requestord";
+        editor.clear();
+        editor.cursor = text.len();
+        let (rows, caret) = editor.layout(text, 70);
+        assert_eq!(
+            rows.iter().map(|r| r.text.as_str()).collect::<Vec<_>>(),
+            vec![
+                "VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded",
+                "actual requestord"
+            ]
+        );
+        assert_eq!(caret, (1, 17));
+        let boundary = text.find(" actual").unwrap();
+        for cursor in [boundary, boundary + 1] {
+            editor.cursor = cursor;
+            assert_eq!(editor.layout(text, 70).1, (1, 0));
+        }
+        // The invisible separator is still selected, deleted and restored in
+        // raw text; projection never changes the draft to achieve wrapping.
+        let mut text = text.to_owned();
+        editor.move_to(boundary, false);
+        editor.move_to(boundary + 1, true);
+        assert!(editor.delete(&mut text, true, false));
+        assert!(!text.contains("bounded actual"));
+        assert!(editor.undo(&mut text, false));
+        assert!(text.contains("bounded actual"));
+    }
+
+    #[test]
+    fn vis07_repeat_paste_expands_at_chip_end_without_inserting_again() {
+        for separator in [false, true] {
+            let mut editor = Editor::default();
+            let mut text = "prefix ".to_owned();
+            editor.cursor = text.len();
+            let pasted = "е\u{301}🧑‍💻\n界\nlast";
+            editor.paste(
+                &mut text,
+                &format!(" \r\n{}\r\n ", pasted.replace('\n', "\r\n")),
+                4096,
+            );
+            let end = text.len();
+            if separator {
+                editor.replace(&mut text, " suffix", 4096);
+                editor.move_to(end, false);
+            }
+            let original = text.clone();
+            let limit = text.len();
+            let outcome = editor.paste(&mut text, pasted, limit);
+            assert!(
+                outcome.expanded,
+                "even a full draft can expand an identical paste"
+            );
+            assert_eq!(outcome.inserted, 0);
+            assert_eq!(text, original);
+            assert_eq!(editor.cursor, end);
+            assert_eq!(editor.chip_count(), 0);
+            assert!(editor.undo(&mut text, false));
+            assert_eq!(editor.chip_count(), 1);
+            assert_eq!(text, original);
+            assert!(editor.undo(&mut text, true));
+            assert_eq!(editor.chip_count(), 0);
+            assert_eq!(text, original);
+        }
+        let mut editor = Editor::default();
+        let mut text = String::new();
+        editor.paste(&mut text, "a\nb\nc", 100);
+        editor.move_to(0, false);
+        editor.move_to(text.len(), true);
+        // Donor repeat detection uses the caret, then replaces the extmark's
+        // selection even when another editor selection was already active.
+        assert!(editor.paste(&mut text, "a\nb\nc", 100).expanded);
+        assert_eq!(text, "a\nb\nc");
+        assert!(editor.selected().is_none());
+        assert_eq!(editor.chip_count(), 0);
+        editor.undo(&mut text, false);
+        assert!(
+            !editor.paste(&mut text, "a\nb\nd", 100).expanded,
+            "a different paste replaces the selection"
+        );
+        assert_eq!(text, "a\nb\nd");
+        assert_eq!(editor.chip_count(), 1);
+    }
+
+    #[test]
+    fn vis07_wrapped_unicode_vertical_selection_and_width_edges() {
+        let mut editor = Editor::default();
+        let mut text = "е\u{301}界 🧑‍💻fox abcdef".to_owned();
+        editor.cursor = text.len();
+        assert_eq!(editor.layout(&text, 6).1, (3, 0));
+        assert!(editor.vertical_wrapped(&text, 6, false, true));
+        assert_eq!(editor.layout(&text, 6).1, (2, 0));
+        assert_eq!(
+            editor.selected(),
+            Some(("е\u{301}界 🧑‍💻fox ".len(), text.len()))
+        );
+        assert!(editor.delete(&mut text, true, false));
+        assert_eq!(text, "е\u{301}界 🧑‍💻fox ");
+        assert!(editor.undo(&mut text, false));
+        assert_eq!(editor.layout(&text, 6).1, (2, 0));
+        assert!(editor.undo(&mut text, true));
+        assert_eq!(text, "е\u{301}界 🧑‍💻fox ");
+        for width in [0, 1, 2, 5, 6, 7, 69, 70, 71] {
+            let mut editor = Editor::default();
+            let text = "界е\u{301} 🧑‍💻fox abcdef";
+            editor.cursor = text.len();
+            let (rows, caret) = editor.layout(text, width);
+            assert!(caret.0 < rows.len());
+            for row in &rows {
+                for &(_, offset) in &row.positions {
+                    assert!(text.is_char_boundary(offset));
+                    assert!(
+                        text.grapheme_indices(true).any(|(at, _)| at == offset)
+                            || offset == text.len()
+                    );
+                }
+            }
+            while editor.vertical_wrapped(text, width, false, false) {}
+            assert_eq!(editor.layout(text, width).1.0, 0);
+        }
+        // Extremely narrow labels have rows with no raw caret stop. Vertical
+        // movement must cross them instead of getting stuck on an atomic chip.
+        for width in [1, 2, 16, 17, 70] {
+            let mut editor = Editor::default();
+            let mut text = String::new();
+            editor.paste(&mut text, "a\nb\nc", 100);
+            if editor.layout(&text, width).1.0 > 0 {
+                assert!(editor.vertical_wrapped(&text, width, false, false));
+                assert_eq!(editor.cursor, 0);
+                assert!(editor.vertical_wrapped(&text, width, true, false));
+                assert_eq!(editor.cursor, text.len());
+            }
+        }
+    }
 
     #[test]
     fn large_draft_mention_validation_does_not_retain_grapheme_boundaries() {
@@ -1092,6 +1369,21 @@ mod tests {
         assert_eq!(editor.chip_count(), 1);
         assert_eq!(editor.layout(&text, 80).0[0].text, "[Pasted ~1 lines] ");
         assert_eq!(text, "🦊".repeat(76));
+
+        editor.clear();
+        text.clear();
+        for index in 0..=MAX_PASTE_CHIPS {
+            editor.paste(&mut text, &format!("{index}\n界\nz"), 64 * 1024);
+        }
+        assert_eq!(editor.chip_count(), MAX_PASTE_CHIPS);
+        assert!(text.ends_with(&format!("{MAX_PASTE_CHIPS}\n界\nz")));
+        let rows = editor.layout(&text, 70).0;
+        assert!(
+            rows.iter()
+                .any(|row| row.text.contains(&MAX_PASTE_CHIPS.to_string())),
+            "the over-cap paste remains ordinary visible text"
+        );
+        assert!(editor.retained_bytes() < 3 * 1024 * 1024);
     }
 
     #[test]

@@ -483,6 +483,19 @@ struct TranscriptViewport {
     displayed_scroll: usize,
 }
 
+/// Only actual visible chip cells from the latest prompt paint are actionable.
+struct PaintedPrompt {
+    frame: Rect,
+    main: Rect,
+    home: bool,
+    session: Option<SessionId>,
+    revision: u64,
+    generation: u64,
+    cursor: usize,
+    anchor: Option<usize>,
+    chips: Vec<(Rect, usize)>,
+}
+
 struct CompletionAnchor {
     message: std::sync::Arc<oc_core::session::MessageId>,
     part: usize,
@@ -519,6 +532,8 @@ pub struct TuiState {
     viewport: std::cell::Cell<Option<TranscriptViewport>>,
     completion_anchor: std::cell::RefCell<Option<CompletionAnchor>>,
     painted_transcript: std::cell::RefCell<Option<PaintedTranscript>>,
+    painted_prompt: std::cell::RefCell<Option<PaintedPrompt>>,
+    prompt_width: std::cell::Cell<Option<usize>>,
     paint_generation: std::cell::Cell<u64>,
     message_down: Option<(oc_core::session::MessageId, u64, Rect)>,
     clipboard_mode: ClipboardMode,
@@ -699,6 +714,8 @@ impl TuiState {
             viewport: std::cell::Cell::new(None),
             completion_anchor: std::cell::RefCell::new(None),
             painted_transcript: std::cell::RefCell::new(None),
+            painted_prompt: std::cell::RefCell::new(None),
+            prompt_width: std::cell::Cell::new(None),
             paint_generation: std::cell::Cell::new(0),
             message_down: None,
             clipboard_mode: ClipboardMode::default(),
@@ -866,6 +883,7 @@ impl TuiState {
 
     /// Clear the recorded SGR coordinate when a resize invalidates its frame.
     pub fn clear_mouse_position(&mut self) {
+        self.painted_prompt.borrow_mut().take();
         self.clear_transcript_selection();
         self.last_mouse = None;
         self.toast_down = false;
@@ -1798,6 +1816,88 @@ impl TuiState {
         self.editor.layout(&self.input, width)
     }
 
+    pub(crate) fn clear_prompt_paint(&self) {
+        self.painted_prompt.borrow_mut().take();
+    }
+
+    pub(crate) fn observe_prompt_paint(
+        &self,
+        frame: Rect,
+        input: Rect,
+        top: usize,
+        rows: &[crate::editor::PromptRow],
+    ) {
+        self.prompt_width.set(Some(input.width as usize));
+        if self.panel != TuiPanel::None || self.approvals.active().is_some() {
+            return;
+        }
+        let toast = crate::shell::toast_rect(self, frame);
+        let mut chips = Vec::new();
+        for (index, row) in rows
+            .iter()
+            .skip(top)
+            .take(input.height as usize)
+            .enumerate()
+        {
+            for &(from, to, start) in &row.chip_hits {
+                // Clip to both the viewport and final toast overpaint. The map
+                // contains painted intervals only, never virtual separator cells.
+                let mut run = None;
+                let y = input.y + index as u16;
+                for column in from..to.min(input.width as usize) {
+                    let x = input.x + column as u16;
+                    if toast.is_some_and(|rect| rect.contains((x, y).into())) {
+                        if let Some(a) = run.take() {
+                            chips.push((Rect::new(a, y, x - a, 1), start));
+                        }
+                    } else {
+                        run.get_or_insert(x);
+                    }
+                }
+                if let Some(a) = run {
+                    chips.push((
+                        Rect::new(a, y, input.x + to.min(input.width as usize) as u16 - a, 1),
+                        start,
+                    ));
+                }
+            }
+        }
+        *self.painted_prompt.borrow_mut() = Some(PaintedPrompt {
+            frame,
+            main: crate::shell::prompt_main(self, frame),
+            home: self.home,
+            session: self.session.clone(),
+            revision: self.input_revision,
+            generation: self.generation,
+            cursor: self.editor.cursor,
+            anchor: self.editor.anchor,
+            chips,
+        });
+    }
+
+    fn prompt_vertical(&mut self, down: bool, select: bool) -> bool {
+        // Keyboard input uses the last painted width even after draft edits;
+        // after a resize, the next paint establishes the new width.
+        let width = self.prompt_width.get().unwrap_or(usize::MAX);
+        let edge = if down { self.input.len() } else { 0 };
+        if !select && self.editor.cursor == edge {
+            return false;
+        }
+        if self
+            .editor
+            .vertical_wrapped(&self.input, width, down, select)
+        {
+            return true;
+        }
+        // At a visual edge, the donor first moves to the absolute raw edge;
+        // only the next unselected arrow is owned by prompt history.
+        if !select && self.editor.cursor != edge {
+            self.editor.move_to(edge, false);
+            return true;
+        }
+        false
+    }
+
     /// Only the focused prompt, not a dialog or a dismissed revision, owns the overlay.
     pub(crate) fn slash_options(&self) -> Option<Vec<crate::autocomplete::SlashOption>> {
         if self.panel != TuiPanel::None || self.slash_dismissed == Some(self.input_revision) {
@@ -2451,6 +2551,44 @@ impl TuiState {
             return KeyOutcome::default();
         }
         if self.panel == TuiPanel::None {
+            if matches!(event.kind, MouseEventKind::Down(MouseButton::Left))
+                && !self.transcript_overpainted(area, event.column, event.row)
+            {
+                let start = self
+                    .painted_prompt
+                    .borrow()
+                    .as_ref()
+                    .filter(|p| {
+                        p.frame == area
+                            && p.main == crate::shell::prompt_main(self, area)
+                            && p.home == self.home
+                            && p.session == self.session
+                            && p.revision == self.input_revision
+                            && p.generation == self.generation
+                            && p.cursor == self.editor.cursor
+                            && p.anchor == self.editor.anchor
+                    })
+                    .and_then(|p| {
+                        p.chips
+                            .iter()
+                            .find(|(rect, _)| rect.contains((event.column, event.row).into()))
+                            .map(|&(_, start)| start)
+                    });
+                if let Some(start) = start
+                    && self.editor.expand_chip(&self.input, start)
+                {
+                    self.input_revision += 1;
+                    self.slash_selected = 0;
+                    self.mention_selected = 0;
+                    self.selection_gesture = false;
+                    self.click = None;
+                    self.tab_down = None;
+                    self.exploration_down = None;
+                    self.reasoning_down = None;
+                    self.clear_prompt_paint();
+                    return KeyOutcome::default();
+                }
+            }
             self.handle_transcript_selection(event, area);
             if matches!(event.kind, MouseEventKind::Up(MouseButton::Left))
                 && self.transcript_overpainted(area, event.column, event.row)
@@ -2893,8 +3031,12 @@ impl TuiState {
                 return None;
             }
             let row = (y - area.y) as usize;
+            // A short transcript does not paint every row in its viewport.
+            // A pointer retained from the composer can land in that blank
+            // space after submission; it cannot authorize a tool hover.
+            let painted = rows.get(row)?;
             let range = crate::messages::tool_hover_range(rows, theme, row);
-            let block = rows.get(row)?.style().bg == Some(theme.background_raised());
+            let block = painted.style().bg == Some(theme.background_raised());
             let header = rows.get(range.start)?.plain_text();
             // Reject other painted surfaces before another indexed hit lookup.
             // Text is only a cheap candidate filter: the owner hit still decides.
@@ -4244,7 +4386,18 @@ impl TuiState {
             clean.push_str(safe);
         }
         let chip_count = self.editor.chip_count();
-        let paste = self.editor.paste(&mut self.input, &clean, MAX_INPUT_BYTES);
+        let paste = if exceeded {
+            self.editor
+                .paste_clipped(&mut self.input, &clean, MAX_INPUT_BYTES)
+        } else {
+            self.editor.paste(&mut self.input, &clean, MAX_INPUT_BYTES)
+        };
+        if paste.expanded {
+            self.input_revision += 1;
+            self.slash_selected = 0;
+            self.mention_selected = 0;
+            return KeyOutcome::default();
+        }
         let dropped = text.len().saturating_sub(paste.inserted);
         if paste.inserted > 0 {
             self.input_revision += 1;
@@ -4915,8 +5068,7 @@ impl TuiState {
                 KeyOutcome::default()
             }
             KeyAction::SelectUp | KeyAction::SelectDown => {
-                self.editor
-                    .vertical(&self.input, action == KeyAction::SelectDown, true);
+                self.prompt_vertical(action == KeyAction::SelectDown, true);
                 KeyOutcome::default()
             }
             KeyAction::PageUp | KeyAction::PageDown => KeyOutcome::default(),
@@ -4980,7 +5132,7 @@ impl TuiState {
                 KeyOutcome::default()
             }
             KeyAction::Up => {
-                if self.editor.vertical(&self.input, false, false) {
+                if self.prompt_vertical(false, false) {
                     return KeyOutcome::default();
                 }
                 if self.recall_history(true) {
@@ -4989,7 +5141,7 @@ impl TuiState {
                 self.scroll_transcript(true)
             }
             KeyAction::Down => {
-                if self.editor.vertical(&self.input, true, false) {
+                if self.prompt_vertical(true, false) {
                     return KeyOutcome::default();
                 }
                 if self.recall_history(false) {
@@ -5083,6 +5235,8 @@ impl TuiState {
             .collect();
         let changed = self.editor.recall(&mut self.input, previous, entries);
         if changed {
+            self.editor
+                .move_to(if previous { 0 } else { self.input.len() }, false);
             self.input_revision += 1;
         }
         changed
@@ -8010,7 +8164,17 @@ mod tests {
         assert!(state.slash_selected > 0);
         state.handle_key(KeyAction::Cancel).await;
         state.handle_key(KeyAction::Up).await;
+        assert_eq!(
+            state.input(),
+            "/",
+            "dismissed overlay yields to the raw start first"
+        );
+        assert_eq!(state.editor.cursor, 0);
+        state.handle_key(KeyAction::Up).await;
         assert_eq!(state.input(), "older prompt");
+        state.handle_key(KeyAction::Down).await;
+        assert_eq!(state.input(), "older prompt");
+        assert_eq!(state.editor.cursor, "older prompt".len());
         state.handle_key(KeyAction::Down).await;
         assert_eq!(state.input(), "/", "history returns to saved draft");
     }
@@ -9724,6 +9888,24 @@ mod tests {
             note.contains("paste") && note.contains(&MAX_INPUT_BYTES.to_string()),
             "note must name the paste and the budget: {note}"
         );
+        state.handle_key(KeyAction::Interrupt).await;
+        let full = &huge[..MAX_INPUT_BYTES];
+        state.handle_paste(full);
+        assert_eq!(state.editor.chip_count(), 1);
+        assert!(state.handle_paste(&huge).note.is_some());
+        assert_eq!(
+            state.editor.chip_count(),
+            1,
+            "truncated prefix is not an identical paste"
+        );
+        assert_eq!(state.input(), full);
+        assert!(state.handle_paste(full).note.is_none());
+        assert_eq!(
+            state.editor.chip_count(),
+            0,
+            "identical full-budget paste can expand"
+        );
+        assert_eq!(state.input(), full);
     }
 
     async fn type_text(state: &mut TuiState, text: &str) {
@@ -10096,6 +10278,245 @@ mod tests {
         state.handle_paste("a\nb\n");
         assert_eq!(state.input(), "a\nb\n", "non-chip paste retains whitespace");
         assert_eq!(state.prompt_layout(80).0.len(), 3);
+    }
+
+    #[tokio::test]
+    async fn vis07_paste_mouse_expands_only_live_painted_prompt_cells() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+        use ratatui::{Terminal, backend::TestBackend};
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new_home(app);
+        let area = Rect::new(0, 0, 120, 40);
+        let prefix = "VIS11 full draft αβ caret-middle preserving every wzord";
+        let pasted = "VIS11-PASTE-0\nVIS11-PASTE-1\nVIS11-PASTE-2";
+        state.handle_paste(prefix);
+        state.handle_paste(pasted);
+        let mut actual = state.input().to_owned();
+        let chip_end = actual.len();
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        let mouse = |kind, x, y| MouseEvent {
+            kind,
+            column: x,
+            row: y,
+            modifiers: KeyModifiers::NONE,
+        };
+        let down = MouseEventKind::Down(MouseButton::Left);
+        state.handle_mouse(mouse(down, 81, 21), area);
+        assert_eq!(
+            state.editor.chip_count(),
+            1,
+            "unpainted prompt has no targets"
+        );
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        let (first, second) = {
+            let paint = state.painted_prompt.borrow();
+            let paint = paint.as_ref().unwrap();
+            assert_eq!(state.prompt_width.get(), Some(70));
+            assert_eq!(paint.chips.len(), 2);
+            (paint.chips[0].0, paint.chips[1].0)
+        };
+        assert_eq!(
+            (first.x, first.width, second.x, second.width),
+            (81, 11, 26, 6)
+        );
+        // Styles and caret come from the exact observed 70-cell projection.
+        let buffer = terminal.backend().buffer();
+        for rect in [first, second] {
+            for x in rect.x..rect.right() {
+                let cell = &buffer[(x, rect.y)];
+                assert_eq!(cell.fg, ratatui::style::Color::Rgb(10, 10, 10));
+                assert_eq!(cell.bg, ratatui::style::Color::Rgb(245, 167, 66));
+                assert!(cell.modifier.contains(ratatui::style::Modifier::BOLD));
+            }
+        }
+        assert_eq!(
+            terminal.get_cursor_position().unwrap(),
+            (33, second.y).into()
+        );
+        for _ in 0..20 {
+            state.handle_key(KeyAction::Newline).await;
+        }
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        assert!(
+            state
+                .painted_prompt
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .chips
+                .is_empty()
+        );
+        state.handle_mouse(mouse(down, first.x, first.y), area);
+        assert_eq!(state.editor.chip_count(), 1, "offscreen chip has no target");
+        for _ in 0..20 {
+            state.handle_key(KeyAction::Undo).await;
+        }
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        state.handle_mouse(mouse(MouseEventKind::Moved, first.x, first.y), area);
+        state.handle_mouse(
+            mouse(MouseEventKind::Down(MouseButton::Right), first.x, first.y),
+            area,
+        );
+        state.handle_mouse(mouse(down, second.right(), second.y), area);
+        assert_eq!(
+            state.editor.chip_count(),
+            1,
+            "virtual space is not an extmark cell"
+        );
+        state.handle_mouse(mouse(down, first.x, first.y), Rect::new(0, 0, 119, 40));
+        assert_eq!(
+            state.editor.chip_count(),
+            1,
+            "resize invalidates coordinates"
+        );
+        state.handle_key(KeyAction::Commands).await;
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        state.handle_mouse(mouse(down, first.x, first.y), area);
+        state.close_panel();
+        state.handle_mouse(mouse(down, first.x, first.y), area);
+        assert_eq!(
+            state.editor.chip_count(),
+            1,
+            "modal paint removed the prompt map"
+        );
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        state.handle_key(KeyAction::Left).await;
+        state.handle_mouse(mouse(down, first.x, first.y), area);
+        assert_eq!(
+            state.editor.chip_count(),
+            1,
+            "caret/viewport identity is stale"
+        );
+        state.handle_key(KeyAction::Right).await;
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        state.handle_key(KeyAction::Char('!')).await;
+        state.handle_mouse(mouse(down, first.x, first.y), area);
+        assert_eq!(state.editor.chip_count(), 1, "edited draft is stale");
+        state.handle_key(KeyAction::Undo).await;
+        state.push_note(&format!("{}\n", "toast ".repeat(8)).repeat(30));
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        let toast = crate::shell::toast_rect(&state, area).unwrap();
+        assert!(toast.contains((first.x, first.y).into()));
+        state.handle_mouse(mouse(down, first.x, first.y), area);
+        state.note = None;
+        state.handle_mouse(mouse(down, first.x, first.y), area);
+        assert_eq!(
+            state.editor.chip_count(),
+            1,
+            "toast-covered cells were not painted prompt"
+        );
+        state.handle_paste(" suffix");
+        actual.push_str(" suffix");
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        state.handle_mouse(mouse(down, second.x + 2, second.y), area);
+        assert_eq!(
+            state.editor.chip_count(),
+            0,
+            "left-down expands the wrapped continuation"
+        );
+        assert_eq!(state.input(), actual);
+        assert_eq!(state.editor.cursor, chip_end);
+        assert!(state.editor.selected().is_none());
+        state.handle_key(KeyAction::Undo).await;
+        assert_eq!(state.editor.chip_count(), 1);
+        state.handle_key(KeyAction::Redo).await;
+        assert_eq!(state.editor.chip_count(), 0);
+        assert_eq!(state.input(), actual);
+        // Repeat paste follows the same extmark expansion and preserves suffix.
+        state.handle_key(KeyAction::Undo).await;
+        state.editor.move_to(chip_end, false);
+        assert!(state.handle_paste(pasted).note.is_none());
+        assert_eq!(state.editor.chip_count(), 0);
+        assert_eq!(state.input(), actual);
+    }
+
+    #[tokio::test]
+    async fn vis07_up_down_use_painted_width_before_history_and_select_raw_wrap() {
+        use ratatui::{Terminal, backend::TestBackend};
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new_home(app);
+        state.attach_page(&page(
+            vec![msg(1, Role::User, "previous prompt")],
+            1,
+            false,
+            false,
+        ));
+        // Home is the 70-cell textarea at 120 columns, independent of session width.
+        state.home = true;
+        let text = "VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded actual requestord";
+        state.restore_prompt(text.into());
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        assert_eq!(state.prompt_layout(70).1, (1, 17));
+        state.handle_key(KeyAction::Up).await;
+        assert_eq!(
+            state.input(),
+            text,
+            "first Up moves within the visual draft"
+        );
+        assert_eq!(state.prompt_layout(70).1, (0, 17));
+        state.handle_key(KeyAction::Down).await;
+        assert_eq!(state.prompt_layout(70).1, (1, 17));
+        state.handle_key(KeyAction::SelectUp).await;
+        assert_eq!(state.editor.selected(), Some((17, text.len())));
+        assert!(state.prompt_layout(70).0[1].spans.iter().all(|s| s.1));
+        state.handle_key(KeyAction::Right).await;
+        state.handle_key(KeyAction::Up).await;
+        state.handle_key(KeyAction::Up).await;
+        assert_eq!(
+            state.input(),
+            text,
+            "visual-edge Up first moves to raw start"
+        );
+        assert_eq!(state.editor.cursor, 0);
+        state.handle_key(KeyAction::Up).await;
+        assert_eq!(
+            state.input(),
+            "previous prompt",
+            "only a subsequent Up at raw start recalls history"
+        );
+        assert_eq!(
+            state.editor.cursor, 0,
+            "previous history starts at raw start"
+        );
+        state.handle_key(KeyAction::Down).await;
+        assert_eq!(
+            state.input(),
+            "previous prompt",
+            "last-row Down first moves to raw end"
+        );
+        assert_eq!(state.editor.cursor, "previous prompt".len());
+        state.handle_key(KeyAction::Down).await;
+        assert_eq!(state.input(), text);
+        assert_eq!(state.prompt_layout(70).1, (1, 17));
+        let last_row_middle = text.find(" actual").unwrap() + 1 + 5;
+        state.editor.move_to(last_row_middle, false);
+        assert_eq!(state.prompt_layout(70).1, (1, 5));
+        state.handle_key(KeyAction::Down).await;
+        assert_eq!(state.input(), text);
+        assert_eq!(state.editor.cursor, text.len());
+    }
+
+    #[tokio::test]
+    async fn vis07_repeat_paste_after_real_suffix_space_inserts_a_new_chip() {
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new_home(app);
+        state.handle_paste("a\nb\nc");
+        type_text(&mut state, " suffix").await;
+        for _ in 0.."suffix".len() {
+            state.handle_key(KeyAction::Left).await;
+        }
+        assert_eq!(state.editor.cursor, "a\nb\nc ".len());
+        assert!(state.handle_paste("a\nb\nc").note.is_none());
+        assert_eq!(state.input(), "a\nb\nc a\nb\ncsuffix");
+        assert_eq!(state.editor.chip_count(), 2);
+        assert_eq!(state.editor.cursor, "a\nb\nc a\nb\nc".len());
+        state.handle_key(KeyAction::Undo).await;
+        assert_eq!(state.input(), "a\nb\nc suffix");
+        assert_eq!(state.editor.chip_count(), 1);
+        state.handle_key(KeyAction::Redo).await;
+        assert_eq!(state.input(), "a\nb\nc a\nb\ncsuffix");
+        assert_eq!(state.editor.chip_count(), 2);
     }
 
     #[tokio::test]
@@ -10490,6 +10911,14 @@ mod tests {
         assert_eq!(state.input(), "");
         state.handle_key(KeyAction::Up).await;
         assert_eq!(state.input(), "stored prompt");
+        assert_eq!(state.editor.cursor, 0);
+        state.handle_key(KeyAction::Down).await;
+        assert_eq!(
+            state.input(),
+            "stored prompt",
+            "first Down moves to raw end"
+        );
+        assert_eq!(state.editor.cursor, "stored prompt".len());
         state.handle_key(KeyAction::Down).await;
         assert_eq!(state.input(), "");
     }
@@ -12376,6 +12805,27 @@ mod tests {
             1,
             "uncovered running header works"
         );
+    }
+
+    #[tokio::test]
+    async fn vis07_submit_pointer_in_unpainted_transcript_space_is_inert() {
+        use crate::styled::Line;
+        let mut state = fresh_state("paste-pointer").await;
+        let frame = Rect::new(0, 0, 120, 40);
+        let area = crate::shell::transcript_area(&state, frame);
+        let rows = vec![Line::plain("accepted user"), Line::plain("assistant")];
+        assert!(area.height > 21);
+        // The suffix-space paste probe leaves the mouse at the old chip row.
+        // After the composer clears, that coordinate belongs to blank space
+        // below the eight (or fewer) newly painted transcript rows.
+        for row in [2, 21, area.height - 1] {
+            state.last_mouse = Some((area.x + 5, area.y + row, frame));
+            assert_eq!(
+                state.paint_transcript_at(area, &rows, rows.len(), 0, Some(frame), &[]),
+                rows
+            );
+            assert!(state.exploration_expanded.is_empty());
+        }
     }
 
     #[tokio::test]
