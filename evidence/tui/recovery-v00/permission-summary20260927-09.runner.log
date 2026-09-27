@@ -1,0 +1,388 @@
+{
+  "output": "/home/opencode/ai/oc/evidence/tui/recovery-v00/permission-summary20260927-09.json",
+  "totals": {
+    "provider_requests": 296,
+    "provider_completed": 296,
+    "tool_calls": 155,
+    "invalid_requests": 0
+  },
+  "comparators": {
+    "grid": {
+      "DIFFERENT": 251,
+      "INVALID": 12
+    },
+    "png": {
+      "DIFFERENT": 263
+    }
+  },
+  "cursors": {
+    "equal": 205,
+    "total": 263
+  },
+  "runs": [
+    {
+      "name": "permission20260927-29",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-30",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-31",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-32",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-33",
+      "mode": "auto-config",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": null,
+            "once-effects": null,
+            "reject-pending": null,
+            "reject-effects": null,
+            "always-pending": null,
+            "always-effects": null,
+            "restart-effects": null,
+            "mixed-effects": null
+          },
+          "grants_survive_restart": null
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": null,
+            "once-effects": null,
+            "reject-pending": null,
+            "reject-effects": null,
+            "always-pending": null,
+            "always-effects": null,
+            "restart-effects": null,
+            "mixed-effects": null
+          },
+          "grants_survive_restart": null
+        }
+      }
+    },
+    {
+      "name": "permission20260927-34",
+      "mode": "auto-cli",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": null,
+            "once-effects": null,
+            "reject-pending": null,
+            "reject-effects": null,
+            "always-pending": null,
+            "always-effects": null,
+            "restart-effects": null,
+            "mixed-effects": null
+          },
+          "grants_survive_restart": null
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": null,
+            "once-effects": null,
+            "reject-pending": null,
+            "reject-effects": null,
+            "always-pending": null,
+            "always-effects": null,
+            "restart-effects": null,
+            "mixed-effects": null
+          },
+          "grants_survive_restart": null
+        }
+      }
+    },
+    {
+      "name": "permission20260927-36",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    }
+  ]
+}
+SOURCE ASSOCIATIONS [{"name":"permission20260927-29","binary":"42977ff968750c37e120a892c948514c8956c6eb422a6e0ef07b0a3c857abb6f","rust":"f512146d5f8761598990013333d1e0ef0f138e068483c0ab75e77888889f9f60","manifest":"2f8ecd1db35c80b4370174af7d13ae59cf452a4db7f939ec6d2ae07e2ce5fe3c","build_exits":[0]},{"name":"permission20260927-30","binary":"42977ff968750c37e120a892c948514c8956c6eb422a6e0ef07b0a3c857abb6f","rust":"f512146d5f8761598990013333d1e0ef0f138e068483c0ab75e77888889f9f60","manifest":"2f8ecd1db35c80b4370174af7d13ae59cf452a4db7f939ec6d2ae07e2ce5fe3c","build_exits":[0]},{"name":"permission20260927-31","binary":"42977ff968750c37e120a892c948514c8956c6eb422a6e0ef07b0a3c857abb6f","rust":"f512146d5f8761598990013333d1e0ef0f138e068483c0ab75e77888889f9f60","manifest":"2f8ecd1db35c80b4370174af7d13ae59cf452a4db7f939ec6d2ae07e2ce5fe3c","build_exits":[0]},{"name":"permission20260927-32","binary":"42977ff968750c37e120a892c948514c8956c6eb422a6e0ef07b0a3c857abb6f","rust":"f512146d5f8761598990013333d1e0ef0f138e068483c0ab75e77888889f9f60","manifest":"2f8ecd1db35c80b4370174af7d13ae59cf452a4db7f939ec6d2ae07e2ce5fe3c","build_exits":[0]},{"name":"permission20260927-33","binary":"42977ff968750c37e120a892c948514c8956c6eb422a6e0ef07b0a3c857abb6f","rust":"f512146d5f8761598990013333d1e0ef0f138e068483c0ab75e77888889f9f60","manifest":"2f8ecd1db35c80b4370174af7d13ae59cf452a4db7f939ec6d2ae07e2ce5fe3c","build_exits":[0]},{"name":"permission20260927-34","binary":"42977ff968750c37e120a892c948514c8956c6eb422a6e0ef07b0a3c857abb6f","rust":"f512146d5f8761598990013333d1e0ef0f138e068483c0ab75e77888889f9f60","manifest":"2f8ecd1db35c80b4370174af7d13ae59cf452a4db7f939ec6d2ae07e2ce5fe3c","build_exits":[0]},{"name":"permission20260927-36","binary":"42977ff968750c37e120a892c948514c8956c6eb422a6e0ef07b0a3c857abb6f","rust":"f512146d5f8761598990013333d1e0ef0f138e068483c0ab75e77888889f9f60","manifest":"3403c25ce53f8a473c3bb60ac3fe6825c35bd2950ab7aec3877e13ee7584c7bf","build_exits":[0]}]
+ZERO-BASED permission20260927-29 once-ask {"upstream":{"△":[[5,25]],"!":[[1,0]],"Permission required":[[7,25]],"→ Edit":[[7,26]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]],"Patching":[[7,7]],"approval.txt":[[16,7],[14,26]]},"oc":{"△":[[5,25]],"!":[[1,0]],"Permission required":[[7,25]],"→ Edit":[[7,26]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]],"Patching":[[7,7]],"approval.txt":[[16,7],[14,26]]}}
+STYLES permission20260927-29 {"upstream":{"!":[{"x":1,"y":0,"cell":{"symbol":"!","fg":"#9d7cd8","bg":"#2c2933","width":1,"modifiers":["bold"]}}],"Permission required":[{"x":7,"y":25,"cell":{"symbol":"P","fg":"#eeeeee","bg":"#141414","width":1,"modifiers":[]}}],"→ Edit":[{"x":7,"y":26,"cell":{"symbol":"→","fg":"#808080","bg":"#141414","width":1,"modifiers":[]}}],"Allow once":[{"x":6,"y":37,"cell":{"symbol":"A","fg":"#0a0a0a","bg":"#fab283","width":1,"modifiers":[]}}]},"oc":{"!":[{"x":1,"y":0,"cell":{"symbol":"!","fg":"#9d7cd8","bg":"#2c2933","width":1,"modifiers":["bold"]}}],"Permission required":[{"x":7,"y":25,"cell":{"symbol":"P","fg":"#eeeeee","bg":"#141414","width":1,"modifiers":[]}}],"→ Edit":[{"x":7,"y":26,"cell":{"symbol":"→","fg":"#808080","bg":"#141414","width":1,"modifiers":[]}}],"Allow once":[{"x":6,"y":37,"cell":{"symbol":"A","fg":"#0a0a0a","bg":"#fab283","width":1,"modifiers":[]}}]}}
+ZERO-BASED permission20260927-29 once-fullscreen {"upstream":{"△":[[5,2]],"!":[[1,0]],"Permission required":[[7,2]],"→ Edit":[[7,3]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f minimize":[[75,37]],"approval.txt":[[14,3]]},"oc":{"△":[[5,2]],"!":[[1,0]],"Permission required":[[7,2]],"→ Edit":[[7,3]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f minimize":[[75,37]],"approval.txt":[[14,3]]}}
+ZERO-BASED permission20260927-29 always-selected {"upstream":{"△":[[5,31]],"!":[[1,0]],"Permission required":[[7,31]],"→ Edit":[[7,32]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]],"This will always":[[5,34]],"Patching":[[7,27]],"approval.txt":[[20,15],[16,27],[14,32]],"# Patch failed":[[5,15]],"The user declined":[[5,17]]},"oc":{"△":[[5,29]],"!":[[1,0]],"Permission required":[[7,29]],"→ Edit":[[7,30]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]],"This will always":[[5,32]],"Patching":[[7,26]],"approval.txt":[[16,26],[14,30],[7,34]],"# Patch failed":[[5,14]],"The user declined":[[5,16]]}}
+ZERO-BASED permission20260927-29 child-feedback-draft {"upstream":{"△":[[5,32]],"!":[[33,0]],"Reject":[[7,32]],"Tell OpenCode":[[5,34]],"VIS36-FEEDBACK":[[5,37]],"this correction.":[[48,37]],"enter confirm":[[90,37]],"# Patch failed":[[5,3]]},"oc":{"△":[[5,32]],"!":[[33,0]],"Reject":[[7,32]],"Tell OpenCode":[[5,34]],"VIS36-FEEDBACK":[[5,37]],"this correction.":[[48,37]],"enter confirm":[[90,37]],"apply_patch":[[19,6]],"# Patch failed":[[5,5]]}}
+ZERO-BASED permission20260927-29 settings-autoaccept {"upstream":{"Permissions":[[34,13],[34,16]],"auto accept":[[75,16]],"Session":[[34,15]],"Settings":[[34,11]]},"oc":{"Permissions":[[34,16]],"auto accept":[[75,16]],"Session":[[34,15]],"Settings":[[34,11]],"Search":[[34,13]],"The user declined":[[7,20],[7,29]]}}
+ZERO-BASED permission20260927-29 settings-auto-first-escape {"upstream":{},"oc":{"The user declined":[[7,20],[7,29]]}}
+ZERO-BASED permission20260927-29 read-ask {"upstream":{"△":[[5,31]],"!":[[33,0]],"Permission required":[[7,31]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]],"approval.txt":[[12,28],[14,32],[11,34]]},"oc":{"△":[[5,31]],"!":[[33,0]],"Permission required":[[7,31]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]],"approval.txt":[[12,29],[14,32],[11,34]]}}
+ZERO-BASED permission20260927-29 shell-ask {"upstream":{"△":[[5,32]],"!":[[33,0]],"Permission required":[[7,32]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]]},"oc":{"△":[[5,32]],"!":[[33,0]],"Permission required":[[7,32]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]]}}
+ZERO-BASED permission20260927-29 mcp-ask {"upstream":{"△":[[5,31]],"!":[[33,0]],"Permission required":[[7,31]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]],"# Patch failed":[[5,14]]},"oc":{"△":[[5,31]],"!":[[33,0]],"Permission required":[[7,31]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]],"approval.txt":[[15,2]],"apply_patch":[[19,18]],"# Patch failed":[[5,17]]}}
+ZERO-BASED permission20260927-29 url-ask {"upstream":{"△":[[5,29]],"!":[[33,0]],"Permission required":[[7,29]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]],"URL:":[[5,33]]},"oc":{"△":[[5,29]],"!":[[33,0]],"Permission required":[[7,29]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]],"The user declined":[[7,17]],"URL:":[[5,33]]}}
+ZERO-BASED permission20260927-29 reject-completed {"upstream":{"approval.txt":[[15,7],[20,24]],"# Patch failed":[[5,24]],"The user declined":[[5,26]]},"oc":{"approval.txt":[[15,7]],"# Patch failed":[[5,24]],"The user declined":[[5,26]]}}
+ZERO-BASED permission20260927-29 failure {}
+ZERO-BASED permission20260927-30 once-ask {"upstream":{"△":[[5,25]],"!":[[1,0]],"Permission required":[[7,25]],"→ Edit":[[7,26]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"Patching":[[7,7]],"approval.txt":[[16,7],[14,26]]},"oc":{"△":[[5,25]],"!":[[1,0]],"Permission required":[[7,25]],"→ Edit":[[7,26]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"Patching":[[7,7]],"approval.txt":[[16,7],[14,26]]}}
+STYLES permission20260927-30 {"upstream":{"!":[{"x":1,"y":0,"cell":{"symbol":"!","fg":"#9d7cd8","bg":"#2c2933","width":1,"modifiers":["bold"]}}],"Permission required":[{"x":7,"y":25,"cell":{"symbol":"P","fg":"#eeeeee","bg":"#141414","width":1,"modifiers":[]}}],"→ Edit":[{"x":7,"y":26,"cell":{"symbol":"→","fg":"#808080","bg":"#141414","width":1,"modifiers":[]}}],"Allow once":[{"x":6,"y":37,"cell":{"symbol":"A","fg":"#0a0a0a","bg":"#fab283","width":1,"modifiers":[]}}]},"oc":{"!":[{"x":1,"y":0,"cell":{"symbol":"!","fg":"#9d7cd8","bg":"#2c2933","width":1,"modifiers":["bold"]}}],"Permission required":[{"x":7,"y":25,"cell":{"symbol":"P","fg":"#eeeeee","bg":"#141414","width":1,"modifiers":[]}}],"→ Edit":[{"x":7,"y":26,"cell":{"symbol":"→","fg":"#808080","bg":"#141414","width":1,"modifiers":[]}}],"Allow once":[{"x":6,"y":37,"cell":{"symbol":"A","fg":"#0a0a0a","bg":"#fab283","width":1,"modifiers":[]}}]}}
+ZERO-BASED permission20260927-30 once-fullscreen {"upstream":{"△":[[5,2]],"!":[[1,0]],"Permission required":[[7,2]],"→ Edit":[[7,3]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f minimize":[[42,37]],"approval.txt":[[14,3]]},"oc":{"△":[[5,2]],"!":[[1,0]],"Permission required":[[7,2]],"→ Edit":[[7,3]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f minimize":[[42,37]],"approval.txt":[[14,3]]}}
+ZERO-BASED permission20260927-30 always-selected {"upstream":{"△":[[5,31]],"!":[[1,0]],"Permission required":[[7,31]],"→ Edit":[[7,32]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"This will always":[[5,34]],"Patching":[[7,27]],"approval.txt":[[20,15],[16,27],[14,32]],"# Patch failed":[[5,15]],"The user declined":[[5,17]]},"oc":{"△":[[5,29]],"!":[[1,0]],"Permission required":[[7,29]],"→ Edit":[[7,30]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"This will always":[[5,32]],"Patching":[[7,26]],"approval.txt":[[16,26],[14,30],[7,34]],"# Patch failed":[[5,14]],"The user declined":[[5,16]]}}
+ZERO-BASED permission20260927-30 child-feedback-draft {"upstream":{"△":[[5,31]],"!":[[33,0]],"Reject":[[7,31]],"Tell OpenCode":[[5,33]],"VIS36-FEEDBACK":[[5,36]],"this correction.":[[5,37]],"enter confirm":[[50,37]],"# Patch failed":[[5,1]]},"oc":{"△":[[5,31]],"!":[[33,0]],"Reject":[[7,31]],"Tell OpenCode":[[5,33]],"VIS36-FEEDBACK":[[5,36]],"this correction.":[[5,37]],"enter confirm":[[50,37]],"apply_patch":[[19,5]],"# Patch failed":[[5,4]]}}
+ZERO-BASED permission20260927-30 settings-autoaccept {"upstream":{"Permissions":[[14,13],[14,16]],"auto accept":[[55,16]],"Session":[[14,15]],"Settings":[[14,11]]},"oc":{"Permissions":[[14,16]],"auto accept":[[55,16]],"Session":[[14,15]],"Settings":[[14,11]],"Search":[[14,13]],"The user declined":[[7,20],[7,29]]}}
+ZERO-BASED permission20260927-30 settings-auto-first-escape {"upstream":{},"oc":{"The user declined":[[7,20],[7,29]]}}
+ZERO-BASED permission20260927-30 read-ask {"upstream":{"△":[[5,31]],"!":[[33,0]],"Permission required":[[7,31]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"approval.txt":[[12,28],[14,32],[11,34]]},"oc":{"△":[[5,31]],"!":[[33,0]],"Permission required":[[7,31]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"approval.txt":[[12,29],[14,32],[11,34]]}}
+ZERO-BASED permission20260927-30 shell-ask {"upstream":{"△":[[5,32]],"!":[[33,0]],"Permission required":[[7,32]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]]},"oc":{"△":[[5,32]],"!":[[33,0]],"Permission required":[[7,32]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]]}}
+ZERO-BASED permission20260927-30 mcp-ask {"upstream":{"△":[[5,31]],"!":[[33,0]],"Permission required":[[7,31]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"# Patch failed":[[5,13]]},"oc":{"△":[[5,31]],"!":[[33,0]],"Permission required":[[7,31]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"approval.txt":[[15,2]],"apply_patch":[[19,18]],"# Patch failed":[[5,17]]}}
+ZERO-BASED permission20260927-30 url-ask {"upstream":{"△":[[5,27]],"!":[[33,0]],"Permission required":[[7,27]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"URL:":[[5,32]]},"oc":{"△":[[5,27]],"!":[[33,0]],"Permission required":[[7,27]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"The user declined":[[7,14]],"URL:":[[5,32]]}}
+ZERO-BASED permission20260927-30 reject-completed {"upstream":{"approval.txt":[[15,7],[20,25]],"# Patch failed":[[5,25]],"The user declined":[[5,27]]},"oc":{"approval.txt":[[15,7]],"# Patch failed":[[5,25]],"The user declined":[[5,27]]}}
+ZERO-BASED permission20260927-30 failure {}
+INVALID CURSORS [{"name":"permission20260927-30","columns":80,"scenario":"permission-mcp-fullscreen","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":75,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-30","columns":80,"scenario":"permission-mcp-inline","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":75,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-30","columns":80,"scenario":"permission-childroot-fullscreen","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":75,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-30","columns":80,"scenario":"permission-childroot-inline","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":75,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-30","columns":80,"scenario":"permission-read-fullscreen","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":75,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-30","columns":80,"scenario":"permission-read-inline","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":75,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-30","columns":80,"scenario":"permission-shell-fullscreen","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":75,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-30","columns":80,"scenario":"permission-shell-inline","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":75,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-30","columns":80,"scenario":"permission-glob-fullscreen","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":75,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-30","columns":80,"scenario":"permission-glob-inline","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":75,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-30","columns":80,"scenario":"permission-url-fullscreen","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":75,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-30","columns":80,"scenario":"permission-url-inline","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":75,"y":37,"visible":false,"shape":"block"}}]

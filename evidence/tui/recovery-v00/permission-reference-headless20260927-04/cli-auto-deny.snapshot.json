@@ -1,0 +1,91 @@
+{
+  "observations": [
+    {
+      "database": "/home/opencode/.cache/opencode-tmp/opencode/permission-reference-headless20260927-04/cli-auto-deny/home/data/opencode/opencode.db",
+      "tables": [
+        "account_state",
+        "account",
+        "control_account",
+        "credential",
+        "event_sequence",
+        "event",
+        "kv",
+        "permission",
+        "project_directory",
+        "project",
+        "instruction_blob",
+        "instruction_entry",
+        "instruction_state",
+        "session_inbox",
+        "session_message",
+        "session_pending",
+        "session_v2",
+        "workspace",
+        "worktree",
+        "migration"
+      ],
+      "data": {
+        "session_message": [
+          {
+            "id": "msg_0e33a379e001Gppy8uyPaYW6gI",
+            "session_id": "ses_f1cc5c883ffe8RrZaWkoz03X2Z",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790518638575,
+            "time_updated": 1790518638576,
+            "data": "{\"time\":{\"created\":1790518638575},\"text\":\"\\\"VIS36 shell: invoke ordinary shell function\\\"\",\"files\":[]}"
+          },
+          {
+            "id": "msg_0e33a3801001YqCfQpbTEc0BLe",
+            "session_id": "ses_f1cc5c883ffe8RrZaWkoz03X2Z",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790518638598,
+            "time_updated": 1790518638692,
+            "data": "{\"time\":{\"created\":1790518638598,\"streamed\":1790518638627,\"completed\":1790518638691},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"},\"content\":[{\"type\":\"tool\",\"id\":\"call_vis36_shell\",\"name\":\"shell\",\"executed\":false,\"providerState\":{\"itemId\":\"fc_vis35_2\"},\"state\":{\"status\":\"error\",\"input\":{\"command\":\"/usr/bin/touch headless-marker\"},\"error\":{\"type\":\"permission.rejected\",\"message\":\"Permission denied: shell\"}},\"time\":{\"created\":1790518638619,\"ran\":1790518638625,\"completed\":1790518638688}}],\"finish\":\"tool-calls\",\"providerState\":{\"responseId\":\"resp_vis35_2\"},\"cost\":0,\"tokens\":{\"input\":1234,\"output\":64,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e33a386d001ODXwyyx1mU65so",
+            "session_id": "ses_f1cc5c883ffe8RrZaWkoz03X2Z",
+            "type": "assistant",
+            "seq": 14,
+            "time_created": 1790518638705,
+            "time_updated": 1790518638721,
+            "data": "{\"time\":{\"created\":1790518638705,\"streamed\":1790518638719,\"completed\":1790518638720},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS36-DONE-shell\",\"state\":{\"itemId\":\"msg_vis35_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis35_3\"},\"cost\":0,\"tokens\":{\"input\":1234,\"output\":64,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e33a388200272GVJW1xjXswhf",
+            "session_id": "ses_f1cc5c883ffe8RrZaWkoz03X2Z",
+            "type": "idle",
+            "seq": 19,
+            "time_created": 1790518638723,
+            "time_updated": 1790518638723,
+            "data": "{\"time\":{\"created\":1790518638723},\"outcome\":\"succeeded\"}"
+          }
+        ],
+        "session_inbox": [],
+        "permission": []
+      }
+    }
+  ],
+  "project_files": {},
+  "files": {
+    "approval.txt": {
+      "present": false
+    },
+    "denied.txt": {
+      "present": false
+    },
+    "shell-marker": {
+      "present": false
+    }
+  },
+  "executor_hook": [],
+  "cli": {
+    "session": {
+      "permissions": "autoaccept"
+    }
+  },
+  "audit": "File stat/hash/bytes and SQLite mode=ro; not an OS syscall trace.",
+  "mcp": []
+}

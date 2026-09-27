@@ -1,0 +1,40 @@
+   VIS36 patch fixture           ! VIS36 patch fixture           +             
+  ┃  ✓ Vis36-Child Subagent — VIS36 child permission feedback                  
+  ┃  s-tui-18d92af585498576-e311c-0-sub-1790509574991-0 · completed            
+  ┃  VIS36-DONE-childread                                                      
+  ┃                                                                            
+                                                                               
+     VIS36-DONE-childroot                                                      
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 11.4s                                      
+                                                                               
+  ┃                                                                            
+  ┃  VIS36 read: execute the supplied ordinary function patch once.            
+  ┃                                                                            
+                                                                               
+     → Explored — 1 read                                                       
+                                                                               
+     VIS36-DONE-read                                                           
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 7.0s                                       
+                                                                               
+  ┃                                                                            
+  ┃  VIS36 shell: execute the supplied ordinary function patch once.           
+  ┃                                                                            
+                                                                               
+  ┃                                                                            
+  ┃  $ cd                                                                      
+  ┃  /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permissio  
+  ┃  n20260927-19/project && /usr/bin/touch shell-marker                       
+  ┃                                                                            
+  ┃                                                                            
+  ┃  △ Permission required                                                     
+  ┃                                                                            
+  ┃  $ /usr/bin/touch shell-marker                                             
+  ┃                                                                            
+  ┃                                                                            
+  ┃   Allow once   Always allow   Reject                                       
+  ┃                                                                            
+  ┃  ctrl+f fullscreen  ⇆ select  enter confirm                                
+  ┃                                                                            
+                                                                               

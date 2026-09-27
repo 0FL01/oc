@@ -12,6 +12,69 @@ use ratatui::style::Style;
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
+/// Proposed image, rendered independently of committed mutation cards.
+pub(crate) fn preview(file: &FileEffect, theme: &Theme, width: u16, split: bool) -> Vec<Line> {
+    let width = usize::from(width).max(1);
+    let digits = file
+        .hunks
+        .iter()
+        .flat_map(|h| &h.lines)
+        .flat_map(|l| [l.old_line, l.new_line])
+        .flatten()
+        .max()
+        .unwrap_or(1)
+        .to_string()
+        .len();
+    let mut out = Vec::new();
+    for hunk in &file.hunks {
+        if split && width > 2 * (digits + 4) {
+            for (left, right) in pairs(&hunk.lines) {
+                let left = side(
+                    left,
+                    false,
+                    file,
+                    theme,
+                    digits,
+                    width.div_ceil(2),
+                    DiffWrap::Word,
+                );
+                let right = side(right, true, file, theme, digits, width / 2, DiffWrap::Word);
+                for i in 0..left.len().max(right.len()) {
+                    let mut row = left.get(i).cloned().unwrap_or_else(|| {
+                        fit(
+                            Vec::new(),
+                            width.div_ceil(2),
+                            Style::default().bg(theme.diff_context_background()),
+                        )
+                    });
+                    row.extend(right.get(i).cloned().unwrap_or_default());
+                    out.push(Line::new(row));
+                }
+            }
+        } else {
+            for line in &hunk.lines {
+                out.extend(
+                    side(
+                        Some(line),
+                        line.kind != PatchLineKind::Removed,
+                        file,
+                        theme,
+                        digits,
+                        width,
+                        DiffWrap::Word,
+                    )
+                    .into_iter()
+                    .map(Line::new),
+                );
+            }
+        }
+    }
+    if out.is_empty() {
+        out.push(Line::plain("No diff provided"));
+    }
+    out
+}
+
 pub(crate) fn render(
     effects: &PatchEffects,
     card: &ToolCard,
@@ -855,6 +918,73 @@ pub(crate) mod tests {
         let shown = text(&crate::tools::tool_block(&legacy, Theme::dark(), 100));
         assert!(shown.contains("Request preview (not confirmed)"));
         assert!(!shown.contains("# Created"));
+    }
+
+    #[test]
+    fn vis36_rejected_patch_labels_requested_target_without_inventing_effects() {
+        let mut operation = row(Some(PatchEffects::default()), "denied");
+        operation.input = Some(serde_json::json!({"patchText": "*** Begin Patch\n*** Update File: approval.txt\n@@\n-old\n+new\n*** End Patch"}).to_string());
+        operation.output = Some(
+            serde_json::json!({"status": "permission_rejected", "feedback": null}).to_string(),
+        );
+        let card = card_from_row(&operation);
+        assert_eq!(card.files, ["approval.txt"]);
+        assert!(card.patch_effects.as_ref().unwrap().files.is_empty());
+        let rows = [HistoryRow {
+            seq: 1,
+            message_id: None,
+            role: "tool".into(),
+            text: String::new(),
+            agent: None,
+            agent_color_index: None,
+            chips: Vec::new(),
+            reasoning: None,
+            meta: None,
+            tool: Some(card),
+        }];
+        let cache = std::cell::RefCell::new(crate::messages::MarkdownCache::default());
+        for terminal in [79, 80, 120, 121] {
+            let width = terminal - 4;
+            let full = crate::messages::transcript(&rows, Theme::dark(), width, terminal, |_| {
+                Theme::dark().text()
+            });
+            let shown = text(&full);
+            assert!(shown.contains("# Patch failed approval.txt"), "{shown}");
+            assert!(
+                shown.contains("The user declined this tool call"),
+                "{shown}"
+            );
+            for false_effect in ["← Patched", "Confirmed effects", "- old", "+ new"] {
+                assert!(!shown.contains(false_effect), "{shown}");
+            }
+            let header = full
+                .iter()
+                .position(|line| line.plain_text().contains("# Patch failed"))
+                .unwrap();
+            let body = full
+                .iter()
+                .position(|line| line.plain_text().contains("The user declined"))
+                .unwrap();
+            assert_eq!(body, header + 2);
+            for _ in 0..2 {
+                let (visible, total) = crate::messages::visible_transcript(
+                    &rows,
+                    Theme::dark(),
+                    width,
+                    terminal,
+                    (40, 0, None),
+                    |_| Theme::dark().text(),
+                    &cache,
+                );
+                let mut expected = vec![Line::plain("")];
+                expected.extend(styled::wrap_lines(&full, usize::from(width)));
+                assert_eq!(total, expected.len());
+                assert_eq!(visible.len(), expected.len());
+                for (actual, expected) in visible.iter().zip(&expected) {
+                    assert_eq!(actual.spans(), expected.spans());
+                }
+            }
+        }
     }
 
     #[test]

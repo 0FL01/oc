@@ -178,7 +178,7 @@ fn parse_request_url(url: &str) -> Result<Url, FetchError> {
 }
 
 /// Validate scheme/host/userinfo of `url` and strip its fragment.
-fn validate_url(url: &mut Url) -> Result<(), FetchError> {
+pub(crate) fn validate_url(url: &mut Url) -> Result<(), FetchError> {
     match url.scheme() {
         "http" | "https" => {}
         _ => return Err(FetchError::InvalidUrl),
@@ -190,6 +190,24 @@ fn validate_url(url: &mut Url) -> Result<(), FetchError> {
         return Err(FetchError::InvalidUrl);
     }
     url.set_fragment(None);
+    Ok(())
+}
+
+/// Network-free admission. DNS resolution and address-bound dialing remain in
+/// fetch after permission; literal private addresses are rejected immediately.
+pub(crate) fn check_static_host(url: &Url, allow_loopback: bool) -> Result<(), FetchError> {
+    let host = url.host_str().ok_or(FetchError::InvalidUrl)?;
+    if let Ok(ip) = host
+        .trim_start_matches('[')
+        .trim_end_matches(']')
+        .parse::<IpAddr>()
+    {
+        return ensure_public(ip, allow_loopback);
+    }
+    let name = host.trim_end_matches('.').to_ascii_lowercase();
+    if !allow_loopback && (name == "localhost" || name.ends_with(".localhost")) {
+        return Err(FetchError::PrivateHost);
+    }
     Ok(())
 }
 

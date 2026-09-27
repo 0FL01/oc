@@ -1,0 +1,40 @@
+   VIS36 patch fixture           △ VIS36 patch fixture                                                                  
+  ┃  VIS36 mixed: execute the supplied ordinary function patch once.                                                    
+  ┃                                                                                                                     
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  # Patch failed                                                                                                     
+  ┃  error: denied apply_patch                                                                                          
+  ┃                                                                                                                     
+                                                                                                                        
+     VIS36-DONE-mixed                                                                                                   
+                                                                                                                        
+     Build · MiMo-V2.6-Flash Free · 221ms                                                                               
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  VIS36 read: execute the supplied ordinary function patch once.                                                     
+  ┃                                                                                                                     
+                                                                                                                        
+     → Explored — 1 read                                                                                                
+                                                                                                                        
+     VIS36-DONE-read                                                                                                    
+                                                                                                                        
+     Build · MiMo-V2.6-Flash Free · 9.1s                                                                                
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  VIS36 shell: execute the supplied ordinary function patch once.                                                    
+  ┃                                                                                                                     
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  $ cd /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-03/project &&               
+  ┃  /usr/bin/touch shell-marker                                                                                        
+  ┃                                                                                                                     
+  │                                                                                                                     
+  │ △ Permission required                                                                                               
+  │                                                                                                                     
+  │ $ /usr/bin/touch shell-marker                                                                                       
+  │ Directory: /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-03/project             
+  │                                                                                                                     
+  │  Allow once   Always allow   Reject                                ctrl+f fullscreen  ⇆ select  enter confirm       
+  │                                                                                                                     
+                                                                                                                        

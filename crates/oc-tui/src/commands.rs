@@ -13,6 +13,8 @@ pub const COMMAND_ARGS_MAX: usize = 512;
 /// Dispatched built-in command.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CommandAction {
+    OpenSettings,
+    OpenPermissions,
     CompactSession,
     UndoConversation,
     RedoConversation,
@@ -176,6 +178,22 @@ pub const COMMANDS_BINDING: &str = "ctrl+p";
 pub const AGENTS_BINDING: &str = "shift+tab";
 
 pub const REGISTRY: &[CommandSpec] = &[
+    CommandSpec {
+        id: "settings.open",
+        title: "Open settings",
+        group: "System",
+        shortcuts: &[],
+        aliases: &["settings"],
+        action: CommandAction::OpenSettings,
+    },
+    CommandSpec {
+        id: "session.permissions",
+        title: "Permissions",
+        group: "Session",
+        shortcuts: &[],
+        aliases: &["permissions"],
+        action: CommandAction::OpenPermissions,
+    },
     CommandSpec {
         id: "session.undo",
         title: "Undo",
@@ -462,7 +480,10 @@ mod tests {
                 Some(super::CommandAction::OpenSessions)
             );
         }
-        assert_eq!(complete("/s"), ["sessions", "sidebar", "skills"]);
+        assert_eq!(
+            complete("/s"),
+            ["sessions", "settings", "sidebar", "skills"]
+        );
         assert_eq!(complete("/a"), ["agent", "agents"]);
         assert_eq!(complete("/d"), ["dcp-compress"]);
         for command in super::REGISTRY {

@@ -1,0 +1,40 @@
+   VIS36 patch fixture           △ VIS36 patch fixture                         
+  ┃                                                                            
+  ┃  ← Patched approval.txt                                                    
+  ┃                                                                            
+  ┃    1 - always approved                                                     
+  ┃    1 + restart approved                                                    
+  ┃                                                                            
+                                                                               
+     VIS36-DONE-restart                                                        
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 277ms                                      
+                                                                               
+  ┃                                                                            
+  ┃  VIS36 mixed: execute the supplied ordinary function patch once.           
+  ┃                                                                            
+                                                                               
+  ┃                                                                            
+  ┃  # Patch failed                                                            
+  ┃  error: denied apply_patch                                                 
+  ┃                                                                            
+                                                                               
+     VIS36-DONE-mixed                                                          
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 240ms                                      
+                                                                               
+  ┃                                                                            
+  ┃  VIS36 read: execute the supplied ordinary function patch once.            
+  ┃                                                                            
+                                                                               
+     → Read approval.txt                                                       
+  │                                                                            
+  │ △ Permission required                                                      
+  │                                                                            
+  │ → read                                                                     
+  │ Path: approval.txt                                                         
+  │                                                                            
+  │  Allow once   Always allow   Reject                                        
+  │ ctrl+f fullscreen  ⇆ select  enter confirm                                 
+  │                                                                            
+                                                                               

@@ -1,0 +1,168 @@
+{
+  "output": "/home/opencode/ai/oc/evidence/tui/recovery-v00/permission-analysis20260927-09.json",
+  "totals": {
+    "provider_requests": 236,
+    "provider_completed": 236,
+    "tool_calls": 124,
+    "invalid_requests": 0
+  },
+  "comparators": {
+    "grid": {
+      "DIFFERENT": 200,
+      "INVALID": 12
+    },
+    "png": {
+      "DIFFERENT": 212
+    }
+  },
+  "cursors": {
+    "equal": 162,
+    "total": 212
+  },
+  "runs": [
+    {
+      "name": "permission20260927-29",
+      "columns": 120,
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "permission20260927-30",
+      "columns": 80,
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "permission20260927-31",
+      "columns": 79,
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "permission20260927-32",
+      "columns": 121,
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "permission20260927-33",
+      "columns": 80,
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          }
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "permission20260927-34",
+      "columns": 121,
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          }
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          }
+        }
+      }
+    }
+  ]
+}

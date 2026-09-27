@@ -54,6 +54,10 @@ fn open(dir: &File, name: &CString, flags: i32, mode: u32) -> io::Result<File> {
 }
 
 impl Root {
+    pub fn authority_identity(&self) -> io::Result<(u64, u64)> {
+        let metadata = self.0.metadata()?;
+        Ok((metadata.dev(), metadata.ino()))
+    }
     pub fn new(root: &Path) -> io::Result<Self> {
         std::fs::OpenOptions::new()
             .read(true)

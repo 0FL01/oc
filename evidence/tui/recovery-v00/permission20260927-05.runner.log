@@ -1,0 +1,15 @@
+{
+  "output": "/home/opencode/ai/oc/evidence/tui/recovery-v00/permission20260927-05",
+  "exit_code": 2,
+  "attempts": [
+    {
+      "origin": "oc",
+      "status": "FAILED",
+      "reason": "page.evaluate: Target page, context or browser has been closed"
+    },
+    {
+      "status": "BLOCKED",
+      "reason": "page.evaluate: Target page, context or browser has been closed\n    at frame (/home/opencode/ai/oc/scripts/tui_capture/capture.mjs:453:19)\n    at async file:///home/opencode/ai/oc/scripts/tui_capture/capture.mjs:2828:42"
+    }
+  ]
+}

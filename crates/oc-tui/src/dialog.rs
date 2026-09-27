@@ -354,9 +354,9 @@ impl SelectList {
         let theme = Theme::dark();
         self.footer_visible.set(footer.is_some());
         let sessions = title == "Sessions" || title.starts_with("Sessions for ");
-        self.session_categories.set(sessions);
-        // Donor Sessions has skipFilter=true but does not opt into flat=true.
-        let flat = !sessions && !self.query.is_empty();
+        self.session_categories.set(sessions || title == "Settings");
+        // Sessions and Settings retain their actual category headings while filtering.
+        let flat = !self.session_categories.get() && !self.query.is_empty();
         let mut rows: Vec<(Option<usize>, String)> = Vec::new();
         let mut category = "";
         for (i, option) in options.iter().enumerate() {
@@ -659,6 +659,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     let title = match state.panel() {
         TuiPanel::None => return,
         TuiPanel::Commands => "Commands",
+        TuiPanel::Settings => "Settings",
         TuiPanel::MessageActions { .. } => "Message Actions",
         TuiPanel::Model => "Select model",
         TuiPanel::Variant => "Select variant",
@@ -682,11 +683,15 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         title,
         size,
         &state.modal_options(),
-        (state.panel() == &TuiPanel::Sessions).then_some(if state.sessions_all_projects() {
-            "current directory ctrl+a"
+        if state.panel() == &TuiPanel::Settings {
+            Some("←/→ change")
         } else {
-            "all projects ctrl+a"
-        }),
+            (state.panel() == &TuiPanel::Sessions).then_some(if state.sessions_all_projects() {
+                "current directory ctrl+a"
+            } else {
+                "all projects ctrl+a"
+            })
+        },
     );
 }
 

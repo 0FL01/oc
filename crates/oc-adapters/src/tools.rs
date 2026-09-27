@@ -113,6 +113,13 @@ pub enum BatchError {
 
 /// Central permission hook (the product policy plugs in here).
 pub trait ToolPolicy: Sync {
+    fn approved_shell_cwd(&self) -> Option<std::sync::Arc<crate::shell::PinnedCwd>> {
+        None
+    }
+    /// Executor-only preimage ceiling attached to an exact invocation permit.
+    fn approved_patch_preimage(&self) -> Option<&str> {
+        None
+    }
     /// Authorize a tool invocation or deny it.
     fn check(&self, tool: &str) -> Result<(), ToolError>;
     /// Authorize the actual tool resource, rather than just its action name.
@@ -129,7 +136,7 @@ pub trait ToolPolicy: Sync {
 }
 
 /// v2.0.12 resource semantics, adapted to the native argv-only shell API.
-fn permission_resources(call: &ToolCall) -> Result<Vec<String>, ToolError> {
+pub(crate) fn permission_resources(call: &ToolCall) -> Result<Vec<String>, ToolError> {
     let invalid = || ToolError::InvalidArgs {
         tool: call.name.clone(),
         reason: "missing permission resource".into(),
@@ -380,6 +387,8 @@ pub enum SubagentOutcome {
 /// The boxed future keeps the trait object-safe and breaks the async
 /// recursion between the turn loop and the nested turn at the type level.
 pub trait SubagentRunner: Sync {
+    /// Resolve structural eligibility without creating a child, turn or intent.
+    fn preflight(&self, request: &SubagentRequest) -> Result<(), ToolError>;
     /// Run one child to a terminal report. Cancellation is the caller's flag.
     fn spawn<'x>(
         &'x self,
@@ -869,8 +878,13 @@ fn tool_patch_impl(
         return ("error: tool apply_patch failed: no roots".to_string(), None);
     };
     let bridge = PolicyBridge(ctx.policy);
-    let (result, effects) =
-        crate::patch::apply_patch_with_effects(&roots.project, &roots.data, patch, &bridge);
+    let (result, effects) = crate::patch::apply_patch_with_approved_preimage(
+        &roots.project,
+        &roots.data,
+        patch,
+        &bridge,
+        ctx.policy.approved_patch_preimage(),
+    );
     (patch_outcome(result), Some(effects))
 }
 
@@ -970,8 +984,17 @@ pub(crate) async fn execute_bash_typed(
     }
     let _cleanup = CancelOnDrop(cancel.clone());
     let owned_cancel = cancel.clone();
+    let approved_cwd = ctx.policy.approved_shell_cwd();
     let mut task = tokio::task::spawn_blocking(move || {
-        shell.execute(&env, &argv, &cwd, None, limits, &owned_cancel)
+        shell.execute_pinned(
+            &env,
+            &argv,
+            &cwd,
+            None,
+            limits,
+            &owned_cancel,
+            approved_cwd.as_deref(),
+        )
     });
     let result = loop {
         tokio::select! {
@@ -1060,6 +1083,18 @@ async fn tool_webfetch(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
     }
 }
 
+pub(crate) fn preflight_skill(snapshot: &SkillSnapshot, id: &str) -> Result<(), String> {
+    if snapshot.entries.contains_key(id) {
+        Ok(())
+    } else {
+        Err(snapshot
+            .errors
+            .get(id)
+            .cloned()
+            .unwrap_or_else(|| format!("unknown skill {id} (not in pinned snapshot)")))
+    }
+}
+
 fn tool_skill(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
     let id = call
         .arguments
@@ -1090,36 +1125,9 @@ async fn tool_subagent(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
     let Some(runner) = ctx.subagent else {
         return "error: subagent tool is unavailable in this session".to_string();
     };
-    if call
-        .arguments
-        .get("background")
-        .and_then(|value| value.as_bool())
-        == Some(true)
-    {
-        return "error: background subagents are not supported yet; no child session was created"
-            .to_string();
-    }
-    let string = |key: &str| {
-        call.arguments
-            .get(key)
-            .and_then(|value| value.as_str())
-            .unwrap_or_default()
-            .to_string()
-    };
-    let request = SubagentRequest {
-        agent: string("agent"),
-        description: string("description"),
-        prompt: string("prompt"),
-        model: call
-            .arguments
-            .get("model")
-            .and_then(|value| value.as_str())
-            .map(str::to_string),
-        session_id: call
-            .arguments
-            .get("sessionID")
-            .and_then(|value| value.as_str())
-            .map(str::to_string),
+    let request = match subagent_request(call) {
+        Ok(request) => request,
+        Err(error) => return format!("error: {error}"),
     };
     match runner.spawn(request).await {
         Ok(SubagentOutcome::Completed { session_id, text }) => {
@@ -1138,6 +1146,51 @@ async fn tool_subagent(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
         Ok(SubagentOutcome::Cancelled { .. }) => "error: cancelled".to_string(),
         Err(error) => format!("error: {error}"),
     }
+}
+
+pub(crate) fn preflight_subagent(ctx: &ToolContext<'_>, call: &ToolCall) -> Result<(), ToolError> {
+    let runner = ctx.subagent.ok_or_else(|| ToolError::Failed {
+        tool: "subagent".into(),
+        reason: "subagent tool is unavailable in this session".into(),
+    })?;
+    runner.preflight(&subagent_request(call)?)
+}
+
+fn subagent_request(call: &ToolCall) -> Result<SubagentRequest, ToolError> {
+    if call
+        .arguments
+        .get("background")
+        .and_then(|value| value.as_bool())
+        == Some(true)
+    {
+        return Err(ToolError::Failed {
+            tool: "subagent".into(),
+            reason: "background subagents are not supported yet; no child session was created"
+                .into(),
+        });
+    }
+    let string = |key: &str| {
+        call.arguments
+            .get(key)
+            .and_then(|value| value.as_str())
+            .unwrap_or_default()
+            .to_string()
+    };
+    Ok(SubagentRequest {
+        agent: string("agent"),
+        description: string("description"),
+        prompt: string("prompt"),
+        model: call
+            .arguments
+            .get("model")
+            .and_then(|value| value.as_str())
+            .map(str::to_string),
+        session_id: call
+            .arguments
+            .get("sessionID")
+            .and_then(|value| value.as_str())
+            .map(str::to_string),
+    })
 }
 
 /// Durable turn log: opaque provider items + usage with a replay boundary.

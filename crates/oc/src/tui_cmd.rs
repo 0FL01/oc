@@ -144,9 +144,9 @@ const MAX_TABS: usize = 16;
 const MENTION_DEBOUNCE: Duration = Duration::from_millis(90);
 
 /// Launch the interactive TUI; returns process exit code.
-pub async fn run_tui(data_dir: &Path, session_opt: Option<String>) -> ExitCode {
+pub async fn run_tui(data_dir: &Path, session_opt: Option<String>, auto_once: bool) -> ExitCode {
     install_panic_hook();
-    match run_inner(data_dir, session_opt).await {
+    match run_inner(data_dir, session_opt, auto_once).await {
         Ok(code) => code,
         Err(message) => {
             eprintln!("error: {message}");
@@ -155,8 +155,12 @@ pub async fn run_tui(data_dir: &Path, session_opt: Option<String>) -> ExitCode {
     }
 }
 
-async fn run_inner(data_dir: &Path, session_opt: Option<String>) -> Result<ExitCode, String> {
-    let outcome = run_stages(data_dir, session_opt).await;
+async fn run_inner(
+    data_dir: &Path,
+    session_opt: Option<String>,
+    auto_once: bool,
+) -> Result<ExitCode, String> {
+    let outcome = run_stages(data_dir, session_opt, auto_once).await;
     let code = match &outcome {
         Ok(code) => *code,
         Err(_) => 1,
@@ -165,7 +169,11 @@ async fn run_inner(data_dir: &Path, session_opt: Option<String>) -> Result<ExitC
     outcome.map(ExitCode::from)
 }
 
-async fn run_stages(data_dir: &Path, session_opt: Option<String>) -> Result<u8, String> {
+async fn run_stages(
+    data_dir: &Path,
+    session_opt: Option<String>,
+    auto_once: bool,
+) -> Result<u8, String> {
     if !at_tty() {
         return Err(
             "no TTY for interactive TUI; use `oc run \"<prompt>\"` for headless use".to_string(),
@@ -194,6 +202,10 @@ async fn run_stages(data_dir: &Path, session_opt: Option<String>) -> Result<u8, 
     for notice in notices {
         eprintln!("warning: {}", startup_notice(notice));
     }
+    let catalog = app.catalog().await.map_err(|e| e.to_string())?;
+    app.register_approval_consumer(auto_once || catalog.chrome.permissions_auto)
+        .await
+        .map_err(|e| e.to_string())?;
     let result = if let Some(id) = session.as_ref().filter(|id| !valid_tab_id(&id.0)) {
         match app.probe_session(id.clone()).await {
             Ok(SessionProbe::Absent) => Err(
@@ -201,10 +213,10 @@ async fn run_stages(data_dir: &Path, session_opt: Option<String>) -> Result<u8, 
                     .to_string(),
             ),
             Err(_) => Err("session lookup failed; check the data directory".to_string()),
-            _ => drive_ui(&app, session).await,
+            _ => drive_ui(&app, session, auto_once).await,
         }
     } else {
-        drive_ui(&app, session).await
+        drive_ui(&app, session, auto_once).await
     };
     let _ = app.shutdown().await;
     guard
@@ -222,6 +234,9 @@ type CompactionAdmission = tokio::task::JoinHandle<
 /// Loop-local application state that is not part of the view-model.
 #[derive(Default)]
 struct LoopState {
+    cli_auto: bool,
+    permission_auto: Option<bool>,
+    approvals_checked: Option<(Option<SessionId>, Instant)>,
     compaction_job: Option<CompactionAdmission>,
     /// Bounded prompt drafts for picker Location round trips. Views and
     /// configuration are rebuilt from the newly accepted owner receipt.
@@ -466,6 +481,28 @@ impl LoopState {
     }
 
     fn sync_tabs(&mut self, state: &mut TuiState) {
+        if let Some(auto) = self.permission_auto {
+            state.auto_accept = if auto {
+                oc_core::queries::AutoAcceptState::Enabled
+            } else {
+                oc_core::queries::AutoAcceptState::Disabled
+            };
+        }
+        state.tab_attention = self
+            .tabs
+            .iter()
+            .enumerate()
+            .filter_map(|(index, parked)| {
+                let view = if self.active_tab == Some(index) {
+                    &*state
+                } else {
+                    parked.as_ref()?
+                };
+                view.attached_session()
+                    .filter(|s| state.approval_roots.contains(&s.0))
+                    .map(|_| index)
+            })
+            .collect();
         // Bare Home has no tab. Acceptance attaches it to the first real
         // session; subsequent Home submissions append to the existing deck.
         if self.active_tab.is_none() && state.attached_session().is_some() {
@@ -492,7 +529,8 @@ impl LoopState {
             })
             .collect();
         let active = self.active_tab.unwrap_or(self.tabs.len());
-        let can_add = !state.is_busy() && self.can_open_session();
+        let can_add =
+            (!state.is_busy() || state.approvals.active().is_some()) && self.can_open_session();
         let (shown, selected, allowed) = state.tab_presentation();
         // `set_tab_strip` cancels a pending mouse Down: never call it while
         // nothing painted has changed, even across the 50ms redraw loop.
@@ -514,6 +552,7 @@ impl LoopState {
         }
         state.close_panel();
         let mut next = self.tabs[index].take().expect("parked tab");
+        next.approval_roots.clone_from(&state.approval_roots);
         next.sync_clipboard_mode_from(state);
         let previous = std::mem::replace(state, next);
         state.invalidate_file_suggestions();
@@ -530,7 +569,8 @@ impl LoopState {
         Ok(())
     }
 
-    fn open_home(&mut self, state: &mut TuiState, next: TuiState) {
+    fn open_home(&mut self, state: &mut TuiState, mut next: TuiState) {
+        next.approval_roots.clone_from(&state.approval_roots);
         state.close_panel();
         let previous = std::mem::replace(state, next);
         if let Some(old) = self.active_tab.take() {
@@ -548,6 +588,7 @@ impl LoopState {
         let Some(mut home) = self.home.take() else {
             return false;
         };
+        home.approval_roots.clone_from(&state.approval_roots);
         state.close_panel();
         home.sync_clipboard_mode_from(state);
         let old = self.active_tab.take().expect("Home parked from a tab");
@@ -765,7 +806,53 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
     }
 }
 
-async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, String> {
+async fn refresh_approvals(app: &CoreApp, state: &mut TuiState) -> Result<(), String> {
+    let pending = app.pending_approvals().await.map_err(|e| e.to_string())?;
+    state.project_pending_approvals(&pending);
+    let mut visible = Vec::new();
+    let mut roots = std::collections::BTreeSet::new();
+    let attached = state.attached_session().cloned();
+    for request in pending {
+        let mut current = SessionId(request.binding.session.clone());
+        let mut child = false;
+        let mut belongs = false;
+        let mut seen = std::collections::BTreeSet::new();
+        for _ in 0..64 {
+            if !seen.insert(current.0.clone()) {
+                break;
+            }
+            let page = app
+                .history_page(current.clone(), None, None, 1)
+                .await
+                .map_err(|e| e.to_string())?;
+            if current.0 == request.binding.session {
+                child = page.parent_id.is_some();
+            }
+            if Some(&current) == attached.as_ref() {
+                belongs = true;
+            }
+            let Some(parent) = page.parent_id else {
+                roots.insert(current.0);
+                break;
+            };
+            current = SessionId(parent);
+        }
+        if belongs && state.parent_id.is_none() {
+            visible.push((request, child));
+        }
+    }
+    visible.sort_by_key(|(r, _)| {
+        (
+            Some(&SessionId(r.binding.session.clone())) != attached.as_ref(),
+            r.id,
+        )
+    });
+    state.approval_roots = roots;
+    state.approvals.reconcile(visible);
+    Ok(())
+}
+
+async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> Result<u8, String> {
     let _term = enter()?;
     if std::env::var_os(PANIC_PROBE_ENV).is_some() {
         panic!("{PANIC_PROBE_ENV} probe");
@@ -782,6 +869,12 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
         Err(failure) => return startup_failure(&mut terminal, failure).map(|_| 1),
     };
     let mut rx = app.subscribe();
+    loop_state.cli_auto = cli_auto;
+    loop_state.permission_auto = Some(
+        app.catalog().await.map_err(|e| e.to_string())?.auto_accept
+            == oc_core::queries::AutoAcceptState::Enabled,
+    );
+    refresh_approvals(app, &mut state).await?;
     loop_state.sync_tabs(&mut state);
     let mut frame_metrics = std::env::var_os(METRICS_ENV).map(|_| FrameMetrics::default());
     // One Crossterm reader owns both terminal input and resize. Mixing its
@@ -798,6 +891,25 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
         let job_ready = loop_state.ready_job();
         dirty |= state.tick_ui(Instant::now());
         poll_and_sync(app, &mut state, &mut loop_state).await;
+        if loop_state
+            .approvals_checked
+            .as_ref()
+            .is_none_or(|(session, at)| {
+                session.as_ref() != state.attached_session()
+                    || at.elapsed() >= Duration::from_millis(500)
+            })
+        {
+            let before = state.approvals.active().cloned();
+            let roots_before = state.approval_roots.clone();
+            if let Err(error) = refresh_approvals(app, &mut state).await {
+                state.approvals.error = Some(error);
+            }
+            dirty |= before.as_ref() != state.approvals.active();
+            dirty |= roots_before != state.approval_roots;
+            loop_state.sync_tabs(&mut state);
+            loop_state.approvals_checked =
+                Some((state.attached_session().cloned(), Instant::now()));
+        }
         dirty |= sync_mention(app, &mut state, &mut loop_state).await;
         finish_conversation(app, &mut state, &mut loop_state).await;
         finish_compaction_admission(&mut state, &mut loop_state).await;
@@ -1517,6 +1629,7 @@ async fn handle_event_ticks(
                 return Ok(());
             }
             if loop_state.read_only
+                && state.approvals.active().is_none()
                 && *state.panel() == TuiPanel::None
                 && action == KeyAction::Enter
                 && dispatch(state.input().trim()) != Some(CommandAction::Quit)
@@ -1527,7 +1640,8 @@ async fn handle_event_ticks(
             let typed_new = action == KeyAction::Enter
                 && *state.panel() == TuiPanel::None
                 && dispatch(state.input().trim()) == Some(CommandAction::NewSession);
-            let outcome = if *state.panel() == TuiPanel::None {
+            let outcome = if state.approvals.active().is_some() || *state.panel() == TuiPanel::None
+            {
                 state.handle_key(action).await
             } else {
                 state.handle_panel_key(action)
@@ -1543,6 +1657,7 @@ async fn handle_event_ticks(
                 crossterm::terminal::size().map_err(|e| format!("mouse terminal size: {e}"))?;
             let area = ratatui::layout::Rect::new(0, 0, cols, rows);
             if *state.panel() == TuiPanel::None
+                && state.approvals.active().is_none()
                 && matches!(
                     mouse.kind,
                     MouseEventKind::ScrollUp | MouseEventKind::ScrollDown
@@ -1711,6 +1826,41 @@ async fn apply_intent_with_origin(
         return Err("child session: read-only history; saved tabs are unchanged".into());
     }
     match intent {
+        PanelIntent::SetPermissionMode { auto_once } => {
+            app.set_permission_mode(auto_once)
+                .await
+                .map_err(|e| e.to_string())?;
+            state.chrome.permissions_auto = auto_once;
+            let effective = auto_once || loop_state.cli_auto;
+            if loop_state.cli_auto {
+                app.register_approval_consumer(true)
+                    .await
+                    .map_err(|e| e.to_string())?;
+            }
+            loop_state.permission_auto = Some(effective);
+            state.auto_accept = if effective {
+                oc_core::queries::AutoAcceptState::Enabled
+            } else {
+                oc_core::queries::AutoAcceptState::Disabled
+            };
+            for parked in loop_state.tabs.iter_mut().flatten() {
+                parked.auto_accept = state.auto_accept;
+                parked.chrome.permissions_auto = auto_once;
+            }
+            if let Some(home) = loop_state.home.as_mut() {
+                home.auto_accept = state.auto_accept;
+                home.chrome.permissions_auto = auto_once;
+            }
+            state.permission_mode_applied();
+            refresh_approvals(app, state).await?;
+        }
+        PanelIntent::ReplyApproval(reply) => match app.reply_approval(reply).await {
+            Ok(()) => refresh_approvals(app, state).await?,
+            Err(error) => {
+                state.approvals.error = Some(error.to_string());
+                return Err(error.to_string());
+            }
+        },
         PanelIntent::CompactSession => {
             if loop_state.compaction_job.is_some() {
                 return Err("compaction admission pending".into());
@@ -2029,7 +2179,7 @@ async fn apply_intent_with_origin(
             state.model_choice_applied(snapshot);
         }
         PanelIntent::NewSession => {
-            if state.is_busy() {
+            if state.is_busy() && state.approvals.active().is_none() {
                 return Err("turn active; action unavailable".into());
             }
             let before = loop_state.snapshot(state);
@@ -2061,6 +2211,13 @@ async fn apply_intent_with_origin(
         PanelIntent::ActivateTab { index } => {
             let before = loop_state.snapshot(state);
             loop_state.activate(state, index)?;
+            // Parked prompt/editor state survives routing, but pending ownership
+            // must be recovered before its first visible frame after activation.
+            if (!state.approval_roots.is_empty() || state.approvals.active().is_some())
+                && let Err(error) = refresh_approvals(app, state).await
+            {
+                state.approvals.error = Some(error);
+            }
             if let Some(session) = state.attached_session().cloned()
                 && loop_state.picker_pending_tabs.remove(&session)
             {
@@ -2378,6 +2535,13 @@ async fn finish_reload(
         );
     }
     // The owner has already published the replacement. Unlike the remainder
+    if snapshot.catalog.auto_accept != oc_core::queries::AutoAcceptState::Unsupported {
+        let permission_auto = deck.cli_auto || snapshot.catalog.chrome.permissions_auto;
+        app.register_approval_consumer(permission_auto)
+            .await
+            .map_err(|e| e.to_string())?;
+        deck.permission_auto = Some(permission_auto);
+    }
     // of each view's catalog, terminal.copy is safety-sensitive: a failed
     // session/Home refresh must not retain an obsolete automatic-copy mode.
     let copy_mode = snapshot.catalog.chrome.terminal_copy;
@@ -2673,6 +2837,14 @@ async fn handle_worker_event(
     session: &SessionId,
     event: CoreEvent,
 ) -> Result<(), String> {
+    if matches!(
+        &event,
+        CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. }
+    ) {
+        refresh_approvals(app, state).await?;
+        _loop_state.approvals_checked = None;
+        return Ok(());
+    }
     if let CoreEvent::Compaction(snapshot) = event {
         apply_compaction_to_view(state, _loop_state, snapshot);
         return Ok(());
@@ -2692,12 +2864,18 @@ async fn handle_worker_event(
         | CoreEvent::TurnInterrupted { session, .. }
         | CoreEvent::TurnFailed { session, .. } => session,
         CoreEvent::Compaction(_) => unreachable!("handled above"),
+        CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {
+            unreachable!("handled above")
+        }
     };
     if state.attached_session() != Some(owner) {
         return Ok(());
     }
     match event {
         CoreEvent::Compaction(_) => unreachable!("handled above"),
+        CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {
+            unreachable!("handled above")
+        }
         CoreEvent::SessionTitleUpdated { title, .. } => state.session_title = Some(title),
         CoreEvent::TurnStarted {
             turn, model_switch, ..
@@ -7840,3 +8018,7 @@ mod tests {
         assert!(!state.viewport().join("\n").contains("wrong session"));
     }
 }
+
+#[cfg(test)]
+#[path = "approval_tests.rs"]
+mod approval_tests;

@@ -471,6 +471,70 @@ pub fn is_error_state(state: &str) -> bool {
 /// Render one tool card as transcript rows. `width == 0` is the unbounded
 /// text projection (no background padding).
 pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
+    if card.name == "apply_patch"
+        && card.state == "denied"
+        && card
+            .output_preview
+            .starts_with("The user declined this tool call")
+        && card
+            .patch_effects
+            .as_ref()
+            .is_none_or(|effects| effects.files.is_empty())
+    {
+        let frame = BlockFrame::new(theme, width);
+        let title = if card.files.len() == 1 && !card.files_truncated {
+            format!("{PATCH_FAILED} {}", card.files[0])
+        } else {
+            PATCH_FAILED.to_string()
+        };
+        let mut lines = vec![
+            frame.row(&[]),
+            frame.row(&[Span::styled(title, frame.body_style().fg(theme.error()))]),
+            frame.row(&[]),
+        ];
+        lines.extend(card.output_preview.lines().map(|line| {
+            frame.row(&[Span::styled(
+                line.to_string(),
+                frame.body_style().fg(theme.text_muted()),
+            )])
+        }));
+        lines.push(frame.row(&[]));
+        return lines;
+    }
+    if card.state == "permission_pending" {
+        if card.name == "apply_patch" {
+            let frame = BlockFrame::new(theme, width);
+            let path = if card.files.len() == 1 && !card.files_truncated {
+                format!(" {}", card.files[0])
+            } else {
+                String::new()
+            };
+            return vec![
+                frame.row(&[]),
+                frame.row(&[Span::styled(
+                    format!("{SPINNER} Patching{path}"),
+                    frame.body_style().fg(theme.warning()),
+                )]),
+                frame.row(&[]),
+            ];
+        }
+        if let ToolRender::Inline(inline) = &card.render {
+            return inline_rows(inline, card, theme);
+        }
+        let frame = BlockFrame::new(theme, width);
+        let label = match &card.render {
+            ToolRender::Shell(shell) => format!("$ {}", shell.command),
+            _ => card.name.clone(),
+        };
+        return vec![
+            frame.row(&[]),
+            frame.row(&[Span::styled(
+                format!("{SPINNER} {label}"),
+                frame.body_style().fg(theme.warning()),
+            )]),
+            frame.row(&[]),
+        ];
+    }
     if card.state == "argument_stream" {
         let frame = BlockFrame::new(theme, width);
         let name = if card.name == "apply_patch" {
@@ -1001,7 +1065,10 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
     let pad = Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING));
     let running = is_running(&card.state);
     let failed = is_error_state(&card.state);
-    let style = if failed {
+    let waiting = card.state == "permission_pending";
+    let style = if waiting {
+        ratatui::style::Style::default().fg(theme.warning())
+    } else if failed {
         ratatui::style::Style::default().fg(theme.error())
     } else {
         ratatui::style::Style::default().fg(theme.text())
@@ -1009,7 +1076,15 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
     let generic = matches!(inline, InlineRender::Generic { .. });
     // Generic tools use the cited `✓/✗` markers (`index.tsx:2620-2669`); the
     // named inline tools keep an empty 2-cell icon column once terminal.
-    let icon = if running {
+    let icon = if waiting {
+        match inline {
+            InlineRender::Read { .. } => "→",
+            InlineRender::Glob { .. } | InlineRender::Grep { .. } => "✱",
+            InlineRender::WebFetch { .. } => "⊙",
+            _ => SPINNER,
+        }
+        .to_string()
+    } else if running {
         SPINNER.to_string()
     } else if generic {
         if failed {

@@ -1,0 +1,40 @@
+   VIS36 patch fixture             VIS36 patch fixture           +             
+  ┃  VIS36 shell: execute the supplied ordinary function patch once.           
+  ┃                                                                            
+                                                                               
+  ┃                                                                            
+  ┃  $ /usr/bin/touch shell-marker                                             
+  ┃                                                                            
+  ┃  (no output)                                                               
+  ┃  Command exited with code 0.                                               
+  ┃                                                                            
+                                                                               
+     VIS36    Settings                                         esc             
+                                                                               
+     Build    Permissions                                                      
+                                                                               
+  ┃           Session                                                          
+  ┃  VIS36    Permissions                              auto accept             
+  ┃                                                                            
+              ←/→ change                                                       
+     → Exp                                                                     
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 6.8s · interrupted                         
+                                                                               
+  ┃                                                                            
+  ┃  VIS36 url: execute the supplied ordinary function patch once.             
+  ┃                                                                            
+                                                                               
+     % WebFetch https://example.invalid/vis36/never-fetch?wrapped=word-word-   
+       word-word-word-word-word-word-word-word-word-word-word-word-word-word-  
+       word-word-word-word-word-word-word-word-                                
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 15.7s · interrupted                        
+                                                                               
+  ┃                                                                            
+  ┃                                                                            
+  ┃                                                                            
+  ┃  Build auto · MiMo-V2.6-Flash Free OpenCode Zen                            
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/t44-refe…/runs/permission20260927-19/project  1.3K (1%)  ctrl+p commands  
+                                                                               

@@ -1,0 +1,40 @@
+   VIS36 patch fixture           ! VIS36 patch fixture           +             
+                                                                               
+  ┃                                                                            
+  ┃  # Patch failed                                                            
+  ┃  error: denied apply_patch                                                 
+  ┃                                                                            
+                                                                               
+     VIS36-DONE-mixed                                                          
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 216ms                                      
+                                                                               
+  ┃                                                                            
+  ┃  VIS36 mcp: execute the supplied ordinary function patch once.             
+  ┃                                                                            
+                                                                               
+     ✓ vis36__echo message: bounded real call wrap words wrap words wrap       
+  words wrap words wrap words wrap words wrap words wrap words wrap words wra  
+                                                                               
+     VIS36-DONE-mcp                                                            
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 7.3s                                       
+                                                                               
+  ┃                                                                            
+  ┃  VIS36 childroot: execute the supplied ordinary function patch once.       
+  ┃                                                                            
+                                                                               
+  ┃                                                                            
+  ┃  ↳ Delegating…                                                             
+  ┃                                                                            
+  ┃                                                                            
+  ┃  △ Reject permission                                                       
+  ┃                                                                            
+  ┃  Tell OpenCode what to do differently                                      
+  ┃                                                                            
+  ┃                                                                            
+  ┃                                                                            
+  ┃                                                                            
+  ┃  enter confirm  esc cancel                                                 
+  ┃                                                                            
+                                                                               

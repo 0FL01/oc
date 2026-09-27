@@ -1,0 +1,40 @@
+   VIS36 patch fixture           ! VIS36 patch fixture           +                                                       
+     → Explored — 1 search                                                                                               
+                                                                                                                         
+     Build · MiMo-V2.6-Flash Free · 9.1s · interrupted                                                                   
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃  VIS36 url: execute the supplied ordinary function patch once.                                                       
+  ┃                                                                                                                      
+                                                                                                                         
+     % WebFetch https://example.invalid/vis36/never-fetch?wrapped=word-word-word-word-word-word-word-word-word-word-     
+       word-word-word-word-word-word-word-word-word-word-word-word-word-word-                                            
+                                                                                                                         
+     Build · MiMo-V2.6-Flash Free · 20.5s · interrupted                                                                  
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃  VIS36 autoonce: execute the supplied ordinary function patch once.                                                  
+  ┃                                                                                                                      
+                                                                                                                         
+     → Explored — 1 read                                                                                                 
+                                                                                                                         
+     VIS36-DONE-autoonce                                                                                                 
+                                                                                                                         
+     Build · MiMo-V2.6-Flash Free · 37.1s                                                                                
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃  VIS36 promptagain: execute the supplied ordinary function patch once.                                               
+  ┃                                                                                                                      
+                                                                                                                         
+     ⋯ Read approval.txt                                                                                                 
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃  △ Permission required                                                                                               
+  ┃    → Read approval.txt                                                                                               
+  ┃                                                                                                                      
+  ┃  Path: approval.txt                                                                                                  
+  ┃                                                                                                                      
+  ┃                                                                                                                      
+  ┃   Allow once   Always allow   Reject                                  ctrl+f fullscreen  ⇆ select  enter confirm     
+  ┃                                                                                                                      
+                                                                                                                         

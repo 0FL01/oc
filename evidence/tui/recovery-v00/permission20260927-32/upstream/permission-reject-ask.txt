@@ -1,0 +1,40 @@
+ ! VIS36 patch fixture           +                                                                                       
+  ┃                                                                                                                      
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃  ← Patched approval.txt                                                                                              
+  ┃                                                                                                                      
+  ┃    1 - before approval                                                                                               
+  ┃    1 + new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words   
+  ┃        fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap   
+  ┃        words fixture wrap words                                                                                      
+  ┃                                                                                                                      
+                                                                                                                         
+     VIS36-DONE-once                                                                                                     
+                                                                                                                         
+     Build · MiMo-V2.6-Flash Free · 15.4s                                                                                
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃  VIS36 reject: execute the supplied ordinary function patch once.                                                    
+  ┃                                                                                                                      
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃  ⋯ Patching approval.txt                                                                                             
+  ┃                                                                                                                      
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃  △ Permission required                                                                                               
+  ┃    → Edit approval.txt                                                                                               
+  ┃                                                                                                                      
+  ┃  1 - new approved fixture wrap words fixture wrap words  1 + rejected must never appear                              
+  ┃      fixture wrap words fixture wrap words fixture wrap                                                              
+  ┃      words fixture wrap words fixture wrap words fixture                                                             
+  ┃      wrap words fixture wrap words fixture wrap words                                                                
+  ┃      fixture wrap words fixture wrap words                                                                           
+  ┃                                                                                                                      
+  ┃                                                                                                                      
+  ┃                                                                                                                      
+  ┃                                                                                                                      
+  ┃   Allow once   Always allow   Reject                                  ctrl+f fullscreen  ⇆ select  enter confirm     
+  ┃                                                                                                                      
+                                                                                                                         

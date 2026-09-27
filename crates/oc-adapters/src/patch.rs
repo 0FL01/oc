@@ -13,7 +13,7 @@
 //! Preimage = hunk context + removals matched exactly; stale content is a
 //! conflict, not a fuzzy merge. No `write`/`edit` registry entries exist.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use sha2::{Digest as _, Sha256};
 use thiserror::Error;
@@ -789,10 +789,52 @@ pub fn apply_patch_with_effects(
     Result<Vec<FileResult>, ApplyFailure>,
     oc_core::patch::PatchEffects,
 ) {
+    apply_patch_with_approved_preimage(project_root, data_root, patch_text, policy, None)
+}
+
+pub(crate) fn apply_patch_with_approved_preimage(
+    project_root: &Path,
+    data_root: &Path,
+    patch_text: &str,
+    policy: &dyn WritePolicy,
+    expected: Option<&str>,
+) -> (
+    Result<Vec<FileResult>, ApplyFailure>,
+    oc_core::patch::PatchEffects,
+) {
     let mut effects = oc_core::patch::PatchEffects::default();
-    let result = apply_patch_inner(project_root, data_root, patch_text, policy, &mut effects);
+    let result = apply_patch_inner(
+        project_root,
+        data_root,
+        patch_text,
+        policy,
+        &mut effects,
+        None,
+        expected,
+    );
     effects::bound_serialized(&mut effects);
     (result, effects)
+}
+
+/// Real preflight, including all hunks and immutable preimage digest; no staging/effects.
+pub(crate) fn approval_preview(
+    project: &Path,
+    data: &Path,
+    text: &str,
+) -> Result<(oc_core::patch::PatchEffects, String), ApplyFailure> {
+    let mut proposed = oc_core::patch::PatchEffects::default();
+    let mut digest = String::new();
+    apply_patch_inner(
+        project,
+        data,
+        text,
+        &AllowAll,
+        &mut proposed,
+        Some(&mut digest),
+        None,
+    )?;
+    effects::bound_serialized(&mut proposed);
+    Ok((proposed, digest))
 }
 
 fn apply_patch_inner(
@@ -801,6 +843,8 @@ fn apply_patch_inner(
     patch_text: &str,
     policy: &dyn WritePolicy,
     effects: &mut oc_core::patch::PatchEffects,
+    preview_digest: Option<&mut String>,
+    expected_digest: Option<&str>,
 ) -> Result<Vec<FileResult>, ApplyFailure> {
     let ops = parse_plan(patch_text)?;
     let files = Files::new(project_root, data_root).map_err(|_| ApplyFailure {
@@ -1094,6 +1138,65 @@ fn apply_patch_inner(
         });
     }
 
+    if preview_digest.is_some() || expected_digest.is_some() {
+        let fail = |error| ApplyFailure {
+            done: Vec::new(),
+            failed_op: 0,
+            failed_path: "<plan>".into(),
+            error,
+        };
+        let mut hash = Sha256::new();
+        hash.update(canonical_root.as_os_str().as_encoded_bytes());
+        let (device, inode) = root.authority_identity().map_err(|_| {
+            fail(PatchError::Io {
+                path: "<root>".into(),
+            })
+        })?;
+        hash.update(device.to_le_bytes());
+        hash.update(inode.to_le_bytes());
+        for (op, prepared) in ops.iter().zip(&prepared) {
+            hash.update(op.path().len().to_le_bytes());
+            hash.update(op.path().as_bytes());
+            hash.update([u8::from(prepared.before.is_some())]);
+            if let Some(before) = &prepared.before {
+                hash.update(before.bytes.len().to_le_bytes());
+                hash.update(&before.bytes);
+                hash.update(before.mode.to_le_bytes());
+            }
+            hash.update(prepared.after.as_deref().unwrap_or(&[]).len().to_le_bytes());
+            hash.update(prepared.after.as_deref().unwrap_or(&[]));
+            let kind = match op {
+                FileOp::Add { .. } => "add",
+                FileOp::Delete { .. } => "delete",
+                FileOp::Update { .. } => "update",
+            };
+            let mut file = effects::file_effect(
+                op.path(),
+                kind,
+                prepared.before.as_ref().map_or(&[], |s| s.bytes.as_slice()),
+                prepared.after.as_deref().unwrap_or(&[]),
+            );
+            if let Some(target) = op.move_to() {
+                file.destination = Some(target.into());
+                file.operation = oc_core::patch::PatchOperation::Move;
+                hash.update(target.as_bytes());
+            }
+            if preview_digest.is_some() {
+                effects::push(effects, file);
+            }
+        }
+        let digest = format!("{:x}", hash.finalize());
+        if expected_digest.is_some_and(|expected| expected != digest) {
+            return Err(fail(PatchError::Conflict {
+                path: "<plan>".into(),
+                reason: "approval-preimage-changed".into(),
+            }));
+        }
+        if let Some(preview) = preview_digest {
+            *preview = digest;
+            return Ok(Vec::new());
+        }
+    }
     // Execution: per-file commits, stop at first runtime failure.
     let mut done: Vec<FileResult> = Vec::new();
     for (idx, (op, prepared)) in ops.iter().zip(&prepared).enumerate() {

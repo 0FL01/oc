@@ -1,5 +1,34 @@
 # T44 — parity qualification remains open (2026-09-27)
 
+VIS36 now has a real typed owner approval queue/query/reply lifecycle. Ask waits
+before execution intent or effects; Once is invocation-local; Always commits exact
+project/action/pattern grants before acknowledgement; effective Deny and structural
+ceilings remain final. Cancellation, wrong/stale replies, dropped waiters and
+shutdown fail closed. Previews come from admitted leaf preparation, not TUI file
+reads. Webfetch preparation performs no DNS; actual dial-bound validation is after
+consent. Shell execution retains opened approved cwd authority. DCP structural
+planning precedes Ask. The TUI supports lower/fullscreen prompt, keyboard/mouse,
+child feedback, family attention, explicit Once autoaccept, and owner-persisted
+Session Permissions settings. Headless Ask still requires an explicit consumer.
+Rejected pending patch presentation retains its owner-prepared target without
+Started or fabricated effects; the durable/provider rejection output is unchanged.
+
+Final serialized fmt/locked workspace tests/strict all-target Clippy/debug+release
+build/release headless-consumer test/capture frontend/syntax/docs/progress/diff
+**PASS**: `tool_0e3443d25001njFlj7nJPw6Aj2`. Source-built paired
+[`permission-report20260927-05.md`](../tui/recovery-v00/permission-report20260927-05.md)
+preserves attempts01–42 and fresh headless04. Latest37–42 cover120/80/79/121 prompt
+and config/CLI-auto with actual Once/reask/Reject/Always/restart/mixed Deny,
+MCP/child/read/shell effects and Settings. New campaign:252 actual local fixture
+requests/completions,130 calls,zero invalid requests; no authenticated/live API calls.
+All Ask-held windows preserve files/operation absence; zero extra approval requests.
+Full comparisons remain199 DIFFERENT/12 INVALID/1 EQUAL grids and211 DIFFERENT/1 EQUAL
+PNGs;162/212 cursors equal. The original hidden out-of-grid cursor remains INVALID,
+not clamped. Read pending prefix/placement, delegation/MCP formatting, truthful
+exact grants, Settings/feedback differences and independently timed footers remain
+visible. Historical syscall capture36 is not current-source qualification.
+**No VIS36/V09/TUI_PARITY_VERIFIED claim.**
+
 VIS35 now carries bounded, **committed-result-derived** patch effects through the
 executor, atomic tool settlement, live events, checkpoints, history and fork.
 Actual old/new positions, four lines of context, minimal small/medium diffs,

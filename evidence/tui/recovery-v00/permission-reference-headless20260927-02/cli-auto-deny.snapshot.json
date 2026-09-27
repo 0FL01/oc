@@ -1,0 +1,110 @@
+{
+  "observations": [
+    {
+      "database": "/home/opencode/.cache/opencode-tmp/opencode/permission-reference-headless20260927-02/cli-auto-deny/home/data/opencode/opencode.db",
+      "tables": [
+        "account_state",
+        "account",
+        "control_account",
+        "credential",
+        "event_sequence",
+        "event",
+        "kv",
+        "permission",
+        "project_directory",
+        "project",
+        "instruction_blob",
+        "instruction_entry",
+        "instruction_state",
+        "session_inbox",
+        "session_message",
+        "session_pending",
+        "session_v2",
+        "workspace",
+        "worktree",
+        "migration"
+      ],
+      "data": {
+        "session_message": [
+          {
+            "id": "msg_0e30ff549001CcRwcuYSRJh8RH",
+            "session_id": "ses_f1cf00af6ffefc9WWS5jXS33Ci",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790515869121,
+            "time_updated": 1790515869123,
+            "data": "{\"time\":{\"created\":1790515869121},\"text\":\"\\\"VIS36 shell: invoke ordinary shell function\\\"\",\"files\":[]}"
+          },
+          {
+            "id": "msg_0e30ff5db001chB2gDyhNEwEal",
+            "session_id": "ses_f1cf00af6ffefc9WWS5jXS33Ci",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790515869153,
+            "time_updated": 1790515869259,
+            "data": "{\"time\":{\"created\":1790515869153,\"streamed\":1790515869181,\"completed\":1790515869258},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"},\"content\":[{\"type\":\"tool\",\"id\":\"call_vis36_shell\",\"name\":\"shell\",\"executed\":false,\"providerState\":{\"itemId\":\"fc_vis35_2\"},\"state\":{\"status\":\"error\",\"input\":{\"command\":\"/usr/bin/touch headless-marker\"},\"error\":{\"type\":\"permission.rejected\",\"message\":\"Permission denied: shell\"}},\"time\":{\"created\":1790515869170,\"ran\":1790515869177,\"completed\":1790515869254}}],\"finish\":\"tool-calls\",\"providerState\":{\"responseId\":\"resp_vis35_2\"},\"cost\":0,\"tokens\":{\"input\":1234,\"output\":64,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e30ff6570012hPwrohWWYxukd",
+            "session_id": "ses_f1cf00af6ffefc9WWS5jXS33Ci",
+            "type": "assistant",
+            "seq": 14,
+            "time_created": 1790515869276,
+            "time_updated": 1790515869293,
+            "data": "{\"time\":{\"created\":1790515869276,\"streamed\":1790515869291,\"completed\":1790515869293},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS36-DONE-shell\",\"state\":{\"itemId\":\"msg_vis35_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis35_3\"},\"cost\":0,\"tokens\":{\"input\":1234,\"output\":64,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e30ff670001HX2MiwUerAJ1Xw",
+            "session_id": "ses_f1cf00af6ffefc9WWS5jXS33Ci",
+            "type": "idle",
+            "seq": 19,
+            "time_created": 1790515869296,
+            "time_updated": 1790515869296,
+            "data": "{\"time\":{\"created\":1790515869296},\"outcome\":\"succeeded\"}"
+          }
+        ],
+        "session_inbox": []
+      }
+    }
+  ],
+  "project_files": {},
+  "files": {
+    "created.ts": {
+      "present": false
+    },
+    "empty.txt": {
+      "present": false
+    },
+    "update.txt": {
+      "present": false
+    },
+    "delete.txt": {
+      "present": false
+    },
+    "move.txt": {
+      "present": false
+    },
+    "moved.txt": {
+      "present": false
+    },
+    "replace.txt": {
+      "present": false
+    },
+    "multi-a.txt": {
+      "present": false
+    },
+    "multi-b.txt": {
+      "present": false
+    },
+    "prefix.txt": {
+      "present": false
+    },
+    "stale.txt": {
+      "present": false
+    },
+    "denied.txt": {
+      "present": false
+    }
+  },
+  "executor_hook": []
+}

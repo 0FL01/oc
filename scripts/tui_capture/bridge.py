@@ -21,12 +21,15 @@ import time
 import urllib.request
 import compaction_fixture
 import apply_patch_fixture
+import permission_fixture
 
 scanner_release = threading.Event()
 wheel_release = threading.Event()
 
 
 def emit(value):
+    if globals().get('spec', {}).get('permission_strace_path'):
+        value['wall_time_ns'] = time.time_ns()
     with output_lock:
         print(json.dumps(value, ensure_ascii=False), flush=True)
 
@@ -107,6 +110,9 @@ class Provider(BaseHTTPRequestHandler):
     def do_POST(self):
         global transcript_round, title_round, bounded_requests, live_requests
         body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+        if spec.get('permission'):
+            permission_fixture.respond(self, body, spec, emit)
+            return
         if spec.get('apply_patch'):
             apply_patch_fixture.respond(self, body, spec, emit)
             return
@@ -461,6 +467,10 @@ if spec.get('devtools') is not None:
     cli_config['debug'] = {'devtools': spec['devtools']}
 if spec.get('apply_patch'):
     apply_patch_fixture.configure(spec, home, project, config, cli_config)
+if spec.get('permission'):
+    permission_fixture.configure(spec, home, project, config, cli_config)
+    if spec.get('permission_mode') == 'auto-cli':
+        argv.append('--auto')
 if spec.get('compaction'):
     automatic = spec.get('compaction_trigger','manual') != 'manual'
     config['compaction'] = {'auto':automatic,'keep':{'tokens':0},'buffer':20000}
@@ -536,7 +546,14 @@ try:
         if generation:
             master, slave = pty.openpty()
             fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', spec['rows'], spec['columns'], 0, 0))
-        child = subprocess.Popen(argv, stdin=slave, stdout=slave,
+        launch_argv = argv
+        if spec.get('permission_strace_path'):
+            trace = spec['permission_strace_path'] + f'.generation{generation}'
+            launch_argv = ['/usr/bin/strace', '-f', '-ttt', '-yy', '-s', '512',
+                           '-e', 'trace=%file,%network', '-o', trace, '--', *argv]
+            emit({'kind':'permission_strace_launch', 'argv':launch_argv,
+                  'scope':'Only this isolated local fixture subprocess and descendants; file/network syscalls, no authoring process attach.'})
+        child = subprocess.Popen(launch_argv, stdin=slave, stdout=slave,
                                  stderr=slave, cwd=project, env=env, preexec_fn=session)
         os.close(slave)
         forced = False
@@ -560,7 +577,9 @@ try:
                     while b'\n' in pending:
                         line, pending = pending.split(b'\n', 1)
                         command = json.loads(line)
-                        if command['kind'] == 'patch_snapshot' and spec.get('apply_patch'):
+                        if command['kind'] == 'permission_snapshot' and spec.get('permission'):
+                            emit({'kind':'permission_snapshot','request_id':command['request_id'], **permission_fixture.snapshot(home, project)})
+                        elif command['kind'] == 'patch_snapshot' and spec.get('apply_patch'):
                             emit({'kind':'patch_snapshot','request_id':command['request_id'], **apply_patch_fixture.snapshot(home, project)})
                         elif command['kind'] == 'compaction_snapshot' and spec.get('compaction'):
                             emit({'kind':'compaction_snapshot','request_id':command['request_id'], **compaction_fixture.snapshot(home, project)})
@@ -727,7 +746,7 @@ try:
             os.close(master)
             emit({'kind': 'exit', 'generation': generation, 'code': child.returncode,
                   'termination': 'forced_stop' if forced else 'natural'})
-        if forced or not (spec.get('tab_restart') or spec.get('sessions_interaction') or spec.get('revert_redo') or spec.get('compaction') or spec.get('apply_patch')):
+        if forced or not (spec.get('tab_restart') or spec.get('sessions_interaction') or spec.get('revert_redo') or spec.get('compaction') or spec.get('apply_patch') or spec.get('permission')):
             break
         # The same bridge/server/config/project and XDG roots survive the first exit.
         command = json.loads(sys.stdin.readline())

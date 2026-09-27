@@ -1,0 +1,110 @@
+{
+  "scope": "Latest native PTY/readonly SQLite rejection audit. Historical outputs are a regression baseline only. No typed Started/CoreEvent/CurrentIntent qualification.",
+  "runs": [
+    {
+      "name": "permission20260927-37",
+      "historical_output_baseline": "permission20260927-29",
+      "terminal_operation": {
+        "id": "ts-tui-18d931fc525d850e-101a75-0-1790517304137-1055349-1-r1-c0-call_vis36_reject",
+        "session_id": "s-tui-18d931fc525d850e-101a75-0",
+        "turn_id": "ts-tui-18d931fc525d850e-101a75-0-1790517304137-1055349-1",
+        "name": "apply_patch",
+        "state": "denied",
+        "input": "{\"patchText\":\"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\n+rejected must never appear\\n*** End Patch\"}",
+        "output": "{\"status\":\"permission_rejected\",\"feedback\":null}"
+      },
+      "persisted_function_outputs": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_reject",
+          "output": "{\"status\":\"permission_rejected\",\"feedback\":null}"
+        }
+      ],
+      "files_unchanged": true,
+      "pending_operation_rows": 0,
+      "held_operation_rows": 0,
+      "rejected_patch_effect_rows": 0,
+      "reject_provider_requests": 1,
+      "output_matches_historical_source": true
+    },
+    {
+      "name": "permission20260927-38",
+      "historical_output_baseline": "permission20260927-30",
+      "terminal_operation": {
+        "id": "ts-tui-18d93248162420f0-102c1d-0-1790517626859-1059869-1-r1-c0-call_vis36_reject",
+        "session_id": "s-tui-18d93248162420f0-102c1d-0",
+        "turn_id": "ts-tui-18d93248162420f0-102c1d-0-1790517626859-1059869-1",
+        "name": "apply_patch",
+        "state": "denied",
+        "input": "{\"patchText\":\"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\n+rejected must never appear\\n*** End Patch\"}",
+        "output": "{\"status\":\"permission_rejected\",\"feedback\":null}"
+      },
+      "persisted_function_outputs": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_reject",
+          "output": "{\"status\":\"permission_rejected\",\"feedback\":null}"
+        }
+      ],
+      "files_unchanged": true,
+      "pending_operation_rows": 0,
+      "held_operation_rows": 0,
+      "rejected_patch_effect_rows": 0,
+      "reject_provider_requests": 1,
+      "output_matches_historical_source": true
+    },
+    {
+      "name": "permission20260927-39",
+      "historical_output_baseline": "permission20260927-31",
+      "terminal_operation": {
+        "id": "ts-tui-18d9328e422606db-103c7b-0-1790517927271-1064059-1-r1-c0-call_vis36_reject",
+        "session_id": "s-tui-18d9328e422606db-103c7b-0",
+        "turn_id": "ts-tui-18d9328e422606db-103c7b-0-1790517927271-1064059-1",
+        "name": "apply_patch",
+        "state": "denied",
+        "input": "{\"patchText\":\"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\n+rejected must never appear\\n*** End Patch\"}",
+        "output": "{\"status\":\"permission_rejected\",\"feedback\":null}"
+      },
+      "persisted_function_outputs": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_reject",
+          "output": "{\"status\":\"permission_rejected\",\"feedback\":null}"
+        }
+      ],
+      "files_unchanged": true,
+      "pending_operation_rows": 0,
+      "held_operation_rows": 0,
+      "rejected_patch_effect_rows": 0,
+      "reject_provider_requests": 1,
+      "output_matches_historical_source": true
+    },
+    {
+      "name": "permission20260927-40",
+      "historical_output_baseline": "permission20260927-32",
+      "terminal_operation": {
+        "id": "ts-tui-18d932db24efc6e5-104e23-0-1790518260844-1068579-1-r1-c0-call_vis36_reject",
+        "session_id": "s-tui-18d932db24efc6e5-104e23-0",
+        "turn_id": "ts-tui-18d932db24efc6e5-104e23-0-1790518260844-1068579-1",
+        "name": "apply_patch",
+        "state": "denied",
+        "input": "{\"patchText\":\"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\n+rejected must never appear\\n*** End Patch\"}",
+        "output": "{\"status\":\"permission_rejected\",\"feedback\":null}"
+      },
+      "persisted_function_outputs": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_reject",
+          "output": "{\"status\":\"permission_rejected\",\"feedback\":null}"
+        }
+      ],
+      "files_unchanged": true,
+      "pending_operation_rows": 0,
+      "held_operation_rows": 0,
+      "rejected_patch_effect_rows": 0,
+      "reject_provider_requests": 1,
+      "output_matches_historical_source": true
+    }
+  ],
+  "status": "PASS"
+}

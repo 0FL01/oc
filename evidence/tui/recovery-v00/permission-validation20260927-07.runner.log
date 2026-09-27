@@ -1,0 +1,434 @@
+{
+  "checks": [
+    {
+      "name": "permission20260927-29",
+      "origin": "upstream",
+      "grant_rows_after_always": [
+        {
+          "id": "psv_0e2f67c27001Nt8amlDCBN68ar",
+          "project_id": "b88fcf8274e78a5f15adde09892e18aa548a905e",
+          "action": "edit",
+          "resource": "*",
+          "time_created": 1790514199591,
+          "time_updated": 1790514199591
+        }
+      ],
+      "feedback_present_in_actual_child_provider_context": false,
+      "child_actual_results": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_childread",
+          "output": "{\"error\":{\"type\":\"tool.execution\",\"message\":\"Unable to read approval.txt\"},\"content\":[]}"
+        }
+      ],
+      "operation_counts": {
+        "once": 2,
+        "reject": 1,
+        "always": 2,
+        "restart": 2,
+        "mixed": 2,
+        "mcp": 2,
+        "childroot": 2,
+        "childread": 2,
+        "read": 2,
+        "shell": 2,
+        "glob": 1,
+        "url": 1,
+        "autoonce": 2,
+        "promptagain": 1
+      },
+      "pass": true
+    },
+    {
+      "name": "permission20260927-29",
+      "origin": "oc",
+      "grant_rows_after_always": [
+        {
+          "project": "b88fcf8274e78a5f15adde09892e18aa548a905e",
+          "action": "apply_patch",
+          "pattern": "approval.txt"
+        }
+      ],
+      "feedback_present_in_actual_child_provider_context": true,
+      "child_actual_results": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_childread",
+          "output": "{\"status\":\"permission_rejected\",\"feedback\":\"VIS36-FEEDBACK: do not read; continue with this correction.\"}"
+        }
+      ],
+      "operation_counts": {
+        "once": 2,
+        "reject": 1,
+        "always": 2,
+        "restart": 2,
+        "mixed": 2,
+        "mcp": 2,
+        "childroot": 2,
+        "childread": 2,
+        "read": 2,
+        "shell": 2,
+        "glob": 1,
+        "url": 1,
+        "autoonce": 2,
+        "promptagain": 1
+      },
+      "pass": true
+    },
+    {
+      "name": "permission20260927-30",
+      "origin": "upstream",
+      "grant_rows_after_always": [
+        {
+          "id": "psv_0e2fbdaec002Z5j6isSvBMYXoP",
+          "project_id": "bc70d50ed6cc44c33cc25e7b7ed0ee45ed43b386",
+          "action": "edit",
+          "resource": "*",
+          "time_created": 1790514551533,
+          "time_updated": 1790514551533
+        }
+      ],
+      "feedback_present_in_actual_child_provider_context": false,
+      "child_actual_results": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_childread",
+          "output": "{\"error\":{\"type\":\"tool.execution\",\"message\":\"Unable to read approval.txt\"},\"content\":[]}"
+        }
+      ],
+      "operation_counts": {
+        "once": 2,
+        "reject": 1,
+        "always": 2,
+        "restart": 2,
+        "mixed": 2,
+        "mcp": 2,
+        "childroot": 2,
+        "childread": 2,
+        "read": 2,
+        "shell": 2,
+        "glob": 1,
+        "url": 1,
+        "autoonce": 2,
+        "promptagain": 1
+      },
+      "pass": true
+    },
+    {
+      "name": "permission20260927-30",
+      "origin": "oc",
+      "grant_rows_after_always": [
+        {
+          "project": "bc70d50ed6cc44c33cc25e7b7ed0ee45ed43b386",
+          "action": "apply_patch",
+          "pattern": "approval.txt"
+        }
+      ],
+      "feedback_present_in_actual_child_provider_context": true,
+      "child_actual_results": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_childread",
+          "output": "{\"status\":\"permission_rejected\",\"feedback\":\"VIS36-FEEDBACK: do not read; continue with this correction.\"}"
+        }
+      ],
+      "operation_counts": {
+        "once": 2,
+        "reject": 1,
+        "always": 2,
+        "restart": 2,
+        "mixed": 2,
+        "mcp": 2,
+        "childroot": 2,
+        "childread": 2,
+        "read": 2,
+        "shell": 2,
+        "glob": 1,
+        "url": 1,
+        "autoonce": 2,
+        "promptagain": 1
+      },
+      "pass": true
+    },
+    {
+      "name": "permission20260927-31",
+      "origin": "upstream",
+      "grant_rows_after_always": [
+        {
+          "id": "psv_0e30227da001Ui8RS0F0OE1jUm",
+          "project_id": "0a8f87ff9ccfd6d1a19f48fa76b7145d3612e266",
+          "action": "edit",
+          "resource": "*",
+          "time_created": 1790514964442,
+          "time_updated": 1790514964442
+        }
+      ],
+      "feedback_present_in_actual_child_provider_context": false,
+      "child_actual_results": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_childread",
+          "output": "{\"error\":{\"type\":\"tool.execution\",\"message\":\"Unable to read approval.txt\"},\"content\":[]}"
+        }
+      ],
+      "operation_counts": {
+        "once": 2,
+        "reject": 1,
+        "always": 2,
+        "restart": 2,
+        "mixed": 2,
+        "mcp": 2,
+        "childroot": 2,
+        "childread": 2,
+        "read": 2,
+        "shell": 2,
+        "glob": 1,
+        "url": 1,
+        "autoonce": 2,
+        "promptagain": 1
+      },
+      "pass": true
+    },
+    {
+      "name": "permission20260927-31",
+      "origin": "oc",
+      "grant_rows_after_always": [
+        {
+          "project": "0a8f87ff9ccfd6d1a19f48fa76b7145d3612e266",
+          "action": "apply_patch",
+          "pattern": "approval.txt"
+        }
+      ],
+      "feedback_present_in_actual_child_provider_context": true,
+      "child_actual_results": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_childread",
+          "output": "{\"status\":\"permission_rejected\",\"feedback\":\"VIS36-FEEDBACK: do not read; continue with this correction.\"}"
+        }
+      ],
+      "operation_counts": {
+        "once": 2,
+        "reject": 1,
+        "always": 2,
+        "restart": 2,
+        "mixed": 2,
+        "mcp": 2,
+        "childroot": 2,
+        "childread": 2,
+        "read": 2,
+        "shell": 2,
+        "glob": 1,
+        "url": 1,
+        "autoonce": 2,
+        "promptagain": 1
+      },
+      "pass": true
+    },
+    {
+      "name": "permission20260927-32",
+      "origin": "upstream",
+      "grant_rows_after_always": [
+        {
+          "id": "psv_0e306b9e400172MaI4nbIjDJph",
+          "project_id": "853a9b5e8f010b81ffe9071a3377d3462917d4ea",
+          "action": "edit",
+          "resource": "*",
+          "time_created": 1790515263972,
+          "time_updated": 1790515263972
+        }
+      ],
+      "feedback_present_in_actual_child_provider_context": false,
+      "child_actual_results": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_childread",
+          "output": "{\"error\":{\"type\":\"tool.execution\",\"message\":\"Unable to read approval.txt\"},\"content\":[]}"
+        }
+      ],
+      "operation_counts": {
+        "once": 2,
+        "reject": 1,
+        "always": 2,
+        "restart": 2,
+        "mixed": 2,
+        "mcp": 2,
+        "childroot": 2,
+        "childread": 2,
+        "read": 2,
+        "shell": 2,
+        "glob": 1,
+        "url": 1,
+        "autoonce": 2,
+        "promptagain": 1
+      },
+      "pass": true
+    },
+    {
+      "name": "permission20260927-32",
+      "origin": "oc",
+      "grant_rows_after_always": [
+        {
+          "project": "853a9b5e8f010b81ffe9071a3377d3462917d4ea",
+          "action": "apply_patch",
+          "pattern": "approval.txt"
+        }
+      ],
+      "feedback_present_in_actual_child_provider_context": true,
+      "child_actual_results": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_childread",
+          "output": "{\"status\":\"permission_rejected\",\"feedback\":\"VIS36-FEEDBACK: do not read; continue with this correction.\"}"
+        }
+      ],
+      "operation_counts": {
+        "once": 2,
+        "reject": 1,
+        "always": 2,
+        "restart": 2,
+        "mixed": 2,
+        "mcp": 2,
+        "childroot": 2,
+        "childread": 2,
+        "read": 2,
+        "shell": 2,
+        "glob": 1,
+        "url": 1,
+        "autoonce": 2,
+        "promptagain": 1
+      },
+      "pass": true
+    },
+    {
+      "name": "permission20260927-36",
+      "origin": "upstream",
+      "grant_rows_after_always": [
+        {
+          "id": "psv_0e31077f2002eGGXe8JAEc12MD",
+          "project_id": "56e0c15c57cb16e6cfbf149b41aba27cb12a9167",
+          "action": "edit",
+          "resource": "*",
+          "time_created": 1790515902450,
+          "time_updated": 1790515902450
+        }
+      ],
+      "feedback_present_in_actual_child_provider_context": false,
+      "child_actual_results": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_childread",
+          "output": "{\"error\":{\"type\":\"tool.execution\",\"message\":\"Unable to read approval.txt\"},\"content\":[]}"
+        }
+      ],
+      "operation_counts": {
+        "once": 2,
+        "reject": 1,
+        "always": 2,
+        "restart": 2,
+        "mixed": 2,
+        "mcp": 2,
+        "childroot": 2,
+        "childread": 2,
+        "read": 2,
+        "shell": 2,
+        "glob": 1,
+        "url": 1,
+        "autoonce": 2,
+        "promptagain": 1
+      },
+      "pass": true
+    },
+    {
+      "name": "permission20260927-36",
+      "origin": "oc",
+      "grant_rows_after_always": [
+        {
+          "project": "56e0c15c57cb16e6cfbf149b41aba27cb12a9167",
+          "action": "apply_patch",
+          "pattern": "approval.txt"
+        }
+      ],
+      "feedback_present_in_actual_child_provider_context": true,
+      "child_actual_results": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_childread",
+          "output": "{\"status\":\"permission_rejected\",\"feedback\":\"VIS36-FEEDBACK: do not read; continue with this correction.\"}"
+        }
+      ],
+      "operation_counts": {
+        "once": 2,
+        "reject": 1,
+        "always": 2,
+        "restart": 2,
+        "mixed": 2,
+        "mcp": 2,
+        "childroot": 2,
+        "childread": 2,
+        "read": 2,
+        "shell": 2,
+        "glob": 1,
+        "url": 1,
+        "autoonce": 2,
+        "promptagain": 1
+      },
+      "pass": true
+    },
+    {
+      "name": "permission20260927-33",
+      "origin": "upstream",
+      "auto_mode_saves_zero_grants": true,
+      "pass": true
+    },
+    {
+      "name": "permission20260927-33",
+      "origin": "oc",
+      "auto_mode_saves_zero_grants": true,
+      "pass": true
+    },
+    {
+      "name": "permission20260927-34",
+      "origin": "upstream",
+      "auto_mode_saves_zero_grants": true,
+      "pass": true
+    },
+    {
+      "name": "permission20260927-34",
+      "origin": "oc",
+      "auto_mode_saves_zero_grants": true,
+      "pass": true
+    }
+  ],
+  "qualification": "TARGETED_LIFECYCLE_ONLY_FULL_VIS36_OPEN",
+  "scope": {
+    "promptRuns": [
+      "permission20260927-29",
+      "permission20260927-30",
+      "permission20260927-31",
+      "permission20260927-32",
+      "permission20260927-36"
+    ],
+    "autoRuns": [
+      "permission20260927-33",
+      "permission20260927-34"
+    ],
+    "headlessRun": "permission-headless20260927-03"
+  },
+  "binary_sha256": "42977ff968750c37e120a892c948514c8956c6eb422a6e0ef07b0a3c857abb6f",
+  "rust_inputs_sha256": "f512146d5f8761598990013333d1e0ef0f138e068483c0ab75e77888889f9f60",
+  "headless": [
+    {
+      "case": "configauto-no-consumer",
+      "pass": true
+    },
+    {
+      "case": "cli-auto-once",
+      "pass": true
+    },
+    {
+      "case": "cli-auto-deny",
+      "pass": true
+    }
+  ]
+}

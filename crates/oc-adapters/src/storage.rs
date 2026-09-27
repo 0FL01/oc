@@ -28,6 +28,8 @@ mod compaction;
 mod conversation;
 #[path = "storage_fork.rs"]
 mod fork;
+#[path = "storage_grants.rs"]
+mod grants;
 
 /// Bounded page projection retaining the exact persisted message identity.
 #[derive(Debug, Clone, PartialEq, Eq)]

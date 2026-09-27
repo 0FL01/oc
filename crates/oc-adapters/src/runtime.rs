@@ -59,6 +59,9 @@ pub const COMPRESS_TOOL: &str = "compress";
 /// Typed runtime errors (kinds and ids only, no secrets or payloads).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RuntimeError {
+    ApprovalRequired {
+        tool: String,
+    },
     /// Another turn already runs on this runtime (single-flight).
     TurnActive,
     /// Session id is unknown to storage.
@@ -117,6 +120,9 @@ pub enum RuntimeError {
 impl std::fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::ApprovalRequired { tool } => {
+                write!(f, "approval required for {tool}: no consumer")
+            }
             Self::TurnActive => write!(f, "turn already active"),
             Self::SessionNotFound => write!(f, "session not found"),
             Self::LocationMismatch { session, location } => {
@@ -170,13 +176,50 @@ pub struct PublishedGeneration {
 /// Central permission bridge: config `Permission` map over `ToolPolicy`.
 ///
 /// Unlisted tools are denied (invalid/untrusted config never allows).
-/// `Ask` fails everywhere: headless has no approval channel and T24 builds
-/// none for the TUI either — the denial names the tool.
+/// Synchronous `Ask` fails closed unless the owner attached an exact-call permit.
+#[derive(Clone)]
 pub struct RuntimePolicy<'a> {
     permissions: &'a BTreeMap<String, Permission>,
     rules: Option<&'a crate::permissions::PermissionRules>,
     root: Option<&'a std::path::Path>,
     mcp: &'a [mcp_remote::RegistryEntry],
+    permit: Option<InvocationPermit>,
+}
+
+#[derive(Clone)]
+struct InvocationPermit {
+    call: crate::tools::ToolCall,
+    resources: Vec<String>,
+    patch_preimage: Option<String>,
+    shell_cwd: Option<Arc<crate::shell::PinnedCwd>>,
+    compression_plan: Option<crate::dcp::CompressionPlan>,
+}
+
+enum AdmissionFailure {
+    Required,
+    Rejected(Option<String>),
+    Cancelled,
+    Invalid(String),
+}
+impl From<String> for AdmissionFailure {
+    fn from(value: String) -> Self {
+        Self::Invalid(value)
+    }
+}
+impl From<&str> for AdmissionFailure {
+    fn from(value: &str) -> Self {
+        Self::Invalid(value.into())
+    }
+}
+impl std::fmt::Display for AdmissionFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Required => write!(f, "approval required: no consumer"),
+            Self::Rejected(_) => write!(f, "approval rejected"),
+            Self::Cancelled => write!(f, "approval cancelled"),
+            Self::Invalid(value) => f.write_str(value),
+        }
+    }
 }
 
 impl<'a> RuntimePolicy<'a> {
@@ -187,6 +230,7 @@ impl<'a> RuntimePolicy<'a> {
             rules: None,
             root: None,
             mcp: &[],
+            permit: None,
         }
     }
 
@@ -200,6 +244,7 @@ impl<'a> RuntimePolicy<'a> {
             rules: Some(rules),
             root: None,
             mcp: &[],
+            permit: None,
         }
     }
 
@@ -254,6 +299,14 @@ impl<'a> RuntimePolicy<'a> {
 }
 
 impl ToolPolicy for RuntimePolicy<'_> {
+    fn approved_shell_cwd(&self) -> Option<Arc<crate::shell::PinnedCwd>> {
+        self.permit.as_ref().and_then(|p| p.shell_cwd.clone())
+    }
+    fn approved_patch_preimage(&self) -> Option<&str> {
+        self.permit
+            .as_ref()
+            .and_then(|p| p.patch_preimage.as_deref())
+    }
     fn check(&self, tool: &str) -> Result<(), ToolError> {
         self.check_resource(tool, "*")
     }
@@ -268,6 +321,13 @@ impl ToolPolicy for RuntimePolicy<'_> {
         };
         match self.effect(tool, resource) {
             Permission::Allow => Ok(()),
+            Permission::Ask
+                if self.permit.as_ref().is_some_and(|p| {
+                    p.call.name == tool && p.resources.iter().any(|r| r == resource)
+                }) =>
+            {
+                Ok(())
+            }
             Permission::Ask => Err(ToolError::ApprovalRequired {
                 tool: tool.to_string(),
             }),
@@ -275,6 +335,22 @@ impl ToolPolicy for RuntimePolicy<'_> {
                 tool: tool.to_string(),
             }),
         }
+    }
+
+    fn check_call(&self, call: &crate::tools::ToolCall) -> Result<(), ToolError> {
+        if let Some(permit) = &self.permit
+            && (permit.call.id != call.id
+                || permit.call.name != call.name
+                || permit.call.arguments != call.arguments)
+        {
+            return Err(ToolError::Denied {
+                tool: call.name.clone(),
+            });
+        }
+        for resource in crate::tools::permission_resources(call)? {
+            self.check_resource(&call.name, &resource)?;
+        }
+        Ok(())
     }
 }
 
@@ -934,6 +1010,7 @@ struct ActiveContext {
 /// Single-flight: one active turn at a time (mirrors the single-turn
 /// worker); reload and DCP config changes only land between turns.
 pub struct Runtime<'a> {
+    approvals: Arc<oc_core::approval::ApprovalQueue>,
     compactions: Mutex<BTreeMap<String, compaction::Work>>,
     compaction_events: Mutex<Option<tokio::sync::broadcast::Sender<oc_core::core_app::CoreEvent>>>,
     native_compaction: RwLock<Option<Arc<dyn crate::compaction::NativeCompaction>>>,
@@ -991,7 +1068,9 @@ impl<'a> Runtime<'a> {
         // Outbound projection reads compression tables: ensure the
         // additive idempotent DCP schema before the first turn.
         crate::dcp::apply_dcp_schema(db).map_err(|_| RuntimeError::Storage)?;
+        db.grants_schema()?;
         Ok(Self {
+            approvals: Arc::new(oc_core::approval::ApprovalQueue::default()),
             compactions: Mutex::new(BTreeMap::new()),
             compaction_events: Mutex::new(None),
             native_compaction: RwLock::new(None),
@@ -1024,6 +1103,291 @@ impl<'a> Runtime<'a> {
     /// Current publication id.
     pub fn generation_id(&self) -> u64 {
         self.current.read().expect("generation lock").id
+    }
+
+    pub fn register_approval_consumer(&self, auto_once: bool) {
+        self.approvals.register_consumer(auto_once);
+        if auto_once
+            && let Some(events) = self.compaction_events.lock().expect("events lock").clone()
+        {
+            for request in self.approvals.pending() {
+                let _ = self.approvals.resolve(
+                    oc_core::approval::ApprovalReply {
+                        id: request.id,
+                        binding: request.binding,
+                        decision: oc_core::approval::ApprovalDecision::Once,
+                    },
+                    &events,
+                );
+            }
+        }
+    }
+    pub fn pending_approvals(&self) -> Vec<oc_core::approval::ApprovalRequest> {
+        self.approvals.pending()
+    }
+    pub(crate) fn cancel_pending_approvals(&self) {
+        if let Some(events) = self.compaction_events.lock().expect("events lock").as_ref() {
+            self.approvals.cancel(None, events);
+        }
+    }
+    /// Bind live hints to the same owner event bus used by application queries.
+    pub fn set_approval_events(
+        &self,
+        events: &tokio::sync::broadcast::Sender<oc_core::core_app::CoreEvent>,
+    ) {
+        *self.compaction_events.lock().expect("events lock") = Some(events.clone());
+    }
+    pub fn reply_approval(
+        &self,
+        reply: oc_core::approval::ApprovalReply,
+    ) -> Result<(), RuntimeError> {
+        use oc_core::approval::ApprovalDecision;
+        let request = self
+            .approvals
+            .pending()
+            .into_iter()
+            .find(|r| r.id == reply.id && r.binding == reply.binding)
+            .ok_or_else(|| {
+                RuntimeError::InvalidArgs("stale or mismatched approval reply".into())
+            })?;
+        if request.binding.generation != self.generation_id()
+            || request.binding.location != self.location
+        {
+            return Err(RuntimeError::InvalidArgs(
+                "stale approval generation".into(),
+            ));
+        }
+        if crate::approval::project_identity(&self.roots.project)
+            .map_err(RuntimeError::InvalidArgs)?
+            != request.project
+        {
+            return Err(RuntimeError::InvalidArgs("approval project changed".into()));
+        }
+        if matches!(reply.decision, ApprovalDecision::Cancelled) {
+            return Err(RuntimeError::InvalidArgs(
+                "consumer cannot synthesize cancellation".into(),
+            ));
+        }
+        if let ApprovalDecision::Reject {
+            feedback: Some(feedback),
+        } = &reply.decision
+            && feedback.len() > 16 * 1024
+        {
+            return Err(RuntimeError::InvalidArgs(
+                "approval feedback too large".into(),
+            ));
+        }
+        let events = self
+            .compaction_events
+            .lock()
+            .expect("events lock")
+            .clone()
+            .ok_or_else(|| RuntimeError::InvalidArgs("approval owner unavailable".into()))?;
+        let always = reply.decision == ApprovalDecision::Always;
+        if always && request.save_patterns.is_empty() {
+            return Err(RuntimeError::InvalidArgs(
+                "approval has no save patterns".into(),
+            ));
+        }
+        let plain_reject = matches!(&reply.decision, ApprovalDecision::Reject { feedback: None });
+        self.approvals
+            .resolve_with(reply, &events, |request| {
+                if always {
+                    self.db
+                        .save_permission_grants(
+                            &request.project,
+                            &request.action,
+                            &request.save_patterns,
+                        )
+                        .map_err(|_| "permission grant commit failed")?;
+                }
+                Ok(())
+            })
+            .map_err(|e| RuntimeError::InvalidArgs(e.into()))?;
+        if plain_reject {
+            self.approvals
+                .cancel(Some(&request.binding.session), &events);
+        }
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn admit_tool<'p>(
+        &self,
+        session: &str,
+        turn: &str,
+        op: &str,
+        call: &crate::tools::ToolCall,
+        ctx: &ToolContext<'_>,
+        policy: &RuntimePolicy<'p>,
+        cancel: &AtomicBool,
+        agent: Option<String>,
+        agent_digest: Option<String>,
+    ) -> Result<RuntimePolicy<'p>, AdmissionFailure> {
+        use oc_core::approval::*;
+        let raw = crate::tools::permission_resources(call).map_err(|e| e.to_string())?;
+        let resources: Vec<_> = raw
+            .iter()
+            .map(|r| {
+                if matches!(call.name.as_str(), "read" | "apply_patch") {
+                    permission_path(policy.root, r)
+                } else {
+                    r.clone()
+                }
+            })
+            .collect();
+        if resources
+            .iter()
+            .any(|r| policy.effect(&call.name, r) == Permission::Deny)
+        {
+            return Err(format!("denied {}", call.name).into());
+        }
+        let mut permitted = policy.clone();
+        if call.name == SUBAGENT_TOOL {
+            crate::tools::preflight_subagent(ctx, call).map_err(|e| match e {
+                ToolError::Failed { reason, .. } => reason,
+                other => other.to_string(),
+            })?;
+        }
+        let compression_plan = if call.name == COMPRESS_TOOL {
+            Some(self.preflight_compression(session, call)?)
+        } else {
+            None
+        };
+        if resources
+            .iter()
+            .all(|r| policy.effect(&call.name, r) == Permission::Allow)
+        {
+            if call.name == "bash" || compression_plan.is_some() {
+                let shell_cwd = if call.name == "bash" {
+                    crate::approval::prepare(ctx, call, &resources).await?.3
+                } else {
+                    None
+                };
+                permitted.permit = Some(InvocationPermit {
+                    call: call.clone(),
+                    resources,
+                    patch_preimage: None,
+                    shell_cwd,
+                    compression_plan,
+                });
+            }
+            return Ok(permitted);
+        }
+        let project = crate::approval::project_identity(&self.roots.project)?;
+        let grant_resources =
+            crate::approval::grant_resources(&self.roots.project, &call.name, &resources);
+        let mut saved = true;
+        for (resource, granted) in resources.iter().zip(&grant_resources) {
+            if policy.effect(&call.name, resource) != Permission::Allow
+                && !self
+                    .db
+                    .permission_grant_matches(&project, &call.name, granted)
+                    .map_err(|_| "grant storage unavailable")?
+            {
+                saved = false;
+                break;
+            }
+        }
+        let (preview, digest, patch_preimage, shell_cwd) =
+            crate::approval::prepare(ctx, call, &resources).await?;
+        if !saved {
+            let events = self
+                .compaction_events
+                .lock()
+                .expect("events lock")
+                .clone()
+                .ok_or(AdmissionFailure::Required)?;
+            let request = ApprovalRequest {
+                id: 0,
+                binding: ApprovalBinding {
+                    session: session.into(),
+                    turn: turn.into(),
+                    call: call.id.clone(),
+                    operation: op.into(),
+                    input_digest: digest.clone(),
+                    location: self.location.clone(),
+                    generation: self.generation_id(),
+                    agent,
+                    agent_digest,
+                },
+                project: project.clone(),
+                action: call.name.clone(),
+                resources: resources.clone(),
+                save_patterns: crate::approval::save_patterns(&call.name, &grant_resources),
+                preview,
+            };
+            let waiting = self.approvals.wait(request, &events);
+            tokio::pin!(waiting);
+            let decision = loop {
+                tokio::select! {
+                    result = &mut waiting => break result.map_err(|e| if e == "approval required: no consumer" { AdmissionFailure::Required } else { AdmissionFailure::Invalid(e.into()) })?,
+                    () = tokio::time::sleep(std::time::Duration::from_millis(5)) => if cancel.load(Ordering::Acquire) { return Err(AdmissionFailure::Cancelled); }
+                }
+            };
+            match decision {
+                ApprovalDecision::Once | ApprovalDecision::Always => {}
+                ApprovalDecision::Reject {
+                    feedback: Some(feedback),
+                } => return Err(AdmissionFailure::Rejected(Some(feedback))),
+                ApprovalDecision::Reject { feedback: None } => {
+                    return Err(AdmissionFailure::Rejected(None));
+                }
+                ApprovalDecision::Cancelled => return Err(AdmissionFailure::Cancelled),
+            }
+        }
+        if cancel.load(Ordering::Acquire) {
+            return Err("approval cancelled".into());
+        }
+        let (_, rechecked, _, _) = crate::approval::prepare(ctx, call, &resources).await?;
+        if digest != rechecked {
+            return Err("approval prerequisites changed".into());
+        }
+        if compression_plan.is_some()
+            && compression_plan.as_ref() != Some(&self.preflight_compression(session, call)?)
+        {
+            return Err("approval compression plan changed".into());
+        }
+        if crate::approval::project_identity(&self.roots.project)? != project {
+            return Err("approval project changed".into());
+        }
+        if resources
+            .iter()
+            .any(|r| policy.effect(&call.name, r) == Permission::Deny)
+        {
+            return Err("policy denied after approval".into());
+        }
+        permitted.permit = Some(InvocationPermit {
+            call: call.clone(),
+            resources,
+            patch_preimage,
+            shell_cwd,
+            compression_plan,
+        });
+        Ok(permitted)
+    }
+
+    fn preflight_compression(
+        &self,
+        session: &str,
+        call: &crate::tools::ToolCall,
+    ) -> Result<crate::dcp::CompressionPlan, String> {
+        let config = self.dcp_config.read().expect("dcp lock").clone();
+        if !config.enabled || config.manual_mode {
+            return Err("compress unavailable in disabled/manual DCP mode".into());
+        }
+        let (_, ranges) =
+            crate::dcp::validate_range_args(&call.arguments).map_err(|e| e.to_string())?;
+        let (_, full) = self.active_rows(session).map_err(|e| e.to_string())?;
+        let messages = map_messages(&full).map_err(|e| e.to_string())?;
+        let mut spec = self
+            .dcp_protected
+            .read()
+            .expect("dcp protection lock")
+            .clone();
+        apply_turn_protection(&full, &config, &mut spec);
+        crate::dcp::prepare_compression(self.db, session, &messages, &ranges, &spec, false)
+            .map_err(|e| e.to_string())
     }
 
     /// Owning Location.
@@ -1073,6 +1437,9 @@ impl<'a> Runtime<'a> {
 
     /// Close the current Location/config generation's MCP resources.
     pub async fn shutdown_mcp(&self) -> Result<(), RuntimeError> {
+        if let Some(events) = self.compaction_events.lock().expect("events lock").clone() {
+            self.approvals.cancel(None, &events);
+        }
         let mut slot = self.mcp_generation.lock().await;
         self.retire_poisoned(&mut slot).await?;
         if let Some(generation) = slot.take()
@@ -1784,8 +2151,8 @@ impl<'a> Runtime<'a> {
         let compress_available = dcp_config.enabled
             && !dcp_config.manual_mode
             && RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules)
-                .check(COMPRESS_TOOL)
-                .is_ok();
+                .effect(COMPRESS_TOOL, "*")
+                != Permission::Deny;
         let model_context = budget.context;
         let dcp_model_key = format!("{}/{}", params.catalog.provider, selection.id);
         let dcp_thresholds = dcp_config.effective_for_context(&dcp_model_key, model_context);
@@ -2634,8 +3001,24 @@ impl<'a> Runtime<'a> {
                     round: rounds,
                 }),
             );
-            let (round_calls, projection_changed) = executed?;
+            let (round_calls, projection_changed, permission_rejected) = executed?;
             calls.extend(round_calls);
+            if permission_rejected {
+                return self.commit_turn(
+                    &turn_log,
+                    turn_id,
+                    &params.session,
+                    TurnStatus::Cancelled,
+                    text,
+                    rounds,
+                    streamed_ms(streamed),
+                    usage,
+                    context_usage,
+                    calls,
+                    nudge_hint,
+                    &published,
+                );
+            }
             if calls.iter().any(|call| call.state == "unknown") {
                 let mut report = self.commit_turn(
                     &turn_log,
@@ -3034,9 +3417,10 @@ impl<'a> Runtime<'a> {
         nudge_key: &str,
         tool_projection: &mut crate::storage::DcpToolProjection,
         tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
-    ) -> Result<(Vec<CallRecord>, bool), RuntimeError> {
+    ) -> Result<(Vec<CallRecord>, bool, bool), RuntimeError> {
         let mut records = Vec::new();
         let mut projection_changed = false;
+        let mut permission_rejected = false;
         for (i, unit) in units.iter().enumerate() {
             let (id, name, input) = match unit {
                 Assembled::Call(call) => (&call.id, call.name.as_str(), call.arguments.to_string()),
@@ -3045,6 +3429,45 @@ impl<'a> Runtime<'a> {
             // Keep the original provider identifier in the durable operation id.
             let op = format!("{turn_id}-r{round}-c{i}-{id}");
             let guarded = self.guard_patch(unit.clone());
+            let admission = match &guarded {
+                Assembled::Call(call)
+                    if !permission_rejected
+                        && !cancel.load(Ordering::Acquire)
+                        && (!is_builtin(&call.name)
+                            || crate::tools::validate_call(call).is_ok()) =>
+                {
+                    self.admit_tool(
+                        session,
+                        turn_id,
+                        &op,
+                        call,
+                        ctx,
+                        policy,
+                        cancel,
+                        turn_log.display["agent"].as_str().map(str::to_string),
+                        turn_log.agent_digest.clone(),
+                    )
+                    .await
+                }
+                _ => Ok(policy.clone()),
+            };
+            if matches!(&admission, Err(AdmissionFailure::Required)) {
+                return Err(RuntimeError::ApprovalRequired { tool: name.into() });
+            }
+            let invocation_policy = admission.as_ref().unwrap_or(policy);
+            let invocation_ctx = ToolContext {
+                files: ctx.files,
+                shell: ctx.shell,
+                parent_env: ctx.parent_env,
+                webfetch_auth: ctx.webfetch_auth.clone(),
+                webfetch_allow_private: ctx.webfetch_allow_private,
+                policy: invocation_policy,
+                subagent: ctx.subagent,
+                snapshot: ctx.snapshot,
+                cancel: ctx.cancel,
+                roots: ctx.roots.clone(),
+            };
+            let ctx = &invocation_ctx;
             let rejection = match &guarded {
                 Assembled::Failed(failure) => Some(("failed", format!("error: {}", failure.error))),
                 Assembled::Call(call)
@@ -3066,7 +3489,30 @@ impl<'a> Runtime<'a> {
                         "error: compress unavailable in disabled/manual DCP mode".to_string(),
                     ))
                 }
-                Assembled::Call(call) if policy.check_call(call).is_err() => {
+                Assembled::Call(_) if matches!(&admission, Err(AdmissionFailure::Rejected(_))) => {
+                    let Err(AdmissionFailure::Rejected(feedback)) = &admission else {
+                        unreachable!()
+                    };
+                    Some((
+                        "denied",
+                        serde_json::json!({"status":"permission_rejected", "feedback":feedback})
+                            .to_string(),
+                    ))
+                }
+                Assembled::Call(_) if matches!(&admission, Err(AdmissionFailure::Cancelled)) => {
+                    Some((
+                        "cancelled",
+                        serde_json::json!({"status":"permission_cancelled"}).to_string(),
+                    ))
+                }
+                Assembled::Call(_) if admission.is_err() => Some((
+                    if is_builtin(name) { "failed" } else { "denied" },
+                    format!(
+                        "error: {}",
+                        admission.as_ref().err().expect("admission error")
+                    ),
+                )),
+                Assembled::Call(call) if invocation_policy.check_call(call).is_err() => {
                     let state = if is_builtin(&call.name) {
                         "failed"
                     } else {
@@ -3074,14 +3520,18 @@ impl<'a> Runtime<'a> {
                     };
                     Some((
                         state,
-                        format!("error: {}", policy.check_call(call).expect_err("rejected")),
+                        format!(
+                            "error: {}",
+                            invocation_policy.check_call(call).expect_err("rejected")
+                        ),
                     ))
                 }
-                _ if cancel.load(Ordering::Relaxed) => {
+                _ if permission_rejected || cancel.load(Ordering::Relaxed) => {
                     Some(("cancelled", "error: cancelled".to_string()))
                 }
                 _ => None,
             };
+            permission_rejected |= matches!(&admission, Err(AdmissionFailure::Rejected(None)));
             // Fail closed. No built-in or MCP dispatch can precede this commit.
             let position = call_positions[i]
                 .and_then(|index| {
@@ -3102,6 +3552,40 @@ impl<'a> Runtime<'a> {
             }
             if let Some(index) = call_positions[i] {
                 positioned.push((index, position));
+            }
+            if let Some((state, output)) = &rejection {
+                turn_log.input.push(InputItem::FunctionCallOutput {
+                    call_id: id.clone(),
+                    output: output.clone(),
+                });
+                self.db.record_turn_tool_refusal(
+                    &op,
+                    session,
+                    turn_id,
+                    name,
+                    &input,
+                    state,
+                    output,
+                    &turn_log.to_json().to_string(),
+                )?;
+                if let Some(identity) = &stream_identities[i] {
+                    tool_event(
+                        turn_id,
+                        &ToolCallEvent::ArgumentStream(
+                            oc_core::tool_stream::ToolStreamEvent::Linked {
+                                identity: identity.clone(),
+                                op: op.clone(),
+                            },
+                        ),
+                    );
+                }
+                emit_tool_finish_with_effects(tool_event, turn_id, &op, name, state, output, None);
+                records.push(CallRecord {
+                    name: name.to_string(),
+                    state: state.to_string(),
+                    output: truncate(output, REPORT_OUTPUT_CAP),
+                });
+                continue;
             }
             self.db.record_turn_tool_intent(
                 &op,
@@ -3132,25 +3616,19 @@ impl<'a> Runtime<'a> {
                 && let Assembled::Call(call) = unit
                 && call.name == COMPRESS_TOOL
             {
-                let (_, ranges) = crate::dcp::validate_range_args(&call.arguments)
-                    .map_err(|error| RuntimeError::Compress(error.to_string()))?;
                 let context = self.active_projection(session)?;
                 let after_seq = context.after_seq;
                 let full = {
                     let (_, rows) = self.active_rows(session)?;
                     rows
                 };
-                let messages = map_messages(&full)?;
                 let config = self.dcp_config.read().expect("dcp lock").clone();
-                let mut spec = self
-                    .dcp_protected
-                    .read()
-                    .expect("dcp protection lock")
-                    .clone();
-                apply_turn_protection(&full, &config, &mut spec);
-                match crate::dcp::prepare_compression(
-                    self.db, session, &messages, &ranges, &spec, false,
-                ) {
+                let prepared = invocation_policy
+                    .permit
+                    .as_ref()
+                    .and_then(|p| p.compression_plan.clone())
+                    .expect("compress admission prepared plan");
+                match Ok::<_, crate::dcp::DcpError>(prepared) {
                     Ok(plan) => {
                         let existing = crate::dcp::load_blocks(self.db, session)
                             .map_err(|_| RuntimeError::Storage)?;
@@ -3397,7 +3875,7 @@ impl<'a> Runtime<'a> {
                 break; // no later side effects in this provider batch
             }
         }
-        Ok((records, projection_changed))
+        Ok((records, projection_changed, permission_rejected))
     }
 
     /// Legacy patch deny wins: a protected patch never reaches the executor.
@@ -4084,6 +4562,9 @@ struct TurnSubagent<'r, 'a> {
 }
 
 impl SubagentRunner for TurnSubagent<'_, '_> {
+    fn preflight(&self, request: &SubagentRequest) -> Result<(), ToolError> {
+        self.resolve_request(request).map(|_| ())
+    }
     fn spawn<'x>(
         &'x self,
         request: SubagentRequest,
@@ -4095,12 +4576,15 @@ impl SubagentRunner for TurnSubagent<'_, '_> {
 }
 
 impl TurnSubagent<'_, '_> {
-    async fn spawn_inner(&self, request: SubagentRequest) -> Result<SubagentOutcome, ToolError> {
-        let failed = |reason: String| {
-            Ok(SubagentOutcome::Failed {
-                session_id: None,
-                reason,
-            })
+    /// Shared by admission, post-wait revalidation, and actual child execution.
+    /// This resolver never allocates child IDs or writes session/turn state.
+    fn resolve_request(
+        &self,
+        request: &SubagentRequest,
+    ) -> Result<(&SubagentAgent, ResolvedModel), ToolError> {
+        let failed = |reason: String| ToolError::Failed {
+            tool: SUBAGENT_TOOL.into(),
+            reason,
         };
         let limit = self.subagents.depth_limit;
         let depth = self
@@ -4111,15 +4595,18 @@ impl TurnSubagent<'_, '_> {
                 reason: error.to_string(),
             })?;
         if depth >= limit {
-            return failed(format!(
+            return Err(failed(format!(
                 "Subagent depth limit reached ({limit}). Increase \"experimental.subagent_depth\" to allow nested subagents."
-            ));
+            )));
         }
         let Some(agent) = self.subagents.agents.get(&request.agent) else {
-            return failed(format!("Unknown agent: {}", request.agent));
+            return Err(failed(format!("Unknown agent: {}", request.agent)));
         };
         if agent.primary {
-            return failed(format!("Agent {} cannot run as a subagent", request.agent));
+            return Err(failed(format!(
+                "Agent {} cannot run as a subagent",
+                request.agent
+            )));
         }
         let existing = match &request.session_id {
             None => None,
@@ -4128,12 +4615,12 @@ impl TurnSubagent<'_, '_> {
                     Some(meta)
                 }
                 Ok(_) => {
-                    return failed(format!(
+                    return Err(failed(format!(
                         "Session {id} is not a child of the current session"
-                    ));
+                    )));
                 }
                 Err(StorageError::SessionNotFound) => {
-                    return failed(format!("Subagent session not found: {id}"));
+                    return Err(failed(format!("Subagent session not found: {id}")));
                 }
                 Err(error) => {
                     return Err(ToolError::Failed {
@@ -4146,7 +4633,7 @@ impl TurnSubagent<'_, '_> {
         let switched = existing
             .as_ref()
             .is_some_and(|meta| meta.agent.as_deref() != Some(agent.id.as_str()));
-        let model = match resolve_child_model(
+        let model = resolve_child_model(
             self.catalog,
             request.model.as_deref(),
             agent.model.as_deref(),
@@ -4154,10 +4641,13 @@ impl TurnSubagent<'_, '_> {
             switched,
             &self.parent_model_id,
             self.parent_variant.as_deref(),
-        ) {
-            Ok(model) => model,
-            Err(reason) => return failed(reason),
-        };
+        )
+        .map_err(failed)?;
+        Ok((agent, model))
+    }
+
+    async fn spawn_inner(&self, request: SubagentRequest) -> Result<SubagentOutcome, ToolError> {
+        let (agent, model) = self.resolve_request(&request)?;
         let (child_session, fresh) = match &request.session_id {
             Some(id) => (id.clone(), false),
             None => {

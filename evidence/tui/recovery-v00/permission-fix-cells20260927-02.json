@@ -1,0 +1,1064 @@
+{
+  "scope": "Actual unmasked frames 37–40; targeted diagnostic cells do not qualify full-grid parity.",
+  "runs": [
+    {
+      "name": "permission20260927-37",
+      "sides": {
+        "upstream": {
+          "columns": 120,
+          "patching": [
+            {
+              "x": 7,
+              "y": 7
+            }
+          ],
+          "patching_filename": [
+            {
+              "x": 16,
+              "y": 7
+            }
+          ],
+          "failed_title": {
+            "position": {
+              "x": 5,
+              "y": 24
+            },
+            "count": 1,
+            "line": "  ┃  # Patch failed approval.txt                                                                                        ",
+            "filename_on_title": true,
+            "filename_positions": [
+              {
+                "x": 20,
+                "y": 24
+              }
+            ],
+            "next_line": "  ┃                                                                                                                     ",
+            "decline": [
+              {
+                "x": 5,
+                "y": 26
+              }
+            ]
+          },
+          "fullscreen_hint": [
+            {
+              "x": 73,
+              "y": 37
+            }
+          ],
+          "minimize_hint": [
+            {
+              "x": 75,
+              "y": 37
+            }
+          ],
+          "confirm_hint": [
+            {
+              "x": 102,
+              "y": 37
+            }
+          ],
+          "feedback_footer": [
+            {
+              "x": 90,
+              "y": 37
+            }
+          ],
+          "feedback_start": [
+            {
+              "x": 5,
+              "y": 37
+            }
+          ],
+          "feedback_end": [
+            {
+              "x": 48,
+              "y": 37
+            }
+          ],
+          "settings_category": [
+            {
+              "x": 34,
+              "y": 15
+            }
+          ],
+          "settings_permission": [
+            {
+              "x": 34,
+              "y": 13
+            },
+            {
+              "x": 34,
+              "y": 16
+            }
+          ],
+          "settings_value": [
+            {
+              "x": 75,
+              "y": 16
+            }
+          ],
+          "settings_search": [],
+          "url_title_rows": [
+            {
+              "y": 29,
+              "line": "  ┃  △ Permission required                                                                                              "
+            },
+            {
+              "y": 30,
+              "line": "  ┃    % WebFetch https://example.invalid/vis36/never-fetch?wrapped=word-word-word-word-word-word-word-word-word-       "
+            },
+            {
+              "y": 31,
+              "line": "  ┃      word-word-word-word-word-word-word-word-word-word-word-word-word-word-word-                                    "
+            },
+            {
+              "y": 32,
+              "line": "  ┃                                                                                                                     "
+            }
+          ],
+          "url_value_rows": [
+            {
+              "y": 33,
+              "line": "  ┃  URL: https://example.invalid/vis36/never-fetch?wrapped=word-word-word-word-word-word-word-word-word-word-word-     "
+            },
+            {
+              "y": 34,
+              "line": "  ┃  word-word-word-word-word-word-word-word-word-word-word-word-word-                                                  "
+            },
+            {
+              "y": 35,
+              "line": "  ┃                                                                                                                     "
+            }
+          ]
+        },
+        "oc": {
+          "columns": 120,
+          "patching": [
+            {
+              "x": 7,
+              "y": 7
+            }
+          ],
+          "patching_filename": [
+            {
+              "x": 16,
+              "y": 7
+            }
+          ],
+          "failed_title": {
+            "position": {
+              "x": 5,
+              "y": 24
+            },
+            "count": 1,
+            "line": "  ┃  # Patch failed approval.txt                                                                                        ",
+            "filename_on_title": true,
+            "filename_positions": [
+              {
+                "x": 20,
+                "y": 24
+              }
+            ],
+            "next_line": "  ┃                                                                                                                     ",
+            "decline": [
+              {
+                "x": 5,
+                "y": 26
+              }
+            ]
+          },
+          "fullscreen_hint": [
+            {
+              "x": 73,
+              "y": 37
+            }
+          ],
+          "minimize_hint": [
+            {
+              "x": 75,
+              "y": 37
+            }
+          ],
+          "confirm_hint": [
+            {
+              "x": 102,
+              "y": 37
+            }
+          ],
+          "feedback_footer": [
+            {
+              "x": 90,
+              "y": 37
+            }
+          ],
+          "feedback_start": [
+            {
+              "x": 5,
+              "y": 37
+            }
+          ],
+          "feedback_end": [
+            {
+              "x": 48,
+              "y": 37
+            }
+          ],
+          "settings_category": [
+            {
+              "x": 34,
+              "y": 15
+            }
+          ],
+          "settings_permission": [
+            {
+              "x": 34,
+              "y": 16
+            }
+          ],
+          "settings_value": [
+            {
+              "x": 75,
+              "y": 16
+            }
+          ],
+          "settings_search": [
+            {
+              "x": 34,
+              "y": 13
+            }
+          ],
+          "url_title_rows": [
+            {
+              "y": 29,
+              "line": "  ┃  △ Permission required                                                                                              "
+            },
+            {
+              "y": 30,
+              "line": "  ┃    % WebFetch https://example.invalid/vis36/never-fetch?wrapped=word-word-word-word-word-word-word-word-word-       "
+            },
+            {
+              "y": 31,
+              "line": "  ┃      word-word-word-word-word-word-word-word-word-word-word-word-word-word-word-                                    "
+            },
+            {
+              "y": 32,
+              "line": "  ┃                                                                                                                     "
+            }
+          ],
+          "url_value_rows": [
+            {
+              "y": 33,
+              "line": "  ┃  URL: https://example.invalid/vis36/never-fetch?wrapped=word-word-word-word-word-word-word-word-word-word-word-     "
+            },
+            {
+              "y": 34,
+              "line": "  ┃  word-word-word-word-word-word-word-word-word-word-word-word-word-                                                  "
+            },
+            {
+              "y": 35,
+              "line": "  ┃                                                                                                                     "
+            }
+          ]
+        }
+      },
+      "targeted_failed_card_pass": true
+    },
+    {
+      "name": "permission20260927-38",
+      "sides": {
+        "upstream": {
+          "columns": 80,
+          "patching": [
+            {
+              "x": 7,
+              "y": 7
+            }
+          ],
+          "patching_filename": [
+            {
+              "x": 16,
+              "y": 7
+            }
+          ],
+          "failed_title": {
+            "position": {
+              "x": 5,
+              "y": 25
+            },
+            "count": 1,
+            "line": "  ┃  # Patch failed approval.txt                                                ",
+            "filename_on_title": true,
+            "filename_positions": [
+              {
+                "x": 20,
+                "y": 25
+              }
+            ],
+            "next_line": "  ┃                                                                             ",
+            "decline": [
+              {
+                "x": 5,
+                "y": 27
+              }
+            ]
+          },
+          "fullscreen_hint": [
+            {
+              "x": 42,
+              "y": 37
+            }
+          ],
+          "minimize_hint": [
+            {
+              "x": 42,
+              "y": 37
+            }
+          ],
+          "confirm_hint": [],
+          "feedback_footer": [
+            {
+              "x": 50,
+              "y": 37
+            }
+          ],
+          "feedback_start": [
+            {
+              "x": 5,
+              "y": 36
+            }
+          ],
+          "feedback_end": [
+            {
+              "x": 5,
+              "y": 37
+            }
+          ],
+          "settings_category": [
+            {
+              "x": 14,
+              "y": 15
+            }
+          ],
+          "settings_permission": [
+            {
+              "x": 14,
+              "y": 13
+            },
+            {
+              "x": 14,
+              "y": 16
+            }
+          ],
+          "settings_value": [
+            {
+              "x": 55,
+              "y": 16
+            }
+          ],
+          "settings_search": [],
+          "url_title_rows": [
+            {
+              "y": 27,
+              "line": "  ┃  △ Permission required                                                      "
+            },
+            {
+              "y": 28,
+              "line": "  ┃    % WebFetch https://example.invalid/vis36/never-fetch?wrapped=word-       "
+            },
+            {
+              "y": 29,
+              "line": "  ┃      word-word-word-word-word-word-word-word-word-word-word-word-word-      "
+            },
+            {
+              "y": 30,
+              "line": "  ┃      word-word-word-word-word-word-word-word-word-word-                     "
+            },
+            {
+              "y": 31,
+              "line": "  ┃                                                                             "
+            }
+          ],
+          "url_value_rows": [
+            {
+              "y": 32,
+              "line": "  ┃  URL: https://example.invalid/vis36/never-fetch?wrapped=word-word-word-     "
+            },
+            {
+              "y": 33,
+              "line": "  ┃  word-word-word-word-word-word-word-word-word-word-word-word-word-word-     "
+            },
+            {
+              "y": 34,
+              "line": "  ┃  word-word-word-word-word-word-word-                                        "
+            }
+          ]
+        },
+        "oc": {
+          "columns": 80,
+          "patching": [
+            {
+              "x": 7,
+              "y": 7
+            }
+          ],
+          "patching_filename": [
+            {
+              "x": 16,
+              "y": 7
+            }
+          ],
+          "failed_title": {
+            "position": {
+              "x": 5,
+              "y": 25
+            },
+            "count": 1,
+            "line": "  ┃  # Patch failed approval.txt                                                ",
+            "filename_on_title": true,
+            "filename_positions": [
+              {
+                "x": 20,
+                "y": 25
+              }
+            ],
+            "next_line": "  ┃                                                                             ",
+            "decline": [
+              {
+                "x": 5,
+                "y": 27
+              }
+            ]
+          },
+          "fullscreen_hint": [
+            {
+              "x": 42,
+              "y": 37
+            }
+          ],
+          "minimize_hint": [
+            {
+              "x": 42,
+              "y": 37
+            }
+          ],
+          "confirm_hint": [],
+          "feedback_footer": [
+            {
+              "x": 50,
+              "y": 37
+            }
+          ],
+          "feedback_start": [
+            {
+              "x": 5,
+              "y": 36
+            }
+          ],
+          "feedback_end": [
+            {
+              "x": 5,
+              "y": 37
+            }
+          ],
+          "settings_category": [
+            {
+              "x": 14,
+              "y": 15
+            }
+          ],
+          "settings_permission": [
+            {
+              "x": 14,
+              "y": 16
+            }
+          ],
+          "settings_value": [
+            {
+              "x": 55,
+              "y": 16
+            }
+          ],
+          "settings_search": [
+            {
+              "x": 14,
+              "y": 13
+            }
+          ],
+          "url_title_rows": [
+            {
+              "y": 27,
+              "line": "  ┃  △ Permission required                                                      "
+            },
+            {
+              "y": 28,
+              "line": "  ┃    % WebFetch https://example.invalid/vis36/never-fetch?wrapped=word-       "
+            },
+            {
+              "y": 29,
+              "line": "  ┃      word-word-word-word-word-word-word-word-word-word-word-word-word-      "
+            },
+            {
+              "y": 30,
+              "line": "  ┃      word-word-word-word-word-word-word-word-word-word-                     "
+            },
+            {
+              "y": 31,
+              "line": "  ┃                                                                             "
+            }
+          ],
+          "url_value_rows": [
+            {
+              "y": 32,
+              "line": "  ┃  URL: https://example.invalid/vis36/never-fetch?wrapped=word-word-word-     "
+            },
+            {
+              "y": 33,
+              "line": "  ┃  word-word-word-word-word-word-word-word-word-word-word-word-word-word-     "
+            },
+            {
+              "y": 34,
+              "line": "  ┃  word-word-word-word-word-word-word-                                        "
+            }
+          ]
+        }
+      },
+      "targeted_failed_card_pass": true
+    },
+    {
+      "name": "permission20260927-39",
+      "sides": {
+        "upstream": {
+          "columns": 79,
+          "patching": [
+            {
+              "x": 7,
+              "y": 7
+            }
+          ],
+          "patching_filename": [
+            {
+              "x": 16,
+              "y": 7
+            }
+          ],
+          "failed_title": {
+            "position": {
+              "x": 5,
+              "y": 25
+            },
+            "count": 1,
+            "line": "  ┃  # Patch failed approval.txt                                               ",
+            "filename_on_title": true,
+            "filename_positions": [
+              {
+                "x": 20,
+                "y": 25
+              }
+            ],
+            "next_line": "  ┃                                                                            ",
+            "decline": [
+              {
+                "x": 5,
+                "y": 27
+              }
+            ]
+          },
+          "fullscreen_hint": [
+            {
+              "x": 5,
+              "y": 37
+            }
+          ],
+          "minimize_hint": [
+            {
+              "x": 5,
+              "y": 37
+            }
+          ],
+          "confirm_hint": [
+            {
+              "x": 34,
+              "y": 37
+            }
+          ],
+          "feedback_footer": [
+            {
+              "x": 5,
+              "y": 37
+            }
+          ],
+          "feedback_start": [
+            {
+              "x": 5,
+              "y": 35
+            }
+          ],
+          "feedback_end": [
+            {
+              "x": 48,
+              "y": 35
+            }
+          ],
+          "settings_category": [
+            {
+              "x": 14,
+              "y": 15
+            }
+          ],
+          "settings_permission": [
+            {
+              "x": 14,
+              "y": 13
+            },
+            {
+              "x": 14,
+              "y": 16
+            }
+          ],
+          "settings_value": [
+            {
+              "x": 55,
+              "y": 16
+            }
+          ],
+          "settings_search": [],
+          "url_title_rows": [
+            {
+              "y": 25,
+              "line": "  ┃  △ Permission required                                                     "
+            },
+            {
+              "y": 26,
+              "line": "  ┃    % WebFetch https://example.invalid/vis36/never-fetch?wrapped=word-      "
+            },
+            {
+              "y": 27,
+              "line": "  ┃      word-word-word-word-word-word-word-word-word-word-word-word-word-     "
+            },
+            {
+              "y": 28,
+              "line": "  ┃      word-word-word-word-word-word-word-word-word-word-                    "
+            },
+            {
+              "y": 29,
+              "line": "  ┃                                                                            "
+            }
+          ],
+          "url_value_rows": [
+            {
+              "y": 30,
+              "line": "  ┃  URL: https://example.invalid/vis36/never-fetch?wrapped=word-word-         "
+            },
+            {
+              "y": 31,
+              "line": "  ┃  word-word-word-word-word-word-word-word-word-word-word-word-word-         "
+            },
+            {
+              "y": 32,
+              "line": "  ┃  word-word-word-word-word-word-word-word-word-                             "
+            }
+          ]
+        },
+        "oc": {
+          "columns": 79,
+          "patching": [
+            {
+              "x": 7,
+              "y": 7
+            }
+          ],
+          "patching_filename": [
+            {
+              "x": 16,
+              "y": 7
+            }
+          ],
+          "failed_title": {
+            "position": {
+              "x": 5,
+              "y": 25
+            },
+            "count": 1,
+            "line": "  ┃  # Patch failed approval.txt                                               ",
+            "filename_on_title": true,
+            "filename_positions": [
+              {
+                "x": 20,
+                "y": 25
+              }
+            ],
+            "next_line": "  ┃                                                                            ",
+            "decline": [
+              {
+                "x": 5,
+                "y": 27
+              }
+            ]
+          },
+          "fullscreen_hint": [
+            {
+              "x": 5,
+              "y": 37
+            }
+          ],
+          "minimize_hint": [
+            {
+              "x": 5,
+              "y": 37
+            }
+          ],
+          "confirm_hint": [
+            {
+              "x": 34,
+              "y": 37
+            }
+          ],
+          "feedback_footer": [
+            {
+              "x": 5,
+              "y": 37
+            }
+          ],
+          "feedback_start": [
+            {
+              "x": 5,
+              "y": 35
+            }
+          ],
+          "feedback_end": [
+            {
+              "x": 48,
+              "y": 35
+            }
+          ],
+          "settings_category": [
+            {
+              "x": 13,
+              "y": 15
+            }
+          ],
+          "settings_permission": [
+            {
+              "x": 13,
+              "y": 16
+            }
+          ],
+          "settings_value": [
+            {
+              "x": 54,
+              "y": 16
+            }
+          ],
+          "settings_search": [
+            {
+              "x": 13,
+              "y": 13
+            }
+          ],
+          "url_title_rows": [
+            {
+              "y": 25,
+              "line": "  ┃  △ Permission required                                                     "
+            },
+            {
+              "y": 26,
+              "line": "  ┃    % WebFetch https://example.invalid/vis36/never-fetch?wrapped=word-      "
+            },
+            {
+              "y": 27,
+              "line": "  ┃      word-word-word-word-word-word-word-word-word-word-word-word-word-     "
+            },
+            {
+              "y": 28,
+              "line": "  ┃      word-word-word-word-word-word-word-word-word-word-                    "
+            },
+            {
+              "y": 29,
+              "line": "  ┃                                                                            "
+            }
+          ],
+          "url_value_rows": [
+            {
+              "y": 30,
+              "line": "  ┃  URL: https://example.invalid/vis36/never-fetch?wrapped=word-word-         "
+            },
+            {
+              "y": 31,
+              "line": "  ┃  word-word-word-word-word-word-word-word-word-word-word-word-word-         "
+            },
+            {
+              "y": 32,
+              "line": "  ┃  word-word-word-word-word-word-word-word-word-                             "
+            }
+          ]
+        }
+      },
+      "targeted_failed_card_pass": true
+    },
+    {
+      "name": "permission20260927-40",
+      "sides": {
+        "upstream": {
+          "columns": 121,
+          "patching": [
+            {
+              "x": 7,
+              "y": 7
+            }
+          ],
+          "patching_filename": [
+            {
+              "x": 16,
+              "y": 7
+            }
+          ],
+          "failed_title": {
+            "position": {
+              "x": 5,
+              "y": 24
+            },
+            "count": 1,
+            "line": "  ┃  # Patch failed approval.txt                                                                                         ",
+            "filename_on_title": true,
+            "filename_positions": [
+              {
+                "x": 20,
+                "y": 24
+              }
+            ],
+            "next_line": "  ┃                                                                                                                      ",
+            "decline": [
+              {
+                "x": 5,
+                "y": 26
+              }
+            ]
+          },
+          "fullscreen_hint": [
+            {
+              "x": 74,
+              "y": 37
+            }
+          ],
+          "minimize_hint": [
+            {
+              "x": 76,
+              "y": 37
+            }
+          ],
+          "confirm_hint": [
+            {
+              "x": 103,
+              "y": 37
+            }
+          ],
+          "feedback_footer": [
+            {
+              "x": 91,
+              "y": 37
+            }
+          ],
+          "feedback_start": [
+            {
+              "x": 5,
+              "y": 37
+            }
+          ],
+          "feedback_end": [
+            {
+              "x": 48,
+              "y": 37
+            }
+          ],
+          "settings_category": [
+            {
+              "x": 35,
+              "y": 15
+            }
+          ],
+          "settings_permission": [
+            {
+              "x": 35,
+              "y": 13
+            },
+            {
+              "x": 35,
+              "y": 16
+            }
+          ],
+          "settings_value": [
+            {
+              "x": 76,
+              "y": 16
+            }
+          ],
+          "settings_search": [],
+          "url_title_rows": [
+            {
+              "y": 29,
+              "line": "  ┃  △ Permission required                                                                                               "
+            },
+            {
+              "y": 30,
+              "line": "  ┃    % WebFetch https://example.invalid/vis36/never-fetch?wrapped=word-word-word-word-word-word-word-word-word-        "
+            },
+            {
+              "y": 31,
+              "line": "  ┃      word-word-word-word-word-word-word-word-word-word-word-word-word-word-word-                                     "
+            },
+            {
+              "y": 32,
+              "line": "  ┃                                                                                                                      "
+            }
+          ],
+          "url_value_rows": [
+            {
+              "y": 33,
+              "line": "  ┃  URL: https://example.invalid/vis36/never-fetch?wrapped=word-word-word-word-word-word-word-word-word-word-word-      "
+            },
+            {
+              "y": 34,
+              "line": "  ┃  word-word-word-word-word-word-word-word-word-word-word-word-word-                                                   "
+            },
+            {
+              "y": 35,
+              "line": "  ┃                                                                                                                      "
+            }
+          ]
+        },
+        "oc": {
+          "columns": 121,
+          "patching": [
+            {
+              "x": 7,
+              "y": 7
+            }
+          ],
+          "patching_filename": [
+            {
+              "x": 16,
+              "y": 7
+            }
+          ],
+          "failed_title": {
+            "position": {
+              "x": 5,
+              "y": 24
+            },
+            "count": 1,
+            "line": "  ┃  # Patch failed approval.txt                                                                                         ",
+            "filename_on_title": true,
+            "filename_positions": [
+              {
+                "x": 20,
+                "y": 24
+              }
+            ],
+            "next_line": "  ┃                                                                                                                      ",
+            "decline": [
+              {
+                "x": 5,
+                "y": 26
+              }
+            ]
+          },
+          "fullscreen_hint": [
+            {
+              "x": 74,
+              "y": 37
+            }
+          ],
+          "minimize_hint": [
+            {
+              "x": 76,
+              "y": 37
+            }
+          ],
+          "confirm_hint": [
+            {
+              "x": 103,
+              "y": 37
+            }
+          ],
+          "feedback_footer": [
+            {
+              "x": 91,
+              "y": 37
+            }
+          ],
+          "feedback_start": [
+            {
+              "x": 5,
+              "y": 37
+            }
+          ],
+          "feedback_end": [
+            {
+              "x": 48,
+              "y": 37
+            }
+          ],
+          "settings_category": [
+            {
+              "x": 34,
+              "y": 15
+            }
+          ],
+          "settings_permission": [
+            {
+              "x": 34,
+              "y": 16
+            }
+          ],
+          "settings_value": [
+            {
+              "x": 75,
+              "y": 16
+            }
+          ],
+          "settings_search": [
+            {
+              "x": 34,
+              "y": 13
+            }
+          ],
+          "url_title_rows": [
+            {
+              "y": 29,
+              "line": "  ┃  △ Permission required                                                                                               "
+            },
+            {
+              "y": 30,
+              "line": "  ┃    % WebFetch https://example.invalid/vis36/never-fetch?wrapped=word-word-word-word-word-word-word-word-word-        "
+            },
+            {
+              "y": 31,
+              "line": "  ┃      word-word-word-word-word-word-word-word-word-word-word-word-word-word-word-                                     "
+            },
+            {
+              "y": 32,
+              "line": "  ┃                                                                                                                      "
+            }
+          ],
+          "url_value_rows": [
+            {
+              "y": 33,
+              "line": "  ┃  URL: https://example.invalid/vis36/never-fetch?wrapped=word-word-word-word-word-word-word-word-word-word-word-      "
+            },
+            {
+              "y": 34,
+              "line": "  ┃  word-word-word-word-word-word-word-word-word-word-word-word-word-                                                   "
+            },
+            {
+              "y": 35,
+              "line": "  ┃                                                                                                                      "
+            }
+          ]
+        }
+      },
+      "targeted_failed_card_pass": true
+    }
+  ],
+  "targeted_failed_card_status": "PASS"
+}

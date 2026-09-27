@@ -1,0 +1,40 @@
+   VIS36 patch fixture             VIS36 patch fixture           +                                                       
+  ┃                                                                                                                      
+  ┃  VIS36 url: execute the supplied ordinary function patch once.                                                       
+  ┃                                                                                                                      
+                                                                                                                         
+       WebFetch                                                                                                          
+  http://127.0.0.1:9/vis36/never-fetch?wrapped=word-word-word-word-word-word-word-word-word-word-word-word-word-word-wo  
+  rd-word-word-word-word-word-word-word-word-word-                                                                       
+       error: private host refused                                                                                       
+                                                                                                                         
+     VIS36-DONE-url                                                                                                      
+                                                                                                                         
+     Build · MiMo-V2.6-Flash Free · 202ms                                                                                
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃  VIS36 autoonce: execute the supplied ordinary function patch once.                                                  
+  ┃                                                                                                                      
+                                                                                                                         
+     → Explored — 1 read                                                                                                 
+                                                                                                                         
+     VIS36-DONE-autoonce                                                                                                 
+                                                                                                                         
+     Build · MiMo-V2.6-Flash Free · 174ms                                                                                
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃  VIS36 promptagain: execute the supplied ordinary function patch once.                                               
+  ┃                                                                                                                      
+                                                                                                                         
+       Read                                                                                                              
+       {"status":"permission_rejected","feedback":null}                                                                  
+                                                                                                                         
+     Build · MiMo-V2.6-Flash Free · 2.8s · interrupted                                                                   
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃                                                                                                                      
+  ┃                                                                                                                      
+  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                                                           
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-06/project  1.3K (1%)  ctrl+p commands  
+                                                                                                                         

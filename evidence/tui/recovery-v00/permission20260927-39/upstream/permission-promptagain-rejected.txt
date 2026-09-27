@@ -1,0 +1,40 @@
+   VIS36 patch fixture             VIS36 patch fixture           +             
+     → Explored — 1 search                                                     
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 7.2s · interrupted                         
+                                                                               
+  ┃                                                                            
+  ┃  VIS36 url: execute the supplied ordinary function patch once.             
+  ┃                                                                            
+                                                                               
+     % WebFetch https://example.invalid/vis36/never-fetch?wrapped=word-word-   
+       word-word-word-word-word-word-word-word-word-word-word-word-word-word-  
+       word-word-word-word-word-word-word-word-                                
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 16.8s · interrupted                        
+                                                                               
+  ┃                                                                            
+  ┃  VIS36 autoonce: execute the supplied ordinary function patch once.        
+  ┃                                                                            
+                                                                               
+     → Explored — 1 read                                                       
+                                                                               
+     VIS36-DONE-autoonce                                                       
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 30.2s                                      
+                                                                               
+  ┃                                                                            
+  ┃  VIS36 promptagain: execute the supplied ordinary function patch once.     
+  ┃                                                                            
+                                                                               
+     → Explored — 1 read                                                       
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 2.2s · interrupted                         
+                                                                               
+  ┃                                                                            
+  ┃                                                                            
+  ┃                                                                            
+  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                 
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/t44-refe…/runs/permission20260927-39/project  1.3K (1%)  ctrl+p commands  
+                                                                               

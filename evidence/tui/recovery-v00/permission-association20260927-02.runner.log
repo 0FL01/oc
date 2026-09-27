@@ -1,0 +1,273 @@
+{
+  "current_head": "9ccfeefc77552f4144fa5e2606b69a21a9484c1e",
+  "current_binary_sha256": "9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5",
+  "runs": [
+    {
+      "name": "permission20260927-15",
+      "captured_head": "5d298005b2948ea97938652129ebda6aabeb47ef",
+      "source_manifest_sha256": "7775a3f2cb8ea86e3fc9a69a91c370caec16f28a535656a917d12d107fe9acc4",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047",
+      "binary_sha256": "9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-16",
+      "captured_head": "5d298005b2948ea97938652129ebda6aabeb47ef",
+      "source_manifest_sha256": "7775a3f2cb8ea86e3fc9a69a91c370caec16f28a535656a917d12d107fe9acc4",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047",
+      "binary_sha256": "9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-17",
+      "captured_head": "5d298005b2948ea97938652129ebda6aabeb47ef",
+      "source_manifest_sha256": "e4ad13544e477f3f64cc06f310d2b0b229bdc4d7b0d7d5b8ba9c6730edb7a547",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047",
+      "binary_sha256": "9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-18",
+      "captured_head": "5d298005b2948ea97938652129ebda6aabeb47ef",
+      "source_manifest_sha256": "e4ad13544e477f3f64cc06f310d2b0b229bdc4d7b0d7d5b8ba9c6730edb7a547",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047",
+      "binary_sha256": "9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-19",
+      "captured_head": "5d298005b2948ea97938652129ebda6aabeb47ef",
+      "source_manifest_sha256": "e4ad13544e477f3f64cc06f310d2b0b229bdc4d7b0d7d5b8ba9c6730edb7a547",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047",
+      "binary_sha256": "9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-20",
+      "captured_head": "b0a43194a05a2bcd615d0a791a3ce57a2b212447",
+      "source_manifest_sha256": "e4ad13544e477f3f64cc06f310d2b0b229bdc4d7b0d7d5b8ba9c6730edb7a547",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047",
+      "binary_sha256": "9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-21",
+      "captured_head": "b0a43194a05a2bcd615d0a791a3ce57a2b212447",
+      "source_manifest_sha256": "e4ad13544e477f3f64cc06f310d2b0b229bdc4d7b0d7d5b8ba9c6730edb7a547",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047",
+      "binary_sha256": "9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-22",
+      "captured_head": "b0a43194a05a2bcd615d0a791a3ce57a2b212447",
+      "source_manifest_sha256": "e4ad13544e477f3f64cc06f310d2b0b229bdc4d7b0d7d5b8ba9c6730edb7a547",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047",
+      "binary_sha256": "9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-23",
+      "captured_head": "b0a43194a05a2bcd615d0a791a3ce57a2b212447",
+      "source_manifest_sha256": "606901b4b329af691786e4f10c49ad75453c9b451d68223f07312d7b120d3fcb",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047",
+      "binary_sha256": "9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-24",
+      "captured_head": "b0a43194a05a2bcd615d0a791a3ce57a2b212447",
+      "source_manifest_sha256": "606901b4b329af691786e4f10c49ad75453c9b451d68223f07312d7b120d3fcb",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047",
+      "binary_sha256": "9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-25",
+      "captured_head": "b0a43194a05a2bcd615d0a791a3ce57a2b212447",
+      "source_manifest_sha256": "606901b4b329af691786e4f10c49ad75453c9b451d68223f07312d7b120d3fcb",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047",
+      "binary_sha256": "9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-26",
+      "captured_head": "9ccfeefc77552f4144fa5e2606b69a21a9484c1e",
+      "source_manifest_sha256": "606901b4b329af691786e4f10c49ad75453c9b451d68223f07312d7b120d3fcb",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047",
+      "binary_sha256": "9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-27",
+      "captured_head": "9ccfeefc77552f4144fa5e2606b69a21a9484c1e",
+      "source_manifest_sha256": "606901b4b329af691786e4f10c49ad75453c9b451d68223f07312d7b120d3fcb",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047",
+      "binary_sha256": "9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-28",
+      "captured_head": "9ccfeefc77552f4144fa5e2606b69a21a9484c1e",
+      "source_manifest_sha256": "606901b4b329af691786e4f10c49ad75453c9b451d68223f07312d7b120d3fcb",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047",
+      "binary_sha256": "9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    }
+  ],
+  "scope": "Only these source-built captures; no older evidence qualifies this source."
+}

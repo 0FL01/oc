@@ -232,13 +232,19 @@ pub fn wrap_line(line: &Line, width: usize) -> Vec<Line> {
 
 /// At most `limit` wrapped rows; used for bounded Markdown previews.
 pub fn wrap_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
-    wrap_line_with_space_mode(line, width, limit, false)
+    wrap_line_with_space_mode(line, width, limit, false, false)
 }
 
 /// Preserve a source separator at a word-wrap boundary when it fits on the
 /// preceding row, so its original style is painted without inventing cells.
 pub fn wrap_source_space_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
-    wrap_line_with_space_mode(line, width, limit, true)
+    wrap_line_with_space_mode(line, width, limit, true, false)
+}
+
+/// Plain permission text uses OpenTUI word boundaries (including hyphens),
+/// with a grapheme-safe fallback for a resource longer than the available row.
+pub(crate) fn wrap_permission_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
+    wrap_line_with_space_mode(line, width, limit, false, true)
 }
 
 /// Code fences use the same source-space wrap as Markdown text.
@@ -251,6 +257,7 @@ fn wrap_line_with_space_mode(
     width: usize,
     limit: usize,
     preserve_break_space: bool,
+    hyphen_breaks: bool,
 ) -> Vec<Line> {
     let max = width.max(1);
     let mut out: Vec<Vec<(String, Style)>> = Vec::new();
@@ -306,7 +313,7 @@ fn wrap_line_with_space_mode(
             }
             current.push((glyph.to_string(), span.style()));
             used += cells;
-            if glyph == " " {
+            if glyph == " " || (hyphen_breaks && glyph == "-") {
                 break_at = Some(current.len());
             }
         }

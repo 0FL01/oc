@@ -593,10 +593,16 @@ impl Effective {
             })
             .collect();
         CatalogSnapshot {
-            chrome: composition.tui_chrome.clone(),
-            // RuntimePolicy has allow/deny/ask-as-denial, no pending request
-            // queue or reply API. That is not upstream's autoaccept mode.
-            auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
+            chrome: {
+                let mut chrome = composition.tui_chrome.clone();
+                chrome.permissions_auto = composition.permission_preference.load(Ordering::SeqCst);
+                chrome
+            },
+            auto_accept: if composition.approval_consumer_mode.load(Ordering::SeqCst) == 2 {
+                oc_core::queries::AutoAcceptState::Enabled
+            } else {
+                oc_core::queries::AutoAcceptState::Disabled
+            },
             provider: composition.catalog.provider.clone(),
             models,
             model_id: self.model_id.clone(),
@@ -837,6 +843,13 @@ async fn start_worker(
                             continue;
                         }
                     };
+                let mode = composition.approval_consumer_mode.load(Ordering::SeqCst);
+                next_composition
+                    .approval_consumer_mode
+                    .store(mode, Ordering::SeqCst);
+                if mode > 0 {
+                    next.register_approval_consumer(mode == 2);
+                }
                 let receipt = prepare_picker_open(
                     &db,
                     &next,
@@ -915,6 +928,10 @@ async fn start_worker(
                                 continue;
                             }
                         }
+                        next_composition.approval_consumer_mode.store(
+                            composition.approval_consumer_mode.load(Ordering::SeqCst),
+                            Ordering::SeqCst,
+                        );
                         let home_catalog = if matches!(ack, SwitchAck::Home(_)) {
                             let selected = match home_choices.get(next.location()) {
                                 Some(selected) => Ok(selected.clone()),
@@ -958,6 +975,10 @@ async fn start_worker(
                         remote_retry_quarantined |= runtime.remote_retry_quarantined();
                         if remote_retry_quarantined {
                             next.quarantine_remote_retries();
+                        }
+                        let mode = composition.approval_consumer_mode.load(Ordering::SeqCst);
+                        if mode > 0 {
+                            next.register_approval_consumer(mode == 2);
                         }
                         runtime = next;
                         location_epoch.fetch_add(1, Ordering::SeqCst);
@@ -1530,6 +1551,46 @@ fn query(
     message: InboxMsg,
 ) {
     match message {
+        InboxMsg::PendingApprovals { ack } => {
+            let _ = ack.send(Ok(runtime.pending_approvals()));
+        }
+        InboxMsg::ReplyApproval { reply, ack } => {
+            let _ = ack.send(runtime.reply_approval(reply).map_err(app_error));
+        }
+        InboxMsg::RegisterApprovalConsumer {
+            auto_once,
+            persist,
+            ack,
+        } => {
+            if persist
+                && let Err(error) = crate::composition::save_permission_mode(composition, auto_once)
+            {
+                let _ = ack.send(Err(app_error(error.to_string())));
+                return;
+            }
+            runtime.register_approval_consumer(auto_once);
+            if persist {
+                composition
+                    .permission_preference
+                    .store(auto_once, Ordering::SeqCst);
+            }
+            composition
+                .approval_consumer_mode
+                .store(if auto_once { 2 } else { 1 }, Ordering::SeqCst);
+            if auto_once {
+                for request in runtime.pending_approvals() {
+                    if let Err(error) = runtime.reply_approval(oc_core::approval::ApprovalReply {
+                        id: request.id,
+                        binding: request.binding,
+                        decision: oc_core::approval::ApprovalDecision::Once,
+                    }) {
+                        let _ = ack.send(Err(app_error(error)));
+                        return;
+                    }
+                }
+            }
+            let _ = ack.send(Ok(()));
+        }
         InboxMsg::OpenPickerSession { ack, .. } => {
             let _ = ack.send(Err(CoreError::TurnBusy));
         }
@@ -2005,7 +2066,11 @@ fn query(
         }
         InboxMsg::HomeSelection { action, ack } => {
             let result = (|| {
-                if runtime.turn_active() {
+                // Preparing a sessionless Home choice does not select/open a runtime
+                // session or mutate the immutable configuration of the active turn.
+                if runtime.turn_active()
+                    && !matches!(action, oc_core::queries::SessionSelectionAction::New(_))
+                {
                     return Err(CoreError::TurnBusy);
                 }
                 let location = runtime.location();
@@ -2983,6 +3048,7 @@ async fn worker(
                                 None | Some(InboxMsg::Shutdown) => {
                                     shutdown = true;
                                     cancel.store(true, Ordering::Relaxed);
+                                    runtime.cancel_pending_approvals();
                                     runtime.cancel_all_compactions();
                                 }
                                 Some(InboxMsg::CancelTitle { session: target, ack }) => {
@@ -2995,6 +3061,7 @@ async fn worker(
                                 }
                                 Some(InboxMsg::Cancel { session: target, ack }) if target == session => {
                                     cancel.store(true, Ordering::Relaxed);
+                                    runtime.cancel_pending_approvals();
                                     let _ = ack.send(Ok(()));
                                 }
                                 Some(command @ InboxMsg::ChangeConversation { .. }) => {
@@ -3003,6 +3070,7 @@ async fn worker(
                                             title_work.lock().expect("title work mutex").cancel(&target.0);
                                         }
                                         cancel.store(true, Ordering::Relaxed);
+                                        runtime.cancel_pending_approvals();
                                         runtime.cancel_all_compactions();
                                         conversation_change = Some(command);
                                     } else if let InboxMsg::ChangeConversation { ack, .. } = command {

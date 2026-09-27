@@ -1,0 +1,40 @@
+   VIS36 patch fixture           ! VIS36 patch fixture           +              
+     Build · MiMo-V2.6-Flash Free · 7.6s                                        
+                                                                                
+  ┃                                                                             
+  ┃  VIS36 childroot: execute the supplied ordinary function patch once.        
+  ┃                                                                             
+                                                                                
+     ✓ Vis36-Child Subagent — VIS36 child permission feedback                   
+                                                                                
+     VIS36-DONE-childroot                                                       
+                                                                                
+     Build · MiMo-V2.6-Flash Free · 12.0s                                       
+                                                                                
+  ┃                                                                             
+  ┃  VIS36 read: execute the supplied ordinary function patch once.             
+  ┃                                                                             
+                                                                                
+     → Explored — 1 read                                                        
+                                                                                
+     VIS36-DONE-read                                                            
+                                                                                
+     Build · MiMo-V2.6-Flash Free · 7.1s                                        
+                                                                                
+  ┃                                                                             
+  ┃  VIS36 shell: execute the supplied ordinary function patch once.            
+  ┃                                                                             
+                                                                                
+  ┃                                                                             
+  ┃  ⋯ /usr/bin/touch shell-marker                                              
+  ┃                                                                             
+                                                                                
+  ┃                                                                             
+  ┃  △ Permission required                                                      
+  ┃                                                                             
+  ┃  $ /usr/bin/touch shell-marker                                              
+  ┃                                                                             
+  ┃                                                                             
+  ┃   Allow once   Always allow   Reject  ctrl+f fullscreen  ⇆ select  enter con
+  ┃                                                                             
+                                                                                

@@ -1,0 +1,93 @@
+{
+  "observations": [
+    {
+      "database": "/home/opencode/.cache/opencode-tmp/opencode/permission-reference-headless20260927-03/cli-auto-once/home/data/opencode/opencode.db",
+      "tables": [
+        "account_state",
+        "account",
+        "control_account",
+        "credential",
+        "event_sequence",
+        "event",
+        "kv",
+        "permission",
+        "project_directory",
+        "project",
+        "instruction_blob",
+        "instruction_entry",
+        "instruction_state",
+        "session_inbox",
+        "session_message",
+        "session_pending",
+        "session_v2",
+        "workspace",
+        "worktree",
+        "migration"
+      ],
+      "data": {
+        "session_message": [
+          {
+            "id": "msg_0e31908d60011qJolmdaoWZhz0",
+            "session_id": "ses_f1ce6f759ffe1Aenyu7n0GtKjr",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790516463910,
+            "time_updated": 1790516463911,
+            "data": "{\"time\":{\"created\":1790516463910},\"text\":\"\\\"VIS36 shell: invoke ordinary shell function\\\"\",\"files\":[]}"
+          },
+          {
+            "id": "msg_0e3190937001Y7CBi5uJY6vbWR",
+            "session_id": "ses_f1ce6f759ffe1Aenyu7n0GtKjr",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790516463932,
+            "time_updated": 1790516464023,
+            "data": "{\"time\":{\"created\":1790516463932,\"streamed\":1790516463956,\"completed\":1790516464022},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"},\"content\":[{\"type\":\"tool\",\"id\":\"call_vis36_shell\",\"name\":\"shell\",\"executed\":false,\"providerState\":{\"itemId\":\"fc_vis35_2\"},\"state\":{\"status\":\"completed\",\"input\":{\"command\":\"/usr/bin/touch headless-marker\"},\"content\":[{\"type\":\"text\",\"text\":\"(no output)\"},{\"type\":\"text\",\"text\":\"Command exited with code 0.\"}],\"metadata\":{\"status\":\"completed\",\"truncated\":false,\"exit\":0}},\"time\":{\"created\":1790516463948,\"ran\":1790516463954,\"completed\":1790516464019}}],\"finish\":\"tool-calls\",\"providerState\":{\"responseId\":\"resp_vis35_2\"},\"cost\":0,\"tokens\":{\"input\":1234,\"output\":64,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e31909a20014ByJkIVFoPpg89",
+            "session_id": "ses_f1ce6f759ffe1Aenyu7n0GtKjr",
+            "type": "assistant",
+            "seq": 14,
+            "time_created": 1790516464039,
+            "time_updated": 1790516464055,
+            "data": "{\"time\":{\"created\":1790516464039,\"streamed\":1790516464053,\"completed\":1790516464055},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS36-DONE-shell\",\"state\":{\"itemId\":\"msg_vis35_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis35_3\"},\"cost\":0,\"tokens\":{\"input\":1234,\"output\":64,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e31909ba001pU7tKBljGLMibk",
+            "session_id": "ses_f1ce6f759ffe1Aenyu7n0GtKjr",
+            "type": "idle",
+            "seq": 19,
+            "time_created": 1790516464058,
+            "time_updated": 1790516464059,
+            "data": "{\"time\":{\"created\":1790516464058},\"outcome\":\"succeeded\"}"
+          }
+        ],
+        "session_inbox": [],
+        "permission": []
+      }
+    }
+  ],
+  "project_files": {
+    "headless-marker": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "files": {
+    "approval.txt": {
+      "present": false
+    },
+    "denied.txt": {
+      "present": false
+    },
+    "shell-marker": {
+      "present": false
+    }
+  },
+  "executor_hook": [],
+  "cli": {
+    "session": {
+      "permissions": "autoaccept"
+    }
+  },
+  "audit": "File stat/hash/bytes and SQLite mode=ro; not an OS syscall trace.",
+  "mcp": []
+}

@@ -271,8 +271,8 @@ async fn scenario(
     let catalog = app.catalog().await.unwrap();
     assert_eq!(
         catalog.auto_accept,
-        oc_core::queries::AutoAcceptState::Unsupported,
-        "allow rules do not implement upstream session autoaccept"
+        oc_core::queries::AutoAcceptState::Disabled,
+        "allow rules do not enable the registered Once consumer"
     );
     assert_eq!(catalog.models[0].display_name, model_name);
     assert_eq!(catalog.models[0].provider_name, provider_name);

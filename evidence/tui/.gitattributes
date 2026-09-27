@@ -95,3 +95,5 @@ recovery-v00/high-refresh-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/high-refresh-*/*/*.vt binary
 recovery-v00/compaction*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/compaction*/*/*.vt binary
+recovery-v00/permission*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+recovery-v00/permission*/*/*.vt binary

@@ -1,0 +1,3133 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "tui"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-10/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-10/oc/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-10/oc/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-10/oc/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-10/oc/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-10/oc/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-10/oc/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"provider\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"npm\": \"@ai-sdk/openai\", \"options\": {\"baseURL\": \"http://127.0.0.1:36985/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"MiMo-V2.6-Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-2\": {\"name\": \"Muse Spark 1.3 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-3\": {\"name\": \"Ling 3.0 Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-4\": {\"name\": \"Nemotron 3.5 Lightning Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-5\": {\"name\": \"Muse Spark 1.2 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-6\": {\"name\": \"Nemotron 3 Ultra Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-7\": {\"name\": \"MiMo V2.5 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-8\": {\"name\": \"Big Pickle\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}}}}, \"permissions\": {\"*\": \"ask\", \"subagent\": \"allow\", \"apply_patch\": {\"*\": \"deny\", \"approval.txt\": \"ask\", \"denied.txt\": \"deny\"}}, \"snapshots\": false, \"compaction\": {\"auto\": false}, \"animations\": false, \"agent\": {\"vis36-child\": {\"mode\": \"subagent\", \"prompt\": \"Isolated VIS36 child; follow the supplied task.\"}}, \"mcp\": {\"vis36\": {\"type\": \"local\", \"command\": [\"/usr/bin/python3\", \"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-10/oc/home/vis36-mcp.py\"], \"enabled\": true}}}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "oc 0.1.0",
+    "version_exit": 0
+  },
+  {
+    "kind": "permission_snapshot",
+    "request_id": "seed",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-10/oc/home/data/oc/oc.sqlite",
+        "tables": [
+          "schema_migrations",
+          "sessions",
+          "messages",
+          "turns",
+          "turn_acceptances",
+          "tool_operations",
+          "events",
+          "sqlite_sequence",
+          "patch_effects",
+          "blobs",
+          "prefs",
+          "session_checkpoint",
+          "session_compactions",
+          "session_usage_anchor",
+          "conversation_state",
+          "conversation_exclusions",
+          "conversation_contexts",
+          "conversation_redo",
+          "conversation_points",
+          "conversation_revision",
+          "conversation_objects",
+          "conversation_versions",
+          "conversation_tracked",
+          "compression_blocks",
+          "compression_members",
+          "prune_marks",
+          "dcp_tool_projection",
+          "dcp_tool_projection_v2",
+          "compression_identity",
+          "permission_grants"
+        ],
+        "data": {
+          "messages": [],
+          "turns": [],
+          "tool_operations": [],
+          "session_checkpoint": [],
+          "session_compactions": [],
+          "patch_effects": [],
+          "events": [],
+          "permission_grants": []
+        }
+      }
+    ],
+    "project_files": {
+      "update.txt": "901247bf52e314ba050f144f640bc49e41da4830598b670cdd45c0531f612fe5",
+      "delete.txt": "e332391e23517f025a25615f9e006ea98f0d26195c1a94cc81423d8376e55b9e",
+      "approval.txt": "d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d",
+      "move.txt": "7c4a0d83f95e4d063da94806e607d3ab5eb1cb757ed06bf35eee1161890ce3b2",
+      "replace.txt": "c930786959c266fccd56fb3a2289dc6a548ab98eb2d667273743342660eb4fbe",
+      "denied.txt": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+      "stale.txt": "c1ec13cfe08890215c15a0d626d7b4cc67cdcaee63b93d2bdbe83606ad5e3f13"
+    },
+    "files": {
+      "approval.txt": {
+        "present": true,
+        "bytes_hex": "6265666f726520617070726f76616c0a",
+        "sha256": "d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d",
+        "mode": "0o640",
+        "mtime_ns": 1790503011018880300
+      },
+      "denied.txt": {
+        "present": true,
+        "bytes_hex": "64656e6965642073656e74696e656c0a",
+        "sha256": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+        "mode": "0o640",
+        "mtime_ns": 1790503011018880300
+      },
+      "shell-marker": {
+        "present": false
+      }
+    },
+    "executor_hook": [],
+    "cli": {
+      "session": {
+        "sidebar": "hide",
+        "tps": false,
+        "permissions": "autoaccept"
+      },
+      "tabs": {
+        "layout": "horizontal"
+      },
+      "debug": {
+        "devtools": false
+      }
+    },
+    "audit": "File stat/hash/bytes and SQLite mode=ro; not an OS syscall trace.",
+    "mcp": []
+  },
+  {
+    "kind": "provider",
+    "operation": "patch",
+    "case": "once",
+    "index": 1,
+    "valid": true,
+    "request": {
+      "model": "fixture-model-1",
+      "store": false,
+      "stream": true,
+      "input": [
+        {
+          "type": "message",
+          "role": "developer",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: []"
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS36 once: execute the supplied ordinary function patch once."
+            }
+          ]
+        }
+      ],
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "max_output_tokens": 4096,
+      "tools": [
+        {
+          "type": "function",
+          "name": "read",
+          "description": "Read a project file slice. `path` is relative to the project root; `offset` is the 1-based first line, `limit` caps lines (default 50).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "glob",
+          "description": "List project paths matching a bounded glob. Results are sorted and paginated.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "grep",
+          "description": "Search project text with a bounded literal pattern. Results are sorted and paginated; regex mode is unsupported.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "literal": {
+                "type": "boolean"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "apply_patch",
+          "description": "Apply a patch to project files. `patchText` must start with `*** Begin Patch` and end with `*** End Patch`. For `*** Add File: <relative path>`, prefix every content line with `+`; no content lines creates an empty file. Update hunks use `*** Update File: <relative path>`, optionally immediately followed by `*** Move to: <relative path>`, then `@@` and lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Delete uses `*** Delete File: <relative path>`. Paths stay inside the project root.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "patchText": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "patchText"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "bash",
+          "description": "Run a supervised command. `argv` is the exact executable plus args (no shell); omit `cwd` to run in the project root — any `cwd` must stay inside the project root. `timeout_ms` caps the run (default 30000).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "argv": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "cwd": {
+                "type": "string"
+              },
+              "timeout_ms": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "argv"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "webfetch",
+          "description": "Fetch a URL as text",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "skill",
+          "description": "Invoke a pinned skill",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "compress",
+          "description": "Replace one or more closed transcript ranges with durable summaries. Use only stable startId/endId anchors from the DCP context lane; never include the unfinished final anchor.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "topic": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "content": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 32,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "startId": {
+                      "type": "string"
+                    },
+                    "endId": {
+                      "type": "string"
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8192
+                    }
+                  },
+                  "required": [
+                    "startId",
+                    "endId",
+                    "summary"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "topic",
+              "content"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "subagent",
+          "description": "Spawns an agent in a child session to work on the specified task.\nThe output includes a sessionID you can pass back later to continue that specific conversation with the subagent.\nNew child sessions start with fresh context, so include all relevant context and instructions when you don't pass a sessionID.\nForeground (default) runs the subagent to completion and returns its final response.\n\nAvailable subagents:\n- vis36-child: Isolated VIS36 child; follow the supplied task.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "agent": {
+                "type": "string",
+                "description": "The type of specialized agent to use for this task."
+              },
+              "description": {
+                "type": "string",
+                "description": "A short 3-5 word label for the task, displayed to the user"
+              },
+              "prompt": {
+                "type": "string",
+                "description": "The task for the subagent to perform"
+              },
+              "model": {
+                "type": "string",
+                "description": "NEVER set this unless the user explicitly asks for a particular model or variant. The value is written as \"providerID/modelID\", or \"providerID/modelID#variant\" to include a variant. Do not guess the ID."
+              },
+              "sessionID": {
+                "type": "string",
+                "description": "Continue a specific previous subagent conversation by passing its sessionID. Calls without a sessionID start a new conversation."
+              },
+              "background": {
+                "type": "boolean",
+                "description": "Not supported yet: calls with true fail without creating a child session."
+              }
+            },
+            "required": [
+              "agent",
+              "description",
+              "prompt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "vis36__echo",
+          "description": "Isolated permission echo",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        }
+      ]
+    },
+    "actual_results": []
+  },
+  {
+    "kind": "fixture_tool_call",
+    "case": "once",
+    "name": "apply_patch",
+    "arguments": {
+      "patchText": "*** Begin Patch\n*** Update File: approval.txt\n@@\n-before approval\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \n*** End Patch"
+    },
+    "call_id": "call_vis36_once"
+  },
+  {
+    "kind": "fixture_argument_delta",
+    "case": "once",
+    "call_id": "call_vis36_once",
+    "item_id": "fc_vis35_1",
+    "delta": "{\"patchText\": \"*",
+    "phase": "pending",
+    "monotonic_ns": 1178027116374406
+  },
+  {
+    "kind": "fixture_argument_delta",
+    "case": "once",
+    "call_id": "call_vis36_once",
+    "item_id": "fc_vis35_1",
+    "delta": "** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-before approval\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\n*** End Patch\"}",
+    "phase": "finish",
+    "monotonic_ns": 1178027124184300
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "patch",
+    "case": "once",
+    "index": 1
+  },
+  {
+    "kind": "provider",
+    "operation": "title",
+    "case": "once",
+    "index": 2,
+    "valid": true,
+    "request": {
+      "model": "fixture-model-1",
+      "store": false,
+      "stream": true,
+      "input": [
+        {
+          "type": "message",
+          "role": "developer",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "Generate a short session title from the user's request. Output only the title, in at most 100 characters."
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS36 once: execute the supplied ordinary function patch once."
+            }
+          ]
+        }
+      ],
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "max_output_tokens": 256,
+      "tools": []
+    },
+    "actual_results": []
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "title",
+    "case": "once",
+    "index": 2
+  },
+  {
+    "kind": "provider",
+    "operation": "patch",
+    "case": "once",
+    "index": 3,
+    "valid": true,
+    "request": {
+      "model": "fixture-model-1",
+      "store": false,
+      "stream": true,
+      "input": [
+        {
+          "type": "message",
+          "role": "developer",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: []"
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS36 once: execute the supplied ordinary function patch once."
+            }
+          ]
+        },
+        {
+          "id": "fc_vis35_1",
+          "type": "function_call",
+          "status": "completed",
+          "call_id": "call_vis36_once",
+          "name": "apply_patch",
+          "arguments": "{\"patchText\": \"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-before approval\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\n*** End Patch\"}"
+        },
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_once",
+          "output": "update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)"
+        }
+      ],
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "max_output_tokens": 4096,
+      "tools": [
+        {
+          "type": "function",
+          "name": "read",
+          "description": "Read a project file slice. `path` is relative to the project root; `offset` is the 1-based first line, `limit` caps lines (default 50).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "glob",
+          "description": "List project paths matching a bounded glob. Results are sorted and paginated.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "grep",
+          "description": "Search project text with a bounded literal pattern. Results are sorted and paginated; regex mode is unsupported.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "literal": {
+                "type": "boolean"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "apply_patch",
+          "description": "Apply a patch to project files. `patchText` must start with `*** Begin Patch` and end with `*** End Patch`. For `*** Add File: <relative path>`, prefix every content line with `+`; no content lines creates an empty file. Update hunks use `*** Update File: <relative path>`, optionally immediately followed by `*** Move to: <relative path>`, then `@@` and lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Delete uses `*** Delete File: <relative path>`. Paths stay inside the project root.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "patchText": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "patchText"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "bash",
+          "description": "Run a supervised command. `argv` is the exact executable plus args (no shell); omit `cwd` to run in the project root — any `cwd` must stay inside the project root. `timeout_ms` caps the run (default 30000).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "argv": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "cwd": {
+                "type": "string"
+              },
+              "timeout_ms": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "argv"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "webfetch",
+          "description": "Fetch a URL as text",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "skill",
+          "description": "Invoke a pinned skill",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "compress",
+          "description": "Replace one or more closed transcript ranges with durable summaries. Use only stable startId/endId anchors from the DCP context lane; never include the unfinished final anchor.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "topic": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "content": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 32,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "startId": {
+                      "type": "string"
+                    },
+                    "endId": {
+                      "type": "string"
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8192
+                    }
+                  },
+                  "required": [
+                    "startId",
+                    "endId",
+                    "summary"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "topic",
+              "content"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "subagent",
+          "description": "Spawns an agent in a child session to work on the specified task.\nThe output includes a sessionID you can pass back later to continue that specific conversation with the subagent.\nNew child sessions start with fresh context, so include all relevant context and instructions when you don't pass a sessionID.\nForeground (default) runs the subagent to completion and returns its final response.\n\nAvailable subagents:\n- vis36-child: Isolated VIS36 child; follow the supplied task.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "agent": {
+                "type": "string",
+                "description": "The type of specialized agent to use for this task."
+              },
+              "description": {
+                "type": "string",
+                "description": "A short 3-5 word label for the task, displayed to the user"
+              },
+              "prompt": {
+                "type": "string",
+                "description": "The task for the subagent to perform"
+              },
+              "model": {
+                "type": "string",
+                "description": "NEVER set this unless the user explicitly asks for a particular model or variant. The value is written as \"providerID/modelID\", or \"providerID/modelID#variant\" to include a variant. Do not guess the ID."
+              },
+              "sessionID": {
+                "type": "string",
+                "description": "Continue a specific previous subagent conversation by passing its sessionID. Calls without a sessionID start a new conversation."
+              },
+              "background": {
+                "type": "boolean",
+                "description": "Not supported yet: calls with true fail without creating a child session."
+              }
+            },
+            "required": [
+              "agent",
+              "description",
+              "prompt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "vis36__echo",
+          "description": "Isolated permission echo",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        }
+      ]
+    },
+    "actual_results": [
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis36_once",
+        "output": "update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)"
+      }
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "patch",
+    "case": "once",
+    "index": 3
+  },
+  {
+    "kind": "permission_snapshot",
+    "request_id": "auto-once-effects",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-10/oc/home/data/oc/oc.sqlite",
+        "tables": [
+          "schema_migrations",
+          "sessions",
+          "messages",
+          "turns",
+          "turn_acceptances",
+          "tool_operations",
+          "events",
+          "sqlite_sequence",
+          "patch_effects",
+          "blobs",
+          "prefs",
+          "session_checkpoint",
+          "session_compactions",
+          "session_usage_anchor",
+          "conversation_state",
+          "conversation_exclusions",
+          "conversation_contexts",
+          "conversation_redo",
+          "conversation_points",
+          "conversation_revision",
+          "conversation_objects",
+          "conversation_versions",
+          "conversation_tracked",
+          "compression_blocks",
+          "compression_members",
+          "prune_marks",
+          "dcp_tool_projection",
+          "dcp_tool_projection_v2",
+          "compression_identity",
+          "permission_grants"
+        ],
+        "data": {
+          "messages": [
+            {
+              "id": "m0001",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "seq": 1,
+              "role": "user",
+              "text": "VIS36 once: execute the supplied ordinary function patch once."
+            },
+            {
+              "id": "m0002",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "seq": 2,
+              "role": "assistant",
+              "text": "VIS36-DONE-once"
+            }
+          ],
+          "turns": [
+            {
+              "id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "status": "completed",
+              "prompt": "VIS36 once: execute the supplied ordinary function patch once.",
+              "result": "{\"display\":{\"model_label\":\"MiMo-V2.6-Flash Free\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":415,\"streamed_ms\":288,\"usage\":[1234,128],\"context_usage\":[1234,64]},\"display_parts\":[{\"tool\":\"ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0-r1-c0-call_vis36_once\"},{\"message\":3}],\"turn_id\":\"ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[1234,64],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS36 once: execute the supplied ordinary function patch once.\"}]},{\"id\":\"fc_vis35_1\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"call_vis36_once\",\"name\":\"apply_patch\",\"arguments\":\"{\\\"patchText\\\": \\\"*** Begin Patch\\\\n*** Update File: approval.txt\\\\n@@\\\\n-before approval\\\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\\\n*** End Patch\\\"}\"},{\"type\":\"function_call_output\",\"call_id\":\"call_vis36_once\",\"output\":\"update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)\"},{\"id\":\"msg_vis35_3\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS36-DONE-once\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+            }
+          ],
+          "tool_operations": [
+            {
+              "id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0-r1-c0-call_vis36_once",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "turn_id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0",
+              "name": "apply_patch",
+              "state": "completed",
+              "input": "{\"patchText\":\"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-before approval\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\n*** End Patch\"}",
+              "output": "update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)"
+            }
+          ],
+          "session_checkpoint": [],
+          "session_compactions": [],
+          "patch_effects": [
+            {
+              "op_id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0-r1-c0-call_vis36_once",
+              "metadata": "{\"files\":[{\"algorithm\":\"Minimal\",\"operation\":\"Update\",\"path\":\"approval.txt\",\"destination\":null,\"additions\":1,\"deletions\":1,\"hunks\":[{\"old\":{\"start\":1,\"count\":1},\"new\":{\"start\":1,\"count\":1},\"lines\":[{\"lossy\":false,\"kind\":\"Removed\",\"old_line\":1,\"new_line\":null,\"text\":\"before approval\",\"ending\":\"Lf\",\"truncated\":false},{\"lossy\":false,\"kind\":\"Added\",\"old_line\":null,\"new_line\":1,\"text\":\"new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \",\"ending\":\"Lf\",\"truncated\":false}],\"truncated\":false}],\"truncated\":false}],\"total_files\":1,\"additions\":1,\"deletions\":1,\"truncated\":false}"
+            }
+          ],
+          "events": [
+            {
+              "seq": 1,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "session_created",
+              "payload": "{}"
+            },
+            {
+              "seq": 2,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "turn_started",
+              "payload": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0"
+            },
+            {
+              "seq": 3,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "accepted_model",
+              "payload": "{\"provider\":\"fixture\",\"id\":\"fixture-model-1\",\"variant\":null}"
+            },
+            {
+              "seq": 4,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "message",
+              "payload": "m0001"
+            },
+            {
+              "seq": 5,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "session_updated",
+              "payload": "{\"title\":\"VIS36 patch fixture\"}"
+            },
+            {
+              "seq": 6,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "message",
+              "payload": "m0002"
+            },
+            {
+              "seq": 7,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "turn_finished",
+              "payload": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0"
+            }
+          ],
+          "permission_grants": []
+        }
+      }
+    ],
+    "project_files": {
+      "update.txt": "901247bf52e314ba050f144f640bc49e41da4830598b670cdd45c0531f612fe5",
+      "delete.txt": "e332391e23517f025a25615f9e006ea98f0d26195c1a94cc81423d8376e55b9e",
+      "approval.txt": "f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa",
+      "move.txt": "7c4a0d83f95e4d063da94806e607d3ab5eb1cb757ed06bf35eee1161890ce3b2",
+      "replace.txt": "c930786959c266fccd56fb3a2289dc6a548ab98eb2d667273743342660eb4fbe",
+      "denied.txt": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+      "stale.txt": "c1ec13cfe08890215c15a0d626d7b4cc67cdcaee63b93d2bdbe83606ad5e3f13"
+    },
+    "files": {
+      "approval.txt": {
+        "present": true,
+        "bytes_hex": "6e657720617070726f7665642066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f726473200a",
+        "sha256": "f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa",
+        "mode": "0o640",
+        "mtime_ns": 1790503016934918100
+      },
+      "denied.txt": {
+        "present": true,
+        "bytes_hex": "64656e6965642073656e74696e656c0a",
+        "sha256": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+        "mode": "0o640",
+        "mtime_ns": 1790503011018880300
+      },
+      "shell-marker": {
+        "present": false
+      }
+    },
+    "executor_hook": [],
+    "cli": {
+      "session": {
+        "sidebar": "hide",
+        "tps": false,
+        "permissions": "autoaccept"
+      },
+      "tabs": {
+        "layout": "horizontal"
+      },
+      "debug": {
+        "devtools": false
+      }
+    },
+    "audit": "File stat/hash/bytes and SQLite mode=ro; not an OS syscall trace.",
+    "mcp": [
+      {
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "initialize",
+        "params": {
+          "protocolVersion": "2025-11-25",
+          "capabilities": {},
+          "clientInfo": {
+            "name": "rmcp",
+            "version": "3.4.0"
+          }
+        }
+      },
+      {
+        "jsonrpc": "2.0",
+        "method": "notifications/initialized"
+      },
+      {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/list",
+        "params": {
+          "_meta": {
+            "progressToken": 0
+          }
+        }
+      }
+    ]
+  },
+  {
+    "kind": "provider",
+    "operation": "patch",
+    "case": "shell",
+    "index": 4,
+    "valid": true,
+    "request": {
+      "model": "fixture-model-1",
+      "store": false,
+      "stream": true,
+      "input": [
+        {
+          "type": "message",
+          "role": "developer",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: [{\"id\":\"m0001\",\"role\":\"user\",\"closed\":true},{\"id\":\"m0002\",\"role\":\"assistant\",\"closed\":false}]"
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS36 once: execute the supplied ordinary function patch once."
+            }
+          ]
+        },
+        {
+          "id": "fc_vis35_1",
+          "type": "function_call",
+          "status": "completed",
+          "call_id": "call_vis36_once",
+          "name": "apply_patch",
+          "arguments": "{\"patchText\": \"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-before approval\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\n*** End Patch\"}"
+        },
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_once",
+          "output": "update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)"
+        },
+        {
+          "id": "msg_vis35_3",
+          "type": "message",
+          "role": "assistant",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "VIS36-DONE-once",
+              "annotations": []
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS36 shell: execute the supplied ordinary function patch once."
+            }
+          ]
+        }
+      ],
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "max_output_tokens": 4096,
+      "tools": [
+        {
+          "type": "function",
+          "name": "read",
+          "description": "Read a project file slice. `path` is relative to the project root; `offset` is the 1-based first line, `limit` caps lines (default 50).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "glob",
+          "description": "List project paths matching a bounded glob. Results are sorted and paginated.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "grep",
+          "description": "Search project text with a bounded literal pattern. Results are sorted and paginated; regex mode is unsupported.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "literal": {
+                "type": "boolean"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "apply_patch",
+          "description": "Apply a patch to project files. `patchText` must start with `*** Begin Patch` and end with `*** End Patch`. For `*** Add File: <relative path>`, prefix every content line with `+`; no content lines creates an empty file. Update hunks use `*** Update File: <relative path>`, optionally immediately followed by `*** Move to: <relative path>`, then `@@` and lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Delete uses `*** Delete File: <relative path>`. Paths stay inside the project root.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "patchText": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "patchText"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "bash",
+          "description": "Run a supervised command. `argv` is the exact executable plus args (no shell); omit `cwd` to run in the project root — any `cwd` must stay inside the project root. `timeout_ms` caps the run (default 30000).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "argv": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "cwd": {
+                "type": "string"
+              },
+              "timeout_ms": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "argv"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "webfetch",
+          "description": "Fetch a URL as text",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "skill",
+          "description": "Invoke a pinned skill",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "compress",
+          "description": "Replace one or more closed transcript ranges with durable summaries. Use only stable startId/endId anchors from the DCP context lane; never include the unfinished final anchor.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "topic": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "content": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 32,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "startId": {
+                      "type": "string"
+                    },
+                    "endId": {
+                      "type": "string"
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8192
+                    }
+                  },
+                  "required": [
+                    "startId",
+                    "endId",
+                    "summary"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "topic",
+              "content"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "subagent",
+          "description": "Spawns an agent in a child session to work on the specified task.\nThe output includes a sessionID you can pass back later to continue that specific conversation with the subagent.\nNew child sessions start with fresh context, so include all relevant context and instructions when you don't pass a sessionID.\nForeground (default) runs the subagent to completion and returns its final response.\n\nAvailable subagents:\n- vis36-child: Isolated VIS36 child; follow the supplied task.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "agent": {
+                "type": "string",
+                "description": "The type of specialized agent to use for this task."
+              },
+              "description": {
+                "type": "string",
+                "description": "A short 3-5 word label for the task, displayed to the user"
+              },
+              "prompt": {
+                "type": "string",
+                "description": "The task for the subagent to perform"
+              },
+              "model": {
+                "type": "string",
+                "description": "NEVER set this unless the user explicitly asks for a particular model or variant. The value is written as \"providerID/modelID\", or \"providerID/modelID#variant\" to include a variant. Do not guess the ID."
+              },
+              "sessionID": {
+                "type": "string",
+                "description": "Continue a specific previous subagent conversation by passing its sessionID. Calls without a sessionID start a new conversation."
+              },
+              "background": {
+                "type": "boolean",
+                "description": "Not supported yet: calls with true fail without creating a child session."
+              }
+            },
+            "required": [
+              "agent",
+              "description",
+              "prompt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "vis36__echo",
+          "description": "Isolated permission echo",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        }
+      ]
+    },
+    "actual_results": []
+  },
+  {
+    "kind": "fixture_tool_call",
+    "case": "shell",
+    "name": "bash",
+    "arguments": {
+      "argv": [
+        "/usr/bin/touch",
+        "shell-marker"
+      ]
+    },
+    "call_id": "call_vis36_shell"
+  },
+  {
+    "kind": "fixture_argument_delta",
+    "case": "shell",
+    "call_id": "call_vis36_shell",
+    "item_id": "fc_vis35_4",
+    "delta": "{\"argv\": [\"/usr/",
+    "phase": "pending",
+    "monotonic_ns": 1178029800663893
+  },
+  {
+    "kind": "fixture_argument_delta",
+    "case": "shell",
+    "call_id": "call_vis36_shell",
+    "item_id": "fc_vis35_4",
+    "delta": "bin/touch\", \"shell-marker\"]}",
+    "phase": "finish",
+    "monotonic_ns": 1178029800767618
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "patch",
+    "case": "shell",
+    "index": 4
+  },
+  {
+    "kind": "provider",
+    "operation": "patch",
+    "case": "shell",
+    "index": 5,
+    "valid": true,
+    "request": {
+      "model": "fixture-model-1",
+      "store": false,
+      "stream": true,
+      "input": [
+        {
+          "type": "message",
+          "role": "developer",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: [{\"id\":\"m0001\",\"role\":\"user\",\"closed\":true},{\"id\":\"m0002\",\"role\":\"assistant\",\"closed\":false}]"
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS36 once: execute the supplied ordinary function patch once."
+            }
+          ]
+        },
+        {
+          "id": "fc_vis35_1",
+          "type": "function_call",
+          "status": "completed",
+          "call_id": "call_vis36_once",
+          "name": "apply_patch",
+          "arguments": "{\"patchText\": \"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-before approval\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\n*** End Patch\"}"
+        },
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_once",
+          "output": "update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)"
+        },
+        {
+          "id": "msg_vis35_3",
+          "type": "message",
+          "role": "assistant",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "VIS36-DONE-once",
+              "annotations": []
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS36 shell: execute the supplied ordinary function patch once."
+            }
+          ]
+        },
+        {
+          "id": "fc_vis35_4",
+          "type": "function_call",
+          "status": "completed",
+          "call_id": "call_vis36_shell",
+          "name": "bash",
+          "arguments": "{\"argv\": [\"/usr/bin/touch\", \"shell-marker\"]}"
+        },
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_shell",
+          "output": "exit 0\n"
+        }
+      ],
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "max_output_tokens": 4096,
+      "tools": [
+        {
+          "type": "function",
+          "name": "read",
+          "description": "Read a project file slice. `path` is relative to the project root; `offset` is the 1-based first line, `limit` caps lines (default 50).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "glob",
+          "description": "List project paths matching a bounded glob. Results are sorted and paginated.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "grep",
+          "description": "Search project text with a bounded literal pattern. Results are sorted and paginated; regex mode is unsupported.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "literal": {
+                "type": "boolean"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "apply_patch",
+          "description": "Apply a patch to project files. `patchText` must start with `*** Begin Patch` and end with `*** End Patch`. For `*** Add File: <relative path>`, prefix every content line with `+`; no content lines creates an empty file. Update hunks use `*** Update File: <relative path>`, optionally immediately followed by `*** Move to: <relative path>`, then `@@` and lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Delete uses `*** Delete File: <relative path>`. Paths stay inside the project root.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "patchText": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "patchText"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "bash",
+          "description": "Run a supervised command. `argv` is the exact executable plus args (no shell); omit `cwd` to run in the project root — any `cwd` must stay inside the project root. `timeout_ms` caps the run (default 30000).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "argv": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "cwd": {
+                "type": "string"
+              },
+              "timeout_ms": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "argv"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "webfetch",
+          "description": "Fetch a URL as text",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "skill",
+          "description": "Invoke a pinned skill",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "compress",
+          "description": "Replace one or more closed transcript ranges with durable summaries. Use only stable startId/endId anchors from the DCP context lane; never include the unfinished final anchor.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "topic": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "content": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 32,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "startId": {
+                      "type": "string"
+                    },
+                    "endId": {
+                      "type": "string"
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8192
+                    }
+                  },
+                  "required": [
+                    "startId",
+                    "endId",
+                    "summary"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "topic",
+              "content"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "subagent",
+          "description": "Spawns an agent in a child session to work on the specified task.\nThe output includes a sessionID you can pass back later to continue that specific conversation with the subagent.\nNew child sessions start with fresh context, so include all relevant context and instructions when you don't pass a sessionID.\nForeground (default) runs the subagent to completion and returns its final response.\n\nAvailable subagents:\n- vis36-child: Isolated VIS36 child; follow the supplied task.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "agent": {
+                "type": "string",
+                "description": "The type of specialized agent to use for this task."
+              },
+              "description": {
+                "type": "string",
+                "description": "A short 3-5 word label for the task, displayed to the user"
+              },
+              "prompt": {
+                "type": "string",
+                "description": "The task for the subagent to perform"
+              },
+              "model": {
+                "type": "string",
+                "description": "NEVER set this unless the user explicitly asks for a particular model or variant. The value is written as \"providerID/modelID\", or \"providerID/modelID#variant\" to include a variant. Do not guess the ID."
+              },
+              "sessionID": {
+                "type": "string",
+                "description": "Continue a specific previous subagent conversation by passing its sessionID. Calls without a sessionID start a new conversation."
+              },
+              "background": {
+                "type": "boolean",
+                "description": "Not supported yet: calls with true fail without creating a child session."
+              }
+            },
+            "required": [
+              "agent",
+              "description",
+              "prompt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "vis36__echo",
+          "description": "Isolated permission echo",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        }
+      ]
+    },
+    "actual_results": [
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis36_shell",
+        "output": "exit 0\n"
+      }
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "patch",
+    "case": "shell",
+    "index": 5
+  },
+  {
+    "kind": "permission_snapshot",
+    "request_id": "auto-shell-effects",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-10/oc/home/data/oc/oc.sqlite",
+        "tables": [
+          "schema_migrations",
+          "sessions",
+          "messages",
+          "turns",
+          "turn_acceptances",
+          "tool_operations",
+          "events",
+          "sqlite_sequence",
+          "patch_effects",
+          "blobs",
+          "prefs",
+          "session_checkpoint",
+          "session_compactions",
+          "session_usage_anchor",
+          "conversation_state",
+          "conversation_exclusions",
+          "conversation_contexts",
+          "conversation_redo",
+          "conversation_points",
+          "conversation_revision",
+          "conversation_objects",
+          "conversation_versions",
+          "conversation_tracked",
+          "compression_blocks",
+          "compression_members",
+          "prune_marks",
+          "dcp_tool_projection",
+          "dcp_tool_projection_v2",
+          "compression_identity",
+          "permission_grants"
+        ],
+        "data": {
+          "messages": [
+            {
+              "id": "m0001",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "seq": 1,
+              "role": "user",
+              "text": "VIS36 once: execute the supplied ordinary function patch once."
+            },
+            {
+              "id": "m0002",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "seq": 2,
+              "role": "assistant",
+              "text": "VIS36-DONE-once"
+            },
+            {
+              "id": "m0003",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "seq": 3,
+              "role": "user",
+              "text": "VIS36 shell: execute the supplied ordinary function patch once."
+            },
+            {
+              "id": "m0004",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "seq": 4,
+              "role": "assistant",
+              "text": "VIS36-DONE-shell"
+            }
+          ],
+          "turns": [
+            {
+              "id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "status": "completed",
+              "prompt": "VIS36 once: execute the supplied ordinary function patch once.",
+              "result": "{\"display\":{\"model_label\":\"MiMo-V2.6-Flash Free\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":415,\"streamed_ms\":288,\"usage\":[1234,128],\"context_usage\":[1234,64]},\"display_parts\":[{\"tool\":\"ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0-r1-c0-call_vis36_once\"},{\"message\":3}],\"turn_id\":\"ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[1234,64],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS36 once: execute the supplied ordinary function patch once.\"}]},{\"id\":\"fc_vis35_1\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"call_vis36_once\",\"name\":\"apply_patch\",\"arguments\":\"{\\\"patchText\\\": \\\"*** Begin Patch\\\\n*** Update File: approval.txt\\\\n@@\\\\n-before approval\\\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\\\n*** End Patch\\\"}\"},{\"type\":\"function_call_output\",\"call_id\":\"call_vis36_once\",\"output\":\"update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)\"},{\"id\":\"msg_vis35_3\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS36-DONE-once\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+            },
+            {
+              "id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503019434-812907-1",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "status": "completed",
+              "prompt": "VIS36 shell: execute the supplied ordinary function patch once.",
+              "result": "{\"display\":{\"model_label\":\"MiMo-V2.6-Flash Free\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":288,\"streamed_ms\":205,\"usage\":[1234,128],\"context_usage\":[1234,64]},\"display_parts\":[{\"tool\":\"ts-tui-18d92501d5d4aeb5-c676b-0-1790503019434-812907-1-r1-c0-call_vis36_shell\"},{\"message\":3}],\"turn_id\":\"ts-tui-18d92501d5d4aeb5-c676b-0-1790503019434-812907-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[1234,64],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS36 shell: execute the supplied ordinary function patch once.\"}]},{\"id\":\"fc_vis35_4\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"call_vis36_shell\",\"name\":\"bash\",\"arguments\":\"{\\\"argv\\\": [\\\"/usr/bin/touch\\\", \\\"shell-marker\\\"]}\"},{\"type\":\"function_call_output\",\"call_id\":\"call_vis36_shell\",\"output\":\"exit 0\\n\"},{\"id\":\"msg_vis35_5\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS36-DONE-shell\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0004\"}"
+            }
+          ],
+          "tool_operations": [
+            {
+              "id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0-r1-c0-call_vis36_once",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "turn_id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0",
+              "name": "apply_patch",
+              "state": "completed",
+              "input": "{\"patchText\":\"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-before approval\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\n*** End Patch\"}",
+              "output": "update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)"
+            },
+            {
+              "id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503019434-812907-1-r1-c0-call_vis36_shell",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "turn_id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503019434-812907-1",
+              "name": "bash",
+              "state": "completed",
+              "input": "{\"argv\":[\"/usr/bin/touch\",\"shell-marker\"]}",
+              "output": "exit 0\n"
+            }
+          ],
+          "session_checkpoint": [],
+          "session_compactions": [],
+          "patch_effects": [
+            {
+              "op_id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0-r1-c0-call_vis36_once",
+              "metadata": "{\"files\":[{\"algorithm\":\"Minimal\",\"operation\":\"Update\",\"path\":\"approval.txt\",\"destination\":null,\"additions\":1,\"deletions\":1,\"hunks\":[{\"old\":{\"start\":1,\"count\":1},\"new\":{\"start\":1,\"count\":1},\"lines\":[{\"lossy\":false,\"kind\":\"Removed\",\"old_line\":1,\"new_line\":null,\"text\":\"before approval\",\"ending\":\"Lf\",\"truncated\":false},{\"lossy\":false,\"kind\":\"Added\",\"old_line\":null,\"new_line\":1,\"text\":\"new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \",\"ending\":\"Lf\",\"truncated\":false}],\"truncated\":false}],\"truncated\":false}],\"total_files\":1,\"additions\":1,\"deletions\":1,\"truncated\":false}"
+            }
+          ],
+          "events": [
+            {
+              "seq": 1,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "session_created",
+              "payload": "{}"
+            },
+            {
+              "seq": 2,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "turn_started",
+              "payload": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0"
+            },
+            {
+              "seq": 3,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "accepted_model",
+              "payload": "{\"provider\":\"fixture\",\"id\":\"fixture-model-1\",\"variant\":null}"
+            },
+            {
+              "seq": 4,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "message",
+              "payload": "m0001"
+            },
+            {
+              "seq": 5,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "session_updated",
+              "payload": "{\"title\":\"VIS36 patch fixture\"}"
+            },
+            {
+              "seq": 6,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "message",
+              "payload": "m0002"
+            },
+            {
+              "seq": 7,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "turn_finished",
+              "payload": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0"
+            },
+            {
+              "seq": 8,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "turn_started",
+              "payload": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503019434-812907-1"
+            },
+            {
+              "seq": 9,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "accepted_model",
+              "payload": "{\"provider\":\"fixture\",\"id\":\"fixture-model-1\",\"variant\":null}"
+            },
+            {
+              "seq": 10,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "message",
+              "payload": "m0003"
+            },
+            {
+              "seq": 11,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "message",
+              "payload": "m0004"
+            },
+            {
+              "seq": 12,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "turn_finished",
+              "payload": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503019434-812907-1"
+            }
+          ],
+          "permission_grants": []
+        }
+      }
+    ],
+    "project_files": {
+      "update.txt": "901247bf52e314ba050f144f640bc49e41da4830598b670cdd45c0531f612fe5",
+      "delete.txt": "e332391e23517f025a25615f9e006ea98f0d26195c1a94cc81423d8376e55b9e",
+      "shell-marker": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "approval.txt": "f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa",
+      "move.txt": "7c4a0d83f95e4d063da94806e607d3ab5eb1cb757ed06bf35eee1161890ce3b2",
+      "replace.txt": "c930786959c266fccd56fb3a2289dc6a548ab98eb2d667273743342660eb4fbe",
+      "denied.txt": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+      "stale.txt": "c1ec13cfe08890215c15a0d626d7b4cc67cdcaee63b93d2bdbe83606ad5e3f13"
+    },
+    "files": {
+      "approval.txt": {
+        "present": true,
+        "bytes_hex": "6e657720617070726f7665642066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f726473200a",
+        "sha256": "f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa",
+        "mode": "0o640",
+        "mtime_ns": 1790503016934918100
+      },
+      "denied.txt": {
+        "present": true,
+        "bytes_hex": "64656e6965642073656e74696e656c0a",
+        "sha256": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+        "mode": "0o640",
+        "mtime_ns": 1790503011018880300
+      },
+      "shell-marker": {
+        "present": true,
+        "bytes_hex": "",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": "0o664",
+        "mtime_ns": 1790503019614935300
+      }
+    },
+    "executor_hook": [],
+    "cli": {
+      "session": {
+        "sidebar": "hide",
+        "tps": false,
+        "permissions": "autoaccept"
+      },
+      "tabs": {
+        "layout": "horizontal"
+      },
+      "debug": {
+        "devtools": false
+      }
+    },
+    "audit": "File stat/hash/bytes and SQLite mode=ro; not an OS syscall trace.",
+    "mcp": [
+      {
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "initialize",
+        "params": {
+          "protocolVersion": "2025-11-25",
+          "capabilities": {},
+          "clientInfo": {
+            "name": "rmcp",
+            "version": "3.4.0"
+          }
+        }
+      },
+      {
+        "jsonrpc": "2.0",
+        "method": "notifications/initialized"
+      },
+      {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/list",
+        "params": {
+          "_meta": {
+            "progressToken": 0
+          }
+        }
+      }
+    ]
+  },
+  {
+    "kind": "provider",
+    "operation": "patch",
+    "case": "mixed",
+    "index": 6,
+    "valid": true,
+    "request": {
+      "model": "fixture-model-1",
+      "store": false,
+      "stream": true,
+      "input": [
+        {
+          "type": "message",
+          "role": "developer",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: [{\"id\":\"m0001\",\"role\":\"user\",\"closed\":true},{\"id\":\"m0002\",\"role\":\"assistant\",\"closed\":true},{\"id\":\"m0003\",\"role\":\"user\",\"closed\":true},{\"id\":\"m0004\",\"role\":\"assistant\",\"closed\":false}]"
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS36 once: execute the supplied ordinary function patch once."
+            }
+          ]
+        },
+        {
+          "id": "fc_vis35_1",
+          "type": "function_call",
+          "status": "completed",
+          "call_id": "call_vis36_once",
+          "name": "apply_patch",
+          "arguments": "{\"patchText\": \"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-before approval\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\n*** End Patch\"}"
+        },
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_once",
+          "output": "update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)"
+        },
+        {
+          "id": "msg_vis35_3",
+          "type": "message",
+          "role": "assistant",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "VIS36-DONE-once",
+              "annotations": []
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS36 shell: execute the supplied ordinary function patch once."
+            }
+          ]
+        },
+        {
+          "id": "fc_vis35_4",
+          "type": "function_call",
+          "status": "completed",
+          "call_id": "call_vis36_shell",
+          "name": "bash",
+          "arguments": "{\"argv\": [\"/usr/bin/touch\", \"shell-marker\"]}"
+        },
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_shell",
+          "output": "exit 0\n"
+        },
+        {
+          "id": "msg_vis35_5",
+          "type": "message",
+          "role": "assistant",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "VIS36-DONE-shell",
+              "annotations": []
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS36 mixed: execute the supplied ordinary function patch once."
+            }
+          ]
+        }
+      ],
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "max_output_tokens": 4096,
+      "tools": [
+        {
+          "type": "function",
+          "name": "read",
+          "description": "Read a project file slice. `path` is relative to the project root; `offset` is the 1-based first line, `limit` caps lines (default 50).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "glob",
+          "description": "List project paths matching a bounded glob. Results are sorted and paginated.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "grep",
+          "description": "Search project text with a bounded literal pattern. Results are sorted and paginated; regex mode is unsupported.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "literal": {
+                "type": "boolean"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "apply_patch",
+          "description": "Apply a patch to project files. `patchText` must start with `*** Begin Patch` and end with `*** End Patch`. For `*** Add File: <relative path>`, prefix every content line with `+`; no content lines creates an empty file. Update hunks use `*** Update File: <relative path>`, optionally immediately followed by `*** Move to: <relative path>`, then `@@` and lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Delete uses `*** Delete File: <relative path>`. Paths stay inside the project root.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "patchText": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "patchText"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "bash",
+          "description": "Run a supervised command. `argv` is the exact executable plus args (no shell); omit `cwd` to run in the project root — any `cwd` must stay inside the project root. `timeout_ms` caps the run (default 30000).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "argv": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "cwd": {
+                "type": "string"
+              },
+              "timeout_ms": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "argv"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "webfetch",
+          "description": "Fetch a URL as text",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "skill",
+          "description": "Invoke a pinned skill",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "compress",
+          "description": "Replace one or more closed transcript ranges with durable summaries. Use only stable startId/endId anchors from the DCP context lane; never include the unfinished final anchor.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "topic": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "content": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 32,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "startId": {
+                      "type": "string"
+                    },
+                    "endId": {
+                      "type": "string"
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8192
+                    }
+                  },
+                  "required": [
+                    "startId",
+                    "endId",
+                    "summary"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "topic",
+              "content"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "subagent",
+          "description": "Spawns an agent in a child session to work on the specified task.\nThe output includes a sessionID you can pass back later to continue that specific conversation with the subagent.\nNew child sessions start with fresh context, so include all relevant context and instructions when you don't pass a sessionID.\nForeground (default) runs the subagent to completion and returns its final response.\n\nAvailable subagents:\n- vis36-child: Isolated VIS36 child; follow the supplied task.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "agent": {
+                "type": "string",
+                "description": "The type of specialized agent to use for this task."
+              },
+              "description": {
+                "type": "string",
+                "description": "A short 3-5 word label for the task, displayed to the user"
+              },
+              "prompt": {
+                "type": "string",
+                "description": "The task for the subagent to perform"
+              },
+              "model": {
+                "type": "string",
+                "description": "NEVER set this unless the user explicitly asks for a particular model or variant. The value is written as \"providerID/modelID\", or \"providerID/modelID#variant\" to include a variant. Do not guess the ID."
+              },
+              "sessionID": {
+                "type": "string",
+                "description": "Continue a specific previous subagent conversation by passing its sessionID. Calls without a sessionID start a new conversation."
+              },
+              "background": {
+                "type": "boolean",
+                "description": "Not supported yet: calls with true fail without creating a child session."
+              }
+            },
+            "required": [
+              "agent",
+              "description",
+              "prompt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "vis36__echo",
+          "description": "Isolated permission echo",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        }
+      ]
+    },
+    "actual_results": []
+  },
+  {
+    "kind": "fixture_tool_call",
+    "case": "mixed",
+    "name": "apply_patch",
+    "arguments": {
+      "patchText": "*** Begin Patch\n*** Update File: approval.txt\n@@\n-restart approved\n+mixed must never appear\n*** Update File: denied.txt\n@@\n-denied sentinel\n+deny must never appear\n*** End Patch"
+    },
+    "call_id": "call_vis36_mixed"
+  },
+  {
+    "kind": "fixture_argument_delta",
+    "case": "mixed",
+    "call_id": "call_vis36_mixed",
+    "item_id": "fc_vis35_6",
+    "delta": "{\"patchText\": \"*",
+    "phase": "pending",
+    "monotonic_ns": 1178032310252597
+  },
+  {
+    "kind": "fixture_argument_delta",
+    "case": "mixed",
+    "call_id": "call_vis36_mixed",
+    "item_id": "fc_vis35_6",
+    "delta": "** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-restart approved\\n+mixed must never appear\\n*** Update File: denied.txt\\n@@\\n-denied sentinel\\n+deny must never appear\\n*** End Patch\"}",
+    "phase": "finish",
+    "monotonic_ns": 1178032310376524
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "patch",
+    "case": "mixed",
+    "index": 6
+  },
+  {
+    "kind": "provider",
+    "operation": "patch",
+    "case": "mixed",
+    "index": 7,
+    "valid": true,
+    "request": {
+      "model": "fixture-model-1",
+      "store": false,
+      "stream": true,
+      "input": [
+        {
+          "type": "message",
+          "role": "developer",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: [{\"id\":\"m0001\",\"role\":\"user\",\"closed\":true},{\"id\":\"m0002\",\"role\":\"assistant\",\"closed\":true},{\"id\":\"m0003\",\"role\":\"user\",\"closed\":true},{\"id\":\"m0004\",\"role\":\"assistant\",\"closed\":false}]"
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS36 once: execute the supplied ordinary function patch once."
+            }
+          ]
+        },
+        {
+          "id": "fc_vis35_1",
+          "type": "function_call",
+          "status": "completed",
+          "call_id": "call_vis36_once",
+          "name": "apply_patch",
+          "arguments": "{\"patchText\": \"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-before approval\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\n*** End Patch\"}"
+        },
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_once",
+          "output": "update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)"
+        },
+        {
+          "id": "msg_vis35_3",
+          "type": "message",
+          "role": "assistant",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "VIS36-DONE-once",
+              "annotations": []
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS36 shell: execute the supplied ordinary function patch once."
+            }
+          ]
+        },
+        {
+          "id": "fc_vis35_4",
+          "type": "function_call",
+          "status": "completed",
+          "call_id": "call_vis36_shell",
+          "name": "bash",
+          "arguments": "{\"argv\": [\"/usr/bin/touch\", \"shell-marker\"]}"
+        },
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_shell",
+          "output": "exit 0\n"
+        },
+        {
+          "id": "msg_vis35_5",
+          "type": "message",
+          "role": "assistant",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "VIS36-DONE-shell",
+              "annotations": []
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS36 mixed: execute the supplied ordinary function patch once."
+            }
+          ]
+        },
+        {
+          "id": "fc_vis35_6",
+          "type": "function_call",
+          "status": "completed",
+          "call_id": "call_vis36_mixed",
+          "name": "apply_patch",
+          "arguments": "{\"patchText\": \"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-restart approved\\n+mixed must never appear\\n*** Update File: denied.txt\\n@@\\n-denied sentinel\\n+deny must never appear\\n*** End Patch\"}"
+        },
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_mixed",
+          "output": "error: denied apply_patch"
+        }
+      ],
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "max_output_tokens": 4096,
+      "tools": [
+        {
+          "type": "function",
+          "name": "read",
+          "description": "Read a project file slice. `path` is relative to the project root; `offset` is the 1-based first line, `limit` caps lines (default 50).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "glob",
+          "description": "List project paths matching a bounded glob. Results are sorted and paginated.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "grep",
+          "description": "Search project text with a bounded literal pattern. Results are sorted and paginated; regex mode is unsupported.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "literal": {
+                "type": "boolean"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "apply_patch",
+          "description": "Apply a patch to project files. `patchText` must start with `*** Begin Patch` and end with `*** End Patch`. For `*** Add File: <relative path>`, prefix every content line with `+`; no content lines creates an empty file. Update hunks use `*** Update File: <relative path>`, optionally immediately followed by `*** Move to: <relative path>`, then `@@` and lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Delete uses `*** Delete File: <relative path>`. Paths stay inside the project root.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "patchText": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "patchText"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "bash",
+          "description": "Run a supervised command. `argv` is the exact executable plus args (no shell); omit `cwd` to run in the project root — any `cwd` must stay inside the project root. `timeout_ms` caps the run (default 30000).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "argv": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "cwd": {
+                "type": "string"
+              },
+              "timeout_ms": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "argv"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "webfetch",
+          "description": "Fetch a URL as text",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "skill",
+          "description": "Invoke a pinned skill",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "compress",
+          "description": "Replace one or more closed transcript ranges with durable summaries. Use only stable startId/endId anchors from the DCP context lane; never include the unfinished final anchor.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "topic": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "content": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 32,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "startId": {
+                      "type": "string"
+                    },
+                    "endId": {
+                      "type": "string"
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8192
+                    }
+                  },
+                  "required": [
+                    "startId",
+                    "endId",
+                    "summary"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "topic",
+              "content"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "subagent",
+          "description": "Spawns an agent in a child session to work on the specified task.\nThe output includes a sessionID you can pass back later to continue that specific conversation with the subagent.\nNew child sessions start with fresh context, so include all relevant context and instructions when you don't pass a sessionID.\nForeground (default) runs the subagent to completion and returns its final response.\n\nAvailable subagents:\n- vis36-child: Isolated VIS36 child; follow the supplied task.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "agent": {
+                "type": "string",
+                "description": "The type of specialized agent to use for this task."
+              },
+              "description": {
+                "type": "string",
+                "description": "A short 3-5 word label for the task, displayed to the user"
+              },
+              "prompt": {
+                "type": "string",
+                "description": "The task for the subagent to perform"
+              },
+              "model": {
+                "type": "string",
+                "description": "NEVER set this unless the user explicitly asks for a particular model or variant. The value is written as \"providerID/modelID\", or \"providerID/modelID#variant\" to include a variant. Do not guess the ID."
+              },
+              "sessionID": {
+                "type": "string",
+                "description": "Continue a specific previous subagent conversation by passing its sessionID. Calls without a sessionID start a new conversation."
+              },
+              "background": {
+                "type": "boolean",
+                "description": "Not supported yet: calls with true fail without creating a child session."
+              }
+            },
+            "required": [
+              "agent",
+              "description",
+              "prompt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "vis36__echo",
+          "description": "Isolated permission echo",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        }
+      ]
+    },
+    "actual_results": [
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis36_mixed",
+        "output": "error: denied apply_patch"
+      }
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "patch",
+    "case": "mixed",
+    "index": 7
+  },
+  {
+    "kind": "permission_snapshot",
+    "request_id": "auto-mixed-effects",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-10/oc/home/data/oc/oc.sqlite",
+        "tables": [
+          "schema_migrations",
+          "sessions",
+          "messages",
+          "turns",
+          "turn_acceptances",
+          "tool_operations",
+          "events",
+          "sqlite_sequence",
+          "patch_effects",
+          "blobs",
+          "prefs",
+          "session_checkpoint",
+          "session_compactions",
+          "session_usage_anchor",
+          "conversation_state",
+          "conversation_exclusions",
+          "conversation_contexts",
+          "conversation_redo",
+          "conversation_points",
+          "conversation_revision",
+          "conversation_objects",
+          "conversation_versions",
+          "conversation_tracked",
+          "compression_blocks",
+          "compression_members",
+          "prune_marks",
+          "dcp_tool_projection",
+          "dcp_tool_projection_v2",
+          "compression_identity",
+          "permission_grants"
+        ],
+        "data": {
+          "messages": [
+            {
+              "id": "m0001",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "seq": 1,
+              "role": "user",
+              "text": "VIS36 once: execute the supplied ordinary function patch once."
+            },
+            {
+              "id": "m0002",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "seq": 2,
+              "role": "assistant",
+              "text": "VIS36-DONE-once"
+            },
+            {
+              "id": "m0003",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "seq": 3,
+              "role": "user",
+              "text": "VIS36 shell: execute the supplied ordinary function patch once."
+            },
+            {
+              "id": "m0004",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "seq": 4,
+              "role": "assistant",
+              "text": "VIS36-DONE-shell"
+            },
+            {
+              "id": "m0005",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "seq": 5,
+              "role": "user",
+              "text": "VIS36 mixed: execute the supplied ordinary function patch once."
+            },
+            {
+              "id": "m0006",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "seq": 6,
+              "role": "assistant",
+              "text": "VIS36-DONE-mixed"
+            }
+          ],
+          "turns": [
+            {
+              "id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "status": "completed",
+              "prompt": "VIS36 once: execute the supplied ordinary function patch once.",
+              "result": "{\"display\":{\"model_label\":\"MiMo-V2.6-Flash Free\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":415,\"streamed_ms\":288,\"usage\":[1234,128],\"context_usage\":[1234,64]},\"display_parts\":[{\"tool\":\"ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0-r1-c0-call_vis36_once\"},{\"message\":3}],\"turn_id\":\"ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[1234,64],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS36 once: execute the supplied ordinary function patch once.\"}]},{\"id\":\"fc_vis35_1\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"call_vis36_once\",\"name\":\"apply_patch\",\"arguments\":\"{\\\"patchText\\\": \\\"*** Begin Patch\\\\n*** Update File: approval.txt\\\\n@@\\\\n-before approval\\\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\\\n*** End Patch\\\"}\"},{\"type\":\"function_call_output\",\"call_id\":\"call_vis36_once\",\"output\":\"update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)\"},{\"id\":\"msg_vis35_3\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS36-DONE-once\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+            },
+            {
+              "id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503019434-812907-1",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "status": "completed",
+              "prompt": "VIS36 shell: execute the supplied ordinary function patch once.",
+              "result": "{\"display\":{\"model_label\":\"MiMo-V2.6-Flash Free\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":288,\"streamed_ms\":205,\"usage\":[1234,128],\"context_usage\":[1234,64]},\"display_parts\":[{\"tool\":\"ts-tui-18d92501d5d4aeb5-c676b-0-1790503019434-812907-1-r1-c0-call_vis36_shell\"},{\"message\":3}],\"turn_id\":\"ts-tui-18d92501d5d4aeb5-c676b-0-1790503019434-812907-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[1234,64],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS36 shell: execute the supplied ordinary function patch once.\"}]},{\"id\":\"fc_vis35_4\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"call_vis36_shell\",\"name\":\"bash\",\"arguments\":\"{\\\"argv\\\": [\\\"/usr/bin/touch\\\", \\\"shell-marker\\\"]}\"},{\"type\":\"function_call_output\",\"call_id\":\"call_vis36_shell\",\"output\":\"exit 0\\n\"},{\"id\":\"msg_vis35_5\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS36-DONE-shell\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0004\"}"
+            },
+            {
+              "id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503021957-812907-2",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "status": "completed",
+              "prompt": "VIS36 mixed: execute the supplied ordinary function patch once.",
+              "result": "{\"display\":{\"model_label\":\"MiMo-V2.6-Flash Free\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":268,\"streamed_ms\":208,\"usage\":[1234,128],\"context_usage\":[1234,64]},\"display_parts\":[{\"tool\":\"ts-tui-18d92501d5d4aeb5-c676b-0-1790503021957-812907-2-r1-c0-call_vis36_mixed\"},{\"message\":3}],\"turn_id\":\"ts-tui-18d92501d5d4aeb5-c676b-0-1790503021957-812907-2\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[1234,64],\"user_message\":\"m0005\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS36 mixed: execute the supplied ordinary function patch once.\"}]},{\"id\":\"fc_vis35_6\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"call_vis36_mixed\",\"name\":\"apply_patch\",\"arguments\":\"{\\\"patchText\\\": \\\"*** Begin Patch\\\\n*** Update File: approval.txt\\\\n@@\\\\n-restart approved\\\\n+mixed must never appear\\\\n*** Update File: denied.txt\\\\n@@\\\\n-denied sentinel\\\\n+deny must never appear\\\\n*** End Patch\\\"}\"},{\"type\":\"function_call_output\",\"call_id\":\"call_vis36_mixed\",\"output\":\"error: denied apply_patch\"},{\"id\":\"msg_vis35_7\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS36-DONE-mixed\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0006\"}"
+            }
+          ],
+          "tool_operations": [
+            {
+              "id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0-r1-c0-call_vis36_once",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "turn_id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0",
+              "name": "apply_patch",
+              "state": "completed",
+              "input": "{\"patchText\":\"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-before approval\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\n*** End Patch\"}",
+              "output": "update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)"
+            },
+            {
+              "id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503019434-812907-1-r1-c0-call_vis36_shell",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "turn_id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503019434-812907-1",
+              "name": "bash",
+              "state": "completed",
+              "input": "{\"argv\":[\"/usr/bin/touch\",\"shell-marker\"]}",
+              "output": "exit 0\n"
+            },
+            {
+              "id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503021957-812907-2-r1-c0-call_vis36_mixed",
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "turn_id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503021957-812907-2",
+              "name": "apply_patch",
+              "state": "failed",
+              "input": "{\"patchText\":\"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-restart approved\\n+mixed must never appear\\n*** Update File: denied.txt\\n@@\\n-denied sentinel\\n+deny must never appear\\n*** End Patch\"}",
+              "output": "error: denied apply_patch"
+            }
+          ],
+          "session_checkpoint": [],
+          "session_compactions": [],
+          "patch_effects": [
+            {
+              "op_id": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0-r1-c0-call_vis36_once",
+              "metadata": "{\"files\":[{\"algorithm\":\"Minimal\",\"operation\":\"Update\",\"path\":\"approval.txt\",\"destination\":null,\"additions\":1,\"deletions\":1,\"hunks\":[{\"old\":{\"start\":1,\"count\":1},\"new\":{\"start\":1,\"count\":1},\"lines\":[{\"lossy\":false,\"kind\":\"Removed\",\"old_line\":1,\"new_line\":null,\"text\":\"before approval\",\"ending\":\"Lf\",\"truncated\":false},{\"lossy\":false,\"kind\":\"Added\",\"old_line\":null,\"new_line\":1,\"text\":\"new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \",\"ending\":\"Lf\",\"truncated\":false}],\"truncated\":false}],\"truncated\":false}],\"total_files\":1,\"additions\":1,\"deletions\":1,\"truncated\":false}"
+            }
+          ],
+          "events": [
+            {
+              "seq": 1,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "session_created",
+              "payload": "{}"
+            },
+            {
+              "seq": 2,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "turn_started",
+              "payload": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0"
+            },
+            {
+              "seq": 3,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "accepted_model",
+              "payload": "{\"provider\":\"fixture\",\"id\":\"fixture-model-1\",\"variant\":null}"
+            },
+            {
+              "seq": 4,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "message",
+              "payload": "m0001"
+            },
+            {
+              "seq": 5,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "session_updated",
+              "payload": "{\"title\":\"VIS36 patch fixture\"}"
+            },
+            {
+              "seq": 6,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "message",
+              "payload": "m0002"
+            },
+            {
+              "seq": 7,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "turn_finished",
+              "payload": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503016718-812907-0"
+            },
+            {
+              "seq": 8,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "turn_started",
+              "payload": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503019434-812907-1"
+            },
+            {
+              "seq": 9,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "accepted_model",
+              "payload": "{\"provider\":\"fixture\",\"id\":\"fixture-model-1\",\"variant\":null}"
+            },
+            {
+              "seq": 10,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "message",
+              "payload": "m0003"
+            },
+            {
+              "seq": 11,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "message",
+              "payload": "m0004"
+            },
+            {
+              "seq": 12,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "turn_finished",
+              "payload": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503019434-812907-1"
+            },
+            {
+              "seq": 13,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "turn_started",
+              "payload": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503021957-812907-2"
+            },
+            {
+              "seq": 14,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "accepted_model",
+              "payload": "{\"provider\":\"fixture\",\"id\":\"fixture-model-1\",\"variant\":null}"
+            },
+            {
+              "seq": 15,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "message",
+              "payload": "m0005"
+            },
+            {
+              "seq": 16,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "message",
+              "payload": "m0006"
+            },
+            {
+              "seq": 17,
+              "session_id": "s-tui-18d92501d5d4aeb5-c676b-0",
+              "kind": "turn_finished",
+              "payload": "ts-tui-18d92501d5d4aeb5-c676b-0-1790503021957-812907-2"
+            }
+          ],
+          "permission_grants": []
+        }
+      }
+    ],
+    "project_files": {
+      "update.txt": "901247bf52e314ba050f144f640bc49e41da4830598b670cdd45c0531f612fe5",
+      "delete.txt": "e332391e23517f025a25615f9e006ea98f0d26195c1a94cc81423d8376e55b9e",
+      "shell-marker": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "approval.txt": "f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa",
+      "move.txt": "7c4a0d83f95e4d063da94806e607d3ab5eb1cb757ed06bf35eee1161890ce3b2",
+      "replace.txt": "c930786959c266fccd56fb3a2289dc6a548ab98eb2d667273743342660eb4fbe",
+      "denied.txt": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+      "stale.txt": "c1ec13cfe08890215c15a0d626d7b4cc67cdcaee63b93d2bdbe83606ad5e3f13"
+    },
+    "files": {
+      "approval.txt": {
+        "present": true,
+        "bytes_hex": "6e657720617070726f7665642066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f726473200a",
+        "sha256": "f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa",
+        "mode": "0o640",
+        "mtime_ns": 1790503016934918100
+      },
+      "denied.txt": {
+        "present": true,
+        "bytes_hex": "64656e6965642073656e74696e656c0a",
+        "sha256": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+        "mode": "0o640",
+        "mtime_ns": 1790503011018880300
+      },
+      "shell-marker": {
+        "present": true,
+        "bytes_hex": "",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": "0o664",
+        "mtime_ns": 1790503019614935300
+      }
+    },
+    "executor_hook": [],
+    "cli": {
+      "session": {
+        "sidebar": "hide",
+        "tps": false,
+        "permissions": "autoaccept"
+      },
+      "tabs": {
+        "layout": "horizontal"
+      },
+      "debug": {
+        "devtools": false
+      }
+    },
+    "audit": "File stat/hash/bytes and SQLite mode=ro; not an OS syscall trace.",
+    "mcp": [
+      {
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "initialize",
+        "params": {
+          "protocolVersion": "2025-11-25",
+          "capabilities": {},
+          "clientInfo": {
+            "name": "rmcp",
+            "version": "3.4.0"
+          }
+        }
+      },
+      {
+        "jsonrpc": "2.0",
+        "method": "notifications/initialized"
+      },
+      {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/list",
+        "params": {
+          "_meta": {
+            "progressToken": 0
+          }
+        }
+      }
+    ]
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": -15,
+    "termination": "forced_stop"
+  }
+]

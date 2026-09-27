@@ -15,6 +15,9 @@ pub struct Args {
     /// Isolate storage under an explicit data directory.
     #[arg(long, global = true)]
     pub data_dir: Option<PathBuf>,
+    /// Automatically answer permission requests once (never saves grants).
+    #[arg(long = "auto", global = true, default_value_t = false)]
+    pub auto: bool,
     /// Print linked crate versions and exit without side effects.
     #[arg(long, default_value_t = false)]
     pub smoke: bool,

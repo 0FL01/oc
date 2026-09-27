@@ -1,0 +1,281 @@
+{
+  "capture": "evidence/tui/recovery-v00/permission20260927-36",
+  "scope": "Only actual native local-fixture subprocess and descendants; strace -f -ttt -yy -e trace=%file,%network. No attach to authoring processes. Held windows include actual provider dispatch and preview preparation.",
+  "network_destination_calls": [
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation0",
+      "line": 1239,
+      "time_ns": 1790516036410433024,
+      "text": "connect(22<TCP:[95124701]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation0",
+      "line": 1987,
+      "time_ns": 1790516036604825088,
+      "text": "connect(22<TCP:[95122181]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation0",
+      "line": 2733,
+      "time_ns": 1790516052335643136,
+      "text": "connect(22<TCP:[95122245]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation0",
+      "line": 3372,
+      "time_ns": 1790516055809094912,
+      "text": "connect(22<TCP:[95122249]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation0",
+      "line": 4096,
+      "time_ns": 1790516062280270080,
+      "text": "connect(22<TCP:[95123409]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation0",
+      "line": 4900,
+      "time_ns": 1790516068815563008,
+      "text": "connect(22<TCP:[95126029]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 1234,
+      "time_ns": 1790516074842766080,
+      "text": "connect(22<TCP:[95126046]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 2926,
+      "time_ns": 1790516075294078208,
+      "text": "connect(26<TCP:[95126071]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16 <unfinished ...>"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 3005,
+      "time_ns": 1790516075358251008,
+      "text": "connect(22<TCP:[95127134]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 3645,
+      "time_ns": 1790516078260664832,
+      "text": "connect(22<TCP:[95126087]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 4280,
+      "time_ns": 1790516078662574080,
+      "text": "connect(24<TCP:[95126097]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 4918,
+      "time_ns": 1790516081739069952,
+      "text": "connect(22<TCP:[95124175]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 5640,
+      "time_ns": 1790516091472007936,
+      "text": "connect(22<TCP:[95125170]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 6277,
+      "time_ns": 1790516094500500992,
+      "text": "connect(22<TCP:[95126282]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 6910,
+      "time_ns": 1790516094761455104,
+      "text": "connect(24<TCP:[95125222]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 7613,
+      "time_ns": 1790516110544642048,
+      "text": "connect(22<TCP:[95126387]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 8246,
+      "time_ns": 1790516110711222016,
+      "text": "connect(24<TCP:[95126396]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 8883,
+      "time_ns": 1790516113772865024,
+      "text": "connect(22<TCP:[95125330]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 9621,
+      "time_ns": 1790516123098236160,
+      "text": "connect(22<TCP:[95128108]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 10261,
+      "time_ns": 1790516126387776000,
+      "text": "connect(22<TCP:[95125425]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 11067,
+      "time_ns": 1790516137257477120,
+      "text": "connect(22<TCP:[95127540]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 11703,
+      "time_ns": 1790516141223524096,
+      "text": "connect(22<TCP:[95128306]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 12393,
+      "time_ns": 1790516154980946944,
+      "text": "connect(22<TCP:[95133866]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 13124,
+      "time_ns": 1790516184132980224,
+      "text": "connect(22<TCP:[95131194]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 13839,
+      "time_ns": 1790516184528992000,
+      "text": "connect(24<TCP:[95131234]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation1",
+      "line": 14520,
+      "time_ns": 1790516204980401920,
+      "text": "connect(22<TCP:[95132580]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+    }
+  ],
+  "nonloopback_destinations": [],
+  "dns_transport_or_resolver_setup_calls": [],
+  "windows": [
+    {
+      "case": "once",
+      "from_provider_observation_ns": 1790516036425863400,
+      "through_held_snapshot_ns": 1790516039961059800,
+      "target_opens": [
+        {
+          "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation0",
+          "line": 1521,
+          "time_ns": 1790516036459913984,
+          "text": "openat(26</home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-36/project>, \"approval.txt\", O_RDONLY|O_NONBLOCK|O_NOFOLLOW|O_CLOEXEC <unfinished ...>"
+        }
+      ],
+      "target_mutation_calls": [],
+      "network_destinations": [
+        {
+          "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation0",
+          "line": 1987,
+          "time_ns": 1790516036604825088,
+          "text": "connect(22<TCP:[95122181]>, {sa_family=AF_INET, sin_port=htons(44161), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+        }
+      ],
+      "no_target_write_open_or_path_mutation": true
+    },
+    {
+      "case": "reject",
+      "from_provider_observation_ns": 1790516055823067400,
+      "through_held_snapshot_ns": 1790516058869271600,
+      "target_opens": [
+        {
+          "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation0",
+          "line": 3442,
+          "time_ns": 1790516055848599040,
+          "text": "openat(24</home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-36/project>, \"approval.txt\", O_RDONLY|O_NONBLOCK|O_NOFOLLOW|O_CLOEXEC) = 25</home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-36/project/approval.txt>"
+        }
+      ],
+      "target_mutation_calls": [],
+      "network_destinations": [],
+      "no_target_write_open_or_path_mutation": true
+    },
+    {
+      "case": "always",
+      "from_provider_observation_ns": 1790516062292096800,
+      "through_held_snapshot_ns": 1790516065571601400,
+      "target_opens": [
+        {
+          "file": "evidence/tui/recovery-v00/permission20260927-36/oc/permission.strace.generation0",
+          "line": 4166,
+          "time_ns": 1790516062306767104,
+          "text": "openat(24</home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-36/project>, \"approval.txt\", O_RDONLY|O_NONBLOCK|O_NOFOLLOW|O_CLOEXEC) = 25</home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-36/project/approval.txt>"
+        }
+      ],
+      "target_mutation_calls": [],
+      "network_destinations": [],
+      "no_target_write_open_or_path_mutation": true
+    },
+    {
+      "case": "mcp",
+      "from_provider_observation_ns": 1790516081748877300,
+      "through_held_snapshot_ns": 1790516084913667300,
+      "target_opens": [],
+      "target_mutation_calls": [],
+      "network_destinations": [],
+      "no_target_write_open_or_path_mutation": true
+    },
+    {
+      "case": "childroot",
+      "from_provider_observation_ns": 1790516094774905900,
+      "through_held_snapshot_ns": 1790516098187545300,
+      "target_opens": [],
+      "target_mutation_calls": [],
+      "network_destinations": [],
+      "no_target_write_open_or_path_mutation": true
+    },
+    {
+      "case": "read",
+      "from_provider_observation_ns": 1790516113783090400,
+      "through_held_snapshot_ns": 1790516116934484200,
+      "target_opens": [],
+      "target_mutation_calls": [],
+      "network_destinations": [],
+      "no_target_write_open_or_path_mutation": true
+    },
+    {
+      "case": "shell",
+      "from_provider_observation_ns": 1790516126400138200,
+      "through_held_snapshot_ns": 1790516130290931000,
+      "target_opens": [],
+      "target_mutation_calls": [],
+      "network_destinations": [],
+      "no_target_write_open_or_path_mutation": true
+    },
+    {
+      "case": "glob",
+      "from_provider_observation_ns": 1790516141240954600,
+      "through_held_snapshot_ns": 1790516144599820800,
+      "target_opens": [],
+      "target_mutation_calls": [],
+      "network_destinations": [],
+      "no_target_write_open_or_path_mutation": true
+    },
+    {
+      "case": "url",
+      "from_provider_observation_ns": 1790516154990092500,
+      "through_held_snapshot_ns": 1790516158375323100,
+      "target_opens": [],
+      "target_mutation_calls": [],
+      "network_destinations": [],
+      "no_target_write_open_or_path_mutation": true
+    }
+  ],
+  "pass": true,
+  "limits": [
+    "File/network syscall selection does not trace read/write payloads, mmap dirty pages or kernel-internal cache lookups.",
+    "Absence of transport/resolver setup calls is a bounded DNS/network observation, not a universal guarantee or typed CoreEvent evidence.",
+    "Read-only file snapshots independently check bytes/mode/mtime; storage WAL writes are expected and outside the target-file mutation assertion."
+  ]
+}

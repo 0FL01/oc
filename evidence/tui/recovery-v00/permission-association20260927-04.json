@@ -1,0 +1,26 @@
+{
+  "current_head": "d77faa6a38abf2306e50981ad9df39c7b91aa26d",
+  "current_binary_sha256": "42977ff968750c37e120a892c948514c8956c6eb422a6e0ef07b0a3c857abb6f",
+  "runs": [
+    {
+      "name": "permission20260927-36",
+      "captured_head": "d77faa6a38abf2306e50981ad9df39c7b91aa26d",
+      "source_manifest_sha256": "3403c25ce53f8a473c3bb60ac3fe6825c35bd2950ab7aec3877e13ee7584c7bf",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "f512146d5f8761598990013333d1e0ef0f138e068483c0ab75e77888889f9f60",
+      "binary_sha256": "42977ff968750c37e120a892c948514c8956c6eb422a6e0ef07b0a3c857abb6f",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    }
+  ],
+  "scope": "Only these source-built captures; no older evidence qualifies this source."
+}

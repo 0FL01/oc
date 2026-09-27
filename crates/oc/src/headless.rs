@@ -30,6 +30,7 @@ pub async fn run_once_to_writers(
     prompt: String,
     session_opt: Option<String>,
     json: bool,
+    auto_once: bool,
     data_dir: &Path,
     out: &mut dyn std::io::Write,
     err: &mut dyn std::io::Write,
@@ -63,6 +64,11 @@ pub async fn run_once_to_writers(
             writeln!(err, "warning: {diagnostic}").map_err(|e| e.to_string())?;
         }
         let outcome = async {
+            if auto_once {
+                app.register_approval_consumer(true)
+                    .await
+                    .map_err(|e| e.to_string())?;
+            }
             app.create_session(session.clone())
                 .await
                 .map_err(|e| e.to_string())?;

@@ -70,7 +70,7 @@ pub async fn run(args: Args) -> ExitCode {
         }
     };
     match args.command {
-        None => crate::tui_cmd::run_tui(&data_dir, None).await,
+        None => crate::tui_cmd::run_tui(&data_dir, None, args.auto).await,
         Some(Command::Run {
             prompt,
             session,
@@ -85,8 +85,10 @@ pub async fn run(args: Args) -> ExitCode {
             }
             let mut out = stdout().lock();
             let mut err = stderr().lock();
-            headless::run_once_to_writers(prompt, session, json, &data_dir, &mut out, &mut err)
-                .await
+            headless::run_once_to_writers(
+                prompt, session, json, args.auto, &data_dir, &mut out, &mut err,
+            )
+            .await
         }
         Some(Command::Sessions { action }) => match action {
             SessionsAction::List => {
@@ -95,7 +97,9 @@ pub async fn run(args: Args) -> ExitCode {
                 headless::list_to_writers(&data_dir, &mut out, &mut err)
             }
         },
-        Some(Command::Tui { session }) => crate::tui_cmd::run_tui(&data_dir, session).await,
+        Some(Command::Tui { session }) => {
+            crate::tui_cmd::run_tui(&data_dir, session, args.auto).await
+        }
     }
 }
 

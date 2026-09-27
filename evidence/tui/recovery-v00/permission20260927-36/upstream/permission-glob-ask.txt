@@ -1,0 +1,40 @@
+   VIS36 patch fixture           ! VIS36 patch fixture           +                                                      
+  ┃                                                                                                                     
+                                                                                                                        
+     → Explored — 1 read                                                                                                
+                                                                                                                        
+     VIS36-DONE-read                                                                                                    
+                                                                                                                        
+     Build · MiMo-V2.6-Flash Free · 8.8s                                                                                
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  VIS36 shell: execute the supplied ordinary function patch once.                                                    
+  ┃                                                                                                                     
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  $ /usr/bin/touch shell-marker                                                                                      
+  ┃                                                                                                                     
+  ┃  (no output)                                                                                                        
+  ┃  Command exited with code 0.                                                                                        
+  ┃                                                                                                                     
+                                                                                                                        
+     VIS36-DONE-shell                                                                                                   
+                                                                                                                        
+     Build · MiMo-V2.6-Flash Free · 9.0s                                                                                
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  VIS36 glob: execute the supplied ordinary function patch once.                                                     
+  ┃                                                                                                                     
+                                                                                                                        
+     ✱ Glob "**/*.txt"                                                                                                  
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  △ Permission required                                                                                              
+  ┃    ✱ Glob "**/*.txt"                                                                                                
+  ┃                                                                                                                     
+  ┃  Pattern: **/*.txt                                                                                                  
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃   Allow once   Always allow   Reject                                 ctrl+f fullscreen  ⇆ select  enter confirm     
+  ┃                                                                                                                     
+                                                                                                                        

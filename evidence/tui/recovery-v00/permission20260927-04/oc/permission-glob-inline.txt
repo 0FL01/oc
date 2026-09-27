@@ -1,0 +1,40 @@
+   VIS36 patch fixture           △ VIS36 patch fixture                         
+  ┃  VIS36 read: execute the supplied ordinary function patch once.            
+  ┃                                                                            
+                                                                               
+     → Explored — 1 read                                                       
+                                                                               
+     VIS36-DONE-read                                                           
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 7.4s                                       
+                                                                               
+  ┃                                                                            
+  ┃  VIS36 shell: execute the supplied ordinary function patch once.           
+  ┃                                                                            
+                                                                               
+  ┃                                                                            
+  ┃  $ /usr/bin/touch shell-marker                                             
+  ┃                                                                            
+                                                                               
+     VIS36-DONE-shell                                                          
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 7.2s                                       
+                                                                               
+  ┃                                                                            
+  ┃  VIS36 glob: execute the supplied ordinary function patch once.            
+  ┃                                                                            
+                                                                               
+     ✱ Glob "**/*.txt"                                                         
+  │                                                                            
+  │ △ Permission required                                                      
+  │                                                                            
+  │ ✱ glob "**/*.txt"                                                          
+  │ Pattern: **/*.txt                                                          
+  │ Directory:                                                                 
+  │ /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permiss     
+  │ ion20260927-04/project                                                     
+  │                                                                            
+  │  Allow once   Always allow   Reject                                        
+  │ ctrl+f fullscreen  ⇆ select  enter confirm                                 
+  │                                                                            
+                                                                               

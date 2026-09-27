@@ -1,0 +1,340 @@
+{
+  "output": "/home/opencode/ai/oc/evidence/tui/recovery-v00/permission-summary20260927-07.json",
+  "totals": {
+    "provider_requests": 244,
+    "provider_completed": 244,
+    "tool_calls": 127,
+    "invalid_requests": 0
+  },
+  "comparators": {
+    "grid": {
+      "DIFFERENT": 200,
+      "INVALID": 12
+    },
+    "png": {
+      "DIFFERENT": 212
+    }
+  },
+  "cursors": {
+    "equal": 134,
+    "total": 212
+  },
+  "runs": [
+    {
+      "name": "permission20260927-23",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-24",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-25",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-26",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-27",
+      "mode": "auto-config",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": null,
+            "once-effects": null,
+            "reject-pending": null,
+            "reject-effects": null,
+            "always-pending": null,
+            "always-effects": null,
+            "restart-effects": null,
+            "mixed-effects": null
+          },
+          "grants_survive_restart": null
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": null,
+            "once-effects": null,
+            "reject-pending": null,
+            "reject-effects": null,
+            "always-pending": null,
+            "always-effects": null,
+            "restart-effects": null,
+            "mixed-effects": null
+          },
+          "grants_survive_restart": null
+        }
+      }
+    },
+    {
+      "name": "permission20260927-28",
+      "mode": "auto-cli",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": null,
+            "once-effects": null,
+            "reject-pending": null,
+            "reject-effects": null,
+            "always-pending": null,
+            "always-effects": null,
+            "restart-effects": null,
+            "mixed-effects": null
+          },
+          "grants_survive_restart": null
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": null,
+            "once-effects": null,
+            "reject-pending": null,
+            "reject-effects": null,
+            "always-pending": null,
+            "always-effects": null,
+            "restart-effects": null,
+            "mixed-effects": null
+          },
+          "grants_survive_restart": null
+        }
+      }
+    }
+  ]
+}
+SOURCE ASSOCIATIONS [{"name":"permission20260927-23","binary":"9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5","rust":"057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047","manifest":"606901b4b329af691786e4f10c49ad75453c9b451d68223f07312d7b120d3fcb","build_exits":[0]},{"name":"permission20260927-24","binary":"9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5","rust":"057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047","manifest":"606901b4b329af691786e4f10c49ad75453c9b451d68223f07312d7b120d3fcb","build_exits":[0]},{"name":"permission20260927-25","binary":"9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5","rust":"057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047","manifest":"606901b4b329af691786e4f10c49ad75453c9b451d68223f07312d7b120d3fcb","build_exits":[0]},{"name":"permission20260927-26","binary":"9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5","rust":"057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047","manifest":"606901b4b329af691786e4f10c49ad75453c9b451d68223f07312d7b120d3fcb","build_exits":[0]},{"name":"permission20260927-27","binary":"9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5","rust":"057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047","manifest":"606901b4b329af691786e4f10c49ad75453c9b451d68223f07312d7b120d3fcb","build_exits":[0]},{"name":"permission20260927-28","binary":"9dd82f4a8ae001d39f7955c35a8337e4c7a2047c26775f589235ab9c1e12bee5","rust":"057923165464f475541e9fb69909d7818bb688b0df828dd4a81ddfc55f2ee047","manifest":"606901b4b329af691786e4f10c49ad75453c9b451d68223f07312d7b120d3fcb","build_exits":[0]}]
+ZERO-BASED permission20260927-23 once-ask {"upstream":{"△":[[5,25]],"!":[[1,0]],"Permission required":[[7,25]],"→ Edit":[[7,26]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]],"Patching":[[7,7]],"approval.txt":[[16,7],[14,26]]},"oc":{"△":[[5,25]],"!":[[1,0]],"Permission required":[[7,25]],"→ Edit":[[7,26]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[100,37]],"ctrl+f fullscreen":[[71,37]],"Patching":[[7,7]],"approval.txt":[[14,26]]}}
+STYLES permission20260927-23 {"upstream":{"!":[{"x":1,"y":0,"cell":{"symbol":"!","fg":"#9d7cd8","bg":"#2c2933","width":1,"modifiers":["bold"]}}],"Permission required":[{"x":7,"y":25,"cell":{"symbol":"P","fg":"#eeeeee","bg":"#141414","width":1,"modifiers":[]}}],"→ Edit":[{"x":7,"y":26,"cell":{"symbol":"→","fg":"#808080","bg":"#141414","width":1,"modifiers":[]}}],"Allow once":[{"x":6,"y":37,"cell":{"symbol":"A","fg":"#0a0a0a","bg":"#fab283","width":1,"modifiers":[]}}]},"oc":{"!":[{"x":1,"y":0,"cell":{"symbol":"!","fg":"#9d7cd8","bg":"#2c2933","width":1,"modifiers":["bold"]}}],"Permission required":[{"x":7,"y":25,"cell":{"symbol":"P","fg":"#eeeeee","bg":"#141414","width":1,"modifiers":[]}}],"→ Edit":[{"x":7,"y":26,"cell":{"symbol":"→","fg":"#808080","bg":"#141414","width":1,"modifiers":[]}}],"Allow once":[{"x":6,"y":37,"cell":{"symbol":"A","fg":"#0a0a0a","bg":"#fab283","width":1,"modifiers":[]}}]}}
+ZERO-BASED permission20260927-23 once-fullscreen {"upstream":{"△":[[5,2]],"!":[[1,0]],"Permission required":[[7,2]],"→ Edit":[[7,3]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f minimize":[[75,37]],"approval.txt":[[14,3]]},"oc":{"△":[[5,2]],"!":[[1,0]],"Permission required":[[7,2]],"→ Edit":[[7,3]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[100,37]],"ctrl+f minimize":[[73,37]],"approval.txt":[[14,3]]}}
+ZERO-BASED permission20260927-23 always-selected {"upstream":{"△":[[5,31]],"!":[[1,0]],"Permission required":[[7,31]],"→ Edit":[[7,32]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]],"This will always":[[5,34]],"Patching":[[7,27]],"approval.txt":[[20,15],[16,27],[14,32]]},"oc":{"△":[[5,29]],"!":[[1,0]],"Permission required":[[7,29]],"→ Edit":[[7,30]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[100,37]],"ctrl+f fullscreen":[[71,37]],"This will always":[[5,32]],"Patching":[[7,26]],"approval.txt":[[14,30],[7,34]]}}
+ZERO-BASED permission20260927-23 child-feedback-draft {"upstream":{"△":[[5,32]],"!":[[33,0]],"Reject":[[7,32]],"Tell OpenCode":[[5,34]],"VIS36-FEEDBACK":[[5,37]],"this correction.":[[48,37]],"enter confirm":[[90,37]]},"oc":{"△":[[5,32]],"!":[[33,0]],"Reject":[[7,32]],"Tell OpenCode":[[5,34]],"VIS36-FEEDBACK":[[5,37]],"this correction.":[[48,37]],"enter confirm":[[90,37]],"apply_patch":[[19,6]]}}
+ZERO-BASED permission20260927-23 settings-autoaccept {"upstream":{"Permissions":[[34,13],[34,16]],"auto accept":[[75,16]],"Session":[[34,15]],"Settings":[[34,11]]},"oc":{"Permissions":[[34,13],[34,15]],"auto accept":[[75,15]],"Session":[[65,15]],"Settings":[[34,11]]}}
+ZERO-BASED permission20260927-23 settings-auto-first-escape {"upstream":{},"oc":{"Permissions":[[34,16]],"auto accept":[[75,16]],"Session":[[34,15]],"Settings":[[34,11]]}}
+ZERO-BASED permission20260927-23 read-ask {"upstream":{"△":[[5,31]],"!":[[33,0]],"Permission required":[[7,31]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]],"approval.txt":[[12,28],[14,32],[11,34]]},"oc":{"△":[[5,31]],"!":[[33,0]],"Permission required":[[7,31]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[100,37]],"ctrl+f fullscreen":[[71,37]],"approval.txt":[[12,29],[14,32],[11,34]]}}
+ZERO-BASED permission20260927-23 shell-ask {"upstream":{"△":[[5,32]],"!":[[33,0]],"Permission required":[[7,32]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]]},"oc":{"△":[[5,32]],"!":[[33,0]],"Permission required":[[7,32]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[100,37]],"ctrl+f fullscreen":[[71,37]]}}
+ZERO-BASED permission20260927-23 mcp-ask {"upstream":{"△":[[5,31]],"!":[[33,0]],"Permission required":[[7,31]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]]},"oc":{"△":[[5,31]],"!":[[33,0]],"Permission required":[[7,31]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[100,37]],"ctrl+f fullscreen":[[71,37]],"approval.txt":[[15,2]],"apply_patch":[[19,18]]}}
+ZERO-BASED permission20260927-23 url-ask {"upstream":{"△":[[5,29]],"!":[[33,0]],"Permission required":[[7,29]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[102,37]],"ctrl+f fullscreen":[[73,37]]},"oc":{"△":[[5,29]],"!":[[33,0]],"Permission required":[[7,29]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"enter confirm":[[100,37]],"ctrl+f fullscreen":[[71,37]]}}
+ZERO-BASED permission20260927-23 reject-completed {"upstream":{"approval.txt":[[15,7],[20,24]]},"oc":{"approval.txt":[[15,7]]}}
+ZERO-BASED permission20260927-23 failure {}
+ZERO-BASED permission20260927-24 once-ask {"upstream":{"△":[[5,25]],"!":[[1,0]],"Permission required":[[7,25]],"→ Edit":[[7,26]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"Patching":[[7,7]],"approval.txt":[[16,7],[14,26]]},"oc":{"△":[[5,25]],"!":[[1,0]],"Permission required":[[7,25]],"→ Edit":[[7,26]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"Patching":[[7,7]],"approval.txt":[[14,26]]}}
+STYLES permission20260927-24 {"upstream":{"!":[{"x":1,"y":0,"cell":{"symbol":"!","fg":"#9d7cd8","bg":"#2c2933","width":1,"modifiers":["bold"]}}],"Permission required":[{"x":7,"y":25,"cell":{"symbol":"P","fg":"#eeeeee","bg":"#141414","width":1,"modifiers":[]}}],"→ Edit":[{"x":7,"y":26,"cell":{"symbol":"→","fg":"#808080","bg":"#141414","width":1,"modifiers":[]}}],"Allow once":[{"x":6,"y":37,"cell":{"symbol":"A","fg":"#0a0a0a","bg":"#fab283","width":1,"modifiers":[]}}]},"oc":{"!":[{"x":1,"y":0,"cell":{"symbol":"!","fg":"#9d7cd8","bg":"#2c2933","width":1,"modifiers":["bold"]}}],"Permission required":[{"x":7,"y":25,"cell":{"symbol":"P","fg":"#eeeeee","bg":"#141414","width":1,"modifiers":[]}}],"→ Edit":[{"x":7,"y":26,"cell":{"symbol":"→","fg":"#808080","bg":"#141414","width":1,"modifiers":[]}}],"Allow once":[{"x":6,"y":37,"cell":{"symbol":"A","fg":"#0a0a0a","bg":"#fab283","width":1,"modifiers":[]}}]}}
+ZERO-BASED permission20260927-24 once-fullscreen {"upstream":{"△":[[5,2]],"!":[[1,0]],"Permission required":[[7,2]],"→ Edit":[[7,3]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f minimize":[[42,37]],"approval.txt":[[14,3]]},"oc":{"△":[[5,2]],"!":[[1,0]],"Permission required":[[7,2]],"→ Edit":[[7,3]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f minimize":[[42,37]],"approval.txt":[[14,3]]}}
+ZERO-BASED permission20260927-24 always-selected {"upstream":{"△":[[5,31]],"!":[[1,0]],"Permission required":[[7,31]],"→ Edit":[[7,32]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"This will always":[[5,34]],"Patching":[[7,27]],"approval.txt":[[20,15],[16,27],[14,32]]},"oc":{"△":[[5,29]],"!":[[1,0]],"Permission required":[[7,29]],"→ Edit":[[7,30]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"This will always":[[5,32]],"Patching":[[7,26]],"approval.txt":[[14,30],[7,34]]}}
+ZERO-BASED permission20260927-24 child-feedback-draft {"upstream":{"△":[[5,31]],"!":[[33,0]],"Reject":[[7,31]],"Tell OpenCode":[[5,33]],"VIS36-FEEDBACK":[[5,36]],"this correction.":[[5,37]],"enter confirm":[[50,37]]},"oc":{"△":[[5,31]],"!":[[33,0]],"Reject":[[7,31]],"Tell OpenCode":[[5,33]],"VIS36-FEEDBACK":[[5,36]],"this correction.":[[5,37]],"enter confirm":[[50,36]],"apply_patch":[[19,5]]}}
+ZERO-BASED permission20260927-24 settings-autoaccept {"upstream":{"Permissions":[[14,13],[14,16]],"auto accept":[[55,16]],"Session":[[14,15]],"Settings":[[14,11]]},"oc":{"Permissions":[[14,13],[14,15]],"auto accept":[[55,15]],"Session":[[45,15]],"Settings":[[14,11]]}}
+ZERO-BASED permission20260927-24 settings-auto-first-escape {"upstream":{},"oc":{"Permissions":[[14,16]],"auto accept":[[55,16]],"Session":[[14,15]],"Settings":[[14,11]]}}
+ZERO-BASED permission20260927-24 read-ask {"upstream":{"△":[[5,31]],"!":[[33,0]],"Permission required":[[7,31]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"approval.txt":[[12,28],[14,32],[11,34]]},"oc":{"△":[[5,31]],"!":[[33,0]],"Permission required":[[7,31]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"approval.txt":[[12,29],[14,32],[11,34]]}}
+ZERO-BASED permission20260927-24 shell-ask {"upstream":{"△":[[5,32]],"!":[[33,0]],"Permission required":[[7,32]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]]},"oc":{"△":[[5,32]],"!":[[33,0]],"Permission required":[[7,32]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]]}}
+ZERO-BASED permission20260927-24 mcp-ask {"upstream":{"△":[[5,31]],"!":[[33,0]],"Permission required":[[7,31]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]]},"oc":{"△":[[5,31]],"!":[[33,0]],"Permission required":[[7,31]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]],"approval.txt":[[15,2]],"apply_patch":[[19,18]]}}
+ZERO-BASED permission20260927-24 url-ask {"upstream":{"△":[[5,27]],"!":[[33,0]],"Permission required":[[7,27]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]]},"oc":{"△":[[5,28]],"!":[[33,0]],"Permission required":[[7,28]],"Allow once":[[6,37]],"Always allow":[[19,37]],"Reject":[[34,37]],"ctrl+f fullscreen":[[42,37]]}}
+ZERO-BASED permission20260927-24 reject-completed {"upstream":{"approval.txt":[[15,7],[20,25]]},"oc":{"approval.txt":[[15,7]]}}
+ZERO-BASED permission20260927-24 failure {}
+INVALID CURSORS [{"name":"permission20260927-24","columns":80,"scenario":"permission-mcp-fullscreen","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":78,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-24","columns":80,"scenario":"permission-mcp-inline","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":78,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-24","columns":80,"scenario":"permission-childroot-fullscreen","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":78,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-24","columns":80,"scenario":"permission-childroot-inline","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":78,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-24","columns":80,"scenario":"permission-read-fullscreen","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":78,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-24","columns":80,"scenario":"permission-read-inline","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":78,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-24","columns":80,"scenario":"permission-shell-fullscreen","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":78,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-24","columns":80,"scenario":"permission-shell-inline","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":78,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-24","columns":80,"scenario":"permission-glob-fullscreen","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":78,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-24","columns":80,"scenario":"permission-glob-inline","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":78,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-24","columns":80,"scenario":"permission-url-fullscreen","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":78,"y":37,"visible":false,"shape":"block"}},{"name":"permission20260927-24","columns":80,"scenario":"permission-url-inline","equal":false,"upstream":{"x":80,"y":37,"visible":false,"shape":"block"},"oc":{"x":78,"y":37,"visible":false,"shape":"block"}}]

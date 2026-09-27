@@ -1,0 +1,40 @@
+   VIS36 patch fixture           ! VIS36 patch fixture           +             
+  ┃  Command exited with code 0.                                               
+  ┃                                                                            
+                                                                               
+     VIS36-DONE-shell                                                          
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 6.7s                                       
+                                                                               
+  ┃                                                                            
+  ┃  VIS36 glob: execute the supplied ordinary function patch once.            
+  ┃                                                                            
+                                                                               
+     → Explored — 1 search                                                     
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 6.6s · interrupted                         
+                                                                               
+  ┃                                                                            
+  ┃  VIS36 url: execute the supplied ordinary function patch once.             
+  ┃                                                                            
+                                                                               
+     % WebFetch http://127.0.0.1:9/vis36/never-fetch?wrapped=word-word-word-   
+       word-word-word-word-word-word-word-word-word-word-word-word-word-word-  
+       word-word-word-word-word-word-word-                                     
+                                                                               
+  ┃                                                                            
+  ┃  △ Permission required                                                     
+  ┃    % WebFetch http://127.0.0.1:9/vis36/never-fetch?wrapped=word-word-      
+  ┃      word-word-word-word-word-word-word-word-word-word-word-word-word-     
+  ┃      word-word-word-word-word-word-word-word-word-                         
+  ┃                                                                            
+  ┃  URL: http://127.0.0.1:9/vis36/never-fetch?wrapped=word-word-word-         
+  ┃  word-word-word-word-word-word-word-word-word-word-word-word-word-         
+  ┃  word-word-word-word-word-word-word-word-                                  
+  ┃                                                                            
+  ┃                                                                            
+  ┃   Allow once   Always allow   Reject                                       
+  ┃                                                                            
+  ┃  ctrl+f fullscreen  ⇆ select  enter confirm                                
+  ┃                                                                            
+                                                                               

@@ -1,0 +1,1066 @@
+{
+  "origin": "oc",
+  "status": "FAILED",
+  "checks": [
+    {
+      "stage": "home",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "seed",
+      "snapshot": {
+        "kind": "permission_snapshot",
+        "request_id": "seed",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-01/oc/home/data/oc/oc.sqlite",
+            "tables": [
+              "schema_migrations",
+              "sessions",
+              "messages",
+              "turns",
+              "turn_acceptances",
+              "tool_operations",
+              "events",
+              "sqlite_sequence",
+              "patch_effects",
+              "blobs",
+              "prefs",
+              "session_checkpoint",
+              "session_compactions",
+              "session_usage_anchor",
+              "conversation_state",
+              "conversation_exclusions",
+              "conversation_contexts",
+              "conversation_redo",
+              "conversation_points",
+              "conversation_revision",
+              "conversation_objects",
+              "conversation_versions",
+              "conversation_tracked",
+              "compression_blocks",
+              "compression_members",
+              "prune_marks",
+              "dcp_tool_projection",
+              "dcp_tool_projection_v2",
+              "compression_identity",
+              "permission_grants"
+            ],
+            "data": {
+              "messages": [],
+              "turns": [],
+              "tool_operations": [],
+              "session_checkpoint": [],
+              "session_compactions": [],
+              "patch_effects": [],
+              "events": [],
+              "permission_grants": []
+            }
+          }
+        ],
+        "project_files": {
+          "update.txt": "901247bf52e314ba050f144f640bc49e41da4830598b670cdd45c0531f612fe5",
+          "delete.txt": "e332391e23517f025a25615f9e006ea98f0d26195c1a94cc81423d8376e55b9e",
+          "approval.txt": "d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d",
+          "move.txt": "7c4a0d83f95e4d063da94806e607d3ab5eb1cb757ed06bf35eee1161890ce3b2",
+          "replace.txt": "c930786959c266fccd56fb3a2289dc6a548ab98eb2d667273743342660eb4fbe",
+          "denied.txt": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+          "stale.txt": "c1ec13cfe08890215c15a0d626d7b4cc67cdcaee63b93d2bdbe83606ad5e3f13"
+        },
+        "files": {
+          "approval.txt": {
+            "present": true,
+            "bytes_hex": "6265666f726520617070726f76616c0a",
+            "sha256": "d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d",
+            "mode": "0o640",
+            "mtime_ns": 1790500369258474000
+          },
+          "denied.txt": {
+            "present": true,
+            "bytes_hex": "64656e6965642073656e74696e656c0a",
+            "sha256": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+            "mode": "0o640",
+            "mtime_ns": 1790500369258474000
+          }
+        },
+        "executor_hook": [],
+        "cli": {
+          "session": {
+            "sidebar": "hide",
+            "tps": false
+          },
+          "tabs": {
+            "layout": "horizontal"
+          },
+          "debug": {
+            "devtools": false
+          }
+        },
+        "audit": "File stat/hash/bytes and SQLite mode=ro; not an OS syscall trace."
+      }
+    },
+    {
+      "stage": "once-ask",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 22,
+        "y": 0,
+        "visible": false,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "once-pending",
+      "snapshot": {
+        "kind": "permission_snapshot",
+        "request_id": "once-pending",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-01/oc/home/data/oc/oc.sqlite",
+            "tables": [
+              "schema_migrations",
+              "sessions",
+              "messages",
+              "turns",
+              "turn_acceptances",
+              "tool_operations",
+              "events",
+              "sqlite_sequence",
+              "patch_effects",
+              "blobs",
+              "prefs",
+              "session_checkpoint",
+              "session_compactions",
+              "session_usage_anchor",
+              "conversation_state",
+              "conversation_exclusions",
+              "conversation_contexts",
+              "conversation_redo",
+              "conversation_points",
+              "conversation_revision",
+              "conversation_objects",
+              "conversation_versions",
+              "conversation_tracked",
+              "compression_blocks",
+              "compression_members",
+              "prune_marks",
+              "dcp_tool_projection",
+              "dcp_tool_projection_v2",
+              "compression_identity",
+              "permission_grants"
+            ],
+            "data": {
+              "messages": [
+                {
+                  "id": "m0001",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "seq": 1,
+                  "role": "user",
+                  "text": "VIS36 once: execute the supplied ordinary function patch once."
+                }
+              ],
+              "turns": [
+                {
+                  "id": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "status": "started",
+                  "prompt": "VIS36 once: execute the supplied ordinary function patch once.",
+                  "result": "{\"display\":{\"model_label\":\"MiMo-V2.6-Flash Free\",\"agent\":\"build\",\"agent_color_index\":0},\"display_parts\":[],\"turn_id\":\"ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[1234,64],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS36 once: execute the supplied ordinary function patch once.\"}]},{\"id\":\"fc_vis35_1\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"call_vis36_once\",\"name\":\"apply_patch\",\"arguments\":\"{\\\"patchText\\\": \\\"*** Begin Patch\\\\n*** Update File: approval.txt\\\\n@@\\\\n-before approval\\\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\\\n*** End Patch\\\"}\"}],\"agent_digest\":\"3776c54743c91d48\"}"
+                }
+              ],
+              "tool_operations": [],
+              "session_checkpoint": [],
+              "session_compactions": [],
+              "patch_effects": [],
+              "events": [
+                {
+                  "seq": 1,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "session_created",
+                  "payload": "{}"
+                },
+                {
+                  "seq": 2,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "turn_started",
+                  "payload": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0"
+                },
+                {
+                  "seq": 3,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "accepted_model",
+                  "payload": "{\"provider\":\"fixture\",\"id\":\"fixture-model-1\",\"variant\":null}"
+                },
+                {
+                  "seq": 4,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "message",
+                  "payload": "m0001"
+                },
+                {
+                  "seq": 5,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "session_updated",
+                  "payload": "{\"title\":\"VIS36 patch fixture\"}"
+                }
+              ],
+              "permission_grants": []
+            }
+          }
+        ],
+        "project_files": {
+          "update.txt": "901247bf52e314ba050f144f640bc49e41da4830598b670cdd45c0531f612fe5",
+          "delete.txt": "e332391e23517f025a25615f9e006ea98f0d26195c1a94cc81423d8376e55b9e",
+          "approval.txt": "d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d",
+          "move.txt": "7c4a0d83f95e4d063da94806e607d3ab5eb1cb757ed06bf35eee1161890ce3b2",
+          "replace.txt": "c930786959c266fccd56fb3a2289dc6a548ab98eb2d667273743342660eb4fbe",
+          "denied.txt": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+          "stale.txt": "c1ec13cfe08890215c15a0d626d7b4cc67cdcaee63b93d2bdbe83606ad5e3f13"
+        },
+        "files": {
+          "approval.txt": {
+            "present": true,
+            "bytes_hex": "6265666f726520617070726f76616c0a",
+            "sha256": "d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d",
+            "mode": "0o640",
+            "mtime_ns": 1790500369258474000
+          },
+          "denied.txt": {
+            "present": true,
+            "bytes_hex": "64656e6965642073656e74696e656c0a",
+            "sha256": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+            "mode": "0o640",
+            "mtime_ns": 1790500369258474000
+          }
+        },
+        "executor_hook": [],
+        "cli": {
+          "session": {
+            "sidebar": "hide",
+            "tps": false
+          },
+          "tabs": {
+            "layout": "horizontal"
+          },
+          "debug": {
+            "devtools": false
+          }
+        },
+        "audit": "File stat/hash/bytes and SQLite mode=ro; not an OS syscall trace."
+      }
+    },
+    {
+      "stage": "once-held",
+      "snapshot": {
+        "kind": "permission_snapshot",
+        "request_id": "once-held",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-01/oc/home/data/oc/oc.sqlite",
+            "tables": [
+              "schema_migrations",
+              "sessions",
+              "messages",
+              "turns",
+              "turn_acceptances",
+              "tool_operations",
+              "events",
+              "sqlite_sequence",
+              "patch_effects",
+              "blobs",
+              "prefs",
+              "session_checkpoint",
+              "session_compactions",
+              "session_usage_anchor",
+              "conversation_state",
+              "conversation_exclusions",
+              "conversation_contexts",
+              "conversation_redo",
+              "conversation_points",
+              "conversation_revision",
+              "conversation_objects",
+              "conversation_versions",
+              "conversation_tracked",
+              "compression_blocks",
+              "compression_members",
+              "prune_marks",
+              "dcp_tool_projection",
+              "dcp_tool_projection_v2",
+              "compression_identity",
+              "permission_grants"
+            ],
+            "data": {
+              "messages": [
+                {
+                  "id": "m0001",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "seq": 1,
+                  "role": "user",
+                  "text": "VIS36 once: execute the supplied ordinary function patch once."
+                }
+              ],
+              "turns": [
+                {
+                  "id": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "status": "started",
+                  "prompt": "VIS36 once: execute the supplied ordinary function patch once.",
+                  "result": "{\"display\":{\"model_label\":\"MiMo-V2.6-Flash Free\",\"agent\":\"build\",\"agent_color_index\":0},\"display_parts\":[],\"turn_id\":\"ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[1234,64],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS36 once: execute the supplied ordinary function patch once.\"}]},{\"id\":\"fc_vis35_1\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"call_vis36_once\",\"name\":\"apply_patch\",\"arguments\":\"{\\\"patchText\\\": \\\"*** Begin Patch\\\\n*** Update File: approval.txt\\\\n@@\\\\n-before approval\\\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\\\n*** End Patch\\\"}\"}],\"agent_digest\":\"3776c54743c91d48\"}"
+                }
+              ],
+              "tool_operations": [],
+              "session_checkpoint": [],
+              "session_compactions": [],
+              "patch_effects": [],
+              "events": [
+                {
+                  "seq": 1,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "session_created",
+                  "payload": "{}"
+                },
+                {
+                  "seq": 2,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "turn_started",
+                  "payload": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0"
+                },
+                {
+                  "seq": 3,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "accepted_model",
+                  "payload": "{\"provider\":\"fixture\",\"id\":\"fixture-model-1\",\"variant\":null}"
+                },
+                {
+                  "seq": 4,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "message",
+                  "payload": "m0001"
+                },
+                {
+                  "seq": 5,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "session_updated",
+                  "payload": "{\"title\":\"VIS36 patch fixture\"}"
+                }
+              ],
+              "permission_grants": []
+            }
+          }
+        ],
+        "project_files": {
+          "update.txt": "901247bf52e314ba050f144f640bc49e41da4830598b670cdd45c0531f612fe5",
+          "delete.txt": "e332391e23517f025a25615f9e006ea98f0d26195c1a94cc81423d8376e55b9e",
+          "approval.txt": "d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d",
+          "move.txt": "7c4a0d83f95e4d063da94806e607d3ab5eb1cb757ed06bf35eee1161890ce3b2",
+          "replace.txt": "c930786959c266fccd56fb3a2289dc6a548ab98eb2d667273743342660eb4fbe",
+          "denied.txt": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+          "stale.txt": "c1ec13cfe08890215c15a0d626d7b4cc67cdcaee63b93d2bdbe83606ad5e3f13"
+        },
+        "files": {
+          "approval.txt": {
+            "present": true,
+            "bytes_hex": "6265666f726520617070726f76616c0a",
+            "sha256": "d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d",
+            "mode": "0o640",
+            "mtime_ns": 1790500369258474000
+          },
+          "denied.txt": {
+            "present": true,
+            "bytes_hex": "64656e6965642073656e74696e656c0a",
+            "sha256": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+            "mode": "0o640",
+            "mtime_ns": 1790500369258474000
+          }
+        },
+        "executor_hook": [],
+        "cli": {
+          "session": {
+            "sidebar": "hide",
+            "tps": false
+          },
+          "tabs": {
+            "layout": "horizontal"
+          },
+          "debug": {
+            "devtools": false
+          }
+        },
+        "audit": "File stat/hash/bytes and SQLite mode=ro; not an OS syscall trace."
+      }
+    },
+    {
+      "stage": "once-pause-proof",
+      "files_unchanged": true,
+      "no_extra_provider_requests": true,
+      "no_started": true,
+      "grants": []
+    },
+    {
+      "stage": "once-fullscreen",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 88,
+        "y": 37,
+        "visible": false,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "once-inline",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 88,
+        "y": 37,
+        "visible": false,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "once-completed",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "once-effects",
+      "snapshot": {
+        "kind": "permission_snapshot",
+        "request_id": "once-effects",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-01/oc/home/data/oc/oc.sqlite",
+            "tables": [
+              "schema_migrations",
+              "sessions",
+              "messages",
+              "turns",
+              "turn_acceptances",
+              "tool_operations",
+              "events",
+              "sqlite_sequence",
+              "patch_effects",
+              "blobs",
+              "prefs",
+              "session_checkpoint",
+              "session_compactions",
+              "session_usage_anchor",
+              "conversation_state",
+              "conversation_exclusions",
+              "conversation_contexts",
+              "conversation_redo",
+              "conversation_points",
+              "conversation_revision",
+              "conversation_objects",
+              "conversation_versions",
+              "conversation_tracked",
+              "compression_blocks",
+              "compression_members",
+              "prune_marks",
+              "dcp_tool_projection",
+              "dcp_tool_projection_v2",
+              "compression_identity",
+              "permission_grants"
+            ],
+            "data": {
+              "messages": [
+                {
+                  "id": "m0001",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "seq": 1,
+                  "role": "user",
+                  "text": "VIS36 once: execute the supplied ordinary function patch once."
+                },
+                {
+                  "id": "m0002",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "seq": 2,
+                  "role": "assistant",
+                  "text": "VIS36-DONE-once"
+                }
+              ],
+              "turns": [
+                {
+                  "id": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "status": "completed",
+                  "prompt": "VIS36 once: execute the supplied ordinary function patch once.",
+                  "result": "{\"display\":{\"model_label\":\"MiMo-V2.6-Flash Free\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":9491,\"streamed_ms\":196,\"usage\":[1234,128],\"context_usage\":[1234,64]},\"display_parts\":[{\"tool\":\"ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0-r1-c0-call_vis36_once\"},{\"message\":3}],\"turn_id\":\"ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[1234,64],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS36 once: execute the supplied ordinary function patch once.\"}]},{\"id\":\"fc_vis35_1\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"call_vis36_once\",\"name\":\"apply_patch\",\"arguments\":\"{\\\"patchText\\\": \\\"*** Begin Patch\\\\n*** Update File: approval.txt\\\\n@@\\\\n-before approval\\\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\\\n*** End Patch\\\"}\"},{\"type\":\"function_call_output\",\"call_id\":\"call_vis36_once\",\"output\":\"update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)\"},{\"id\":\"msg_vis35_3\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS36-DONE-once\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+                }
+              ],
+              "tool_operations": [
+                {
+                  "id": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0-r1-c0-call_vis36_once",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "turn_id": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0",
+                  "name": "apply_patch",
+                  "state": "completed",
+                  "input": "{\"patchText\":\"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-before approval\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\n*** End Patch\"}",
+                  "output": "update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)"
+                }
+              ],
+              "session_checkpoint": [],
+              "session_compactions": [],
+              "patch_effects": [
+                {
+                  "op_id": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0-r1-c0-call_vis36_once",
+                  "metadata": "{\"files\":[{\"algorithm\":\"Minimal\",\"operation\":\"Update\",\"path\":\"approval.txt\",\"destination\":null,\"additions\":1,\"deletions\":1,\"hunks\":[{\"old\":{\"start\":1,\"count\":1},\"new\":{\"start\":1,\"count\":1},\"lines\":[{\"lossy\":false,\"kind\":\"Removed\",\"old_line\":1,\"new_line\":null,\"text\":\"before approval\",\"ending\":\"Lf\",\"truncated\":false},{\"lossy\":false,\"kind\":\"Added\",\"old_line\":null,\"new_line\":1,\"text\":\"new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \",\"ending\":\"Lf\",\"truncated\":false}],\"truncated\":false}],\"truncated\":false}],\"total_files\":1,\"additions\":1,\"deletions\":1,\"truncated\":false}"
+                }
+              ],
+              "events": [
+                {
+                  "seq": 1,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "session_created",
+                  "payload": "{}"
+                },
+                {
+                  "seq": 2,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "turn_started",
+                  "payload": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0"
+                },
+                {
+                  "seq": 3,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "accepted_model",
+                  "payload": "{\"provider\":\"fixture\",\"id\":\"fixture-model-1\",\"variant\":null}"
+                },
+                {
+                  "seq": 4,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "message",
+                  "payload": "m0001"
+                },
+                {
+                  "seq": 5,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "session_updated",
+                  "payload": "{\"title\":\"VIS36 patch fixture\"}"
+                },
+                {
+                  "seq": 6,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "message",
+                  "payload": "m0002"
+                },
+                {
+                  "seq": 7,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "turn_finished",
+                  "payload": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0"
+                }
+              ],
+              "permission_grants": []
+            }
+          }
+        ],
+        "project_files": {
+          "update.txt": "901247bf52e314ba050f144f640bc49e41da4830598b670cdd45c0531f612fe5",
+          "delete.txt": "e332391e23517f025a25615f9e006ea98f0d26195c1a94cc81423d8376e55b9e",
+          "approval.txt": "f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa",
+          "move.txt": "7c4a0d83f95e4d063da94806e607d3ab5eb1cb757ed06bf35eee1161890ce3b2",
+          "replace.txt": "c930786959c266fccd56fb3a2289dc6a548ab98eb2d667273743342660eb4fbe",
+          "denied.txt": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+          "stale.txt": "c1ec13cfe08890215c15a0d626d7b4cc67cdcaee63b93d2bdbe83606ad5e3f13"
+        },
+        "files": {
+          "approval.txt": {
+            "present": true,
+            "bytes_hex": "6e657720617070726f7665642066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f726473200a",
+            "sha256": "f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa",
+            "mode": "0o640",
+            "mtime_ns": 1790500383578560500
+          },
+          "denied.txt": {
+            "present": true,
+            "bytes_hex": "64656e6965642073656e74696e656c0a",
+            "sha256": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+            "mode": "0o640",
+            "mtime_ns": 1790500369258474000
+          }
+        },
+        "executor_hook": [],
+        "cli": {
+          "session": {
+            "sidebar": "hide",
+            "tps": false
+          },
+          "tabs": {
+            "layout": "horizontal"
+          },
+          "debug": {
+            "devtools": false
+          }
+        },
+        "audit": "File stat/hash/bytes and SQLite mode=ro; not an OS syscall trace."
+      }
+    },
+    {
+      "stage": "once-proof",
+      "files_unchanged": false,
+      "grants": [],
+      "actual_results": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_once",
+          "output": "update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)"
+        }
+      ]
+    },
+    {
+      "stage": "reject-ask",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 118,
+        "y": 38,
+        "visible": false,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "reject-pending",
+      "snapshot": {
+        "kind": "permission_snapshot",
+        "request_id": "reject-pending",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-01/oc/home/data/oc/oc.sqlite",
+            "tables": [
+              "schema_migrations",
+              "sessions",
+              "messages",
+              "turns",
+              "turn_acceptances",
+              "tool_operations",
+              "events",
+              "sqlite_sequence",
+              "patch_effects",
+              "blobs",
+              "prefs",
+              "session_checkpoint",
+              "session_compactions",
+              "session_usage_anchor",
+              "conversation_state",
+              "conversation_exclusions",
+              "conversation_contexts",
+              "conversation_redo",
+              "conversation_points",
+              "conversation_revision",
+              "conversation_objects",
+              "conversation_versions",
+              "conversation_tracked",
+              "compression_blocks",
+              "compression_members",
+              "prune_marks",
+              "dcp_tool_projection",
+              "dcp_tool_projection_v2",
+              "compression_identity",
+              "permission_grants"
+            ],
+            "data": {
+              "messages": [
+                {
+                  "id": "m0001",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "seq": 1,
+                  "role": "user",
+                  "text": "VIS36 once: execute the supplied ordinary function patch once."
+                },
+                {
+                  "id": "m0002",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "seq": 2,
+                  "role": "assistant",
+                  "text": "VIS36-DONE-once"
+                },
+                {
+                  "id": "m0003",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "seq": 3,
+                  "role": "user",
+                  "text": "VIS36 reject: execute the supplied ordinary function patch once."
+                }
+              ],
+              "turns": [
+                {
+                  "id": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "status": "completed",
+                  "prompt": "VIS36 once: execute the supplied ordinary function patch once.",
+                  "result": "{\"display\":{\"model_label\":\"MiMo-V2.6-Flash Free\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":9491,\"streamed_ms\":196,\"usage\":[1234,128],\"context_usage\":[1234,64]},\"display_parts\":[{\"tool\":\"ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0-r1-c0-call_vis36_once\"},{\"message\":3}],\"turn_id\":\"ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[1234,64],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS36 once: execute the supplied ordinary function patch once.\"}]},{\"id\":\"fc_vis35_1\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"call_vis36_once\",\"name\":\"apply_patch\",\"arguments\":\"{\\\"patchText\\\": \\\"*** Begin Patch\\\\n*** Update File: approval.txt\\\\n@@\\\\n-before approval\\\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\\\n*** End Patch\\\"}\"},{\"type\":\"function_call_output\",\"call_id\":\"call_vis36_once\",\"output\":\"update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)\"},{\"id\":\"msg_vis35_3\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS36-DONE-once\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+                },
+                {
+                  "id": "ts-tui-18d9229a9482c649-bb477-0-1790500386596-767095-1",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "status": "started",
+                  "prompt": "VIS36 reject: execute the supplied ordinary function patch once.",
+                  "result": "{\"display\":{\"model_label\":\"MiMo-V2.6-Flash Free\",\"agent\":\"build\",\"agent_color_index\":0},\"display_parts\":[],\"turn_id\":\"ts-tui-18d9229a9482c649-bb477-0-1790500386596-767095-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[1234,64],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS36 reject: execute the supplied ordinary function patch once.\"}]},{\"id\":\"fc_vis35_4\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"call_vis36_reject\",\"name\":\"apply_patch\",\"arguments\":\"{\\\"patchText\\\": \\\"*** Begin Patch\\\\n*** Update File: approval.txt\\\\n@@\\\\n-new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\\\n+rejected must never appear\\\\n*** End Patch\\\"}\"}],\"agent_digest\":\"3776c54743c91d48\"}"
+                }
+              ],
+              "tool_operations": [
+                {
+                  "id": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0-r1-c0-call_vis36_once",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "turn_id": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0",
+                  "name": "apply_patch",
+                  "state": "completed",
+                  "input": "{\"patchText\":\"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-before approval\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\n*** End Patch\"}",
+                  "output": "update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)"
+                }
+              ],
+              "session_checkpoint": [],
+              "session_compactions": [],
+              "patch_effects": [
+                {
+                  "op_id": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0-r1-c0-call_vis36_once",
+                  "metadata": "{\"files\":[{\"algorithm\":\"Minimal\",\"operation\":\"Update\",\"path\":\"approval.txt\",\"destination\":null,\"additions\":1,\"deletions\":1,\"hunks\":[{\"old\":{\"start\":1,\"count\":1},\"new\":{\"start\":1,\"count\":1},\"lines\":[{\"lossy\":false,\"kind\":\"Removed\",\"old_line\":1,\"new_line\":null,\"text\":\"before approval\",\"ending\":\"Lf\",\"truncated\":false},{\"lossy\":false,\"kind\":\"Added\",\"old_line\":null,\"new_line\":1,\"text\":\"new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \",\"ending\":\"Lf\",\"truncated\":false}],\"truncated\":false}],\"truncated\":false}],\"total_files\":1,\"additions\":1,\"deletions\":1,\"truncated\":false}"
+                }
+              ],
+              "events": [
+                {
+                  "seq": 1,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "session_created",
+                  "payload": "{}"
+                },
+                {
+                  "seq": 2,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "turn_started",
+                  "payload": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0"
+                },
+                {
+                  "seq": 3,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "accepted_model",
+                  "payload": "{\"provider\":\"fixture\",\"id\":\"fixture-model-1\",\"variant\":null}"
+                },
+                {
+                  "seq": 4,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "message",
+                  "payload": "m0001"
+                },
+                {
+                  "seq": 5,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "session_updated",
+                  "payload": "{\"title\":\"VIS36 patch fixture\"}"
+                },
+                {
+                  "seq": 6,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "message",
+                  "payload": "m0002"
+                },
+                {
+                  "seq": 7,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "turn_finished",
+                  "payload": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0"
+                },
+                {
+                  "seq": 8,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "turn_started",
+                  "payload": "ts-tui-18d9229a9482c649-bb477-0-1790500386596-767095-1"
+                },
+                {
+                  "seq": 9,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "accepted_model",
+                  "payload": "{\"provider\":\"fixture\",\"id\":\"fixture-model-1\",\"variant\":null}"
+                },
+                {
+                  "seq": 10,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "message",
+                  "payload": "m0003"
+                }
+              ],
+              "permission_grants": []
+            }
+          }
+        ],
+        "project_files": {
+          "update.txt": "901247bf52e314ba050f144f640bc49e41da4830598b670cdd45c0531f612fe5",
+          "delete.txt": "e332391e23517f025a25615f9e006ea98f0d26195c1a94cc81423d8376e55b9e",
+          "approval.txt": "f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa",
+          "move.txt": "7c4a0d83f95e4d063da94806e607d3ab5eb1cb757ed06bf35eee1161890ce3b2",
+          "replace.txt": "c930786959c266fccd56fb3a2289dc6a548ab98eb2d667273743342660eb4fbe",
+          "denied.txt": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+          "stale.txt": "c1ec13cfe08890215c15a0d626d7b4cc67cdcaee63b93d2bdbe83606ad5e3f13"
+        },
+        "files": {
+          "approval.txt": {
+            "present": true,
+            "bytes_hex": "6e657720617070726f7665642066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f726473200a",
+            "sha256": "f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa",
+            "mode": "0o640",
+            "mtime_ns": 1790500383578560500
+          },
+          "denied.txt": {
+            "present": true,
+            "bytes_hex": "64656e6965642073656e74696e656c0a",
+            "sha256": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+            "mode": "0o640",
+            "mtime_ns": 1790500369258474000
+          }
+        },
+        "executor_hook": [],
+        "cli": {
+          "session": {
+            "sidebar": "hide",
+            "tps": false
+          },
+          "tabs": {
+            "layout": "horizontal"
+          },
+          "debug": {
+            "devtools": false
+          }
+        },
+        "audit": "File stat/hash/bytes and SQLite mode=ro; not an OS syscall trace."
+      }
+    },
+    {
+      "stage": "reject-held",
+      "snapshot": {
+        "kind": "permission_snapshot",
+        "request_id": "reject-held",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-01/oc/home/data/oc/oc.sqlite",
+            "tables": [
+              "schema_migrations",
+              "sessions",
+              "messages",
+              "turns",
+              "turn_acceptances",
+              "tool_operations",
+              "events",
+              "sqlite_sequence",
+              "patch_effects",
+              "blobs",
+              "prefs",
+              "session_checkpoint",
+              "session_compactions",
+              "session_usage_anchor",
+              "conversation_state",
+              "conversation_exclusions",
+              "conversation_contexts",
+              "conversation_redo",
+              "conversation_points",
+              "conversation_revision",
+              "conversation_objects",
+              "conversation_versions",
+              "conversation_tracked",
+              "compression_blocks",
+              "compression_members",
+              "prune_marks",
+              "dcp_tool_projection",
+              "dcp_tool_projection_v2",
+              "compression_identity",
+              "permission_grants"
+            ],
+            "data": {
+              "messages": [
+                {
+                  "id": "m0001",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "seq": 1,
+                  "role": "user",
+                  "text": "VIS36 once: execute the supplied ordinary function patch once."
+                },
+                {
+                  "id": "m0002",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "seq": 2,
+                  "role": "assistant",
+                  "text": "VIS36-DONE-once"
+                },
+                {
+                  "id": "m0003",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "seq": 3,
+                  "role": "user",
+                  "text": "VIS36 reject: execute the supplied ordinary function patch once."
+                }
+              ],
+              "turns": [
+                {
+                  "id": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "status": "completed",
+                  "prompt": "VIS36 once: execute the supplied ordinary function patch once.",
+                  "result": "{\"display\":{\"model_label\":\"MiMo-V2.6-Flash Free\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":9491,\"streamed_ms\":196,\"usage\":[1234,128],\"context_usage\":[1234,64]},\"display_parts\":[{\"tool\":\"ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0-r1-c0-call_vis36_once\"},{\"message\":3}],\"turn_id\":\"ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[1234,64],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS36 once: execute the supplied ordinary function patch once.\"}]},{\"id\":\"fc_vis35_1\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"call_vis36_once\",\"name\":\"apply_patch\",\"arguments\":\"{\\\"patchText\\\": \\\"*** Begin Patch\\\\n*** Update File: approval.txt\\\\n@@\\\\n-before approval\\\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\\\n*** End Patch\\\"}\"},{\"type\":\"function_call_output\",\"call_id\":\"call_vis36_once\",\"output\":\"update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)\"},{\"id\":\"msg_vis35_3\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS36-DONE-once\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+                },
+                {
+                  "id": "ts-tui-18d9229a9482c649-bb477-0-1790500386596-767095-1",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "status": "started",
+                  "prompt": "VIS36 reject: execute the supplied ordinary function patch once.",
+                  "result": "{\"display\":{\"model_label\":\"MiMo-V2.6-Flash Free\",\"agent\":\"build\",\"agent_color_index\":0},\"display_parts\":[],\"turn_id\":\"ts-tui-18d9229a9482c649-bb477-0-1790500386596-767095-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[1234,64],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS36 reject: execute the supplied ordinary function patch once.\"}]},{\"id\":\"fc_vis35_4\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"call_vis36_reject\",\"name\":\"apply_patch\",\"arguments\":\"{\\\"patchText\\\": \\\"*** Begin Patch\\\\n*** Update File: approval.txt\\\\n@@\\\\n-new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\\\n+rejected must never appear\\\\n*** End Patch\\\"}\"}],\"agent_digest\":\"3776c54743c91d48\"}"
+                }
+              ],
+              "tool_operations": [
+                {
+                  "id": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0-r1-c0-call_vis36_once",
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "turn_id": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0",
+                  "name": "apply_patch",
+                  "state": "completed",
+                  "input": "{\"patchText\":\"*** Begin Patch\\n*** Update File: approval.txt\\n@@\\n-before approval\\n+new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \\n*** End Patch\"}",
+                  "output": "update approval.txt (hash_before=d9988020f0957d381e5f4547c01eef95814abc223e98033c3e3680089c9d705d, hash_after=f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa)"
+                }
+              ],
+              "session_checkpoint": [],
+              "session_compactions": [],
+              "patch_effects": [
+                {
+                  "op_id": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0-r1-c0-call_vis36_once",
+                  "metadata": "{\"files\":[{\"algorithm\":\"Minimal\",\"operation\":\"Update\",\"path\":\"approval.txt\",\"destination\":null,\"additions\":1,\"deletions\":1,\"hunks\":[{\"old\":{\"start\":1,\"count\":1},\"new\":{\"start\":1,\"count\":1},\"lines\":[{\"lossy\":false,\"kind\":\"Removed\",\"old_line\":1,\"new_line\":null,\"text\":\"before approval\",\"ending\":\"Lf\",\"truncated\":false},{\"lossy\":false,\"kind\":\"Added\",\"old_line\":null,\"new_line\":1,\"text\":\"new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words \",\"ending\":\"Lf\",\"truncated\":false}],\"truncated\":false}],\"truncated\":false}],\"total_files\":1,\"additions\":1,\"deletions\":1,\"truncated\":false}"
+                }
+              ],
+              "events": [
+                {
+                  "seq": 1,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "session_created",
+                  "payload": "{}"
+                },
+                {
+                  "seq": 2,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "turn_started",
+                  "payload": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0"
+                },
+                {
+                  "seq": 3,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "accepted_model",
+                  "payload": "{\"provider\":\"fixture\",\"id\":\"fixture-model-1\",\"variant\":null}"
+                },
+                {
+                  "seq": 4,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "message",
+                  "payload": "m0001"
+                },
+                {
+                  "seq": 5,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "session_updated",
+                  "payload": "{\"title\":\"VIS36 patch fixture\"}"
+                },
+                {
+                  "seq": 6,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "message",
+                  "payload": "m0002"
+                },
+                {
+                  "seq": 7,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "turn_finished",
+                  "payload": "ts-tui-18d9229a9482c649-bb477-0-1790500374170-767095-0"
+                },
+                {
+                  "seq": 8,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "turn_started",
+                  "payload": "ts-tui-18d9229a9482c649-bb477-0-1790500386596-767095-1"
+                },
+                {
+                  "seq": 9,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "accepted_model",
+                  "payload": "{\"provider\":\"fixture\",\"id\":\"fixture-model-1\",\"variant\":null}"
+                },
+                {
+                  "seq": 10,
+                  "session_id": "s-tui-18d9229a9482c649-bb477-0",
+                  "kind": "message",
+                  "payload": "m0003"
+                }
+              ],
+              "permission_grants": []
+            }
+          }
+        ],
+        "project_files": {
+          "update.txt": "901247bf52e314ba050f144f640bc49e41da4830598b670cdd45c0531f612fe5",
+          "delete.txt": "e332391e23517f025a25615f9e006ea98f0d26195c1a94cc81423d8376e55b9e",
+          "approval.txt": "f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa",
+          "move.txt": "7c4a0d83f95e4d063da94806e607d3ab5eb1cb757ed06bf35eee1161890ce3b2",
+          "replace.txt": "c930786959c266fccd56fb3a2289dc6a548ab98eb2d667273743342660eb4fbe",
+          "denied.txt": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+          "stale.txt": "c1ec13cfe08890215c15a0d626d7b4cc67cdcaee63b93d2bdbe83606ad5e3f13"
+        },
+        "files": {
+          "approval.txt": {
+            "present": true,
+            "bytes_hex": "6e657720617070726f7665642066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f7264732066697874757265207772617020776f726473200a",
+            "sha256": "f9c8f56903d6e3a67618f77ba96ec59eca791e82093614355721c949284ee9fa",
+            "mode": "0o640",
+            "mtime_ns": 1790500383578560500
+          },
+          "denied.txt": {
+            "present": true,
+            "bytes_hex": "64656e6965642073656e74696e656c0a",
+            "sha256": "5c61b97377096dab6a69d07319531e9984e1b6cf6f625d4dca308e10e7a7962c",
+            "mode": "0o640",
+            "mtime_ns": 1790500369258474000
+          }
+        },
+        "executor_hook": [],
+        "cli": {
+          "session": {
+            "sidebar": "hide",
+            "tps": false
+          },
+          "tabs": {
+            "layout": "horizontal"
+          },
+          "debug": {
+            "devtools": false
+          }
+        },
+        "audit": "File stat/hash/bytes and SQLite mode=ro; not an OS syscall trace."
+      }
+    },
+    {
+      "stage": "reject-pause-proof",
+      "files_unchanged": true,
+      "no_extra_provider_requests": true,
+      "no_started": true,
+      "grants": []
+    },
+    {
+      "stage": "failure",
+      "reason": "Timed out waiting for reject-completed"
+    },
+    {
+      "stage": "counts",
+      "provider_requests": 4,
+      "provider_completed": 4,
+      "tool_calls": 2,
+      "invalid_requests": 0
+    }
+  ],
+  "gaps": [
+    "Read/shell/URL/pattern/MCP previews, child routing/feedback, Settings/autoaccept and headless require additional probes."
+  ],
+  "reason": "Timed out waiting for reject-completed"
+}

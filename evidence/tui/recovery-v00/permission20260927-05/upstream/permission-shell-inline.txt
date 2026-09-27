@@ -1,0 +1,40 @@
+   VIS36 patch fixture           ! VIS36 patch fixture           +              
+  ┃                                                                             
+  ┃  # Patch failed                                                             
+  ┃                                                                             
+  ┃  Permission denied: edit                                                    
+  ┃                                                                             
+                                                                                
+     VIS36-DONE-mixed                                                           
+                                                                                
+     Build · MiMo-V2.6-Flash Free · 256ms                                       
+                                                                                
+  ┃                                                                             
+  ┃  VIS36 read: execute the supplied ordinary function patch once.             
+  ┃                                                                             
+                                                                                
+     → Explored — 1 read                                                        
+                                                                                
+     VIS36-DONE-read                                                            
+                                                                                
+     Build · MiMo-V2.6-Flash Free · 8.1s                                        
+                                                                                
+  ┃                                                                             
+  ┃  VIS36 shell: execute the supplied ordinary function patch once.            
+  ┃                                                                             
+                                                                                
+  ┃                                                                             
+  ┃  ⋯ /usr/bin/touch shell-marker                                              
+  ┃                                                                             
+                                                                                
+     Press ctrl+b to move running work to the background                        
+                                                                                
+  ┃                                                                             
+  ┃  △ Permission required                                                      
+  ┃                                                                             
+  ┃  $ /usr/bin/touch shell-marker                                              
+  ┃                                                                             
+  ┃                                                                             
+  ┃   Allow once   Always allow   Reject  ctrl+f fullscreen  ⇆ select  enter con
+  ┃                                                                             
+                                                                                

@@ -1,0 +1,40 @@
+ ! VIS36 patch fixture           +                                              
+                                                                                
+     Build · MiMo-V2.6-Flash Free · 7.0s                                        
+                                                                                
+  ┃                                                                             
+  ┃  VIS36 reject: execute the supplied ordinary function patch once.           
+  ┃                                                                             
+                                                                                
+  ┃                                                                             
+  ┃  # Patch failed approval.txt                                                
+  ┃                                                                             
+  ┃  The user declined this tool call                                           
+  ┃                                                                             
+                                                                                
+     Build · MiMo-V2.6-Flash Free · 2.9s · interrupted                          
+                                                                                
+  ┃                                                                             
+  ┃  VIS36 always: execute the supplied ordinary function patch once.           
+  ┃                                                                             
+                                                                                
+  ┃                                                                             
+  ┃  ⋯ Patching approval.txt                                                    
+  ┃                                                                             
+                                                                                
+  ┃                                                                             
+  ┃  △ Permission required                                                      
+  ┃    → Edit approval.txt                                                      
+  ┃                                                                             
+  ┃  1 - new approved fixture wrap words fixture wrap words fixture wrap        
+  ┃      words fixture wrap words fixture wrap words fixture wrap words         
+  ┃      fixture wrap words fixture wrap words fixture wrap words fixture       
+  ┃      wrap words fixture wrap words fixture wrap words                       
+  ┃  1 + always approved                                                        
+  ┃                                                                             
+  ┃                                                                             
+  ┃                                                                             
+  ┃                                                                             
+  ┃   Allow once   Always allow   Reject  ctrl+f fullscreen  ⇆ select  enter con
+  ┃                                                                             
+                                                                                

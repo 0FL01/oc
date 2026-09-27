@@ -1,0 +1,40 @@
+   VIS36 patch fixture             VIS36 patch fixture           +              
+  ┃    1 - always approved                                                      
+  ┃    1 + restart approved                                                     
+  ┃                                                                             
+                                                                                
+     VIS36-DONE-restart                                                         
+                                                                                
+     Build · MiMo-V2.6-Flash Free · 263ms                                       
+                                                                                
+  ┃                                                                             
+  ┃  VIS36 mixed: execute the supplied ordinary function patch once.            
+  ┃                                                                             
+                                                                                
+  ┃                                                                             
+  ┃  # Patch failed                                                             
+  ┃  error: denied apply_patch                                                  
+  ┃                                                                             
+                                                                                
+     VIS36-DONE-mixed                                                           
+                                                                                
+     Build · MiMo-V2.6-Flash Free · 175ms                                       
+                                                                                
+  ┃                                                                             
+  ┃  VIS36 mcp: execute the supplied ordinary function patch once.              
+  ┃                                                                             
+                                                                                
+     ✓ vis36__echo message: bounded real call wrap words wrap words wrap        
+  words wrap words wrap words wrap words wrap words wrap words wrap words wra   
+                                                                                
+     VIS36-DONE-mcp                                                             
+                                                                                
+     Build · MiMo-V2.6-Flash Free · 6.9s                                        
+                                                                                
+  ┃                                                                             
+  ┃                                                                             
+  ┃                                                                             
+  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                  
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/t44-refer…/runs/permission20260927-18/project  1.3K (1%)  ctrl+p commands  
+                                                                                

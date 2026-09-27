@@ -1,0 +1,40 @@
+ △ VIS36 patch fixture                                                          
+  ┃    1 + new approved fixture wrap words fixture wrap words fixture wrap      
+  ┃        words fixture wrap words fixture wrap words fixture wrap words       
+  ┃        fixture wrap words fixture wrap words fixture wrap words fixture     
+  ┃        wrap words fixture wrap words fixture wrap words                     
+  ┃                                                                             
+                                                                                
+     VIS36-DONE-once                                                            
+                                                                                
+     Build · MiMo-V2.6-Flash Free · 8.3s                                        
+                                                                                
+  ┃                                                                             
+  ┃  VIS36 reject: execute the supplied ordinary function patch once.           
+  ┃                                                                             
+                                                                                
+  ┃                                                                             
+  ┃  # Patch failed                                                             
+  ┃  {"status":"permission_rejected","feedback":null}                           
+  ┃                                                                             
+                                                                                
+     Build · MiMo-V2.6-Flash Free · 3.2s · interrupted                          
+                                                                                
+  ┃                                                                             
+  ┃  VIS36 always: execute the supplied ordinary function patch once.           
+  ┃                                                                             
+                                                                                
+     ⋯ apply_patch resource: approval.txt                                       
+  │                                                                             
+  │ △ Permission required                                                       
+  │                                                                             
+  │ → Edit approval.txt                                                         
+  │  1 - new approved fixture wrap words fixture wrap words fixture wrap        
+  │      words fixture wrap words fixture wrap words fixture wrap words         
+  │      fixture wrap words fixture wrap words fixture wrap words fixture       
+  │      wrap words fixture wrap words fixture wrap words                       
+  │  1 + always approved                                                        
+  │                                                                             
+  │  Allow once   Always allow   Reject  ctrl+f fullscreen  ⇆ select  enter co  
+  │                                                                             
+                                                                                

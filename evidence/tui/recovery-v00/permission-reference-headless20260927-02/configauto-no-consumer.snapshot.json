@@ -1,0 +1,92 @@
+{
+  "observations": [
+    {
+      "database": "/home/opencode/.cache/opencode-tmp/opencode/permission-reference-headless20260927-02/configauto-no-consumer/home/data/opencode/opencode.db",
+      "tables": [
+        "account_state",
+        "account",
+        "control_account",
+        "credential",
+        "event_sequence",
+        "event",
+        "kv",
+        "permission",
+        "project_directory",
+        "project",
+        "instruction_blob",
+        "instruction_entry",
+        "instruction_state",
+        "session_inbox",
+        "session_message",
+        "session_pending",
+        "session_v2",
+        "workspace",
+        "worktree",
+        "migration"
+      ],
+      "data": {
+        "session_message": [
+          {
+            "id": "msg_0e30fea3d001F6PZO9PQX97pFQ",
+            "session_id": "ses_f1cf01602ffe6oYaP4DO63NNAG",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790515866297,
+            "time_updated": 1790515866298,
+            "data": "{\"time\":{\"created\":1790515866297},\"text\":\"\\\"VIS36 shell: invoke ordinary shell function\\\"\",\"files\":[]}"
+          },
+          {
+            "id": "msg_0e30fead5001P5uPoiGF2UDGCU",
+            "session_id": "ses_f1cf01602ffe6oYaP4DO63NNAG",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790515866333,
+            "time_updated": 1790515866452,
+            "data": "{\"time\":{\"created\":1790515866333,\"streamed\":1790515866389,\"completed\":1790515866451},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"},\"content\":[{\"type\":\"tool\",\"id\":\"call_vis36_shell\",\"name\":\"shell\",\"executed\":false,\"providerState\":{\"itemId\":\"fc_vis35_2\"},\"state\":{\"status\":\"error\",\"input\":{\"command\":\"/usr/bin/touch headless-marker\"},\"error\":{\"type\":\"aborted\",\"message\":\"The user declined this tool call\"}},\"time\":{\"created\":1790515866380,\"ran\":1790515866386,\"completed\":1790515866448}}],\"finish\":\"error\",\"providerState\":{\"responseId\":\"resp_vis35_2\"},\"cost\":0,\"tokens\":{\"input\":1234,\"output\":64,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"error\":{\"type\":\"aborted\",\"message\":\"Step interrupted\"}}"
+          }
+        ],
+        "session_inbox": []
+      }
+    }
+  ],
+  "project_files": {},
+  "files": {
+    "created.ts": {
+      "present": false
+    },
+    "empty.txt": {
+      "present": false
+    },
+    "update.txt": {
+      "present": false
+    },
+    "delete.txt": {
+      "present": false
+    },
+    "move.txt": {
+      "present": false
+    },
+    "moved.txt": {
+      "present": false
+    },
+    "replace.txt": {
+      "present": false
+    },
+    "multi-a.txt": {
+      "present": false
+    },
+    "multi-b.txt": {
+      "present": false
+    },
+    "prefix.txt": {
+      "present": false
+    },
+    "stale.txt": {
+      "present": false
+    },
+    "denied.txt": {
+      "present": false
+    }
+  },
+  "executor_hook": []
+}

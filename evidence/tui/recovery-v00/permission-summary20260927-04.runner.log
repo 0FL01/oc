@@ -1,0 +1,698 @@
+{
+  "output": "/home/opencode/ai/oc/evidence/tui/recovery-v00/permission-summary20260927-04.json",
+  "totals": {
+    "provider_requests": 433,
+    "provider_completed": 432,
+    "tool_calls": 219,
+    "invalid_requests": 1
+  },
+  "comparators": {
+    "grid": {
+      "DIFFERENT": 238,
+      "BLOCKED": 98,
+      "INVALID": 4
+    },
+    "png": {
+      "DIFFERENT": 242,
+      "BLOCKED": 98
+    }
+  },
+  "cursors": {
+    "equal": 153,
+    "total": 272
+  },
+  "runs": [
+    {
+      "name": "permission20260927-01",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "FAILED",
+          "counts": {
+            "provider_requests": 4,
+            "provider_completed": 4,
+            "tool_calls": 2,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 0,
+            "restart-effects": 0,
+            "mixed-effects": 0
+          },
+          "grants_survive_restart": null
+        },
+        "oc": {
+          "status": "FAILED",
+          "counts": {
+            "provider_requests": 4,
+            "provider_completed": 4,
+            "tool_calls": 2,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 0,
+            "restart-effects": 0,
+            "mixed-effects": 0
+          },
+          "grants_survive_restart": null
+        }
+      }
+    },
+    {
+      "name": "permission20260927-02",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 11,
+            "provider_completed": 11,
+            "tool_calls": 5,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 11,
+            "provider_completed": 11,
+            "tool_calls": 5,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-03",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 17,
+            "provider_completed": 17,
+            "tool_calls": 9,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "FAILED",
+          "counts": {
+            "provider_requests": 18,
+            "provider_completed": 18,
+            "tool_calls": 9,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-04",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "FAILED",
+          "counts": {
+            "provider_requests": 17,
+            "provider_completed": 17,
+            "tool_calls": 9,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 21,
+            "provider_completed": 21,
+            "tool_calls": 11,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-05",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "FAILED",
+          "counts": {
+            "provider_requests": 19,
+            "provider_completed": 19,
+            "tool_calls": 10,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "FAILED",
+          "counts": {
+            "provider_requests": 21,
+            "provider_completed": 21,
+            "tool_calls": 11,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-06",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 20,
+            "provider_completed": 20,
+            "tool_calls": 11,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 21,
+            "provider_completed": 21,
+            "tool_calls": 11,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-07",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "FAILED",
+          "counts": {
+            "provider_requests": 12,
+            "provider_completed": 11,
+            "tool_calls": 5,
+            "invalid_requests": 1
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-08",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 27,
+            "provider_completed": 27,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-09",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 27,
+            "provider_completed": 27,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-10",
+      "mode": "auto-config",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 0,
+            "restart-effects": 0,
+            "mixed-effects": 0
+          },
+          "grants_survive_restart": null
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 0,
+            "restart-effects": 0,
+            "mixed-effects": 0
+          },
+          "grants_survive_restart": null
+        }
+      }
+    },
+    {
+      "name": "permission20260927-11",
+      "mode": "auto-cli",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 0,
+            "restart-effects": 0,
+            "mixed-effects": 0
+          },
+          "grants_survive_restart": null
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 0,
+            "restart-effects": 0,
+            "mixed-effects": 0
+          },
+          "grants_survive_restart": null
+        }
+      }
+    },
+    {
+      "name": "permission20260927-12",
+      "mode": "prompt",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        },
+        "oc": {
+          "status": "FAILED",
+          "counts": {
+            "provider_requests": 15,
+            "provider_completed": 15,
+            "tool_calls": 8,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 1,
+            "restart-effects": 1,
+            "mixed-effects": 1
+          },
+          "grants_survive_restart": true
+        }
+      }
+    },
+    {
+      "name": "permission20260927-13",
+      "mode": "auto-config",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 0,
+            "restart-effects": 0,
+            "mixed-effects": 0
+          },
+          "grants_survive_restart": null
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 0,
+            "restart-effects": 0,
+            "mixed-effects": 0
+          },
+          "grants_survive_restart": null
+        }
+      }
+    },
+    {
+      "name": "permission20260927-14",
+      "mode": "auto-cli",
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 0,
+            "restart-effects": 0,
+            "mixed-effects": 0
+          },
+          "grants_survive_restart": null
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          },
+          "grant_counts": {
+            "seed": 0,
+            "once-pending": 0,
+            "once-effects": 0,
+            "reject-pending": 0,
+            "reject-effects": 0,
+            "always-pending": 0,
+            "always-effects": 0,
+            "restart-effects": 0,
+            "mixed-effects": 0
+          },
+          "grants_survive_restart": null
+        }
+      }
+    }
+  ]
+}

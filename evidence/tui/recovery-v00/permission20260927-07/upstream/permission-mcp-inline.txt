@@ -1,0 +1,40 @@
+   VIS36 patch fixture           ! VIS36 patch fixture           +              
+  ┃    1 + restart approved                                                     
+  ┃                                                                             
+                                                                                
+     VIS36-DONE-restart                                                         
+                                                                                
+     Build · MiMo-V2.6-Flash Free · 142ms                                       
+                                                                                
+  ┃                                                                             
+  ┃  VIS36 mixed: execute the supplied ordinary function patch once.            
+  ┃                                                                             
+                                                                                
+  ┃                                                                             
+  ┃  # Patch failed                                                             
+  ┃                                                                             
+  ┃  Permission denied: edit                                                    
+  ┃                                                                             
+                                                                                
+     VIS36-DONE-mixed                                                           
+                                                                                
+     Build · MiMo-V2.6-Flash Free · 156ms                                       
+                                                                                
+  ┃                                                                             
+  ┃  VIS36 mcp: execute the supplied ordinary function patch once.              
+  ┃                                                                             
+                                                                                
+     ⋯ vis36_echo [message=bounded real call wrap words wrap words wrap words   
+     wrap words wrap words wrap words wrap words wrap words wrap words wrap     
+     words wrap words wrap words ]                                              
+                                                                                
+  ┃                                                                             
+  ┃  △ Permission required                                                      
+  ┃    ⚙ Call tool vis36_echo                                                   
+  ┃                                                                             
+  ┃  Tool: vis36_echo                                                           
+  ┃                                                                             
+  ┃                                                                             
+  ┃   Allow once   Always allow   Reject  ctrl+f fullscreen  ⇆ select  enter con
+  ┃                                                                             
+                                                                                

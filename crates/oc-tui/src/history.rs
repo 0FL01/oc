@@ -473,7 +473,8 @@ pub struct ToolCard {
     pub output_bytes: i64,
     /// True when the durable result is longer than the preview.
     pub output_truncated: bool,
-    /// Confirmed paths when typed effects exist; otherwise requested paths only.
+    /// Confirmed effect paths; permission-only rows carry prepared/requested
+    /// targets when no effects exist. These names alone never confirm mutation.
     pub files: Vec<String>,
     /// True when more files exist than listed.
     pub files_truncated: bool,
@@ -523,16 +524,28 @@ impl ToolCard {
 
 /// Build one bounded card from a recorded tool operation.
 pub fn card_from_row(row: &ToolOpView) -> ToolCard {
-    let files = row.patch_effects.as_ref().map_or_else(
-        || patch_files(&row.name, row.input.as_deref()),
-        |effects| {
-            effects
-                .files
-                .iter()
-                .map(|f| f.destination.as_ref().unwrap_or(&f.path).clone())
-                .collect()
-        },
-    );
+    // Presentation only: keep the durable/provider structured rejection envelope
+    // and its byte offsets intact; render its typed meaning to a human.
+    let human = if matches!(row.state.as_str(), "denied" | "cancelled") {
+        row.output.as_deref().and_then(permission_output)
+    } else {
+        None
+    };
+    let output = human.as_deref().or(row.output.as_deref());
+    let files = row
+        .patch_effects
+        .as_ref()
+        .filter(|effects| !(effects.files.is_empty() && human.is_some()))
+        .map_or_else(
+            || patch_files(&row.name, row.input.as_deref()),
+            |effects| {
+                effects
+                    .files
+                    .iter()
+                    .map(|f| f.destination.as_ref().unwrap_or(&f.path).clone())
+                    .collect()
+            },
+        );
     let files_truncated = files.len() > CARD_FILES
         || row
             .patch_effects
@@ -546,19 +559,14 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
     let render = if row.name == "apply_patch" && row.patch_effects.is_some() {
         ToolRender::Patch(Default::default())
     } else {
-        ToolRender::parse(
-            &row.name,
-            row.input.as_deref(),
-            row.output.as_deref(),
-            &row.state,
-        )
+        ToolRender::parse(&row.name, row.input.as_deref(), output, &row.state)
     };
     ToolCard {
         op: row.op.clone(),
         name: row.name.clone(),
         state: row.state.clone(),
         input_preview: preview(row.input.as_deref()),
-        output_preview: preview(row.output.as_deref()),
+        output_preview: preview(output),
         output_bytes: row.output_bytes,
         output_truncated: row.output_truncated,
         files: files.into_iter().take(CARD_FILES).collect(),
@@ -567,6 +575,23 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
         patch_effects: row.patch_effects.clone(),
         diff_settings: Default::default(),
         render,
+    }
+}
+
+pub(crate) fn permission_output(output: &str) -> Option<String> {
+    let value: serde_json::Value = serde_json::from_str(output).ok()?;
+    match value.get("status")?.as_str()? {
+        "permission_rejected" => match value.get("feedback") {
+            None | Some(serde_json::Value::Null) => Some("The user declined this tool call".into()),
+            Some(serde_json::Value::String(feedback)) => Some(if feedback.is_empty() {
+                "The user declined this tool call".into()
+            } else {
+                format!("The user declined this tool call: {feedback}")
+            }),
+            _ => None,
+        },
+        "permission_cancelled" => Some("The permission request was cancelled".into()),
+        _ => None,
     }
 }
 

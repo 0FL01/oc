@@ -1,0 +1,193 @@
+{
+  "checks": [
+    {
+      "name": "permission20260927-08",
+      "origin": "upstream",
+      "grant_rows_after_always": [
+        {
+          "id": "psv_0e2410266001QrNaTgR2i3a4cR",
+          "project_id": "7e4710507e11e8d96919ffc90566ce1b2a1f862d",
+          "action": "edit",
+          "resource": "*",
+          "time_created": 1790502306406,
+          "time_updated": 1790502306406
+        }
+      ],
+      "feedback_present_in_actual_child_provider_context": false,
+      "child_actual_results": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_childread",
+          "output": "{\"error\":{\"type\":\"tool.execution\",\"message\":\"Unable to read approval.txt\"},\"content\":[]}"
+        }
+      ],
+      "operation_counts": {
+        "once": 2,
+        "reject": 1,
+        "always": 2,
+        "restart": 2,
+        "mixed": 2,
+        "mcp": 2,
+        "childroot": 2,
+        "childread": 2,
+        "read": 2,
+        "shell": 2,
+        "glob": 1,
+        "url": 1,
+        "autoonce": 2,
+        "promptagain": 1
+      },
+      "pass": true
+    },
+    {
+      "name": "permission20260927-08",
+      "origin": "oc",
+      "grant_rows_after_always": [
+        {
+          "project": "7e4710507e11e8d96919ffc90566ce1b2a1f862d",
+          "action": "apply_patch",
+          "pattern": "approval.txt"
+        }
+      ],
+      "feedback_present_in_actual_child_provider_context": true,
+      "child_actual_results": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_childread",
+          "output": "{\"status\":\"permission_rejected\",\"feedback\":\"VIS36-FEEDBACK: do not read; continue with this correction.\"}"
+        }
+      ],
+      "operation_counts": {
+        "once": 2,
+        "reject": 1,
+        "always": 2,
+        "restart": 2,
+        "mixed": 2,
+        "mcp": 2,
+        "childroot": 2,
+        "childread": 2,
+        "read": 2,
+        "shell": 2,
+        "glob": 1,
+        "url": 2,
+        "autoonce": 2,
+        "promptagain": 1
+      },
+      "pass": true
+    },
+    {
+      "name": "permission20260927-09",
+      "origin": "upstream",
+      "grant_rows_after_always": [
+        {
+          "id": "psv_0e247a699002WXhcasuWyxg6M6",
+          "project_id": "6ac2681c57cf425ac6988d617284cc7d1517026a",
+          "action": "edit",
+          "resource": "*",
+          "time_created": 1790502741658,
+          "time_updated": 1790502741658
+        }
+      ],
+      "feedback_present_in_actual_child_provider_context": false,
+      "child_actual_results": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_childread",
+          "output": "{\"error\":{\"type\":\"tool.execution\",\"message\":\"Unable to read approval.txt\"},\"content\":[]}"
+        }
+      ],
+      "operation_counts": {
+        "once": 2,
+        "reject": 1,
+        "always": 2,
+        "restart": 2,
+        "mixed": 2,
+        "mcp": 2,
+        "childroot": 2,
+        "childread": 2,
+        "read": 2,
+        "shell": 2,
+        "glob": 1,
+        "url": 1,
+        "autoonce": 2,
+        "promptagain": 1
+      },
+      "pass": true
+    },
+    {
+      "name": "permission20260927-09",
+      "origin": "oc",
+      "grant_rows_after_always": [
+        {
+          "project": "6ac2681c57cf425ac6988d617284cc7d1517026a",
+          "action": "apply_patch",
+          "pattern": "approval.txt"
+        }
+      ],
+      "feedback_present_in_actual_child_provider_context": true,
+      "child_actual_results": [
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_childread",
+          "output": "{\"status\":\"permission_rejected\",\"feedback\":\"VIS36-FEEDBACK: do not read; continue with this correction.\"}"
+        }
+      ],
+      "operation_counts": {
+        "once": 2,
+        "reject": 1,
+        "always": 2,
+        "restart": 2,
+        "mixed": 2,
+        "mcp": 2,
+        "childroot": 2,
+        "childread": 2,
+        "read": 2,
+        "shell": 2,
+        "glob": 1,
+        "url": 2,
+        "autoonce": 2,
+        "promptagain": 1
+      },
+      "pass": true
+    },
+    {
+      "name": "permission20260927-10",
+      "origin": "upstream",
+      "auto_mode_saves_zero_grants": true,
+      "pass": true
+    },
+    {
+      "name": "permission20260927-10",
+      "origin": "oc",
+      "auto_mode_saves_zero_grants": true,
+      "pass": true
+    },
+    {
+      "name": "permission20260927-11",
+      "origin": "upstream",
+      "auto_mode_saves_zero_grants": true,
+      "pass": true
+    },
+    {
+      "name": "permission20260927-11",
+      "origin": "oc",
+      "auto_mode_saves_zero_grants": true,
+      "pass": true
+    }
+  ],
+  "qualification": "TARGETED_LIFECYCLE_ONLY_FULL_VIS36_OPEN",
+  "headless": [
+    {
+      "case": "configauto-no-consumer",
+      "pass": true
+    },
+    {
+      "case": "cli-auto-once",
+      "pass": true
+    },
+    {
+      "case": "cli-auto-deny",
+      "pass": true
+    }
+  ]
+}

@@ -14,6 +14,7 @@ import {probeSessions} from './sessions.mjs';
 import {probeRevertRedo} from './revert_redo.mjs';
 import {probeCompaction} from './compaction.mjs';
 import {probeApplyPatch} from './apply_patch.mjs';
+import {probePermission} from './permission.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
@@ -23,6 +24,12 @@ const sessionsInteraction = args['sessions-interaction'] === 'true';
 const revertRedo = args['revert-redo'] === 'true';
 const compaction = args.compaction === 'true';
 const applyPatch = args['apply-patch'] === 'true';
+const permission = args.permission === 'true';
+const permissionMode = args['permission-mode'] || 'prompt';
+if(args['permission-mode']&&(!permission||!['prompt','auto-config','auto-cli'].includes(permissionMode)))throw Error('--permission-mode requires permission and prompt|auto-config|auto-cli');
+if(args.permission!==undefined&&!['true','false'].includes(args.permission))throw Error('--permission must be true|false');
+if(permission&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||![79,80,120,121].includes(Number(args.columns))||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['permission','geometry','build-oc','permission-strace'].includes(k))))throw Error('--permission requires exclusive paired short 79/80/120/121x40 geometry sidebar hide');
+if(args['permission-strace']!==undefined&&(!permission||!['true','false'].includes(args['permission-strace'])))throw Error('--permission-strace requires permission and true|false');
 if(args['apply-patch']!==undefined&&!['true','false'].includes(args['apply-patch']))throw Error('--apply-patch must be true|false');
 if(applyPatch&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||![80,120,121,124,125,160].includes(Number(args.columns))||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['apply-patch','geometry','build-oc'].includes(k))))throw Error('--apply-patch requires exclusive paired short 80/120/121/124/125/160x40 geometry sidebar hide');
 if(args['patch-view']&&(!applyPatch||!['auto','unified','split'].includes(args['patch-view'])))throw Error('--patch-view requires apply-patch and auto|unified|split');
@@ -318,6 +325,7 @@ const lock = {schema_version: 1, started: new Date().toISOString(), runner_versi
     source_manifest_sha256: sha(canonical(sourceManifest))},
   sources: {upstream_commit: '2670273ff17da96f85c5826ced57aa1b368754fa'}, attempts: [], captures: []};
 if(applyPatch)lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Fixture context hook admits existing bundled U19; executor is not replaced'};
+if(permission){for(const n of ['permission.mjs','permission_fixture.py','permission_mcp.py','apply_patch_fixture.py','apply_patch_admission.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Existing U19 admitted; real permission backend and executor unchanged'};}
 if(args['build-oc'] === 'true') {
   const build = execute(['cargo', 'build', '--locked']);
   if(build.status !== 0) throw Error('Rust build failed (see commands.json)');
@@ -396,7 +404,7 @@ try {
       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
           agent_profile: args['agent-profile'] === 'true', bounded_mode:boundedMode==='wheel'?'shell':boundedMode, wheel_probe:boundedMode==='wheel', metrics_path:path.join(dir,'scheduler.json'), sessions_interaction:sessionsInteraction,
             revert_redo:revertRedo, compaction, compaction_trigger:compactionTrigger,
-            apply_patch:applyPatch,patch_view:args['patch-view'],patch_wrap:args['patch-wrap'],
+             apply_patch:applyPatch,permission,permission_mode:permissionMode,permission_strace_path:permission&&args['permission-strace']==='true'&&origin==='oc'?path.join(dir,'permission.strace'):undefined,patch_view:args['patch-view'],patch_wrap:args['patch-wrap'],
            ...(compaction ? {compaction_animation:compactionAnimation,compaction_tps:compactionTps,animations:compactionAnimation} : {}),
         sessions_resume:!!args['sessions-root'],
         sessions_campaign:args['sessions-campaign'] || 'legacy',
@@ -440,7 +448,7 @@ try {
       } else { logs.push(event); fs.writeFileSync(path.join(dir,'protocol.json'),JSON.stringify(logs,null,2)+'\n'); }
     });
     const frame = async () => {
-      if(applyPatch) {
+      if(applyPatch || permission) {
         let timer;
         try {await Promise.race([writeQueue,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('VIS35 xterm write callback stalled')),5000);})]);}
         finally {clearTimeout(timer);}
@@ -530,6 +538,14 @@ try {
       }
        const initial = await waitFor(f => /Build|Untitled session|MiMo-V2.6-Flash Free/.test(f.text) ||
          (sessionsInteraction && f.text.includes('Ask anything')), 'initial prompt');
+       if(permission) {
+           const checks=await probePermission({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,mode:permissionMode,
+             control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
+             relaunch:async()=>{await writeQueue;generation=1;chunks[1]=[];await page.evaluate(()=>{term.reset();term.clear();});child.stdin.write(JSON.stringify({kind:'relaunch'})+'\n');}});
+           lock.permission ??= {};lock.permission[origin]=checks;
+           if(checks.status!=='PASS')result=1;
+           json('capture.lock.json',lock);continue;
+       }
        if(applyPatch) {
           const checks=await probeApplyPatch({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,
             control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
@@ -2869,7 +2885,8 @@ try {
       'Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states'],
     mcp_error_and_stall: 'NOT_RUN (V00 three-screen capture only)'
   };
-  for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))]
+    if(permission)lock.qualification={status:'DIAGNOSTIC_PERMISSION_ONLY',mode:permissionMode,actual_requests:'Real ordinary function tools and pinned original U19 executor; local fake provider/MCP only',filesystem:'Independent bytes/hash/mtime/modes; SQLite mode=ro',unresolved:['Full grids/PNGs are unmasked and must be compared independently','Typed owner lifecycle evidence is separate from the PTY/SQLite audit','Unit/atomic-failure/security matrices and release binary are not qualified by PTY capture']};
+   for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))]
     .filter(s=>!scanner || !s.includes('-candidate-')) : ['session-wide-completed','commands-over-session','models-over-session', ...(args.variants === 'true' ? ['variants-over-session'] : [])]) {
     for (const mode of ['grid','png']) {
       const ext=mode==='grid'?'cells.json':'png';

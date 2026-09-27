@@ -481,6 +481,14 @@ impl Editor {
             &mentions,
         )
     }
+    /// Textarea layout preserves raw offsets/selection while preferring whole words.
+    pub(crate) fn layout_words(
+        &self,
+        text: &str,
+        width: usize,
+    ) -> (Vec<PromptRow>, (usize, usize)) {
+        layout_wrapped(text, self.cursor, self.selected(), width, &[], true)
+    }
 
     pub fn chip_count(&self) -> usize {
         self.chips.len()
@@ -729,6 +737,17 @@ fn layout_with_mentions(
     width: usize,
     mentions: &[(usize, usize)],
 ) -> (Vec<PromptRow>, (usize, usize)) {
+    layout_wrapped(text, cursor, selection, width, mentions, false)
+}
+
+fn layout_wrapped(
+    text: &str,
+    cursor: usize,
+    selection: Option<(usize, usize)>,
+    width: usize,
+    mentions: &[(usize, usize)],
+    words: bool,
+) -> (Vec<PromptRow>, (usize, usize)) {
     let width = width.max(1);
     let mut rows = vec![PromptRow {
         text: String::new(),
@@ -749,7 +768,21 @@ fn layout_with_mentions(
             continue;
         }
         let cells = UnicodeWidthStr::width(grapheme);
-        if column > 0 && column + cells > width {
+        let word = words
+            && !grapheme.chars().all(char::is_whitespace)
+            && (offset == 0
+                || text[..offset]
+                    .chars()
+                    .next_back()
+                    .is_some_and(char::is_whitespace));
+        let word_cells = if word {
+            UnicodeWidthStr::width(text[offset..].split_whitespace().next().unwrap_or(""))
+        } else {
+            0
+        };
+        if column > 0
+            && (column + cells > width || (word_cells <= width && column + word_cells > width))
+        {
             rows.push(PromptRow {
                 text: String::new(),
                 spans: Vec::new(),

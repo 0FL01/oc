@@ -1,0 +1,138 @@
+{
+  "status": "PASS",
+  "qualification": "Three bounded paired headless behaviors; no renderer or typed event qualification",
+  "native_binary_sha256": "c116b0d450420eb93e9531239260bdcef57c32828eed180bff93cc280d550008",
+  "reference_binary_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+  "rows": [
+    {
+      "name": "configauto-no-consumer",
+      "native": {
+        "argv": [
+          "/home/opencode/ai/oc/target/debug/oc",
+          "--data-dir",
+          "/home/opencode/.cache/opencode-tmp/opencode/permission-headless20260927-04/configauto-no-consumer/data",
+          "run",
+          "VIS36 shell: invoke ordinary shell function",
+          "--json"
+        ],
+        "counts": {
+          "provider_requests": 2,
+          "provider_completed": 2,
+          "tool_calls": 1,
+          "invalid_requests": 0
+        },
+        "exit_code": 1,
+        "effect": false
+      },
+      "reference": {
+        "argv": [
+          "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+          "run",
+          "--standalone",
+          "--format",
+          "json",
+          "VIS36 shell: invoke ordinary shell function"
+        ],
+        "counts": {
+          "provider_requests": 2,
+          "provider_completed": 2,
+          "tool_calls": 1,
+          "invalid_requests": 0
+        },
+        "exit_code": 1,
+        "effect": false,
+        "permission_tables": [
+          "permission"
+        ]
+      }
+    },
+    {
+      "name": "cli-auto-once",
+      "native": {
+        "argv": [
+          "/home/opencode/ai/oc/target/debug/oc",
+          "--data-dir",
+          "/home/opencode/.cache/opencode-tmp/opencode/permission-headless20260927-04/cli-auto-once/data",
+          "run",
+          "VIS36 shell: invoke ordinary shell function",
+          "--json",
+          "--auto"
+        ],
+        "counts": {
+          "provider_requests": 3,
+          "provider_completed": 3,
+          "tool_calls": 1,
+          "invalid_requests": 0
+        },
+        "exit_code": 0,
+        "effect": true
+      },
+      "reference": {
+        "argv": [
+          "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+          "run",
+          "--standalone",
+          "--format",
+          "json",
+          "--auto",
+          "VIS36 shell: invoke ordinary shell function"
+        ],
+        "counts": {
+          "provider_requests": 3,
+          "provider_completed": 3,
+          "tool_calls": 1,
+          "invalid_requests": 0
+        },
+        "exit_code": 0,
+        "effect": true,
+        "permission_tables": [
+          "permission"
+        ]
+      }
+    },
+    {
+      "name": "cli-auto-deny",
+      "native": {
+        "argv": [
+          "/home/opencode/ai/oc/target/debug/oc",
+          "--data-dir",
+          "/home/opencode/.cache/opencode-tmp/opencode/permission-headless20260927-04/cli-auto-deny/data",
+          "run",
+          "VIS36 shell: invoke ordinary shell function",
+          "--json",
+          "--auto"
+        ],
+        "counts": {
+          "provider_requests": 3,
+          "provider_completed": 3,
+          "tool_calls": 1,
+          "invalid_requests": 0
+        },
+        "exit_code": 0,
+        "effect": false
+      },
+      "reference": {
+        "argv": [
+          "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+          "run",
+          "--standalone",
+          "--format",
+          "json",
+          "--auto",
+          "VIS36 shell: invoke ordinary shell function"
+        ],
+        "counts": {
+          "provider_requests": 3,
+          "provider_completed": 3,
+          "tool_calls": 1,
+          "invalid_requests": 0
+        },
+        "exit_code": 0,
+        "effect": false,
+        "permission_tables": [
+          "permission"
+        ]
+      }
+    }
+  ]
+}

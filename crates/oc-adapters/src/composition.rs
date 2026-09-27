@@ -17,6 +17,12 @@ use oc_core::queries::StartupNotice;
 
 /// Fully built application configuration. Contains credentials and must not be logged.
 pub struct Composition {
+    /// Consumer state projected by the application owner, independent of selection.
+    pub(crate) approval_consumer_mode: std::sync::atomic::AtomicU8,
+    pub(crate) permission_preference: AtomicBool,
+    /// Owner-selected CLI configuration file for permission mode persistence.
+    pub permission_mode_source: PathBuf,
+    permission_mode_root: AdmittedRoot,
     /// Safe, generation-pinned CLI presentation settings.
     pub tui_chrome: oc_core::queries::TuiChrome,
     /// Immutable effective config for this application instance.
@@ -947,6 +953,21 @@ async fn load_stages(
             );
         }
     }
+    // A missing global directory is not an admitted write boundary. Fall back
+    // to the already admitted Location instead of creating external ancestors.
+    let default_root = if global.is_some() && admitted_roots[0].is_some() {
+        0
+    } else {
+        usize::from(global.is_some())
+    };
+    let admitted = admitted_roots[default_root]
+        .as_ref()
+        .ok_or("Location config root unavailable")?;
+    let mut permission_mode_source = roots[default_root].join("cli.json");
+    let mut permission_mode_root = AdmittedRoot {
+        path: admitted.path.clone(),
+        dir: admitted.dir.try_clone().map_err(|e| e.to_string())?,
+    };
     let mut tui_chrome = oc_core::queries::TuiChrome {
         config_diagnostics: generation.config_diagnostics.clone(),
         location: Some(project.to_string_lossy().into_owned()),
@@ -983,6 +1004,18 @@ async fn load_stages(
             }
             if let Some(v) = value.pointer("/session/tps") {
                 tui_chrome.session_tps = Some(v.as_bool().ok_or("session.tps must be boolean")?);
+            }
+            if let Some(v) = value.pointer("/session/permissions") {
+                permission_mode_source = root.join(name);
+                permission_mode_root = AdmittedRoot {
+                    path: admitted.path.clone(),
+                    dir: admitted.dir.try_clone().map_err(|e| e.to_string())?,
+                };
+                tui_chrome.permissions_auto = match v.as_str() {
+                    Some("prompt") => false,
+                    Some("autoaccept") => true,
+                    _ => return Err("session.permissions must be prompt or autoaccept".into()),
+                };
             }
             if let Some(v) = value.pointer("/diffs/view") {
                 tui_chrome.diffs.view = match v.as_str() {
@@ -1022,8 +1055,13 @@ async fn load_stages(
             }
         }
     }
+    tui_chrome.permission_shortcuts = conversation_keybinds.permission_shortcuts();
     tui_chrome.conversation_shortcuts = conversation_keybinds.resolve();
     Ok(Composition {
+        approval_consumer_mode: std::sync::atomic::AtomicU8::new(0),
+        permission_preference: AtomicBool::new(tui_chrome.permissions_auto),
+        permission_mode_source,
+        permission_mode_root,
         tui_chrome,
         generation,
         catalog,
@@ -1168,6 +1206,62 @@ fn read_native_config(root: &AdmittedRoot, name: &str) -> Result<Option<String>,
         Err(error) => return Err(error.to_string()),
     };
     read_bounded(file, NATIVE_CONFIG_CAP).map(Some)
+}
+
+/// Persist one supported Settings value through the same admitted config boundary.
+pub(crate) fn save_permission_mode(
+    composition: &Composition,
+    auto_once: bool,
+) -> Result<(), String> {
+    use std::io::Write as _;
+    let path = &composition.permission_mode_source;
+    let parent = path.parent().ok_or("missing configuration parent")?;
+    let root = &composition.permission_mode_root;
+    let opened = std::fs::canonicalize(format!("/proc/self/fd/{}", root.dir.as_raw_fd()))
+        .map_err(|e| e.to_string())?;
+    if opened != root.path || parent.canonicalize().map_err(|e| e.to_string())? != root.path {
+        return Err("admitted configuration directory changed; reload before saving".into());
+    }
+    let name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or("invalid configuration name")?;
+    let original = read_native_config(root, name)?;
+    let bytes = crate::cli_permissions::update(original.as_deref().unwrap_or("{}\n"), auto_once)?
+        .into_bytes();
+    if bytes.len() > NATIVE_CONFIG_CAP {
+        return Err("CLI settings exceed config budget".into());
+    }
+    let pinned = PathBuf::from(format!("/proc/self/fd/{}", root.dir.as_raw_fd()));
+    let temporary = pinned.join(format!(
+        ".cli-permissions-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|e| e.to_string())?
+            .as_nanos()
+    ));
+    let result = (|| {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
+            .open(&temporary)
+            .map_err(|e| e.to_string())?;
+        file.write_all(&bytes)
+            .and_then(|()| file.sync_all())
+            .map_err(|e| e.to_string())?;
+        if read_native_config(root, name)? != original {
+            return Err("CLI settings changed while saving; retry".into());
+        }
+        std::fs::rename(&temporary, pinned.join(name)).map_err(|e| e.to_string())?;
+        root.dir.sync_all().map_err(|e| e.to_string())
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&temporary);
+    }
+    result
 }
 
 fn read_instruction(root: &AdmittedRoot, path: &Path) -> Result<String, String> {

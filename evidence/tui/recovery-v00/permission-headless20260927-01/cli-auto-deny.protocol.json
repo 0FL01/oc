@@ -1,0 +1,469 @@
+[
+  {
+    "kind": "provider",
+    "operation": "patch",
+    "case": "shell",
+    "index": 1,
+    "valid": true,
+    "request": {
+      "model": "fixture-model-1",
+      "store": false,
+      "stream": true,
+      "input": [
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS36 shell: invoke ordinary shell function"
+            }
+          ]
+        }
+      ],
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "max_output_tokens": 4096,
+      "tools": [
+        {
+          "type": "function",
+          "name": "read",
+          "description": "Read a project file slice. `path` is relative to the project root; `offset` is the 1-based first line, `limit` caps lines (default 50).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "glob",
+          "description": "List project paths matching a bounded glob. Results are sorted and paginated.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "grep",
+          "description": "Search project text with a bounded literal pattern. Results are sorted and paginated; regex mode is unsupported.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "literal": {
+                "type": "boolean"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "apply_patch",
+          "description": "Apply a patch to project files. `patchText` must start with `*** Begin Patch` and end with `*** End Patch`. For `*** Add File: <relative path>`, prefix every content line with `+`; no content lines creates an empty file. Update hunks use `*** Update File: <relative path>`, optionally immediately followed by `*** Move to: <relative path>`, then `@@` and lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Delete uses `*** Delete File: <relative path>`. Paths stay inside the project root.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "patchText": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "patchText"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "bash",
+          "description": "Run a supervised command. `argv` is the exact executable plus args (no shell); omit `cwd` to run in the project root \u2014 any `cwd` must stay inside the project root. `timeout_ms` caps the run (default 30000).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "argv": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "cwd": {
+                "type": "string"
+              },
+              "timeout_ms": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "argv"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "webfetch",
+          "description": "Fetch a URL as text",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "skill",
+          "description": "Invoke a pinned skill",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        }
+      ]
+    },
+    "actual_results": []
+  },
+  {
+    "kind": "fixture_tool_call",
+    "case": "shell",
+    "name": "bash",
+    "arguments": {
+      "argv": [
+        "/usr/bin/touch",
+        "headless-marker"
+      ]
+    },
+    "call_id": "call_vis36_shell"
+  },
+  {
+    "kind": "fixture_argument_delta",
+    "case": "shell",
+    "call_id": "call_vis36_shell",
+    "item_id": "fc_vis35_1",
+    "delta": "{\"argv\": [\"/usr/",
+    "phase": "pending",
+    "monotonic_ns": 1177688541970797
+  },
+  {
+    "kind": "fixture_argument_delta",
+    "case": "shell",
+    "call_id": "call_vis36_shell",
+    "item_id": "fc_vis35_1",
+    "delta": "bin/touch\", \"headless-marker\"]}",
+    "phase": "finish",
+    "monotonic_ns": 1177688542062585
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "patch",
+    "case": "shell",
+    "index": 1
+  },
+  {
+    "kind": "provider",
+    "operation": "title",
+    "case": "shell",
+    "index": 2,
+    "valid": true,
+    "request": {
+      "model": "fixture-model-1",
+      "store": false,
+      "stream": true,
+      "input": [
+        {
+          "type": "message",
+          "role": "developer",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "Generate a short session title from the user's request. Output only the title, in at most 100 characters."
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS36 shell: invoke ordinary shell function"
+            }
+          ]
+        }
+      ],
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "max_output_tokens": 256,
+      "tools": []
+    },
+    "actual_results": []
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "title",
+    "case": "shell",
+    "index": 2
+  },
+  {
+    "kind": "provider",
+    "operation": "patch",
+    "case": "shell",
+    "index": 3,
+    "valid": true,
+    "request": {
+      "model": "fixture-model-1",
+      "store": false,
+      "stream": true,
+      "input": [
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS36 shell: invoke ordinary shell function"
+            }
+          ]
+        },
+        {
+          "id": "fc_vis35_1",
+          "type": "function_call",
+          "status": "completed",
+          "call_id": "call_vis36_shell",
+          "name": "bash",
+          "arguments": "{\"argv\": [\"/usr/bin/touch\", \"headless-marker\"]}"
+        },
+        {
+          "type": "function_call_output",
+          "call_id": "call_vis36_shell",
+          "output": "error: denied bash"
+        }
+      ],
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "max_output_tokens": 4096,
+      "tools": [
+        {
+          "type": "function",
+          "name": "read",
+          "description": "Read a project file slice. `path` is relative to the project root; `offset` is the 1-based first line, `limit` caps lines (default 50).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "glob",
+          "description": "List project paths matching a bounded glob. Results are sorted and paginated.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "grep",
+          "description": "Search project text with a bounded literal pattern. Results are sorted and paginated; regex mode is unsupported.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "literal": {
+                "type": "boolean"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "apply_patch",
+          "description": "Apply a patch to project files. `patchText` must start with `*** Begin Patch` and end with `*** End Patch`. For `*** Add File: <relative path>`, prefix every content line with `+`; no content lines creates an empty file. Update hunks use `*** Update File: <relative path>`, optionally immediately followed by `*** Move to: <relative path>`, then `@@` and lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Delete uses `*** Delete File: <relative path>`. Paths stay inside the project root.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "patchText": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "patchText"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "bash",
+          "description": "Run a supervised command. `argv` is the exact executable plus args (no shell); omit `cwd` to run in the project root \u2014 any `cwd` must stay inside the project root. `timeout_ms` caps the run (default 30000).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "argv": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "cwd": {
+                "type": "string"
+              },
+              "timeout_ms": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "argv"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "webfetch",
+          "description": "Fetch a URL as text",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "skill",
+          "description": "Invoke a pinned skill",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        }
+      ]
+    },
+    "actual_results": [
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis36_shell",
+        "output": "error: denied bash"
+      }
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "patch",
+    "case": "shell",
+    "index": 3
+  }
+]

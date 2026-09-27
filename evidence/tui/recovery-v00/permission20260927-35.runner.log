@@ -1,0 +1,11 @@
+file:///home/opencode/ai/oc/scripts/tui_capture/capture.mjs:31
+if(permission&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||![79,80,120,121].includes(Number(args.columns))||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['permission','geometry','build-oc'].includes(k))))throw Error('--permission requires exclusive paired short 79/80/120/121x40 geometry sidebar hide');
+                                                                                                                                                                                                                                                                                                                                                 ^
+
+Error: --permission requires exclusive paired short 79/80/120/121x40 geometry sidebar hide
+    at file:///home/opencode/ai/oc/scripts/tui_capture/capture.mjs:31:338
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.23.3

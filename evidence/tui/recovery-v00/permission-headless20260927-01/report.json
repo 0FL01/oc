@@ -1,0 +1,95 @@
+{
+  "binary": "/home/opencode/ai/oc/target/debug/oc",
+  "binary_sha256": "979e9aceebe3804b86a4bd485245a81f56dbccce22b42ba05d94edb5555b986f",
+  "live_requests": 0,
+  "cases": [
+    {
+      "case": "configauto-no-consumer",
+      "argv": [
+        "/home/opencode/ai/oc/target/debug/oc",
+        "--data-dir",
+        "/home/opencode/.cache/opencode-tmp/opencode/permission-headless20260927-01/configauto-no-consumer/data",
+        "run",
+        "VIS36 shell: invoke ordinary shell function",
+        "--json"
+      ],
+      "exit_code": 1,
+      "effect": false,
+      "grants": [],
+      "operations": [],
+      "counts": {
+        "provider_requests": 2,
+        "provider_completed": 2,
+        "tool_calls": 1,
+        "invalid_requests": 0
+      },
+      "pass": true
+    },
+    {
+      "case": "cli-auto-once",
+      "argv": [
+        "/home/opencode/ai/oc/target/debug/oc",
+        "--data-dir",
+        "/home/opencode/.cache/opencode-tmp/opencode/permission-headless20260927-01/cli-auto-once/data",
+        "run",
+        "VIS36 shell: invoke ordinary shell function",
+        "--json",
+        "--auto"
+      ],
+      "exit_code": 0,
+      "effect": true,
+      "grants": [],
+      "operations": [
+        {
+          "id": "ts-1790502677381907716-1790502677515-808045-0-r1-c0-call_vis36_shell",
+          "session_id": "s-1790502677381907716",
+          "turn_id": "ts-1790502677381907716-1790502677515-808045-0",
+          "name": "bash",
+          "state": "completed",
+          "input": "{\"argv\":[\"/usr/bin/touch\",\"headless-marker\"]}",
+          "output": "exit 0\n"
+        }
+      ],
+      "counts": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "tool_calls": 1,
+        "invalid_requests": 0
+      },
+      "pass": true
+    },
+    {
+      "case": "cli-auto-deny",
+      "argv": [
+        "/home/opencode/ai/oc/target/debug/oc",
+        "--data-dir",
+        "/home/opencode/.cache/opencode-tmp/opencode/permission-headless20260927-01/cli-auto-deny/data",
+        "run",
+        "VIS36 shell: invoke ordinary shell function",
+        "--json",
+        "--auto"
+      ],
+      "exit_code": 0,
+      "effect": false,
+      "grants": [],
+      "operations": [
+        {
+          "id": "ts-1790502678158637639-1790502678275-808062-0-r1-c0-call_vis36_shell",
+          "session_id": "s-1790502678158637639",
+          "turn_id": "ts-1790502678158637639-1790502678275-808062-0",
+          "name": "bash",
+          "state": "failed",
+          "input": "{\"argv\":[\"/usr/bin/touch\",\"headless-marker\"]}",
+          "output": "error: denied bash"
+        }
+      ],
+      "counts": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "tool_calls": 1,
+        "invalid_requests": 0
+      },
+      "pass": true
+    }
+  ]
+}

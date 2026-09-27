@@ -1,0 +1,40 @@
+   VIS36 patch fixture           ! VIS36 patch fixture           +             
+  ┃                                                                            
+                                                                               
+     VIS36-DONE-shell                                                          
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 7.8s                                       
+                                                                               
+  ┃                                                                            
+  ┃  VIS36 glob: execute the supplied ordinary function patch once.            
+  ┃                                                                            
+                                                                               
+       Glob ""                                                                 
+       The user declined this tool call                                        
+                                                                               
+     Build · MiMo-V2.6-Flash Free · 7.8s · interrupted                         
+                                                                               
+  ┃                                                                            
+  ┃  VIS36 url: execute the supplied ordinary function patch once.             
+  ┃                                                                            
+                                                                               
+     ⊙ WebFetch                                                                
+  https://example.invalid/vis36/never-fetch?wrapped=word-word-word-word-word-  
+  word-word-word-word-word-word-word-word-word-word-word-word-word-word-word-  
+  word-word-word-word-                                                         
+  ┃                                                                            
+  ┃  △ Permission required                                                     
+  ┃    % WebFetch https://example.invalid/vis36/never-fetch?wrapped=word-      
+  ┃      word-word-word-word-word-word-word-word-word-word-word-word-word-     
+  ┃      word-word-word-word-word-word-word-word-word-word-                    
+  ┃                                                                            
+  ┃  URL: https://example.invalid/vis36/never-fetch?wrapped=word-word-         
+  ┃  word-word-word-word-word-word-word-word-word-word-word-word-word-         
+  ┃  word-word-word-word-word-word-word-word-word-                             
+  ┃                                                                            
+  ┃                                                                            
+  ┃   Allow once   Always allow   Reject                                       
+  ┃                                                                            
+  ┃  ctrl+f fullscreen  ⇆ select  enter confirm                                
+  ┃                                                                            
+                                                                               

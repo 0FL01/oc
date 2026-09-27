@@ -1,0 +1,54 @@
+{
+  "output": "evidence/tui/recovery-v00/permission-syscall20260927-01.json",
+  "pass": true,
+  "destination_calls": 26,
+  "nonloopback_calls": 0,
+  "dns_calls": 0,
+  "windows": [
+    {
+      "case": "once",
+      "opens": 1,
+      "mutation_calls": 0
+    },
+    {
+      "case": "reject",
+      "opens": 1,
+      "mutation_calls": 0
+    },
+    {
+      "case": "always",
+      "opens": 1,
+      "mutation_calls": 0
+    },
+    {
+      "case": "mcp",
+      "opens": 0,
+      "mutation_calls": 0
+    },
+    {
+      "case": "childroot",
+      "opens": 0,
+      "mutation_calls": 0
+    },
+    {
+      "case": "read",
+      "opens": 0,
+      "mutation_calls": 0
+    },
+    {
+      "case": "shell",
+      "opens": 0,
+      "mutation_calls": 0
+    },
+    {
+      "case": "glob",
+      "opens": 0,
+      "mutation_calls": 0
+    },
+    {
+      "case": "url",
+      "opens": 0,
+      "mutation_calls": 0
+    }
+  ]
+}

@@ -333,6 +333,235 @@ fn params<'c>(
 static NO_CANCEL: AtomicBool = AtomicBool::new(false);
 
 #[tokio::test]
+async fn approval_structural_invalid_child_never_asks_saves_or_starts() {
+    use oc_core::core_app::CoreEvent;
+    let cases = [
+        (serde_json::json!({"agent":"ghost"}), 1, "Unknown agent"),
+        (
+            serde_json::json!({"agent":"boss"}),
+            1,
+            "cannot run as a subagent",
+        ),
+        (serde_json::json!({"agent":"helper"}), 0, "depth limit"),
+        (
+            serde_json::json!({"agent":"helper","sessionID":"foreign"}),
+            1,
+            "not a child",
+        ),
+        (
+            serde_json::json!({"agent":"helper","sessionID":"missing"}),
+            1,
+            "session not found",
+        ),
+        (
+            serde_json::json!({"agent":"helper","model":"test/missing"}),
+            1,
+            "not available",
+        ),
+        (
+            serde_json::json!({"agent":"helper","model":"test/m#missing"}),
+            1,
+            "no variants",
+        ),
+        (serde_json::json!({"agent":"bad-model"}), 1, "not available"),
+        (
+            serde_json::json!({"agent":"helper","background":true}),
+            1,
+            "background subagents",
+        ),
+    ];
+    for (permission, auto_once) in [
+        (Permission::Ask, false),
+        (Permission::Ask, true),
+        (Permission::Allow, false),
+    ] {
+        for (mut args, depth, expected) in cases.clone() {
+            args["description"] = serde_json::json!("Invalid child");
+            args["prompt"] = serde_json::json!("Must not execute");
+            let mut permissions = allow_all();
+            permissions.insert("subagent".into(), permission);
+            let (harness, generation) = make_harness(permissions);
+            let runtime = runtime_of(&harness, generation);
+            runtime
+                .publish_subagents(Some(catalog(
+                    depth,
+                    vec![
+                        agent("helper", false, None),
+                        agent("boss", true, None),
+                        agent("bad-model", false, Some("test/missing")),
+                    ],
+                )))
+                .unwrap();
+            runtime.create_session("parent").unwrap();
+            runtime.create_session("foreign").unwrap();
+            let (tx, mut events) = tokio::sync::broadcast::channel(128);
+            runtime.set_approval_events(&tx);
+            runtime.register_approval_consumer(auto_once);
+            let conn = rusqlite::Connection::open(harness._data.path().join("oc.sqlite")).unwrap();
+            // A transient INSERT of execution intent is forbidden too, even if
+            // it would subsequently be overwritten with a failed outcome.
+            conn.execute_batch("CREATE TRIGGER forbid_child_intent BEFORE INSERT ON tool_operations WHEN NEW.state='started' BEGIN SELECT RAISE(FAIL,'structurally invalid child intent'); END;").unwrap();
+            let (base, requests) = Fake::start(vec![
+                subagent_call("invalid", args) + &sse_completed(),
+                sse_delta("recovered") + &sse_completed(),
+            ]);
+            let report = tokio::time::timeout(
+                Duration::from_secs(5),
+                runtime.run_turn(params(
+                    "parent",
+                    "invalid child",
+                    &harness,
+                    provider_of(&base),
+                    &NO_CANCEL,
+                )),
+            )
+            .await
+            .expect("invalid child cannot wait for approval")
+            .unwrap();
+            assert_eq!(report.status, TurnStatus::Completed);
+            assert!(
+                report.calls[0].output.contains(expected),
+                "{}",
+                report.calls[0].output
+            );
+            assert!(runtime.pending_approvals().is_empty());
+            while let Ok(event) = events.try_recv() {
+                assert!(!matches!(
+                    event,
+                    CoreEvent::PermissionAsked(_)
+                        | CoreEvent::PermissionResolved { .. }
+                        | CoreEvent::ToolCallStarted { .. }
+                ));
+            }
+            assert_eq!(
+                conn.query_row("SELECT count(*) FROM permission_grants", [], |r| r
+                    .get::<_, i64>(0))
+                    .unwrap(),
+                0
+            );
+            assert_eq!(
+                conn.query_row(
+                    "SELECT count(*) FROM sessions WHERE parent_id IS NOT NULL",
+                    [],
+                    |r| r.get::<_, i64>(0)
+                )
+                .unwrap(),
+                0
+            );
+            assert_eq!(requests.lock().unwrap().len(), 2);
+        }
+    }
+}
+
+#[tokio::test]
+async fn approval_child_feedback_keeps_typed_graph_and_root_cancel_clears_child_wait() {
+    use oc_core::approval::{ApprovalDecision, ApprovalReply};
+    for cancel_child in [false, true] {
+        let (harness, generation) = make_harness(allow_all());
+        let runtime = runtime_of(&harness, generation);
+        let mut child = agent("review", false, None);
+        child.permissions.insert("bash".into(), Permission::Ask);
+        child.digest = Some("review-digest".into());
+        runtime
+            .publish_subagents(Some(catalog(2, vec![child])))
+            .unwrap();
+        let (events, _) = tokio::sync::broadcast::channel(16);
+        runtime.set_approval_events(&events);
+        runtime.register_approval_consumer(false);
+        runtime.create_session("parent").unwrap();
+        let cancel = AtomicBool::new(false);
+        let (base, requests) = Fake::start(vec![
+            subagent_call(
+                "spawn",
+                serde_json::json!({"agent":"review", "description":"review", "prompt":"child"}),
+            ) + &sse_completed(),
+            sse_tool_call(
+                "child-effect",
+                "bash",
+                &serde_json::json!({"argv":["/usr/bin/touch","child-marker"]}),
+            ) + &sse_completed(),
+            sse_delta("corrected child") + &sse_completed(),
+            sse_delta("parent done") + &sse_completed(),
+        ]);
+        let running = runtime.run_turn(params(
+            "parent",
+            "delegate",
+            &harness,
+            provider_of(&base),
+            &cancel,
+        ));
+        let replying = async {
+            let request = tokio::time::timeout(Duration::from_secs(4), async {
+                loop {
+                    if let Some(r) = runtime.pending_approvals().into_iter().next() {
+                        break r;
+                    }
+                    tokio::time::sleep(Duration::from_millis(5)).await;
+                }
+            })
+            .await
+            .unwrap();
+            assert_ne!(request.binding.session, "parent");
+            assert_eq!(request.binding.agent.as_deref(), Some("review"));
+            assert_eq!(
+                request.binding.agent_digest.as_deref(),
+                Some("review-digest")
+            );
+            assert!(
+                harness
+                    .db
+                    .list_tool_ops(&request.binding.session)
+                    .unwrap()
+                    .is_empty()
+            );
+            assert!(!harness._project.path().join("child-marker").exists());
+            if cancel_child {
+                cancel.store(true, Ordering::Release);
+            } else {
+                runtime
+                    .reply_approval(ApprovalReply {
+                        id: request.id,
+                        binding: request.binding.clone(),
+                        decision: ApprovalDecision::Reject {
+                            feedback: Some("do not touch files; answer from context".into()),
+                        },
+                    })
+                    .unwrap();
+            }
+            request
+        };
+        let (result, request) = tokio::join!(running, replying);
+        let report = result.unwrap();
+        assert!(runtime.pending_approvals().is_empty());
+        assert!(!harness._project.path().join("child-marker").exists());
+        assert!(
+            runtime
+                .reply_approval(ApprovalReply {
+                    id: request.id,
+                    binding: request.binding,
+                    decision: ApprovalDecision::Always
+                })
+                .is_err()
+        );
+        if cancel_child {
+            assert_eq!(report.status, TurnStatus::Cancelled);
+        } else {
+            assert_eq!(report.status, TurnStatus::Completed);
+            assert!(report.calls[0].output.contains("corrected child"));
+            let requests = requests.lock().unwrap();
+            assert!(requests[2]["input"].as_array().unwrap().iter().any(|item| {
+                item["type"] == "function_call_output"
+                    && item["call_id"] == "child-effect"
+                    && item["output"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .contains("do not touch files; answer from context")
+            }));
+        }
+    }
+}
+
+#[tokio::test]
 async fn nested_resource_constraints_and_filtered_catalog_remain_inherited() {
     let (harness, mut generation) = make_harness(allow_all());
     generation.permission_rules =

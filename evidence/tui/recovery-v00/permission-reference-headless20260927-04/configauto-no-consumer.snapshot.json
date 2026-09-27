@@ -1,0 +1,73 @@
+{
+  "observations": [
+    {
+      "database": "/home/opencode/.cache/opencode-tmp/opencode/permission-reference-headless20260927-04/configauto-no-consumer/home/data/opencode/opencode.db",
+      "tables": [
+        "account_state",
+        "account",
+        "control_account",
+        "credential",
+        "event_sequence",
+        "event",
+        "kv",
+        "permission",
+        "project_directory",
+        "project",
+        "instruction_blob",
+        "instruction_entry",
+        "instruction_state",
+        "session_inbox",
+        "session_message",
+        "session_pending",
+        "session_v2",
+        "workspace",
+        "worktree",
+        "migration"
+      ],
+      "data": {
+        "session_message": [
+          {
+            "id": "msg_0e33a2da2001ALh74BcpyZos57",
+            "session_id": "ses_f1cc5d29effe4U5V2Ly84Gy4lL",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790518636028,
+            "time_updated": 1790518636029,
+            "data": "{\"time\":{\"created\":1790518636028},\"text\":\"\\\"VIS36 shell: invoke ordinary shell function\\\"\",\"files\":[]}"
+          },
+          {
+            "id": "msg_0e33a2e11001mmgdO3zGqD2A2n",
+            "session_id": "ses_f1cc5d29effe4U5V2Ly84Gy4lL",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790518636055,
+            "time_updated": 1790518636199,
+            "data": "{\"time\":{\"created\":1790518636055,\"streamed\":1790518636083,\"completed\":1790518636197},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"},\"content\":[{\"type\":\"tool\",\"id\":\"call_vis36_shell\",\"name\":\"shell\",\"executed\":false,\"providerState\":{\"itemId\":\"fc_vis35_2\"},\"state\":{\"status\":\"error\",\"input\":{\"command\":\"/usr/bin/touch headless-marker\"},\"error\":{\"type\":\"aborted\",\"message\":\"The user declined this tool call\"}},\"time\":{\"created\":1790518636075,\"ran\":1790518636081,\"completed\":1790518636194}}],\"finish\":\"error\",\"providerState\":{\"responseId\":\"resp_vis35_2\"},\"cost\":0,\"tokens\":{\"input\":1234,\"output\":64,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"error\":{\"type\":\"aborted\",\"message\":\"Step interrupted\"}}"
+          }
+        ],
+        "session_inbox": [],
+        "permission": []
+      }
+    }
+  ],
+  "project_files": {},
+  "files": {
+    "approval.txt": {
+      "present": false
+    },
+    "denied.txt": {
+      "present": false
+    },
+    "shell-marker": {
+      "present": false
+    }
+  },
+  "executor_hook": [],
+  "cli": {
+    "session": {
+      "permissions": "autoaccept"
+    }
+  },
+  "audit": "File stat/hash/bytes and SQLite mode=ro; not an OS syscall trace.",
+  "mcp": []
+}

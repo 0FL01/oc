@@ -172,6 +172,8 @@ fn default_true() -> bool {
 
 /// Keep leader references unresolved until every admitted config layer is merged.
 pub(crate) struct ConversationKeybinds {
+    fullscreen: String,
+    exit: String,
     leader: String,
     undo: String,
     redo: String,
@@ -180,6 +182,8 @@ pub(crate) struct ConversationKeybinds {
 impl Default for ConversationKeybinds {
     fn default() -> Self {
         Self {
+            fullscreen: "ctrl+f".into(),
+            exit: "ctrl+c,ctrl+d,<leader>q".into(),
             leader: "ctrl+x".into(),
             undo: "<leader>u".into(),
             redo: "<leader>r".into(),
@@ -200,6 +204,14 @@ impl ConversationKeybinds {
             (&["leader"][..], &mut self.leader),
             (&["session_undo", "session.undo"][..], &mut self.undo),
             (&["session_redo", "session.redo"][..], &mut self.redo),
+            (
+                &[
+                    "permission_prompt_fullscreen",
+                    "permission.prompt.fullscreen",
+                ][..],
+                &mut self.fullscreen,
+            ),
+            (&["app_exit", "app.exit"][..], &mut self.exit),
         ] {
             for name in names {
                 if let Some(value) = bindings.get(*name) {
@@ -217,6 +229,20 @@ impl ConversationKeybinds {
         Ok(())
     }
 
+    pub(crate) fn permission_shortcuts(&self) -> oc_core::queries::PermissionShortcuts {
+        let resolved = Self {
+            leader: self.leader.clone(),
+            undo: self.fullscreen.clone(),
+            redo: self.exit.clone(),
+            fullscreen: String::new(),
+            exit: String::new(),
+        }
+        .resolve();
+        oc_core::queries::PermissionShortcuts {
+            fullscreen: resolved.undo,
+            exit: resolved.redo,
+        }
+    }
     pub(crate) fn resolve(self) -> oc_core::queries::ConversationShortcuts {
         let leaders: Vec<_> = self
             .leader

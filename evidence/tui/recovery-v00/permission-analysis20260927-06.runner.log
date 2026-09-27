@@ -1,0 +1,218 @@
+{
+  "output": "/home/opencode/ai/oc/evidence/tui/recovery-v00/permission-analysis20260927-06.json",
+  "totals": {
+    "provider_requests": 318,
+    "provider_completed": 318,
+    "tool_calls": 168,
+    "invalid_requests": 0
+  },
+  "comparators": {
+    "grid": {
+      "DIFFERENT": 267,
+      "INVALID": 16
+    },
+    "png": {
+      "DIFFERENT": 283
+    }
+  },
+  "cursors": {
+    "equal": 177,
+    "total": 283
+  },
+  "runs": [
+    {
+      "name": "permission20260927-15",
+      "columns": 120,
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "permission20260927-16",
+      "columns": 80,
+      "sides": {
+        "upstream": {
+          "status": "FAILED",
+          "reason": "Timed out waiting for child-feedback-draft",
+          "counts": {
+            "provider_requests": 15,
+            "provider_completed": 15,
+            "tool_calls": 8,
+            "invalid_requests": 0
+          }
+        },
+        "oc": {
+          "status": "FAILED",
+          "reason": "Timed out waiting for child-feedback-draft",
+          "counts": {
+            "provider_requests": 15,
+            "provider_completed": 15,
+            "tool_calls": 8,
+            "invalid_requests": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "permission20260927-17",
+      "columns": 120,
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "permission20260927-18",
+      "columns": 80,
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "permission20260927-19",
+      "columns": 79,
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "permission20260927-20",
+      "columns": 121,
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 26,
+            "provider_completed": 26,
+            "tool_calls": 14,
+            "invalid_requests": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "permission20260927-21",
+      "columns": 80,
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          }
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "permission20260927-22",
+      "columns": 121,
+      "sides": {
+        "upstream": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          }
+        },
+        "oc": {
+          "status": "PASS",
+          "counts": {
+            "provider_requests": 7,
+            "provider_completed": 7,
+            "tool_calls": 3,
+            "invalid_requests": 0
+          }
+        }
+      }
+    }
+  ]
+}

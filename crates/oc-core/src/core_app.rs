@@ -129,6 +129,11 @@ impl SubmissionReceipt {
 /// Typed application events (live hints + durable outcomes for T03).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CoreEvent {
+    PermissionAsked(crate::approval::ApprovalRequest),
+    PermissionResolved {
+        request: crate::approval::ApprovalRequest,
+        decision: crate::approval::ApprovalDecision,
+    },
     /// Session checkpoint lifecycle; summary deltas are cumulative snapshots.
     Compaction(crate::compaction::CompactionSnapshot),
     /// A root title was committed; live views can update without waiting for a turn.
@@ -320,6 +325,18 @@ impl MockProvider {
 
 /// Commands consumed by the single application owner (native or scripted).
 pub enum InboxMsg {
+    PendingApprovals {
+        ack: oneshot::Sender<Result<Vec<crate::approval::ApprovalRequest>, CoreError>>,
+    },
+    ReplyApproval {
+        reply: crate::approval::ApprovalReply,
+        ack: oneshot::Sender<Result<(), CoreError>>,
+    },
+    RegisterApprovalConsumer {
+        auto_once: bool,
+        persist: bool,
+        ack: oneshot::Sender<Result<(), CoreError>>,
+    },
     CompactSession {
         session: SessionId,
         ack: oneshot::Sender<Result<crate::compaction::CompactionSnapshot, CoreError>>,
@@ -630,6 +647,46 @@ pub struct WorkerGuard {
 }
 
 impl CoreApp {
+    pub async fn pending_approvals(
+        &self,
+    ) -> Result<Vec<crate::approval::ApprovalRequest>, CoreError> {
+        let (ack, rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::PendingApprovals { ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+    pub async fn reply_approval(
+        &self,
+        reply: crate::approval::ApprovalReply,
+    ) -> Result<(), CoreError> {
+        let (ack, rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ReplyApproval { reply, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+    pub async fn register_approval_consumer(&self, auto_once: bool) -> Result<(), CoreError> {
+        self.approval_consumer(auto_once, false).await
+    }
+    /// Persist a consumer mode preference through the application owner.
+    pub async fn set_permission_mode(&self, auto_once: bool) -> Result<(), CoreError> {
+        self.approval_consumer(auto_once, true).await
+    }
+    async fn approval_consumer(&self, auto_once: bool, persist: bool) -> Result<(), CoreError> {
+        let (ack, rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::RegisterApprovalConsumer {
+                auto_once,
+                persist,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        rx.await.map_err(|_| CoreError::Shutdown)?
+    }
     /// Admit/coalesce a checkpoint operation without accepting a user message.
     pub async fn compact_session(
         &self,
@@ -1565,6 +1622,14 @@ fn elapsed_ms(started: std::time::Instant) -> u64 {
 fn scripted_unsupported(message: InboxMsg) {
     let error = || CoreError::Application("query unsupported by scripted worker".to_string());
     match message {
+        InboxMsg::PendingApprovals { ack } => {
+            let _ = ack.send(Ok(Vec::new()));
+        }
+        InboxMsg::ReplyApproval { ack, .. } | InboxMsg::RegisterApprovalConsumer { ack, .. } => {
+            let _ = ack.send(Err(CoreError::Application(
+                "approval unavailable in scripted runtime".into(),
+            )));
+        }
         InboxMsg::CompactSession { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
@@ -1719,6 +1784,9 @@ mod tests {
                 | CoreEvent::ToolArgumentStream { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
+                CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {
+                    panic!("unexpected permission request")
+                }
                 CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             }
         }
@@ -2005,6 +2073,9 @@ mod tests {
                 }
                 CoreEvent::TurnFinished { text, .. } => {
                     panic!("cancel must not finish text={text}")
+                }
+                CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {
+                    panic!("unexpected permission request")
                 }
                 CoreEvent::TextDelta { .. }
                 | CoreEvent::SessionTitleUpdated { .. }

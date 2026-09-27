@@ -206,6 +206,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         );
     }
     render_session(frame, state, theme, main);
+    crate::approval_view::render(frame, state, main);
     render_devtools(frame, theme, regions.devtools);
     render_toast(frame, state, theme, area);
     crate::dialog::render(frame, state);
@@ -282,6 +283,19 @@ fn session_main(state: &TuiState, area: Rect) -> Rect {
 }
 
 fn session_regions(state: &TuiState, area: Rect, terminal_height: u16) -> layout::SessionRegions {
+    if state.approvals.active().is_some() {
+        let mut regions = layout::dynamic_session_regions(area, 0, 0);
+        regions.transcript.height =
+            regions
+                .content
+                .height
+                .saturating_sub(crate::approval_view::inline_height(
+                    state,
+                    regions.content.width,
+                    state.detail_area().width,
+                ));
+        return regions;
+    }
     let input = prompt_lines(state, area.width);
     let input_height = (input.len() as u16)
         .min((terminal_height / 3).max(6))
@@ -507,6 +521,39 @@ fn render_deck_tabs(
             )),
             tab.rect,
         );
+        if state.tab_attention.contains(&tab.index) && tab.rect.width > 1 {
+            // session-tabs.tsx:121/1557 + tab-pulse.tsx:75-79/713:
+            // settled attention glow, composited over the actual tab surface.
+            let accent = theme.hue("accent", 200).unwrap_or(theme.primary());
+            for dx in 0..tab.rect.width {
+                let cell = &mut frame.buffer_mut()[(tab.rect.x + dx, tab.rect.y)];
+                let tail = tab.rect.width.saturating_sub(2).clamp(1, 12) as f32;
+                let t = (1.0 - f32::from(dx.saturating_sub(1)) / tail).clamp(0.0, 1.0);
+                let intensity = t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+                let glow = tint(cell.bg, accent, if selected { 0.7 } else { 1.0 });
+                cell.bg = tint(cell.bg, glow, 0.16 * intensity);
+                if dx >= 3 && cell.symbol() != " " {
+                    cell.fg = tint(cell.fg, glow, 0.12 * intensity);
+                }
+                if dx < 3 && cell.symbol() != " " {
+                    cell.fg = accent;
+                }
+            }
+            if state.chrome.tab_indicators == TabIndicators::Numbers {
+                continue;
+            }
+            let background = frame.buffer_mut()[(tab.rect.x + 1, tab.rect.y)].bg;
+            frame.render_widget(
+                Paragraph::new("!").style(Style::default().fg(accent).bg(background).add_modifier(
+                    if selected {
+                        Modifier::BOLD
+                    } else {
+                        Modifier::empty()
+                    },
+                )),
+                Rect::new(tab.rect.x + 1, tab.rect.y, 1, 1),
+            );
+        }
     }
     if let Some(add) = strip.add.filter(|rect| rect.width == 3) {
         // session-tabs.tsx:1744-1752: the entire " + " control, including
@@ -579,6 +626,9 @@ fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: 
     }
     let regions = session_regions(state, area, frame.area().height);
     render_transcript(frame, state, regions.transcript, frame.area().width);
+    if state.approvals.active().is_some() {
+        return;
+    }
     render_status(frame, state, theme, regions.status);
     render_prompt(
         frame,

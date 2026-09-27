@@ -103,6 +103,7 @@ struct ToastExpiry {
 /// Open TUI panel (bounded view state; one at a time).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TuiPanel {
+    Settings,
     MessageActions {
         message: oc_core::session::MessageId,
         seq: i64,
@@ -134,6 +135,10 @@ pub enum TuiPanel {
 /// Work the panel asked the binary to apply through the application API.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PanelIntent {
+    SetPermissionMode {
+        auto_once: bool,
+    },
+    ReplyApproval(oc_core::approval::ApprovalReply),
     CompactSession,
     ChangeConversation {
         action: oc_core::queries::ConversationAction,
@@ -502,6 +507,9 @@ const WHEEL_PRESENTATION: Duration = Duration::from_nanos(16_666_667);
 
 /// Bounded chat state on the shared handle, optionally attached to a session.
 pub struct TuiState {
+    pub approval_roots: BTreeSet<String>,
+    pub tab_attention: BTreeSet<usize>,
+    pub approvals: crate::approval_view::ApprovalView,
     pub chrome: oc_core::queries::TuiChrome,
     pub parent_id: Option<String>,
     /// New interactive launch, distinct from an explicitly attached session.
@@ -706,6 +714,9 @@ impl TuiState {
             click: None,
             session_title: None,
             auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
+            approvals: Default::default(),
+            approval_roots: Default::default(),
+            tab_attention: Default::default(),
             app,
             session,
             status: TuiStatus::Idle,
@@ -1322,6 +1333,18 @@ impl TuiState {
                     &self.panel,
                 );
             }
+            TuiPanel::Settings => vec![item(
+                "permissions".into(),
+                "Permissions".into(),
+                "Session",
+                if self.chrome.permissions_auto {
+                    "auto accept"
+                } else {
+                    "prompt"
+                }
+                .into(),
+                false,
+            )],
             TuiPanel::Variant => self
                 .picker
                 .as_ref()
@@ -1574,6 +1597,11 @@ impl TuiState {
     }
 
     pub fn terminal_key(&mut self, event: crossterm::event::KeyEvent) -> Option<KeyAction> {
+        if self.approvals.active().is_some() {
+            return self
+                .approvals
+                .terminal_key(event, &self.chrome.permission_shortcuts);
+        }
         self.conversation_key(event)
             .or_else(|| crate::events::map_key(event).filter(|action| *action != KeyAction::Leader))
     }
@@ -1591,6 +1619,13 @@ impl TuiState {
             self.open_variants();
         } else {
             self.close_panel();
+        }
+    }
+
+    /// Owner ACK returns Settings to its unfiltered main list.
+    pub fn permission_mode_applied(&mut self) {
+        if self.panel == TuiPanel::Settings {
+            self.select.reset();
         }
     }
 
@@ -2239,6 +2274,13 @@ impl TuiState {
     /// replaced (Model → Variant) the former owner is destroyed, and closing
     /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
+        if self.approvals.active().is_some() {
+            if !crate::shell::tab_region(self, area).contains((event.column, event.row).into()) {
+                self.tab_down = None;
+                return self.approvals.mouse(event, area);
+            }
+            self.approvals.cancel_pointer();
+        }
         use crate::dialog::DialogHit;
         if matches!(
             event.kind,
@@ -4061,6 +4103,10 @@ impl TuiState {
 
     /// Handle a bracketed paste as one bounded event (never per-char).
     pub fn handle_paste(&mut self, text: &str) -> KeyOutcome {
+        if self.approvals.active().is_some() {
+            self.approvals.paste(text);
+            return KeyOutcome::default();
+        }
         use unicode_segmentation::UnicodeSegmentation as _;
         if self.status == TuiStatus::Quit {
             return KeyOutcome::default();
@@ -4518,6 +4564,9 @@ impl TuiState {
     /// whether to display a note, apply an intent, or treat the input as
     /// consumed.
     pub async fn handle_key(&mut self, action: KeyAction) -> KeyOutcome {
+        if self.approvals.active().is_some() {
+            return self.approvals.key(action);
+        }
         self.poll_submission();
         if self.panel != TuiPanel::None {
             return self.handle_panel_key(action);
@@ -5311,6 +5360,8 @@ impl TuiState {
         self.leader = None;
         let mut outcome = KeyOutcome::default();
         match action {
+            CommandAction::OpenSettings => self.panel = TuiPanel::Settings,
+            CommandAction::OpenPermissions => self.panel = TuiPanel::Settings,
             CommandAction::UndoConversation | CommandAction::RedoConversation => {
                 unreachable!("returned before modal reset")
             }
@@ -5422,6 +5473,26 @@ impl TuiState {
     /// Panel navigation: Up/Down move the panel cursor, Enter chooses,
     /// Esc closes; text and paste belong to the focused modal search.
     pub fn handle_panel_key(&mut self, action: KeyAction) -> KeyOutcome {
+        if self.approvals.active().is_some() {
+            return self.approvals.key(action);
+        }
+        if self.panel == TuiPanel::Settings
+            && action == KeyAction::Cancel
+            && !self.select.query.is_empty()
+        {
+            self.select.reset();
+            self.changed_modal_query();
+            return KeyOutcome::default();
+        }
+        if self.panel == TuiPanel::Settings && matches!(action, KeyAction::Left | KeyAction::Right)
+        {
+            return KeyOutcome {
+                intent: Some(PanelIntent::SetPermissionMode {
+                    auto_once: !self.chrome.permissions_auto,
+                }),
+                ..Default::default()
+            };
+        }
         if self.panel == TuiPanel::Sessions {
             if matches!(action, KeyAction::Rename | KeyAction::DeleteOrQuit) {
                 let Some(id) = self.sessions.get(self.sessions_cursor).cloned() else {
@@ -5859,6 +5930,11 @@ impl TuiState {
                     });
                 }
             }
+            TuiPanel::Settings => {
+                outcome.intent = Some(PanelIntent::SetPermissionMode {
+                    auto_once: !self.chrome.permissions_auto,
+                });
+            }
             TuiPanel::Agents => match self.selected_agent() {
                 Some(id) => outcome.intent = Some(PanelIntent::SelectAgent { id }),
                 None => outcome.note = Some("no agent selected".to_string()),
@@ -6228,6 +6304,115 @@ impl TuiState {
 
     /// Apply disposable provider snapshots. Raw fragments never enter the
     /// argument parser, diff renderer, durable projection or tool executor.
+    pub fn project_pending_approvals(&mut self, requests: &[oc_core::approval::ApprovalRequest]) {
+        use oc_core::approval::ApprovalPreview;
+        let eligible: Vec<_> = requests
+            .iter()
+            .filter(|r| {
+                self.session
+                    .as_ref()
+                    .is_some_and(|s| s.0 == r.binding.session)
+                    && self
+                        .active_turn
+                        .as_ref()
+                        .is_some_and(|t| t.0 == r.binding.turn)
+            })
+            .collect();
+        for request in &eligible {
+            let present = self.live_parts.iter().any(|part| matches!(part, LivePart::Tool { card, .. } if card.op == request.binding.operation || card.op.splitn(3, ':').nth(2).and_then(|json| serde_json::from_str::<[String; 2]>(json).ok()).is_some_and(|ids| ids[1] == request.binding.call)));
+            if !present && self.live_parts.iter().filter(|p| matches!(p, LivePart::Tool { card, .. } if matches!(card.state.as_str(), "argument_stream" | "permission_pending"))).count() < oc_core::tool_stream::PENDING_TOOL_MAX {
+                let card = card_from_row(&ToolOpView { rowid: 0, op: request.binding.operation.clone(), name: request.action.clone(), state: "argument_stream".into(), input: None, output: None, output_bytes: 0, output_truncated: false, patch_effects: None });
+                self.live_parts.push(LivePart::Tool { card: Box::new(card), input: String::new() });
+            }
+        }
+        for part in &mut self.live_parts {
+            let LivePart::Tool { card, .. } = part else {
+                continue;
+            };
+            if !matches!(
+                card.state.as_str(),
+                "argument_stream" | "permission_pending"
+            ) {
+                continue;
+            }
+            let request = eligible.iter().find(|r| {
+                card.op == r.binding.operation
+                    || card
+                        .op
+                        .splitn(3, ':')
+                        .nth(2)
+                        .and_then(|json| serde_json::from_str::<[String; 2]>(json).ok())
+                        .is_some_and(|ids| ids[1] == r.binding.call)
+            });
+            let Some(request) = request else {
+                if card.state == "permission_pending" {
+                    card.state = "argument_stream".into();
+                }
+                continue;
+            };
+            // This is a disposable view of owner-prepared bytes, never an execution
+            // intent or a parser of unfinished provider argument fragments.
+            // Bind the presentation to its prepared operation so a rejection can
+            // reconcile without a Started/Linked event (neither may precede consent).
+            card.op.clone_from(&request.binding.operation);
+            card.state = "permission_pending".into();
+            card.input_preview.clear();
+            if let ApprovalPreview::Patch {
+                files,
+                total_files,
+                truncated,
+            } = &request.preview
+            {
+                card.files = files
+                    .iter()
+                    .take(crate::history::CARD_FILES)
+                    .map(|file| file.destination.as_ref().unwrap_or(&file.path).clone())
+                    .collect();
+                card.files_truncated = *truncated || *total_files > card.files.len();
+            }
+            card.render = match &request.preview {
+                ApprovalPreview::Shell { command, cwd } => {
+                    crate::tools::ToolRender::Shell(crate::tools::ShellRender {
+                        command: command.clone(),
+                        cwd: Some(cwd.clone()),
+                        ..Default::default()
+                    })
+                }
+                ApprovalPreview::Resource { values } if card.name == "read" => {
+                    crate::tools::ToolRender::Inline(crate::tools::InlineRender::Read {
+                        path: values.first().cloned().unwrap_or_default(),
+                    })
+                }
+                ApprovalPreview::Resource { values } if card.name == "webfetch" => {
+                    crate::tools::ToolRender::Inline(crate::tools::InlineRender::WebFetch {
+                        url: values.first().cloned().unwrap_or_default(),
+                    })
+                }
+                ApprovalPreview::Search { pattern, .. } if card.name == "glob" => {
+                    crate::tools::ToolRender::Inline(crate::tools::InlineRender::Glob {
+                        pattern: pattern.clone(),
+                        matches: None,
+                    })
+                }
+                ApprovalPreview::Search { pattern, .. } => {
+                    crate::tools::ToolRender::Inline(crate::tools::InlineRender::Grep {
+                        pattern: pattern.clone(),
+                        matches: None,
+                    })
+                }
+                _ => crate::tools::ToolRender::Inline(crate::tools::InlineRender::Generic {
+                    args: request
+                        .resources
+                        .iter()
+                        .take(4)
+                        .map(|resource| ("resource".into(), resource.clone()))
+                        .collect(),
+                }),
+            };
+        }
+        self.enforce_parts();
+    }
+
     pub fn apply_tool_argument_stream(
         &mut self,
         turn: &WorkerTurnId,
@@ -6264,11 +6449,22 @@ impl TuiState {
                     return;
                 }
                 if identity.round > self.pending_tool_round {
-                    self.discard_pending_tools();
+                    // Round-local provider drafts can expire. Owner-prepared
+                    // waits recovered ahead of this broadcast remain authoritative.
+                    for part in &mut self.live_parts {
+                        if matches!(part, LivePart::Tool { card, .. } if card.state == "argument_stream")
+                        {
+                            *part = LivePart::Vacant;
+                        }
+                    }
                     self.pending_tool_seen.clear();
                     self.pending_tool_round = identity.round;
                 }
                 let op = key(identity);
+                // A queue snapshot can recover the prepared card before older
+                // broadcast argument snapshots are drained. Never replace it
+                // with unfinished bytes or create a second card for that call.
+                if self.session.as_ref().and_then(|session| self.approvals.request_for_call(&session.0, &turn.0, &identity.call_id)).is_some_and(|request| self.live_parts.iter().any(|part| matches!(part, LivePart::Tool { card, .. } if card.state == "permission_pending" && (card.op == request.binding.operation || card.op.splitn(3, ':').nth(2).and_then(|json| serde_json::from_str::<[String; 2]>(json).ok()).is_some_and(|ids| ids[1] == identity.call_id))))) { return; }
                 let found = self.live_parts.iter().position(|part| matches!(part, LivePart::Tool { card, .. } if card.op == op && card.state == "argument_stream"));
                 if found.is_none()
                     && (self.pending_tool_seen.contains(&op)
@@ -6320,7 +6516,10 @@ impl TuiState {
                     let LivePart::Tool { card, .. } = part else {
                         continue;
                     };
-                    if card.state != "argument_stream" {
+                    if !matches!(
+                        card.state.as_str(),
+                        "argument_stream" | "permission_pending"
+                    ) {
                         continue;
                     }
                     if card.op == key {
@@ -6342,7 +6541,7 @@ impl TuiState {
             ToolStreamEvent::Clear { round } => {
                 let prefix = format!("pending:{round}:");
                 for part in &mut self.live_parts {
-                    if matches!(part, LivePart::Tool { card, .. } if card.state == "argument_stream" && card.op.starts_with(&prefix))
+                    if matches!(part, LivePart::Tool { card, .. } if matches!(card.state.as_str(), "argument_stream" | "permission_pending") && card.op.starts_with(&prefix))
                     {
                         *part = LivePart::Vacant;
                     }
@@ -6354,7 +6553,8 @@ impl TuiState {
 
     fn discard_pending_tools(&mut self) {
         for part in &mut self.live_parts {
-            if matches!(part, LivePart::Tool { card, .. } if card.state == "argument_stream") {
+            if matches!(part, LivePart::Tool { card, .. } if matches!(card.state.as_str(), "argument_stream" | "permission_pending"))
+            {
                 *part = LivePart::Vacant;
             }
         }
@@ -6421,7 +6621,22 @@ impl TuiState {
             let mut row = outcome;
             row.name = card.name.clone();
             row.input = Some(std::mem::take(input));
-            **card = card_from_row(&row);
+            let mut finished = card_from_row(&row);
+            // Reject never emits Started, so its transient card may have only
+            // owner-prepared targets rather than canonical arguments. Retain
+            // those labels, not a proposed diff or a claim of applied effects.
+            if finished.files.is_empty()
+                && matches!(state, "denied" | "cancelled")
+                && crate::history::permission_output(output).is_some()
+                && finished
+                    .patch_effects
+                    .as_ref()
+                    .is_none_or(|effects| effects.files.is_empty())
+            {
+                finished.files = card.files.clone();
+                finished.files_truncated = card.files_truncated;
+            }
+            **card = finished;
             return;
         }
         // The intent event was not observed (e.g. a late subscription): the
@@ -6820,6 +7035,22 @@ impl ScriptDriver {
             let event = tokio::time::timeout(timeout, self.rx.recv()).await;
             state.poll_submission();
             match event {
+                Ok(Ok(CoreEvent::PermissionAsked(_)))
+                | Ok(Ok(CoreEvent::PermissionResolved { .. })) => {
+                    if let Ok(pending) = state.app.pending_approvals().await {
+                        let requests = pending
+                            .into_iter()
+                            .filter(|r| {
+                                state
+                                    .session
+                                    .as_ref()
+                                    .is_some_and(|s| s.0 == r.binding.session)
+                            })
+                            .map(|r| (r, state.parent_id.is_some()))
+                            .collect();
+                        state.approvals.reconcile(requests);
+                    }
+                }
                 Ok(Ok(CoreEvent::Compaction(snapshot))) => state.apply_compaction(snapshot),
                 Ok(Ok(CoreEvent::SessionTitleUpdated { session, title })) => {
                     if state.attached_session() == Some(&session) {
@@ -12959,6 +13190,171 @@ mod tests {
     }
 
     /// A stale turn can never grow cards into the transcript.
+    #[tokio::test]
+    async fn permission_transient_uses_owner_prepared_resource_warning_without_intent() {
+        use super::{LivePart, Theme};
+        use oc_core::{approval::*, tool_stream::*};
+        let mut state = fresh_state("permission-transient").await;
+        let turn = WorkerTurnId("prepared-turn".into());
+        state.active_turn = Some(turn.clone());
+        state.status = TuiStatus::Streaming;
+        let identity = ToolStreamIdentity {
+            round: 1,
+            item_id: "item".into(),
+            call_id: "call".into(),
+        };
+        state.apply_tool_argument_stream(
+            &turn,
+            &ToolStreamEvent::Pending {
+                identity: identity.clone(),
+                name: "read".into(),
+                preview: "{\"path\":\"invented-fragment".into(),
+                truncated: false,
+            },
+        );
+        let request = ApprovalRequest {
+            id: 1,
+            binding: ApprovalBinding {
+                session: "permission-transient".into(),
+                turn: turn.0.clone(),
+                call: "call".into(),
+                operation: "real-operation".into(),
+                input_digest: "digest".into(),
+                location: "location".into(),
+                generation: 1,
+                agent: None,
+                agent_digest: None,
+            },
+            project: "project".into(),
+            action: "read".into(),
+            resources: vec!["prepared.txt".into()],
+            save_patterns: vec![],
+            preview: ApprovalPreview::Resource {
+                values: vec!["prepared.txt".into()],
+            },
+        };
+        state.project_pending_approvals(std::slice::from_ref(&request));
+        let LivePart::Tool { card, input } = &state.live_parts[0] else {
+            panic!("transient")
+        };
+        assert_eq!(card.state, "permission_pending");
+        assert!(input.is_empty() && card.input_preview.is_empty() && card.patch_effects.is_none());
+        let lines = crate::tools::tool_block(card, Theme::dark(), 80);
+        assert!(lines.iter().any(|l| {
+            l.spans().iter().any(|s| {
+                s.content().contains("prepared.txt")
+                    && s.style().fg == Some(Theme::dark().warning())
+            })
+        }));
+        assert!(!state.viewport().join("\n").contains("invented-fragment"));
+        state.apply_tool_argument_stream(
+            &turn,
+            &ToolStreamEvent::Linked {
+                identity,
+                op: "real-operation".into(),
+            },
+        );
+        state.apply_tool_started(
+            &turn,
+            "real-operation",
+            "read",
+            "{\"path\":\"prepared.txt\"}",
+        );
+        let LivePart::Tool { card, .. } = &state.live_parts[0] else {
+            panic!("intent")
+        };
+        assert_eq!(card.state, "started");
+        state.live_parts.clear();
+        state.project_pending_approvals(&[request]); // lost argument hint recovers only owner data
+        assert_eq!(state.live_parts.len(), 1);
+        state.apply_interrupted(&turn, "", 0);
+        assert!(!state.viewport().join("\n").contains("prepared.txt"));
+    }
+
+    #[tokio::test]
+    async fn rejected_prepared_patch_reconciles_without_started_or_duplicate_card() {
+        use super::LivePart;
+        use oc_core::approval::{ApprovalBinding, ApprovalPreview, ApprovalRequest};
+        use oc_core::patch::{DiffAlgorithm, FileEffect, PatchEffects, PatchOperation};
+        use oc_core::tool_stream::{ToolStreamEvent, ToolStreamIdentity};
+        let mut state = fresh_state("s-reject-patch").await;
+        let turn = WorkerTurnId("t-reject-patch".into());
+        state.active_turn = Some(turn.clone());
+        state.status = TuiStatus::Streaming;
+        state.apply_tool_argument_stream(
+            &turn,
+            &ToolStreamEvent::Pending {
+                identity: ToolStreamIdentity {
+                    round: 1,
+                    item_id: "item".into(),
+                    call_id: "call".into(),
+                },
+                name: "apply_patch".into(),
+                preview: "unfinished".into(),
+                truncated: false,
+            },
+        );
+        let request = ApprovalRequest {
+            id: 1,
+            binding: ApprovalBinding {
+                session: "s-reject-patch".into(),
+                turn: turn.0.clone(),
+                call: "call".into(),
+                operation: "prepared-operation".into(),
+                input_digest: "digest".into(),
+                location: "location".into(),
+                generation: 1,
+                agent: None,
+                agent_digest: None,
+            },
+            project: "project".into(),
+            action: "apply_patch".into(),
+            resources: vec!["approval.txt".into()],
+            save_patterns: vec!["approval.txt".into()],
+            preview: ApprovalPreview::Patch {
+                files: vec![FileEffect {
+                    algorithm: DiffAlgorithm::Minimal,
+                    operation: PatchOperation::Update,
+                    path: "approval.txt".into(),
+                    destination: None,
+                    additions: 1,
+                    deletions: 1,
+                    hunks: Vec::new(),
+                    truncated: false,
+                }],
+                total_files: 1,
+                truncated: false,
+            },
+        };
+        state.project_pending_approvals(&[request]);
+        state.project_pending_approvals(&[]); // Resolved before the terminal event.
+        let output = r#"{"status":"permission_rejected","feedback":null}"#;
+        state.apply_tool_finished_with_effects(
+            &turn,
+            "prepared-operation",
+            "apply_patch",
+            "denied",
+            output,
+            output.len() as i64,
+            false,
+            Some(PatchEffects::default()),
+        );
+        assert_eq!(state.live_parts.len(), 1);
+        let LivePart::Tool { card, .. } = &state.live_parts[0] else {
+            panic!("tool")
+        };
+        assert_eq!(card.op, "prepared-operation");
+        assert_eq!(card.state, "denied");
+        assert_eq!(card.files, ["approval.txt"]);
+        assert!(card.patch_effects.as_ref().unwrap().files.is_empty());
+        let shown = state.viewport().join("\n");
+        assert!(shown.contains("# Patch failed approval.txt"), "{shown}");
+        assert!(
+            !shown.contains("← Patched") && !shown.contains("Patching"),
+            "{shown}"
+        );
+    }
+
     #[tokio::test]
     async fn argument_stream_exact_identity_caps_reconcile_and_terminal_cleanup() {
         use oc_core::tool_stream::{

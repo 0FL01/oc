@@ -12,7 +12,10 @@
 //! neither is ever presented as success.
 
 use std::collections::BTreeMap;
+use std::fs::{File, OpenOptions};
 use std::io::Read;
+use std::os::fd::AsRawFd;
+use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 use std::os::unix::process::{CommandExt as _, ExitStatusExt as _};
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -107,6 +110,52 @@ pub struct Shell {
     root: PathBuf,
 }
 
+/// Open authority retained from admission through exec. Neither directory is
+/// reopened by pathname, including after the tool Started callback.
+#[derive(Debug)]
+pub struct PinnedCwd {
+    root: File,
+    cwd: File,
+    pub(crate) path: PathBuf,
+}
+impl PinnedCwd {
+    pub(crate) fn identity(&self) -> Result<[u64; 4], ShellError> {
+        let root = self.root.metadata().map_err(|_| ShellError::BadCwd)?;
+        let cwd = self.cwd.metadata().map_err(|_| ShellError::BadCwd)?;
+        Ok([root.dev(), root.ino(), cwd.dev(), cwd.ino()])
+    }
+}
+
+fn open_directory(path: &Path, mut directory: File) -> Result<File, ShellError> {
+    use std::ffi::CString;
+    use std::os::fd::FromRawFd;
+    use std::os::unix::ffi::OsStrExt;
+    for component in path.components() {
+        let Component::Normal(component) = component else {
+            if component == Component::RootDir {
+                continue;
+            }
+            return Err(ShellError::BadCwd);
+        };
+        let name = CString::new(component.as_bytes()).map_err(|_| ShellError::BadCwd)?;
+        // SAFETY: live parent descriptor and NUL-terminated single component;
+        // each ancestor is opened no-follow and retained before the next hop.
+        let fd = unsafe {
+            libc::openat(
+                directory.as_raw_fd(),
+                name.as_ptr(),
+                libc::O_PATH | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+            )
+        };
+        if fd < 0 {
+            return Err(ShellError::BadCwd);
+        }
+        // SAFETY: openat returned a new owned descriptor.
+        directory = unsafe { File::from_raw_fd(fd) };
+    }
+    Ok(directory)
+}
+
 impl Shell {
     /// Bind a trusted root (absolute). Data-root exclusion is enforced by
     /// the caller passing the project root, never the data root itself.
@@ -123,6 +172,31 @@ impl Shell {
     }
 
     /// Execute `argv` (no shell joining: `argv[0]` is the program).
+    pub(crate) fn preflight(&self, argv: &[String], cwd: &str) -> Result<PathBuf, ShellError> {
+        validate_argv(argv)?;
+        self.resolve_cwd(cwd)
+    }
+    pub(crate) fn pin_cwd(&self, argv: &[String], cwd: &str) -> Result<Arc<PinnedCwd>, ShellError> {
+        let path = self.preflight(argv, cwd)?;
+        let slash = OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_PATH | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
+            .open("/")
+            .map_err(|_| ShellError::BadCwd)?;
+        let root = open_directory(&self.root, slash)?;
+        let relative = path
+            .strip_prefix(&self.root)
+            .map_err(|_| ShellError::BadCwd)?;
+        let directory =
+            open_directory(relative, root.try_clone().map_err(|_| ShellError::BadCwd)?)?;
+        Ok(Arc::new(PinnedCwd {
+            root,
+            cwd: directory,
+            path,
+        }))
+    }
+
+    /// Execute a validated invocation under the supervisor.
     ///
     /// `parent_env` is the caller-observed environment (production passes
     /// `std::env::vars`); only allowlisted non-credential names reach the
@@ -137,18 +211,39 @@ impl Shell {
         limits: ShellLimits,
         cancel: &AtomicBool,
     ) -> Result<ShellOutcome, ShellError> {
+        self.execute_pinned(parent_env, argv, cwd, stdin, limits, cancel, None)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn execute_pinned(
+        &self,
+        parent_env: &BTreeMap<String, String>,
+        argv: &[String],
+        cwd: &str,
+        stdin: Option<&[u8]>,
+        limits: ShellLimits,
+        cancel: &AtomicBool,
+        approved: Option<&PinnedCwd>,
+    ) -> Result<ShellOutcome, ShellError> {
         validate_argv(argv)?;
         let stdin = stdin.unwrap_or_default();
         if stdin.len() > STDIN_CAP_BYTES {
             return Err(ShellError::StdinTooLarge);
         }
-        let cwd_abs = self.resolve_cwd(cwd)?;
+        let fallback;
+        let pinned = match approved {
+            Some(pinned) => pinned,
+            None => {
+                fallback = self.pin_cwd(argv, cwd)?;
+                &fallback
+            }
+        };
+        let cwd_fd = pinned.cwd.as_raw_fd();
         // The single deadline covers spawn, stdin write, execution and the
         // bounded drain/teardown window.
         let start = Instant::now();
         let mut cmd = Command::new(&argv[0]);
         cmd.args(&argv[1..]);
-        cmd.current_dir(&cwd_abs);
         cmd.stdin(if stdin.is_empty() {
             Stdio::null()
         } else {
@@ -164,8 +259,15 @@ impl Shell {
         // Both unsafe ops below are the single coupled pre-exec setup.
         #[allow(clippy::multiple_unsafe_ops_per_block)]
         unsafe {
-            cmd.pre_exec(|| {
-                libc::setsid();
+            cmd.pre_exec(move || {
+                if libc::fchdir(cwd_fd) != 0 {
+                    return Err(std::io::Error::last_os_error());
+                }
+                // Directory descriptors are O_CLOEXEC; exec closes both after
+                // the last use here. Parent Arc retains them until spawn ends.
+                if libc::setsid() < 0 {
+                    return Err(std::io::Error::last_os_error());
+                }
                 Ok(())
             });
         }

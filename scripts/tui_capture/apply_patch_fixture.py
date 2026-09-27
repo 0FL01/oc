@@ -73,20 +73,24 @@ def respond(handler, body, spec, emit):
     system = body.get('instructions','') + compaction_fixture.texts([x for x in items if x.get('role') in ('system','developer')])
     title = 'title generator' in system.lower() or (not body.get('tools') and 'title' in system.lower())
     user = compaction_fixture.texts([x for x in items if x.get('role')=='user'][-1:])
-    case = next((name for name in PATCHES if f'VIS35 {name}:' in user),None)
+    prefix = 'VIS36' if spec.get('permission') else 'VIS35'
+    patches = spec.get('permission_patches', PATCHES)
+    case = next((name for name in patches if f'{prefix} {name}:' in user),None)
     definitions = {x.get('name'):x for x in body.get('tools',[])}
-    name = 'apply_patch' if spec['origin']=='oc' else 'patch'
-    call_id = 'call_vis35_'+str(case)
+    name = spec.get('permission_calls',{}).get(case,{}).get('name', 'apply_patch' if spec['origin']=='oc' else 'patch')
+    call_id = 'call_'+prefix.lower()+'_'+str(case)
     results = [x for x in items if x.get('type')=='function_call_output' and x.get('call_id')==call_id]
     tool = not title and case is not None and not results
-    valid = handler.path=='/v1/responses' and body.get('stream') is True and body.get('model')=='fixture-model-1' and index<=32 and (title or case is not None)
+    valid = handler.path=='/v1/responses' and body.get('stream') is True and body.get('model')=='fixture-model-1' and index<=(40 if spec.get('permission') else 32) and (title or case is not None)
     if tool:
-        valid = valid and name in definitions and definitions[name].get('type')=='function' and definitions[name].get('parameters',{}).get('properties',{}).get('patchText',{}).get('type')=='string'
+        valid = valid and name in definitions and definitions[name].get('type')=='function'
+        if case not in spec.get('permission_calls',{}):
+            valid = valid and definitions.get(name,{}).get('parameters',{}).get('properties',{}).get('patchText',{}).get('type')=='string'
     emit({'kind':'provider','operation':'title' if title else 'patch','case':case,'index':index,'valid':valid,'request':body,'actual_results':results})
     if not valid:
         handler.send_error(400,'VIS35 contract rejected');return
-    text = 'VIS35 patch fixture' if title else f'VIS35-DONE-{case}'
-    arguments = {'patchText':'*** Begin Patch\n'+PATCHES[case]+'\n*** End Patch'} if tool else None
+    text = prefix+' patch fixture' if title else f'{prefix}-DONE-{case}'
+    arguments = spec.get('permission_calls',{}).get(case,{}).get('arguments', {'patchText':'*** Begin Patch\n'+str(patches.get(case))+'\n*** End Patch'}) if tool else None
     item = {'id':f'fc_vis35_{index}','type':'function_call','status':'completed','call_id':call_id,'name':name,'arguments':json.dumps(arguments)} if tool else {'id':f'msg_vis35_{index}','type':'message','role':'assistant','status':'completed','content':[{'type':'output_text','text':text,'annotations':[]}]}
     response = {'id':f'resp_vis35_{index}','object':'response','created_at':1700000000,'model':body['model'],'status':'in_progress','output':[],'error':None,'incomplete_details':None}
     handler.send_response(200);handler.send_header('Content-Type','text/event-stream');handler.end_headers()
@@ -102,7 +106,7 @@ def respond(handler, body, spec, emit):
             # Hold the actual argument stream, not a fabricated execution result.
             event({'type':'response.function_call_arguments.delta','item_id':item['id'],'output_index':0,'delta':item['arguments'][:16]})
             emit({'kind':'fixture_argument_delta','case':case,'call_id':call_id,'item_id':item['id'],'delta':item['arguments'][:16],'phase':'pending','monotonic_ns':time.monotonic_ns()})
-            time.sleep(8)
+            time.sleep(0 if spec.get('permission') else 8)
             event({'type':'response.function_call_arguments.delta','item_id':item['id'],'output_index':0,'delta':item['arguments'][16:]})
             emit({'kind':'fixture_argument_delta','case':case,'call_id':call_id,'item_id':item['id'],'delta':item['arguments'][16:],'phase':'finish','monotonic_ns':time.monotonic_ns()})
         else:

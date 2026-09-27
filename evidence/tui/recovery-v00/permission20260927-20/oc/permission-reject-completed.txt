@@ -1,0 +1,40 @@
+   VIS36 patch fixture           +                                                                                       
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃  VIS36 once: execute the supplied ordinary function patch once.                                                      
+  ┃                                                                                                                      
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃  ← Patched approval.txt                                                                                              
+  ┃                                                                                                                      
+  ┃    1 - before approval                                                                                               
+  ┃    1 + new approved fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words   
+  ┃        fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap words fixture wrap   
+  ┃        words fixture wrap words                                                                                      
+  ┃                                                                                                                      
+                                                                                                                         
+     VIS36-DONE-once                                                                                                     
+                                                                                                                         
+     Build · MiMo-V2.6-Flash Free · 14.3s                                                                                
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃  VIS36 reject: execute the supplied ordinary function patch once.                                                    
+  ┃                                                                                                                      
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃  # Patch failed                                                                                                      
+  ┃  The user declined this tool call                                                                                    
+  ┃                                                                                                                      
+                                                                                                                         
+     Build · MiMo-V2.6-Flash Free · 3.5s · interrupted                                                                   
+                                                                                                                         
+                                                                                                                         
+                                                                                                                         
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃                                                                                                                      
+  ┃                                                                                                                      
+  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                                                           
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/permission20260927-20/project  1.3K (1%)  ctrl+p commands  
+                                                                                                                         

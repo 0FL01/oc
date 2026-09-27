@@ -252,8 +252,14 @@ fn parse(value: &serde_json::Value, field: &str) -> Result<Vec<Rule>, ConfigErro
 pub fn wildcard(input: &str, pattern: &str) -> bool {
     let input = input.replace('\\', "/");
     let pattern = pattern.replace('\\', "/");
+    wildcard_preserving_identity(&input, &pattern)
+}
+
+/// Saved owner patterns operate on actual Unix resource identities, not config
+/// spelling normalization. Literal backslashes must never become separators.
+pub(crate) fn wildcard_preserving_identity(input: &str, pattern: &str) -> bool {
     if let Some(prefix) = pattern.strip_suffix(" *")
-        && wildcard(&input, prefix)
+        && wildcard_preserving_identity(input, prefix)
     {
         return true;
     }

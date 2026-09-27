@@ -20,6 +20,8 @@ use oc_adapters::runtime::{
 };
 use oc_adapters::storage::Db;
 use oc_core::context_plan::ProtectedSpec;
+#[path = "fixtures/approval_lifecycle.rs"]
+mod approval_lifecycle;
 
 fn sse_delta(text: &str) -> String {
     format!(
@@ -511,10 +513,7 @@ async fn fresh_turn_commits_root_binding_selection_before_ack_and_streams_normal
     );
     assert_eq!(deltas, [(report.turn_id.clone(), "answer".into())]);
     assert_eq!(report.calls[0].output, "error: denied read");
-    assert_eq!(
-        *callback_order.lock().unwrap(),
-        ["accepted", "started", "finished"]
-    );
+    assert_eq!(*callback_order.lock().unwrap(), ["accepted", "finished"]);
     assert_eq!(*hits.lock().unwrap(), 2);
     assert_eq!(requests.lock().unwrap()[0]["model"], "m");
     assert_eq!(
@@ -1299,6 +1298,9 @@ async fn resource_permissions_gate_real_dispatch_before_side_effects() {
     .unwrap();
     let runtime = runtime_of(&harness, generation, Vec::new());
     runtime.create_session("resources").unwrap();
+    let (events, _) = tokio::sync::broadcast::channel(32);
+    runtime.set_approval_events(&events);
+    runtime.register_approval_consumer(false);
     let calls = [
         ("read-ok", "read", serde_json::json!({"path": "safe/input"})),
         (
@@ -1346,16 +1348,29 @@ async fn resource_permissions_gate_real_dispatch_before_side_effects() {
         vec![script, sse_delta("done") + &sse_completed()],
         Duration::ZERO,
     );
-    let report = runtime
-        .run_turn(params(
-            "resources",
-            "tools",
-            &harness,
-            provider_of(&base),
-            &NO_CANCEL,
-        ))
-        .await
-        .unwrap();
+    let running = runtime.run_turn(params(
+        "resources",
+        "tools",
+        &harness,
+        provider_of(&base),
+        &NO_CANCEL,
+    ));
+    let rejecting = async {
+        for _ in 0..2 {
+            let request = approval_lifecycle::next_request(&runtime).await;
+            runtime
+                .reply_approval(oc_core::approval::ApprovalReply {
+                    id: request.id,
+                    binding: request.binding,
+                    decision: oc_core::approval::ApprovalDecision::Reject {
+                        feedback: Some("approval required; do not execute this call".into()),
+                    },
+                })
+                .unwrap();
+        }
+    };
+    let (report, ()) = tokio::join!(running, rejecting);
+    let report = report.unwrap();
     assert_eq!(report.status, TurnStatus::Completed);
     assert_eq!(
         report
@@ -1367,9 +1382,9 @@ async fn resource_permissions_gate_real_dispatch_before_side_effects() {
             "completed",
             "failed",
             "completed",
-            "failed",
+            "denied",
             "completed",
-            "failed",
+            "denied",
             "failed",
             "failed"
         ],
@@ -2625,10 +2640,15 @@ async fn denied_and_ask_tools_fail_visibly() {
         runtime.create_session("s").expect("create");
         let tool = sse_tool_call("i1", "bash", &serde_json::json!({"argv": ["echo", "x"]}));
         let (base, _) = Fake::start(vec![tool + &sse_completed()], Duration::ZERO);
-        let report = runtime
+        let result = runtime
             .run_turn(params("s", "run", &harness, provider_of(&base), &NO_CANCEL))
-            .await
-            .expect("turn");
+            .await;
+        if permission == Permission::Ask {
+            assert!(matches!(result, Err(RuntimeError::ApprovalRequired { .. })));
+            assert!(harness.db.list_tool_ops("s").unwrap().is_empty());
+            continue;
+        }
+        let report = result.expect("turn");
         assert_eq!(report.calls[0].state, "failed");
         assert!(
             report.calls[0].output.contains("denied"),
@@ -6249,7 +6269,9 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             | CoreEvent::ToolArgumentStream { .. }
             | CoreEvent::ToolCallFinished { .. }
             | CoreEvent::TurnInterrupted { .. }
-            | CoreEvent::Compaction(_) => {}
+            | CoreEvent::Compaction(_)
+            | CoreEvent::PermissionAsked(_)
+            | CoreEvent::PermissionResolved { .. } => {}
         }
     };
     assert_eq!(reasoning, "**Planning**\n\n", "reasoning delta surfaces");
@@ -6662,6 +6684,7 @@ async fn check_application_patch_replay(line: &str, count: usize) {
             | CoreEvent::TurnInterrupted { .. }
             | CoreEvent::Compaction(_) => {}
             CoreEvent::ToolArgumentStream { event, .. } => argument_events.push(event),
+            CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {}
         }
     }
     let (started_op, started_name, started_input) = started.expect("tool call started event");

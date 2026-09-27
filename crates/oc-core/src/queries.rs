@@ -396,6 +396,9 @@ pub struct CatalogSnapshot {
 /// Presentation-only settings; no runtime policy or credentials.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct TuiChrome {
+    /// Admitted CLI session permission preference. Consumer registration is explicit.
+    pub permissions_auto: bool,
+    pub permission_shortcuts: PermissionShortcuts,
     /// Ordered, value-free diagnostics from admitted configuration sources.
     pub config_diagnostics: Vec<ConfigDiagnostic>,
     /// Canonical application Location, unknown in mock workers.
@@ -428,6 +431,20 @@ pub struct TuiChrome {
 pub struct DiffSettings {
     pub view: DiffView,
     pub wrap: DiffWrap,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PermissionShortcuts {
+    pub fullscreen: String,
+    pub exit: String,
+}
+impl Default for PermissionShortcuts {
+    fn default() -> Self {
+        Self {
+            fullscreen: "ctrl+f".into(),
+            exit: "ctrl+c,ctrl+d,ctrl+x q".into(),
+        }
+    }
 }
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum DiffView {

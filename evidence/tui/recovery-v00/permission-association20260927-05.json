@@ -1,0 +1,121 @@
+{
+  "current_head": "a0b8522bb439e0a58aa75c152690d4153a6207ae",
+  "current_binary_sha256": "c116b0d450420eb93e9531239260bdcef57c32828eed180bff93cc280d550008",
+  "runs": [
+    {
+      "name": "permission20260927-37",
+      "captured_head": "d77faa6a38abf2306e50981ad9df39c7b91aa26d",
+      "source_manifest_sha256": "34846624caf7f068ea91af2dbe35d11c4eace19e8977656836292941ed4c4b10",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "c586c4a564a58d676a9ee525a1322f36c4ecb658730b6281b3a0c95e986d1240",
+      "binary_sha256": "c116b0d450420eb93e9531239260bdcef57c32828eed180bff93cc280d550008",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-38",
+      "captured_head": "a0b8522bb439e0a58aa75c152690d4153a6207ae",
+      "source_manifest_sha256": "34846624caf7f068ea91af2dbe35d11c4eace19e8977656836292941ed4c4b10",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "c586c4a564a58d676a9ee525a1322f36c4ecb658730b6281b3a0c95e986d1240",
+      "binary_sha256": "c116b0d450420eb93e9531239260bdcef57c32828eed180bff93cc280d550008",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-39",
+      "captured_head": "a0b8522bb439e0a58aa75c152690d4153a6207ae",
+      "source_manifest_sha256": "34846624caf7f068ea91af2dbe35d11c4eace19e8977656836292941ed4c4b10",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "c586c4a564a58d676a9ee525a1322f36c4ecb658730b6281b3a0c95e986d1240",
+      "binary_sha256": "c116b0d450420eb93e9531239260bdcef57c32828eed180bff93cc280d550008",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-40",
+      "captured_head": "a0b8522bb439e0a58aa75c152690d4153a6207ae",
+      "source_manifest_sha256": "34846624caf7f068ea91af2dbe35d11c4eace19e8977656836292941ed4c4b10",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "c586c4a564a58d676a9ee525a1322f36c4ecb658730b6281b3a0c95e986d1240",
+      "binary_sha256": "c116b0d450420eb93e9531239260bdcef57c32828eed180bff93cc280d550008",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-41",
+      "captured_head": "a0b8522bb439e0a58aa75c152690d4153a6207ae",
+      "source_manifest_sha256": "34846624caf7f068ea91af2dbe35d11c4eace19e8977656836292941ed4c4b10",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "c586c4a564a58d676a9ee525a1322f36c4ecb658730b6281b3a0c95e986d1240",
+      "binary_sha256": "c116b0d450420eb93e9531239260bdcef57c32828eed180bff93cc280d550008",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    },
+    {
+      "name": "permission20260927-42",
+      "captured_head": "a0b8522bb439e0a58aa75c152690d4153a6207ae",
+      "source_manifest_sha256": "34846624caf7f068ea91af2dbe35d11c4eace19e8977656836292941ed4c4b10",
+      "manifest_hash_valid": true,
+      "rust_inputs_sha256": "c586c4a564a58d676a9ee525a1322f36c4ecb658730b6281b3a0c95e986d1240",
+      "binary_sha256": "c116b0d450420eb93e9531239260bdcef57c32828eed180bff93cc280d550008",
+      "build": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked"
+          ],
+          "exit_code": 0
+        }
+      ],
+      "current_mismatches": []
+    }
+  ],
+  "scope": "Only these source-built captures; no older evidence qualifies this source."
+}
