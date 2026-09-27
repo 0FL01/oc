@@ -1,0 +1,926 @@
+{
+  "status": "OBSERVED_ROLE_AND_VISIBLE_HINT_CONTRACTS",
+  "full_visual_gate": "NOT_PASS",
+  "runs": {
+    "paired-default-fresh": {
+      "upstream": {
+        "roles": [
+          {
+            "stage": "normal",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "roles": {
+              "VIS11": "#808080",
+              "┃": "#484848",
+              "Build": "#484848",
+              "MiMo-V2.6-Flash Free": "#808080",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "chips": [
+          {
+            "stage": "normal",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "visible_commands_prefix": "ctrl+x"
+      },
+      "oc": {
+        "roles": [
+          {
+            "stage": "normal",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "roles": {
+              "VIS11": "#808080",
+              "┃": "#484848",
+              "Build": "#484848",
+              "MiMo-V2.6-Flash Free": "#808080",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "chips": [
+          {
+            "stage": "normal",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 29,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 29,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 29,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "visible_commands_prefix": "ctrl+x"
+      }
+    },
+    "paired-nested-fresh": {
+      "upstream": {
+        "roles": [
+          {
+            "stage": "normal",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "roles": {
+              "VIS11": "#808080",
+              "┃": "#484848",
+              "Build": "#484848",
+              "MiMo-V2.6-Flash Free": "#808080",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "chips": [
+          {
+            "stage": "normal",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "visible_commands_prefix": "ctrl+x"
+      },
+      "oc": {
+        "roles": [
+          {
+            "stage": "normal",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "roles": {
+              "VIS11": "#808080",
+              "┃": "#484848",
+              "Build": "#484848",
+              "MiMo-V2.6-Flash Free": "#808080",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "chips": [
+          {
+            "stage": "normal",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 29,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 29,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 29,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "visible_commands_prefix": "ctrl+x"
+      }
+    },
+    "paired-configured-fresh": {
+      "upstream": {
+        "roles": [
+          {
+            "stage": "normal",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "roles": {
+              "VIS11": "#808080",
+              "┃": "#484848",
+              "Build": "#484848",
+              "MiMo-V2.6-Flash Free": "#808080",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "chips": [
+          {
+            "stage": "normal",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "visible_commands_prefix": "ctrl+g"
+      },
+      "oc": {
+        "roles": [
+          {
+            "stage": "normal",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "roles": {
+              "VIS11": "#808080",
+              "┃": "#484848",
+              "Build": "#484848",
+              "MiMo-V2.6-Flash Free": "#808080",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "chips": [
+          {
+            "stage": "normal",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 29,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 29,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 29,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "visible_commands_prefix": "ctrl+g"
+      }
+    },
+    "paired-precedence-fresh": {
+      "upstream": {
+        "roles": [
+          {
+            "stage": "normal",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "roles": {
+              "VIS11": "#808080",
+              "┃": "#484848",
+              "Build": "#484848",
+              "MiMo-V2.6-Flash Free": "#808080",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "chips": [
+          {
+            "stage": "normal",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "visible_commands_prefix": "ctrl+g"
+      },
+      "oc": {
+        "roles": [
+          {
+            "stage": "normal",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "roles": {
+              "VIS11": "#808080",
+              "┃": "#484848",
+              "Build": "#484848",
+              "MiMo-V2.6-Flash Free": "#808080",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "chips": [
+          {
+            "stage": "normal",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 29,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 29,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 29,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "visible_commands_prefix": "ctrl+g"
+      }
+    },
+    "paired-legacy-v1-02-fresh": {
+      "upstream": {
+        "roles": [
+          {
+            "stage": "normal",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "roles": {
+              "VIS11": "#808080",
+              "┃": "#484848",
+              "Build": "#484848",
+              "MiMo-V2.6-Flash Free": "#808080",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "chips": [
+          {
+            "stage": "normal",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 33,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "visible_commands_prefix": "ctrl+g"
+      },
+      "oc": {
+        "roles": [
+          {
+            "stage": "normal",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "roles": {
+              "VIS11": "#808080",
+              "┃": "#484848",
+              "Build": "#484848",
+              "MiMo-V2.6-Flash Free": "#808080",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 77,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "roles": {
+              "VIS11": "#eeeeee",
+              "┃": "#5c9cf5",
+              "Build": "#5c9cf5",
+              "MiMo-V2.6-Flash Free": "#eeeeee",
+              "OpenCode Zen": "#808080",
+              "fast": "#f5a742"
+            },
+            "cursor": {
+              "x": 78,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "chips": [
+          {
+            "stage": "normal",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 29,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "pending",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 29,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          },
+          {
+            "stage": "restored",
+            "fg": "#0a0a0a",
+            "bg": "#f5a742",
+            "cursor": {
+              "x": 29,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            }
+          }
+        ],
+        "visible_commands_prefix": "ctrl+g"
+      }
+    }
+  }
+}

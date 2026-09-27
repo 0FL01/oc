@@ -189,6 +189,10 @@ class Provider(BaseHTTPRequestHandler):
                   ('GEOMETRY-TURN-TWO: tool read completed.' if (spec.get('two_turn') or spec.get('models_interaction')) and second else
                   'GEOMETRY-SECOND: tool read completed.' if second else answer))
         expected_prompt = second_prompt if (spec.get('two_turn') or spec.get('models_interaction')) and second and not is_title else prompt
+        if spec.get('leader_pending'):
+            leader_prompts = ['VIS11 full draft αβ caret-middle preserving every word',
+                              'VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded actual requestord']
+            expected_prompt = next((text for text in leader_prompts if text in serialized), leader_prompts[0])
         valid = valid and (is_title or expected_prompt in serialized)
         profile_prompt_present = profile_prompt is not None and profile_prompt in system
         if profile_id and not is_title:
@@ -209,7 +213,9 @@ class Provider(BaseHTTPRequestHandler):
                    'registered_tools': [x.get('name') for x in body.get('tools', [])],
                    'tool_result_count': len(tool_results),
                    'fixture_content_returned': any('fixture-content' in str(x.get('output', '')) for x in tool_results),
-                   'request_top_level_keys': sorted(body)}
+                    'request_top_level_keys': sorted(body)}
+        if spec.get('leader_pending'):
+            record['actual_input'] = body.get('input')
         if bounded:
             tools = body.get('tools', [])
             record['tool_schemas'] = {x.get('name'): x.get('parameters') for x in tools}
@@ -489,7 +495,28 @@ if spec.get('revert_redo'):
     cli_config['keybinds'] = {'session.redo':'<leader>r'}
     emit({'kind':'revert_redo_fixture_config','snapshots':False,'cli_keybinds':cli_config['keybinds'],
           'files':['config/opencode/opencode.json','config/opencode/cli.json']})
+if spec.get('leader_pending'):
+    cli_config['session']['tps'] = False
+    mode = spec.get('leader_config', 'default')
+    if mode not in ('default', 'nested'):
+        cli_config['keybinds'] = {'leader':'ctrl+g', 'command.palette.show':'<leader>p'}
+        if mode == 'legacy-v1' and spec['origin'] == 'oc':
+            cli_config['keybinds'] = {'leader':'ctrl+g', 'command_list':'<leader>p'}
+    if mode in ('configured', 'nested'):
+        cli_config['leader'] = {'timeout':1200}
+    if mode in ('legacy', 'legacy-v1'):
+        cli_config['leader_timeout'] = 1400
+    if mode == 'precedence':
+        cli_config['leader'] = {'timeout':1800}
+        cli_config['leader_timeout'] = 600
+    emit({'kind':'leader_fixture_config','mode':mode,'cli_config':cli_config})
 (home / 'config/opencode/cli.json').write_text(json.dumps(cli_config))
+if spec.get('leader_pending') and spec.get('leader_config') == 'legacy-v1' and spec['origin'] == 'upstream':
+    (home / 'config/opencode/cli.json').unlink()
+    legacy = {'theme':'opencode','leader_timeout':1400,'keybinds':{'leader':'ctrl+g','command_list':'<leader>p'},
+              'attention':{'notifications':False,'sound':False},'cursor':{'style':'block','blinking':False}}
+    (home / 'config/opencode/tui.json').write_text(json.dumps(legacy))
+    emit({'kind':'leader_legacy_fixture_config','tui_config':legacy})
 (home / 'config/opencode/opencode.json').write_text(json.dumps(config))
 if spec.get('startup_error'):
     (home / 'config/opencode/opencode.json').write_text('{"model":"DO-NOT-LEAK-KEY", INVALID}')
@@ -665,7 +692,7 @@ try:
                             wheel_release.set()
                         elif command['kind'] == 'input':
                             os.write(master, base64.b64decode(command['data']))
-                            if spec.get('wheel_probe'):
+                            if spec.get('wheel_probe') or spec.get('leader_pending'):
                                 emit({'kind':'input_written','at_ns':time.monotonic_ns(),'base64':command['data']})
                         elif command['kind'] == 'resize':
                             fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', command['rows'], command['columns'], 0, 0))

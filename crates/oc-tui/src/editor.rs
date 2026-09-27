@@ -472,13 +472,19 @@ impl Editor {
             })
             .map(|&(a, b)| (raw_to_visual(a, &map), raw_to_visual(b, &map)))
             .collect();
-        layout_with_mentions(
+        let chips: Vec<_> = map
+            .iter()
+            .map(|&(_, _, start, end)| (start, end - 1))
+            .collect();
+        layout_wrapped(
             &visible,
             raw_to_visual(self.cursor, &map),
             self.selected()
                 .map(|(a, b)| (raw_to_visual(a, &map), raw_to_visual(b, &map))),
             width,
             &mentions,
+            false,
+            &chips,
         )
     }
     /// Textarea layout preserves raw offsets/selection while preferring whole words.
@@ -487,7 +493,7 @@ impl Editor {
         text: &str,
         width: usize,
     ) -> (Vec<PromptRow>, (usize, usize)) {
-        layout_wrapped(text, self.cursor, self.selected(), width, &[], true)
+        layout_wrapped(text, self.cursor, self.selected(), width, &[], true, &[])
     }
 
     pub fn chip_count(&self) -> usize {
@@ -719,6 +725,8 @@ fn word_right(text: &str, pos: usize) -> usize {
 pub struct PromptRow {
     pub text: String,
     pub spans: Vec<(String, bool, bool)>,
+    /// One semantic paste-chip flag per span; derived from actual editor chips.
+    pub chip_spans: Vec<bool>,
 }
 #[cfg(test)]
 pub fn layout(
@@ -737,7 +745,7 @@ fn layout_with_mentions(
     width: usize,
     mentions: &[(usize, usize)],
 ) -> (Vec<PromptRow>, (usize, usize)) {
-    layout_wrapped(text, cursor, selection, width, mentions, false)
+    layout_wrapped(text, cursor, selection, width, mentions, false, &[])
 }
 
 fn layout_wrapped(
@@ -747,11 +755,13 @@ fn layout_wrapped(
     width: usize,
     mentions: &[(usize, usize)],
     words: bool,
+    chips: &[(usize, usize)],
 ) -> (Vec<PromptRow>, (usize, usize)) {
     let width = width.max(1);
     let mut rows = vec![PromptRow {
         text: String::new(),
         spans: Vec::new(),
+        chip_spans: Vec::new(),
     }];
     let mut column = 0;
     let mut caret = (0, 0);
@@ -763,6 +773,7 @@ fn layout_wrapped(
             rows.push(PromptRow {
                 text: String::new(),
                 spans: Vec::new(),
+                chip_spans: Vec::new(),
             });
             column = 0;
             continue;
@@ -786,6 +797,7 @@ fn layout_wrapped(
             rows.push(PromptRow {
                 text: String::new(),
                 spans: Vec::new(),
+                chip_spans: Vec::new(),
             });
             column = 0;
             if offset == cursor {
@@ -797,14 +809,19 @@ fn layout_wrapped(
             .get(mentions.partition_point(|&(_, end)| end <= offset))
             .is_some_and(|&(start, _)| start <= offset);
         let row = rows.last_mut().expect("one row");
+        let chip = chips
+            .iter()
+            .any(|&(start, end)| offset >= start && offset < end);
         row.text.push_str(grapheme);
         if let Some((last, was_selected, was_mentioned)) = row.spans.last_mut()
             && *was_selected == selected
             && *was_mentioned == mentioned
+            && row.chip_spans.last() == Some(&chip)
         {
             last.push_str(grapheme);
         } else {
             row.spans.push((grapheme.to_string(), selected, mentioned));
+            row.chip_spans.push(chip);
         }
         column += cells;
     }
@@ -813,6 +830,7 @@ fn layout_wrapped(
             rows.push(PromptRow {
                 text: String::new(),
                 spans: Vec::new(),
+                chip_spans: Vec::new(),
             });
             caret = (rows.len() - 1, 0);
         } else {

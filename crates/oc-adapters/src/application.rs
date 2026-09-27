@@ -3381,13 +3381,18 @@ mod review_tests {
         });
         std::fs::write(global.join("opencode.json"), model.to_string()).unwrap();
         std::fs::write(
+            global.join("cli.json"),
+            r#"{"keybinds":{"leader":"ctrl+g","command.palette.show":"<leader>p"}}"#,
+        )
+        .unwrap();
+        std::fs::write(
             global.join("opencode.jsonc"),
-            r#"{"terminal":{"copy":"manual"},"animations":false}"#,
+            r#"{"terminal":{"copy":"manual"},"animations":false,"leader_timeout":500}"#,
         )
         .unwrap();
         std::fs::write(
             b.join("opencode.jsonc"),
-            r#"{"terminal":{"copy":"select"},"animations":true}"#,
+            r#"{"terminal":{"copy":"select"},"animations":true,"leader":{"timeout":321}}"#,
         )
         .unwrap();
         let env = BTreeMap::from([(
@@ -3398,6 +3403,11 @@ mod review_tests {
         let initial = app.catalog().await.unwrap();
         assert_eq!(initial.chrome.terminal_copy, Some(TerminalCopyMode::Manual));
         assert_eq!(initial.chrome.animations, Some(false));
+        assert_eq!(initial.chrome.leader_timeout_ms(), 500);
+        assert_eq!(
+            initial.chrome.command_palette_shortcut.as_deref(),
+            Some("ctrl+g p")
+        );
 
         std::fs::write(b.join("opencode.jsonc"), r#"{"animations":"invalid"}"#).unwrap();
         let failure = app
@@ -3414,7 +3424,7 @@ mod review_tests {
         assert_eq!(app.catalog().await.unwrap(), initial);
         std::fs::write(
             b.join("opencode.jsonc"),
-            r#"{"terminal":{"copy":"select"},"animations":true}"#,
+            r#"{"terminal":{"copy":"select"},"animations":true,"leader":{"timeout":321}}"#,
         )
         .unwrap();
         let switched = app
@@ -3430,6 +3440,7 @@ mod review_tests {
             switched.catalog.chrome.terminal_copy
         );
         assert_eq!(switched.catalog.chrome.animations, Some(true));
+        assert_eq!(switched.catalog.chrome.leader_timeout_ms(), 321);
         assert_eq!(app.catalog().await.unwrap().chrome.animations, Some(true));
 
         std::fs::write(b.join("opencode.jsonc"), r#"{"animations":null}"#).unwrap();
@@ -3464,6 +3475,7 @@ mod review_tests {
             Some(TerminalCopyMode::Manual)
         );
         assert_eq!(reloaded.catalog.chrome.animations, Some(false));
+        assert_eq!(reloaded.catalog.chrome.leader_timeout_ms(), 500);
         assert_eq!(
             app.catalog().await.unwrap().chrome.terminal_copy,
             reloaded.catalog.chrome.terminal_copy
@@ -3483,6 +3495,7 @@ mod review_tests {
         assert_eq!(unconfigured.catalog.chrome.terminal_copy, None);
         assert_eq!(unconfigured.catalog.chrome.animations, None);
         assert!(unconfigured.catalog.chrome.animations_enabled());
+        assert_eq!(unconfigured.catalog.chrome.leader_timeout_ms(), 2000);
         app.shutdown().await.unwrap();
         guard.join().await.unwrap();
     }

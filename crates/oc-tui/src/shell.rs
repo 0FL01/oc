@@ -1177,9 +1177,18 @@ fn render_prompt(
     terminal_width: u16,
 ) {
     let prompt_bg = theme.decrease(theme.background_panel());
-    let border_style = Style::default().fg(state
-        .active_agent()
-        .map_or(theme.border(), |a| state.agent_color(Some(a))));
+    let border_style = Style::default().fg(if state.leader_pending() {
+        theme.border()
+    } else {
+        state
+            .active_agent()
+            .map_or(theme.border(), |a| state.agent_color(Some(a)))
+    });
+    let input_fg = if state.leader_pending() {
+        theme.text_muted()
+    } else {
+        theme.text()
+    };
     if body.height > 0 && body.width > 0 {
         frame.render_widget(
             Block::default()
@@ -1214,12 +1223,22 @@ fn render_prompt(
                     crate::styled::Line::new(
                         row.spans
                             .into_iter()
-                            .map(|(text, selected, mentioned)| {
+                            .zip(row.chip_spans)
+                            .map(|((text, selected, mentioned), chip)| {
                                 crate::styled::Span::styled(
                                     text,
-                                    if selected {
+                                    if chip {
+                                        let style = Style::default()
+                                            .fg(theme.background())
+                                            .bg(theme.warning());
+                                        if selected {
+                                            style.add_modifier(Modifier::REVERSED)
+                                        } else {
+                                            style
+                                        }
+                                    } else if selected {
                                         Style::default()
-                                            .fg(theme.text())
+                                            .fg(input_fg)
                                             .add_modifier(Modifier::REVERSED)
                                     } else if mentioned {
                                         // `generateSyntax`: extmark.file uses
@@ -1228,7 +1247,7 @@ fn render_prompt(
                                             .fg(theme.warning())
                                             .add_modifier(Modifier::BOLD)
                                     } else {
-                                        Style::default().fg(theme.text())
+                                        Style::default().fg(input_fg)
                                     },
                                 )
                             })
@@ -1413,13 +1432,21 @@ fn metadata_line(
         (false, "")
     });
     let muted = Style::default().fg(theme.text_muted());
-    let text = Style::default().fg(theme.text());
+    let text = Style::default().fg(if state.leader_pending() {
+        theme.text_muted()
+    } else {
+        theme.text()
+    });
     let gap = Style::default().fg(Color::Rgb(255, 255, 255));
     let mut spans: Vec<Span<'static>> = Vec::new();
     if let Some(agent) = agent {
         spans.push(Span::styled(
             agent_label.clone().unwrap_or_default(),
-            Style::default().fg(state.agent_color(Some(agent))),
+            Style::default().fg(if state.leader_pending() {
+                theme.border()
+            } else {
+                state.agent_color(Some(agent))
+            }),
         ));
     }
     if show_auto {
@@ -1511,6 +1538,15 @@ fn footer_line(
 ) -> Line<'static> {
     let muted = Style::default().fg(theme.text_muted());
     let mut hints = Vec::new();
+    let commands_binding = state
+        .chrome
+        .command_palette_shortcut
+        .as_deref()
+        .unwrap_or(COMMANDS_HINT.0)
+        .split(',')
+        .next()
+        .unwrap_or_default()
+        .trim();
     let commands_visible;
     if let Some((tokens, limit)) = state.context_usage() {
         let percent = limit
@@ -1529,7 +1565,7 @@ fn footer_line(
             hints.push(Span::styled(usage.clone(), muted));
         }
         commands_visible =
-            text_width(&usage) + 4 + text_width(COMMANDS_HINT.0) + text_width(COMMANDS_HINT.1)
+            text_width(&usage) + 4 + text_width(commands_binding) + text_width(COMMANDS_HINT.1)
                 <= available;
     } else {
         commands_visible = layout::shows_prompt_hints(terminal_width);
@@ -1541,11 +1577,11 @@ fn footer_line(
             hints.push(Span::styled(AGENTS_HINT.1, muted));
         }
     }
-    if commands_visible {
+    if commands_visible && !commands_binding.is_empty() {
         hints.extend([
             Span::raw("  "),
             Span::styled(
-                format!("{} ", COMMANDS_HINT.0),
+                format!("{commands_binding} "),
                 Style::default().fg(theme.text()),
             ),
             Span::styled(COMMANDS_HINT.1, muted),
@@ -1933,6 +1969,109 @@ mod tests {
             msg(2, Role::Assistant, "hi there"),
         ]));
         state
+    }
+
+    #[tokio::test]
+    async fn vis11_pending_only_changes_composer_roles_and_restores_on_deadline() {
+        let mut state = golden_state().await;
+        state.handle_paste("unsent draft");
+        state.handle_paste("first\nsecond\nthird");
+        let theme = Theme::dark();
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let normal = terminal.backend().buffer().clone();
+        let metadata = metadata_line(&state, theme, 111, 120).unwrap();
+        let regions = shell_regions(&state, Rect::new(0, 0, 120, 40));
+        let regions = session_regions(&state, session_main(&state, regions.session), 40);
+        state.handle_key(KeyAction::Leader).await;
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let pending = terminal.backend().buffer();
+        let chip_cells: Vec<_> = normal
+            .content
+            .iter()
+            .enumerate()
+            .filter(|(_, cell)| cell.bg == theme.warning())
+            .map(|(index, _)| index)
+            .collect();
+        assert!(
+            !chip_cells.is_empty(),
+            "actual paste chip has an independent background"
+        );
+        for index in chip_cells {
+            assert_eq!(normal.content[index].fg, theme.background());
+            assert_eq!(normal.content[index], pending.content[index]);
+        }
+        for y in 0..40 {
+            for x in 0..120 {
+                assert_eq!(normal[(x, y)].symbol(), pending[(x, y)].symbol());
+                if y < regions.prompt.y || y > regions.underline.y {
+                    assert_eq!(normal[(x, y)], pending[(x, y)], "outside composer {x},{y}");
+                }
+            }
+        }
+        let muted = metadata_line(&state, theme, 111, 120).unwrap();
+        assert_eq!(metadata.to_string(), muted.to_string());
+        for (before, after) in metadata.spans.iter().zip(&muted.spans) {
+            let expected = match before.content.as_ref() {
+                "X" => theme.border(),
+                "a" => theme.text_muted(),
+                _ => before.style.fg.unwrap(),
+            };
+            assert_eq!(after.style.fg, Some(expected));
+        }
+        let body = regions.prompt;
+        assert_eq!(pending[(body.x, body.y + 1)].fg, theme.border());
+        assert!(
+            pending
+                .content
+                .iter()
+                .any(|cell| cell.symbol() == "u" && cell.fg == theme.text_muted())
+        );
+        assert!(state.tick_ui(state.next_ui_deadline().unwrap()));
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer(), &normal);
+    }
+
+    #[tokio::test]
+    async fn vis11_modal_pending_composer_uses_existing_backdrop_and_restores_without_input() {
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+        let mut state = golden_state().await;
+        state.handle_paste("unsent Unicode αβ draft");
+        state.handle_key(KeyAction::Commands).await;
+        for key in "zzzz-no-such-command".chars() {
+            state.handle_key(KeyAction::Char(key)).await;
+        }
+        let area = Rect::new(0, 0, 120, 40);
+        let regions = shell_regions(&state, area);
+        let regions = session_regions(&state, session_main(&state, regions.session), 40);
+        let point = (
+            regions.prompt.x + 1 + layout::session_padding(120),
+            regions.prompt.y + 1,
+        );
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let normal = terminal.backend().buffer().clone();
+        assert_eq!(normal[point].symbol(), "u");
+        assert_eq!(normal[point].fg, Color::Rgb(98, 98, 98));
+        let action = state
+            .terminal_key(KeyEvent::new(KeyCode::Char('x'), KeyModifiers::CONTROL))
+            .unwrap();
+        state.handle_key(action).await;
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let pending = terminal.backend().buffer();
+        assert_eq!(pending[point].fg, Color::Rgb(53, 53, 53));
+        for y in 0..40 {
+            for x in 0..120 {
+                assert_eq!(normal[(x, y)].symbol(), pending[(x, y)].symbol());
+                if y < regions.prompt.y || y > regions.underline.y {
+                    assert_eq!(normal[(x, y)], pending[(x, y)], "outside composer {x},{y}");
+                }
+            }
+        }
+        assert!(state.tick_ui(state.next_ui_deadline().unwrap()));
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer(), &normal);
+        assert_eq!(state.input(), "unsent Unicode αβ draft");
     }
 
     #[tokio::test]

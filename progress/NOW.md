@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-27T14:34:25+00:00
+State updated: 2026-09-27T16:43:22+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -13,18 +13,18 @@ Evidence target: evidence/T44/report.md
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-Real owner approval lifecycle and TUI delivered; no effects before consent.
+VIS11 actual pending leader state, owner timeout/keymap and no-input expiry delivered.
 
 ## Checks
-Serial workspace/release gates PASS: tool_0e3443d25001njFlj7nJPw6Aj2.
-Paired37–42 actual behavior PASS; details: evidence/T44/permission-checkpoint.md.
+Serial workspace tests/fmt/strict Clippy/debug+release PASS: tool_0e3b99ef6001h0w3zwRQJDk6d3.
+Actual JS/Python/frontend/docs/progress checks PASS; details evidence/T44/leader-checkpoint.md.
 
 ## Risks
-No VIS36/V09 PASS. Full grids199 DIFFERENT/12 INVALID/1 EQUAL;
-PNGs211 DIFFERENT/1 EQUAL. Inherited.opencode untouched.
+No VIS11/VIS07/V09 PASS: 152 grids and 152 PNGs DIFFERENT, 21 cursor differences.
+Chip wrapping/expansion remains open; inherited.opencode untouched.
 
 ## Next
-Leader pending presentation, then remaining T44 qualification; preserve Deny.
+Observed VIS07 composer gaps, then remaining approved T44 presentation qualification.
 
 
 Ready (до 5): T45, T46, T47, T50

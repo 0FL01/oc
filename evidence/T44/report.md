@@ -1,5 +1,32 @@
 # T44 — parity qualification remains open (2026-09-27)
 
+VIS11 now uses the actual pending key sequence for both resolution and composer
+presentation. Effective `leader.timeout` takes precedence over admitted legacy
+`leader_timeout`, default 2000 ms. The dirty-frame scheduler restores normal
+presentation at its deadline without further input or constant idle polling.
+Pending text/model roles mute; agent highlight/border use base roles; provider,
+variant and actual paste-chip roles remain unchanged. Matched commands and hints
+share effective leader projection; modal focus remains owned by the modal.
+Pinned actual-binary oracle corrections include invalid printable insertion,
+Enter submitting the exact full draft, Ctrl+C cancelling the sequence without
+clearing that draft, and Esc/Backspace/repeated leader cancelling pending state.
+
+Final source-built [`leader-pending20260927-04/REPORT.md`](../tui/recovery-v00/leader-pending20260927-04/REPORT.md)
+preserves attempts01–04. Seven paired campaigns cover default/nested/configured/
+precedence/admitted-v1 legacy and actual Enter/modal controls. Five issue zero
+provider requests; the two Enter campaigns each issue one transcript plus one
+title request per side. RGB/hints and no-input expiry are observed working.
+All 152 full grids and 152 PNGs remain **DIFFERENT**, with 21 differing cursors;
+chip wrapping/expansion (VIS07), long-draft wrapping, dialog content/geometry and
+truthful version/time differences remain visible. No VIS11/VIS07/V09 PASS claim.
+Final serial locked workspace tests (378 TUI tests, zero failures), fmt, strict
+all-target Clippy and debug/release builds **PASS** in
+`tool_0e3b99ef6001h0w3zwRQJDk6d3`; capture frontend/JS/Python syntax and docs/progress/
+diff checks also pass. The initial MCP fixture expected Esc/Ctrl+C to bypass a
+pending leader; it now sends the source-correct sequence cancellation before
+actual turn cancellation/quit and retains the two-second cleanup bound. Two
+unrelated PTY timing failures passed isolated and in the final serial gate.
+
 VIS36 now has a real typed owner approval queue/query/reply lifecycle. Ask waits
 before execution intent or effects; Once is invocation-local; Always commits exact
 project/action/pattern grants before acknowledgement; effective Deny and structural

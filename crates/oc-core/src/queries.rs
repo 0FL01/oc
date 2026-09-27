@@ -425,6 +425,10 @@ pub struct TuiChrome {
     pub diffs: DiffSettings,
     /// Effective conversation bindings from the admitted Location configuration.
     pub conversation_shortcuts: ConversationShortcuts,
+    /// Admitted leader.timeout (preferred over legacy leader_timeout), in milliseconds.
+    pub leader_timeout_ms: Option<u64>,
+    /// Admitted command.palette.show binding; None keeps the native default.
+    pub command_palette_shortcut: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -554,6 +558,10 @@ pub enum TuiBuildChannel {
 }
 
 impl TuiChrome {
+    pub fn leader_timeout_ms(&self) -> u64 {
+        self.leader_timeout_ms.unwrap_or(2000)
+    }
+
     /// Match upstream `debug.devtools ?? channel == local` without fake controls.
     pub fn devtools_visible(&self) -> bool {
         self.devtools

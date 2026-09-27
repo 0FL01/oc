@@ -15,6 +15,7 @@ import {probeRevertRedo} from './revert_redo.mjs';
 import {probeCompaction} from './compaction.mjs';
 import {probeApplyPatch} from './apply_patch.mjs';
 import {probePermission} from './permission.mjs';
+import {probeLeaderPending} from './leader_pending.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
@@ -25,6 +26,9 @@ const revertRedo = args['revert-redo'] === 'true';
 const compaction = args.compaction === 'true';
 const applyPatch = args['apply-patch'] === 'true';
 const permission = args.permission === 'true';
+const leaderPending = args['leader-pending'] === 'true';
+const leaderConfig = args['leader-config'] || 'default';
+if(leaderPending && (!['default','nested','configured','legacy','legacy-v1','precedence'].includes(leaderConfig) || args.geometry!=='true' || args.sidebar!=='hide' || args.sample!=='short' || Number(args.columns)!==120 || Number(args.rows)!==40 || !args.reference || args.session || args['seed-root'] || Object.entries(args).some(([k,v])=>v==='true'&&!['leader-pending','leader-extra','leader-enter-only','geometry','build-oc'].includes(k))))throw Error('--leader-pending requires exclusive short 120x40 geometry sidebar hide');
 const permissionMode = args['permission-mode'] || 'prompt';
 if(args['permission-mode']&&(!permission||!['prompt','auto-config','auto-cli'].includes(permissionMode)))throw Error('--permission-mode requires permission and prompt|auto-config|auto-cli');
 if(args.permission!==undefined&&!['true','false'].includes(args.permission))throw Error('--permission must be true|false');
@@ -334,7 +338,8 @@ if(args['build-oc'] === 'true') {
 fs.copyFileSync(path.join(tools, 'package-lock.json'), path.join(output, 'tooling.package-lock.json'));
 if(args['sessions-root'] && (!sessionsInteraction || !path.resolve(args['sessions-root']).startsWith(path.join(tools,'runs')+path.sep)))
   throw Error('--sessions-root requires Sessions and an owned tooling runs root');
-const isolated = args['sessions-root'] ? path.resolve(args['sessions-root']) : path.join(tools, 'runs', path.basename(output));
+const isolated = args['sessions-root'] ? path.resolve(args['sessions-root']) : path.join(tools, 'runs', leaderPending ? path.basename(output)+'-'+sha(Buffer.from(output)).slice(0,12) : path.basename(output));
+if(leaderPending && fs.existsSync(isolated))throw Error('Leader fixture root already exists: '+isolated);
 const cleanEnv = {PATH: '/usr/bin:/bin', HOME: path.join(isolated, 'browser-home'),
   LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8', TZ: 'UTC', PLAYWRIGHT_BROWSERS_PATH: path.join(tools, 'browsers')};
 fs.mkdirSync(cleanEnv.HOME, {recursive: true});
@@ -401,9 +406,9 @@ try {
     fs.mkdirSync(dir);
     const spec = {binary, origin, columns: profile.columns, rows: profile.rows, isolated_root: isolated, fixture,
       sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,
-      tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
+       tabs: profile.settings.tabs, variants: leaderPending || args.variants === 'true', startup_error: args['startup-error'] === 'true',
           agent_profile: args['agent-profile'] === 'true', bounded_mode:boundedMode==='wheel'?'shell':boundedMode, wheel_probe:boundedMode==='wheel', metrics_path:path.join(dir,'scheduler.json'), sessions_interaction:sessionsInteraction,
-            revert_redo:revertRedo, compaction, compaction_trigger:compactionTrigger,
+             revert_redo:revertRedo, compaction, compaction_trigger:compactionTrigger, leader_pending:leaderPending, leader_config:leaderConfig,
              apply_patch:applyPatch,permission,permission_mode:permissionMode,permission_strace_path:permission&&args['permission-strace']==='true'&&origin==='oc'?path.join(dir,'permission.strace'):undefined,patch_view:args['patch-view'],patch_wrap:args['patch-wrap'],
            ...(compaction ? {compaction_animation:compactionAnimation,compaction_tps:compactionTps,animations:compactionAnimation} : {}),
         sessions_resume:!!args['sessions-root'],
@@ -440,7 +445,7 @@ try {
         const bytes=Buffer.from(event.data, 'base64');
         const n=event.generation || 0;
          chunks[n].push(bytes);
-         if(boundedMode==='wheel'||compactionAnimation) {outputTimeline.push({...(compactionAnimation?{generation:n}:{}),at_ns:event.at_ns,received_ms:performance.now(),bytes:bytes.length,base64:event.data});fs.appendFileSync(path.join(dir,'output-timeline.jsonl'),JSON.stringify(outputTimeline.at(-1))+'\n');}
+          if(boundedMode==='wheel'||compactionAnimation||leaderPending) {outputTimeline.push({...(compactionAnimation?{generation:n}:{}),at_ns:event.at_ns,received_ms:performance.now(),bytes:bytes.length,base64:event.data});fs.appendFileSync(path.join(dir,'output-timeline.jsonl'),JSON.stringify(outputTimeline.at(-1))+'\n');}
         // Keep a diagnostic VT prefix if the capture process is interrupted
         // before the normal per-generation teardown writes its sealed copy.
         fs.appendFileSync(path.join(dir,'raw.vt'),bytes);
@@ -448,7 +453,7 @@ try {
       } else { logs.push(event); fs.writeFileSync(path.join(dir,'protocol.json'),JSON.stringify(logs,null,2)+'\n'); }
     });
     const frame = async () => {
-      if(applyPatch || permission) {
+       if(applyPatch || permission || leaderPending) {
         let timer;
         try {await Promise.race([writeQueue,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('VIS35 xterm write callback stalled')),5000);})]);}
         finally {clearTimeout(timer);}
@@ -538,6 +543,13 @@ try {
       }
        const initial = await waitFor(f => /Build|Untitled session|MiMo-V2.6-Flash Free/.test(f.text) ||
          (sessionsInteraction && f.text.includes('Ask anything')), 'initial prompt');
+       if(leaderPending) {
+         const checks=await probeLeaderPending({origin,dir,send,frame,capture,visibleMatches,logs,config:leaderConfig,extra:args['leader-extra']==='true',enterOnly:args['leader-enter-only']==='true',outputTimeline,
+           sampleColor:p=>page.evaluate(p=>readTerminal().cells[p.y][p.x].fg,p)});
+         lock.leader_pending ??= {};lock.leader_pending[origin]=checks;
+         if(checks.status!=='OBSERVED')result=1;
+         json('capture.lock.json',lock);continue;
+       }
        if(permission) {
            const checks=await probePermission({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,mode:permissionMode,
              control:command=>child.stdin.write(JSON.stringify(command)+'\n'),

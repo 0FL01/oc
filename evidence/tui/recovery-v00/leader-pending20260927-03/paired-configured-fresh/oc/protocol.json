@@ -1,0 +1,181 @@
+[
+  {
+    "kind": "leader_fixture_config",
+    "mode": "configured",
+    "cli_config": {
+      "session": {
+        "sidebar": "hide"
+      },
+      "tabs": {
+        "layout": "horizontal"
+      },
+      "debug": {
+        "devtools": false
+      },
+      "keybinds": {
+        "leader": "ctrl+g",
+        "command.palette.show": "<leader>p"
+      },
+      "leader": {
+        "timeout": 1200
+      }
+    }
+  },
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "tui"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/paired-configured-fresh-e47b5ab2ed4f/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/paired-configured-fresh-e47b5ab2ed4f/oc/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/paired-configured-fresh-e47b5ab2ed4f/oc/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/paired-configured-fresh-e47b5ab2ed4f/oc/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/paired-configured-fresh-e47b5ab2ed4f/oc/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/paired-configured-fresh-e47b5ab2ed4f/oc/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/paired-configured-fresh-e47b5ab2ed4f/oc/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"provider\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"npm\": \"@ai-sdk/openai\", \"options\": {\"baseURL\": \"http://127.0.0.1:43981/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"MiMo-V2.6-Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}, \"variants\": {\"fast\": {\"reasoningEffort\": \"high\"}, \"none\": {\"reasoningEffort\": \"low\"}}}, \"fixture-model-2\": {\"name\": \"Muse Spark 1.3 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-3\": {\"name\": \"Ling 3.0 Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-4\": {\"name\": \"Nemotron 3.5 Lightning Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-5\": {\"name\": \"Muse Spark 1.2 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-6\": {\"name\": \"Nemotron 3 Ultra Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-7\": {\"name\": \"MiMo V2.5 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-8\": {\"name\": \"Big Pickle\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}}}}, \"permissions\": {\"read\": \"allow\"}}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "oc 0.1.0",
+    "version_exit": 0
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198699842144610,
+    "base64": "FA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198700044462417,
+    "base64": "G1syMDB+VklTMTEgZnVsbCBkcmFmdCDOsc6yIGNhcmV0LW1pZGRsZSBwcmVzZXJ2aW5nIGV2ZXJ5IHdvcmQbWzIwMX4="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198700248684759,
+    "base64": "G1tEG1tEG1tE"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198701238840130,
+    "base64": "Bw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198702154008195,
+    "base64": "eg=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198706077303352,
+    "base64": "Bw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198706968422943,
+    "base64": "Gw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198710854193450,
+    "base64": "Bw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198711704174081,
+    "base64": "fw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198715578892571,
+    "base64": "Bw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198716369790459,
+    "base64": "Bw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198720276557379,
+    "base64": "Bw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198722307243309,
+    "base64": "Bw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198725231603648,
+    "base64": "B3A="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198726394884204,
+    "base64": "Gw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198727452559436,
+    "base64": "Bw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198727532967576,
+    "base64": "cA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198728950719302,
+    "base64": "Bw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198729797676737,
+    "base64": "eg=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198730677934881,
+    "base64": "Gw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198732106221363,
+    "base64": "G1tG"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198732106318340,
+    "base64": "G1syMDB+VklTMTEtUEFTVEUtMApWSVMxMS1QQVNURS0xClZJUzExLVBBU1RFLTIbWzIwMX4="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198733116655387,
+    "base64": "Bw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1198737445413077,
+    "base64": "G1s8MDs4MzsyMk0bWzwwOzgzOzIybQ=="
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": -15,
+    "termination": "forced_stop"
+  }
+]

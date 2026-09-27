@@ -1,0 +1,122 @@
+[
+  {
+    "at_ms": 1790524970999,
+    "kind": "leader_variant_cycle",
+    "base64": "FA=="
+  },
+  {
+    "at_ms": 1790524971199,
+    "kind": "leader_draft",
+    "base64": "G1syMDB+VklTMTEgZnVsbCBkcmFmdCDOsc6yIGNhcmV0LW1pZGRsZSBwcmVzZXJ2aW5nIGV2ZXJ5IHdvcmQbWzIwMX4="
+  },
+  {
+    "at_ms": 1790524971402,
+    "kind": "leader_caret_middle",
+    "base64": "G1tEG1tEG1tE"
+  },
+  {
+    "at_ms": 1790524972160,
+    "kind": "leader_invalid_start",
+    "base64": "Bw=="
+  },
+  {
+    "at_ms": 1790524972839,
+    "kind": "leader_invalid_next",
+    "base64": "eg=="
+  },
+  {
+    "at_ms": 1790524976365,
+    "kind": "leader_escape_start",
+    "base64": "Bw=="
+  },
+  {
+    "at_ms": 1790524977069,
+    "kind": "leader_escape_next",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1790524980770,
+    "kind": "leader_backspace_start",
+    "base64": "Bw=="
+  },
+  {
+    "at_ms": 1790524981408,
+    "kind": "leader_backspace_next",
+    "base64": "fw=="
+  },
+  {
+    "at_ms": 1790524985183,
+    "kind": "leader_repeated_start",
+    "base64": "Bw=="
+  },
+  {
+    "at_ms": 1790524985998,
+    "kind": "leader_repeated_next",
+    "base64": "Bw=="
+  },
+  {
+    "at_ms": 1790524989683,
+    "kind": "leader_idle_start",
+    "base64": "Bw=="
+  },
+  {
+    "at_ms": 1790524992291,
+    "kind": "leader_success_start",
+    "base64": "Bw=="
+  },
+  {
+    "at_ms": 1790524995147,
+    "kind": "leader_success_fresh_chord",
+    "base64": "B3A="
+  },
+  {
+    "at_ms": 1790524996301,
+    "kind": "leader_success_dismiss",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1790524997262,
+    "kind": "leader_modal_open_start",
+    "base64": "Bw=="
+  },
+  {
+    "at_ms": 1790524997343,
+    "kind": "leader_modal_open_chord",
+    "base64": "cA=="
+  },
+  {
+    "at_ms": 1790524998508,
+    "kind": "leader_modal_start",
+    "base64": "Bw=="
+  },
+  {
+    "at_ms": 1790524999192,
+    "kind": "leader_modal_invalid",
+    "base64": "eg=="
+  },
+  {
+    "at_ms": 1790524999943,
+    "kind": "leader_modal_escape",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1790525001068,
+    "kind": "leader_end",
+    "base64": "G1tG"
+  },
+  {
+    "at_ms": 1790525001068,
+    "kind": "leader_chip_paste",
+    "base64": "G1syMDB+VklTMTEtUEFTVEUtMApWSVMxMS1QQVNURS0xClZJUzExLVBBU1RFLTIbWzIwMX4="
+  },
+  {
+    "at_ms": 1790525001760,
+    "kind": "leader_chip_start",
+    "base64": "Bw=="
+  },
+  {
+    "at_ms": 1790525005680,
+    "kind": "leader_expand_actual_chip",
+    "base64": "G1s8MDs4MzsyMk0bWzwwOzgzOzIybQ=="
+  }
+]

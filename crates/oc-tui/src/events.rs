@@ -14,6 +14,8 @@ pub enum KeyAction {
     Commands,
     /// Begin the configured upstream default leader chord.
     Leader,
+    /// Raw next key in a pending sequence, before editor/global action mapping.
+    SequenceKey(String, Option<char>),
     /// Ctrl+C: focused overlay/dialog handles it first; root clears or exits when empty.
     Interrupt,
     /// Open the native agent selector.

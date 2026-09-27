@@ -1056,6 +1056,8 @@ async fn load_stages(
         }
     }
     tui_chrome.permission_shortcuts = conversation_keybinds.permission_shortcuts();
+    tui_chrome.leader_timeout_ms = conversation_keybinds.leader_timeout_ms();
+    tui_chrome.command_palette_shortcut = Some(conversation_keybinds.command_palette_shortcut());
     tui_chrome.conversation_shortcuts = conversation_keybinds.resolve();
     Ok(Composition {
         approval_consumer_mode: std::sync::atomic::AtomicU8::new(0),

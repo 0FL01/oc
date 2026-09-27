@@ -1165,6 +1165,7 @@ impl TuiState {
             toast,
             self.interrupt_armed_until,
             self.next_scroll_animation_deadline(),
+            self.leader_deadline(),
         ]
         .into_iter()
         .flatten()
@@ -1183,7 +1184,21 @@ impl TuiState {
         let scanner = self.tick_scanner(now);
         let wheel = self.tick_scroll_animation(now);
         let compaction = self.tick_compaction(now);
-        expired || scanner || wheel || compaction
+        let leader = self.leader_deadline().is_some_and(|until| now >= until);
+        if leader {
+            self.leader = None;
+        }
+        expired || scanner || wheel || compaction || leader
+    }
+
+    fn leader_deadline(&self) -> Option<Instant> {
+        self.leader
+            .and_then(|at| at.checked_add(Duration::from_millis(self.chrome.leader_timeout_ms())))
+    }
+
+    /// The composer and key resolver observe the same pending sequence.
+    pub fn leader_pending(&self) -> bool {
+        self.leader.is_some()
     }
 
     fn reset_scanner(&mut self) {
@@ -1478,8 +1493,45 @@ impl TuiState {
             .unwrap_or_else(|| match command.action {
                 CommandAction::UndoConversation => self.conversation_shortcut(true),
                 CommandAction::RedoConversation => self.conversation_shortcut(false),
-                _ => command.shortcuts.join(" "),
+                _ => self.command_shortcuts(command).join(" "),
             })
+    }
+
+    /// The Commands hints and builtin chord resolver use the same effective
+    /// leader projection. Direct keys and explicit owner overrides stay literal.
+    fn command_shortcuts(&self, command: &crate::commands::CommandSpec) -> Vec<String> {
+        let override_binding = match command.action {
+            CommandAction::UndoConversation => Some(self.conversation_shortcut(true)),
+            CommandAction::RedoConversation => Some(self.conversation_shortcut(false)),
+            CommandAction::OpenCommands => self.chrome.command_palette_shortcut.clone(),
+            _ => None,
+        };
+        if let Some(binding) = override_binding {
+            return binding
+                .split(',')
+                .map(str::trim)
+                .filter(|key| !key.is_empty() && !key.eq_ignore_ascii_case("none"))
+                .map(str::to_owned)
+                .collect();
+        }
+        command
+            .shortcuts
+            .iter()
+            .flat_map(|shortcut| {
+                if let Some(suffix) = shortcut.strip_prefix("ctrl+x ") {
+                    self.chrome
+                        .conversation_shortcuts
+                        .leader
+                        .split(',')
+                        .map(str::trim)
+                        .filter(|leader| !leader.is_empty() && !leader.eq_ignore_ascii_case("none"))
+                        .map(|leader| format!("{leader} {suffix}"))
+                        .collect::<Vec<_>>()
+                } else {
+                    vec![(*shortcut).to_string()]
+                }
+            })
+            .collect()
     }
 
     /// Effective owner-configured shortcuts; Some("") disables a binding.
@@ -1518,7 +1570,7 @@ impl TuiState {
     /// Modal focus keeps ownership; leader sequences are resolved in handle_key.
     pub fn conversation_key(&mut self, event: crossterm::event::KeyEvent) -> Option<KeyAction> {
         use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
-        if self.panel != TuiPanel::None || event.kind != KeyEventKind::Press {
+        if event.kind != KeyEventKind::Press {
             return None;
         }
         let key = match event.code {
@@ -1551,18 +1603,24 @@ impl TuiState {
             }
         }
         binding.push_str(&key);
+        if self
+            .leader_deadline()
+            .is_some_and(|until| Instant::now() >= until)
+        {
+            self.leader = None;
+        }
         let chord = self
             .leader
-            .filter(|started| started.elapsed() < Duration::from_secs(2))
             .map(|_| format!("{} {binding}", self.leader_key));
         let action = [true, false]
             .into_iter()
             .find(|undo| {
-                self.conversation_shortcut(*undo).split(',').any(|value| {
-                    value
-                        .trim()
-                        .eq_ignore_ascii_case(chord.as_deref().unwrap_or(&binding))
-                })
+                self.panel == TuiPanel::None
+                    && self.conversation_shortcut(*undo).split(',').any(|value| {
+                        value
+                            .trim()
+                            .eq_ignore_ascii_case(chord.as_deref().unwrap_or(&binding))
+                    })
             })
             .map(|undo| {
                 if undo {
@@ -1574,6 +1632,35 @@ impl TuiState {
         if action.is_some() {
             self.leader = None;
             return action;
+        }
+        if self.panel == TuiPanel::None
+            && self
+                .chrome
+                .command_palette_shortcut
+                .as_ref()
+                .is_some_and(|shortcut| {
+                    shortcut.split(',').any(|value| {
+                        value
+                            .trim()
+                            .eq_ignore_ascii_case(chord.as_deref().unwrap_or(&binding))
+                    })
+                })
+        {
+            self.leader = None;
+            return Some(KeyAction::Commands);
+        }
+        if self.leader.is_some() {
+            let printable = match event.code {
+                KeyCode::Char(value)
+                    if !event
+                        .modifiers
+                        .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) =>
+                {
+                    Some(value)
+                }
+                _ => None,
+            };
+            return Some(KeyAction::SequenceKey(binding, printable));
         }
         if self
             .chrome
@@ -1602,8 +1689,14 @@ impl TuiState {
                 .approvals
                 .terminal_key(event, &self.chrome.permission_shortcuts);
         }
-        self.conversation_key(event)
-            .or_else(|| crate::events::map_key(event).filter(|action| *action != KeyAction::Leader))
+        self.conversation_key(event).or_else(|| {
+            crate::events::map_key(event).filter(|action| {
+                *action != KeyAction::Leader
+                    && !(*action == KeyAction::Commands
+                        && self.panel == TuiPanel::None
+                        && self.chrome.command_palette_shortcut.is_some())
+            })
+        })
     }
 
     /// Called only after a successful application selection. The original applies
@@ -3919,6 +4012,8 @@ impl TuiState {
     pub fn apply_catalog(&mut self, snapshot: CatalogSnapshot) {
         if self.chrome.conversation_shortcuts.leader
             != snapshot.chrome.conversation_shortcuts.leader
+            || self.chrome.leader_timeout_ms() != snapshot.chrome.leader_timeout_ms()
+            || self.chrome.command_palette_shortcut != snapshot.chrome.command_palette_shortcut
         {
             self.leader = None;
         }
@@ -4564,11 +4659,89 @@ impl TuiState {
     /// whether to display a note, apply an intent, or treat the input as
     /// consumed.
     pub async fn handle_key(&mut self, action: KeyAction) -> KeyOutcome {
+        let mut action = action;
         if self.approvals.active().is_some() {
             return self.approvals.key(action);
         }
         self.poll_submission();
+        if self
+            .leader_deadline()
+            .is_some_and(|until| Instant::now() >= until)
+        {
+            self.leader = None;
+        }
+        if action == KeyAction::Quit {
+            self.leader = None;
+        }
+        if self.leader.take().is_some() {
+            let key = match &action {
+                KeyAction::SequenceKey(key, _) => key.clone(),
+                KeyAction::Char(key) => key.to_string(),
+                KeyAction::Cancel => "esc".into(),
+                KeyAction::Backspace => "backspace".into(),
+                _ => String::new(),
+            };
+            let binding = format!("{} {key}", self.leader_key);
+            let command = if self.panel == TuiPanel::None {
+                [
+                    CommandAction::UndoConversation,
+                    CommandAction::RedoConversation,
+                ]
+                .into_iter()
+                .find(|action| {
+                    self.conversation_shortcut(*action == CommandAction::UndoConversation)
+                        .split(',')
+                        .any(|value| value.trim().eq_ignore_ascii_case(&binding))
+                })
+                .or_else(|| {
+                    self.chrome
+                        .command_palette_shortcut
+                        .as_ref()
+                        .filter(|shortcut| {
+                            shortcut
+                                .split(',')
+                                .any(|value| value.trim().eq_ignore_ascii_case(&binding))
+                        })
+                        .map(|_| CommandAction::OpenCommands)
+                })
+                .or_else(|| {
+                    crate::commands::REGISTRY
+                        .iter()
+                        .filter(|c| {
+                            !matches!(
+                                c.action,
+                                CommandAction::UndoConversation | CommandAction::RedoConversation
+                            )
+                        })
+                        .find(|c| {
+                            self.command_shortcuts(c)
+                                .iter()
+                                .any(|shortcut| shortcut.eq_ignore_ascii_case(&binding))
+                        })
+                        .map(|c| c.action.clone())
+                })
+            } else {
+                None
+            };
+            if let Some(command) = command {
+                return self.run_command(command);
+            }
+            // Actual pinned original: sequence miss clears pending, then an
+            // unmatched printable reaches the focused composer (wzord oracle).
+            action = match action {
+                KeyAction::SequenceKey(_, Some(value)) | KeyAction::Char(value) => {
+                    KeyAction::Char(value)
+                }
+                KeyAction::SequenceKey(ref key, _) if key == "enter" => KeyAction::Enter,
+                KeyAction::Enter => KeyAction::Enter,
+                _ => return KeyOutcome::default(),
+            };
+        }
         if self.panel != TuiPanel::None {
+            if action == KeyAction::Leader {
+                self.leader = Some(Instant::now());
+                return KeyOutcome::default();
+            }
             return self.handle_panel_key(action);
         }
         let action = if action == KeyAction::CtrlA {
@@ -4673,37 +4846,6 @@ impl TuiState {
                 | KeyAction::RedoConversation
         ) {
             self.leader = None;
-        } else if let Some(start) = self.leader.take()
-            && start.elapsed() < std::time::Duration::from_secs(2)
-        {
-            let command = if let KeyAction::Char(key) = action {
-                let binding = format!("{} {key}", self.leader_key);
-                [
-                    CommandAction::UndoConversation,
-                    CommandAction::RedoConversation,
-                ]
-                .into_iter()
-                .find(|action| {
-                    self.conversation_shortcut(*action == CommandAction::UndoConversation)
-                        .split(',')
-                        .any(|value| value.trim() == binding)
-                })
-                .or_else(|| {
-                    crate::commands::REGISTRY
-                        .iter()
-                        .filter(|c| {
-                            !matches!(
-                                c.action,
-                                CommandAction::UndoConversation | CommandAction::RedoConversation
-                            )
-                        })
-                        .find(|c| c.shortcuts.contains(&binding.as_str()))
-                        .map(|c| c.action.clone())
-                })
-            } else {
-                None
-            };
-            return command.map_or_else(KeyOutcome::default, |c| self.run_command(c));
         }
         match action {
             KeyAction::Commands => self.run_command(CommandAction::OpenCommands),
@@ -4723,6 +4865,7 @@ impl TuiState {
                 self.leader = Some(Instant::now());
                 KeyOutcome::default()
             }
+            KeyAction::SequenceKey(_, _) => KeyOutcome::default(),
             KeyAction::Left
             | KeyAction::Right
             | KeyAction::WordLeft
@@ -9977,11 +10120,215 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn v05_review_leader_cannot_swallow_exit() {
+    async fn vis11_pending_interrupt_consumed_then_normal_exit_remains_available() {
         let mut state = fresh_state("leader-exit").await;
         state.handle_key(KeyAction::Leader).await;
         state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        assert!(!state.leader_pending());
+        state.handle_key(KeyAction::Interrupt).await;
         assert_eq!(state.status(), &TuiStatus::Quit);
+    }
+
+    #[tokio::test]
+    async fn vis11_leader_pending_lifecycle_preserves_editor_and_expires_without_input() {
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("leader-lifecycle"));
+        state.chrome.animations = Some(false);
+        state.chrome.leader_timeout_ms = Some(321);
+        state.handle_paste("first\nsecond\nthird\n");
+        type_text(&mut state, "🦊draft").await;
+        state.handle_key(KeyAction::Left).await;
+        let draft = state.input.clone();
+        let caret = state.editor.cursor;
+        let layout: Vec<_> = state
+            .prompt_layout(80)
+            .0
+            .into_iter()
+            .map(|row| row.spans)
+            .collect();
+        let key = |code, modifiers| KeyEvent::new(code, modifiers);
+        for ending in [
+            KeyCode::Esc,
+            KeyCode::Backspace,
+            KeyCode::Left,
+            KeyCode::Right,
+            KeyCode::Char('c'),
+            KeyCode::Char('x'),
+        ] {
+            let leader = state
+                .terminal_key(key(KeyCode::Char('x'), KeyModifiers::CONTROL))
+                .unwrap();
+            state.handle_key(leader).await;
+            assert!(state.leader_pending());
+            let deadline = state.next_ui_deadline().unwrap();
+            assert_eq!(deadline, state.leader.unwrap() + Duration::from_millis(321));
+            let next = state
+                .terminal_key(key(
+                    ending,
+                    if matches!(ending, KeyCode::Char('x' | 'c')) {
+                        KeyModifiers::CONTROL
+                    } else {
+                        KeyModifiers::NONE
+                    },
+                ))
+                .unwrap();
+            assert!(state.handle_key(next).await.intent.is_none());
+            assert!(!state.leader_pending());
+            assert_eq!(state.input, draft);
+            assert_eq!(state.editor.cursor, caret);
+            assert_eq!(
+                state
+                    .prompt_layout(80)
+                    .0
+                    .into_iter()
+                    .map(|row| row.spans)
+                    .collect::<Vec<_>>(),
+                layout
+            );
+            assert!(inbox.try_recv().is_err());
+        }
+        state.handle_key(KeyAction::Leader).await;
+        let until = state.next_ui_deadline().unwrap();
+        assert!(!state.tick_ui(until - Duration::from_millis(1)));
+        assert!(state.tick_ui(until));
+        assert!(!state.leader_pending());
+        assert_eq!(state.next_ui_deadline(), None);
+        assert!(!state.tick_ui(until + Duration::from_secs(60)));
+        assert_eq!(state.input, draft);
+        assert_eq!(state.editor.cursor, caret);
+
+        state.handle_key(KeyAction::Leader).await;
+        let next = state
+            .terminal_key(key(KeyCode::Char('z'), KeyModifiers::NONE))
+            .unwrap();
+        state.handle_key(next).await;
+        let mut edited = draft.clone();
+        edited.insert(caret, 'z');
+        assert_eq!(state.input, edited);
+        assert_eq!(state.editor.cursor, caret + 1);
+        assert!(!state.leader_pending());
+        assert_eq!(state.editor.chip_count(), 1);
+        assert!(inbox.try_recv().is_err());
+        state.handle_key(KeyAction::Undo).await;
+        assert_eq!(state.input, draft);
+
+        let mut catalog = snapshot();
+        catalog.chrome.conversation_shortcuts.leader = "alt+x".into();
+        state.apply_catalog(catalog);
+        let leader = state
+            .terminal_key(key(KeyCode::Char('x'), KeyModifiers::ALT))
+            .unwrap();
+        state.handle_key(leader).await;
+        let next = state
+            .terminal_key(key(KeyCode::Char('m'), KeyModifiers::NONE))
+            .unwrap();
+        state.handle_key(next).await;
+        assert_eq!(state.panel(), &TuiPanel::Model);
+        assert!(!state.leader_pending());
+        assert_eq!(state.input, draft);
+        assert!(inbox.try_recv().is_err());
+        state.close_panel();
+        let leader = state
+            .terminal_key(key(KeyCode::Char('x'), KeyModifiers::ALT))
+            .unwrap();
+        state.handle_key(leader).await;
+        let next = state
+            .terminal_key(key(KeyCode::Enter, KeyModifiers::NONE))
+            .unwrap();
+        state.handle_key(next).await;
+        assert!(!state.leader_pending());
+        let Some(oc_core::core_app::InboxMsg::Submit { text, .. }) = inbox.try_recv().ok() else {
+            panic!("unmatched Enter must use normal submission")
+        };
+        assert_eq!(text, draft);
+    }
+
+    #[tokio::test]
+    async fn vis11_configured_palette_chord_and_modal_printable_keep_focus() {
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+        let mut state = fresh_state("leader-palette").await;
+        type_text(&mut state, "complete composer draft").await;
+        state.handle_key(KeyAction::Left).await;
+        let (draft, caret) = (state.input.clone(), state.editor.cursor);
+        let mut catalog = snapshot();
+        catalog.chrome.conversation_shortcuts.leader = "ctrl+g".into();
+        catalog.chrome.command_palette_shortcut = Some("ctrl+g p".into());
+        state.apply_catalog(catalog);
+        let key = |value, modifiers| KeyEvent::new(KeyCode::Char(value), modifiers);
+        assert_eq!(
+            state.terminal_key(key('p', KeyModifiers::CONTROL)),
+            None,
+            "override removes old direct root shortcut"
+        );
+        let leader = state.terminal_key(key('g', KeyModifiers::CONTROL)).unwrap();
+        state.handle_key(leader).await;
+        assert!(state.leader_pending());
+        let next = state.terminal_key(key('p', KeyModifiers::NONE)).unwrap();
+        state.handle_key(next).await;
+        assert_eq!(state.panel(), &TuiPanel::Commands);
+        assert!(!state.leader_pending());
+        let leader = state.terminal_key(key('g', KeyModifiers::CONTROL)).unwrap();
+        state.handle_key(leader).await;
+        assert!(state.leader_pending());
+        let deadline = state.next_ui_deadline().unwrap();
+        assert!(state.tick_ui(deadline));
+        assert_eq!(state.select.query, "");
+        assert_eq!(state.panel(), &TuiPanel::Commands);
+        let leader = state.terminal_key(key('g', KeyModifiers::CONTROL)).unwrap();
+        state.handle_key(leader).await;
+        let next = state.terminal_key(key('z', KeyModifiers::NONE)).unwrap();
+        state.handle_key(next).await;
+        assert!(!state.leader_pending());
+        assert_eq!(state.select.query, "z");
+        assert_eq!(state.input, draft);
+        assert_eq!(state.editor.cursor, caret);
+        state.handle_key(KeyAction::Cancel).await;
+        assert_eq!(state.panel(), &TuiPanel::None);
+        assert_eq!(state.input, draft);
+        assert_eq!(state.editor.cursor, caret);
+    }
+
+    #[tokio::test]
+    async fn vis11_commands_hints_project_effective_leaders_and_literal_overrides() {
+        use crate::commands::CommandAction;
+        let mut state = fresh_state("leader-hints").await;
+        state.chrome.conversation_shortcuts.leader = "ctrl+g,alt+x".into();
+        state.chrome.command_palette_shortcut = Some("ctrl+g p,alt+p".into());
+        let spec = crate::commands::spec;
+        assert_eq!(
+            state.command_footer(spec(&CommandAction::NewSession)),
+            "ctrl+g n alt+x n"
+        );
+        assert_eq!(
+            state.command_footer(spec(&CommandAction::OpenModelPicker)),
+            "ctrl+g m alt+x m"
+        );
+        assert_eq!(
+            state.command_footer(spec(&CommandAction::OpenAgents)),
+            "ctrl+g a alt+x a shift+tab"
+        );
+        assert_eq!(
+            state.command_footer(spec(&CommandAction::OpenCommands)),
+            "ctrl+g p alt+p"
+        );
+        for disabled in ["", "none"] {
+            state.chrome.conversation_shortcuts.leader = disabled.into();
+            assert_eq!(state.command_footer(spec(&CommandAction::NewSession)), "");
+            assert_eq!(
+                state.command_footer(spec(&CommandAction::OpenModelPicker)),
+                ""
+            );
+            assert_eq!(
+                state.command_footer(spec(&CommandAction::OpenAgents)),
+                "shift+tab"
+            );
+            assert_eq!(
+                state.command_footer(spec(&CommandAction::OpenCommands)),
+                "ctrl+g p alt+p"
+            );
+        }
     }
 
     #[tokio::test]

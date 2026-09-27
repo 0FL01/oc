@@ -2399,16 +2399,22 @@ for line in sys.stdin:
         "resize must actually render row 40 before fake release"
     );
     if unicode_edit {
-        tui.raw(b"\x18"); // unresolved Ctrl+X leader must not consume Esc
+        tui.raw(b"\x18");
+        // Pinned OC2 consumes the first Esc to cancel the leader sequence;
+        // the next Esc reaches pending-turn cancellation at the root layer.
+        tui.raw(b"\x1b");
+        // Keep distinct Esc events rather than a single Alt+Esc VT sequence.
+        std::thread::sleep(Duration::from_millis(50));
     }
     tui.raw(b"\x1b"); // actual Esc, no direct CoreApp cancellation
+    let cancellation_deadline = Instant::now() + IO_TIMEOUT;
     loop {
         // SAFETY: signal zero probes only the pid recorded by our fake.
         if unsafe { libc::kill(pid, 0) } != 0 {
             break;
         }
         assert!(
-            Instant::now() < deadline,
+            Instant::now() < cancellation_deadline,
             "pending MCP child not reaped within 2s"
         );
         std::thread::sleep(POLL);
@@ -2515,7 +2521,8 @@ for line in sys.stdin:
         std::thread::sleep(POLL);
     }
     if unicode_edit {
-        quitting.raw(b"\x18"); // unresolved leader must not consume Ctrl+C
+        quitting.raw(b"\x18");
+        quitting.raw(b"\x03"); // cancel leader; preserve the pending draft
     }
     if manual_compress {
         // The DCP panel owns Ctrl+C here; preserve its existing exit route.

@@ -1619,6 +1619,8 @@ async fn handle_event_ticks(
     }
     match event {
         Some(UiEvent::Key(action)) => {
+            let submits = action == KeyAction::Enter
+                || matches!(&action, KeyAction::SequenceKey(key, _) if key == "enter");
             if action == KeyAction::Cancel
                 && *state.panel() == TuiPanel::None
                 && state.input().trim() == "/rename"
@@ -1631,21 +1633,18 @@ async fn handle_event_ticks(
             if loop_state.read_only
                 && state.approvals.active().is_none()
                 && *state.panel() == TuiPanel::None
-                && action == KeyAction::Enter
+                && submits
                 && dispatch(state.input().trim()) != Some(CommandAction::Quit)
             {
                 state.push_note("child session: read-only history; saved tabs are unchanged");
                 return Ok(());
             }
-            let typed_new = action == KeyAction::Enter
+            let typed_new = submits
                 && *state.panel() == TuiPanel::None
                 && dispatch(state.input().trim()) == Some(CommandAction::NewSession);
-            let outcome = if state.approvals.active().is_some() || *state.panel() == TuiPanel::None
-            {
-                state.handle_key(action).await
-            } else {
-                state.handle_panel_key(action)
-            };
+            // The view owns the global pending lifecycle before choosing the
+            // focused editor/modal consumer, including pending Enter replay.
+            let outcome = state.handle_key(action).await;
             apply_outcome(app, state, loop_state, outcome, typed_new).await;
         }
         Some(UiEvent::Paste(text)) => {
@@ -6651,6 +6650,241 @@ mod tests {
             inbox.try_recv().is_err(),
             "close Home needs no provider or owner query"
         );
+    }
+
+    #[tokio::test]
+    async fn vis11_binary_events_preserve_focused_lifecycle_then_submit_exact_draft() {
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("leader-binary").unwrap());
+        let mut catalog = catalog();
+        catalog.chrome.conversation_shortcuts.leader = "alt+x".into();
+        catalog.chrome.leader_timeout_ms = Some(80);
+        state.apply_catalog(catalog);
+        state.handle_paste("draft\nwith\nchip\n");
+        let draft = state.input().to_string();
+        let caret = state.prompt_layout(80).1;
+        let mut deck = LoopState::default();
+        let event = |code, modifiers| CEvent::Key(KeyEvent::new(code, modifiers));
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            event(KeyCode::Char('x'), KeyModifiers::ALT),
+        )
+        .await
+        .unwrap();
+        assert!(state.leader_pending());
+        let deadline = state.next_ui_deadline().unwrap();
+        assert!(state.tick_ui(deadline));
+        assert!(!state.leader_pending());
+        assert!(state.next_ui_deadline().is_none());
+        assert_eq!(state.input(), draft);
+        assert_eq!(state.prompt_layout(80).1, caret);
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            event(KeyCode::Char('x'), KeyModifiers::ALT),
+        )
+        .await
+        .unwrap();
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            event(KeyCode::Backspace, KeyModifiers::NONE),
+        )
+        .await
+        .unwrap();
+        assert!(!state.leader_pending());
+        assert_eq!(state.input(), draft);
+        assert_eq!(state.prompt_layout(80).1, caret);
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            event(KeyCode::Char('x'), KeyModifiers::ALT),
+        )
+        .await
+        .unwrap();
+        let hidden = state.chrome.sidebar_hidden;
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            event(KeyCode::Char('b'), KeyModifiers::NONE),
+        )
+        .await
+        .unwrap();
+        assert_ne!(state.chrome.sidebar_hidden, hidden);
+        assert!(!state.leader_pending());
+        assert_eq!(state.input(), draft);
+        assert!(inbox.try_recv().is_err());
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            event(KeyCode::Char('x'), KeyModifiers::ALT),
+        )
+        .await
+        .unwrap();
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            event(KeyCode::Char('c'), KeyModifiers::CONTROL),
+        )
+        .await
+        .unwrap();
+        assert!(!state.leader_pending());
+        assert_eq!(state.input(), draft);
+        assert_eq!(state.prompt_layout(80).1, caret);
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        assert!(inbox.try_recv().is_err());
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            event(KeyCode::Char('p'), KeyModifiers::CONTROL),
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.panel(), &TuiPanel::Commands);
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            event(KeyCode::Char('x'), KeyModifiers::ALT),
+        )
+        .await
+        .unwrap();
+        assert!(state.leader_pending());
+        let deadline = state.next_ui_deadline().unwrap();
+        assert!(state.tick_ui(deadline));
+        assert_eq!(state.panel(), &TuiPanel::Commands);
+        assert_eq!(state.input(), draft);
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            event(KeyCode::Esc, KeyModifiers::NONE),
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.panel(), &TuiPanel::None);
+        state.handle_paste("Unicode αβ 🦊 unchanged full draft");
+        let submitted = state.input().to_string();
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            event(KeyCode::Char('x'), KeyModifiers::ALT),
+        )
+        .await
+        .unwrap();
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            event(KeyCode::Enter, KeyModifiers::NONE),
+        )
+        .await
+        .unwrap();
+        assert!(!state.leader_pending());
+        let Some(InboxMsg::Submit { text, .. }) = inbox.try_recv().ok() else {
+            panic!("pending Enter must route an actual owner Submit request")
+        };
+        assert_eq!(text, submitted);
+    }
+
+    #[tokio::test]
+    async fn vis11_binary_obsolete_leader_is_inert_but_explicit_direct_binding_wins() {
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+        use oc_core::queries::ConversationShortcuts;
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("leader-remap").unwrap());
+        let mut deck = LoopState::default();
+        state.handle_paste("entire Unicode αβ 🦊 draft");
+        state.handle_key(KeyAction::Left).await;
+        let draft = state.input().to_string();
+        let caret = state.prompt_layout(80).1;
+        let event = |value, modifiers| CEvent::Key(KeyEvent::new(KeyCode::Char(value), modifiers));
+        // These snapshots contain final resolved bindings, as the owner admits
+        // them; no stale Ctrl+X Undo/Redo prefix is silently retained.
+        for shortcuts in [
+            ConversationShortcuts {
+                leader: "ctrl+g".into(),
+                undo: "ctrl+g u".into(),
+                redo: "ctrl+g r".into(),
+            },
+            ConversationShortcuts {
+                leader: String::new(),
+                undo: String::new(),
+                redo: String::new(),
+            },
+        ] {
+            let mut configured = catalog();
+            configured.chrome.conversation_shortcuts = shortcuts;
+            state.apply_catalog(configured);
+            handle_event(
+                &app,
+                &mut state,
+                &mut deck,
+                event('x', KeyModifiers::CONTROL),
+            )
+            .await
+            .unwrap();
+            assert!(!state.leader_pending());
+            assert_eq!(state.next_ui_deadline(), None);
+            assert_eq!(state.input(), draft);
+            assert_eq!(state.prompt_layout(80).1, caret);
+            assert_eq!(state.panel(), &TuiPanel::None);
+            assert_eq!(state.status(), &TuiStatus::Idle);
+            assert!(inbox.try_recv().is_err());
+        }
+        let mut configured = catalog();
+        configured.chrome.conversation_shortcuts = ConversationShortcuts {
+            leader: "ctrl+g".into(),
+            undo: "ctrl+g u".into(),
+            redo: "ctrl+g r".into(),
+        };
+        configured.chrome.command_palette_shortcut = Some("ctrl+x".into());
+        state.apply_catalog(configured);
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            event('x', KeyModifiers::CONTROL),
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.panel(), &TuiPanel::Commands);
+        assert!(!state.leader_pending());
+        assert_eq!(state.next_ui_deadline(), None);
+        assert_eq!(state.input(), draft);
+        assert!(inbox.try_recv().is_err());
+        state.close_panel();
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            event('g', KeyModifiers::CONTROL),
+        )
+        .await
+        .unwrap();
+        assert!(state.leader_pending());
+        assert!(state.next_ui_deadline().is_some());
+        let hidden = state.chrome.sidebar_hidden;
+        handle_event(&app, &mut state, &mut deck, event('b', KeyModifiers::NONE))
+            .await
+            .unwrap();
+        assert_ne!(state.chrome.sidebar_hidden, hidden);
+        assert!(!state.leader_pending());
+        assert_eq!(state.next_ui_deadline(), None);
+        assert_eq!(state.input(), draft);
+        assert_eq!(state.prompt_layout(80).1, caret);
+        assert!(inbox.try_recv().is_err());
     }
 
     #[tokio::test]

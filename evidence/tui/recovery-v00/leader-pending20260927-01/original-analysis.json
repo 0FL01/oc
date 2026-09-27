@@ -1,0 +1,5259 @@
+{
+  "status": "ORIGINAL_OBSERVED_NATIVE_PAIR_PENDING",
+  "runs": {
+    "default": {
+      "binary_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+      "provider_requests": 0,
+      "idle_observed_interval_ms": [
+        2024.8649429999969,
+        2063.690351000001
+      ],
+      "preservation": {
+        "escape": {
+          "full_grid_symbols_equal": true,
+          "cursor_equal": true
+        },
+        "backspace": {
+          "full_grid_symbols_equal": true,
+          "cursor_equal": true
+        },
+        "repeated": {
+          "full_grid_symbols_equal": true,
+          "cursor_equal": true
+        }
+      },
+      "chip_fulltext_preserved": true,
+      "color_changes": [
+        {
+          "x": 23,
+          "y": 20,
+          "symbol": "┃",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        },
+        {
+          "x": 23,
+          "y": 21,
+          "symbol": "┃",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        },
+        {
+          "x": 26,
+          "y": 21,
+          "symbol": "V",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 27,
+          "y": 21,
+          "symbol": "I",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 28,
+          "y": 21,
+          "symbol": "S",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 29,
+          "y": 21,
+          "symbol": "1",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 30,
+          "y": 21,
+          "symbol": "1",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 31,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 32,
+          "y": 21,
+          "symbol": "f",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 33,
+          "y": 21,
+          "symbol": "u",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 34,
+          "y": 21,
+          "symbol": "l",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 35,
+          "y": 21,
+          "symbol": "l",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 36,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 37,
+          "y": 21,
+          "symbol": "d",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 38,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 39,
+          "y": 21,
+          "symbol": "a",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 40,
+          "y": 21,
+          "symbol": "f",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 41,
+          "y": 21,
+          "symbol": "t",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 42,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 43,
+          "y": 21,
+          "symbol": "α",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 44,
+          "y": 21,
+          "symbol": "β",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 45,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 46,
+          "y": 21,
+          "symbol": "c",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 47,
+          "y": 21,
+          "symbol": "a",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 48,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 49,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 50,
+          "y": 21,
+          "symbol": "t",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 51,
+          "y": 21,
+          "symbol": "-",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 52,
+          "y": 21,
+          "symbol": "m",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 53,
+          "y": 21,
+          "symbol": "i",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 54,
+          "y": 21,
+          "symbol": "d",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 55,
+          "y": 21,
+          "symbol": "d",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 56,
+          "y": 21,
+          "symbol": "l",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 57,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 58,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 59,
+          "y": 21,
+          "symbol": "p",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 60,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 61,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 62,
+          "y": 21,
+          "symbol": "s",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 63,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 64,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 65,
+          "y": 21,
+          "symbol": "v",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 66,
+          "y": 21,
+          "symbol": "i",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 67,
+          "y": 21,
+          "symbol": "n",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 68,
+          "y": 21,
+          "symbol": "g",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 69,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 70,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 71,
+          "y": 21,
+          "symbol": "v",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 72,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 73,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 74,
+          "y": 21,
+          "symbol": "y",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 75,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 76,
+          "y": 21,
+          "symbol": "w",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 77,
+          "y": 21,
+          "symbol": "o",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 78,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 79,
+          "y": 21,
+          "symbol": "d",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 23,
+          "y": 22,
+          "symbol": "┃",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        },
+        {
+          "x": 23,
+          "y": 23,
+          "symbol": "┃",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        },
+        {
+          "x": 26,
+          "y": 23,
+          "symbol": "B",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 27,
+          "y": 23,
+          "symbol": "u",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 28,
+          "y": 23,
+          "symbol": "i",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 29,
+          "y": 23,
+          "symbol": "l",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 30,
+          "y": 23,
+          "symbol": "d",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 34,
+          "y": 23,
+          "symbol": "M",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 35,
+          "y": 23,
+          "symbol": "i",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 36,
+          "y": 23,
+          "symbol": "M",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 37,
+          "y": 23,
+          "symbol": "o",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 38,
+          "y": 23,
+          "symbol": "-",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 39,
+          "y": 23,
+          "symbol": "V",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 40,
+          "y": 23,
+          "symbol": "2",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 41,
+          "y": 23,
+          "symbol": ".",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 42,
+          "y": 23,
+          "symbol": "6",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 43,
+          "y": 23,
+          "symbol": "-",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 44,
+          "y": 23,
+          "symbol": "F",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 45,
+          "y": 23,
+          "symbol": "l",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 46,
+          "y": 23,
+          "symbol": "a",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 47,
+          "y": 23,
+          "symbol": "s",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 48,
+          "y": 23,
+          "symbol": "h",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 49,
+          "y": 23,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 50,
+          "y": 23,
+          "symbol": "F",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 51,
+          "y": 23,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 52,
+          "y": 23,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 53,
+          "y": 23,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 23,
+          "y": 24,
+          "symbol": "╹",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        }
+      ],
+      "captures": 26,
+      "unstable": [
+        "leader-modal-restored"
+      ],
+      "observations": [
+        {
+          "name": "normal",
+          "status": "CAPTURED",
+          "at_ms": 11559.100614,
+          "cursor": {
+            "x": 77,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every word",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-pending",
+          "status": "CAPTURED",
+          "at_ms": 12538.238754,
+          "cursor": {
+            "x": 77,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every word",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-next",
+          "status": "CAPTURED",
+          "at_ms": 13589.661337,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-restored",
+          "status": "CAPTURED",
+          "at_ms": 16795.664732,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-pending",
+          "status": "CAPTURED",
+          "at_ms": 17798.195305,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-next",
+          "status": "CAPTURED",
+          "at_ms": 18839.402082,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-restored",
+          "status": "CAPTURED",
+          "at_ms": 21917.766419,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-pending",
+          "status": "CAPTURED",
+          "at_ms": 22735.238139,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-next",
+          "status": "CAPTURED",
+          "at_ms": 23688.118761,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-restored",
+          "status": "CAPTURED",
+          "at_ms": 26788.985119,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-pending",
+          "status": "CAPTURED",
+          "at_ms": 27662.870418,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-next",
+          "status": "CAPTURED",
+          "at_ms": 28502.448886,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-restored",
+          "status": "CAPTURED",
+          "at_ms": 31958.572235,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "idle-pending",
+          "status": "CAPTURED",
+          "at_ms": 33422.391412,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "idle-restored",
+          "status": "CAPTURED",
+          "at_ms": 35119.321096,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-pending",
+          "status": "CAPTURED",
+          "at_ms": 36090.510413,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-next",
+          "status": "CAPTURED",
+          "at_ms": 40012.012045,
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": null,
+          "draft_cell": null,
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-restored",
+          "status": "CAPTURED",
+          "at_ms": 41338.135396,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-normal",
+          "status": "CAPTURED",
+          "at_ms": 42929.396242,
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": null,
+          "draft_cell": null,
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-pending",
+          "status": "CAPTURED",
+          "at_ms": 44087.911867,
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": null,
+          "draft_cell": null,
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-invalid-next",
+          "status": "CAPTURED",
+          "at_ms": 44985.663583,
+          "cursor": {
+            "x": 35,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#626262",
+            "bg": "#0c0c0c",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-restored",
+          "status": "UNSTABLE_CAPTURE",
+          "at_ms": 46116.340668,
+          "cursor": {
+            "x": 35,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#626262",
+            "bg": "#0c0c0c",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-normal",
+          "status": "CAPTURED",
+          "at_ms": 47092.106988,
+          "cursor": {
+            "x": 33,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-pending",
+          "status": "CAPTURED",
+          "at_ms": 47925.292676,
+          "cursor": {
+            "x": 33,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-restored",
+          "status": "CAPTURED",
+          "at_ms": 50875.655826,
+          "cursor": {
+            "x": 33,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-expanded-fulltext",
+          "status": "CAPTURED",
+          "at_ms": 52190.851909,
+          "cursor": {
+            "x": 39,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzordVIS11-PASTE-0",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        }
+      ]
+    },
+    "configured": {
+      "binary_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+      "provider_requests": 0,
+      "idle_observed_interval_ms": [
+        1193.3555779999988,
+        1231.5539809999973
+      ],
+      "preservation": {
+        "escape": {
+          "full_grid_symbols_equal": true,
+          "cursor_equal": true
+        },
+        "backspace": {
+          "full_grid_symbols_equal": true,
+          "cursor_equal": true
+        },
+        "repeated": {
+          "full_grid_symbols_equal": true,
+          "cursor_equal": true
+        }
+      },
+      "chip_fulltext_preserved": true,
+      "color_changes": [
+        {
+          "x": 23,
+          "y": 20,
+          "symbol": "┃",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        },
+        {
+          "x": 23,
+          "y": 21,
+          "symbol": "┃",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        },
+        {
+          "x": 26,
+          "y": 21,
+          "symbol": "V",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 27,
+          "y": 21,
+          "symbol": "I",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 28,
+          "y": 21,
+          "symbol": "S",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 29,
+          "y": 21,
+          "symbol": "1",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 30,
+          "y": 21,
+          "symbol": "1",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 31,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 32,
+          "y": 21,
+          "symbol": "f",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 33,
+          "y": 21,
+          "symbol": "u",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 34,
+          "y": 21,
+          "symbol": "l",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 35,
+          "y": 21,
+          "symbol": "l",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 36,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 37,
+          "y": 21,
+          "symbol": "d",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 38,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 39,
+          "y": 21,
+          "symbol": "a",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 40,
+          "y": 21,
+          "symbol": "f",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 41,
+          "y": 21,
+          "symbol": "t",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 42,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 43,
+          "y": 21,
+          "symbol": "α",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 44,
+          "y": 21,
+          "symbol": "β",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 45,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 46,
+          "y": 21,
+          "symbol": "c",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 47,
+          "y": 21,
+          "symbol": "a",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 48,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 49,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 50,
+          "y": 21,
+          "symbol": "t",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 51,
+          "y": 21,
+          "symbol": "-",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 52,
+          "y": 21,
+          "symbol": "m",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 53,
+          "y": 21,
+          "symbol": "i",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 54,
+          "y": 21,
+          "symbol": "d",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 55,
+          "y": 21,
+          "symbol": "d",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 56,
+          "y": 21,
+          "symbol": "l",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 57,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 58,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 59,
+          "y": 21,
+          "symbol": "p",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 60,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 61,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 62,
+          "y": 21,
+          "symbol": "s",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 63,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 64,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 65,
+          "y": 21,
+          "symbol": "v",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 66,
+          "y": 21,
+          "symbol": "i",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 67,
+          "y": 21,
+          "symbol": "n",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 68,
+          "y": 21,
+          "symbol": "g",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 69,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 70,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 71,
+          "y": 21,
+          "symbol": "v",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 72,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 73,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 74,
+          "y": 21,
+          "symbol": "y",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 75,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 76,
+          "y": 21,
+          "symbol": "w",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 77,
+          "y": 21,
+          "symbol": "o",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 78,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 79,
+          "y": 21,
+          "symbol": "d",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 23,
+          "y": 22,
+          "symbol": "┃",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        },
+        {
+          "x": 23,
+          "y": 23,
+          "symbol": "┃",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        },
+        {
+          "x": 26,
+          "y": 23,
+          "symbol": "B",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 27,
+          "y": 23,
+          "symbol": "u",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 28,
+          "y": 23,
+          "symbol": "i",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 29,
+          "y": 23,
+          "symbol": "l",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 30,
+          "y": 23,
+          "symbol": "d",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 34,
+          "y": 23,
+          "symbol": "M",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 35,
+          "y": 23,
+          "symbol": "i",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 36,
+          "y": 23,
+          "symbol": "M",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 37,
+          "y": 23,
+          "symbol": "o",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 38,
+          "y": 23,
+          "symbol": "-",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 39,
+          "y": 23,
+          "symbol": "V",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 40,
+          "y": 23,
+          "symbol": "2",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 41,
+          "y": 23,
+          "symbol": ".",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 42,
+          "y": 23,
+          "symbol": "6",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 43,
+          "y": 23,
+          "symbol": "-",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 44,
+          "y": 23,
+          "symbol": "F",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 45,
+          "y": 23,
+          "symbol": "l",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 46,
+          "y": 23,
+          "symbol": "a",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 47,
+          "y": 23,
+          "symbol": "s",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 48,
+          "y": 23,
+          "symbol": "h",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 49,
+          "y": 23,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 50,
+          "y": 23,
+          "symbol": "F",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 51,
+          "y": 23,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 52,
+          "y": 23,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 53,
+          "y": 23,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 23,
+          "y": 24,
+          "symbol": "╹",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        }
+      ],
+      "captures": 26,
+      "unstable": [],
+      "observations": [
+        {
+          "name": "normal",
+          "status": "CAPTURED",
+          "at_ms": 8141.976085,
+          "cursor": {
+            "x": 77,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every word",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-pending",
+          "status": "CAPTURED",
+          "at_ms": 9023.55431,
+          "cursor": {
+            "x": 77,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every word",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-next",
+          "status": "CAPTURED",
+          "at_ms": 9942.048568,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-restored",
+          "status": "CAPTURED",
+          "at_ms": 13154.22892,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-pending",
+          "status": "CAPTURED",
+          "at_ms": 13942.869174,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-next",
+          "status": "CAPTURED",
+          "at_ms": 15064.148333,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-restored",
+          "status": "CAPTURED",
+          "at_ms": 18198.622865,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-pending",
+          "status": "CAPTURED",
+          "at_ms": 19217.560438,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-next",
+          "status": "CAPTURED",
+          "at_ms": 20033.018314,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-restored",
+          "status": "CAPTURED",
+          "at_ms": 23284.491518,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-pending",
+          "status": "CAPTURED",
+          "at_ms": 24276.388432,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-next",
+          "status": "CAPTURED",
+          "at_ms": 25198.425915,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-restored",
+          "status": "CAPTURED",
+          "at_ms": 28593.959089,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "idle-pending",
+          "status": "CAPTURED",
+          "at_ms": 29425.383423,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "idle-restored",
+          "status": "CAPTURED",
+          "at_ms": 30710.966912,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-pending",
+          "status": "CAPTURED",
+          "at_ms": 31692.770665,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-next",
+          "status": "CAPTURED",
+          "at_ms": 35204.720892,
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": null,
+          "draft_cell": null,
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-restored",
+          "status": "CAPTURED",
+          "at_ms": 36248.85794,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-normal",
+          "status": "CAPTURED",
+          "at_ms": 37705.302086,
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": null,
+          "draft_cell": null,
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-pending",
+          "status": "CAPTURED",
+          "at_ms": 38644.105732,
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": null,
+          "draft_cell": null,
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-invalid-next",
+          "status": "CAPTURED",
+          "at_ms": 39370.790379,
+          "cursor": {
+            "x": 35,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#626262",
+            "bg": "#0c0c0c",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-restored",
+          "status": "CAPTURED",
+          "at_ms": 40129.728115,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-normal",
+          "status": "CAPTURED",
+          "at_ms": 40883.844569,
+          "cursor": {
+            "x": 33,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-pending",
+          "status": "CAPTURED",
+          "at_ms": 41532.780563,
+          "cursor": {
+            "x": 33,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-restored",
+          "status": "CAPTURED",
+          "at_ms": 44429.660413,
+          "cursor": {
+            "x": 33,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-expanded-fulltext",
+          "status": "CAPTURED",
+          "at_ms": 45791.00332,
+          "cursor": {
+            "x": 39,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzordVIS11-PASTE-0",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        }
+      ]
+    },
+    "legacy-v1": {
+      "binary_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+      "provider_requests": 0,
+      "idle_observed_interval_ms": [
+        1410.4543059999996,
+        1439.8873569999996
+      ],
+      "preservation": {
+        "escape": {
+          "full_grid_symbols_equal": true,
+          "cursor_equal": true
+        },
+        "backspace": {
+          "full_grid_symbols_equal": true,
+          "cursor_equal": true
+        },
+        "repeated": {
+          "full_grid_symbols_equal": true,
+          "cursor_equal": true
+        }
+      },
+      "chip_fulltext_preserved": true,
+      "color_changes": [
+        {
+          "x": 23,
+          "y": 20,
+          "symbol": "┃",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        },
+        {
+          "x": 23,
+          "y": 21,
+          "symbol": "┃",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        },
+        {
+          "x": 26,
+          "y": 21,
+          "symbol": "V",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 27,
+          "y": 21,
+          "symbol": "I",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 28,
+          "y": 21,
+          "symbol": "S",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 29,
+          "y": 21,
+          "symbol": "1",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 30,
+          "y": 21,
+          "symbol": "1",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 31,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 32,
+          "y": 21,
+          "symbol": "f",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 33,
+          "y": 21,
+          "symbol": "u",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 34,
+          "y": 21,
+          "symbol": "l",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 35,
+          "y": 21,
+          "symbol": "l",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 36,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 37,
+          "y": 21,
+          "symbol": "d",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 38,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 39,
+          "y": 21,
+          "symbol": "a",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 40,
+          "y": 21,
+          "symbol": "f",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 41,
+          "y": 21,
+          "symbol": "t",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 42,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 43,
+          "y": 21,
+          "symbol": "α",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 44,
+          "y": 21,
+          "symbol": "β",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 45,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 46,
+          "y": 21,
+          "symbol": "c",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 47,
+          "y": 21,
+          "symbol": "a",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 48,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 49,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 50,
+          "y": 21,
+          "symbol": "t",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 51,
+          "y": 21,
+          "symbol": "-",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 52,
+          "y": 21,
+          "symbol": "m",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 53,
+          "y": 21,
+          "symbol": "i",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 54,
+          "y": 21,
+          "symbol": "d",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 55,
+          "y": 21,
+          "symbol": "d",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 56,
+          "y": 21,
+          "symbol": "l",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 57,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 58,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 59,
+          "y": 21,
+          "symbol": "p",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 60,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 61,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 62,
+          "y": 21,
+          "symbol": "s",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 63,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 64,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 65,
+          "y": 21,
+          "symbol": "v",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 66,
+          "y": 21,
+          "symbol": "i",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 67,
+          "y": 21,
+          "symbol": "n",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 68,
+          "y": 21,
+          "symbol": "g",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 69,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 70,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 71,
+          "y": 21,
+          "symbol": "v",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 72,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 73,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 74,
+          "y": 21,
+          "symbol": "y",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 75,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 76,
+          "y": 21,
+          "symbol": "w",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 77,
+          "y": 21,
+          "symbol": "o",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 78,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 79,
+          "y": 21,
+          "symbol": "d",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 23,
+          "y": 22,
+          "symbol": "┃",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        },
+        {
+          "x": 23,
+          "y": 23,
+          "symbol": "┃",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        },
+        {
+          "x": 26,
+          "y": 23,
+          "symbol": "B",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 27,
+          "y": 23,
+          "symbol": "u",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 28,
+          "y": 23,
+          "symbol": "i",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 29,
+          "y": 23,
+          "symbol": "l",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 30,
+          "y": 23,
+          "symbol": "d",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 34,
+          "y": 23,
+          "symbol": "M",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 35,
+          "y": 23,
+          "symbol": "i",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 36,
+          "y": 23,
+          "symbol": "M",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 37,
+          "y": 23,
+          "symbol": "o",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 38,
+          "y": 23,
+          "symbol": "-",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 39,
+          "y": 23,
+          "symbol": "V",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 40,
+          "y": 23,
+          "symbol": "2",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 41,
+          "y": 23,
+          "symbol": ".",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 42,
+          "y": 23,
+          "symbol": "6",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 43,
+          "y": 23,
+          "symbol": "-",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 44,
+          "y": 23,
+          "symbol": "F",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 45,
+          "y": 23,
+          "symbol": "l",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 46,
+          "y": 23,
+          "symbol": "a",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 47,
+          "y": 23,
+          "symbol": "s",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 48,
+          "y": 23,
+          "symbol": "h",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 49,
+          "y": 23,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 50,
+          "y": 23,
+          "symbol": "F",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 51,
+          "y": 23,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 52,
+          "y": 23,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 53,
+          "y": 23,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 23,
+          "y": 24,
+          "symbol": "╹",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        }
+      ],
+      "captures": 26,
+      "unstable": [],
+      "observations": [
+        {
+          "name": "normal",
+          "status": "CAPTURED",
+          "at_ms": 6747.675164,
+          "cursor": {
+            "x": 77,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every word",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-pending",
+          "status": "CAPTURED",
+          "at_ms": 7536.314836,
+          "cursor": {
+            "x": 77,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every word",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-next",
+          "status": "CAPTURED",
+          "at_ms": 8363.023596,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-restored",
+          "status": "CAPTURED",
+          "at_ms": 11353.3813,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-pending",
+          "status": "CAPTURED",
+          "at_ms": 12119.044574,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-next",
+          "status": "CAPTURED",
+          "at_ms": 12890.2053,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-restored",
+          "status": "CAPTURED",
+          "at_ms": 15748.138588,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-pending",
+          "status": "CAPTURED",
+          "at_ms": 16482.585065,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-next",
+          "status": "CAPTURED",
+          "at_ms": 17249.756151,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-restored",
+          "status": "CAPTURED",
+          "at_ms": 20156.76188,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-pending",
+          "status": "CAPTURED",
+          "at_ms": 20919.180398,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-next",
+          "status": "CAPTURED",
+          "at_ms": 21650.730243,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-restored",
+          "status": "CAPTURED",
+          "at_ms": 24538.583103,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "idle-pending",
+          "status": "CAPTURED",
+          "at_ms": 25306.224758,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "idle-restored",
+          "status": "CAPTURED",
+          "at_ms": 26662.297946,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-pending",
+          "status": "CAPTURED",
+          "at_ms": 27403.700729,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-next",
+          "status": "CAPTURED",
+          "at_ms": 30668.512648,
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": null,
+          "draft_cell": null,
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-restored",
+          "status": "CAPTURED",
+          "at_ms": 31685.992594,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-normal",
+          "status": "CAPTURED",
+          "at_ms": 32832.83356,
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": null,
+          "draft_cell": null,
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-pending",
+          "status": "CAPTURED",
+          "at_ms": 33680.352535,
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": null,
+          "draft_cell": null,
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-invalid-next",
+          "status": "CAPTURED",
+          "at_ms": 34534.097726,
+          "cursor": {
+            "x": 35,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#626262",
+            "bg": "#0c0c0c",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-restored",
+          "status": "CAPTURED",
+          "at_ms": 35382.114519,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-normal",
+          "status": "CAPTURED",
+          "at_ms": 36271.049665,
+          "cursor": {
+            "x": 33,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-pending",
+          "status": "CAPTURED",
+          "at_ms": 37104.262031,
+          "cursor": {
+            "x": 33,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-restored",
+          "status": "CAPTURED",
+          "at_ms": 39999.105509,
+          "cursor": {
+            "x": 33,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-expanded-fulltext",
+          "status": "CAPTURED",
+          "at_ms": 41452.010842,
+          "cursor": {
+            "x": 39,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzordVIS11-PASTE-0",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        }
+      ]
+    },
+    "precedence": {
+      "binary_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+      "provider_requests": 0,
+      "idle_observed_interval_ms": [
+        1798.4225229999975,
+        1828.159961999998
+      ],
+      "preservation": {
+        "escape": {
+          "full_grid_symbols_equal": true,
+          "cursor_equal": true
+        },
+        "backspace": {
+          "full_grid_symbols_equal": true,
+          "cursor_equal": true
+        },
+        "repeated": {
+          "full_grid_symbols_equal": true,
+          "cursor_equal": true
+        }
+      },
+      "chip_fulltext_preserved": true,
+      "color_changes": [
+        {
+          "x": 23,
+          "y": 20,
+          "symbol": "┃",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        },
+        {
+          "x": 23,
+          "y": 21,
+          "symbol": "┃",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        },
+        {
+          "x": 26,
+          "y": 21,
+          "symbol": "V",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 27,
+          "y": 21,
+          "symbol": "I",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 28,
+          "y": 21,
+          "symbol": "S",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 29,
+          "y": 21,
+          "symbol": "1",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 30,
+          "y": 21,
+          "symbol": "1",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 31,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 32,
+          "y": 21,
+          "symbol": "f",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 33,
+          "y": 21,
+          "symbol": "u",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 34,
+          "y": 21,
+          "symbol": "l",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 35,
+          "y": 21,
+          "symbol": "l",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 36,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 37,
+          "y": 21,
+          "symbol": "d",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 38,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 39,
+          "y": 21,
+          "symbol": "a",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 40,
+          "y": 21,
+          "symbol": "f",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 41,
+          "y": 21,
+          "symbol": "t",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 42,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 43,
+          "y": 21,
+          "symbol": "α",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 44,
+          "y": 21,
+          "symbol": "β",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 45,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 46,
+          "y": 21,
+          "symbol": "c",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 47,
+          "y": 21,
+          "symbol": "a",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 48,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 49,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 50,
+          "y": 21,
+          "symbol": "t",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 51,
+          "y": 21,
+          "symbol": "-",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 52,
+          "y": 21,
+          "symbol": "m",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 53,
+          "y": 21,
+          "symbol": "i",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 54,
+          "y": 21,
+          "symbol": "d",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 55,
+          "y": 21,
+          "symbol": "d",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 56,
+          "y": 21,
+          "symbol": "l",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 57,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 58,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 59,
+          "y": 21,
+          "symbol": "p",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 60,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 61,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 62,
+          "y": 21,
+          "symbol": "s",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 63,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 64,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 65,
+          "y": 21,
+          "symbol": "v",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 66,
+          "y": 21,
+          "symbol": "i",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 67,
+          "y": 21,
+          "symbol": "n",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 68,
+          "y": 21,
+          "symbol": "g",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 69,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 70,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 71,
+          "y": 21,
+          "symbol": "v",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 72,
+          "y": 21,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 73,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 74,
+          "y": 21,
+          "symbol": "y",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 75,
+          "y": 21,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 76,
+          "y": 21,
+          "symbol": "w",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 77,
+          "y": 21,
+          "symbol": "o",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 78,
+          "y": 21,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 79,
+          "y": 21,
+          "symbol": "d",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 23,
+          "y": 22,
+          "symbol": "┃",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        },
+        {
+          "x": 23,
+          "y": 23,
+          "symbol": "┃",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        },
+        {
+          "x": 26,
+          "y": 23,
+          "symbol": "B",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 27,
+          "y": 23,
+          "symbol": "u",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 28,
+          "y": 23,
+          "symbol": "i",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 29,
+          "y": 23,
+          "symbol": "l",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 30,
+          "y": 23,
+          "symbol": "d",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 34,
+          "y": 23,
+          "symbol": "M",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 35,
+          "y": 23,
+          "symbol": "i",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 36,
+          "y": 23,
+          "symbol": "M",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 37,
+          "y": 23,
+          "symbol": "o",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 38,
+          "y": 23,
+          "symbol": "-",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 39,
+          "y": 23,
+          "symbol": "V",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 40,
+          "y": 23,
+          "symbol": "2",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 41,
+          "y": 23,
+          "symbol": ".",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 42,
+          "y": 23,
+          "symbol": "6",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 43,
+          "y": 23,
+          "symbol": "-",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 44,
+          "y": 23,
+          "symbol": "F",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 45,
+          "y": 23,
+          "symbol": "l",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 46,
+          "y": 23,
+          "symbol": "a",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 47,
+          "y": 23,
+          "symbol": "s",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 48,
+          "y": 23,
+          "symbol": "h",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 49,
+          "y": 23,
+          "symbol": " ",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 50,
+          "y": 23,
+          "symbol": "F",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 51,
+          "y": 23,
+          "symbol": "r",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 52,
+          "y": 23,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 53,
+          "y": 23,
+          "symbol": "e",
+          "normal_fg": "#eeeeee",
+          "pending_fg": "#808080",
+          "normal_bg": "#1e1e1e",
+          "pending_bg": "#1e1e1e"
+        },
+        {
+          "x": 23,
+          "y": 24,
+          "symbol": "╹",
+          "normal_fg": "#5c9cf5",
+          "pending_fg": "#484848",
+          "normal_bg": "#0a0a0a",
+          "pending_bg": "#0a0a0a"
+        }
+      ],
+      "captures": 26,
+      "unstable": [],
+      "observations": [
+        {
+          "name": "normal",
+          "status": "CAPTURED",
+          "at_ms": 6830.191469,
+          "cursor": {
+            "x": 77,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every word",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-pending",
+          "status": "CAPTURED",
+          "at_ms": 7512.91381,
+          "cursor": {
+            "x": 77,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every word",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-next",
+          "status": "CAPTURED",
+          "at_ms": 8254.732621,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "invalid-restored",
+          "status": "CAPTURED",
+          "at_ms": 11099.614247,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-pending",
+          "status": "CAPTURED",
+          "at_ms": 11834.103657,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-next",
+          "status": "CAPTURED",
+          "at_ms": 12594.68594,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "escape-restored",
+          "status": "CAPTURED",
+          "at_ms": 15455.918583,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-pending",
+          "status": "CAPTURED",
+          "at_ms": 16114.573814,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-next",
+          "status": "CAPTURED",
+          "at_ms": 16798.298003,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "backspace-restored",
+          "status": "CAPTURED",
+          "at_ms": 19681.734098,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-pending",
+          "status": "CAPTURED",
+          "at_ms": 20363.960201,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-next",
+          "status": "CAPTURED",
+          "at_ms": 21019.443064,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "repeated-restored",
+          "status": "CAPTURED",
+          "at_ms": 23868.794301,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "idle-pending",
+          "status": "CAPTURED",
+          "at_ms": 24618.53276,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "idle-restored",
+          "status": "CAPTURED",
+          "at_ms": 26441.00221,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-pending",
+          "status": "CAPTURED",
+          "at_ms": 27215.255162,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-next",
+          "status": "CAPTURED",
+          "at_ms": 30484.727775,
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": null,
+          "draft_cell": null,
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "success-restored",
+          "status": "CAPTURED",
+          "at_ms": 31388.765165,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-normal",
+          "status": "CAPTURED",
+          "at_ms": 32496.375843,
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": null,
+          "draft_cell": null,
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-pending",
+          "status": "CAPTURED",
+          "at_ms": 33193.4445,
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": null,
+          "draft_cell": null,
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-invalid-next",
+          "status": "CAPTURED",
+          "at_ms": 33948.169219,
+          "cursor": {
+            "x": 35,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#626262",
+            "bg": "#0c0c0c",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": true,
+          "provider_requests": 0
+        },
+        {
+          "name": "modal-restored",
+          "status": "CAPTURED",
+          "at_ms": 34758.707322,
+          "cursor": {
+            "x": 78,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-normal",
+          "status": "CAPTURED",
+          "at_ms": 35534.49812,
+          "cursor": {
+            "x": 33,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-pending",
+          "status": "CAPTURED",
+          "at_ms": 36251.430497,
+          "cursor": {
+            "x": 33,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#808080",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-restored",
+          "status": "CAPTURED",
+          "at_ms": 39137.857736,
+          "cursor": {
+            "x": 33,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzord[Pasted ~3",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        },
+        {
+          "name": "chip-expanded-fulltext",
+          "status": "CAPTURED",
+          "at_ms": 40319.230991,
+          "cursor": {
+            "x": 39,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "draft_row": "┃  VIS11 full draft αβ caret-middle preserving every wzordVIS11-PASTE-0",
+          "draft_cell": {
+            "symbol": "V",
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e",
+            "width": 1,
+            "modifiers": []
+          },
+          "commands": false,
+          "provider_requests": 0
+        }
+      ]
+    }
+  }
+}

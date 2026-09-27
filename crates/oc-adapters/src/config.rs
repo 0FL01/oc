@@ -177,6 +177,9 @@ pub(crate) struct ConversationKeybinds {
     leader: String,
     undo: String,
     redo: String,
+    timeout: Option<u64>,
+    legacy_timeout: Option<u64>,
+    palette: String,
 }
 
 impl Default for ConversationKeybinds {
@@ -187,12 +190,44 @@ impl Default for ConversationKeybinds {
             leader: "ctrl+x".into(),
             undo: "<leader>u".into(),
             redo: "<leader>r".into(),
+            timeout: None,
+            legacy_timeout: None,
+            palette: "ctrl+p".into(),
         }
     }
 }
 
 impl ConversationKeybinds {
     pub(crate) fn merge(&mut self, value: &serde_json::Value) -> Result<(), ConfigError> {
+        if let Some(leader) = value.get("leader")
+            && !leader.is_object()
+        {
+            return Err(ConfigError::Invalid {
+                field: "leader".into(),
+                reason: "must be an object".into(),
+            });
+        }
+        for (field, leaf, target) in [
+            (
+                "leader.timeout",
+                value.pointer("/leader/timeout"),
+                &mut self.timeout,
+            ),
+            (
+                "leader_timeout",
+                value.get("leader_timeout"),
+                &mut self.legacy_timeout,
+            ),
+        ] {
+            if let Some(leaf) = leaf {
+                *target = Some(leaf.as_u64().filter(|ms| *ms > 0).ok_or_else(|| {
+                    ConfigError::Invalid {
+                        field: field.into(),
+                        reason: "must be a positive integer".into(),
+                    }
+                })?);
+            }
+        }
         let Some(bindings) = value.get("keybinds") else {
             return Ok(());
         };
@@ -204,6 +239,10 @@ impl ConversationKeybinds {
             (&["leader"][..], &mut self.leader),
             (&["session_undo", "session.undo"][..], &mut self.undo),
             (&["session_redo", "session.redo"][..], &mut self.redo),
+            (
+                &["command_list", "command.palette.show"][..],
+                &mut self.palette,
+            ),
             (
                 &[
                     "permission_prompt_fullscreen",
@@ -236,12 +275,27 @@ impl ConversationKeybinds {
             redo: self.exit.clone(),
             fullscreen: String::new(),
             exit: String::new(),
+            timeout: None,
+            legacy_timeout: None,
+            palette: String::new(),
         }
         .resolve();
         oc_core::queries::PermissionShortcuts {
             fullscreen: resolved.undo,
             exit: resolved.redo,
         }
+    }
+    pub(crate) fn leader_timeout_ms(&self) -> Option<u64> {
+        self.timeout.or(self.legacy_timeout)
+    }
+    pub(crate) fn command_palette_shortcut(&self) -> String {
+        Self {
+            leader: self.leader.clone(),
+            undo: self.palette.clone(),
+            ..Self::default()
+        }
+        .resolve()
+        .undo
     }
     pub(crate) fn resolve(self) -> oc_core::queries::ConversationShortcuts {
         let leaders: Vec<_> = self
@@ -1379,6 +1433,46 @@ pub fn parse_native_profile(text: &str) -> Result<NativeProfile, ConfigError> {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn leader_timeout_precedence_and_invalid_leaf_diagnostics() {
+        use super::{ConfigError, ConversationKeybinds};
+        let mut bindings = ConversationKeybinds::default();
+        assert_eq!(bindings.leader_timeout_ms(), None);
+        bindings
+            .merge(&serde_json::json!({"leader_timeout": 500}))
+            .unwrap();
+        assert_eq!(bindings.leader_timeout_ms(), Some(500));
+        bindings
+            .merge(&serde_json::json!({"leader": {"timeout": 321}}))
+            .unwrap();
+        bindings
+            .merge(&serde_json::json!({"leader_timeout": 900}))
+            .unwrap();
+        assert_eq!(bindings.leader_timeout_ms(), Some(321));
+        for field in ["leader.timeout", "leader_timeout"] {
+            for invalid in [
+                serde_json::json!(0),
+                serde_json::json!(-1),
+                serde_json::json!(1.5),
+                serde_json::json!("secret-fixture"),
+                serde_json::json!(null),
+            ] {
+                let layer = if field == "leader.timeout" {
+                    serde_json::json!({"leader": {"timeout": invalid}})
+                } else {
+                    serde_json::json!({"leader_timeout": invalid})
+                };
+                assert_eq!(
+                    bindings.merge(&layer).unwrap_err(),
+                    ConfigError::Invalid {
+                        field: field.into(),
+                        reason: "must be a positive integer".into(),
+                    }
+                );
+            }
+        }
+    }
+
+    #[test]
     fn conversation_shortcuts_resolve_final_leader_and_disabled_alternatives() {
         use oc_core::queries::ConversationShortcuts;
         assert_eq!(
@@ -1389,7 +1483,7 @@ mod tests {
         bindings
             .merge(&serde_json::json!({"keybinds": {
                 "leader": "ctrl+a", "session_undo": "leader+z,alt+u",
-                "session_redo": "<leader>y,none"
+                "session_redo": "<leader>y,none", "command.palette.show": "<leader>p"
             }}))
             .unwrap();
         bindings
@@ -1397,6 +1491,7 @@ mod tests {
                 "leader": "ctrl+b,ctrl+g", "session.redo": false
             }}))
             .unwrap();
+        assert_eq!(bindings.command_palette_shortcut(), "ctrl+b p,ctrl+g p");
         assert_eq!(
             bindings.resolve(),
             ConversationShortcuts {
