@@ -2382,7 +2382,9 @@ fn user_block_parts(
     if !text.is_empty() {
         for raw in text.split('\n') {
             let line = Line::new(vec![Span::styled(safe_text(raw), body)]);
-            for wrapped in styled::wrap_line(&line, inner.max(1)) {
+            // U34's text child paints a fitting source separator at a word break;
+            // the surrounding box padding keeps its own foreground.
+            for wrapped in styled::wrap_source_space_line_limited(&line, inner.max(1), usize::MAX) {
                 let mut spans = vec![
                     Span::styled("┃", border),
                     Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),

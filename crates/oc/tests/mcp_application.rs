@@ -38,6 +38,24 @@ const IO_TIMEOUT: Duration = Duration::from_secs(2);
 const POLL: Duration = Duration::from_millis(10);
 
 #[test]
+fn pending_edit_screen_accepts_fragmented_cursor_updates_not_raw_substrings() {
+    let bytes = concat!(
+        "pending draft e",
+        "\x1b[2;1Hready\x1b[1;16Hd",
+        "\x1b[2;1Hready\x1b[1;17Hi",
+        "\x1b[2;1Hready\x1b[1;18Ht",
+        "\x1b[2;1Hready\x1b[1;19He",
+        "\x1b[2;1Hready\x1b[1;20Hd",
+    )
+    .as_bytes();
+    assert!(!contains(&normalize(bytes), b"edited"));
+    assert_eq!(
+        PtyProcess::screen_from_bytes(bytes)[0].trim_end(),
+        "pending draft edited"
+    );
+}
+
+#[test]
 fn vis34_compaction_prune_normalization_headless_and_tui_entry() {
     for prune in [true, false] {
         let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
@@ -1445,10 +1463,13 @@ struct PtyProcess {
 
 impl PtyProcess {
     fn screen(&self) -> Vec<String> {
+        Self::screen_from_bytes(&self.output.lock().unwrap())
+    }
+
+    fn screen_from_bytes(bytes: &[u8]) -> Vec<String> {
         // Text-only reconstruction for ASCII fixture assertions. Unlike raw
         // substring matching, this accounts for ratatui's unchanged-cell skips.
-        let bytes = self.output.lock().unwrap();
-        let text = String::from_utf8_lossy(&bytes);
+        let text = String::from_utf8_lossy(bytes);
         let mut chars = text.chars().peekable();
         let mut cells = vec![vec![' '; 160]; 50];
         let (mut row, mut col) = (0usize, 0usize);
@@ -2366,17 +2387,9 @@ for line in sys.stdin:
     tui.resize(120, 40);
     tui.raw(b" edited");
     let deadline = start + IO_TIMEOUT;
-    loop {
-        let bytes = tui.output.lock().unwrap().clone();
-        if contains(&normalize(&bytes), b"edited") {
-            break;
-        }
-        assert!(
-            Instant::now() < deadline,
-            "UI frozen before acceptance: edit/resize not rendered within 2s"
-        );
-        std::thread::sleep(POLL);
-    }
+    // Diff paints may interleave cursor-addressed characters with other rows:
+    // a complete prompt need not occur contiguously in the accumulated VT bytes.
+    // Observe the actual reconstructed screen under the original shared 2s bound.
     tui.wait_screen(
         "pending draft edited",
         deadline.saturating_duration_since(Instant::now()),

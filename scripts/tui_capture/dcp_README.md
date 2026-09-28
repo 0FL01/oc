@@ -179,8 +179,21 @@ Use `dcp_native_qualify.py --default-detail-only` with the usual explicit releas
 binary digest and fresh output. It still executes all three real compress calls
 and restart, but captures only the held recompression stage at the three sizes.
 It records the real session/turn/acceptance metadata, selects detailed/chat with
-showCompression:false, and matches supported theme, sidebar, TPS, animation,
-cursor and debug-footer settings. No fixture enters native history.
+showCompression:false by default, and matches supported theme, sidebar, TPS,
+animation, cursor and debug-footer settings. Add `--show-compression` to this same
+bounded mode to select showCompression:true and display the actual saved summaries,
+including the prior multi-range headings. The flag requires `--default-detail-only`;
+the normal eight-stage campaign keeps its existing controls. `fixture-config.json`,
+`result.json` capture selection, run checks and held PTY specs record the actual
+controls and binary/source provenance. No fixture enters native history.
+
+```sh
+python3 scripts/tui_capture/dcp_native_qualify.py \
+  --oc /home/opencode/ai/oc/target/debug/oc \
+  --released-sha256 PARENT_ATTESTED_FINAL_BINARY_SHA256 \
+  --output /home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-nativeNEW \
+  --default-detail-only --show-compression
+```
 
 After `dcp_from_native.ts`, prepare the original's public transfer:
 
@@ -222,6 +235,9 @@ The bounded auditor verifies owner/source/public-export/capture seals, all full
 styled cells (including width), complete cursors, geometry, and every decoded
 RGBA PNG pixel using the existing Pillow installation. All differing cells retain
 both complete values and exact coordinates. No normalization, mask or tolerance.
-Expand controls only after reviewing this comparable default pass. The actual
-2026-09-28 result and residual exact-fit word-wrap diagnosis are recorded in
-`evidence/tui/recovery-v00/dcp-report20260928-03.md`.
+Expand controls only after reviewing each comparable bounded pass. The actual
+2026-09-28 showCompression:false exact three-size result after the word-wrap fix is
+recorded in `evidence/tui/recovery-v00/dcp-report20260928-04.md`.
+The subsequent showCompression:true bounded pass, source-separator foreground
+diagnosis/fix and exact three-size evidence are recorded in
+`evidence/tui/recovery-v00/dcp-report20260928-05.md`.

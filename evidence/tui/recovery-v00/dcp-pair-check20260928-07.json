@@ -1,0 +1,1614 @@
+{
+  "status": "PASS_SOURCE_TRACED_CAPTURE_INTEGRITY_WITH_DIFFERENCES",
+  "qualification": "Only this captured stage at three sizes; not overall VIS38/T44 acceptance. Full display PASS requires every full cell, cursor, PNG byte and decoded PNG pixel to match.",
+  "coordinates": "one-based cells and pixels; inclusive pixel difference bbox",
+  "normalization": null,
+  "masked_cells": 0,
+  "native_owner": {
+    "path": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-native20260928-08",
+    "result_sha256": "57a1551dc29636f2292a1143cb2e65d7aceea2f9ce03f4ba3d16ebf60dfbfff7",
+    "binary_sha256": "7caef1f6b4f42f5b731a2150a8a22f946e1995d8a6bb836f74e6e9c62995f6ff",
+    "source_HEAD": "fa312e0268f839bf8b26f54899871210bff37e8d",
+    "evidence_seals": {
+      "commands.json": "533453f798362341fc64c932759d6caac08a8d02ca724b8bf831faf26d9f1079",
+      "compress-multi-before.json": "90e2172fd7fe038eef083de805907a11fc4fa05804e1a993f88bda926f77d5a7",
+      "compress-multi-measurement.json": "f613dd5c8df7a107e8a0c3be40e549b417fb84ddd91e8cb9e6e77e3a5cb94744",
+      "compress-multi-snapshot.json": "065c5c9024680a1df5e7537c2c5d7fae0f9db12738d31340f6b0066ba1e3ccc6",
+      "compress-recompression-before.json": "065c5c9024680a1df5e7537c2c5d7fae0f9db12738d31340f6b0066ba1e3ccc6",
+      "compress-recompression-measurement.json": "814be0041f90eb4cd72aed48b798fbbd1389a2a433dbfe7d99ae6330bb2bdb1b",
+      "compress-recompression-snapshot.json": "ceddb7c37952e677f9fa24c99413c9095a164e2e37bc129bcc5df16731ed0f20",
+      "compress-single-before.json": "c4310d3d9ccf0cb1246d796b9e9b1a0d19116633c34848a015a4d89c4581f0c3",
+      "compress-single-measurement.json": "09f1fa914f35e932bf24ab121b2c75153fd4b3a6e2db09d6f77413cdd6d266a8",
+      "compress-single-snapshot.json": "90e2172fd7fe038eef083de805907a11fc4fa05804e1a993f88bda926f77d5a7",
+      "fixture-config.json": "33ef81c4a0a64027c5baa2e516fc2e87e7bb6ca44c1bf242312a96c4b1241fd4",
+      "native-capture-recompression.json": "2a99d7d30005c8cea253f80dc715f8a42a7430e5103742834ce65a056da39ea2",
+      "native-tui-recompression-spec.json": "e3fd728c20a8c2b81a5bc9121bda7616ec709f4ea4924a6941b6eac3c316d876",
+      "native-tui-spec.json": "05a665a6cfa18ee79af8817c46fd3dd6bc78ec486c89bf7116fa278f5ee7c299",
+      "requests.json": "41b92d760d338f56bfa431c7810c60cebb0d15a17a0196960c1a3698683c2733",
+      "restart-snapshot.json": "6eb793c87915e2f26724c47d8913397f44f2463d797bcf82b56fe71170f2819c",
+      "seed-A-snapshot.json": "d09d13a51aacb3fef0e44e709b052980e711bd5c66208924ac59d3595f80c7d5",
+      "seed-B-snapshot.json": "1accfbfb0ce041571dfb81218aee3e5ce5c11bf764c83f8cbf1925e3f53586b6",
+      "seed-C-snapshot.json": "c4310d3d9ccf0cb1246d796b9e9b1a0d19116633c34848a015a4d89c4581f0c3"
+    }
+  },
+  "fixture_sha256": "57b069d728acbe956aea4c3966b50754143fdba124f8820d8df8d5557dc2e53f",
+  "native_capture_lock_sha256": "833a384c1cfb6c5a3b6c71f100e923bc4bbd9d822a0b082af533995fa1a2accf",
+  "reference_capture_lock_sha256": "7b293c34ee2a5d380c46a76c27d15063385347705d3244ef6a599c214d46f173",
+  "display_provider_requests": 0,
+  "native_capture_provider_request_window": [
+    10,
+    10
+  ],
+  "totals": {
+    "cells": 14400,
+    "unequal": 2,
+    "text": 0,
+    "foreground": 2,
+    "background": 0,
+    "modifiers": 0,
+    "width": 0,
+    "cursor_unequal_frames": 0,
+    "png_equal_frames": 3,
+    "png_pixels": 1941888,
+    "png_unequal_pixels": 0
+  },
+  "cases": [
+    {
+      "name": "native-recompression-80x24",
+      "size": [
+        80,
+        24
+      ],
+      "full_grid": {
+        "cells": 1920,
+        "unequal": 0,
+        "text": 0,
+        "foreground": 0,
+        "background": 0,
+        "modifiers": 0,
+        "width": 0
+      },
+      "row_results": [
+        {
+          "row": 1,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 2,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 3,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 4,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 5,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 6,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 7,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 8,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 9,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 10,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 11,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 12,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 13,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 14,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 15,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 16,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 17,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 18,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 19,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 20,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 21,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 22,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 23,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 24,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        }
+      ],
+      "cell_differences": [],
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 18,
+          "visible": true,
+          "shape": "block"
+        },
+        "original": {
+          "x": 5,
+          "y": 18,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": true
+      },
+      "full_png": {
+        "size": [
+          674,
+          384
+        ],
+        "pixels": 258816,
+        "unequal_pixels": 0,
+        "first_unequal_pixel": null,
+        "difference_bbox_inclusive": null,
+        "native_sha256": "7c7653d3a2c36e0ebcd2000b0ffba7a426fdfa8077bf01afebd9e27396ac9b3b",
+        "original_sha256": "7c7653d3a2c36e0ebcd2000b0ffba7a426fdfa8077bf01afebd9e27396ac9b3b",
+        "bytes_equal": true,
+        "pixels_equal": true
+      },
+      "locations": {
+        "native": {
+          "dcp_header": [
+            {
+              "x": 6,
+              "y": 5
+            }
+          ],
+          "dcp_run": [
+            {
+              "x": 6,
+              "y": 8
+            }
+          ],
+          "assistant_footer": [
+            {
+              "x": 6,
+              "y": 16
+            }
+          ],
+          "prompt_metadata": [
+            {
+              "x": 6,
+              "y": 21
+            }
+          ]
+        },
+        "original": {
+          "dcp_header": [
+            {
+              "x": 6,
+              "y": 5
+            }
+          ],
+          "dcp_run": [
+            {
+              "x": 6,
+              "y": 8
+            }
+          ],
+          "assistant_footer": [
+            {
+              "x": 6,
+              "y": 16
+            }
+          ],
+          "prompt_metadata": [
+            {
+              "x": 6,
+              "y": 21
+            }
+          ]
+        }
+      },
+      "public_export_info": [
+        {
+          "time_created": 1790593603000,
+          "time_updated": 1790593645537,
+          "projectID": "e2719b9f697688929e125ca168fc0875a8d529ec"
+        }
+      ],
+      "terminal_geometry_equal": true,
+      "unmasked": true
+    },
+    {
+      "name": "native-recompression-120x40",
+      "size": [
+        120,
+        40
+      ],
+      "full_grid": {
+        "cells": 4800,
+        "unequal": 1,
+        "text": 0,
+        "foreground": 1,
+        "background": 0,
+        "modifiers": 0,
+        "width": 0
+      },
+      "row_results": [
+        {
+          "row": 1,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 2,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 3,
+          "unequal": 1,
+          "text": 0,
+          "foreground": 1,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 4,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 5,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 6,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 7,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 8,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 9,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 10,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 11,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 12,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 13,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 14,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 15,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 16,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 17,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 18,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 19,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 20,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 21,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 22,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 23,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 24,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 25,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 26,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 27,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 28,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 29,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 30,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 31,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 32,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 33,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 34,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 35,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 36,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 37,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 38,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 39,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 40,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        }
+      ],
+      "cell_differences": [
+        {
+          "x": 110,
+          "y": 3,
+          "fields": [
+            "foreground"
+          ],
+          "native": {
+            "symbol": " ",
+            "fg": "#ffffff",
+            "bg": "#141414",
+            "width": 1,
+            "modifiers": []
+          },
+          "original": {
+            "symbol": " ",
+            "fg": "#eeeeee",
+            "bg": "#141414",
+            "width": 1,
+            "modifiers": []
+          }
+        }
+      ],
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "original": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": true
+      },
+      "full_png": {
+        "size": [
+          1011,
+          640
+        ],
+        "pixels": 647040,
+        "unequal_pixels": 0,
+        "first_unequal_pixel": null,
+        "difference_bbox_inclusive": null,
+        "native_sha256": "461c944ffb3721de540f78f0d8684cd4cc366099a9ce2f645885769f2bc1d550",
+        "original_sha256": "461c944ffb3721de540f78f0d8684cd4cc366099a9ce2f645885769f2bc1d550",
+        "bytes_equal": true,
+        "pixels_equal": true
+      },
+      "locations": {
+        "native": {
+          "assistant_footer": [
+            {
+              "x": 6,
+              "y": 14
+            },
+            {
+              "x": 6,
+              "y": 32
+            }
+          ],
+          "dcp_header": [
+            {
+              "x": 6,
+              "y": 21
+            }
+          ],
+          "dcp_run": [
+            {
+              "x": 6,
+              "y": 24
+            }
+          ],
+          "prompt_metadata": [
+            {
+              "x": 6,
+              "y": 37
+            }
+          ]
+        },
+        "original": {
+          "assistant_footer": [
+            {
+              "x": 6,
+              "y": 14
+            },
+            {
+              "x": 6,
+              "y": 32
+            }
+          ],
+          "dcp_header": [
+            {
+              "x": 6,
+              "y": 21
+            }
+          ],
+          "dcp_run": [
+            {
+              "x": 6,
+              "y": 24
+            }
+          ],
+          "prompt_metadata": [
+            {
+              "x": 6,
+              "y": 37
+            }
+          ]
+        }
+      },
+      "public_export_info": [
+        {
+          "time_created": 1790593603000,
+          "time_updated": 1790593650374,
+          "projectID": "e2719b9f697688929e125ca168fc0875a8d529ec"
+        }
+      ],
+      "terminal_geometry_equal": true,
+      "unmasked": true
+    },
+    {
+      "name": "native-recompression-160x48",
+      "size": [
+        160,
+        48
+      ],
+      "full_grid": {
+        "cells": 7680,
+        "unequal": 1,
+        "text": 0,
+        "foreground": 1,
+        "background": 0,
+        "modifiers": 0,
+        "width": 0
+      },
+      "row_results": [
+        {
+          "row": 1,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 2,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 3,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 4,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 5,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 6,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 7,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 8,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 9,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 10,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 11,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 12,
+          "unequal": 1,
+          "text": 0,
+          "foreground": 1,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 13,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 14,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 15,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 16,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 17,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 18,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 19,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 20,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 21,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 22,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 23,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 24,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 25,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 26,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 27,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 28,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 29,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 30,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 31,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 32,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 33,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 34,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 35,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 36,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 37,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 38,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 39,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 40,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 41,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 42,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 43,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 44,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 45,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 46,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 47,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 48,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        }
+      ],
+      "cell_differences": [
+        {
+          "x": 152,
+          "y": 12,
+          "fields": [
+            "foreground"
+          ],
+          "native": {
+            "symbol": " ",
+            "fg": "#ffffff",
+            "bg": "#141414",
+            "width": 1,
+            "modifiers": []
+          },
+          "original": {
+            "symbol": " ",
+            "fg": "#eeeeee",
+            "bg": "#141414",
+            "width": 1,
+            "modifiers": []
+          }
+        }
+      ],
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 42,
+          "visible": true,
+          "shape": "block"
+        },
+        "original": {
+          "x": 5,
+          "y": 42,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": true
+      },
+      "full_png": {
+        "size": [
+          1349,
+          768
+        ],
+        "pixels": 1036032,
+        "unequal_pixels": 0,
+        "first_unequal_pixel": null,
+        "difference_bbox_inclusive": null,
+        "native_sha256": "a04cb41d12b945fec1b91f18f0300651c27719aca5b117ed568ce62655b96931",
+        "original_sha256": "a04cb41d12b945fec1b91f18f0300651c27719aca5b117ed568ce62655b96931",
+        "bytes_equal": true,
+        "pixels_equal": true
+      },
+      "locations": {
+        "native": {
+          "dcp_header": [
+            {
+              "x": 6,
+              "y": 6
+            },
+            {
+              "x": 6,
+              "y": 29
+            }
+          ],
+          "assistant_footer": [
+            {
+              "x": 6,
+              "y": 22
+            },
+            {
+              "x": 6,
+              "y": 40
+            }
+          ],
+          "dcp_run": [
+            {
+              "x": 6,
+              "y": 32
+            }
+          ],
+          "prompt_metadata": [
+            {
+              "x": 6,
+              "y": 45
+            }
+          ]
+        },
+        "original": {
+          "dcp_header": [
+            {
+              "x": 6,
+              "y": 6
+            },
+            {
+              "x": 6,
+              "y": 29
+            }
+          ],
+          "assistant_footer": [
+            {
+              "x": 6,
+              "y": 22
+            },
+            {
+              "x": 6,
+              "y": 40
+            }
+          ],
+          "dcp_run": [
+            {
+              "x": 6,
+              "y": 32
+            }
+          ],
+          "prompt_metadata": [
+            {
+              "x": 6,
+              "y": 45
+            }
+          ]
+        }
+      },
+      "public_export_info": [
+        {
+          "time_created": 1790593603000,
+          "time_updated": 1790593655641,
+          "projectID": "e2719b9f697688929e125ca168fc0875a8d529ec"
+        }
+      ],
+      "terminal_geometry_equal": true,
+      "unmasked": true
+    }
+  ],
+  "file_seals": [
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression/native-recompression-80x24/bottom.cells.json",
+      "sha256": "7e64f4980c045ba06c046f566e03eb4d1b9f17d7490a87cb22b8e75b464819fb"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression/native-recompression-80x24/bottom.png",
+      "sha256": "7c7653d3a2c36e0ebcd2000b0ffba7a426fdfa8077bf01afebd9e27396ac9b3b"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression/native-recompression-80x24/bottom.txt",
+      "sha256": "f1a09b7d14be4fbdaf18456465afeedf38d13c07ee39b0dd15137ffc890cd2ce"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression/native-recompression-80x24/bottom.vt",
+      "sha256": "61cdf4f3ef20f06e8ff5be47bbb072efa99351553382d20ded546981716d3540"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression/native-recompression-80x24/bottom.render.json",
+      "sha256": "0857228c756ed4acb2ff29bd537f365285a04a663aa3479ce43267967048d632"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native10/native-recompression-80x24/bottom.cells.json",
+      "sha256": "917dd24562b6ba79cd4e130b2a120b83a883591e5f74f8a05b4c4a3666ddd3b9"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native10/native-recompression-80x24/bottom.png",
+      "sha256": "7c7653d3a2c36e0ebcd2000b0ffba7a426fdfa8077bf01afebd9e27396ac9b3b"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native10/native-recompression-80x24/bottom.txt",
+      "sha256": "f1a09b7d14be4fbdaf18456465afeedf38d13c07ee39b0dd15137ffc890cd2ce"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native10/native-recompression-80x24/bottom.vt",
+      "sha256": "61e763a5d4fdcddf2157bfa1280b591f8bd42114b7de2db076f3c83af679474f"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native10/native-recompression-80x24/bottom.render.json",
+      "sha256": "0857228c756ed4acb2ff29bd537f365285a04a663aa3479ce43267967048d632"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression/native-recompression-120x40/bottom.cells.json",
+      "sha256": "e75823090962d072c70ca96d969e87e19bd7c78f66e3fc63f0c90bd2a7ddea5f"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression/native-recompression-120x40/bottom.png",
+      "sha256": "461c944ffb3721de540f78f0d8684cd4cc366099a9ce2f645885769f2bc1d550"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression/native-recompression-120x40/bottom.txt",
+      "sha256": "77fd956402f2d0be6b4084868bb2a2a1db81449885582837013ce30c29ef957f"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression/native-recompression-120x40/bottom.vt",
+      "sha256": "fa32bf25c008ec503ebfe5290a2992653d7e55af6bb034644f2ed5f89bab33c1"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression/native-recompression-120x40/bottom.render.json",
+      "sha256": "3b0d0bd36b4806d3aed4caa55ade8cccc92e3f4d2b7eedaaa551caee35cba8e2"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native10/native-recompression-120x40/bottom.cells.json",
+      "sha256": "8efb3c1878ec8e7b0f475f142bc3b12b5a9bdef3ea6a06b3044903637f4ceaa1"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native10/native-recompression-120x40/bottom.png",
+      "sha256": "461c944ffb3721de540f78f0d8684cd4cc366099a9ce2f645885769f2bc1d550"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native10/native-recompression-120x40/bottom.txt",
+      "sha256": "77fd956402f2d0be6b4084868bb2a2a1db81449885582837013ce30c29ef957f"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native10/native-recompression-120x40/bottom.vt",
+      "sha256": "19ce6babcc50ead3464ca5a4d14099662ab2b8902174c23c9ac72b7f47b51da3"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native10/native-recompression-120x40/bottom.render.json",
+      "sha256": "3b0d0bd36b4806d3aed4caa55ade8cccc92e3f4d2b7eedaaa551caee35cba8e2"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression/native-recompression-160x48/bottom.cells.json",
+      "sha256": "56919b61c23f59243f8c9c8e351250aa51e301cfc4e63172d834d0a1f9b2143c"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression/native-recompression-160x48/bottom.png",
+      "sha256": "a04cb41d12b945fec1b91f18f0300651c27719aca5b117ed568ce62655b96931"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression/native-recompression-160x48/bottom.txt",
+      "sha256": "2ab99dd35df0108062f6b78dc43460ce65ffd6979d842f31a00b0dc7295fffad"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression/native-recompression-160x48/bottom.vt",
+      "sha256": "4589a41bcaa1269b105a22b7d30d6a8a2c6ab0c207570fe4c3e5dccd5152e58d"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression/native-recompression-160x48/bottom.render.json",
+      "sha256": "2fc11c15f504ef1ae0785b4ac97eb6306d778e32225bb0bf21ead832a7565225"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native10/native-recompression-160x48/bottom.cells.json",
+      "sha256": "c2d40ee0137f02051b5a745f2cec40c97eff9c56c2a3f47c6d1301e39b7ef35b"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native10/native-recompression-160x48/bottom.png",
+      "sha256": "a04cb41d12b945fec1b91f18f0300651c27719aca5b117ed568ce62655b96931"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native10/native-recompression-160x48/bottom.txt",
+      "sha256": "2ab99dd35df0108062f6b78dc43460ce65ffd6979d842f31a00b0dc7295fffad"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native10/native-recompression-160x48/bottom.vt",
+      "sha256": "70b6353b70b349869eb89266856d605ef8adb45237c49032042dd10eef84b4b2"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native10/native-recompression-160x48/bottom.render.json",
+      "sha256": "2fc11c15f504ef1ae0785b4ac97eb6306d778e32225bb0bf21ead832a7565225"
+    }
+  ],
+  "mapping_limits": [
+    "Native has no absolute per-message created/streamed/completed event timestamps. Created uses the actual source-verified turn-ID epoch; completed is an explicitly derived coordinate preserving the actual stored elapsed display duration, not a fabricated absolute event measurement. Streamed is omitted.",
+    "Real completed native turns map to supported OC2 succeeded idle boundaries, preventing DCP display-only user wrappers from resetting turn duration. No failed/interrupted outcome is fabricated.",
+    "Actual final response item is a completed assistant message, with no outstanding calls; actual probe emits response.completed with incomplete_details:null. Pinned OpenResponses mapFinishReason normalizes this to stop. This supported finish field is required for the original assistant footer.",
+    "Assistant tokens use stored last physical response usage, equal to native display.context_usage here, not aggregated display.usage. Fixture emits no reasoning/cache usage. Session required tokens sum stored per-turn display usage; not a provider billing assertion.",
+    "Session required cost is OC2 zero-default scaffolding: no cost was recorded or configured by this native offline fixture. Not measured billing.",
+    "Original public import resolves projectID/location and overwrites time.updated with actual import time. Session model null/absent variant becomes default per session/info.ts:34, matching native no explicit variant. Title/agent/model/location and all message data are checked by exact public export.",
+    "Native IDs retain an explicit one-to-one source trace under required OC2 msg_/ses_ prefixes. DCP text is display-only user content from unchanged pinned D05, never a native history ingress."
+  ],
+  "runner_hashes": {
+    "native": {
+      "dcp_reference_capture.mjs": "38d1f09d5a5f2a4daa88fbf1a897e701aad886a977861008146def9592fc41be",
+      "dcp_native_bridge.py": "375ca1a6a3bdabb32d4fd0c070f6b0f27ae6c85e4d3a126c31fb8d39fa51a019",
+      "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e"
+    },
+    "original": {
+      "dcp_reference_capture.mjs": "38d1f09d5a5f2a4daa88fbf1a897e701aad886a977861008146def9592fc41be",
+      "dcp_reference_bridge.py": "11e9f50920a57e76c2ab6be9562f7b5e77688d2575e6058803c91fe8005b5f2a",
+      "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e"
+    }
+  },
+  "helper_sha256": "7fea77c34d5f11f3e0e6f452977919f4c3b32af5cc83cd9881320288ef436776",
+  "png_decoder": {
+    "name": "Pillow",
+    "version": "11.1.0"
+  }
+}

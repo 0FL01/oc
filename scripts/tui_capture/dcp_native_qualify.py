@@ -23,8 +23,13 @@ parser.add_argument('--released-sha256', required=True,
                     help='Parent-attested final binary digest; execution is deferred until release')
 parser.add_argument('--output', required=True, type=Path)
 parser.add_argument('--default-detail-only', action='store_true',
-                    help='Match supported display settings; capture only recompression at three sizes, without summary/controls')
+                    help='Match supported display settings; capture only recompression at three sizes, without extra controls; summaries off unless --show-compression')
+parser.add_argument('--show-compression', action='store_true',
+                    help='Include actual saved summaries in --default-detail-only (detailed/chat) captures')
 args = parser.parse_args()
+if args.show_compression and not args.default_detail_only:
+    parser.error('--show-compression requires --default-detail-only')
+show_compression = not args.default_detail_only or args.show_compression
 repo = Path(__file__).resolve().parents[2]
 output = args.output.resolve()
 assert output.parent == repo / 'evidence/tui/recovery-v00'
@@ -199,7 +204,7 @@ config = {'model': 'fixture/vis38-native-model', 'plugin': ['@tarquinen/opencode
 cli = {'session': {'sidebar': 'hide', 'tps': False}, 'tabs': {'layout': 'horizontal'}}
 if args.default_detail_only:
     display_config = json.loads((project / 'dcp.jsonc').read_text())
-    display_config['compress']['showCompression'] = False
+    display_config['compress']['showCompression'] = show_compression
     (project / 'dcp.jsonc').write_text(json.dumps(display_config))
     cli.update({'theme': {'name': 'opencode', 'mode': 'dark'}, 'animations': False,
                 'attention': {'notifications': False, 'sound': False},
@@ -214,6 +219,7 @@ commands, checks = [], []
 result = {'status': 'IN_PROGRESS', 'qualification': 'Actual native compression/continuation and durable typed snapshot, independent of display reference',
            'oc_binary_sha256': binary_sha256, 'parent_released_sha256': args.released_sha256,
            'build_source_association': 'Explicit parent-attested digest; parent retains build/source proof',
+           'capture_selection': {'recompression_only': args.default_detail_only, 'show_compression': show_compression},
            'source_HEAD': subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=repo, capture_output=True, text=True, check=True).stdout.strip(),
             'checks': checks, 'display_cases': [], 'not_qualified': ['failure/cancel/no-gain', 'Undo/Redo routing', 'bounded archive/resources', 'live ToolCallFinished publication / public ToolOpView DTO equality']}
 
@@ -246,7 +252,7 @@ def capture_stage(label, context_file, run_snapshot, display=None):
     global stage
     if args.default_detail_only and label != 'recompression':
         return
-    display = display or {'notification': 'detailed', 'channel': 'chat', 'show_compression': not args.default_detail_only}
+    display = display or {'notification': 'detailed', 'channel': 'chat', 'show_compression': show_compression}
     observation = observe()
     canonical = sorted(rows(observation, 'conversation_messages'), key=lambda r: r['seq'])
     spec_file = 'native-tui-' + label + '-spec.json'
@@ -387,7 +393,7 @@ try:
                         'commit_message_ids': [r['id'] for r in canonical], 'prior_message_ids': sorted(prior_ids),
                         'new_message_ids': sorted(recent_ids), 'new_tool_ids': sorted(recent_tools), 'range_inputs': range_inputs,
                          'active_summaries': [{'block_id': b['id'], 'summary_tokens': estimate(b['summary'])} for b in active_blocks],
-                          'display': {'notification': 'detailed', 'channel': 'chat', 'show_compression': not args.default_detail_only},
+                          'display': {'notification': 'detailed', 'channel': 'chat', 'show_compression': show_compression},
                         'categorical_bar_independently_checked': True})
         capture_stage(label, 'compress-' + label + '-snapshot.json', snapshot)
     stable = rows(committed, 'dcp_run_views')

@@ -1,8 +1,38 @@
 # T44 — parity qualification remains open (2026-09-28)
 
-**Execution paused at the owner's request after the current checkpoint and
-commit/push. T44 remains incomplete; no new implementation work is authorized
-until the owner resumes it.**
+**Execution resumed by the owner's changed-plan instruction. T52 R0–R7 /
+ARCH01–ARCH05 is complete and delivered; T44 was restored through the journal.
+T44 remains incomplete, with no full VIS38/V09 or product READY claim.**
+
+The first post-T52 continuation qualifies detailed/chat recompression with real
+saved summaries (`showCompression=true`), including prior multi-range headings.
+[`dcp-report20260928-05.md`](../tui/recovery-v00/dcp-report20260928-05.md) and the
+coordinator's independent `dcp-pair-check20260928-09.json` verify all **14,400
+styled cells, three cursors and 1,941,888 PNG pixels equal**, at80×24,120×40,160×48,
+with byte-identical PNGs and no masks. A genuine source separator had inherited
+padding foreground at two cells; the shared UserMessage/DCP wrapper now uses the
+existing source-space wrap, leaving padding independently styled. One regression
+reproduced that display defect before the fix. Three real compression commits
+and restart made11 bounded loopback requests; the six held PTYs exited naturally,
+with no extra generation or native owner changes. Original public transfer and
+pinned formatter provenance remain explicit source-derived display comparison,
+not legacy JS-plugin runtime compatibility or absolute-event-time equivalence.
+
+Final serial workspace fmt, locked tests (**1191 passed, zero failed, nine
+unchanged opt-in ignored**), all-target Clippy `-D warnings`, debug/release builds,
+help, Python helper/journal/docs tests and xterm frontend/geometry gates **PASS**:
+`tool_0e7cf490d001H2BZ6nWPClhHDJ`. Debug SHA still matches the captured
+`be33326eeb06a7d04596b766bba956b840f2240a042fdfb89d9b3352e36c8fb2`;
+release SHA `13bb5477e1fcb1789c303cda4dc14cfe5e7e5b2d58b9755d8e9fde8fac969e1a`.
+The adjacent recurring pending-MCP test failure was reproduced as a raw-VT
+substring observation defect while the reconstructed screen already contained
+the complete prompt. It now checks that actual screen under the **same original
+shared two-second deadline**; input, resize, cancellation/reap and request bounds
+are unchanged. A fragmented cursor-update regression and24 consecutive real
+pending-UI checks pass. Details: [post-T52 checkpoint](post-T52-dcp-and-pty.md).
+
+Earlier default-summary-disabled qualification follows; its artifacts and
+checks are historical and were not rewritten by T52 or this continuation.
 
 The latest VIS38 checkpoint fixes a real exact-fit word-wrap bug: when a fitting
 word filled the row, its following space incorrectly moved that word to the next

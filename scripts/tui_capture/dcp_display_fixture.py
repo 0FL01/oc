@@ -151,7 +151,7 @@ source_paths = [
     ('original duration attribution', 'opencode/packages/tui/src/routes/session/rows.ts', '353-404'),
     ('original footer terminal requirement', 'opencode/packages/tui/src/routes/session/rows.ts', '326-329'),
     ('original completed response normalization', 'opencode/packages/ai/src/protocols/open-responses.ts', '872-881,1324-1368'),
-    ('actual bounded response fixture', 'scripts/tui_capture/dcp_native_qualify.py', '143-181'),
+    ('actual bounded response fixture', 'scripts/tui_capture/dcp_native_qualify.py', '148-188'),
     ('original context usage', 'opencode/packages/tui/src/util/session.ts', '58-72'),
     ('original U34/assistant footer', 'opencode/packages/tui/src/routes/session/index.tsx', '1934-1983,2273-2345'),
 ]

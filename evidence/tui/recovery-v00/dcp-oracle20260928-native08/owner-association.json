@@ -1,0 +1,27 @@
+{
+  "path": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-native20260928-09",
+  "result_sha256": "8447c75b045832d9be51cbd5b0b9f402fad1049b944d2b14125f82e8c9b92670",
+  "binary_sha256": "be33326eeb06a7d04596b766bba956b840f2240a042fdfb89d9b3352e36c8fb2",
+  "source_HEAD": "fa312e0268f839bf8b26f54899871210bff37e8d",
+  "evidence_seals": {
+    "commands.json": "533453f798362341fc64c932759d6caac08a8d02ca724b8bf831faf26d9f1079",
+    "compress-multi-before.json": "42052a8cd00a66496f553645ee9ba75c94f919fead7e134c47b06d3ed85bfc82",
+    "compress-multi-measurement.json": "f613dd5c8df7a107e8a0c3be40e549b417fb84ddd91e8cb9e6e77e3a5cb94744",
+    "compress-multi-snapshot.json": "ed3f715bb91187b953bb0dfd01169e9847fabceff4a5d3e2a23475eae06cd90e",
+    "compress-recompression-before.json": "ed3f715bb91187b953bb0dfd01169e9847fabceff4a5d3e2a23475eae06cd90e",
+    "compress-recompression-measurement.json": "814be0041f90eb4cd72aed48b798fbbd1389a2a433dbfe7d99ae6330bb2bdb1b",
+    "compress-recompression-snapshot.json": "29a181fc38a4b70015720fbdd0b5fcba11d501783ef18fcac586ffec44c11901",
+    "compress-single-before.json": "aaa1ccce19490d11871dbd950cc277ea79b0954a025d39904eae5ce68c1f2d0c",
+    "compress-single-measurement.json": "09f1fa914f35e932bf24ab121b2c75153fd4b3a6e2db09d6f77413cdd6d266a8",
+    "compress-single-snapshot.json": "42052a8cd00a66496f553645ee9ba75c94f919fead7e134c47b06d3ed85bfc82",
+    "fixture-config.json": "030a7229c69d1ce02f7dead3bb3e575d260d1dda1c64fe1d0117e5dee0d46394",
+    "native-capture-recompression.json": "c842ab0c6776c99d7e8a2022a06045a95acfd463d298f8c423eeff16b7af0054",
+    "native-tui-recompression-spec.json": "1cd725018a5a97310624819fc4bca9448f4d95717168d67a0cbfe48a6916e377",
+    "native-tui-spec.json": "8f02808a0ff60e3acb0ec1c63e9a3307c656480577e6bad34685aab335dc8235",
+    "requests.json": "41b92d760d338f56bfa431c7810c60cebb0d15a17a0196960c1a3698683c2733",
+    "restart-snapshot.json": "807cc579f2834899958f0bc82d39be46967cafc8b1c746b1d8fa93889615ce10",
+    "seed-A-snapshot.json": "24b647e83bd218be3a46088c0f316a7bf2d5450fdeaf2d345b829271ddfa5840",
+    "seed-B-snapshot.json": "113a3ea6292ba6060a79b499ccf8a6357f57720e5d8c367a5bd2127f015a15e6",
+    "seed-C-snapshot.json": "aaa1ccce19490d11871dbd950cc277ea79b0954a025d39904eae5ce68c1f2d0c"
+  }
+}

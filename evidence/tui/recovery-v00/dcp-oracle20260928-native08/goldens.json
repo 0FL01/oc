@@ -1,0 +1,877 @@
+{
+  "schema_version": 1,
+  "provenance": {
+    "package": "@tarquinen/opencode-dcp",
+    "version": "3.1.15",
+    "commit": "11f6517780a502512a3467645074be447cb0369e",
+    "license": "AGPL-3.0-or-later",
+    "native_owner": {
+      "path": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-native20260928-09",
+      "result_sha256": "8447c75b045832d9be51cbd5b0b9f402fad1049b944d2b14125f82e8c9b92670",
+      "binary_sha256": "be33326eeb06a7d04596b766bba956b840f2240a042fdfb89d9b3352e36c8fb2",
+      "source_HEAD": "fa312e0268f839bf8b26f54899871210bff37e8d",
+      "evidence_seals": {
+        "commands.json": "533453f798362341fc64c932759d6caac08a8d02ca724b8bf831faf26d9f1079",
+        "compress-multi-before.json": "42052a8cd00a66496f553645ee9ba75c94f919fead7e134c47b06d3ed85bfc82",
+        "compress-multi-measurement.json": "f613dd5c8df7a107e8a0c3be40e549b417fb84ddd91e8cb9e6e77e3a5cb94744",
+        "compress-multi-snapshot.json": "ed3f715bb91187b953bb0dfd01169e9847fabceff4a5d3e2a23475eae06cd90e",
+        "compress-recompression-before.json": "ed3f715bb91187b953bb0dfd01169e9847fabceff4a5d3e2a23475eae06cd90e",
+        "compress-recompression-measurement.json": "814be0041f90eb4cd72aed48b798fbbd1389a2a433dbfe7d99ae6330bb2bdb1b",
+        "compress-recompression-snapshot.json": "29a181fc38a4b70015720fbdd0b5fcba11d501783ef18fcac586ffec44c11901",
+        "compress-single-before.json": "aaa1ccce19490d11871dbd950cc277ea79b0954a025d39904eae5ce68c1f2d0c",
+        "compress-single-measurement.json": "09f1fa914f35e932bf24ab121b2c75153fd4b3a6e2db09d6f77413cdd6d266a8",
+        "compress-single-snapshot.json": "42052a8cd00a66496f553645ee9ba75c94f919fead7e134c47b06d3ed85bfc82",
+        "fixture-config.json": "030a7229c69d1ce02f7dead3bb3e575d260d1dda1c64fe1d0117e5dee0d46394",
+        "native-capture-recompression.json": "c842ab0c6776c99d7e8a2022a06045a95acfd463d298f8c423eeff16b7af0054",
+        "native-tui-recompression-spec.json": "1cd725018a5a97310624819fc4bca9448f4d95717168d67a0cbfe48a6916e377",
+        "native-tui-spec.json": "8f02808a0ff60e3acb0ec1c63e9a3307c656480577e6bad34685aab335dc8235",
+        "requests.json": "41b92d760d338f56bfa431c7810c60cebb0d15a17a0196960c1a3698683c2733",
+        "restart-snapshot.json": "807cc579f2834899958f0bc82d39be46967cafc8b1c746b1d8fa93889615ce10",
+        "seed-A-snapshot.json": "24b647e83bd218be3a46088c0f316a7bf2d5450fdeaf2d345b829271ddfa5840",
+        "seed-B-snapshot.json": "113a3ea6292ba6060a79b499ccf8a6357f57720e5d8c367a5bd2127f015a15e6",
+        "seed-C-snapshot.json": "aaa1ccce19490d11871dbd950cc277ea79b0954a025d39904eae5ce68c1f2d0c"
+      }
+    },
+    "qualification": "Actual qualified native accounting -> unchanged pinned D05 reference payload. Native PTY pairing remains separate; no native JSON ingress."
+  },
+  "notifications": [
+    {
+      "id": "native-single",
+      "result": true,
+      "prompts": [
+        {
+          "path": {
+            "id": "s-vis38-actual-owner"
+          },
+          "body": {
+            "noReply": true,
+            "agent": "build",
+            "model": {
+              "providerID": "fixture",
+              "modelID": "vis38-native-model"
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "▣ DCP | -2.8K removed, +83 summary\n\n│⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿████████████████████████████████████│\n▣ Compression #1 -2.8K removed, +83 summary\n→ Topic: VIS38 single\n→ Items: 2 messages compressed\n→ Compression (~83 tokens): Closed range 1; preserve requirements; continue safely. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression.",
+                "ignored": true
+              }
+            ]
+          }
+        }
+      ],
+      "toasts": [],
+      "errors": [],
+      "active_summary_tokens": 83,
+      "payload": "▣ DCP | -2.8K removed, +83 summary\n\n│⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿████████████████████████████████████│\n▣ Compression #1 -2.8K removed, +83 summary\n→ Topic: VIS38 single\n→ Items: 2 messages compressed\n→ Compression (~83 tokens): Closed range 1; preserve requirements; continue safely. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression.",
+      "fixture": {
+        "config": {
+          "pruneNotification": "detailed",
+          "pruneNotificationType": "chat",
+          "compress": {
+            "showCompression": true
+          }
+        },
+        "state": {
+          "stats": {
+            "totalPruneTokens": 2788,
+            "pruneTokenCounter": 0
+          },
+          "prune": {
+            "messages": {
+              "byMessageId": {
+                "m0001": {
+                  "tokenCount": 2788,
+                  "allBlockIds": [
+                    1
+                  ],
+                  "activeBlockIds": [
+                    1
+                  ]
+                },
+                "m0002": {
+                  "tokenCount": 16,
+                  "allBlockIds": [
+                    1
+                  ],
+                  "activeBlockIds": [
+                    1
+                  ]
+                },
+                "m0003": {
+                  "tokenCount": 2788,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m0004": {
+                  "tokenCount": 16,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m0005": {
+                  "tokenCount": 2788,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m0006": {
+                  "tokenCount": 16,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m0007": {
+                  "tokenCount": 16,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                }
+              },
+              "blocksById": {
+                "1": {
+                  "blockId": 1,
+                  "nativeBlockId": "b0001",
+                  "runId": 1,
+                  "topic": "VIS38 single",
+                  "summary": "Closed range 1; preserve requirements; continue safely. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression.",
+                  "summaryTokens": 83,
+                  "compressedTokens": 2788,
+                  "active": true,
+                  "directMessageIds": [
+                    "m0001",
+                    "m0002"
+                  ],
+                  "directToolIds": [],
+                  "effectiveMessageIds": [
+                    "m0001",
+                    "m0002"
+                  ],
+                  "effectiveToolIds": []
+                }
+              },
+              "activeBlockIds": [
+                1
+              ],
+              "activeByAnchorMessageId": {},
+              "nextBlockId": 2,
+              "nextRunId": 2
+            }
+          }
+        }
+      },
+      "native_context": {
+        "session": "s-vis38-actual-owner",
+        "operation_id": "ts-vis38-actual-owner-1790594077217-2373439-0-r1-c0-call_vis38_compress-single",
+        "typed_snapshot": {
+          "session": "s-vis38-actual-owner",
+          "operation_id": "ts-vis38-actual-owner-1790594077217-2373439-0-r1-c0-call_vis38_compress-single",
+          "ordinal": 1,
+          "topic": "VIS38 single",
+          "block_ids": [
+            "b0001"
+          ],
+          "removed": 2788,
+          "summary": 83,
+          "net_saved": 2700,
+          "method": "utf16_round_quarter_fallback",
+          "new_messages": 2,
+          "new_tools": 0,
+          "cumulative": {
+            "gross_removed": 2788,
+            "active_summary": 83,
+            "net_saved": 2700,
+            "compressions": 1,
+            "prunes": 0,
+            "method": "utf16_round_quarter_fallback",
+            "complete": true
+          },
+          "bar": "⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿████████████████████████████████████"
+        },
+        "messages": [
+          {
+            "id": "m0001",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS38 seed A: closed analysis, retain requirement A. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. "
+          },
+          {
+            "id": "m0002",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS38-ARCHIVE-A: closed analysis complete; retain requirement A."
+          },
+          {
+            "id": "m0003",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 3,
+            "role": "user",
+            "text": "VIS38 seed B: closed analysis, retain requirement B. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. "
+          },
+          {
+            "id": "m0004",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 4,
+            "role": "assistant",
+            "text": "VIS38-ARCHIVE-B: closed analysis complete; retain requirement B."
+          },
+          {
+            "id": "m0005",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 5,
+            "role": "user",
+            "text": "VIS38 seed C: closed analysis, retain requirement C. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. "
+          },
+          {
+            "id": "m0006",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 6,
+            "role": "assistant",
+            "text": "VIS38-ARCHIVE-C: closed analysis complete; retain requirement C."
+          },
+          {
+            "id": "m0007",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 7,
+            "role": "user",
+            "text": "VIS38 compress single: execute the closed ranges, then continue."
+          },
+          {
+            "id": "m0008",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 8,
+            "role": "assistant",
+            "text": "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay."
+          }
+        ],
+        "prior_notifications": [],
+        "capture_after": "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay.",
+        "capture_before": "VIS38 seed A: closed analysis, retain requirement A. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. ",
+        "stage": "single",
+        "required_native_capture": "Capture this genuine stage context before advancing the owner campaign; later session tails are not the same full-frame fixture"
+      }
+    },
+    {
+      "id": "native-multi",
+      "result": true,
+      "prompts": [
+        {
+          "path": {
+            "id": "s-vis38-actual-owner"
+          },
+          "body": {
+            "noReply": true,
+            "agent": "build",
+            "model": {
+              "providerID": "fixture",
+              "modelID": "vis38-native-model"
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "▣ DCP | -8.4K removed, +111 summary\n\n│░░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████│\n▣ Compression #2 -5.6K removed, +28 summary\n→ Topic: VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries\n→ Items: 4 messages compressed\n→ Compression (~28 tokens): ### VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries\nClosed range 1; preserve requirements; continue safely.\n\n### VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries\nClosed range 2; preserve requirements; continue safely.",
+                "ignored": true
+              }
+            ]
+          }
+        }
+      ],
+      "toasts": [],
+      "errors": [],
+      "active_summary_tokens": 111,
+      "payload": "▣ DCP | -8.4K removed, +111 summary\n\n│░░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████│\n▣ Compression #2 -5.6K removed, +28 summary\n→ Topic: VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries\n→ Items: 4 messages compressed\n→ Compression (~28 tokens): ### VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries\nClosed range 1; preserve requirements; continue safely.\n\n### VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries\nClosed range 2; preserve requirements; continue safely.",
+      "fixture": {
+        "config": {
+          "pruneNotification": "detailed",
+          "pruneNotificationType": "chat",
+          "compress": {
+            "showCompression": true
+          }
+        },
+        "state": {
+          "stats": {
+            "totalPruneTokens": 8364,
+            "pruneTokenCounter": 0
+          },
+          "prune": {
+            "messages": {
+              "byMessageId": {
+                "m0001": {
+                  "tokenCount": 2788,
+                  "allBlockIds": [
+                    1
+                  ],
+                  "activeBlockIds": [
+                    1
+                  ]
+                },
+                "m0002": {
+                  "tokenCount": 16,
+                  "allBlockIds": [
+                    1
+                  ],
+                  "activeBlockIds": [
+                    1
+                  ]
+                },
+                "m0003": {
+                  "tokenCount": 2788,
+                  "allBlockIds": [
+                    2
+                  ],
+                  "activeBlockIds": [
+                    2
+                  ]
+                },
+                "m0004": {
+                  "tokenCount": 16,
+                  "allBlockIds": [
+                    2
+                  ],
+                  "activeBlockIds": [
+                    2
+                  ]
+                },
+                "m0005": {
+                  "tokenCount": 2788,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m0006": {
+                  "tokenCount": 16,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m0007": {
+                  "tokenCount": 16,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m0008": {
+                  "tokenCount": 15,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m0009": {
+                  "tokenCount": 16,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                }
+              },
+              "blocksById": {
+                "1": {
+                  "blockId": 1,
+                  "nativeBlockId": "b0001",
+                  "runId": 2,
+                  "topic": "VIS38 single",
+                  "summary": "Closed range 1; preserve requirements; continue safely. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression.",
+                  "summaryTokens": 83,
+                  "compressedTokens": 0,
+                  "active": true,
+                  "directMessageIds": [],
+                  "directToolIds": [],
+                  "effectiveMessageIds": [
+                    "m0001",
+                    "m0002"
+                  ],
+                  "effectiveToolIds": []
+                },
+                "2": {
+                  "blockId": 2,
+                  "nativeBlockId": "b0002",
+                  "runId": 2,
+                  "topic": "VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries",
+                  "summary": "Closed range 1; preserve requirements; continue safely.",
+                  "summaryTokens": 14,
+                  "compressedTokens": 2788,
+                  "active": true,
+                  "directMessageIds": [
+                    "m0003",
+                    "m0004"
+                  ],
+                  "directToolIds": [],
+                  "effectiveMessageIds": [
+                    "m0003",
+                    "m0004"
+                  ],
+                  "effectiveToolIds": []
+                },
+                "3": {
+                  "blockId": 3,
+                  "nativeBlockId": "b0003",
+                  "runId": 2,
+                  "topic": "VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries",
+                  "summary": "Closed range 2; preserve requirements; continue safely.",
+                  "summaryTokens": 14,
+                  "compressedTokens": 2788,
+                  "active": true,
+                  "directMessageIds": [
+                    "m0005",
+                    "m0006"
+                  ],
+                  "directToolIds": [],
+                  "effectiveMessageIds": [
+                    "m0005",
+                    "m0006"
+                  ],
+                  "effectiveToolIds": []
+                }
+              },
+              "activeBlockIds": [
+                1,
+                2,
+                3
+              ],
+              "activeByAnchorMessageId": {},
+              "nextBlockId": 4,
+              "nextRunId": 3
+            }
+          }
+        }
+      },
+      "native_context": {
+        "session": "s-vis38-actual-owner",
+        "operation_id": "ts-vis38-actual-owner-1790594077480-2373448-0-r1-c0-call_vis38_compress-multi",
+        "typed_snapshot": {
+          "session": "s-vis38-actual-owner",
+          "operation_id": "ts-vis38-actual-owner-1790594077480-2373448-0-r1-c0-call_vis38_compress-multi",
+          "ordinal": 2,
+          "topic": "VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries",
+          "block_ids": [
+            "b0002",
+            "b0003"
+          ],
+          "removed": 5576,
+          "summary": 28,
+          "net_saved": 5538,
+          "method": "utf16_round_quarter_fallback",
+          "new_messages": 4,
+          "new_tools": 0,
+          "cumulative": {
+            "gross_removed": 8364,
+            "active_summary": 111,
+            "net_saved": 8238,
+            "compressions": 2,
+            "prunes": 0,
+            "method": "utf16_round_quarter_fallback",
+            "complete": true
+          },
+          "bar": "░░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████"
+        },
+        "messages": [
+          {
+            "id": "m0001",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS38 seed A: closed analysis, retain requirement A. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. "
+          },
+          {
+            "id": "m0002",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS38-ARCHIVE-A: closed analysis complete; retain requirement A."
+          },
+          {
+            "id": "m0003",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 3,
+            "role": "user",
+            "text": "VIS38 seed B: closed analysis, retain requirement B. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. "
+          },
+          {
+            "id": "m0004",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 4,
+            "role": "assistant",
+            "text": "VIS38-ARCHIVE-B: closed analysis complete; retain requirement B."
+          },
+          {
+            "id": "m0005",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 5,
+            "role": "user",
+            "text": "VIS38 seed C: closed analysis, retain requirement C. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. "
+          },
+          {
+            "id": "m0006",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 6,
+            "role": "assistant",
+            "text": "VIS38-ARCHIVE-C: closed analysis complete; retain requirement C."
+          },
+          {
+            "id": "m0007",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 7,
+            "role": "user",
+            "text": "VIS38 compress single: execute the closed ranges, then continue."
+          },
+          {
+            "id": "m0008",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 8,
+            "role": "assistant",
+            "text": "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay."
+          },
+          {
+            "id": "m0009",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 9,
+            "role": "user",
+            "text": "VIS38 compress multi: execute the closed ranges, then continue."
+          },
+          {
+            "id": "m0010",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 10,
+            "role": "assistant",
+            "text": "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay."
+          }
+        ],
+        "prior_notifications": [
+          {
+            "operation_id": "ts-vis38-actual-owner-1790594077217-2373439-0-r1-c0-call_vis38_compress-single",
+            "before_message_id": "m0008",
+            "payload": "▣ DCP | -2.8K removed, +83 summary\n\n│⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿████████████████████████████████████│\n▣ Compression #1 -2.8K removed, +83 summary\n→ Topic: VIS38 single\n→ Items: 2 messages compressed\n→ Compression (~83 tokens): Closed range 1; preserve requirements; continue safely. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression."
+          }
+        ],
+        "capture_after": "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay.",
+        "capture_before": "VIS38 seed A: closed analysis, retain requirement A. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. ",
+        "stage": "multi",
+        "required_native_capture": "Capture this genuine stage context before advancing the owner campaign; later session tails are not the same full-frame fixture"
+      }
+    },
+    {
+      "id": "native-recompression",
+      "result": true,
+      "prompts": [
+        {
+          "path": {
+            "id": "s-vis38-actual-owner"
+          },
+          "body": {
+            "noReply": true,
+            "agent": "build",
+            "model": {
+              "providerID": "fixture",
+              "modelID": "vis38-native-model"
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "▣ DCP | -8.4K removed, +34 summary\n\n│░░░░░░░░░░░░░░░░░░░░░░░░░░░███████████████████████│\n▣ Compression #3 -0 removed, +6 summary\n→ Topic: VIS38 recompression\n→ Items: 0 messages compressed\n→ Compression (~6 tokens): Requirement A retained.",
+                "ignored": true
+              }
+            ]
+          }
+        }
+      ],
+      "toasts": [],
+      "errors": [],
+      "active_summary_tokens": 34,
+      "payload": "▣ DCP | -8.4K removed, +34 summary\n\n│░░░░░░░░░░░░░░░░░░░░░░░░░░░███████████████████████│\n▣ Compression #3 -0 removed, +6 summary\n→ Topic: VIS38 recompression\n→ Items: 0 messages compressed\n→ Compression (~6 tokens): Requirement A retained.",
+      "fixture": {
+        "config": {
+          "pruneNotification": "detailed",
+          "pruneNotificationType": "chat",
+          "compress": {
+            "showCompression": true
+          }
+        },
+        "state": {
+          "stats": {
+            "totalPruneTokens": 8364,
+            "pruneTokenCounter": 0
+          },
+          "prune": {
+            "messages": {
+              "byMessageId": {
+                "m0001": {
+                  "tokenCount": 2788,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m0002": {
+                  "tokenCount": 16,
+                  "allBlockIds": [
+                    3
+                  ],
+                  "activeBlockIds": [
+                    3
+                  ]
+                },
+                "m0003": {
+                  "tokenCount": 2788,
+                  "allBlockIds": [
+                    1
+                  ],
+                  "activeBlockIds": [
+                    1
+                  ]
+                },
+                "m0004": {
+                  "tokenCount": 16,
+                  "allBlockIds": [
+                    1
+                  ],
+                  "activeBlockIds": [
+                    1
+                  ]
+                },
+                "m0005": {
+                  "tokenCount": 2788,
+                  "allBlockIds": [
+                    2
+                  ],
+                  "activeBlockIds": [
+                    2
+                  ]
+                },
+                "m0006": {
+                  "tokenCount": 16,
+                  "allBlockIds": [
+                    2
+                  ],
+                  "activeBlockIds": [
+                    2
+                  ]
+                },
+                "m0007": {
+                  "tokenCount": 16,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m0008": {
+                  "tokenCount": 15,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m0009": {
+                  "tokenCount": 16,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m0010": {
+                  "tokenCount": 15,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                },
+                "m0011": {
+                  "tokenCount": 18,
+                  "allBlockIds": [],
+                  "activeBlockIds": []
+                }
+              },
+              "blocksById": {
+                "1": {
+                  "blockId": 1,
+                  "nativeBlockId": "b0002",
+                  "runId": 3,
+                  "topic": "VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries",
+                  "summary": "Closed range 1; preserve requirements; continue safely.",
+                  "summaryTokens": 14,
+                  "compressedTokens": 0,
+                  "active": true,
+                  "directMessageIds": [],
+                  "directToolIds": [],
+                  "effectiveMessageIds": [
+                    "m0003",
+                    "m0004"
+                  ],
+                  "effectiveToolIds": []
+                },
+                "2": {
+                  "blockId": 2,
+                  "nativeBlockId": "b0003",
+                  "runId": 3,
+                  "topic": "VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries",
+                  "summary": "Closed range 2; preserve requirements; continue safely.",
+                  "summaryTokens": 14,
+                  "compressedTokens": 0,
+                  "active": true,
+                  "directMessageIds": [],
+                  "directToolIds": [],
+                  "effectiveMessageIds": [
+                    "m0005",
+                    "m0006"
+                  ],
+                  "effectiveToolIds": []
+                },
+                "3": {
+                  "blockId": 3,
+                  "nativeBlockId": "b0004",
+                  "runId": 3,
+                  "topic": "VIS38 recompression",
+                  "summary": "Requirement A retained.",
+                  "summaryTokens": 6,
+                  "compressedTokens": 0,
+                  "active": true,
+                  "directMessageIds": [],
+                  "directToolIds": [],
+                  "effectiveMessageIds": [
+                    "m0001",
+                    "m0002"
+                  ],
+                  "effectiveToolIds": []
+                }
+              },
+              "activeBlockIds": [
+                1,
+                2,
+                3
+              ],
+              "activeByAnchorMessageId": {},
+              "nextBlockId": 4,
+              "nextRunId": 4
+            }
+          }
+        }
+      },
+      "native_context": {
+        "session": "s-vis38-actual-owner",
+        "operation_id": "ts-vis38-actual-owner-1790594077684-2373459-0-r1-c0-call_vis38_compress-recompression",
+        "typed_snapshot": {
+          "session": "s-vis38-actual-owner",
+          "operation_id": "ts-vis38-actual-owner-1790594077684-2373459-0-r1-c0-call_vis38_compress-recompression",
+          "ordinal": 3,
+          "topic": "VIS38 recompression",
+          "block_ids": [
+            "b0004"
+          ],
+          "removed": 0,
+          "summary": 6,
+          "net_saved": 77,
+          "method": "utf16_round_quarter_fallback",
+          "new_messages": 0,
+          "new_tools": 0,
+          "cumulative": {
+            "gross_removed": 8364,
+            "active_summary": 34,
+            "net_saved": 8315,
+            "compressions": 3,
+            "prunes": 0,
+            "method": "utf16_round_quarter_fallback",
+            "complete": true
+          },
+          "bar": "░░░░░░░░░░░░░░░░░░░░░░░░░░░███████████████████████"
+        },
+        "messages": [
+          {
+            "id": "m0001",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS38 seed A: closed analysis, retain requirement A. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. "
+          },
+          {
+            "id": "m0002",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS38-ARCHIVE-A: closed analysis complete; retain requirement A."
+          },
+          {
+            "id": "m0003",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 3,
+            "role": "user",
+            "text": "VIS38 seed B: closed analysis, retain requirement B. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. "
+          },
+          {
+            "id": "m0004",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 4,
+            "role": "assistant",
+            "text": "VIS38-ARCHIVE-B: closed analysis complete; retain requirement B."
+          },
+          {
+            "id": "m0005",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 5,
+            "role": "user",
+            "text": "VIS38 seed C: closed analysis, retain requirement C. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. "
+          },
+          {
+            "id": "m0006",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 6,
+            "role": "assistant",
+            "text": "VIS38-ARCHIVE-C: closed analysis complete; retain requirement C."
+          },
+          {
+            "id": "m0007",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 7,
+            "role": "user",
+            "text": "VIS38 compress single: execute the closed ranges, then continue."
+          },
+          {
+            "id": "m0008",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 8,
+            "role": "assistant",
+            "text": "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay."
+          },
+          {
+            "id": "m0009",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 9,
+            "role": "user",
+            "text": "VIS38 compress multi: execute the closed ranges, then continue."
+          },
+          {
+            "id": "m0010",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 10,
+            "role": "assistant",
+            "text": "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay."
+          },
+          {
+            "id": "m0011",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 11,
+            "role": "user",
+            "text": "VIS38 compress recompression: execute the closed ranges, then continue."
+          },
+          {
+            "id": "m0012",
+            "session_id": "s-vis38-actual-owner",
+            "seq": 12,
+            "role": "assistant",
+            "text": "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay."
+          }
+        ],
+        "prior_notifications": [
+          {
+            "operation_id": "ts-vis38-actual-owner-1790594077217-2373439-0-r1-c0-call_vis38_compress-single",
+            "before_message_id": "m0008",
+            "payload": "▣ DCP | -2.8K removed, +83 summary\n\n│⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿████████████████████████████████████│\n▣ Compression #1 -2.8K removed, +83 summary\n→ Topic: VIS38 single\n→ Items: 2 messages compressed\n→ Compression (~83 tokens): Closed range 1; preserve requirements; continue safely. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression."
+          },
+          {
+            "operation_id": "ts-vis38-actual-owner-1790594077480-2373448-0-r1-c0-call_vis38_compress-multi",
+            "before_message_id": "m0010",
+            "payload": "▣ DCP | -8.4K removed, +111 summary\n\n│░░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████│\n▣ Compression #2 -5.6K removed, +28 summary\n→ Topic: VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries\n→ Items: 4 messages compressed\n→ Compression (~28 tokens): ### VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries\nClosed range 1; preserve requirements; continue safely.\n\n### VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries\nClosed range 2; preserve requirements; continue safely."
+          }
+        ],
+        "capture_after": "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay.",
+        "capture_before": "VIS38 seed A: closed analysis, retain requirement A. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. ",
+        "stage": "recompression",
+        "required_native_capture": "Capture this genuine stage context before advancing the owner campaign; later session tails are not the same full-frame fixture"
+      }
+    }
+  ],
+  "bars": [],
+  "tokens": []
+}

@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/usr/bin/node",
+    "/home/opencode/ai/oc/scripts/tui_capture/dcp_reference_capture.mjs",
+    "--native-spec",
+    "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-native20260928-08/native-tui-recompression-spec.json",
+    "--output",
+    "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression"
+  ],
+  "exit_code": 0,
+  "stdout": "{\"output\":\"/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression\",\"captures\":3,\"attempts\":[{\"name\":\"native-recompression-80x24\",\"status\":\"PASS_NATIVE_STAGE_CAPTURE\",\"genuine_session\":true},{\"name\":\"native-recompression-120x40\",\"status\":\"PASS_NATIVE_STAGE_CAPTURE\",\"genuine_session\":true},{\"name\":\"native-recompression-160x48\",\"status\":\"PASS_NATIVE_STAGE_CAPTURE\",\"genuine_session\":true}]}\n",
+  "stderr": "",
+  "output": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-08-recompression",
+  "lock_sha256": "833a384c1cfb6c5a3b6c71f100e923bc4bbd9d822a0b082af533995fa1a2accf",
+  "provider_requests_before": 10,
+  "provider_requests_after": 10
+}

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-28T10:52:54+00:00
+State updated: 2026-09-28T11:45:05+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,19 +12,15 @@ Evidence target: evidence/T44/report.md
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 post-T52
-
+# T44
 ## Result
-T52 ARCH PASS, pushed ca43e86ae; evidence/T52/report.md. T44 resumed.
-
+T52 done; summary=true3-size exact. dcp-report20260928-05.md.
 ## Checks
-Gates PASS. Prior oversized start/0077 preserved; shorter NOW note.
-
+Workspace1191 PASS; parsed-screen2s gate intact.
 ## Risks
-Full VIS38/V09 incomplete. .opencode untouched.
-
+Full VIS38/V09 open.
 ## Next
-Qualify remaining VIS38 controls/negative/running/lifecycle cases.
+Remaining controls/negative/running/lifecycle.
 
 
 Ready (до 5): T45, T46, T47, T50, T51

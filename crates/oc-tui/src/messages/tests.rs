@@ -2050,6 +2050,41 @@ fn golden_long_lines_wrap_without_loss() {
     assert_eq!(text, giant);
 }
 
+#[test]
+fn vis38_summary_wrapper_keeps_source_separator_foreground_at_word_wrap() {
+    // Unchanged pinned D05 multi-range payload through original U34 <text>:
+    // dcp-pair-check20260928-07.json, (110,3) at 120x40 and (152,12) at 160x48.
+    // Remove only the real two-cell transcript margin for this wrapper unit test.
+    let source = "→ Compression (~28 tokens): ### VIS38 multi long topic 日本語 résumé 👩‍💻 e\u{301} — preserve closed analysis and requirements across ranges with full real summaries";
+    let theme = Theme::dark();
+    for (width, separator_x) in [(116, 107), (156, 149)] {
+        let lines = transcript_text_block(source, theme, width, theme.categorical_agents()[0]);
+        assert_eq!(lines.len(), 4, "two text rows plus vertical padding");
+        let mut terminal = Terminal::new(TestBackend::new(width, 4)).unwrap();
+        terminal
+            .draw(|frame| {
+                frame.render_widget(
+                    Block::default().style(Style::default().fg(Color::Rgb(255, 255, 255))),
+                    frame.area(),
+                );
+                frame.render_widget(
+                    Paragraph::new(styled::Lines::from(lines).into_text()),
+                    frame.area(),
+                );
+            })
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(separator_x, 1)].symbol(), " ");
+        assert_eq!(buffer[(separator_x, 1)].fg, theme.text(), "width={width}");
+        assert_eq!(buffer[(separator_x, 1)].bg, theme.user_message_background());
+        assert_eq!(
+            buffer[(separator_x + 1, 1)].fg,
+            Color::Rgb(255, 255, 255),
+            "padding after the real separator must not inherit text foreground"
+        );
+    }
+}
+
 /// Markdown subset: every supported construct, and unsupported markers kept
 /// literally instead of being dropped.
 #[test]
