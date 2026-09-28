@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-28T11:45:05+00:00",
+  "updated_at": "2026-09-28T14:20:39+00:00",
   "current": "T44",
   "tasks": {
     "T00": {
@@ -313,8 +313,8 @@
     },
     "T44": {
       "status": "active",
-      "last_seq": 79,
-      "latest": "progress/M9/T44/0079.md",
+      "last_seq": 80,
+      "latest": "progress/M9/T44/0080.md",
       "evidence": null,
       "reopen_reason": null
     },

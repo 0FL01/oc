@@ -1,0 +1,20 @@
+   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `vt100`
+   --> crates/oc/tests/recovery_v02.rs:785:22
+    |
+785 |     let mut screen = vt100::Parser::new(40, 120, 0);
+    |                      ^^^^^ use of unresolved module or unlinked crate `vt100`
+    |
+    = help: if you wanted to use a crate named `vt100`, use `cargo add vt100` to add it to your `Cargo.toml`
+help: consider importing this trait
+    |
+  2 + use clap::Parser;
+    |
+help: if you import `Parser`, refer to it directly
+    |
+785 -     let mut screen = vt100::Parser::new(40, 120, 0);
+785 +     let mut screen = Parser::new(40, 120, 0);
+    |
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `oc` (test "recovery_v02") due to 1 previous error

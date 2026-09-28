@@ -254,6 +254,7 @@ impl TuiState {
             && matches!(
                 action,
                 CommandAction::OpenCards
+                    | CommandAction::OpenDcp
                     | CommandAction::DcpCompress { .. }
                     | CommandAction::CompactSession
             )
@@ -2399,6 +2400,10 @@ impl TuiState {
             }
             CommandAction::Help(topic) => {
                 self.panel = TuiPanel::Help(topic);
+                outcome.consumed_input = true;
+            }
+            CommandAction::OpenDcp => {
+                self.panel = TuiPanel::Dcp;
                 outcome.consumed_input = true;
             }
             CommandAction::DcpCompress { focus } => {

@@ -996,31 +996,20 @@ fn visit_row_blocks(
         )]);
         if !row.text.is_empty() {
             let inner = (width as usize).saturating_sub(1 + USER_PADDING).max(1);
-            source_chunks(&row.text, (inner * 128).min(4096), |chunk, _| {
-                let mut lines = Vec::new();
-                let body = Style::default().fg(theme.text()).bg(bg);
-                for raw in chunk.strip_suffix('\n').unwrap_or(chunk).split('\n') {
-                    let line = Line::new(vec![Span::styled(safe_text(raw), body)]);
-                    for wrapped in styled::wrap_line_limited(&line, inner, MAX_MARKDOWN_ROWS) {
-                        let mut spans = vec![
-                            Span::styled("┃", border),
-                            Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
-                        ];
-                        spans.extend(wrapped.spans().iter().cloned());
-                        lines.push(user_row(&spans, bg, width as usize));
-                    }
-                }
-                emit(lines);
-            });
-            if row.text.ends_with('\n') {
-                emit(vec![user_row(
-                    &[
+            let body = Style::default().fg(theme.text()).bg(bg);
+            for raw in row.text.split('\n') {
+                let line = Line::new(vec![Span::styled(safe_text(raw), body)]);
+                // Byte chunks reset word wrapping in the middle of a physical
+                // line. Stream complete visual rows instead: identical to U34
+                // and the full wrapper, retaining only one width-bounded row.
+                styled::visit_source_space_line(&line, inner, |wrapped| {
+                    let mut spans = vec![
                         Span::styled("┃", border),
                         Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
-                    ],
-                    bg,
-                    width as usize,
-                )]);
+                    ];
+                    spans.extend(wrapped.spans().iter().cloned());
+                    emit(vec![user_row(&spans, bg, width as usize)]);
+                });
             }
         }
         if !row.chips.is_empty() {
@@ -1213,29 +1202,6 @@ fn visit_assistant_indexed(
         emit(2, true, &mut || {
             vec![Line::plain(""), sanitize_line(footer.clone())]
         });
-    }
-}
-
-/// Cut at grapheme boundaries and prefer newlines. No text is discarded; each
-/// page has at most 128 source lines and a width-dependent byte budget.
-fn source_chunks(text: &str, max_bytes: usize, mut emit: impl FnMut(&str, usize)) {
-    let max_bytes = max_bytes.max(1);
-    let mut start = 0;
-    let mut lines = 0;
-    let mut page = 0;
-    for (offset, glyph) in text.grapheme_indices(true) {
-        if offset > start && (offset + glyph.len() - start > max_bytes || lines >= 128) {
-            emit(&text[start..offset], page);
-            page += 1;
-            start = offset;
-            lines = 0;
-        }
-        if glyph.ends_with('\n') {
-            lines += 1;
-        }
-    }
-    if start < text.len() {
-        emit(&text[start..], page);
     }
 }
 

@@ -1,6 +1,6 @@
 # VIS38 pinned DCP display reference
 
-These opt-in helpers implement amendment lines 493–587, sources D05–D10 and U34.
+These opt-in helpers implement the frozen VIS38 amendment (lines 548–625), sources D05–D10 and U34.
 They are development/reference tooling; production `oc` has no JS dependency.
 They leave existing capture modes and historical attempts intact.
 
@@ -116,6 +116,16 @@ then captures the same real session. The admitted project-local `dcp.jsonc`
 options are applied to real reopened TUI for minimal, off, showCompression:false
 and toast; each has three full-frame captures with no replay. Each attempt is
 immutable and individually SHA-256 sealed. This is not an injection interface.
+
+For source-traced control comparisons, `--comparable-controls` matches the same
+supported theme/cursor/sidebar/TPS/animation settings as `--default-detail-only`
+and selects only the real reopened minimal/off/toast stages. Optional
+`--control-continuations 0..3` first performs that many **actual public owner
+continuations** (within the same 16-request cap), independently checking unchanged
+frozen runs/accounting and append-only history. Each held control references the
+actual latest snapshot. This changes the genuine current history, never a capture
+crop, a transfer normalization, or an imported native fixture. Previous attempts
+and locks stay immutable.
 
 ## Actual qualified run → original U34 paired reference
 

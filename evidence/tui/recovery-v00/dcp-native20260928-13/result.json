@@ -1,0 +1,365 @@
+{
+  "status": "PASS_ACTUAL_SINGLE_MULTI_RESTART_OWNER_PROBE",
+  "qualification": "Actual native compression/continuation and durable typed snapshot, independent of display reference",
+  "oc_binary_sha256": "69d05edcbcabacfa35c0fee52335e7e3b586b624d31bc3698337c2d7ddf4fa9b",
+  "parent_released_sha256": "69d05edcbcabacfa35c0fee52335e7e3b586b624d31bc3698337c2d7ddf4fa9b",
+  "build_source_association": "Explicit parent-attested digest; parent retains build/source proof",
+  "capture_selection": {
+    "recompression_only": true,
+    "comparable_controls_only": false,
+    "control_continuations": 0,
+    "show_compression": true
+  },
+  "source_HEAD": "c649fc5b786daadecb2b40f794a401ec9057adb4",
+  "checks": [
+    {
+      "stage": "single",
+      "operation_id": "ts-vis38-actual-owner-1790600652205-2492142-0-r1-c0-call_vis38_compress-single",
+      "ordinal": 1,
+      "before_input_bytes": 48545,
+      "after_input_bytes": 34034,
+      "independent_removed": 2788,
+      "independent_summary": 83,
+      "independent_net_saved": 2700,
+      "new_messages": 2,
+      "ranges": 1,
+      "typed_snapshot": {
+        "session": "s-vis38-actual-owner",
+        "operation_id": "ts-vis38-actual-owner-1790600652205-2492142-0-r1-c0-call_vis38_compress-single",
+        "ordinal": 1,
+        "topic": "VIS38 single",
+        "block_ids": [
+          "b0001"
+        ],
+        "removed": 2788,
+        "summary": 83,
+        "net_saved": 2700,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 2,
+        "new_tools": 0,
+        "cumulative": {
+          "gross_removed": 2788,
+          "active_summary": 83,
+          "net_saved": 2700,
+          "compressions": 1,
+          "prunes": 0,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿████████████████████████████████████"
+      },
+      "commit_message_ids": [
+        "m0001",
+        "m0002",
+        "m0003",
+        "m0004",
+        "m0005",
+        "m0006",
+        "m0007"
+      ],
+      "prior_message_ids": [],
+      "new_message_ids": [
+        "m0001",
+        "m0002"
+      ],
+      "new_tool_ids": [],
+      "range_inputs": [
+        {
+          "block_id": "b0001",
+          "topic": "VIS38 single",
+          "summary": "Closed range 1; preserve requirements; continue safely. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression.",
+          "removed": 2788,
+          "summary_tokens": 83,
+          "new_message_ids": [
+            "m0001",
+            "m0002"
+          ],
+          "new_tool_ids": []
+        }
+      ],
+      "active_summaries": [
+        {
+          "block_id": "b0001",
+          "summary_tokens": 83
+        }
+      ],
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": true
+      },
+      "categorical_bar_independently_checked": true
+    },
+    {
+      "stage": "multi",
+      "operation_id": "ts-vis38-actual-owner-1790600652443-2492151-0-r1-c0-call_vis38_compress-multi",
+      "ordinal": 2,
+      "before_input_bytes": 34456,
+      "after_input_bytes": 4074,
+      "independent_removed": 5576,
+      "independent_summary": 28,
+      "independent_net_saved": 5538,
+      "new_messages": 4,
+      "ranges": 2,
+      "typed_snapshot": {
+        "session": "s-vis38-actual-owner",
+        "operation_id": "ts-vis38-actual-owner-1790600652443-2492151-0-r1-c0-call_vis38_compress-multi",
+        "ordinal": 2,
+        "topic": "VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries",
+        "block_ids": [
+          "b0002",
+          "b0003"
+        ],
+        "removed": 5576,
+        "summary": 28,
+        "net_saved": 5538,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 4,
+        "new_tools": 0,
+        "cumulative": {
+          "gross_removed": 8364,
+          "active_summary": 111,
+          "net_saved": 8238,
+          "compressions": 2,
+          "prunes": 0,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████"
+      },
+      "commit_message_ids": [
+        "m0001",
+        "m0002",
+        "m0003",
+        "m0004",
+        "m0005",
+        "m0006",
+        "m0007",
+        "m0008",
+        "m0009"
+      ],
+      "prior_message_ids": [
+        "m0001",
+        "m0002"
+      ],
+      "new_message_ids": [
+        "m0003",
+        "m0004",
+        "m0005",
+        "m0006"
+      ],
+      "new_tool_ids": [],
+      "range_inputs": [
+        {
+          "block_id": "b0002",
+          "topic": "VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries",
+          "summary": "Closed range 1; preserve requirements; continue safely.",
+          "removed": 2788,
+          "summary_tokens": 14,
+          "new_message_ids": [
+            "m0003",
+            "m0004"
+          ],
+          "new_tool_ids": []
+        },
+        {
+          "block_id": "b0003",
+          "topic": "VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries",
+          "summary": "Closed range 2; preserve requirements; continue safely.",
+          "removed": 2788,
+          "summary_tokens": 14,
+          "new_message_ids": [
+            "m0005",
+            "m0006"
+          ],
+          "new_tool_ids": []
+        }
+      ],
+      "active_summaries": [
+        {
+          "block_id": "b0001",
+          "summary_tokens": 83
+        },
+        {
+          "block_id": "b0002",
+          "summary_tokens": 14
+        },
+        {
+          "block_id": "b0003",
+          "summary_tokens": 14
+        }
+      ],
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": true
+      },
+      "categorical_bar_independently_checked": true
+    },
+    {
+      "stage": "recompression",
+      "operation_id": "ts-vis38-actual-owner-1790600652665-2492162-0-r1-c0-call_vis38_compress-recompression",
+      "ordinal": 3,
+      "before_input_bytes": 4504,
+      "after_input_bytes": 4751,
+      "independent_removed": 0,
+      "independent_summary": 6,
+      "independent_net_saved": 77,
+      "new_messages": 0,
+      "ranges": 1,
+      "typed_snapshot": {
+        "session": "s-vis38-actual-owner",
+        "operation_id": "ts-vis38-actual-owner-1790600652665-2492162-0-r1-c0-call_vis38_compress-recompression",
+        "ordinal": 3,
+        "topic": "VIS38 recompression",
+        "block_ids": [
+          "b0004"
+        ],
+        "removed": 0,
+        "summary": 6,
+        "net_saved": 77,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 0,
+        "new_tools": 0,
+        "cumulative": {
+          "gross_removed": 8364,
+          "active_summary": 34,
+          "net_saved": 8315,
+          "compressions": 3,
+          "prunes": 0,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░░░░░░░░░░░░░░░░░░███████████████████████"
+      },
+      "commit_message_ids": [
+        "m0001",
+        "m0002",
+        "m0003",
+        "m0004",
+        "m0005",
+        "m0006",
+        "m0007",
+        "m0008",
+        "m0009",
+        "m0010",
+        "m0011"
+      ],
+      "prior_message_ids": [
+        "m0001",
+        "m0002",
+        "m0003",
+        "m0004",
+        "m0005",
+        "m0006"
+      ],
+      "new_message_ids": [],
+      "new_tool_ids": [],
+      "range_inputs": [
+        {
+          "block_id": "b0004",
+          "topic": "VIS38 recompression",
+          "summary": "Requirement A retained.",
+          "removed": 0,
+          "summary_tokens": 6,
+          "new_message_ids": [],
+          "new_tool_ids": []
+        }
+      ],
+      "active_summaries": [
+        {
+          "block_id": "b0002",
+          "summary_tokens": 14
+        },
+        {
+          "block_id": "b0003",
+          "summary_tokens": 14
+        },
+        {
+          "block_id": "b0004",
+          "summary_tokens": 6
+        }
+      ],
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": true
+      },
+      "categorical_bar_independently_checked": true
+    },
+    {
+      "stage": "restart",
+      "requests": 1,
+      "typed_runs_unchanged": true,
+      "raw_history_preserved": true
+    }
+  ],
+  "display_cases": [
+    {
+      "stage": "recompression",
+      "context_snapshot": "compress-recompression-snapshot.json",
+      "typed_snapshot": {
+        "session": "s-vis38-actual-owner",
+        "operation_id": "ts-vis38-actual-owner-1790600652665-2492162-0-r1-c0-call_vis38_compress-recompression",
+        "ordinal": 3,
+        "topic": "VIS38 recompression",
+        "block_ids": [
+          "b0004"
+        ],
+        "removed": 0,
+        "summary": 6,
+        "net_saved": 77,
+        "method": "utf16_round_quarter_fallback",
+        "new_messages": 0,
+        "new_tools": 0,
+        "cumulative": {
+          "gross_removed": 8364,
+          "active_summary": 34,
+          "net_saved": 8315,
+          "compressions": 3,
+          "prunes": 0,
+          "method": "utf16_round_quarter_fallback",
+          "complete": true
+        },
+        "bar": "░░░░░░░░░░░░░░░░░░░░░░░░░░░███████████████████████"
+      },
+      "display": {
+        "notification": "detailed",
+        "channel": "chat",
+        "show_compression": true
+      },
+      "output": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-13-recompression",
+      "provider_requests": 0,
+      "owner_state_unchanged": true
+    }
+  ],
+  "not_qualified": [
+    "failure/cancel/no-gain",
+    "Undo/Redo routing",
+    "bounded archive/resources",
+    "live ToolCallFinished publication / public ToolOpView DTO equality"
+  ],
+  "provider_requests": 11,
+  "evidence_seals": {
+    "commands.json": "533453f798362341fc64c932759d6caac08a8d02ca724b8bf831faf26d9f1079",
+    "compress-multi-before.json": "c2ae24ccd44e3354dfc5e1c6937f4a26b795ee752b2788195403de6ad77e75e4",
+    "compress-multi-measurement.json": "f613dd5c8df7a107e8a0c3be40e549b417fb84ddd91e8cb9e6e77e3a5cb94744",
+    "compress-multi-snapshot.json": "19d5164d1332e60be7b0049ef462f3842f9daf76a667e74874a1e5a6058e19ea",
+    "compress-recompression-before.json": "19d5164d1332e60be7b0049ef462f3842f9daf76a667e74874a1e5a6058e19ea",
+    "compress-recompression-measurement.json": "814be0041f90eb4cd72aed48b798fbbd1389a2a433dbfe7d99ae6330bb2bdb1b",
+    "compress-recompression-snapshot.json": "50c4d09f9f8454f247c68bf3a2ccc91ae581fc83674440bd1978b541b7cff113",
+    "compress-single-before.json": "52909647e8b704de746d1c67815f10b65e2a50705b8ffedcdaf9efaf8d205df6",
+    "compress-single-measurement.json": "09f1fa914f35e932bf24ab121b2c75153fd4b3a6e2db09d6f77413cdd6d266a8",
+    "compress-single-snapshot.json": "c2ae24ccd44e3354dfc5e1c6937f4a26b795ee752b2788195403de6ad77e75e4",
+    "fixture-config.json": "b2305e9f1b7bd31c90db9b81cf9e5608e876d0a162e12da44506ae7c19ca26b6",
+    "native-capture-recompression.json": "0d0a6223be4e5cbda3fd00c803ecc032ba4beb172b58ca76472de846e14a585a",
+    "native-tui-recompression-spec.json": "f74c938d5f28484cd74e4eb0c4920fabf6e7393f8277d3fef1ea2bb87f0941f7",
+    "native-tui-spec.json": "913318b45d942ea6dcade718ea6d3d80edde0e692fa266c762a4db6ab45dcfcd",
+    "requests.json": "41b92d760d338f56bfa431c7810c60cebb0d15a17a0196960c1a3698683c2733",
+    "restart-snapshot.json": "b525aedc1e7bd1c47a7716b50aadbdc78d7802023c74a8b2de941741ad6ef05a",
+    "seed-A-snapshot.json": "54a7556033d65e1af2c59afabf5e156504d353e3d1129c7a20033420915dad47",
+    "seed-B-snapshot.json": "96853835900436c2424ca1fe48cc504857ee72a372afa05abcd78f3fbb27e68f",
+    "seed-C-snapshot.json": "52909647e8b704de746d1c67815f10b65e2a50705b8ffedcdaf9efaf8d205df6"
+  },
+  "helper_sha256": "6ff45cc69745d16a850ea52d581072c3f50bd7b5ebc5dfef9da4139e932cc20d"
+}

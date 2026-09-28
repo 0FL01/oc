@@ -1100,6 +1100,7 @@ async fn sessionless_home_keeps_bounded_editor_and_refuses_session_actions() {
     );
     for action in [
         crate::commands::CommandAction::OpenCards,
+        crate::commands::CommandAction::OpenDcp,
         crate::commands::CommandAction::DcpCompress {
             focus: String::new(),
         },

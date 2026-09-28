@@ -1,0 +1,62 @@
+{
+  "binary": "/home/opencode/ai/oc/target/debug/oc",
+  "binary_sha256": "35e101662ec9b9ef3c1a693b824032f982a24fb6dc8f7bca9cfac156f1503ed9",
+  "origin": "oc",
+  "session": "s-vis38-actual-owner",
+  "operation_id": "ts-vis38-actual-owner-1790598885737-2454536-0-r1-c0-call_vis38_compress-recompression",
+  "stage": "minimal",
+  "context_snapshot": "restart-snapshot.json",
+  "isolated_root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-11",
+  "argv": [
+    "/home/opencode/ai/oc/target/debug/oc",
+    "tui",
+    "--session",
+    "s-vis38-actual-owner"
+  ],
+  "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-11/project",
+  "env": {
+    "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-11/home",
+    "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-11/home/config",
+    "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-11/home/data",
+    "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-11/home/cache",
+    "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-11/home/state",
+    "OC_TEST_ALLOW_LOOPBACK": "1",
+    "PATH": "/usr/bin:/bin",
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "TZ": "UTC"
+  },
+  "source_HEAD": "c649fc5b786daadecb2b40f794a401ec9057adb4",
+  "typed_snapshot": {
+    "session": "s-vis38-actual-owner",
+    "operation_id": "ts-vis38-actual-owner-1790598885737-2454536-0-r1-c0-call_vis38_compress-recompression",
+    "ordinal": 3,
+    "topic": "VIS38 recompression",
+    "block_ids": [
+      "b0004"
+    ],
+    "removed": 0,
+    "summary": 6,
+    "net_saved": 77,
+    "method": "utf16_round_quarter_fallback",
+    "new_messages": 0,
+    "new_tools": 0,
+    "cumulative": {
+      "gross_removed": 8364,
+      "active_summary": 34,
+      "net_saved": 8315,
+      "compressions": 3,
+      "prunes": 0,
+      "method": "utf16_round_quarter_fallback",
+      "complete": true
+    },
+    "bar": "░░░░░░░░░░░░░░░░░░░░░░░░░░░███████████████████████"
+  },
+  "display": {
+    "notification": "minimal",
+    "channel": "chat",
+    "show_compression": true
+  },
+  "capture_after": "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay.",
+  "capture_gate": "Synchronous genuine stage before subsequent mutation; no history ingress."
+}

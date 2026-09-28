@@ -50,6 +50,8 @@ pub enum CommandAction {
     OpenSkills,
     /// Open the tool-card list.
     OpenCards,
+    /// Open current committed DCP context/stats without executing compression.
+    OpenDcp,
     /// Help, optionally for one topic.
     Help(Option<String>),
     /// Switch the running application to another Location (project path).
@@ -317,6 +319,14 @@ pub const REGISTRY: &[CommandSpec] = &[
         },
     },
     CommandSpec {
+        id: "native.dcp",
+        title: "DCP context",
+        group: "Native",
+        shortcuts: &[],
+        aliases: &["dcp"],
+        action: CommandAction::OpenDcp,
+    },
+    CommandSpec {
         id: "native.compress",
         title: "Compress DCP context",
         group: "Native",
@@ -485,7 +495,7 @@ mod tests {
             ["sessions", "settings", "sidebar", "skills"]
         );
         assert_eq!(complete("/a"), ["agent", "agents"]);
-        assert_eq!(complete("/d"), ["dcp-compress"]);
+        assert_eq!(complete("/d"), ["dcp", "dcp-compress"]);
         for command in super::REGISTRY {
             for alias in command.aliases {
                 assert!(complete("/").contains(alias));

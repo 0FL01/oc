@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-28T11:45:05+00:00
+State updated: 2026-09-28T14:20:39+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,13 +14,13 @@ Evidence target: evidence/T44/report.md
 
 # T44
 ## Result
-T52 done; summary=true3-size exact. dcp-report20260928-05.md.
+VIS38 PASS. dcp-report20260928-07.md.
 ## Checks
-Workspace1191 PASS; parsed-screen2s gate intact.
+1195/0; audits24–28:15 full pairs exact.
 ## Risks
-Full VIS38/V09 open.
+T44/V09/READY open.
 ## Next
-Remaining controls/negative/running/lifecycle.
+T47 VAR01, then remaining T44/backend/live gates.
 
 
 Ready (до 5): T45, T46, T47, T50, T51

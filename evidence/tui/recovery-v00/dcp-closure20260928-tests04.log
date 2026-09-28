@@ -1,0 +1,1752 @@
+   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.14s
+     Running unittests src/main.rs (target/debug/deps/oc-c424ae2f55f747f8)
+
+running 84 tests
+test clipboard::tests::base64_padding_for_one_two_and_three_bytes ... ok
+test clipboard::tests::empty_and_oversized_selections_never_reach_writer ... ok
+test clipboard::tests::failed_write_or_flush_does_not_claim_success_or_leak_content ... ok
+test clipboard::tests::osc52_clipboard_selection_removes_nul_and_encodes_controls ... ok
+test headless::tests::sessions_list_stdout_ids_only ... ok
+test tui_cmd::approval_tests::owner_prepared_url_wraps_header_and_body_at_actual_available_width ... ok
+test tui_cmd::approval_tests::owner_settings_preserves_jsonc_and_missing_global_uses_admitted_location ... ok
+test tui_cmd::approval_tests::prepared_patch_geometry_cache_busy_add_rejection_and_palette_are_real ... ok
+test tui_cmd::approval_tests::real_binary_permission_intent_error_ack_cancel_and_pending_auto ... ok
+test tui_cmd::approval_tests::real_child_pending_routes_to_root_tab_with_feedback_and_actual_binding ... ok
+test tui_cmd::tests::lifecycle::accepted_quit_reports_deck_save_failure_before_owner_shutdown ... ok
+test tui_cmd::tests::lifecycle::bare_restart_with_full_real_deck_keeps_all_ids_and_selected_route ... ok
+test tui_cmd::tests::lifecycle::cards_cursor_follows_parked_view_and_pages_from_oldest_loaded_row ... ok
+test tui_cmd::tests::lifecycle::close_refuses_pending_turn_and_preserves_deck ... ok
+test tui_cmd::tests::lifecycle::close_selected_or_parked_synthetic_home_never_creates_a_root ... ok
+test tui_cmd::tests::lifecycle::close_selected_real_tab_prefers_previous_and_preserves_survivors ... ok
+test tui_cmd::tests::lifecycle::closing_tab_with_pending_title_cancels_only_title_and_survivor_can_submit ... ok
+test tui_cmd::tests::lifecycle::committed_title_event_refreshes_only_the_open_session ... ok
+test tui_cmd::tests::lifecycle::conversation_commands_wait_for_owner_then_refresh_without_submission ... ok
+test tui_cmd::tests::lifecycle::existing_legacy_explicit_id_remains_readable_but_never_saved ... ok
+test tui_cmd::tests::lifecycle::explicit_failed_view_is_a_startup_error ... ok
+test tui_cmd::tests::lifecycle::explicit_restore_adopts_successful_revision_for_next_save ... ok
+test tui_cmd::tests::lifecycle::explicit_root_id_matches_owner_tab_predicate ... ok
+test tui_cmd::tests::lifecycle::failed_active_tab_falls_back_to_home_with_surviving_parked_tab ... ok
+test tui_cmd::tests::lifecycle::failed_preclose_save_keeps_accepted_home_root_and_parked_cursor ... ok
+test tui_cmd::tests::lifecycle::five_turn_reverted_tail_all_redo_entry_points_use_real_owner_without_generation ... ok
+test tui_cmd::tests::lifecycle::fork_owner_result_adopts_real_root_with_unsent_prompt_and_preserved_source ... ok
+test tui_cmd::tests::lifecycle::home_reserves_sixteenth_slot_against_new_session_selection ... ok
+test tui_cmd::tests::lifecycle::immediate_quit_reconciles_only_accepted_fresh_root_before_owner_shutdown ... ok
+test tui_cmd::tests::lifecycle::invalid_owner_home_layout_or_location_is_not_silently_saved ... ok
+test tui_cmd::tests::lifecycle::key_consumed_home_receipt_is_saved_once_by_poll_before_exit ... ok
+test tui_cmd::tests::lifecycle::keyboard_close_after_mouse_add_retests_real_pointer_without_mouse_hold ... ok
+test tui_cmd::tests::lifecycle::message_copy_keyboard_drains_transport_and_preserves_dialog_on_failure ... ok
+test tui_cmd::tests::lifecycle::mouse_close_home_holds_survivor_at_the_pointer_but_keyboard_switch_does_not ... ok
+test tui_cmd::tests::lifecycle::pending_submission_refuses_session_and_location_switches ... ok
+test tui_cmd::tests::lifecycle::pruned_home_deck_keeps_all_owner_projected_tabs ... ok
+test tui_cmd::tests::lifecycle::quit_pending_fork_saves_accepted_identity_even_when_refresh_fails ... ok
+test tui_cmd::tests::lifecycle::quit_with_pending_existing_tab_does_not_wait_for_receipt_or_save ... ok
+test tui_cmd::tests::lifecycle::real_close_commits_candidate_before_removal_or_retains_full_deck_on_failure ... ok
+test tui_cmd::tests::lifecycle::refused_close_leaves_pending_title_uncancelled_and_tab_intact ... ok
+test tui_cmd::tests::lifecycle::rejected_candidate_close_keeps_parked_tab_draft_and_cursor ... ok
+test tui_cmd::tests::lifecycle::rejected_typed_new_keeps_editable_command ... ok
+test tui_cmd::tests::lifecycle::restore_home_with_parked_views_keeps_order_and_failed_save_keeps_route ... ok
+test tui_cmd::tests::lifecycle::sampled_view_metrics_include_parked_routes_and_preserve_peaks ... ok
+test tui_cmd::tests::lifecycle::selected_middle_close_saves_order_and_previous_survivor_before_changing_cursors ... ok
+test tui_cmd::tests::lifecycle::sessions_delete_changes_deck_only_after_owner_acceptance_and_adopts_survivor ... ok
+test tui_cmd::tests::lifecycle::typed_new_consumes_only_successful_command_before_parking ... ok
+test tui_cmd::tests::lifecycle::unreadable_parked_tab_keeps_good_route_and_disables_saves ... ok
+test tui_cmd::tests::lifecycle::vis11_binary_events_preserve_focused_lifecycle_then_submit_exact_draft ... ok
+test tui_cmd::tests::lifecycle::vis11_binary_obsolete_leader_is_inert_but_explicit_direct_binding_wins ... ok
+test tui_cmd::tests::lifecycle::vis15_finished_turn_immediately_renders_unstreamed_canonical_text_in_part_order ... ok
+test tui_cmd::tests::lifecycle::vis34_manual_admission_event_race_parked_view_and_read_failure_keep_receipt ... ok
+test tui_cmd::tests::lifecycle::vis34_palette_enter_coalesced_admission_closes_only_on_success_and_preserves_composer ... ok
+test tui_cmd::tests::lifecycle::vis39_retained_view_activation_moves_mounted_tab_clocks_and_keeps_busy_guard ... ok
+test tui_cmd::tests::lifecycle::vis41_real_mouse_activation_preserves_running_and_completed_marquee_deadlines ... ok
+test tui_cmd::tests::lifecycle::worker_event_metrics_count_overwritten_broadcast_events_and_stop_drain ... ok
+test tui_cmd::tests::routing::accepted_conversation_survives_refresh_failure_and_retries_queries_only ... ok
+test tui_cmd::tests::routing::bare_home_queries_selection_without_creating_or_reading_history ... ok
+test tui_cmd::tests::routing::close_inactive_tab_reindexes_active_view_and_cursor_without_owner_query ... ok
+test tui_cmd::tests::routing::close_last_real_tab_queries_current_home_before_discarding_and_reopens ... ok
+test tui_cmd::tests::routing::closing_last_real_tab_restores_parked_home_draft_without_query ... ok
+test tui_cmd::tests::routing::copy_message_queries_exact_owner_row_instead_of_window_preview ... ok
+test tui_cmd::tests::routing::failed_selection_after_owner_reload_keeps_every_view_and_draft ... ok
+test tui_cmd::tests::routing::home_refuses_session_scoped_queries ... ok
+test tui_cmd::tests::routing::pending_owner_reload_allows_resize_and_quit_without_dropping_owner_receipt ... ok
+test tui_cmd::tests::routing::picker_open_existing_tab_keeps_older_history_window_and_draft ... ok
+test tui_cmd::tests::routing::picker_open_preserves_child_read_only_policy_without_owner_or_deck_changes ... ok
+test tui_cmd::tests::routing::picker_open_refusal_keeps_old_view_and_accepted_foreign_receipt_survives_refresh_failure ... ok
+test tui_cmd::tests::routing::published_location_uses_new_owner_binding_and_token_for_next_save ... ok
+test tui_cmd::tests::routing::selecting_agent_updates_owner_and_draft_without_selection_toast ... ok
+test tui_cmd::tests::routing::selecting_model_updates_metadata_without_selection_toast ... ok
+test tui_cmd::tests::routing::sessions_query_uses_owner_metadata_and_scope_without_legacy_id_enumeration ... ok
+test tui_cmd::tests::routing::sessions_retained_views_read_latest_scope_and_only_ctrl_a_writes ... ok
+test tui_cmd::tests::routing::v03_catalog_failure_is_not_an_empty_usable_session ... ok
+test tui_cmd::tests::routing::variant_cycle_missing_models_or_named_variants_is_noop_and_child_is_readonly ... ok
+test tui_cmd::tests::routing::variant_cycle_persists_and_next_real_request_uses_selected_overlay ... ok
+test tui_cmd::tests::routing::variant_cycle_uses_owner_order_and_stale_default_rules_in_home_and_session ... ok
+test tui_cmd::tests::routing::vis26_key_burst_only_queries_latest_and_route_swap_cancels_old_view ... ok
+test tui_cmd::tests::routing::vis26_parked_tab_refreshes_file_rows_only_on_reactivation ... ok
+test tui_cmd::tests::routing::vis27_invalid_owner_location_does_not_replace_mode_or_write_tabs ... ok
+test tui_cmd::tests::routing::vis27_mismatched_published_reload_disables_copy_until_owner_catalog ... ok
+test tui_cmd::tests::routing::vis27_parked_tabs_and_home_use_current_owner_mode_on_activation ... ok
+test tui_cmd::tests::routing::vis27_reload_projects_owner_mode_to_active_parked_and_home ... ok
+test tui_cmd::tests::routing::vis38_late_dcp_other_session_child_and_old_turn_never_touch_parent_view_or_query ... ok
+
+test result: ok. 84 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.45s
+
+     Running tests/application.rs (target/debug/deps/application-69b0e42cc6f85448)
+
+running 4 tests
+test aud01_binary_sends_configured_responses_request ... ok
+test t47_binary_separate_title_model_uses_its_budget_without_variant_overlay ... ok
+test t47_binary_title_admission_checks_assembled_input_and_selected_model ... ok
+test t47_binary_unknown_limits_warn_and_do_not_select_reasoning_variant ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.04s
+
+     Running tests/approval_binary.rs (target/debug/deps/approval_binary-4b5ffc97fd37f828)
+
+running 1 test
+test headless_requires_explicit_once_consumer_even_with_tui_auto_config ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+
+     Running tests/configured_workspace.rs (target/debug/deps/configured_workspace-8749782c82773bf5)
+
+running 13 tests
+test aud14_aud15_aud17_binary_loads_isolated_a_b_workspace_and_pins_skill ... ok
+test aud16_binary_legacy_write_edit_deny_blocks_apply_patch_side_effect ... ok
+test aud16_binary_selected_agent_can_only_narrow_apply_patch_permission ... ok
+test aud17_binary_malformed_selected_skill_is_visible_and_valid_sibling_survives ... ok
+test aud17_binary_selected_malformed_agent_is_hard_error_not_sibling_fallback ... ok
+test aud17_binary_unknown_plugin_is_precise_preflight_error_without_side_effect ... ok
+test v07a_binary_discovered_external_root_is_refused_even_with_fifo_config ... ok
+test v07a_binary_explicit_global_and_nested_local_jsonc_are_loaded ... ok
+test v07a_binary_external_agent_subdirectory_cannot_select_primary ... ok
+test v07a_binary_external_definition_subdirectories_never_reach_provider ... ok
+test v07a_binary_refuses_discovered_external_root_before_any_effect ... ok
+test v07a_binary_rejects_fifo_device_and_oversize_before_reading ... ok
+test v07c_binary_nested_file_reference_no_follow_and_global_allowed ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.99s
+
+     Running tests/dcp_runtime.rs (target/debug/deps/dcp_runtime-ca25694c8569c306)
+
+running 3 tests
+test aud19_aud20_aud21_binary_model_compress_nudges_and_restart ... ok
+test aud21_binary_sigkill_never_publishes_a_partial_multi_range_compression ... ok
+test vis38_public_multi_range_event_query_replay_and_bounded_summary_agree ... VIS38 public: started=1 finished=1 ranges=2 ordinal=1 new_messages=4 raw_preserved=true next_request_smaller=true summary_utf8_paged=true replay_requests=0
+ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.92s
+
+     Running tests/durability.rs (target/debug/deps/durability-f38131a0b427e13e)
+
+running 1 test
+test aud06_binary_kill_after_side_effect_recovers_unknown_without_replay ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+     Running tests/golden_binary.rs (target/debug/deps/golden_binary-4b73aafd63ce82f2)
+
+running 1 test
+test aud35_binary_golden_workflow ... {
+  "harness": "golden_binary",
+  "model": "fixture/golden-model",
+  "steps": [
+    {
+      "name": "turn1",
+      "status": "passed",
+      "detail": "session s-golden-a"
+    },
+    {
+      "name": "independent-cargo-test",
+      "status": "passed",
+      "detail": ""
+    },
+    {
+      "name": "turn2-mcp",
+      "status": "passed",
+      "detail": "session s-golden-a"
+    },
+    {
+      "name": "turn3-compress",
+      "status": "passed",
+      "detail": "session s-golden-a"
+    },
+    {
+      "name": "turn4-workspace-b",
+      "status": "passed",
+      "detail": "session s-golden-b"
+    },
+    {
+      "name": "cross-location",
+      "status": "passed",
+      "detail": "error: application: session s-golden-a belongs to location /home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/.tmprvNdqF/project-a"
+    },
+    {
+      "name": "mcp-call",
+      "status": "passed",
+      "detail": "[Object {\"query\": String(\"rust\"), \"response_length\": String(\"short\")}]"
+    },
+    {
+      "name": "durable-rows",
+      "status": "passed",
+      "detail": "history_a=6 ops=4 blocks=1 history_b=2"
+    },
+    {
+      "name": "workspace-isolation",
+      "status": "passed",
+      "detail": "requests=1"
+    },
+    {
+      "name": "strict-peer",
+      "status": "passed",
+      "detail": ""
+    },
+    {
+      "name": "unexecuted-steps",
+      "status": "passed",
+      "detail": "0 scripted steps never ran"
+    }
+  ],
+  "counts": {
+    "attempted": 11,
+    "passed": 11,
+    "failed": 0,
+    "blocked": 0,
+    "skipped": 0
+  }
+}
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.72s
+
+     Running tests/live_bounded.rs (target/debug/deps/live_bounded-508a2d8c4345c739)
+
+running 11 tests
+test bounded_catalog_probe ... ignored, internal isolated product config/catalog probe
+test bounded_discovery_selected_campaign_uses_product_catalog ... ok
+test bounded_exact_slash_model_variant_config_and_unknown_limits ... ok
+test bounded_external_preflight_requires_verified_campaign_enforcement ... ok
+test bounded_missing_catalog_model_variant_and_credentials_block_before_generation ... ok
+test bounded_permission_preflight_rejects_before_generation ... ok
+test bounded_pipes_redact_output_drain_and_reap_on_timeout ... ok
+test bounded_successful_text_is_not_a_completed_mcp_operation ... ok
+test bounded_summary_requires_every_mandatory_step ... 
+thread 'bounded_summary_requires_every_mandatory_step' (2545531) panicked at crates/oc/tests/live_bounded.rs:1216:5:
+mandatory campaign is incomplete or non-successful
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'bounded_summary_requires_every_mandatory_step' (2545531) panicked at crates/oc/tests/live_bounded.rs:1216:5:
+mandatory campaign is incomplete or non-successful
+
+thread 'bounded_summary_requires_every_mandatory_step' (2545531) panicked at crates/oc/tests/live_bounded.rs:1216:5:
+mandatory campaign is incomplete or non-successful
+
+thread 'bounded_summary_requires_every_mandatory_step' (2545531) panicked at crates/oc/tests/live_bounded.rs:1216:5:
+mandatory campaign is incomplete or non-successful
+
+thread 'bounded_summary_requires_every_mandatory_step' (2545531) panicked at crates/oc/tests/live_bounded.rs:1216:5:
+mandatory campaign is incomplete or non-successful
+ok
+test live_bounded_campaign ... ignored, needs verified durable campaign envelope, product credentials and OC_TEST_MODEL
+test live_bounded_dry_run_branches ... [dry-run]
+{
+  "harness": "live_bounded",
+  "mode": "dry-run",
+  "model": "fixture/dry-run-model",
+  "variant": null,
+  "status": "passed",
+  "live_envelope_verified": false,
+  "budget": {
+    "step_budget": 5,
+    "campaign_timeout_seconds": 900,
+    "call_timeout_seconds": 300
+  },
+  "steps": [
+    {
+      "name": "coding-fix",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true tests_ok=true exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=21 stderr_bytes=23 tests=(exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=339 stderr_bytes=0)"
+    },
+    {
+      "name": "mcp",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true completed_mcp_ops=1 exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=24 stderr_bytes=23"
+    },
+    {
+      "name": "compress",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true blocks=1 exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=29 stderr_bytes=23"
+    },
+    {
+      "name": "restart",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true rows=8 exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=21 stderr_bytes=23"
+    },
+    {
+      "name": "workspace-switch",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=21 stderr_bytes=25"
+    }
+  ],
+  "counts": {
+    "attempted": 5,
+    "passed": 5,
+    "failed": 0,
+    "blocked": 0,
+    "skipped": 0,
+    "unexecuted": 0
+  }
+}
+[dry-run-no-mcp]
+{
+  "harness": "live_bounded",
+  "mode": "dry-run-no-mcp",
+  "model": "fixture/dry-run-model",
+  "variant": null,
+  "status": "non-success",
+  "live_envelope_verified": false,
+  "budget": {
+    "step_budget": 5,
+    "campaign_timeout_seconds": 900,
+    "call_timeout_seconds": 300
+  },
+  "steps": [
+    {
+      "name": "coding-fix",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true tests_ok=true exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=21 stderr_bytes=23 tests=(exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=339 stderr_bytes=0)"
+    },
+    {
+      "name": "mcp",
+      "status": "blocked",
+      "kind": "blocked",
+      "detail": "codex_web MCP search is not enabled: blocked, never silently skipped"
+    },
+    {
+      "name": "compress",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true blocks=1 exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=29 stderr_bytes=23"
+    },
+    {
+      "name": "restart",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true rows=6 exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=21 stderr_bytes=23"
+    },
+    {
+      "name": "workspace-switch",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=21 stderr_bytes=25"
+    }
+  ],
+  "counts": {
+    "attempted": 5,
+    "passed": 4,
+    "failed": 0,
+    "blocked": 1,
+    "skipped": 0,
+    "unexecuted": 0
+  }
+}
+
+thread 'live_bounded_dry_run_branches' (2545532) panicked at crates/oc/tests/live_bounded.rs:1216:5:
+mandatory campaign is incomplete or non-successful
+ok
+
+test result: ok. 9 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 8.75s
+
+     Running tests/mcp_application.rs (target/debug/deps/mcp_application-c554f016ee604ae9)
+
+running 28 tests
+test aud22_binary_accepts_user_authorization_spelling_at_strict_mcp ... ok
+test aud22_binary_rejects_conflicting_authorization_duplicates_before_network ... ok
+test aud23_tui_two_turns_own_one_stdio_child_and_disabled_entry_zero_spawns ... ok
+test aud24_binary_rejects_oversized_catalog_without_partial_provider_tools ... ok
+test aud24_binary_routes_collision_names_to_exact_original_server_and_tool ... ok
+test aud24_binary_search_uses_the_advertised_response_length_schema ... ok
+test aud24_binary_surfaces_is_error_and_unsupported_result_modality ... ok
+test pending_edit_screen_accepts_fragmented_cursor_updates_not_raw_substrings ... ok
+test s06_pending_submit_refuses_navigation_and_keeps_draft ... ok
+test v01_anonymous_remote_and_codex_required_auth ... ok
+test v01_degraded_remote_diagnostic_is_staged_and_redacted_in_tui ... ok
+test v01_manual_compress_raw_pty_cancel_shutdown_and_retry ... V01 raw (manual_compress=true): prompt+CR, CR, resize 120x40, ' edited', ESC; cancel/reap before release within 253.013606ms; retry CR, Ctrl+C
+ok
+test v01_pending_initialize_raw_pty_cancel_edit_duplicate_and_retry ... V01 raw (manual_compress=false): prompt+CR, CR, resize 120x40, ' edited', ESC; cancel/reap before release within 153.637092ms; retry CR, Ctrl+C
+ok
+test v01_remote_pending_cancel_closes_request_before_fake_release ... ok
+test v05_pending_unicode_edit_keeps_one_owner_and_retry ... V01 raw (manual_compress=false): prompt+CR, CR, resize 120x40, ' edited', ESC; cancel/reap before release within 292.81243ms; retry CR, Ctrl+C
+ok
+test v07_s05_disabled_and_failed_mcp_only_retry_after_explicit_repair ... ok
+test v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio ... ok
+test v07b_remote_cancel_notification_failure_is_safe_and_poisoned ... ok
+test v07b_remote_definitive_is_error_remains_failed_and_reusable ... ok
+test v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retry ... ok
+test v07b_remote_malformed_after_effect_is_unknown_and_quarantined ... ok
+test v07b_remote_unsupported_after_effect_is_unknown_and_quarantined ... ok
+test v07b_stdio_definitive_is_error_remains_failed_and_reusable ... ok
+test v07b_stdio_inflight_raw_esc_reaps_before_explicit_retry ... ok
+test v07b_stdio_malformed_after_effect_reaps_before_explicit_retry ... ok
+test v07b_stdio_unsupported_after_effect_reaps_before_explicit_retry ... ok
+test v07e_bare_pty_model_and_stdio_tool_controls_are_inert_across_replay ... S04 raw VT: before=5067 after=22248 CSI-prefixes=580 trusted-erase-before=0 trusted-erase-after=0 OSC52=0 OSC8=0 BEL=0 CR=0
+S04 raw VT: before=0 after=19155 CSI-prefixes=428 trusted-erase-before=0 trusted-erase-after=0 OSC52=0 OSC8=0 BEL=0 CR=0
+ok
+test vis34_compaction_prune_normalization_headless_and_tui_entry ... ok
+
+test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 61.29s
+
+     Running tests/memory_bounds.rs (target/debug/deps/memory_bounds-a767c854519dabba)
+
+running 1 test
+test aud32_actual_binary_bounds_active_context_with_growing_archive ... AUD32 binary workload: archive pairs 8 -> 3000 x 16384 B (+ turn logs), active pairs 2 x 1024 B
+AUD32 small: baseline_rss_kb=12 peak_hwm_kb=33276 end_rss_kb=32228 end_pss_kb=29830 peak_pss_kb=31003 children=0 db_bytes=765952 wal_bytes=0
+AUD32 large: baseline_rss_kb=20 peak_hwm_kb=35108 end_rss_kb=33552 end_pss_kb=30659 peak_pss_kb=32829 children=0 db_bytes=152768512 wal_bytes=0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.60s
+
+     Running tests/pty.rs (target/debug/deps/pty-5db6b292da5b62d1)
+
+running 16 tests
+test aud02_store01_persist_resume_across_restart ... ok
+test pty_escape_cancels_heartbeat_request ... ok
+test pty_long_history_starts_and_pages ... ok
+test pty_panic_restores_terminal ... ok
+test pty_resize_redraws_full_frame ... ok
+test pty_slow_consumer_stall_then_drain ... ok
+test pty_smoke_type_echo_quit ... settle attempt 1: snapshot len 13013
+ok
+test pty_ssh_like_term_variants ... settle attempt 1: snapshot len 13216
+settle attempt 1: snapshot len 12860
+ok
+test pty_tiny_screen_survives ... ok
+test pty_unicode_and_paste_roundtrip ... settle attempt 1: snapshot len 12820
+settle attempt 1: snapshot len 55199
+settle attempt 2: snapshot len 68029
+ok
+test t44_two_accepted_turns_keep_footer_to_user_spacing_after_restart ... ok
+test tui_without_tty_is_usage_error ... ok
+test ui05_interrupted_exit_is_nonsuccess ... ok
+test ui05_ndjson_stdout_only_and_slow_consumer ... ok
+test v07a_bare_tui_pty_refuses_external_discovered_root_before_read ... ok
+test v07c_bare_tui_pty_redacts_refused_file_reference ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 34.34s
+
+     Running tests/pty_t39.rs (target/debug/deps/pty_t39-5105e138ceb60f7c)
+
+running 36 tests
+test interaction::aud29_pty_panels_change_runtime_state ... ok
+test interaction::aud30_pty_paste_resize_error_recovery ... ok
+test interaction::selected_model_is_the_main_wire_model_and_each_turn_keeps_its_footer ... ok
+test interaction::sessions_all_projects_selected_actions_keep_current_location_and_draft ... ok
+test interaction::sessions_bracketed_paste_queries_owner_for_root_outside_first_fifty ... ok
+test interaction::sessions_enter_renamed_foreign_root_preserves_deck_draft_and_uses_target_config ... ok
+test interaction::sessions_selected_rename_and_confirmed_delete_reach_real_owner_without_provider_work ... ok
+test interaction::v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle ... ok
+test interaction::v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant ... ok
+test interaction::v04_raw_mouse_wheel_and_hover_select_beyond_visible_rows ... ok
+test interaction::v04_raw_sgr_mouse_backdrop_search_variant_and_actual_model ... ok
+test interaction::v04_retired_model_and_variant_remain_visible_until_explicit_remediation ... ok
+test interaction::v05_raw_capped_bracket_paste_is_visible_and_not_submitted ... ok
+test interaction::v05_raw_paste_chip_keeps_original_on_wire_and_in_history ... ok
+test interaction::v05_raw_unicode_multiline_focus_and_one_durable_submit ... ok
+test interaction::v05_review_empty_editor_up_uses_history_on_wire ... ok
+test interaction::v05_review_raw_chip_trim_matches_visible_draft_and_wire ... ok
+test interaction::v05_review_raw_history_edit_down_restores_chip_and_wire ... ok
+test interaction::v05_review_shift_home_end_select_buffer_on_provider_wire ... ok
+test interaction::v05_review_wheel_scroll_does_not_move_multiline_editor_caret ... ok
+test interaction::v06_real_pty_completed_reasoning_header_click_expands_and_collapses ... ok
+test interaction::v07_raw_modifiers_release_and_modal_interrupt_keep_exact_draft ... ok
+test interaction::vis15_real_pty_adjacent_reasoning_parts_group_and_replay_after_restart ... ok
+test interaction::vis27_real_pty_osc52_select_and_manual_clipboard_modes ... ok
+test lifecycle::aud31_pty_bounded_backing_state ... ok
+test lifecycle::s07_pty_equal_view_archive_resource_samples ... S07 small: archive=0 rss_kb=40964 pss_kb=38801 hwm_kb=40964 cpu_ticks=102 child_max=0 retained_bytes=22799 window_rows=152 frames=82 draw_sum_ns=834062546 draw_max_ns=43051989 worker_event_queue_peak=2 worker_event_queue_lagged=0 live_text_bytes_current=0 live_text_bytes_peak=124 live_reasoning_bytes_current=0 live_reasoning_bytes_peak=37 live_part_count_current=0 live_part_count_peak=2 markdown_cache_retained_bytes_current=7517 markdown_cache_retained_bytes_peak=7517 markdown_cache_bound=5242880 elapsed_ms=2058
+S07 large: archive=3000 rss_kb=41652 pss_kb=39489 hwm_kb=41652 cpu_ticks=96 child_max=0 retained_bytes=22799 window_rows=152 frames=75 draw_sum_ns=789471235 draw_max_ns=42900220 worker_event_queue_peak=3 worker_event_queue_lagged=0 live_text_bytes_current=0 live_text_bytes_peak=124 live_reasoning_bytes_current=0 live_reasoning_bytes_peak=37 live_part_count_current=0 live_part_count_peak=2 markdown_cache_retained_bytes_current=7517 markdown_cache_retained_bytes_peak=7517 markdown_cache_bound=5242880 elapsed_ms=1970
+ok
+test lifecycle::title_cancel_and_watchdog_leave_the_main_turn_completed ... ok
+test lifecycle::v04_legacy_headless_api_supersedes_older_scoped_session_drafts ... ok
+test lifecycle::v04_scoped_session_agent_and_model_preferences_survive_restart ... ok
+test lifecycle::vis28_real_pty_scanner_cycles_then_esc_cancels_and_static_fallback_completes ... ok
+test lifecycle::vis31_demand_driven_idle_and_high_rate_input_paints ... VIS31 idle window=1.00038247s CPU ticks=0
+VIS31 (hz, window_us, p50_us, p95_us, max_us)=[(165, 193166, 2347, 5137, 5979), (250, 128679, 5251, 8078, 10997)]; metrics={"session":"scheduling","tab_count":1,"tab_ids":["scheduling"],"active_tab":0,"retained_bytes":72,"window_rows":0,"window_total":0,"panel":"None","status":"Quit","frame_count":64,"frame_sum_ns":102399757,"frame_max_ns":4642474,"changed_frames":64,"wakeups":73,"input_events":68,"worker_events":0,"terminal_write_calls":11567,"terminal_flush_calls":195,"terminal_write_bytes":15469,"terminal_write_sum_ns":14332933,"terminal_write_max_ns":1696396,"frame_samples_ns":[[0,4642474],[1227680936,1171705],[1234670814,2403349],[1239793231,1917838],[1245529311,2112371],[1251572072,1685168],[1257464008,1177763],[1263805990,1068540],[1269629162,1035399],[1275874689,1035450],[1281678731,1091595],[1287735424,1022170],[1295096222,3745131],[1302307835,1078715],[1305818883,977773],[1311957991,1044282],[1318208025,1378697],[1324131988,1276422],[1330140118,1019996],[1338400460,2772357],[1344647519,1648334],[1349541151,1949146],[1354415633,1696716],[1362169502,2994541],[1367983561,2342649],[1372757461,1167850],[1378731300,1529012],[1386997451,2463089],[1392018264,1461943],[1396958696,1754342],[1402851302,1638397],[1409151040,1739420],[1415101544,1743155],[1421894916,1585418],[1470713772,1502112],[1475406380,1501060],[1480867025,1130102],[1485889320,1229161],[1490410931,1783436],[1495055137,3644720],[1502420080,2807749],[1508775343,1241320],[1513835044,1931950],[1520227934,1095830],[1524764838,1051393],[1529460521,1154358],[1534153800,1083373],[1538250361,994729],[1542242605,1016840],[1546234046,1033637],[1550245559,1052936],[1554241398,987016],[1558230727,1102020],[1562247979,1004963],[1566233421,1019876],[1570218524,1003922],[1574398600,1025735],[1578953782,1145946],[1582680014,1575173],[1587164579,1467071],[1592626226,1451637],[1597610704,1028099],[1602096811,977933],[1649335426,3984453]],"monotonic_epoch_ns":1278623490914560,"frame_monotonic_ns":[1278623490914560,1278624718595366,1278624725585244,1278624730707680,1278624736443741,1278624742486493,1278624748378438,1278624754720420,1278624760543582,1278624766789109,1278624772593161,1278624778649844,1278624786010643,1278624793222254,1278624796733303,1278624802872411,1278624809122444,1278624815046428,1278624821054548,1278624829314911,1278624835561960,1278624840455571,1278624845330074,1278624853083932,1278624858898001,1278624863671881,1278624869645720,1278624877911881,1278624882932694,1278624887873126,1278624893765722,1278624900065470,1278624906015964,1278624912809346,1278624961628202,1278624966320810,1278624971781455,1278624976803760,1278624981325350,1278624985969557,1278624993334500,1278624999689753,1278625004749454,1278625011142364,1278625015679258,1278625020374930,1278625025068220,1278625029164781,1278625033157014,1278625037148476,1278625041159989,1278625045155817,1278625049145146,1278625053162398,1278625057147830,1278625061132934,1278625065313010,1278625069868212,1278625073594444,1278625078078999,1278625083540657,1278625088525124,1278625093011241,1278625140249867],"wake_monotonic_ns":[1278624718090034,1278624725343770,1278624736129126,1278624742186030,1278624748174219,1278624754547650,1278624760401157,1278624766663149,1278624772462164,1278624778508971,1278624785881958,1278624793088383,1278624796629938,1278624802738489,1278624808831717,1278624814883121,1278624820935278,1278624829038353,1278624835400237,1278624839065377,1278624840416412,1278624845128010,1278624852771322,1278624858761214,1278624863474805,1278624869444427,1278624877469865,1278624881530432,1278624882906694,1278624887608888,1278624893653312,1278624899808735,1278624905804655,1278624912602234,1278624961327569,1278624965906435,1278624971642726,1278624976693344,1278624981268255,1278624985120297,1278624985935054,1278624993264235,1278624997078901,1278624999657455,1278625004704567,1278625008059270,1278625011096865,1278625013121605,1278625015637836,1278625017101771,1278625020338005,1278625025022741,1278625029127233,1278625033117855,1278625037113163,1278625041118116,1278625045123740,1278625049111055,1278625053123779,1278625057110905,1278625061096909,1278625065267632,1278625069826518,1278625071410895,1278625073545361,1278625077103470,1278625078041853,1278625081132860,1278625083494817,1278625088485856,1278625092970199,1278625140033020,1278625240048481],"worker_event_queue_peak":0,"worker_event_queue_lagged":0,"live_text_bytes_current":0,"live_text_bytes_peak":0,"live_reasoning_bytes_current":0,"live_reasoning_bytes_peak":0,"live_part_count_current":0,"live_part_count_peak":0,"markdown_cache_retained_bytes_current":0,"markdown_cache_retained_bytes_peak":0}
+ok
+test lifecycle::vis31_high_rate_input_during_provider_burst ... VIS31 burst hz=165 window_us=207415 p50_us=13925 p95_us=25600 max_us=26845
+VIS31 burst metrics={"session":"burst-scheduling","tab_count":1,"tab_ids":["burst-scheduling"],"active_tab":0,"retained_bytes":30657,"window_rows":3,"window_total":2,"panel":"None","status":"Quit","frame_count":71,"frame_sum_ns":235147969,"frame_max_ns":12712618,"changed_frames":53,"wakeups":151,"input_events":55,"worker_events":1029,"terminal_write_calls":12759,"terminal_flush_calls":215,"terminal_write_bytes":19163,"terminal_write_sum_ns":9104920,"terminal_write_max_ns":1710236,"frame_samples_ns":[[0,3880795],[117776455,2632845],[126118279,2891286],[131515359,2239814],[149330814,1746000],[167737911,1801022],[173214419,1615585],[187641250,1831749],[192043351,4295260],[198670494,4257442],[205352428,5779656],[213305518,3378800],[220316579,4463873],[227435902,5093102],[235151354,4081168],[241411804,4521541],[248021290,5435086],[256302874,4868344],[263285201,5524723],[271601729,6519158],[280951572,5619615],[288686803,6519791],[298018600,7609573],[308835313,7038372],[318487121,8232751],[329595624,9304845],[341231932,12109780],[356089050,11064837],[370252294,12564436],[386513288,12712618],[401940224,1584988],[407096001,2212252],[424969433,1407501],[442920182,1291305],[460962049,1676244],[481124980,1392327],[499131432,1382463],[517291386,1797428],[535396268,2005581],[553019864,1367330],[570928379,1401492],[588991197,2041355],[607679206,1430645],[625678878,1332418],[643679903,1393799],[660641983,1364786],[678425350,1198706],[696148335,1392718],[713953295,1191815],[733142699,1365207],[752676622,2176900],[770610837,2221536],[788496517,1546731],[806990395,1495823],[826441794,1621522],[844727998,1779621],[862288238,1634173],[879817553,1655253],[890086061,2316529],[908147315,2198893],[926101029,1586079],[931331727,1247951],[949390559,1300890],[967262590,1210703],[985131856,1140177],[1004230813,3408866],[1022625672,1448862],[1043236398,1342151],[1061264703,1433680],[1079362063,1258676],[1088260727,1258726]],"monotonic_epoch_ns":1278625603143275,"frame_monotonic_ns":[1278625603143275,1278625720919548,1278625729261383,1278625734658453,1278625752473928,1278625770881025,1278625776357513,1278625790784364,1278625795186455,1278625801813598,1278625808495522,1278625816448613,1278625823459673,1278625830578997,1278625838294448,1278625844554897,1278625851164384,1278625859445978,1278625866428296,1278625874744833,1278625884094666,1278625891829897,1278625901161695,1278625911978407,1278625921630225,1278625932738718,1278625944375055,1278625959232144,1278625973395408,1278625989656392,1278626005083309,1278626010239125,1278626028112527,1278626046063276,1278626064105143,1278626084268064,1278626102274517,1278626120434520,1278626138539391,1278626156162958,1278626174071473,1278626192134330,1278626210822310,1278626228821973,1278626246823007,1278626263785077,1278626281568443,1278626299291429,1278626317096389,1278626336285783,1278626355819717,1278626373753971,1278626391639621,1278626410133479,1278626429584888,1278626447871122,1278626465431352,1278626482960657,1278626493229165,1278626511290410,1278626529244123,1278626534474831,1278626552533653,1278626570405694,1278626588274939,1278626607373908,1278626625768776,1278626646379482,1278626664407807,1278626682505157,1278626691403821],"wake_monotonic_ns":[1278625720615681,1278625723877033,1278625723968180,1278625724054000,1278625724103124,1278625724148282,1278625724205117,1278625724250827,1278625724291047,1278625724322645,1278625724356275,1278625724393091,1278625724707395,1278625724777890,1278625724839442,1278625724878603,1278625724914886,1278625724949158,1278625724982708,1278625725017951,1278625729214793,1278625732872974,1278625734623130,1278625752338655,1278625770698069,1278625774061615,1278625776312115,1278625790635189,1278625793936923,1278625795147457,1278625800449022,1278625801762190,1278625806321187,1278625807190206,1278625808463995,1278625814540018,1278625815066771,1278625816416634,1278625821711760,1278625823291490,1278625829333511,1278625829527923,1278625829639952,1278625830548830,1278625836137289,1278625836275667,1278625836400415,1278625836676571,1278625837434773,1278625837573282,1278625838276902,1278625844270730,1278625844535399,1278625849623131,1278625849751105,1278625849907621,1278625851008319,1278625851151745,1278625856948347,1278625857961342,1278625858029375,1278625858148104,1278625859417075,1278625865336471,1278625866371190,1278625873033856,1278625873180817,1278625874722098,1278625881566538,1278625883188361,1278625884071872,1278625890174374,1278625890324210,1278625891770609,1278625898725945,1278625899884871,1278625899971210,1278625900089258,1278625900179193,1278625901136666,1278625909400814,1278625909643329,1278625909754537,1278625909825264,1278625911960981,1278625920315835,1278625920390338,1278625920481384,1278625920590449,1278625921597766,1278625930444612,1278625932696784,1278625942699782,1278625942905121,1278625942988286,1278625943082648,1278625943154878,1278625943235568,1278625944334554,1278625957033583,1278625957713156,1278625957784894,1278625957933258,1278625959193807,1278625970722772,1278625973336580,1278626002718247,1278626005024971,1278626007761363,1278626010073536,1278626027934319,1278626045946461,1278626063935057,1278626084107572,1278626102119573,1278626120090793,1278626138369646,1278626156014063,1278626173915258,1278626191944104,1278626210655789,1278626228656663,1278626246574243,1278626263638296,1278626281492129,1278626299136907,1278626317017630,1278626336191732,1278626355652445,1278626373544556,1278626391477627,1278626409979727,1278626429428592,1278626447666084,1278626465246484,1278626482784913,1278626492884374,1278626511129427,1278626529102329,1278626531171496,1278626534422873,1278626552411029,1278626570339653,1278626588217714,1278626607291695,1278626625365109,1278626646257998,1278626664267396,1278626682414962,1278626691342209,1278628708382366],"worker_event_queue_peak":79,"worker_event_queue_lagged":0,"live_text_bytes_current":0,"live_text_bytes_peak":11279,"live_reasoning_bytes_current":0,"live_reasoning_bytes_peak":0,"live_part_count_current":0,"live_part_count_peak":0,"markdown_cache_retained_bytes_current":17413,"markdown_cache_retained_bytes_peak":17413}
+VIS31 burst hz=250 window_us=189297 p50_us=14658 p95_us=20223 max_us=22350
+VIS31 burst metrics={"session":"burst-scheduling","tab_count":1,"tab_ids":["burst-scheduling"],"active_tab":0,"retained_bytes":29071,"window_rows":3,"window_total":2,"panel":"None","status":"Quit","frame_count":69,"frame_sum_ns":250521954,"frame_max_ns":12254900,"changed_frames":49,"wakeups":166,"input_events":55,"worker_events":1029,"terminal_write_calls":12468,"terminal_flush_calls":209,"terminal_write_bytes":18697,"terminal_write_sum_ns":11134497,"terminal_write_max_ns":2153483,"frame_samples_ns":[[0,8473163],[130295843,1256433],[134020132,3409315],[141778979,1421712],[146987415,1645728],[164998525,1374659],[182997556,1411105],[188832255,1571737],[203342011,3197946],[210952945,3414553],[216955205,5106883],[225085553,6732209],[236024319,5731563],[243965650,8878564],[255583330,7520329],[265655161,6450276],[274997264,5614777],[283061340,8988309],[294965110,10529230],[308639017,9096832],[319900500,9454381],[331549567,8758852],[342564319,8021131],[352690901,8031859],[363651081,8140321],[374257457,10122857],[386874952,9502223],[399867162,10962062],[414620254,12254900],[430567426,1354039],[449048893,1600221],[466349243,1428251],[484614095,1353919],[502958126,1368541],[520906611,1509054],[539136641,1556485],[556372163,1496624],[574430754,1795774],[592853513,1564717],[616711892,1802083],[634155095,1347450],[652027987,1551486],[670178206,1455342],[687245825,2185582],[704867578,1385356],[724383203,1577617],[742737000,1450444],[760854830,2077480],[778420599,1383944],[796442676,1626670],[814877113,1957629],[832484155,1705658],[850890849,1590617],[869077584,1446659],[886311584,1677005],[904699540,1544276],[913965488,1450655],[932103108,1444976],[936251677,1652799],[954866326,1751097],[972437443,1536043],[990835455,2072602],[1009248620,1936968],[1026992077,1370234],[1045038730,1470946],[1062277767,1462884],[1079516944,1518096],[1097790960,1565289],[1114105173,1422533]],"monotonic_epoch_ns":1278629106680915,"frame_monotonic_ns":[1278629106680915,1278629236976758,1278629240701058,1278629248459884,1278629253668330,1278629271679440,1278629289678461,1278629295513200,1278629310022916,1278629317633870,1278629323636110,1278629331766457,1278629342705234,1278629350646565,1278629362264245,1278629372336067,1278629381678169,1278629389742255,1278629401646015,1278629415319922,1278629426581415,1278629438230472,1278629449245234,1278629459371887,1278629470331986,1278629480938362,1278629493555857,1278629506548067,1278629521301179,1278629537248341,1278629555729798,1278629573030147,1278629591295020,1278629609639031,1278629627587526,1278629645817566,1278629663053078,1278629681111659,1278629699534428,1278629723392796,1278629740836010,1278629758709003,1278629776859121,1278629793926740,1278629811548473,1278629831064128,1278629849417925,1278629867535735,1278629885101504,1278629903123591,1278629921558048,1278629939165089,1278629957571755,1278629975758488,1278629992992499,1278630011380445,1278630020646393,1278630038784013,1278630042932592,1278630061547230,1278630079118358,1278630097516380,1278630115929536,1278630133672992,1278630151719645,1278630168958682,1278630186197859,1278630204471865,1278630220786088],"wake_monotonic_ns":[1278629236650827,1278629238820805,1278629238937350,1278629239062529,1278629239137762,1278629239181489,1278629239223692,1278629239257453,1278629239286927,1278629239341870,1278629239383533,1278629239446157,1278629239547520,1278629239602693,1278629239638386,1278629239672649,1278629239709414,1278629239743936,1278629239779419,1278629239836716,1278629248330098,1278629253544353,1278629271529554,1278629289518860,1278629295426398,1278629309895223,1278629314552157,1278629314964629,1278629315089508,1278629315207135,1278629317585727,1278629321378760,1278629322438807,1278629322569214,1278629322621963,1278629323608639,1278629329122985,1278629329261304,1278629329319811,1278629330479389,1278629330683496,1278629330760331,1278629331736582,1278629338885802,1278629339682742,1278629339752486,1278629339883484,1278629342660757,1278629349069790,1278629349146697,1278629349397986,1278629349503564,1278629350608458,1278629360342350,1278629360509382,1278629360897026,1278629360986130,1278629361136356,1278629362235722,1278629370699461,1278629371316541,1278629371482241,1278629372304940,1278629379308129,1278629379351674,1278629379391614,1278629380267984,1278629380487444,1278629380567986,1278629380678422,1278629381653761,1278629388372392,1278629388435467,1278629388581447,1278629389712961,1278629399463999,1278629400292617,1278629400507811,1278629400623195,1278629401623612,1278629412914829,1278629413026778,1278629415272711,1278629424991100,1278629425113053,1278629426301273,1278629426383307,1278629426542817,1278629436461998,1278629436579195,1278629436910284,1278629436961641,1278629437049533,1278629437092938,1278629438206365,1278629447393454,1278629447721689,1278629447782710,1278629448268902,1278629448911761,1278629448976318,1278629449048707,1278629449233745,1278629457626017,1278629457982573,1278629458071238,1278629458178700,1278629459315011,1278629467780352,1278629468882672,1278629470296382,1278629479573275,1278629479640167,1278629479729881,1278629479824094,1278629480906294,1278629492216129,1278629492306135,1278629492386987,1278629492463923,1278629493526493,1278629503379865,1278629506477360,1278629521215851,1278629537117964,1278629555584770,1278629572877157,1278629591155249,1278629609334803,1278629627434957,1278629645640660,1278629662900287,1278629680958168,1278629699381638,1278629723082679,1278629740676520,1278629758565496,1278629776690858,1278629793774120,1278629811406469,1278629830901693,1278629849238214,1278629867376816,1278629884951408,1278629902965873,1278629921394222,1278629938992079,1278629957448920,1278629975608853,1278629992842673,1278630011225181,1278630020532731,1278630038625675,1278630041667747,1278630042896698,1278630061392878,1278630078952087,1278630097282829,1278630115541822,1278630133519061,1278630151565123,1278630168756458,1278630186039972,1278630204310662,1278630220632167,1278632231969000],"worker_event_queue_peak":64,"worker_event_queue_lagged":0,"live_text_bytes_current":0,"live_text_bytes_peak":11279,"live_reasoning_bytes_current":0,"live_reasoning_bytes_peak":0,"live_part_count_current":0,"live_part_count_peak":0,"markdown_cache_retained_bytes_current":15827,"markdown_cache_retained_bytes_peak":15827}
+ok
+test lifecycle::vis32_detached_stream_anchor_survives_durable_completion_refresh ... ok
+test lifecycle::vis38_pty_dcp_equal_active_archive_resource_samples ... VIS38 S07 DCP archive=0 archive_source_bytes=0 rss_kb=35904 pss_kb=33563 hwm_kb=35904 os_tasks_threads=8 children=0 cpu_ticks=45 elapsed_ms=785 retained_bytes=93220 window_rows=10 queue_peak=0 queue_lagged=0 markdown_cache_peak=8007 frames=8 draw_max_ns=163074935 replay_requests=0 actual_runs=1 summary_page_limit=512
+VIS38 S07 DCP archive=3000 archive_source_bytes=49152000 rss_kb=37448 pss_kb=35223 hwm_kb=37448 os_tasks_threads=8 children=0 cpu_ticks=118 elapsed_ms=1585 retained_bytes=280802 window_rows=27 queue_peak=0 queue_lagged=0 markdown_cache_peak=14343 frames=8 draw_max_ns=415728710 replay_requests=0 actual_runs=1 summary_page_limit=512
+ok
+test lifecycle::vis39_vis41_real_pty_cancel_disposes_tab_and_marquee_deadlines ... ok
+test lifecycle::vis39_vis41_real_pty_held_tab_spinner_and_one_cycle_marquee ... ok
+
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 128.49s
+
+     Running tests/pty_t42.rs (target/debug/deps/pty_t42-68ac10c862f7baec)
+
+running 34 tests
+test aud38_apply_patch_card_shows_bounded_diff ... ok
+test aud38_bare_oc_launches_the_local_tui ... ok
+test aud38_location_switch_is_one_lifecycle ... ok
+test bare_first_accepted_prompt_creates_exactly_one_bound_root_and_turn ... ok
+test bare_home_abandon_and_new_do_not_create_a_root ... ok
+test bare_home_review_completion_submits_pinned_prompt_and_keeps_invocation_on_same_tab ... ok
+test bare_rename_requests_real_title_without_creating_turn_and_restores_on_restart ... ok
+test concurrent_sqlite_deck_edit_cannot_be_overwritten_by_restored_tui ... ok
+test corrupt_parked_selection_keeps_good_tabs_and_original_preference ... ok
+test deck_location_isolation_and_corrupt_preference_are_safe_on_restart ... ok
+test direct_rename_invalid_titles_keep_slash_draft_and_existing_title ... ok
+test direct_rename_owner_storage_refusal_keeps_slash_input_for_single_enter_retry ... ok
+test direct_rename_trims_unicode_and_persists_without_second_enter_or_overwriting_generated_title ... ok
+test explicit_child_is_standalone_read_only_and_preserves_saved_home ... ok
+test explicit_foreign_and_unbound_rows_are_refused_without_claiming_or_listing ... ok
+test explicit_session_still_attaches_and_creates_before_first_prompt ... ok
+test full_saved_deck_with_unreadable_parked_tab_opens_home_without_rewriting_preference ... ok
+test full_sixteen_real_tabs_restart_keeps_selected_route_and_all_ids ... ok
+test home_location_refusal_and_a_b_a_b_remain_sessionless_until_first_submit ... ok
+test hovered_close_reopens_durable_session_without_creating_a_root ... ok
+test immediate_ctrl_c_after_first_home_submit_restores_committed_root_on_restart ... ok
+test invalid_absent_explicit_root_is_rejected_without_creating_a_row ... ok
+test keyboard_and_palette_close_tab_keep_the_root_durable_and_reopenable ... ok
+test keyboard_close_refuses_busy_turn_without_losing_draft ... ok
+test new_from_attached_returns_home_without_an_extra_root ... ok
+test persisted_deck_restores_order_home_close_and_explicit_session_without_new_work ... ok
+test reload_refuses_busy_turn_and_refreshes_parked_tab_after_owner_success ... ok
+test rename_refuses_home_child_foreign_and_busy_without_changing_titles ... ok
+test rename_shortcut_palette_unicode_trim_and_restart_use_owner_title ... ok
+test rename_storage_refusal_keeps_modal_value_draft_and_old_tab_until_retry ... ok
+test retained_deck_refuses_add_during_turn_and_keeps_tabs_on_failed_location ... ok
+test retained_tab_mouse_add_restores_draft_and_home_submit_binds_one_new_root ... ok
+test vis25_reload_rebuilds_real_config_on_home_and_session_without_losing_identity ... ok
+test vis26_bare_oc_mention_tab_submits_durable_location_relative_prompt ... ok
+
+test result: ok. 34 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 53.60s
+
+     Running tests/recovery_startup.rs (target/debug/deps/recovery_startup-23751e4489435732)
+
+running 3 tests
+test isolated_binary_startup_routes ... success: exit 0, terminal restored
+busy: exit 1, terminal restored
+lock released: exit 0, terminal restored
+credential missing: exit 1, terminal restored
+credential empty env: exit 1, terminal restored
+credential present: exit 0, terminal restored
+credential empty literal: exit 1, terminal restored
+query: exit 1, terminal restored
+selection corrupt: exit 1, terminal restored
+selection corrupt headless: detailed error, exit 1, no provider call
+unknown model switch: safe refusal, retained owner, retry exit 0
+malformed config switch: safe refusal, retained owner, retry exit 0
+damaged selection switch: safe refusal, retained owner, retry exit 0
+config: exit 1, terminal restored
+missing config: exit 1, terminal restored
+cli config: exit 1, terminal restored
+warning: exit 0, terminal restored
+unsafe: exit 1, terminal restored
+unavailable: exit 1, terminal restored
+
+ok
+test isolated_discovery_startup_routes ... unauthorized: discovery GET, no Responses, expected exit, terminal restored
+forbidden: discovery GET, no Responses, expected exit, terminal restored
+unauthorized-oversized: discovery GET, no Responses, expected exit, terminal restored
+forbidden-oversized: discovery GET, no Responses, expected exit, terminal restored
+unauthorized-slow: discovery GET, no Responses, expected exit, terminal restored
+forbidden-slow: discovery GET, no Responses, expected exit, terminal restored
+absent: discovery GET, no Responses, expected exit, terminal restored
+present: discovery GET, no Responses, expected exit, terminal restored
+
+ok
+test location_switch_carries_safe_category_and_keeps_detailed_api_error ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 29.29s
+
+     Running tests/recovery_v02.rs (target/debug/deps/recovery_v02-6d0891f0aa7d1192)
+
+running 1 test
+test binary_restart_projects_real_metadata_and_parts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.62s
+
+     Running tests/recovery_v03.rs (target/debug/deps/recovery_v03-5cfe919dcf55ae60)
+
+running 1 test
+test binary_viewport_resize_draft_sidebar_and_debug ... normal resize/draft/sidebar/debug PASS
+hidden resize/draft/sidebar/debug PASS
+child resize/draft/sidebar/debug PASS
+debug resize/draft/sidebar/debug PASS
+vertical resize/draft/sidebar/debug PASS
+default-debug resize/draft/sidebar/debug PASS
+wrapped rendered-row Up PASS
+bare Home, restored history click and explicit empty session PASS
+session query error route PASS
+startup error and non-TTY PASS
+
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.90s
+
+     Running tests/responses.rs (target/debug/deps/responses-b82e9e486e16396e)
+
+running 4 tests
+test aud09_aud10_binary_exact_typed_tool_history_survives_restart ... ok
+test aud10_binary_image_modality_is_explicitly_rejected ... ok
+test aud12_binary_delta_before_terminal_and_silent_stream_sigint ... ok
+test aud13_binary_rejects_oversized_pending_line_with_visible_limit ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.27s
+
+     Running tests/t49_live_smoke.rs (target/debug/deps/t49_live_smoke-38b9091115f26608)
+
+running 5 tests
+test single_run_worst_case_fits_campaign_and_reservation_survives_retry ... ok
+test t49_one_shot_live_model_identity ... ignored, explicit, bounded real API smoke with pre-existing product test credentials
+test t49_rotated_key_original_model_probe ... ignored, explicit single original-model probe under the reissued-key campaign
+test t49_rotated_key_product_model_identity ... ignored, explicit one-shot product-binary smoke with the reissued OpenProxy test key
+test t49_rotated_key_route_probe ... ignored, explicit one-shot OpenProxy route check with the reissued test key
+
+test result: ok. 1 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/tui_render_alloc.rs (target/debug/deps/tui_render_alloc-2fdcc51935217193)
+
+running 1 test
+test bounded_renderer_archive_allocation_profile ... short: backing_total=200, retained_rows=202, retained_bytes=17878, has_older=false
+large: backing_total=3200, retained_rows=202, retained_bytes=17878, has_older=true
+short 120x40: draws=12, total_requested=882732 B, mean_requested=73561 B/draw, peak_thread_live=2157018 B, max_peak_above_baseline=41856 B, allocation_calls=9324
+large 120x40: draws=12, total_requested=882732 B, mean_requested=73561 B/draw, peak_thread_live=2474918 B, max_peak_above_baseline=41856 B, allocation_calls=9324
+short 80x40: draws=12, total_requested=820332 B, mean_requested=68361 B/draw, peak_thread_live=2266374 B, max_peak_above_baseline=36816 B, allocation_calls=9324
+large 80x40: draws=12, total_requested=820332 B, mean_requested=68361 B/draw, peak_thread_live=2448022 B, max_peak_above_baseline=36816 B, allocation_calls=9324
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s
+
+     Running unittests src/lib.rs (target/debug/deps/oc_adapters-5fed7e76b6a07788)
+
+running 304 tests
+test application::conversation_tests::compaction_owner_automatic_failure_and_cancel_keep_promoted_user_and_historical_context ... ok
+test application::conversation_tests::compaction_owner_manual_during_tool_delivers_before_next_request_and_shutdown_drains ... ok
+test application::conversation_tests::compaction_owner_measured_23000_context_survives_restart_and_history_controls ... ok
+test application::conversation_tests::compaction_owner_publication_failures_surface_and_allow_selection_conversation_requeue ... ok
+test application::conversation_tests::conversation_fork_genuine_points_revert_redo_restart_and_real_wire ... ok
+test application::conversation_tests::conversation_owner_restores_actual_wire_context_redo_is_request_free_and_git_untouched ... ok
+test application::conversation_tests::conversation_redo_restores_real_tool_pairs_without_reexecuting_shell ... ok
+test application::conversation_tests::conversation_reverted_count_survives_reopen_independent_of_fifty_row_page ... ok
+test application::conversation_tests::conversation_undo_cancels_held_automatic_title_without_late_write ... ok
+test application::conversation_tests::conversation_undo_cancels_held_explicit_title_without_late_write ... ok
+test application::conversation_tests::picker_delete_cancels_held_automatic_title_and_allows_next_location_switch ... ok
+test application::conversation_tests::picker_delete_cancels_held_manual_title_and_allows_next_location_switch ... ok
+test application::fork_tests::fork_owner_is_request_free_routes_rebased_tool_context_and_rejects_busy ... ok
+test application::fork_tests::fork_owner_refuses_foreign_provider_without_request_or_durable_root ... ok
+test application::tests::file_suggestion_tests::burst_coalesces_to_one_pending_walk_without_overlapping_active_walk ... ok
+test application::tests::file_suggestion_tests::canceled_pending_request_never_enters_blocking_pool ... ok
+test application::tests::file_suggestion_tests::stale_walk_is_refused_even_when_location_returns_to_same_path ... ok
+test application::tests::file_suggestion_tests::suggestions_follow_owner_across_home_switch_and_return ... ok
+test application::tests::reload_tests::accepted_switch_projects_typed_paged_history_after_restart ... ok
+test application::tests::reload_tests::current_reload_discovers_new_catalog_preserves_deck_and_rolls_back_failures ... ok
+test application::tests::reload_tests::model_switch_projection_uses_only_matching_current_catalog_name ... ok
+test application::tests::reload_tests::reload_is_refused_by_owner_during_active_turn ... ok
+test application::tests::reload_tests::removed_selected_primary_refuses_reload_and_keeps_old_turn_usable ... ok
+test application::tests::reload_tests::retired_explicit_tab_model_is_not_silently_replaced_by_config_fallback ... ok
+test application::tests::review_tests::catalog_descriptions_track_current_location_and_reload ... ok
+test application::tests::review_tests::conversation_shortcuts_follow_admitted_config_location_and_reload ... ok
+test application::tests::review_tests::fallback_review_submits_exact_prompt_and_replays_original_invocation ... ok
+test application::tests::review_tests::review_replaces_only_source_placeholders_and_enforces_expansion_cap ... ok
+test application::tests::review_tests::terminal_copy_and_animations_follow_global_location_switch_and_reload ... ok
+test application::tests::review_tests::workspace_review_override_keeps_positional_expansion ... ok
+test approval::tests::donor_git_root_origin_worktree_clone_and_non_git_identity ... ok
+test approval::tests::donor_identity_hash_and_origin_forms ... ok
+test approval::tests::saved_patterns_preserve_unix_literal_identity_and_support_actual_patterns ... ok
+test attachments::tests::prov05_images_text_caps_refusals ... ok
+test cli_permissions::tests::keeps_jsonc_comments_unknown_values_escapes_and_trailing_commas ... ok
+test compaction::usage_tests::compaction_content_fallback_and_exact_limit_boundary ... ok
+test compaction::usage_tests::compaction_pinned_normalization_differential_fixtures_and_layers ... ok
+test compaction::usage_tests::compaction_usage_anchor_counts_only_new_parts_and_refuses_changed_prefix ... ok
+test composition::tests::aud18_composition_sends_configured_discovery_headers ... ok
+test composition::tests::aud18_static_ludka_context_above_discovery_cap_is_unchanged ... ok
+test composition::tests::builtin_build_selection_and_admitted_session_tps ... ok
+test composition::tests::bundled_review_is_a_fallback_to_admitted_workspace_definition ... ok
+test composition::tests::in_root_symlinked_config_stays_admitted ... ok
+test composition::tests::missing_config_and_missing_model_are_errors ... ok
+test composition::tests::ordered_sources_select_exact_model_and_selected_credentials ... ok
+test composition::tests::subagent_catalog_depth_and_subagent_only_default_agent ... ok
+test composition::tests::symlinked_config_outside_the_root_is_refused ... ok
+test composition::tests::symlinked_local_root_outside_the_project_is_refused ... ok
+test composition::tests::tab_indicators_default_ordered_overrides_and_invalid_value ... ok
+test composition::tests::unsupported_dcp_option_names_its_source ... ok
+test composition::tests::v07a_definitions_symlink_inside_root_and_explicit_external_global_stay_valid ... ok
+test composition::tests::v07a_explicit_external_global_and_nested_local_jsonc_symlink_work ... ok
+test composition::tests::v07a_external_discovered_root_is_refused_before_config_or_substitution ... ok
+test composition::tests::v07a_large_normal_config_is_not_limited_to_one_mib ... ok
+test composition::tests::v07a_racing_instruction_symlink_never_reads_external_text ... ok
+test composition::tests::v07c_source_substitution_after_ancestor_swap_stays_inside_admitted_root ... ok
+test composition::tests::vis35_admitted_diff_settings_defaults_override_and_validation ... ok
+test config::tests::animations_are_strictly_validated_per_source_with_winning_provenance ... ok
+test config::tests::cfg01_user_forms_native_profile ... ok
+test config::tests::cfg02_substitution_merge_byte_unchanged ... ok
+test config::tests::cfg03_capability_failures ... ok
+test config::tests::cfg04_trust_secrets_disabled ... ok
+test config::tests::cfg05_config_roots_order ... ok
+test config::tests::cfg06_instructions_once_with_provenance ... ok
+test config::tests::cfg07_definitions_frontmatter_and_bounds ... ok
+test config::tests::cfg08_native_plugins_exact_only ... ok
+test config::tests::conversation_shortcuts_resolve_final_leader_and_disabled_alternatives ... ok
+test config::tests::conversation_snapshots_default_off_and_false_aliases_are_safe ... ok
+test config::tests::leader_timeout_precedence_and_invalid_leaf_diagnostics ... ok
+test config::tests::native_fallback_limits_are_explicit_validated_options ... ok
+test config::tests::permission_glob_maps_fold_conservatively_and_unknown_actions_pass ... ok
+test config::tests::skill_frontmatter_comments_and_optional_metadata ... ok
+test config::tests::terminal_copy_is_validated_in_each_source_with_winning_provenance ... ok
+test config::tests::unknown_provider_option_is_a_warning ... ok
+test config::tests::v07c_public_source_uses_verified_directory_not_replaced_ancestor ... ok
+test dcp::tests::dcp01_durable_blocks_members_prune ... ok
+test dcp::tests::dcp01_projection_carries_no_credentials ... ok
+test dcp::tests::dcp01_range_schema_bounds ... ok
+test dcp::tests::dcp02_ids_stable_across_restart_and_stale_rejected ... ok
+test dcp::tests::dcp03_nested_placeholders_cycles_and_verbatim ... ok
+test dcp::tests::dcp04_patch_affected_paths_and_protection ... ok
+test dcp::tests::dcp09_effectiveness_and_no_gain_bound ... ok
+test dcp::tests::projection_collapses_prunes_and_expands ... ok
+test dcp_auto::tests::aud20_percent_model_limits_strong_nudge_and_wildcard_protection ... ok
+test dcp_auto::tests::dcp05_thresholds_frequency_turn_reset_no_accumulation ... ok
+test dcp_auto::tests::dcp06_dedup_purge_recalc_at_compress ... ok
+test dcp_auto::tests::dcp07_config_aliases_stats_and_unsupported ... ok
+test defs::tests::agent_digest_covers_body_and_permissions ... ok
+test defs::tests::agent_modes_and_command_execution_fields_load ... ok
+test defs::tests::commented_frontmatter_and_glob_permissions_follow_upstream ... ok
+test defs::tests::config_domains_merge_in_caller_order_without_invented_files ... ok
+test defs::tests::instructions_dedup_sentinel_and_diagnose ... ok
+test defs::tests::large_agent_and_command_bodies_load_within_the_global_budget ... ok
+test defs::tests::later_source_replaces_with_shadow_provenance ... ok
+test defs::tests::skills_singular_before_plural_and_valid_siblings_survive ... ok
+test defs::tests::symlinks_are_refused ... ok
+test defs::tests::v07a_definition_fifo_and_oversize_do_not_block_or_exhaust_budget ... ok
+test defs::tests::v07a_racing_definition_subdirectory_never_reads_outside ... ok
+test discovery::tests::aud18_any_2xx_succeeds_and_body_cap_invalid_response_is_terminal ... ok
+test discovery::tests::aud18_headers_replace_reserved_case_insensitively_once_and_preserve_custom ... ok
+test discovery::tests::aud18_missing_credentials_zero_requests_and_persistent_empty_is_bounded ... ok
+test discovery::tests::aud18_names_strip_only_the_first_slash_and_remote_connection_fields_are_ignored ... ok
+test discovery::tests::aud18_reqwest_url_validation_rejects_userinfo_query_fragment_and_malformed ... ok
+test discovery::tests::aud18_safe_integer_boundary_and_local_preclamp_validation ... ok
+test discovery::tests::aud18_successful_refresh_removes_absent_ids ... ok
+test discovery::tests::disc01_basic_dynamic_no_hardcode ... ok
+test discovery::tests::disc02_atomic_row_validation ... ok
+test discovery::tests::disc03_authority_ignores_remote_connection ... ok
+test discovery::tests::disc05_limits_and_deletion ... ok
+test discovery::tests::disc06_variants_allowlist_and_override ... ok
+test discovery::tests::disc07_fake_clock_budgets ... ok
+test discovery::tests::disc08_retry_classes_and_cancel ... ok
+test discovery::tests::disc09_publication_rules ... ok
+test discovery::tests::disc10_isolation_and_sanitized_warnings ... ok
+test discovery::tests::disc_names_and_gating ... ok
+test discovery::tests::reqwest_http_error_status_precedes_oversized_or_slow_body ... ok
+test discovery::tests::selected_catalog_failure_codes_preserve_publication_rules ... ok
+test files::tests::aud19_grep_skips_fifo_without_blocking ... ok
+test files::tests::aud19_search_patterns_scan_and_hit_text_are_byte_bounded ... ok
+test files::tests::aud19_wide_directory_stops_at_walk_budget ... ok
+test files::tests::suggest_caps_results_and_entries_with_partial_results ... ok
+test files::tests::suggest_concurrent_symlink_swap_never_reports_outside_or_data_files ... ok
+test files::tests::suggest_refuses_symlinks_and_own_data_root ... ok
+test files::tests::suggest_rejects_malformed_or_oversized_queries_without_root_in_error ... ok
+test files::tests::suggest_returns_lexicographic_top_even_when_created_in_reverse_order ... ok
+test files::tests::suggest_skips_unreadable_nested_directory_with_partial_result ... ok
+test files::tests::suggest_sorted_relative_filtered_and_skips_vcs_build_directories ... ok
+test files::tests::tool01_binary_and_large_diagnostics ... ok
+test files::tests::tool01_bounded_chunks_with_cursor ... ok
+test files::tests::tool01_glob_sorted_paginated ... ok
+test files::tests::tool01_grep_literal_sorted_paginated ... ok
+test files::tests::tool01_own_data_root_refused_all_shapes ... ok
+test mcp_result::tests::arbitrary_error_canaries_never_escape_even_without_known_secrets ... ok
+test mcp_result::tests::bounded_instructions_redact_before_utf8_truncation ... ok
+test mcp_result::tests::mixed_unsupported_content_and_aggregate_caps_are_not_silent_success ... ok
+test mcp_result::tests::rpc_failure_uses_only_standard_numeric_codes ... ok
+test mcp_result::tests::secrets_do_not_mutate_wire_discriminators_before_projection ... ok
+test mcp_result::tests::structured_failure_codes_are_exact_and_prose_cannot_override_them ... ok
+test mcp_stdio::cleanup_tests::stderr_worker_failure_is_reported_after_child_reap ... 
+thread 'mcp_stdio::cleanup_tests::stderr_worker_failure_is_reported_after_child_reap' (2552624) panicked at crates/oc-adapters/src/mcp_stdio.rs:818:13:
+injected stderr worker failure
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+ok
+test models::tests::admission_context_output_and_missing ... ok
+test models::tests::diagnostics_and_explain ... ok
+test models::tests::exact_selection_no_fallback ... ok
+test models::tests::fallback_budget_preserves_metadata_and_bounds_partial_zero_limits ... ok
+test models::tests::variant_allowlist_and_default ... ok
+test patch::effects::tests::vis35_bounded_scripts_reconstruct_exact_bytes_with_repeated_lines ... ok
+test patch::effects::tests::vis35_donor_minimal_ties_context_and_merge_boundaries ... ok
+test patch::effects::tests::vis35_serialized_escaping_and_many_file_overhead_retain_headers_and_ranges ... ok
+test patch::fs::tests::aud04_pinned_parent_handle_never_follows_replacement_symlink ... ok
+test patch::tests::diff_render_keeps_hunks_bounded_and_never_invents_line_numbers ... ok
+test patch::tests::diff_summary_is_exact_and_bounded ... ok
+test patch::tests::tool02_crlf_and_trailing_newline_preserved ... ok
+test patch::tests::tool02_new_empty_file_and_append_via_update ... ok
+test patch::tests::tool02_new_text_file_unicode_crlf ... ok
+test patch::tests::tool03_delete_and_move_without_overwrite ... ok
+test patch::tests::tool03_registry_has_no_write_edit ... ok
+test patch::tests::tool03_targeted_hunks_and_full_replace ... ok
+test patch::tests::tool04_add_existing_and_stale_preimage ... ok
+test patch::tests::tool04_invalid_later_entry_and_partial_runtime ... ok
+test patch::tests::tool04_mode_preserved_and_binary_refused ... ok
+test patch::tests::tool04_protected_outside_dataroot_symlink ... ok
+test patch::tests::v06b_partial_result_records_only_committed_effects ... ok
+test patch::tests::vis35_after_rename_sync_failure_retains_actual_destination ... ok
+test provider::tests::aud09_aud10_canonical_wire_and_output ... ok
+test provider::tests::aud11_complete_text_event_eof_is_not_success ... ok
+test provider::tests::aud11_done_fallback_and_unfinished_call_rejection ... ok
+test provider::tests::aud11_terminal_failures_never_retry_and_success_does_not_wait_for_eof ... ok
+test provider::tests::aud12_cancel_silent_body_and_headers ... ok
+test provider::tests::aud13_byte_bounds_utf8_and_incremental_observer ... ok
+test provider::tests::aud13_effective_idle_timeout_400_and_unsafe_headers ... ok
+test provider::tests::prov01_exact_url_auth_store_cachekey ... ok
+test provider::tests::prov02_splits_crlf_comments_usage_cap ... ok
+test provider::tests::prov06_statuses_retry_owner ... ok
+test provider::tests::prov07_timeouts_and_cancel ... ok
+test provider::tests::sequential_reasoning_done_items_preserve_order_and_opaque_payload ... ok
+test provider::tests::sse_event_data_flush_split ... ok
+test provider::tests::units_request_shape ... ok
+test runtime::compaction::tests::compaction_auto_precancel_and_held_caller_cancel_install_no_checkpoint ... ok
+test runtime::compaction::tests::compaction_auto_threshold_and_known_overflow_keep_tool_effect_once ... ok
+test runtime::compaction::tests::compaction_config_native_legacy_and_unsupported_prune ... ok
+test runtime::compaction::tests::compaction_failed_overflow_summary_does_not_retry_the_main_request ... ok
+test runtime::compaction::tests::compaction_invalid_summary_and_cancel_preserve_context ... ok
+test runtime::compaction::tests::compaction_manual_plain_canonical_text_is_independent_of_caller_cancel ... ok
+test runtime::compaction::tests::compaction_native_model_budget_guard_precedes_paid_capability ... ok
+test runtime::compaction::tests::compaction_native_opaque_route_checkpoint_without_summary_body ... ok
+test runtime::compaction::tests::compaction_publication_failure_releases_and_recovers_running_and_final ... ok
+test runtime::compaction::tests::compaction_real_summary_wire_usage_tail_dcp_undo_redo_reopen_fork ... ok
+test runtime::compaction::tests::compaction_route_hash_uses_effective_case_insensitive_tenant_auth_and_endpoint ... ok
+test runtime::compaction::tests::compaction_schema_inclusive_irreducible_mcp_admission_spends_no_summary ... ok
+test runtime::tests::identity_tests::turn_ids_do_not_repeat_when_clock_repeats_or_rolls_back ... ok
+test runtime::tests::vis38_review_tests::manual_actual_wire_no_gain_and_zero_item_recompression ... ok
+test runtime::tests::vis38_review_tests::next_request_projects_current_turn_duplicate_read_and_preserves_journal ... ok
+test runtime::tests::vis38_review_tests::recompression_keeps_inherited_verbatim_protection_without_covered_text ... ok
+test runtime::tool_stream::tests::announcement_split_utf8_caps_and_coalescing ... ok
+test shell::tests::aud28_symlink_cwd_escape_refused_and_toolchain_resolves ... ok
+test shell::tests::tool05_child_env_excludes_credentials ... ok
+test shell::tests::tool05_interleaved_output_no_deadlock ... ok
+test shell::tests::tool05_truncation_exit_and_shape ... ok
+test shell::tests::tool06_cancel_flag_reports_cancelled ... ok
+test shell::tests::tool06_cwd_and_argv_guards ... ok
+test shell::tests::tool06_timeout_term_resistant_grandchild ... ok
+test smoke::tests::adapter_sees_core_app ... ok
+test smoke::tests::reqwest_client_builds_offline ... ok
+test smoke::tests::rmcp_types_are_linked ... ok
+test smoke::tests::sqlite_memory_roundtrip ... ok
+test smoke::tests::tokio_runtime_available ... ok
+test storage::compaction::dcp_tests::checkpoint_panel_summary_uses_remaining_projection_and_rolls_back_atomically ... ok
+test storage::compaction::dcp_tests::publish_settled_context_does_not_invent_legacy_or_staged_posts ... ok
+test storage::compaction::dcp_tests::standalone_compress_post_revision_restores_after_undo_redo_and_reopen ... ok
+test storage::compaction::tests::compaction_checkpoint_rebases_dcp_occurrences_atomically_and_undo_restores_them ... ok
+test storage::conversation::tests::conversation_legacy_boundary_is_explicitly_unavailable ... ok
+test storage::conversation::tests::conversation_migration_bootstraps_real_rows_and_reads_genuine_legacy_json ... ok
+test storage::conversation::tests::conversation_missing_tip_cannot_be_replaced_by_an_earlier_redo_point ... ok
+test storage::conversation::tests::conversation_points_restore_dcp_branch_restart_and_admission_rollback ... ok
+test storage::conversation::tests::conversation_revisions_share_large_metadata_and_growing_memberships ... ok
+test storage::conversation::tests::conversation_settlement_context_and_title_stamp_are_atomic ... ok
+test storage::conversation::tests::conversation_whole_tail_skips_empty_user_and_preserves_original_tip ... ok
+test storage::dcp_view::review_tests::equal_active_context_does_not_load_large_inactive_archive_or_decisions ... ok
+test storage::dcp_view::tests::prefix_pruning_counts_real_tool_contents_and_refuses_unbounded_logs ... ok
+test storage::dcp_view::tests::real_summary_utf8_pages_caps_legacy_and_effective_pruning ... ok
+test storage::dcp_view::tests::snapshots_restore_restart_fork_and_new_branch_without_tail_accounting ... ok
+test storage::fork::dcp_tests::standalone_new_turn_fork_undo_redo_rebases_scoped_metadata_without_source_collisions ... ok
+test storage::fork::dcp_tests::unrelated_or_future_standalone_records_do_not_bypass_prefix_refusal ... ok
+test storage::fork::tests::foreign_provider_is_refused_before_root_insert_and_reopen_keeps_source_only ... ok
+test storage::fork::tests::fork_capacity_and_row_budget_refusals_leave_no_root_or_marker ... ok
+test storage::fork::tests::fork_excludes_boundary_model_switch_and_keeps_prefix_accepted_model ... ok
+test storage::fork::tests::fork_genuinely_legacy_prefix_has_no_fabricated_points_or_future_dcp ... ok
+test storage::fork::tests::fork_rebases_settled_tool_graph_reopens_and_preserves_source ... ok
+test storage::fork::tests::fork_refuses_invalid_foreign_unknown_oversized_and_rolls_back ... ok
+test storage::fork::tests::fork_saved_context_points_rebase_restart_recursive_and_inactive_branches ... ok
+test storage::fork::tests::future_uncheckpointed_recovered_unknown_does_not_block_prefix_or_empty_fork ... ok
+test storage::fork::tests::invalid_assistant_and_display_references_refuse_without_any_partial_copy ... ok
+test storage::fork::tests::present_display_tool_must_be_string_and_owned_by_its_copied_turn ... ok
+test storage::fork::tests::recursive_forks_preserve_every_copied_users_model_acceptance ... ok
+test storage::fork::tests::repeated_unassociated_model_fallback_is_charged_before_any_root_insert ... ok
+test storage::tests::blob_orphan_collected_referenced_kept ... ok
+test storage::tests::child_creation_never_touches_parent_history ... ok
+test storage::tests::child_rows_persist_across_reopen ... ok
+test storage::tests::child_schema_migration_is_idempotent_across_reopen ... ok
+test storage::tests::child_schema_upgrades_legacy_database_to_same_schema ... ok
+test storage::tests::children_of_returns_only_direct_children_in_insertion_order ... ok
+test storage::tests::context_usage_projection_requires_a_reported_pair_and_keeps_billing_separate ... ok
+test storage::tests::crash_intent_recovers_unknown_without_replay ... ok
+test storage::tests::create_child_session_requires_parent_and_unique_ids ... ok
+test storage::tests::durable_input_turn_event_roundtrip ... ok
+test storage::tests::fresh_admission_checks_union_before_root_insert_and_deduplicates_markers ... ok
+test storage::tests::fresh_turn_duplicate_turn_id_cannot_strand_new_session ... ok
+test storage::tests::fresh_turn_is_fresh_only_and_preserves_existing_accept_turn ... ok
+test storage::tests::fresh_turn_selection_insert_failure_rolls_back_everything_and_retries ... ok
+test storage::tests::fresh_turn_selection_key_cannot_override_binding_or_other_prefs ... ok
+test storage::tests::fresh_turn_sql_failures_roll_back_root_binding_and_every_event ... ok
+test storage::tests::history_pages_and_tool_ops_are_bounded ... ok
+test storage::tests::legacy_acceptance_migration_accepts_large_aggregate_and_reopens_once ... ok
+test storage::tests::legacy_acceptance_migration_bounds_payload_and_rolls_back ... ok
+test storage::tests::legacy_acceptance_migration_is_linear_atomic_and_one_time ... ok
+test storage::tests::list_sessions_keeps_id_order_and_includes_children ... ok
+test storage::tests::manual_root_title_overrides_generated_and_rolls_back_with_event_failure ... ok
+test storage::tests::model_switch_is_atomic_scoped_replayable_and_excluded_from_context ... ok
+test storage::tests::prefs_roundtrip ... ok
+test storage::tests::quota_and_permissions_enforced ... ok
+test storage::tests::regenerated_title_cas_preserves_manual_edit_and_event_atomicity ... ok
+test storage::tests::root_creation_rolls_back_when_event_insert_fails ... ok
+test storage::tests::second_owner_is_refused ... ok
+test storage::tests::session_picker_is_bounded_searches_before_limit_and_preserves_unknown_legacy_time ... ok
+test storage::tests::session_picker_migrates_old_schema_without_inventing_update_times ... ok
+test storage::tests::session_picker_same_tick_orders_observed_activity_before_ids_and_limit ... ok
+test storage::tests::session_picker_uses_checkout_common_directory_for_worktree_footer ... ok
+test storage::tests::symlink_root_and_escape_not_followed ... ok
+test storage::tests::turn_tool_reference_and_intent_are_atomic ... ok
+test storage::tests::typed_history_ids_are_exact_bounded_and_stable_across_paging_and_reopen ... ok
+test storage::tests::unsafe_roots_refused ... ok
+test storage::tests::v02_bounded_projection_exposes_loss_and_legacy_availability ... ok
+test storage::v06b_multibyte_output_preview_is_byte_bounded ... ok
+test tools::tests::aud03_patch_text_schema_and_tool_route ... ok
+test tools::tests::aud05_partial_patch_output_keeps_all_commits_and_full_hashes ... ok
+test tools::tests::prov03_complete_roundtrip_ordered_ids ... ok
+test tools::tests::prov04_opaque_boundary_persist_replay ... ok
+test tools::tests::tool01_glob_grep_execute_structured_sorted_pages ... ok
+test tools::tests::tool01_glob_grep_permission_denial_precedes_dispatch ... ok
+test tools::tests::tool01_glob_grep_validate_strict_bounded_arguments ... ok
+test tools::tests::tool10_duplicate_ids_refuse_batch ... ok
+test tools::tests::tool10_registry_has_no_write_edit ... ok
+test tools::tests::tool10_unknown_invalid_match_ids ... ok
+test tools::tests::tool11_projection_and_snapshot_failures ... ok
+test tools::tests::tool11_stale_and_durable_graph ... ok
+test tools::tests::tool_patch_bash_skill_paths ... ok
+test trace::tests::byte_cap_writes_one_truncation_marker ... ok
+test trace::tests::env_fact_never_contains_the_value ... ok
+test trace::tests::fingerprint_flag_appends_eight_hex_chars ... ok
+test trace::tests::inactive_log_is_a_noop ... ok
+test trace::tests::init_at_writes_documented_lines ... ok
+test trace::tests::message_is_bounded_to_512_chars ... ok
+test tui_workspace::tests::primary_select_persist_resolve ... ok
+test tui_workspace::tests::stale_actions_fail_and_locations_are_single ... ok
+test tui_workspace::tests::vanished_agent_blocks ... ok
+test webfetch::tests::aud25_html_unicode_entities_and_malformed ... ok
+test webfetch::tests::aud25_url_relative_query_ipv6 ... ok
+test webfetch::tests::aud26_dial_bound_private_answer_sends_no_request ... ok
+test webfetch::tests::aud26_total_deadline_spans_redirects ... ok
+test webfetch::tests::tool07_text_html_json_redirect_status ... ok
+test webfetch::tests::tool08_ip_classification ... ok
+test webfetch::tests::tool08_large_body_deadline_auth ... ok
+test webfetch::tests::tool08_localhost_needs_exception ... ok
+test webfetch::tests::tool08_loopback_private_redirect_guards ... ok
+test webfetch::tests::units_extract_and_html ... ok
+
+test result: ok. 304 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 41.66s
+
+     Running tests/blob_audit.rs (target/debug/deps/blob_audit-69a791b125483688)
+
+running 11 tests
+test abandoned_temp_does_not_block_retry_and_counts_toward_quota ... ok
+test concurrent_gc_preserves_published_blobs_and_active_temps ... ok
+test concurrent_writes_do_not_overrun_quota ... ok
+test existing_content_addressed_orphan_is_readable_after_write ... ok
+test gc_respects_grace_references_and_non_regular_entries ... ok
+test orphan_adoption_and_dedup_obey_quota_without_double_counting ... ok
+test oversized_orphan_is_rejected_and_gc_recovers_quota ... ok
+test partial_temp_write_failure_is_cleaned_up ... ok
+test read_propagates_sqlite_failure ... ok
+test row_failure_leaves_orphan_and_retry_repairs_after_reopen ... ok
+test stale_metadata_is_repaired_and_corrupt_content_is_rejected ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
+
+     Running tests/context_bounds.rs (target/debug/deps/context_bounds-b7106998f504a015)
+
+running 3 tests
+test aud32_equal_active_context_bounded_construction ... AUD32 workload: archive pairs 8 -> 2000 x 16384 B, active pairs 2 x 1024 B; construction peak small=829263 large=805687 bytes (bound 8388608)
+ok
+test aud33_payload_above_64k_within_budget_is_complete ... ok
+test aud34_tool_output_beyond_preview_is_retrievable ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.13s
+
+     Running tests/dcp_atomic.rs (target/debug/deps/dcp_atomic-05257682f980c955)
+
+running 4 tests
+test nested_unknown_cycle_depth_and_size_fail_during_planning ... ok
+test no_gain_is_reported_without_writes ... ok
+test protected_user_tag_and_file_messages_are_preserved_verbatim ... ok
+test second_range_failure_rolls_back_blocks_members_and_tool_journal ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running tests/e2e_live.rs (target/debug/deps/e2e_live-cefd5a8710299033)
+
+running 1 test
+test live_workflow_harness ... ignored, needs live OpenProxy credentials
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/e2e_offline.rs (target/debug/deps/e2e_offline-4575c1ab2a364a7a)
+
+running 3 tests
+test e2e01_seeded_coding_fix ... ok
+test e2e03_compress_restart_retained_fact ... ok
+test e2e05_configured_workspace_a_to_b ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.57s
+
+     Running tests/mcp_remote.rs (target/debug/deps/mcp_remote-0e939fc1bcbc2ca0)
+
+running 25 tests
+test backend_parity_structured_resources_instructions_and_safe_errors ... ok
+test catalog_tool_and_page_limits_are_errors_without_partial_success ... ok
+test config_validation_needs_no_network ... ok
+test dns_and_connect_failures_are_distinct_from_private_host ... ok
+test entry_authorization_and_custom_headers_reach_the_strict_endpoint ... ok
+test entry_mapping_refuses_oauth_and_keeps_exact_url ... ok
+test generic_remote_uses_sdk_protocol_negotiation ... ok
+test handshake_uses_exact_url_and_bearer ... ok
+test header_names_are_case_insensitive_and_conflicts_are_explicit ... ok
+test invalid_catalogs_are_typed_attach_errors ... ok
+test invalid_replies_are_transport_errors ... ok
+test list_paginates_and_maps_registry ... ok
+test list_update_is_visible_on_relist ... ok
+test live_search_harness ... ignored, needs live codex_web credentials
+test private_host_refused_without_test_flag ... ok
+test protocol_mismatch_observes_stalled_session_cleanup ... ok
+test registry_bounds_and_collisions ... ok
+test result_modalities_arguments_and_transport_have_distinct_errors ... ok
+test search_args_shape ... ok
+test search_returns_text_and_surfaces_is_error ... ok
+test slow_call_can_be_cancelled ... ok
+test slow_call_hits_client_deadline ... ok
+test sse_response_path_supported ... ok
+test unauthorized_is_terminal_without_retry ... ok
+test version_mismatch_is_rejected ... ok
+
+test result: ok. 24 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 3.85s
+
+     Running tests/mcp_stdio.rs (target/debug/deps/mcp_stdio-77d4ef9b319da6e3)
+
+running 13 tests
+test backend_parity_stdio_data_instructions_and_redacted_errors ... ok
+test cancelled_initialize_reaps_before_return_even_after_stderr_eof ... ok
+test disabled_spawns_nothing ... ok
+test entry_mapping_keeps_exact_argv_and_refuses_risky_shapes ... ok
+test from_entry_uses_trusted_cwd_and_only_working_parent_env ... ok
+test kill_reap_leaves_no_zombie ... ok
+test launch_list_call_with_exact_argv_and_minimal_env ... ok
+test list_tool_and_page_caps_are_visible_catalog_errors ... ok
+test real_server_smoke ... ignored, needs explicitly selected real server argv
+test restart_keeps_config_and_bumps_generation ... ok
+test stderr_is_bounded_and_redacted ... ok
+test tool_results_and_arguments_have_distinct_typed_failures ... ok
+test wrapper_descendants_are_group_owned_for_raw_rmcp_failure_and_drop ... ok
+
+test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 3.77s
+
+     Running tests/patch_audit.rs (target/debug/deps/patch_audit-e5394ce65d223c43)
+
+running 10 tests
+test aud03_add_file_decodes_the_patch_plus_prefix ... ok
+test aud03_ambiguous_hunks_and_overlapping_paths_are_preflight_conflicts ... ok
+test aud03_pinned_upstream_grammar_independent_bytes ... ok
+test aud04_concurrent_add_and_move_targets_are_not_overwritten ... ok
+test aud04_parent_symlink_and_replacement_do_not_escape ... ok
+test aud04_predictable_temp_symlink_must_not_modify_outside_file ... ok
+test aud05_concurrent_preimage_is_preserved ... ok
+test aud05_io_failure_after_commit_reports_precise_partial_outcome ... ok
+test aud05_late_filesystem_permission_failure_is_preflight ... ok
+test aud05_late_stale_hunk_must_not_commit_earlier_file ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/patch_effects.rs (target/debug/deps/patch_effects-2ed54937f34558e7)
+
+running 4 tests
+test vis35_actual_positions_empty_create_multihunk_move_delete_replace ... ok
+test vis35_caps_preserve_counts_utf8_and_explicit_streaming_fallback ... ok
+test vis35_file_caps_and_shifted_new_positions_keep_exact_totals ... ok
+test vis35_postcommit_move_failure_and_unapplied_tail_are_honest ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/permissions.rs (target/debug/deps/permissions-5b5611ac33ee9046)
+
+running 8 tests
+test actual_call_resources_include_patch_rename_and_mcp_star ... ok
+test literal_stars_in_resources_cannot_bypass_wildcard_denials ... ok
+test mcp_uses_registered_upstream_identity_and_star_resource ... ok
+test metadata_and_markdown_preserve_ordered_narrowing ... ok
+test native_order_tools_and_agent_constraints_never_widen_central ... ok
+test path_home_expansion_does_not_rewrite_shell_text_and_wildcards_match_upstream ... ok
+test resource_maps_are_ordered_and_unmatched_never_allow ... ok
+test source_boundaries_and_empty_central_authority_cannot_be_widened ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/runtime.rs (target/debug/deps/runtime-9be1148df48122ea)
+
+running 91 tests
+test approval_lifecycle::approval_always_commit_failure_keeps_pending_then_survives_runtime_restart ... ok
+test approval_lifecycle::approval_cancel_drops_waiter_no_started_intent_and_stale_reply_fails ... ok
+test approval_lifecycle::approval_compress_prepared_plan_waits_then_commits_after_once ... ok
+test approval_lifecycle::approval_once_blocks_before_intent_reasks_and_rejects_wrong_digest ... ok
+test approval_lifecycle::approval_patch_preview_rechecks_real_preimage_and_reject_interrupts_batch ... ok
+test approval_lifecycle::approval_real_owner_queries_reconnect_and_replies_while_provider_turn_waits ... ok
+test approval_lifecycle::approval_replaced_resolved_shell_cwd_is_stale_before_intent ... ok
+test approval_lifecycle::approval_saved_literal_backslash_does_not_approve_distinct_unix_path ... ok
+test approval_lifecycle::approval_shell_started_rename_executes_only_in_opened_cwd ... ok
+test approval_lifecycle::approval_structural_compress_never_asks_saves_or_starts ... ok
+test approval_lifecycle::approval_webfetch_hostname_does_not_resolve_before_owner_reply_or_without_consumer ... ok
+test context::aud19_denied_compress_has_no_schema_anchor_or_nudge ... ok
+test context::aud20_compress_commits_only_eligible_strategy_projection ... ok
+test context::aud20_nudge_cadence_and_model_compress_are_session_scoped ... ok
+test context::aud20_nudge_cadence_survives_database_and_runtime_restart ... ok
+test context::aud20_summary_buffer_changes_effective_nudge_threshold ... ok
+test context::aud21_model_compress_preserves_complete_tool_graph_without_replay ... ok
+test context::aud21_turn_protection_preserves_recent_completed_turn_verbatim ... ok
+test context::compress_blocks_compensate_and_stabilize ... ok
+test context::primary_selection_and_restore_narrow_dispatch_guidance_and_children ... ok
+test context::primary_workspace_policy_also_bounds_manual_compress ... ok
+test context::provider_context_usage_survives_missing_round_usage_and_restart ... ok
+test context::t47_admission_counts_tool_schemas_and_rechecks_tool_results ... ok
+test context::t47_unknown_limits_use_configured_caps_without_variant_overlay ... ok
+test context::v04_model_change_projects_public_history_without_foreign_tool_state ... ok
+test context::vis38_failed_no_gain_and_cancel_never_publish_success_accounting ... ok
+test tool_lifecycle::argument_stream_split_json_multiround_exact_links_and_duplicate_refusal ... ok
+test tool_lifecycle::aud06_intent_failure_prevents_patch ... ok
+test tool_lifecycle::aud07_mixed_order_and_mcp_storage_failures ... ok
+test tool_lifecycle::aud11_incomplete_call_never_executes ... ok
+test tool_lifecycle::aud12_cancel_during_mcp_initialize_reaps_child_before_acceptance ... ok
+test tool_lifecycle::aud23_aborted_turn_releases_lease_and_shutdown_reaps_child ... ok
+test tool_lifecycle::aud23_generation_reuse_then_reload_disable_reaps_the_single_child ... ok
+test tool_lifecycle::aud23_partial_attach_failure_degrades_and_still_reaps_child ... ok
+test tool_lifecycle::aud23_server_cap_blocks_spawn_before_first_child ... ok
+test tool_lifecycle::aud23_tool_list_changed_relists_only_the_dirty_server ... ok
+test tool_lifecycle::backend_parity_mcp_projection_permissions_history_and_error_canaries ... ok
+test tool_lifecycle::canonical_tool_cards_keep_output_order_and_durable_read_pairing_after_restart ... ok
+test tool_lifecycle::denied_and_ask_tools_fail_visibly ... ok
+test tool_lifecycle::dto_tool_events_surface_started_and_finished_with_a_patch ... ok
+test tool_lifecycle::mcp_attach_failure_degrades_the_server ... ok
+test tool_lifecycle::protected_patch_never_reaches_disk ... ok
+test tool_lifecycle::resource_permissions_gate_real_dispatch_before_side_effects ... ok
+test tool_lifecycle::runtime_shell_timeout_and_cancellation_have_typed_terminal_states ... ok
+test tool_lifecycle::s08_bash_intent_store_fault_prevents_effect_and_recovers_unknown_turn ... ok
+test tool_lifecycle::tool_rounds_execute_and_record ... ok
+test tool_lifecycle::unidentifiable_calls_append_only_at_intent_and_duplicate_call_ids_fail_closed ... ok
+test tool_lifecycle::v07b_dropped_remote_call_reload_keeps_unknown_and_refuses_retry ... ok
+test tool_lifecycle::v07b_dropped_remote_call_shutdown_keeps_unknown_and_refuses_retry ... ok
+test tool_lifecycle::vis35_serialized_cap_finish_checkpoint_attach_restart_match ... ok
+test turns::accepted_model_switch_is_public_only_and_does_not_add_provider_requests ... ok
+test turns::accepted_prompt_titles_while_main_is_held_and_survives_main_cancel ... ok
+test turns::anonymous_text_after_second_reasoning_keeps_unstreamed_first_message_on_restart ... ok
+test turns::application_fresh_turn_validates_and_atomically_pins_home_choice ... ok
+test turns::application_home_actions_are_sessionless_and_fresh_turn_pins_current_location_choice ... ok
+test turns::aud07_rejected_input_has_no_turn_or_event ... ok
+test turns::aud07_terminal_failure_does_not_commit_assistant ... ok
+test turns::aud11_round_exhaustion_retains_output_without_replaying_effect_after_restart ... ok
+test turns::aud11_text_without_successful_terminal_never_completes ... ok
+test turns::bare_title_cancel_does_not_persist_or_emit_turn ... ok
+test turns::bare_title_invalid_configured_model_is_rejected_before_provider_io ... ok
+test turns::bare_title_regeneration_uses_title_agent_and_preserves_concurrent_manual_rename ... ok
+test turns::cancel_drains_to_records ... ok
+test turns::cancelled_fresh_turn_keeps_the_durable_acceptance_receipt ... ok
+test turns::cancelling_automatic_title_does_not_interrupt_main_and_allows_retry ... ok
+test turns::command_expansion_is_single_bounded_pass ... ok
+test turns::command_invocation_is_durable ... ok
+test turns::completed_message_without_delta_or_item_events_stays_between_reasoning_items ... ok
+test turns::completed_turn_shutdown_drains_title_and_persists_before_join ... ok
+test turns::dto_application_events_surface_reasoning_and_usage ... ok
+test turns::dto_application_events_surface_tool_calls ... ok
+test turns::dto_reasoning_deltas_and_usage_reach_the_event_callbacks ... ok
+test turns::fresh_provider_failure_after_accept_retains_root_and_reports_failed_turn ... ok
+test turns::fresh_turn_commits_root_binding_selection_before_ack_and_streams_normally ... ok
+test turns::home_current_reloads_config_after_location_roundtrip_without_explicit_choice ... ok
+test turns::home_draft_hydrates_after_restart_and_retirement_requires_explicit_replacement ... ok
+test turns::home_location_switch_restores_choices_without_roots_and_first_turn_binds_target ... ok
+test turns::in_flight_title_is_independent_of_cancel_but_manual_rename_wins ... ok
+test turns::legacy_reasoning_done_without_item_id_keeps_one_public_part ... ok
+test turns::location_binding_holds ... ok
+test turns::only_done_reasoning_items_have_duration_on_failed_cancelled_or_incomplete_streams ... ok
+test turns::post_accept_failure_still_delivers_fresh_root_and_turn_receipt ... ok
+test turns::rejected_fresh_turn_leaves_no_root_or_selection_and_can_retry ... ok
+test turns::rejected_reload_keeps_accepted_title_running_on_current_location ... ok
+test turns::reload_applies_new_policy_and_guards_active_turn ... ok
+test turns::root_location_creation_rolls_back_on_pref_failure_and_retries ... ok
+test turns::shutdown_aborts_unfinished_automatic_title ... ok
+test turns::successful_generation_without_reasoning_item_done_leaves_open_part_untimed ... ok
+test turns::text_turn_completes_and_drains ... ok
+test turns::title_task_from_retired_location_generation_cannot_commit ... ok
+test turns::two_reasoning_output_items_keep_public_parts_and_opaque_continuation_separate ... ok
+
+test result: ok. 91 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 38.19s
+
+     Running tests/session_rename.rs (target/debug/deps/session_rename-87b7f7c60b3d283d)
+
+running 3 tests
+test explicit_family_delete_is_atomic_busy_location_guarded_and_durable ... ok
+test listed_picker_open_validates_before_publication_and_atomically_adopts_existing_root ... ok
+test rename_is_durable_visible_and_rejects_invalid_foreign_or_child ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.53s
+
+     Running tests/shell_watchdog.rs (target/debug/deps/shell_watchdog-97c923799bd93bf5)
+
+running 2 tests
+test aud27_pathological_children_are_bounded_under_watchdog ... ok
+test aud27_watchdog_child ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.03s
+
+     Running tests/soak.rs (target/debug/deps/soak-ea1d18af7bb308b9)
+
+running 4 tests
+test blob_quota_failure_is_visible_and_recoverable ... ok
+test crash_injection_recovers_and_restarts ... SOAK_METRIC recovered_tool_rows=0
+ok
+test output_pressure_stays_capped_single_transcript ... ok
+test soak_two_epochs_bounded_growth ... SOAK_METRIC rss_baseline_kb=25908
+SOAK_METRIC db_baseline_bytes=733176
+SOAK_METRIC epoch1_db_delta_bytes=11306656
+SOAK_METRIC epoch1_rows_added=123
+SOAK_METRIC epoch1_tool_calls=36
+SOAK_METRIC rss_after_epoch1_kb=36572
+SOAK_METRIC epoch2_db_delta_bytes=7565312
+SOAK_METRIC epoch2_rows_added=123
+SOAK_METRIC rss_end_kb=39196
+SOAK_METRIC rss_hwm_kb=56840
+SOAK_METRIC peak_rss_kb=85672
+ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 66.17s
+
+     Running tests/storage_lock.rs (target/debug/deps/storage_lock-c9dce5f6fb92c650)
+
+running 1 test
+test dropped_db_releases_root_while_concurrent_child_is_before_exec ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/subagent.rs (target/debug/deps/subagent-8a05c15fc866c3ac)
+
+running 14 tests
+test approval_child_feedback_keeps_typed_graph_and_root_cancel_clears_child_wait ... ok
+test approval_structural_invalid_child_never_asks_saves_or_starts ... ok
+test cancel_mid_child_stream_cancels_child_and_parent ... ok
+test child_agent_permissions_narrow_the_child_lane_only ... ok
+test denied_subagent_creates_no_child_row ... ok
+test depth_limit_blocks_nesting_and_higher_depth_allows_it ... ok
+test empty_child_text_uses_no_text_fallback ... ok
+test explicit_model_overrides_child_agent_model ... ok
+test invalid_model_and_variant_fail_before_child_creation ... ok
+test nested_resource_constraints_and_filtered_catalog_remain_inherited ... ok
+test session_continuation_only_accepts_a_child_of_the_caller ... ok
+test spawn_returns_child_text_and_persists_fresh_child_row ... ok
+test t47_child_unknown_limits_keep_fallback_warning_in_tool_result ... ok
+test unknown_primary_and_background_calls_fail_closed ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.76s
+
+     Running tests/tab_deck.rs (target/debug/deps/tab_deck-2233461374e58343)
+
+running 13 tests
+test accepted_root_survives_restart_with_previous_tabs_and_save_retires_marker ... ok
+test deck_is_location_scoped_and_home_restore_does_not_mint_roots ... ok
+test every_omitted_id_and_stale_active_makes_the_snapshot_read_only ... ok
+test fresh_root_admission_counts_saved_tabs_and_preserves_deck_on_restart ... ok
+test home_slot_caps_sixteen_real_tabs_and_stale_active_recovers_existing_route ... ok
+test hostile_restore_prunes_without_rewriting_and_invalid_saves_are_atomic ... ok
+test invalid_saved_deck_refuses_fresh_without_marker_or_input ... ok
+test late_adoption_cannot_be_overwritten_by_old_snapshot_or_conflicting_cas ... ok
+test malformed_preference_on_restart_refuses_restore_and_stale_save ... ok
+test marker_insert_failure_rolls_back_entire_fresh_acceptance ... ok
+test multiple_pending_roots_preserve_acceptance_order_and_latest_is_active ... ok
+test pending_adoption_is_location_scoped_and_bounded ... ok
+test preference_read_observes_utf8_byte_limit_and_rejects_large_corrupt_value ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.51s
+
+     Running unittests src/lib.rs (target/debug/deps/oc_core-eedcbc4953c81faf)
+
+running 26 tests
+test application::tests::smoke_handle_reports_zero ... ok
+test approval::tests::auto_once_requires_explicit_consumer_and_never_saves ... ok
+test approval::tests::dropped_waiter_removes_authoritative_pending_and_emits_cancelled ... ok
+test context_plan::tests::checksum_stable_and_sensitive ... ok
+test context_plan::tests::projection_replaces_without_mutating_raw ... ok
+test context_plan::tests::ranges_validate_existence_order_disjointness ... ok
+test core_app::fork_tests::scripted_fork_is_explicitly_unsupported_and_creates_nothing ... ok
+test core_app::tests::cancel_long_stream_interrupts ... ok
+test core_app::tests::fresh_receipt_waits_for_owner_ack_and_preserves_explicit_selection ... ok
+test core_app::tests::mock_fresh_rejects_without_creating_and_keeps_existing_submit_path ... ok
+test core_app::tests::queries_stay_responsive_during_stream ... ok
+test core_app::tests::rejects_unknown_session_and_oversize_and_stale_cancel ... ok
+test core_app::tests::scripted_conversation_is_explicitly_unsupported ... ok
+test core_app::tests::scripted_worker_explicitly_refuses_rename ... ok
+test core_app::tests::second_submit_while_active_is_busy ... ok
+test core_app::tests::session_title_normalization_requires_visible_text_and_limits_utf8_bytes ... ok
+test core_app::tests::vertical_input_to_response ... ok
+test core_app::tests::worker_guard_surfaces_cleanup_failure ... 
+thread 'core_app::tests::worker_guard_surfaces_cleanup_failure' (2557072) panicked at crates/oc-core/src/core_app.rs:1843:45:
+worker panic probe
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+ok
+test domain::tests::rejects_empty_session_id ... ok
+test domain::tests::serde_roundtrip ... ok
+test ports::tests::smoke_provider_error_is_typed ... ok
+test queries::chrome_tests::v03_devtools_override_and_channel_default ... ok
+test runtime::tests::tick_returns_one ... ok
+test session::tests::error_messages_are_stable ... ok
+test session::tests::ids_reject_empty ... ok
+test tests::core_name_is_stable ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running unittests src/lib.rs (target/debug/deps/oc_tui-3f8ad96619c8e62a)
+
+running 416 tests
+test app::tabs::tests::busy_and_clipped_tabs_never_emit_close ... ok
+test app::tabs::tests::close_tab_chord_uses_the_presented_active_slot_without_mutating_the_deck ... ok
+test app::tabs::tests::close_tab_home_last_and_busy_availability ... ok
+test app::tabs::tests::close_tab_palette_selection_preserves_modal_and_draft_until_owner_accepts ... ok
+test app::tabs::tests::home_slot_is_not_an_activation_and_busy_tabs_remain_selectable ... ok
+test app::tabs::tests::hovered_close_requires_painted_cell_matching_press_and_no_drag ... ok
+test app::tabs::tests::post_close_hold_is_released_when_a_modal_opens ... ok
+test app::tabs::tests::retained_tab_mouse_routes_only_matching_painted_left_clicks ... ok
+test app::tabs::tests::vis39_tab_only_ticks_reuse_one_warm_viewport_without_copying_retained_rows ... ok
+test app::tabs::tests::vis39_tab_spinner_mount_clocks_survive_updates_and_attention_supersedes_running ... ok
+test app::tabs::tests::vis39_u48_glow_ignition_diffusion_and_off_mode_settle ... ok
+test app::tabs::tests::vis39_u48_retrigger_keeps_flash_and_reenable_keeps_sweep_position ... ok
+test app::tabs::tests::vis39_u48_running_release_completion_and_flash_use_source_clocks ... ok
+test app::tabs::tests::vis39_visible_deck_disposes_hidden_phases_without_fabricating_completion ... ok
+test app::tabs::tests::vis41_activation_and_height_resize_preserve_same_id_including_completed_cycle ... ok
+test app::tabs::tests::vis41_leading_smoothstep_and_deferred_leave_settle_without_periodic_wakes ... ok
+test app::tabs::tests::vis41_one_cycle_off_mode_repeated_pointer_and_source_metadata_rules ... ok
+test app::tests::input::accepted_text_only_mention_recalled_in_same_session ... ok
+test app::tests::input::aud33_paste_is_never_silently_cut_below_the_input_budget ... ok
+test app::tests::input::command_descriptions_follow_reload_and_location_without_fallback ... ok
+test app::tests::input::ctrl_c_clears_focused_rename_prefill_before_dismissing_dialog ... ok
+test app::tests::input::ctrl_c_clears_mention_and_multiline_chip_without_reusing_stale_suggestions ... ok
+test app::tests::input::ctrl_c_clears_pending_draft_without_cancelling_accepted_turn ... ok
+test app::tests::input::ctrl_c_clears_slash_draft_and_editor_history_before_empty_exit ... ok
+test app::tests::input::ctrl_c_dismisses_slash_token_but_preserves_text_after_caret ... ok
+test app::tests::input::home_ren_filter_selects_real_reload_without_stealing_workspace_ren ... ok
+test app::tests::input::painted_toast_slash_and_mentions_block_reasoning_press_and_release ... ok
+test app::tests::input::panel_enter_returns_selection_intents ... ok
+test app::tests::input::reload_refresh_invalidates_generation_options_without_erasing_draft ... ok
+test app::tests::input::rename_combined_unicode_prefill_and_editor_history_stay_bounded ... ok
+test app::tests::input::rename_full_unicode_prefill_stays_on_one_row_at_narrow_width ... ok
+test app::tests::input::rename_limits_prefill_typing_and_paste_to_owner_bytes_without_splitting_graphemes ... ok
+test app::tests::input::rename_oversized_prefill_never_submits_a_prefix_and_can_be_replaced ... ok
+test app::tests::input::rename_palette_slash_blank_cancel_and_refusal ... ok
+test app::tests::input::rename_shortcut_edits_graphemes_and_waits_for_owner_ack ... ok
+test app::tests::input::review_is_offered_as_a_workspace_command_on_home_and_session ... ok
+test app::tests::input::sessionless_home_keeps_bounded_editor_and_refuses_session_actions ... ok
+test app::tests::input::sessions_metadata_keeps_owner_order_routes_ids_and_requeries_search_scope ... ok
+test app::tests::input::sessions_selected_actions_confirm_exact_row_keep_draft_and_clear_on_move ... ok
+test app::tests::input::sidebar_palette_title_tracks_rendered_visibility_and_runs_same_action ... ok
+test app::tests::input::sidebar_palette_uses_effective_width_home_and_child ... ok
+test app::tests::input::slash_overlay_commands_consume_alias_but_compress_keeps_input ... ok
+test app::tests::input::slash_rename_direct_waits_for_owner_and_retains_draft_on_async_failure ... ok
+test app::tests::input::v04_modal_search_scroll_focus_and_draft ... ok
+test app::tests::input::v04_mouse_scroll_hover_and_drag_release_keep_modal_owner ... ok
+test app::tests::input::v04_mouse_status_rows_do_not_start_compression ... ok
+test app::tests::input::v04_pending_command_availability_preserves_receipt_focus_and_draft ... ok
+test app::tests::input::v04_variant_current_focus_restores_after_clearing_search ... ok
+test app::tests::input::v05_review_chip_trim_keeps_visible_and_submitted_draft_in_sync ... ok
+test app::tests::input::v05_review_empty_draft_up_recalls_durable_history ... ok
+test app::tests::input::v05_review_overlimit_selection_during_pending_cannot_lose_draft ... ok
+test app::tests::input::v05_review_shift_edges_select_entire_multiline_buffer ... ok
+test app::tests::input::v05_review_trimmed_chip_edit_during_pending_keeps_receipt_immutable ... ok
+test app::tests::input::variant_cycle_keeps_draft_and_modal_focus_and_refuses_pending_submit ... ok
+test app::tests::input::vis07_paste_mouse_expands_only_live_painted_prompt_cells ... ok
+test app::tests::input::vis07_repeat_paste_after_real_suffix_space_inserts_a_new_chip ... ok
+test app::tests::input::vis07_submit_pointer_in_unpainted_transcript_space_is_inert ... ok
+test app::tests::input::vis07_up_down_use_painted_width_before_history_and_select_raw_wrap ... ok
+test app::tests::input::vis09_keyboard_model_focus_centers_clamped_viewport_without_moving_current ... ok
+test app::tests::input::vis11_commands_hints_project_effective_leaders_and_literal_overrides ... ok
+test app::tests::input::vis11_configured_palette_chord_and_modal_printable_keep_focus ... ok
+test app::tests::input::vis11_leader_pending_lifecycle_preserves_editor_and_expires_without_input ... ok
+test app::tests::input::vis11_pending_interrupt_consumed_then_normal_exit_remains_available ... ok
+test app::tests::input::vis25_home_no_match_and_history_keep_editor_ownership ... ok
+test app::tests::input::vis25_selection_matches_highlight_after_caret_motion_and_catalog_refresh ... ok
+test app::tests::input::vis25_slash_focus_navigation_completion_and_real_actions ... ok
+test app::tests::input::vis25_up_owns_selection_then_history_recovers_after_escape ... ok
+test app::tests::input::vis26_enter_submits_unmodified_text_without_implicit_file_read ... ok
+test app::tests::input::vis26_stale_edits_location_roundtrip_and_view_instances ... ok
+test app::tests::input::vis26_tab_never_replaces_an_atomic_paste_chip ... ok
+test app::tests::input::vis26_tab_separator_depends_on_next_character_and_keeps_suffix ... ok
+test app::tests::input::vis26_trigger_caret_tab_and_escape_keep_textual_draft ... ok
+test app::tests::input::vis27_owner_catalog_mode_and_absence_replace_prior_selection ... ok
+test app::tests::lifecycle::accepted_submit_clears_input_and_streams ... ok
+test app::tests::lifecycle::argument_stream_exact_identity_caps_reconcile_and_terminal_cleanup ... ok
+test app::tests::lifecycle::cancel_releases_turn ... ok
+test app::tests::lifecycle::clipped_hover_draw_uses_only_its_visible_indexed_traversal ... ok
+test app::tests::lifecycle::fresh_cancel_pending_uses_candidate_and_keeps_draft_on_late_accept ... ok
+test app::tests::lifecycle::fresh_rejection_preserves_home_draft_and_retry_uses_new_candidate ... ok
+test app::tests::lifecycle::live_parts_stay_bounded_under_tool_flood ... ok
+test app::tests::lifecycle::live_view_metrics_count_open_and_frozen_text_without_rendering ... ok
+test app::tests::lifecycle::mock_busy_rejection_creates_no_fresh_root ... ok
+test app::tests::lifecycle::mock_fresh_acceptance_binds_only_on_receipt_and_preserves_pending_edit ... ok
+test app::tests::lifecycle::pending_failure_keeps_draft_and_quit_is_not_overwritten ... ok
+test app::tests::lifecycle::pending_receipt_preserves_edits_and_ignores_old_generation ... ok
+test app::tests::lifecycle::permission_transient_uses_owner_prepared_resource_warning_without_intent ... ok
+test app::tests::lifecycle::rejected_prepared_patch_reconciles_without_started_or_duplicate_card ... ok
+test app::tests::lifecycle::stale_tool_events_are_ignored ... ok
+test app::tests::lifecycle::stale_turn_events_are_ignored ... ok
+test app::tests::lifecycle::transient_feedback_defaults_to_five_seconds_and_reload_hover_pauses ... ok
+test app::tests::lifecycle::vis28_scanner_clock_rolls_over_and_resets_for_each_running_transition ... ok
+test app::tests::lifecycle::vis31_deadlines_do_not_reset_scanner_and_disappear_at_rest ... ok
+test app::tests::lifecycle::vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects ... ok
+test app::tests::lifecycle::vis38_dcp_metadata_freezes_through_commit_replay_controls_and_session_switch ... ok
+test app::tests::lifecycle::vis38_dcp_toast_uses_existing_expiry_once_and_off_preserves_failures ... ok
+test app::tests::lifecycle::workspace_reset_invalidates_pending_state_without_waiting_for_old_receipt ... ok
+test app::tests::transcript::adjacent_reasoning_click_opens_and_recloses_one_group_across_live_boundary ... ok
+test app::tests::transcript::completed_thought_hover_tracks_painted_header_and_release_only_recollapse ... ok
+test app::tests::transcript::expandable_shell_hover_repeated_toggle_and_selection_respect_painted_surface ... ok
+test app::tests::transcript::exploration_mouse_hits_only_visible_header_text_without_drag_or_modal_leak ... ok
+test app::tests::transcript::exploration_toggle_anchors_long_result_and_attach_page_discards_expansion ... ok
+test app::tests::transcript::failed_and_interrupted_open_reasoning_do_not_display_an_elapsed_duration ... ok
+test app::tests::transcript::live_footer_uses_the_turns_pinned_model_not_the_current_picker ... ok
+test app::tests::transcript::message_actions_focus_intents_clipboard_result_and_escape ... ok
+test app::tests::transcript::message_press_receipt_rejects_other_release_repaint_and_history_replacement ... ok
+test app::tests::transcript::reasoning_addresses_survive_paging_and_live_eviction_then_reset ... ok
+test app::tests::transcript::reasoning_click_is_independent_across_same_seq_parts_and_owned_by_viewport ... ok
+test app::tests::transcript::reasoning_painted_release_only_toggles_and_preserves_anchor ... ok
+test app::tests::transcript::reasoning_selected_text_blocks_release_but_new_click_replaces_selection ... ok
+test app::tests::transcript::redacted_only_durable_reasoning_leaves_no_mouse_target_or_spacer ... ok
+test app::tests::transcript::replayed_user_messages_use_their_persisted_turn_color ... ok
+test app::tests::transcript::retained_bytes_are_bounded_after_many_pages ... ok
+test app::tests::transcript::reverted_card_owner_count_render_click_selection_and_reopen ... ok
+test app::tests::transcript::running_reasoning_click_survives_freeze_but_resize_releases_press ... ok
+test app::tests::transcript::scroll_edges_request_pages ... ok
+test app::tests::transcript::sent_user_messages_keep_the_profile_color_across_profile_switches ... ok
+test app::tests::transcript::sequential_public_reasoning_items_freeze_as_separate_live_and_interrupted_rows ... ok
+test app::tests::transcript::tool_events_build_transcript_cards_in_part_order ... ok
+test app::tests::transcript::v02_multiround_reasoning_keeps_arrival_order ... ok
+test app::tests::transcript::v06b_detail_scrolls_every_unicode_row_before_next_owner_page ... ok
+test app::tests::transcript::v06b_reasoning_toggle_projects_public_history_without_modifying_owner ... ok
+test app::tests::transcript::v06b_session_switch_discards_tool_cards_before_next_owner_load ... ok
+test app::tests::transcript::viewport_is_bounded_with_unicode ... ok
+test app::tests::transcript::vis10_painted_target_rejects_identity_change_and_distinguishes_live_echo ... ok
+test app::tests::transcript::vis10_user_hover_and_click_follow_painted_identity_through_wrap_and_scroll ... ok
+test app::tests::transcript::vis27_double_click_word_is_clipped_to_painted_wrap_row ... ok
+test app::tests::transcript::vis27_drag_and_repeated_click_copy_only_selected_painted_text ... ok
+test app::tests::transcript::vis27_drag_on_reasoning_header_cannot_toggle_or_steal_modal ... ok
+test app::tests::transcript::vis27_manual_right_click_and_resize_do_not_copy_unseen_rows ... ok
+test app::tests::transcript::vis27_modifier_and_surface_click_preserve_completed_highlight ... ok
+test app::tests::transcript::vis27_nonowned_drag_cannot_change_completed_selection_or_copy ... ok
+test app::tests::transcript::vis27_oversized_selection_reports_error_without_clipboard_request ... ok
+test app::tests::transcript::vis27_paired_word_and_line_selection_paint_explicit_source_cells ... ok
+test app::tests::transcript::vis27_unrelated_mouse_events_do_not_rebuild_painted_transcript ... ok
+test app::tests::transcript::vis27_wrapped_wide_graphemes_copy_complete_visible_rows ... ok
+test app::tests::transcript::vis32_completion_preserves_cached_part_expansion_paging_and_resize ... ok
+test app::tests::transcript::vis32_live_tail_anchor_unicode_paging_and_resize ... ok
+test app::tests::transcript::vis32_wheel_displacement_elapsed_motion_and_edges ... ok
+test app::tests::transcript::vis34_session_tps_is_current_presentation_for_finished_and_replayed_footers ... ok
+test approval_view::tests::effective_multistroke_bindings_and_reject_footer_textarea ... ok
+test approval_view::tests::growing_feedback_paints_whole_capture_text_and_keeps_selection_in_textarea ... ok
+test approval_view::tests::painted_mouse_request_guard_geometry_and_composer_preservation ... ok
+test approval_view::tests::permission_resource_wrapping_is_grapheme_safe_and_bounded ... ok
+test approval_view::tests::proposed_diff_uses_terminal_auto_breakpoint_and_word_wrap_without_effect_labels ... ok
+test approval_view::tests::request_key_reset_no_optimistic_remove_and_child_feedback_editor ... ok
+test approval_view::tests::vis07_feedback_wrap_click_keeps_raw_unicode_offsets_for_edits ... ok
+test commands::tests::close_tab_is_a_palette_leader_and_slash_action ... ok
+test commands::tests::completes_prefix ... ok
+test commands::tests::rename_is_an_action_with_a_real_shortcut_and_both_slash_forms ... ok
+test commands::tests::routes_builtins ... ok
+test compaction::tests::vis34_causal_tool_message_turn_anchors_and_reopen_order ... ok
+test compaction::tests::vis34_disabled_animation_native_failure_cancel_and_owner_replay ... ok
+test compaction::tests::vis34_heading_spacing_is_scoped_and_preserves_real_markdown ... ok
+test compaction::tests::vis34_owner_lifecycle_clock_usage_and_two_escape_cancel ... ok
+test compaction::tests::vis34_queued_and_failed_dividers_match_pinned_padding_rounding_and_foreground ... ok
+test compaction::tests::vis34_summary_geometry_and_styles_match_pinned_completed_cells ... ok
+test dcp_panel::tests::focus_is_bounded ... ok
+test dcp_panel::tests::nudge_is_transient_text_only ... ok
+test dcp_panel::tests::request_outcome_cycle ... ok
+test dcp_panel::tests::unavailable_context_and_precise_accounting_use_owner_metadata_and_shared_labels ... ok
+test dcp_view::tests::actual_multi_range_summary_pages_are_ordered_bounded_and_optional ... ok
+test dcp_view::tests::detailed_fixture_is_one_frozen_run_with_distinct_cumulative_metrics ... ok
+test dcp_view::tests::donor_metrics_omit_zero_summary_and_share_number_labels ... ok
+test dcp_view::tests::modes_channels_and_running_never_fabricate_confirmation ... ok
+test dcp_view::tests::real_user_wrapper_has_padding_raised_surface_and_unicode_wrap ... ok
+test dcp_view::tests::token_labels_use_integer_half_up_and_promote_rounded_k ... ok
+test dcp_view::tests::typed_card_ignores_forged_output_and_indexed_cached_styles_agree ... ok
+test dialog::tests::captured_backdrop_blanks_and_modal_padding_keep_default_foreground ... ok
+test dialog::tests::constrained_sizes_and_rgb_alpha ... ok
+test dialog::tests::modal_surface_erases_underlay_symbols ... ok
+test dialog::tests::rename_focused_text_and_only_actual_text_are_colored ... ok
+test dialog::tests::rename_medium_dialog_clips_wide_graphemes_on_one_focused_row ... ok
+test dialog::tests::sessions_delete_confirmation_has_contrast_and_plain_footer_labels ... ok
+test dialog::tests::sessions_large_width_preserves_filtered_date_group_and_title_limit ... ok
+test dialog::tests::v04_full_catalog_cpu_and_bounded_cache ... V04 catalog=10000 text_bytes=8230000 query_bytes=512 cold=922.928331ms cached100=50.646µs
+V04 catalog=10000 text_bytes=8230000 query_bytes=512 cold=160.530337ms cached100=37.538µs
+V04 catalog=10000 text_bytes=8230000 query_bytes=420 cold=4.828512ms cached100=28.663µs
+V04 catalog=10000 text_bytes=8230000 query_bytes=511 cold=305.419486ms cached100=35.583µs
+V04 all-words-match text_bytes=8110000 cold=1.301236415s
+V04 all-words-match text_bytes=8050000 cold=1.243055768s
+V04 all-words-match text_bytes=8050000 cold=1.464636803s
+ok
+test editor::tests::accepted_mention_recall_is_latest_only_and_preserves_edited_draft ... ok
+test editor::tests::file_extmark_tracks_draft_edits_undo_redo_and_chip_projection ... ok
+test editor::tests::large_draft_mention_validation_does_not_retain_grapheme_boundaries ... ok
+test editor::tests::v05_chip_expands_if_adjacent_edit_joins_graphemes_and_history_restores_it ... ok
+test editor::tests::v05_chip_is_atomic_and_undo_restores_real_text_and_display ... ok
+test editor::tests::v05_chip_threshold_matches_original_utf16_length ... ok
+test editor::tests::v05_grapheme_selection_undo_and_width ... ok
+test editor::tests::v05_paste_is_one_undo_and_does_not_split_grapheme_at_limit ... ok
+test editor::tests::v05_review_deleting_between_regional_indicators_expands_chip ... ok
+test editor::tests::v05_review_history_edit_undo_down_restores_saved_draft_chip ... ok
+test editor::tests::v05_review_regional_indicator_pairing_revalidates_distant_chips ... ok
+test editor::tests::vis07_observed_seventy_cell_word_wrap_and_raw_separator_offsets ... ok
+test editor::tests::vis07_repeat_paste_expands_at_chip_end_without_inserting_again ... ok
+test editor::tests::vis07_wrapped_unicode_vertical_selection_and_width_edges ... ok
+test events::tests::dialog_routing_rejects_modifier_text_and_release ... ok
+test events::tests::map_event_routes_key_paste_resize ... ok
+test events::tests::maps_basics ... ok
+test events::tests::paste_passes_through_unbounded ... ok
+test events::tests::v05_modifier_newlines_navigation_and_event_kinds ... ok
+test fuzzy::tests::pinned_external_oracle_scores_and_order ... ok
+test history::tests::append_evicts_oldest_and_flags_it ... ok
+test history::tests::byte_cap_is_enforced_on_every_insertion ... ok
+test history::tests::card_from_row_bounds_previews_and_parses_patch_text_only ... ok
+test history::tests::cards_from_rows_maps_every_row ... ok
+test history::tests::durable_identity_is_shared_by_derived_rows_and_absent_from_synthetic_rows ... ok
+test history::tests::expanded_parts_count_as_rendered_rows_for_scroll_anchoring ... ok
+test history::tests::model_switch_labels_variant_default_and_missing_catalog_safely ... ok
+test history::tests::model_switch_replays_before_user_across_pages_and_live_receipts ... ok
+test history::tests::paging_newest_first_sets_flags ... ok
+test history::tests::prepend_evicts_newest_and_flags_it ... ok
+test history::tests::reasoning_notices_flush_before_text_tool_and_footer_without_hiding_other_notices ... ok
+test history::tests::reset_evicts_over_row_cap ... ok
+test history::tests::started_turn_with_open_reasoning_part_replays_as_running_group ... ok
+test history::tests::started_turn_with_two_completed_reasoning_parts_replays_as_completed_group ... ok
+test history::tests::truncated_reasoning_preview_keeps_adjacent_steps_and_indexed_click ... ok
+test history::tests::user_history_row_restores_its_turn_agent_for_message_color ... ok
+test history::tests::v02_availability_markers_and_exact_terminal_states ... ok
+test layout::tests::breakpoints_switch_at_upstream_widths ... ok
+test layout::tests::closing_hovered_home_holds_close_column_then_clips_at_resize ... ok
+test layout::tests::horizontal_tabs_clip_without_overlap_or_unpainted_hits ... ok
+test layout::tests::horizontal_tabs_keep_active_visible_and_respect_previous_start ... ok
+test layout::tests::horizontal_tabs_marker_digits_and_add_capability ... ok
+test layout::tests::horizontal_tabs_one_and_adaptive_multi ... ok
+test layout::tests::panel_height_shrinks_only_the_transcript ... ok
+test layout::tests::re_layout_is_deterministic ... ok
+test layout::tests::root_regions_keep_the_upstream_rows ... ok
+test layout::tests::session_regions_place_the_bottom_stack ... ok
+test layout::tests::single_tab_is_capped_at_the_upstream_maximum ... ok
+test layout::tests::tiny_terminals_clamp_instead_of_overflowing ... ok
+test messages::tests::adjacent_reasoning_group_matches_full_indexed_and_click_bounds ... ok
+test messages::tests::clipped_thought_hit_requires_generated_styles_and_painted_cells ... ok
+test messages::tests::completed_exploration_is_grouped_in_full_and_visible_transcript ... ok
+test messages::tests::empty_cleaned_reasoning_has_no_header_spacer_or_index_hit ... ok
+test messages::tests::expanded_adjacent_reasoning_caps_each_body_without_losing_the_following_text ... ok
+test messages::tests::expanded_exploration_keeps_header_and_shows_each_card_in_both_renderers ... ok
+test messages::tests::expanded_group_header_and_body_use_separate_geometry_and_index ... ok
+test messages::tests::exploration_does_not_hide_unresolved_failed_or_truncated_results ... ok
+test messages::tests::exploration_remains_running_until_every_grouped_operation_finishes ... ok
+test messages::tests::fenced_code_preserves_only_source_separator_on_word_wrap ... ok
+test messages::tests::fixture_prose_wrap_paints_source_separator_in_full_and_indexed_rows ... ok
+test messages::tests::footer_omits_unavailable_fields ... ok
+test messages::tests::golden_assistant_footer_with_tokens_per_second_and_interrupt ... ok
+test messages::tests::golden_assistant_markdown_with_syntax_colors ... ok
+test messages::tests::golden_long_lines_wrap_without_loss ... ok
+test messages::tests::golden_reasoning_running_and_completed ... ok
+test messages::tests::golden_user_message_with_skill_and_file_chips ... ok
+test messages::tests::grouped_hide_duration_title_and_open_body_match_session_group ... ok
+test messages::tests::hidden_running_reasoning_keeps_adjacent_group_open_without_showing_a_redacted_step ... ok
+test messages::tests::locale_helpers_match_upstream_formatting ... ok
+test messages::tests::markdown_code_blocks_highlight_the_supported_subset ... ok
+test messages::tests::markdown_subset_renders_and_falls_back ... ok
+test messages::tests::model_switch_notice_uses_pinned_row_margin_padding_and_muted_text ... ok
+test messages::tests::offscreen_expanded_reasoning_is_measured_once_per_cache_miss ... ok
+test messages::tests::offscreen_markdown_group_keeps_exact_slices_and_click_after_table_and_fence ... ok
+test messages::tests::reachable_reasoning_parts_keep_heights_across_frames_and_bounded_tabs ... ok
+test messages::tests::reasoning_index_hits_only_clipped_painted_cells_at_scroll ... ok
+test messages::tests::reasoning_title_matches_the_upstream_summary_rule ... ok
+test messages::tests::retained_cache_index_counter_tracks_replacement_and_eviction ... ok
+test messages::tests::strong_markdown_keeps_nested_tokens_bold_and_their_own_colors ... ok
+test messages::tests::table_grid_columns_follow_pinned_full_width_sizing ... ok
+test messages::tests::two_turn_footer_to_next_user_has_row_margin_and_inner_padding ... ok
+test messages::tests::two_turn_indexed_windows_keep_boundary_and_wrapped_user_rows ... ok
+test messages::tests::unicode_table_widths_agree_between_full_and_indexed_pages ... ok
+test messages::tests::user_message_prefers_the_turns_pinned_agent_color ... ok
+test messages::tests::v02_footer_uses_pinned_agent_slot_and_exact_status ... ok
+test messages::tests::v06a_ansi_and_large_markdown_stay_bounded ... ok
+test messages::tests::v06a_blank_table_label_respects_escaped_and_inline_pipes ... ok
+test messages::tests::v06a_blockquoted_150_row_table_preserves_parser_structure_and_scroll_count ... ok
+test messages::tests::v06a_blockquoted_long_cell_continues_into_the_next_real_table_row ... ok
+test messages::tests::v06a_bounded_history_counts_parts_without_retaining_all_wrapped_rows ... ok
+test messages::tests::v06a_cached_parts_invalidate_only_dirty_revision_width_and_theme ... ok
+test messages::tests::v06a_completed_single_long_line_remains_scrollable_past_decode_limit ... ok
+test messages::tests::v06a_completed_synthetic_part_without_footer_can_reach_tail ... ok
+test messages::tests::v06a_escaped_pipe_label_does_not_drop_long_cell_continuations ... ok
+test messages::tests::v06a_fenced_code_retains_intentional_blank_lines ... ok
+test messages::tests::v06a_fenced_literal_table_at_page_boundary_remains_code ... ok
+test messages::tests::v06a_fixture_viewport_preserves_interblock_spacing ... ok
+test messages::tests::v06a_incomplete_streaming_blocks_reparse_only_the_dirty_part ... ok
+test messages::tests::v06a_large_table_cell_scrolls_as_grid_through_its_real_tail ... ok
+test messages::tests::v06a_long_list_item_continuation_is_hanging_indented ... ok
+test messages::tests::v06a_long_open_fence_has_bounded_per_delta_parse_work ... ok
+test messages::tests::v06a_long_table_crosses_page_boundaries_without_repeated_header_or_missing_rows ... ok
+test messages::tests::v06a_long_table_with_wrapped_cells_stays_scrollable_at_both_widths ... ok
+test messages::tests::v06a_narrow_table_wide_glyphs_never_displace_grid_borders ... ok
+test messages::tests::v06a_ordered_list_and_blank_boundary_keep_context_and_row_count ... ok
+test messages::tests::v06a_oversize_assistant_keeps_marker_footer_and_scrollable_content ... ok
+test messages::tests::v06a_oversize_user_is_paged_without_dropping_the_tail ... ok
+test messages::tests::v06a_oversized_grapheme_splitter_makes_progress ... ok
+test messages::tests::v06a_paginated_fence_keeps_code_styling_on_later_pages ... ok
+test messages::tests::v06a_provider_controls_are_inert_outside_markdown ... ok
+test messages::tests::v06a_table_fixture_escaped_pipes_unicode_and_bounded_wrap ... ok
+test messages::tests::v06a_table_offscreen_wide_label_does_not_change_earlier_column_width ... ok
+test messages::tests::v06a_table_over_512_rendered_rows_keeps_the_real_tail ... ok
+test messages::tests::v06a_visible_page_only_parse_stays_cached_across_241_and_10000_parts_and_resize ... ok
+test messages::tests::vis10_indexed_user_targets_track_wrapped_pages_and_exclude_margins ... ok
+test messages::tests::vis10_user_hover_preserves_agent_border_and_chip_surfaces ... ok
+test messages::tests::vis34_archive_paragraph_final_lf_has_one_footer_margin_full_cached_and_indexed ... ok
+test messages::tests::vis38_off_long_user_wrap_keeps_continuity_across_preview_byte_boundaries ... ok
+test messages::tests::vis38_summary_wrapper_keeps_source_separator_foreground_at_word_wrap ... ok
+test patch_view::tests::vis35_actual_gutters_split_boundary_styles_and_syntax ... ok
+test patch_view::tests::vis35_auto_uses_root_content_width_and_capture_gutter_roles ... ok
+test patch_view::tests::vis35_configured_wrap_retains_gutters_and_cell_bounds ... ok
+test patch_view::tests::vis35_fresh_capture_odd_split_and_header_gap_full_indexed ... ok
+test patch_view::tests::vis35_full_indexed_replay_and_hover_keep_actual_effects ... ok
+test patch_view::tests::vis35_multi_operation_move_delete_empty_truncation_and_failure ... ok
+test patch_view::tests::vis36_rejected_patch_labels_requested_target_without_inventing_effects ... ok
+test picker::tests::choose_roundtrips_through_the_stored_record ... ok
+test picker::tests::modal_options_use_known_prices_and_declared_variants_only ... ok
+test picker::tests::no_record_browses_and_foreign_records_are_ignored ... ok
+test picker::tests::retired_model_is_actionable ... ok
+test picker::tests::retired_variant_keeps_model_and_surfaces_note ... ok
+test picker::tests::unknown_id_never_falls_back ... ok
+test picker::tests::window_is_bounded ... ok
+test scanner::tests::bloom_trail_and_inactive_fade_composite_over_footer ... ok
+test scanner::tests::pinned_sequence_and_directional_trail ... ok
+test shell::tests::close_glyph_only_on_hovered_eligible_tab_and_title_fade_moves_left ... ok
+test shell::tests::completed_footer_stays_one_row_and_clips_at_content_edge ... ok
+test shell::tests::context_footer_uses_reported_generation_without_billing_missing_rounds ... ok
+test shell::tests::copied_toast_clears_sidebar_title_under_raised_interior ... ok
+test shell::tests::empty_narrow_home_footer_keeps_original_logo_and_prompt_rows ... ok
+test shell::tests::footer_and_toast_use_theme_colors ... ok
+test shell::tests::footer_clipping_preserves_styled_graphemes_and_cell_budget ... ok
+test shell::tests::golden_interrupted_turn_footer ... ok
+test shell::tests::golden_live_turn_with_reasoning_and_footer ... ok
+test shell::tests::golden_screen_120x40 ... ok
+test shell::tests::golden_screen_80x24 ... ok
+test shell::tests::hard_wrapped_unicode_sidebar_title_has_no_separator_cell ... ok
+test shell::tests::home_empty_prompt_shows_one_muted_example_and_preserves_caret ... ok
+test shell::tests::home_hint_is_hidden_when_typing_and_session_has_no_hint ... ok
+test shell::tests::home_hint_respects_actual_text_width_at_breakpoints ... ok
+test shell::tests::home_version_slot_matches_pinned_width_and_height_breakpoints ... ok
+test shell::tests::hyphenated_sidebar_title_wraps_like_paired_121x40_frame ... ok
+test shell::tests::message_stream_sticks_to_the_bottom ... ok
+test shell::tests::narrow_deck_overflow_and_two_digit_numbers_use_painted_rectangles ... ok
+test shell::tests::no_selected_variant_has_no_metadata_label_or_overlay ... ok
+test shell::tests::paired_wrapped_sidebar_title_styles_separator_not_final_tail ... ok
+test shell::tests::prompt_box_glyphs_follow_the_padding_breakpoint ... ok
+test shell::tests::prompt_metadata_candidates_and_grapheme_fallback ... ok
+test shell::tests::prompt_metadata_fits_the_painted_row_at_43_44_and_120 ... ok
+test shell::tests::prompt_metadata_layout_gaps_keep_canvas_foreground ... ok
+test shell::tests::prompt_metadata_uses_upstream_budget_not_only_painted_width ... ok
+test shell::tests::resize_switches_layout_at_upstream_breakpoints ... ok
+test shell::tests::restored_home_version_colors_only_its_glyphs ... ok
+test shell::tests::restored_session_user_padding_and_empty_prompt_keep_canvas_foreground ... ok
+test shell::tests::retained_add_colors_follow_real_pointer_and_eligibility ... ok
+test shell::tests::retained_home_promotes_a_single_new_session_slot_and_consumes_a_row ... ok
+test shell::tests::retained_strip_paints_real_tabs_busy_states_and_only_available_add ... ok
+test shell::tests::root_canvas_blanks_have_upstream_truecolor_foreground ... ok
+test shell::tests::scrolled_resize_keeps_top_row_and_draft_while_bottom_stays_pinned ... ok
+test shell::tests::selected_session_tab_title_is_bold ... ok
+test shell::tests::selected_tab_clips_whole_unicode_graphemes_at_cell_boundary ... ok
+test shell::tests::selected_tab_fades_only_the_last_four_visible_overflow_graphemes ... ok
+test shell::tests::selected_tab_indicator_tracks_busy_turn_and_explicit_numbers ... ok
+test shell::tests::selected_tab_short_and_exact_titles_stay_bright_and_padding_stays_blank ... ok
+test shell::tests::short_home_shrinks_the_top_spacer_before_clipping_the_prompt ... ok
+test shell::tests::sidebar_padding_keeps_canvas_foreground_while_labels_are_styled ... ok
+test shell::tests::single_tab_render_uses_layout_without_an_inert_add_control ... ok
+test shell::tests::slash_clips_description_and_wide_label_at_grapheme_boundaries ... ok
+test shell::tests::slash_descriptions_align_to_full_inventory_on_home_and_session ... ok
+test shell::tests::slash_label_and_description_have_independent_foregrounds ... ok
+test shell::tests::slash_overlay_erases_home_logo_before_painting_blank_option_cells ... ok
+test shell::tests::toast_content_width_semantic_border_and_close ... ok
+test shell::tests::toast_wrap_is_word_aware_and_lossless ... ok
+test shell::tests::toast_wraps_long_note_inside_max_width ... ok
+test shell::tests::v02_auto_marker_is_session_capability_not_agent_rules ... ok
+test shell::tests::v03_paste_keeps_full_draft_behind_compact_prompt ... ok
+test shell::tests::v03_rendered_row_scroll_and_chrome_conditions ... ok
+test shell::tests::v03_sidebar_uses_dto_title_usage_and_styled_boundary ... ok
+test shell::tests::v03_tall_viewport_and_short_top_placement ... ok
+test shell::tests::vis11_modal_pending_composer_uses_existing_backdrop_and_restores_without_input ... ok
+test shell::tests::vis11_pending_only_changes_composer_roles_and_restores_on_deadline ... ok
+test shell::tests::vis25_inline_rows_on_home_and_session_and_after_tab ... ok
+test shell::tests::vis26_file_rows_anchor_to_home_and_session_prompt ... ok
+test shell::tests::vis28_footer_scanner_tracks_agent_and_stays_below_metadata ... ok
+test shell::tests::vis28_narrow_running_footer_keeps_right_hints_and_dynamic_usage ... ok
+test shell::tests::vis39_actual_compact_number_ignition_settles_without_a_hidden_pulse ... ok
+test shell::tests::vis39_painted_permission_priority_number_mode_and_static_busy_fallback ... ok
+test shell::tests::vis39_selected_animated_spinner_attributes_and_prefix_match_u47_fallback ... ok
+test shell::tests::vis39_u48_styled_sweep_whitecaps_and_blend_order_preserve_title_attributes ... ok
+test shell::tests::vis41_busy_hover_scrolls_without_close_and_vertical_compact_is_reachable ... ok
+test shell::tests::vis41_marquee_uses_u59_cell_cursor_and_generated_separator_fixtures ... ok
+test shell::tests::vis41_real_vertical_detail_uses_owner_location_fallback_without_synthetic_metadata ... ok
+test shell::tests::vis41_styled_fades_use_grapheme_ordinals_and_only_dim_the_generated_dot ... ok
+test smoke::tests::crossterm_event_kind_is_linked ... ok
+test smoke::tests::smoke_frame_contains_pending ... ok
+test styled::tests::code_wrap_keeps_source_separator_style_and_row_limit ... ok
+test styled::tests::conversion_to_ratatui_matches_the_source_text ... ok
+test styled::tests::exact_fit_word_stays_before_an_overflowing_source_separator ... ok
+test styled::tests::lines_render_byte_identically_to_joined_strings ... ok
+test styled::tests::selected_cells_use_source_style_and_preserve_unselected_spans ... ok
+test styled::tests::selection_cells_snap_to_wide_graphemes_and_keep_wrapped_source ... ok
+test styled::tests::source_space_wrap_only_paints_real_fitting_spaces_and_stays_bounded ... ok
+test styled::tests::string_conversions_are_unstyled ... ok
+test styled::tests::styled_spans_keep_their_style ... ok
+test styled::tests::wrap_line_keeps_styles_and_splits_long_words ... ok
+test theme::tests::agent_and_chip_roles_match_upstream ... ok
+test theme::tests::alpha_is_composited_over_the_root_background ... ok
+test theme::tests::every_role_accessor_is_resolved ... ok
+test theme::tests::malformed_assets_fail_loudly ... ok
+test theme::tests::palette_matches_vendored_asset ... ok
+test theme::tests::refs_and_hue_aliases_resolve_like_upstream ... ok
+test theme::tests::tint_and_hue_shifts_match_upstream ... ok
+test tools::tests::cited_theme_roles_are_resolved ... ok
+test tools::tests::golden_apply_patch_created_patched_deleted ... ok
+test tools::tests::golden_edit_diff_card_colors ... ok
+test tools::tests::golden_error_and_cancelled_cards ... ok
+test tools::tests::golden_inline_tool_running_and_completed ... ok
+test tools::tests::golden_shell_card_running_and_completed ... ok
+test tools::tests::golden_subagent_card ... ok
+test tools::tests::render_parsing_never_invents_fields ... ok
+test tools::tests::shell_output_collapses_with_the_upstream_marker ... ok
+test tools::tests::unknown_state_is_an_error_not_a_running_card ... ok
+test tools::tests::v06b_partial_patch_shows_only_confirmed_hunks_and_unknown_is_not_success ... ok
+test tools::tests::vis16_shell_expansion_hit_and_indexed_render_agree ... ok
+test views::tests::dcp_panel_renders_snapshot_and_notice ... ok
+test views::tests::model_is_overlay_with_focused_search ... ok
+test views::tests::panels_render_bounded ... ok
+test views::tests::render_is_bounded_with_unicode ... ok
+test views::tests::rendered_frame_carries_theme_styles ... ok
+test views::tests::status_text_uses_theme_colors ... ok
+test views::tests::v06b_escaping_is_reversible_and_cell_wrapping_preserves_all_codepoints ... ok
+
+test result: ok. 416 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 49.00s
+
+   Doc-tests oc_adapters
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests oc_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests oc_tui
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

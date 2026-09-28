@@ -1,0 +1,21 @@
+{
+  "enabled": true,
+  "autoUpdate": false,
+  "pruneNotification": "detailed",
+  "pruneNotificationType": "toast",
+  "compress": {
+    "mode": "range",
+    "permission": "allow",
+    "showCompression": true,
+    "minContextLimit": 1000000,
+    "maxContextLimit": 1000000
+  },
+  "strategies": {
+    "deduplication": {
+      "enabled": false
+    },
+    "purgeErrors": {
+      "enabled": false
+    }
+  }
+}

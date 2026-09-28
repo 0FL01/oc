@@ -1,0 +1,36 @@
+{
+  "status": "PASS_PINNED_DISPLAY_ORACLE",
+  "qualification": "Qualified native-derived reference payload, not paired TUI PASS",
+  "actual_native_compress": "PASS_ACTUAL_SINGLE_MULTI_RESTART_OWNER_PROBE",
+  "goldens_sha256": "b583fdc01ca45480ff056b13327af8ce76b72ab5378967e80f6fea43a591f05d",
+  "owner": {
+    "path": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-native20260928-18",
+    "result_sha256": "44f425454e45f41dcf3eeb1585e15c51e5520ac412c0207a0cfdeb4fe044b927",
+    "binary_sha256": "8aac8684f95656dd6fbbfbe6876095491f7eb9188a40f9ced7d0b6e3a866b48e",
+    "source_HEAD": "c649fc5b786daadecb2b40f794a401ec9057adb4",
+    "evidence_seals": {
+      "commands.json": "533453f798362341fc64c932759d6caac08a8d02ca724b8bf831faf26d9f1079",
+      "compress-multi-before.json": "da2ca0447bdd7949aa70d18d4968278112b3121223e4dd75c2df01286c0c78bf",
+      "compress-multi-measurement.json": "f613dd5c8df7a107e8a0c3be40e549b417fb84ddd91e8cb9e6e77e3a5cb94744",
+      "compress-multi-snapshot.json": "0c876a6a5d1a5f5fbc5b112dcccd7ca865980be2908afe805c40078fc5ef50f3",
+      "compress-recompression-before.json": "0c876a6a5d1a5f5fbc5b112dcccd7ca865980be2908afe805c40078fc5ef50f3",
+      "compress-recompression-measurement.json": "814be0041f90eb4cd72aed48b798fbbd1389a2a433dbfe7d99ae6330bb2bdb1b",
+      "compress-recompression-snapshot.json": "f70b779b9f6eea14c42161abcc2de0e5c916c1baea235872fb36f5f2e5b31cb0",
+      "compress-single-before.json": "956c18edd521559f720bc70b64afc6676a5597381243db9a07730ef94099979e",
+      "compress-single-measurement.json": "09f1fa914f35e932bf24ab121b2c75153fd4b3a6e2db09d6f77413cdd6d266a8",
+      "compress-single-snapshot.json": "da2ca0447bdd7949aa70d18d4968278112b3121223e4dd75c2df01286c0c78bf",
+      "fixture-config.json": "f12696c9adf02e3d61f4620d71342a63a4e618d38e0cfad44c096b34528f512e",
+      "native-capture-recompression.json": "2c74b92aae366edfedba0c13a51c4bd23fb232190cc8dbc7da3ff8b9f0ad00f2",
+      "native-tui-recompression-spec.json": "e92fe3003769e6f9c295172603355d0457c6e2800f4464e8123b7883583cb673",
+      "native-tui-spec.json": "29ce4ebd553da15697f85d86cde6160aeba76f9517b073b0192d5f5a2c90e307",
+      "requests.json": "41b92d760d338f56bfa431c7810c60cebb0d15a17a0196960c1a3698683c2733",
+      "restart-snapshot.json": "1853a3757ff00b416f8e42296cbe8f7b14053cc436ddf91f6c40c5c26a93b01a",
+      "seed-A-snapshot.json": "a69aa283920f8ba334de3e0195ff2f5d3c750666887ec38359624c90e884bce3",
+      "seed-B-snapshot.json": "672022e74eef3854ea730927c999d2987c4cacbcbeaed6b97318b5a13126922a",
+      "seed-C-snapshot.json": "956c18edd521559f720bc70b64afc6676a5597381243db9a07730ef94099979e"
+    }
+  },
+  "body_changes": false,
+  "provider_requests": 0,
+  "native_capture_gate": "Genuine stage-context native styled cells / PNG / cursor are still required"
+}

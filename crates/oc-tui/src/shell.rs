@@ -163,10 +163,8 @@ pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
     );
 }
 
-/// Render one whole frame: root background, tab strip, session area,
-/// devtools bar, then the toast overlay.
-pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
-    state.clear_prompt_paint();
+/// Establish the truecolor base canvas before drawing any session contents.
+pub fn render_background(frame: &mut Frame<'_>) {
     let theme = Theme::dark();
     let area = frame.area();
     // Upstream paints the whole frame with `background.base` (`app.tsx:1310-1314`).
@@ -180,6 +178,15 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         ),
         area,
     );
+}
+
+/// Render one whole frame: root background, tab strip, session area,
+/// devtools bar, then the toast overlay.
+pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
+    state.clear_prompt_paint();
+    let theme = Theme::dark();
+    let area = frame.area();
+    render_background(frame);
     let regions = shell_regions(state, area);
     state.prepare_tabs(area, std::time::Instant::now());
     if let Some(strip) = tab_strip(state, area) {

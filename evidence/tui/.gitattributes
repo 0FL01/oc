@@ -103,5 +103,11 @@ recovery-v00/prompt-paste*/**/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/prompt-paste*/**/*.vt binary
 recovery-v00/dcp*/**/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/dcp*/**/*.vt binary
+# Immutable raw command output and unified source snapshots retain emitted bytes.
+# A blank context line in a unified patch is a required single space, not Rust code.
+recovery-v00/dcp-closure20260928-*.log whitespace=-blank-at-eol,-blank-at-eof
+recovery-v00/dcp-canvas20260928-*.log whitespace=-blank-at-eol,-blank-at-eof
+recovery-v00/dcp-closure20260928-source*.patch whitespace=-blank-at-eol,-blank-at-eof
+recovery-v00/dcp-canvas20260928-source*.patch whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/tabs-*/**/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/tabs-*/**/*.vt binary

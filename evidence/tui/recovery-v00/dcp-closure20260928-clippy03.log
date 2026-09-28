@@ -1,0 +1,21 @@
+    Checking oc v0.1.0 (/home/opencode/ai/oc/crates/oc)
+error[E0616]: field `cells` of struct `tui_screen::Screen` is private
+   --> crates/oc/tests/pty_t39/lifecycle.rs:368:14
+    |
+368 |             .cells
+    |              ^^^^^ private field
+
+error[E0282]: type annotations needed
+   --> crates/oc/tests/pty_t39/lifecycle.rs:370:19
+    |
+370 |             .map(|row| row.iter().take(32).copied().collect::<Vec<_>>())
+    |                   ^^^  --- type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+370 |             .map(|row: /* Type */| row.iter().take(32).copied().collect::<Vec<_>>())
+    |                      ++++++++++++
+
+Some errors have detailed explanations: E0282, E0616.
+For more information about an error, try `rustc --explain E0282`.
+error: could not compile `oc` (test "pty_t39") due to 2 previous errors

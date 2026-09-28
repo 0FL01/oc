@@ -1,0 +1,589 @@
+   Compiling oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)
+   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.09s
+     Running unittests src/main.rs (target/debug/deps/oc-c424ae2f55f747f8)
+
+running 84 tests
+test clipboard::tests::base64_padding_for_one_two_and_three_bytes ... ok
+test clipboard::tests::empty_and_oversized_selections_never_reach_writer ... ok
+test clipboard::tests::failed_write_or_flush_does_not_claim_success_or_leak_content ... ok
+test clipboard::tests::osc52_clipboard_selection_removes_nul_and_encodes_controls ... ok
+test headless::tests::sessions_list_stdout_ids_only ... ok
+test tui_cmd::approval_tests::owner_prepared_url_wraps_header_and_body_at_actual_available_width ... ok
+test tui_cmd::approval_tests::owner_settings_preserves_jsonc_and_missing_global_uses_admitted_location ... ok
+test tui_cmd::approval_tests::prepared_patch_geometry_cache_busy_add_rejection_and_palette_are_real ... ok
+test tui_cmd::approval_tests::real_binary_permission_intent_error_ack_cancel_and_pending_auto ... ok
+test tui_cmd::approval_tests::real_child_pending_routes_to_root_tab_with_feedback_and_actual_binding ... ok
+test tui_cmd::tests::lifecycle::accepted_quit_reports_deck_save_failure_before_owner_shutdown ... ok
+test tui_cmd::tests::lifecycle::bare_restart_with_full_real_deck_keeps_all_ids_and_selected_route ... ok
+test tui_cmd::tests::lifecycle::cards_cursor_follows_parked_view_and_pages_from_oldest_loaded_row ... ok
+test tui_cmd::tests::lifecycle::close_refuses_pending_turn_and_preserves_deck ... ok
+test tui_cmd::tests::lifecycle::close_selected_or_parked_synthetic_home_never_creates_a_root ... ok
+test tui_cmd::tests::lifecycle::close_selected_real_tab_prefers_previous_and_preserves_survivors ... ok
+test tui_cmd::tests::lifecycle::closing_tab_with_pending_title_cancels_only_title_and_survivor_can_submit ... ok
+test tui_cmd::tests::lifecycle::committed_title_event_refreshes_only_the_open_session ... ok
+test tui_cmd::tests::lifecycle::conversation_commands_wait_for_owner_then_refresh_without_submission ... ok
+test tui_cmd::tests::lifecycle::existing_legacy_explicit_id_remains_readable_but_never_saved ... ok
+test tui_cmd::tests::lifecycle::explicit_failed_view_is_a_startup_error ... ok
+test tui_cmd::tests::lifecycle::explicit_restore_adopts_successful_revision_for_next_save ... ok
+test tui_cmd::tests::lifecycle::explicit_root_id_matches_owner_tab_predicate ... ok
+test tui_cmd::tests::lifecycle::failed_active_tab_falls_back_to_home_with_surviving_parked_tab ... ok
+test tui_cmd::tests::lifecycle::failed_preclose_save_keeps_accepted_home_root_and_parked_cursor ... ok
+test tui_cmd::tests::lifecycle::five_turn_reverted_tail_all_redo_entry_points_use_real_owner_without_generation ... ok
+test tui_cmd::tests::lifecycle::fork_owner_result_adopts_real_root_with_unsent_prompt_and_preserved_source ... ok
+test tui_cmd::tests::lifecycle::home_reserves_sixteenth_slot_against_new_session_selection ... ok
+test tui_cmd::tests::lifecycle::immediate_quit_reconciles_only_accepted_fresh_root_before_owner_shutdown ... ok
+test tui_cmd::tests::lifecycle::invalid_owner_home_layout_or_location_is_not_silently_saved ... ok
+test tui_cmd::tests::lifecycle::key_consumed_home_receipt_is_saved_once_by_poll_before_exit ... ok
+test tui_cmd::tests::lifecycle::keyboard_close_after_mouse_add_retests_real_pointer_without_mouse_hold ... ok
+test tui_cmd::tests::lifecycle::message_copy_keyboard_drains_transport_and_preserves_dialog_on_failure ... ok
+test tui_cmd::tests::lifecycle::mouse_close_home_holds_survivor_at_the_pointer_but_keyboard_switch_does_not ... ok
+test tui_cmd::tests::lifecycle::pending_submission_refuses_session_and_location_switches ... ok
+test tui_cmd::tests::lifecycle::pruned_home_deck_keeps_all_owner_projected_tabs ... ok
+test tui_cmd::tests::lifecycle::quit_pending_fork_saves_accepted_identity_even_when_refresh_fails ... ok
+test tui_cmd::tests::lifecycle::quit_with_pending_existing_tab_does_not_wait_for_receipt_or_save ... ok
+test tui_cmd::tests::lifecycle::real_close_commits_candidate_before_removal_or_retains_full_deck_on_failure ... ok
+test tui_cmd::tests::lifecycle::refused_close_leaves_pending_title_uncancelled_and_tab_intact ... ok
+test tui_cmd::tests::lifecycle::rejected_candidate_close_keeps_parked_tab_draft_and_cursor ... ok
+test tui_cmd::tests::lifecycle::rejected_typed_new_keeps_editable_command ... ok
+test tui_cmd::tests::lifecycle::restore_home_with_parked_views_keeps_order_and_failed_save_keeps_route ... ok
+test tui_cmd::tests::lifecycle::sampled_view_metrics_include_parked_routes_and_preserve_peaks ... ok
+test tui_cmd::tests::lifecycle::selected_middle_close_saves_order_and_previous_survivor_before_changing_cursors ... ok
+test tui_cmd::tests::lifecycle::sessions_delete_changes_deck_only_after_owner_acceptance_and_adopts_survivor ... ok
+test tui_cmd::tests::lifecycle::typed_new_consumes_only_successful_command_before_parking ... ok
+test tui_cmd::tests::lifecycle::unreadable_parked_tab_keeps_good_route_and_disables_saves ... ok
+test tui_cmd::tests::lifecycle::vis11_binary_events_preserve_focused_lifecycle_then_submit_exact_draft ... ok
+test tui_cmd::tests::lifecycle::vis11_binary_obsolete_leader_is_inert_but_explicit_direct_binding_wins ... ok
+test tui_cmd::tests::lifecycle::vis15_finished_turn_immediately_renders_unstreamed_canonical_text_in_part_order ... ok
+test tui_cmd::tests::lifecycle::vis34_manual_admission_event_race_parked_view_and_read_failure_keep_receipt ... ok
+test tui_cmd::tests::lifecycle::vis34_palette_enter_coalesced_admission_closes_only_on_success_and_preserves_composer ... ok
+test tui_cmd::tests::lifecycle::vis39_retained_view_activation_moves_mounted_tab_clocks_and_keeps_busy_guard ... ok
+test tui_cmd::tests::lifecycle::vis41_real_mouse_activation_preserves_running_and_completed_marquee_deadlines ... ok
+test tui_cmd::tests::lifecycle::worker_event_metrics_count_overwritten_broadcast_events_and_stop_drain ... ok
+test tui_cmd::tests::routing::accepted_conversation_survives_refresh_failure_and_retries_queries_only ... ok
+test tui_cmd::tests::routing::bare_home_queries_selection_without_creating_or_reading_history ... ok
+test tui_cmd::tests::routing::close_inactive_tab_reindexes_active_view_and_cursor_without_owner_query ... ok
+test tui_cmd::tests::routing::close_last_real_tab_queries_current_home_before_discarding_and_reopens ... ok
+test tui_cmd::tests::routing::closing_last_real_tab_restores_parked_home_draft_without_query ... ok
+test tui_cmd::tests::routing::copy_message_queries_exact_owner_row_instead_of_window_preview ... ok
+test tui_cmd::tests::routing::failed_selection_after_owner_reload_keeps_every_view_and_draft ... ok
+test tui_cmd::tests::routing::home_refuses_session_scoped_queries ... ok
+test tui_cmd::tests::routing::pending_owner_reload_allows_resize_and_quit_without_dropping_owner_receipt ... ok
+test tui_cmd::tests::routing::picker_open_existing_tab_keeps_older_history_window_and_draft ... ok
+test tui_cmd::tests::routing::picker_open_preserves_child_read_only_policy_without_owner_or_deck_changes ... ok
+test tui_cmd::tests::routing::picker_open_refusal_keeps_old_view_and_accepted_foreign_receipt_survives_refresh_failure ... ok
+test tui_cmd::tests::routing::published_location_uses_new_owner_binding_and_token_for_next_save ... ok
+test tui_cmd::tests::routing::selecting_agent_updates_owner_and_draft_without_selection_toast ... ok
+test tui_cmd::tests::routing::selecting_model_updates_metadata_without_selection_toast ... ok
+test tui_cmd::tests::routing::sessions_query_uses_owner_metadata_and_scope_without_legacy_id_enumeration ... ok
+test tui_cmd::tests::routing::sessions_retained_views_read_latest_scope_and_only_ctrl_a_writes ... ok
+test tui_cmd::tests::routing::v03_catalog_failure_is_not_an_empty_usable_session ... ok
+test tui_cmd::tests::routing::variant_cycle_missing_models_or_named_variants_is_noop_and_child_is_readonly ... ok
+test tui_cmd::tests::routing::variant_cycle_persists_and_next_real_request_uses_selected_overlay ... ok
+test tui_cmd::tests::routing::variant_cycle_uses_owner_order_and_stale_default_rules_in_home_and_session ... ok
+test tui_cmd::tests::routing::vis26_key_burst_only_queries_latest_and_route_swap_cancels_old_view ... ok
+test tui_cmd::tests::routing::vis26_parked_tab_refreshes_file_rows_only_on_reactivation ... ok
+test tui_cmd::tests::routing::vis27_invalid_owner_location_does_not_replace_mode_or_write_tabs ... ok
+test tui_cmd::tests::routing::vis27_mismatched_published_reload_disables_copy_until_owner_catalog ... ok
+test tui_cmd::tests::routing::vis27_parked_tabs_and_home_use_current_owner_mode_on_activation ... ok
+test tui_cmd::tests::routing::vis27_reload_projects_owner_mode_to_active_parked_and_home ... ok
+test tui_cmd::tests::routing::vis38_late_dcp_other_session_child_and_old_turn_never_touch_parent_view_or_query ... ok
+
+test result: ok. 84 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.51s
+
+     Running tests/application.rs (target/debug/deps/application-69b0e42cc6f85448)
+
+running 4 tests
+test aud01_binary_sends_configured_responses_request ... ok
+test t47_binary_separate_title_model_uses_its_budget_without_variant_overlay ... ok
+test t47_binary_title_admission_checks_assembled_input_and_selected_model ... ok
+test t47_binary_unknown_limits_warn_and_do_not_select_reasoning_variant ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.02s
+
+     Running tests/approval_binary.rs (target/debug/deps/approval_binary-4b5ffc97fd37f828)
+
+running 1 test
+test headless_requires_explicit_once_consumer_even_with_tui_auto_config ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s
+
+     Running tests/configured_workspace.rs (target/debug/deps/configured_workspace-8749782c82773bf5)
+
+running 13 tests
+test aud14_aud15_aud17_binary_loads_isolated_a_b_workspace_and_pins_skill ... ok
+test aud16_binary_legacy_write_edit_deny_blocks_apply_patch_side_effect ... ok
+test aud16_binary_selected_agent_can_only_narrow_apply_patch_permission ... ok
+test aud17_binary_malformed_selected_skill_is_visible_and_valid_sibling_survives ... ok
+test aud17_binary_selected_malformed_agent_is_hard_error_not_sibling_fallback ... ok
+test aud17_binary_unknown_plugin_is_precise_preflight_error_without_side_effect ... ok
+test v07a_binary_discovered_external_root_is_refused_even_with_fifo_config ... ok
+test v07a_binary_explicit_global_and_nested_local_jsonc_are_loaded ... ok
+test v07a_binary_external_agent_subdirectory_cannot_select_primary ... ok
+test v07a_binary_external_definition_subdirectories_never_reach_provider ... ok
+test v07a_binary_refuses_discovered_external_root_before_any_effect ... ok
+test v07a_binary_rejects_fifo_device_and_oversize_before_reading ... ok
+test v07c_binary_nested_file_reference_no_follow_and_global_allowed ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.98s
+
+     Running tests/dcp_runtime.rs (target/debug/deps/dcp_runtime-ca25694c8569c306)
+
+running 3 tests
+test aud19_aud20_aud21_binary_model_compress_nudges_and_restart ... ok
+test aud21_binary_sigkill_never_publishes_a_partial_multi_range_compression ... ok
+test vis38_public_multi_range_event_query_replay_and_bounded_summary_agree ... VIS38 public: started=1 finished=1 ranges=2 ordinal=1 new_messages=4 raw_preserved=true next_request_smaller=true summary_utf8_paged=true replay_requests=0
+ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.19s
+
+     Running tests/durability.rs (target/debug/deps/durability-f38131a0b427e13e)
+
+running 1 test
+test aud06_binary_kill_after_side_effect_recovers_unknown_without_replay ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+     Running tests/golden_binary.rs (target/debug/deps/golden_binary-4b73aafd63ce82f2)
+
+running 1 test
+test aud35_binary_golden_workflow ... {
+  "harness": "golden_binary",
+  "model": "fixture/golden-model",
+  "steps": [
+    {
+      "name": "turn1",
+      "status": "passed",
+      "detail": "session s-golden-a"
+    },
+    {
+      "name": "independent-cargo-test",
+      "status": "passed",
+      "detail": ""
+    },
+    {
+      "name": "turn2-mcp",
+      "status": "passed",
+      "detail": "session s-golden-a"
+    },
+    {
+      "name": "turn3-compress",
+      "status": "passed",
+      "detail": "session s-golden-a"
+    },
+    {
+      "name": "turn4-workspace-b",
+      "status": "passed",
+      "detail": "session s-golden-b"
+    },
+    {
+      "name": "cross-location",
+      "status": "passed",
+      "detail": "error: application: session s-golden-a belongs to location /home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/.tmpMDxcfZ/project-a"
+    },
+    {
+      "name": "mcp-call",
+      "status": "passed",
+      "detail": "[Object {\"query\": String(\"rust\"), \"response_length\": String(\"short\")}]"
+    },
+    {
+      "name": "durable-rows",
+      "status": "passed",
+      "detail": "history_a=6 ops=4 blocks=1 history_b=2"
+    },
+    {
+      "name": "workspace-isolation",
+      "status": "passed",
+      "detail": "requests=1"
+    },
+    {
+      "name": "strict-peer",
+      "status": "passed",
+      "detail": ""
+    },
+    {
+      "name": "unexecuted-steps",
+      "status": "passed",
+      "detail": "0 scripted steps never ran"
+    }
+  ],
+  "counts": {
+    "attempted": 11,
+    "passed": 11,
+    "failed": 0,
+    "blocked": 0,
+    "skipped": 0
+  }
+}
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.04s
+
+     Running tests/live_bounded.rs (target/debug/deps/live_bounded-508a2d8c4345c739)
+
+running 11 tests
+test bounded_catalog_probe ... ignored, internal isolated product config/catalog probe
+test bounded_discovery_selected_campaign_uses_product_catalog ... ok
+test bounded_exact_slash_model_variant_config_and_unknown_limits ... ok
+test bounded_external_preflight_requires_verified_campaign_enforcement ... ok
+test bounded_missing_catalog_model_variant_and_credentials_block_before_generation ... ok
+test bounded_permission_preflight_rejects_before_generation ... ok
+test bounded_pipes_redact_output_drain_and_reap_on_timeout ... ok
+test bounded_successful_text_is_not_a_completed_mcp_operation ... ok
+test bounded_summary_requires_every_mandatory_step ... 
+thread 'bounded_summary_requires_every_mandatory_step' (2528326) panicked at crates/oc/tests/live_bounded.rs:1216:5:
+mandatory campaign is incomplete or non-successful
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'bounded_summary_requires_every_mandatory_step' (2528326) panicked at crates/oc/tests/live_bounded.rs:1216:5:
+mandatory campaign is incomplete or non-successful
+
+thread 'bounded_summary_requires_every_mandatory_step' (2528326) panicked at crates/oc/tests/live_bounded.rs:1216:5:
+mandatory campaign is incomplete or non-successful
+
+thread 'bounded_summary_requires_every_mandatory_step' (2528326) panicked at crates/oc/tests/live_bounded.rs:1216:5:
+mandatory campaign is incomplete or non-successful
+
+thread 'bounded_summary_requires_every_mandatory_step' (2528326) panicked at crates/oc/tests/live_bounded.rs:1216:5:
+mandatory campaign is incomplete or non-successful
+ok
+test live_bounded_campaign ... ignored, needs verified durable campaign envelope, product credentials and OC_TEST_MODEL
+test live_bounded_dry_run_branches ... [dry-run]
+{
+  "harness": "live_bounded",
+  "mode": "dry-run",
+  "model": "fixture/dry-run-model",
+  "variant": null,
+  "status": "passed",
+  "live_envelope_verified": false,
+  "budget": {
+    "step_budget": 5,
+    "campaign_timeout_seconds": 900,
+    "call_timeout_seconds": 300
+  },
+  "steps": [
+    {
+      "name": "coding-fix",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true tests_ok=true exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=21 stderr_bytes=23 tests=(exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=339 stderr_bytes=0)"
+    },
+    {
+      "name": "mcp",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true completed_mcp_ops=1 exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=24 stderr_bytes=23"
+    },
+    {
+      "name": "compress",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true blocks=1 exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=29 stderr_bytes=23"
+    },
+    {
+      "name": "restart",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true rows=8 exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=21 stderr_bytes=23"
+    },
+    {
+      "name": "workspace-switch",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=21 stderr_bytes=25"
+    }
+  ],
+  "counts": {
+    "attempted": 5,
+    "passed": 5,
+    "failed": 0,
+    "blocked": 0,
+    "skipped": 0,
+    "unexecuted": 0
+  }
+}
+[dry-run-no-mcp]
+{
+  "harness": "live_bounded",
+  "mode": "dry-run-no-mcp",
+  "model": "fixture/dry-run-model",
+  "variant": null,
+  "status": "non-success",
+  "live_envelope_verified": false,
+  "budget": {
+    "step_budget": 5,
+    "campaign_timeout_seconds": 900,
+    "call_timeout_seconds": 300
+  },
+  "steps": [
+    {
+      "name": "coding-fix",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true tests_ok=true exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=21 stderr_bytes=23 tests=(exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=339 stderr_bytes=0)"
+    },
+    {
+      "name": "mcp",
+      "status": "blocked",
+      "kind": "blocked",
+      "detail": "codex_web MCP search is not enabled: blocked, never silently skipped"
+    },
+    {
+      "name": "compress",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true blocks=1 exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=29 stderr_bytes=23"
+    },
+    {
+      "name": "restart",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true rows=6 exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=21 stderr_bytes=23"
+    },
+    {
+      "name": "workspace-switch",
+      "status": "passed",
+      "kind": "model",
+      "detail": "run_ok=true exit_code=Some(0) watchdog=false reaped=true io_ok=true stdout_bytes=21 stderr_bytes=25"
+    }
+  ],
+  "counts": {
+    "attempted": 5,
+    "passed": 4,
+    "failed": 0,
+    "blocked": 1,
+    "skipped": 0,
+    "unexecuted": 0
+  }
+}
+
+thread 'live_bounded_dry_run_branches' (2528327) panicked at crates/oc/tests/live_bounded.rs:1216:5:
+mandatory campaign is incomplete or non-successful
+ok
+
+test result: ok. 9 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 8.30s
+
+     Running tests/mcp_application.rs (target/debug/deps/mcp_application-c554f016ee604ae9)
+
+running 28 tests
+test aud22_binary_accepts_user_authorization_spelling_at_strict_mcp ... ok
+test aud22_binary_rejects_conflicting_authorization_duplicates_before_network ... ok
+test aud23_tui_two_turns_own_one_stdio_child_and_disabled_entry_zero_spawns ... ok
+test aud24_binary_rejects_oversized_catalog_without_partial_provider_tools ... ok
+test aud24_binary_routes_collision_names_to_exact_original_server_and_tool ... ok
+test aud24_binary_search_uses_the_advertised_response_length_schema ... ok
+test aud24_binary_surfaces_is_error_and_unsupported_result_modality ... ok
+test pending_edit_screen_accepts_fragmented_cursor_updates_not_raw_substrings ... ok
+test s06_pending_submit_refuses_navigation_and_keeps_draft ... ok
+test v01_anonymous_remote_and_codex_required_auth ... ok
+test v01_degraded_remote_diagnostic_is_staged_and_redacted_in_tui ... ok
+test v01_manual_compress_raw_pty_cancel_shutdown_and_retry ... V01 raw (manual_compress=true): prompt+CR, CR, resize 120x40, ' edited', ESC; cancel/reap before release within 292.309386ms; retry CR, Ctrl+C
+ok
+test v01_pending_initialize_raw_pty_cancel_edit_duplicate_and_retry ... V01 raw (manual_compress=false): prompt+CR, CR, resize 120x40, ' edited', ESC; cancel/reap before release within 146.613448ms; retry CR, Ctrl+C
+ok
+test v01_remote_pending_cancel_closes_request_before_fake_release ... ok
+test v05_pending_unicode_edit_keeps_one_owner_and_retry ... V01 raw (manual_compress=false): prompt+CR, CR, resize 120x40, ' edited', ESC; cancel/reap before release within 281.205766ms; retry CR, Ctrl+C
+ok
+test v07_s05_disabled_and_failed_mcp_only_retry_after_explicit_repair ... ok
+test v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio ... ok
+test v07b_remote_cancel_notification_failure_is_safe_and_poisoned ... ok
+test v07b_remote_definitive_is_error_remains_failed_and_reusable ... ok
+test v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retry ... ok
+test v07b_remote_malformed_after_effect_is_unknown_and_quarantined ... ok
+test v07b_remote_unsupported_after_effect_is_unknown_and_quarantined ... ok
+test v07b_stdio_definitive_is_error_remains_failed_and_reusable ... ok
+test v07b_stdio_inflight_raw_esc_reaps_before_explicit_retry ... ok
+test v07b_stdio_malformed_after_effect_reaps_before_explicit_retry ... ok
+test v07b_stdio_unsupported_after_effect_reaps_before_explicit_retry ... ok
+test v07e_bare_pty_model_and_stdio_tool_controls_are_inert_across_replay ... S04 raw VT: before=5067 after=23648 CSI-prefixes=629 trusted-erase-before=0 trusted-erase-after=0 OSC52=0 OSC8=0 BEL=0 CR=0
+S04 raw VT: before=0 after=18662 CSI-prefixes=433 trusted-erase-before=0 trusted-erase-after=0 OSC52=0 OSC8=0 BEL=0 CR=0
+ok
+test vis34_compaction_prune_normalization_headless_and_tui_entry ... ok
+
+test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 61.37s
+
+     Running tests/memory_bounds.rs (target/debug/deps/memory_bounds-a767c854519dabba)
+
+running 1 test
+test aud32_actual_binary_bounds_active_context_with_growing_archive ... AUD32 binary workload: archive pairs 8 -> 3000 x 16384 B (+ turn logs), active pairs 2 x 1024 B
+AUD32 small: baseline_rss_kb=8 peak_hwm_kb=33236 end_rss_kb=33236 end_pss_kb=30931 peak_pss_kb=30931 children=0 db_bytes=765952 wal_bytes=0
+AUD32 large: baseline_rss_kb=96 peak_hwm_kb=35420 end_rss_kb=33376 end_pss_kb=29674 peak_pss_kb=33147 children=0 db_bytes=152768512 wal_bytes=0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.87s
+
+     Running tests/pty.rs (target/debug/deps/pty-5db6b292da5b62d1)
+
+running 16 tests
+test aud02_store01_persist_resume_across_restart ... ok
+test pty_escape_cancels_heartbeat_request ... ok
+test pty_long_history_starts_and_pages ... ok
+test pty_panic_restores_terminal ... ok
+test pty_resize_redraws_full_frame ... ok
+test pty_slow_consumer_stall_then_drain ... ok
+test pty_smoke_type_echo_quit ... settle attempt 1: snapshot len 13308
+ok
+test pty_ssh_like_term_variants ... settle attempt 1: snapshot len 13507
+settle attempt 1: snapshot len 12967
+ok
+test pty_tiny_screen_survives ... ok
+test pty_unicode_and_paste_roundtrip ... settle attempt 1: snapshot len 12861
+settle attempt 1: snapshot len 56989
+settle attempt 2: snapshot len 69525
+ok
+test t44_two_accepted_turns_keep_footer_to_user_spacing_after_restart ... ok
+test tui_without_tty_is_usage_error ... ok
+test ui05_interrupted_exit_is_nonsuccess ... ok
+test ui05_ndjson_stdout_only_and_slow_consumer ... ok
+test v07a_bare_tui_pty_refuses_external_discovered_root_before_read ... ok
+test v07c_bare_tui_pty_redacts_refused_file_reference ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 34.59s
+
+     Running tests/pty_t39.rs (target/debug/deps/pty_t39-5105e138ceb60f7c)
+
+running 36 tests
+test interaction::aud29_pty_panels_change_runtime_state ... ok
+test interaction::aud30_pty_paste_resize_error_recovery ... ok
+test interaction::selected_model_is_the_main_wire_model_and_each_turn_keeps_its_footer ... ok
+test interaction::sessions_all_projects_selected_actions_keep_current_location_and_draft ... ok
+test interaction::sessions_bracketed_paste_queries_owner_for_root_outside_first_fifty ... ok
+test interaction::sessions_enter_renamed_foreign_root_preserves_deck_draft_and_uses_target_config ... ok
+test interaction::sessions_selected_rename_and_confirmed_delete_reach_real_owner_without_provider_work ... ok
+test interaction::v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle ... ok
+test interaction::v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant ... ok
+test interaction::v04_raw_mouse_wheel_and_hover_select_beyond_visible_rows ... ok
+test interaction::v04_raw_sgr_mouse_backdrop_search_variant_and_actual_model ... ok
+test interaction::v04_retired_model_and_variant_remain_visible_until_explicit_remediation ... ok
+test interaction::v05_raw_capped_bracket_paste_is_visible_and_not_submitted ... ok
+test interaction::v05_raw_paste_chip_keeps_original_on_wire_and_in_history ... ok
+test interaction::v05_raw_unicode_multiline_focus_and_one_durable_submit ... ok
+test interaction::v05_review_empty_editor_up_uses_history_on_wire ... ok
+test interaction::v05_review_raw_chip_trim_matches_visible_draft_and_wire ... ok
+test interaction::v05_review_raw_history_edit_down_restores_chip_and_wire ... ok
+test interaction::v05_review_shift_home_end_select_buffer_on_provider_wire ... ok
+test interaction::v05_review_wheel_scroll_does_not_move_multiline_editor_caret ... ok
+test interaction::v06_real_pty_completed_reasoning_header_click_expands_and_collapses ... ok
+test interaction::v07_raw_modifiers_release_and_modal_interrupt_keep_exact_draft ... ok
+test interaction::vis15_real_pty_adjacent_reasoning_parts_group_and_replay_after_restart ... ok
+test interaction::vis27_real_pty_osc52_select_and_manual_clipboard_modes ... ok
+test lifecycle::aud31_pty_bounded_backing_state ... ok
+test lifecycle::s07_pty_equal_view_archive_resource_samples ... S07 small: archive=0 rss_kb=41484 pss_kb=39252 hwm_kb=41484 cpu_ticks=112 child_max=0 retained_bytes=22799 window_rows=152 frames=76 draw_sum_ns=932657480 draw_max_ns=60655071 worker_event_queue_peak=2 worker_event_queue_lagged=0 live_text_bytes_current=0 live_text_bytes_peak=124 live_reasoning_bytes_current=0 live_reasoning_bytes_peak=37 live_part_count_current=0 live_part_count_peak=2 markdown_cache_retained_bytes_current=7517 markdown_cache_retained_bytes_peak=7517 markdown_cache_bound=5242880 elapsed_ms=2145
+S07 large: archive=3000 rss_kb=41588 pss_kb=39304 hwm_kb=41588 cpu_ticks=98 child_max=0 retained_bytes=22799 window_rows=152 frames=74 draw_sum_ns=798337991 draw_max_ns=40785622 worker_event_queue_peak=2 worker_event_queue_lagged=0 live_text_bytes_current=0 live_text_bytes_peak=124 live_reasoning_bytes_current=0 live_reasoning_bytes_peak=37 live_part_count_current=0 live_part_count_peak=2 markdown_cache_retained_bytes_current=7517 markdown_cache_retained_bytes_peak=7517 markdown_cache_bound=5242880 elapsed_ms=2018
+ok
+test lifecycle::title_cancel_and_watchdog_leave_the_main_turn_completed ... ok
+test lifecycle::v04_legacy_headless_api_supersedes_older_scoped_session_drafts ... ok
+test lifecycle::v04_scoped_session_agent_and_model_preferences_survive_restart ... ok
+test lifecycle::vis28_real_pty_scanner_cycles_then_esc_cancels_and_static_fallback_completes ... ok
+test lifecycle::vis31_demand_driven_idle_and_high_rate_input_paints ... VIS31 idle window=1.000356494s CPU ticks=0
+VIS31 (hz, window_us, p50_us, p95_us, max_us)=[(165, 189784, 1796, 5510, 5619), (250, 131374, 4997, 7978, 9796)]; metrics={"session":"scheduling","tab_count":1,"tab_ids":["scheduling"],"active_tab":0,"retained_bytes":72,"window_rows":0,"window_total":0,"panel":"None","status":"Quit","frame_count":65,"frame_sum_ns":93770735,"frame_max_ns":7977973,"changed_frames":65,"wakeups":72,"input_events":68,"worker_events":0,"terminal_write_calls":11602,"terminal_flush_calls":198,"terminal_write_bytes":15535,"terminal_write_sum_ns":7975261,"terminal_write_max_ns":2840807,"frame_samples_ns":[[0,3099417],[1213551382,1251715],[1219079916,1101520],[1227932937,1443775],[1232884423,1254809],[1237240301,1157454],[1243382881,1348591],[1249507353,1299757],[1255523051,1520690],[1261528624,1443153],[1267725015,1212586],[1273703867,1149080],[1279748098,1107197],[1285764978,1130602],[1291833585,1274078],[1297869925,1470463],[1303903910,1143863],[1310663248,1770066],[1319123257,1374369],[1324367724,1373237],[1328196699,1315752],[1334359769,1782574],[1340312392,1582092],[1346384405,1271404],[1352395677,1126786],[1358439878,1096782],[1366237690,1235280],[1374963288,1441621],[1379957729,1187667],[1384917647,1214278],[1388770608,1149922],[1394805015,1165054],[1400919652,1204543],[1405943606,1065364],[1453246312,1278636],[1456831781,976761],[1460803992,1114167],[1464865899,969710],[1468845110,990402],[1472892724,1049522],[1476840709,1109221],[1480865800,1144854],[1484888958,1121860],[1488849372,1084353],[1493982401,1280077],[1500011018,1655913],[1504865157,1596935],[1508836877,1353929],[1512850711,1142220],[1516400096,1048299],[1520818509,1291555],[1525779499,1806089],[1531942620,1487779],[1536800924,1156061],[1540382568,1079414],[1544790816,1022759],[1549058501,1417194],[1553855294,1134849],[1558484564,1932029],[1564318179,1770315],[1568868630,1863987],[1574229673,1243762],[1580016136,1354649],[1584226495,2549920],[1635295231,7977973]],"monotonic_epoch_ns":1277665804383369,"frame_monotonic_ns":[1277665804383369,1277667017934772,1277667023463275,1277667032316316,1277667037267772,1277667041623670,1277667047766250,1277667053890722,1277667059906420,1277667065911993,1277667072108394,1277667078087236,1277667084131467,1277667090148347,1277667096216954,1277667102253304,1277667108287280,1277667115046627,1277667123506626,1277667128751103,1277667132580079,1277667138743138,1277667144695771,1277667150767774,1277667156779046,1277667162823247,1277667170621049,1277667179346657,1277667184341087,1277667189301006,1277667193153977,1277667199188374,1277667205303010,1277667210326965,1277667257629681,1277667261215150,1277667265187362,1277667269249257,1277667273228479,1277667277276093,1277667281224078,1277667285249169,1277667289272338,1277667293232741,1277667298365760,1277667304394397,1277667309248526,1277667313220246,1277667317234070,1277667320783455,1277667325201858,1277667330162858,1277667336325978,1277667341184293,1277667344765937,1277667349174185,1277667353441860,1277667358238652,1277667362867924,1277667368701548,1277667373252000,1277667378613042,1277667384399505,1277667388609864,1277667439678611],"wake_monotonic_ns":[1277667017386427,1277667023298928,1277667031943134,1277667035448783,1277667037216445,1277667041469719,1277667047585378,1277667053669829,1277667059716874,1277667065757911,1277667071844566,1277667077854294,1277667083924576,1277667089952281,1277667096047459,1277667102109918,1277667108162020,1277667114795008,1277667123244331,1277667126352691,1277667128697833,1277667132393056,1277667138492842,1277667144528910,1277667150615765,1277667156637242,1277667162695354,1277667170367787,1277667178952183,1277667184282308,1277667186933350,1277667189253154,1277667192999665,1277667199040551,1277667205129179,1277667206920085,1277667210284532,1277667257313756,1277667261105665,1277667265091818,1277667269143509,1277667273122339,1277667277143244,1277667281122716,1277667285132624,1277667289126858,1277667293122104,1277667298192579,1277667304197951,1277667309169477,1277667313158314,1277667317184896,1277667320740210,1277667325148778,1277667329980233,1277667333126331,1277667336166398,1277667341143632,1277667344728540,1277667349139431,1277667353278775,1277667358178142,1277667362812250,1277667365291232,1277667368644151,1277667373193962,1277667377183750,1277667378577879,1277667384124149,1277667388432657,1277667438698355,1277667538734303],"worker_event_queue_peak":0,"worker_event_queue_lagged":0,"live_text_bytes_current":0,"live_text_bytes_peak":0,"live_reasoning_bytes_current":0,"live_reasoning_bytes_peak":0,"live_part_count_current":0,"live_part_count_peak":0,"markdown_cache_retained_bytes_current":0,"markdown_cache_retained_bytes_peak":0}
+ok
+test lifecycle::vis31_high_rate_input_during_provider_burst ... VIS31 burst hz=165 window_us=210353 p50_us=12441 p95_us=21393 max_us=22163
+VIS31 burst metrics={"session":"burst-scheduling","tab_count":1,"tab_ids":["burst-scheduling"],"active_tab":0,"retained_bytes":28658,"window_rows":3,"window_total":2,"panel":"None","status":"Quit","frame_count":73,"frame_sum_ns":238336317,"frame_max_ns":11430192,"changed_frames":56,"wakeups":186,"input_events":55,"worker_events":1029,"terminal_write_calls":12994,"terminal_flush_calls":221,"terminal_write_bytes":19615,"terminal_write_sum_ns":9000961,"terminal_write_max_ns":3539650,"frame_samples_ns":[[0,3415822],[131928620,3506370],[139122122,1695954],[143647226,1950767],[150571812,1403734],[167731711,1538406],[185281406,1444576],[203457265,1347870],[220011100,1333288],[225797914,1496564],[229455702,2403428],[234894110,3074109],[240451238,3539850],[246311823,4402108],[253197981,3410666],[258753497,4263210],[265707878,6634119],[275349557,3990207],[282129155,5410837],[290256952,6091434],[298751783,5522396],[306952602,6368599],[316297723,5748296],[324895910,7205670],[334882838,8040748],[345906667,11430192],[359940919,7894848],[369936890,7742239],[380564082,8672539],[391335592,7776980],[401644635,9355246],[414296695,10250936],[429263292,11227515],[444038400,1375370],[448915633,1815003],[467300917,1499247],[485209393,1231363],[503259662,1562282],[521560918,2862040],[542535901,1520490],[560256194,1539338],[578390389,1849055],[595949098,1964399],[614526031,1502161],[631697447,1613268],[649003786,1426687],[666846763,1310833],[685977248,4904465],[704433739,1402662],[722397447,1378056],[742772567,4919368],[760941445,1746269],[779365427,1526448],[799962371,1920933],[818547045,1522523],[839059071,1393448],[857080937,1337514],[875017586,1512978],[894674403,1498466],[911864617,1524467],[930173415,1372868],[940208436,1322121],[958274378,1436884],[980000883,1642833],[998585047,1659368],[1016030325,1314739],[1033616585,1460479],[1050795331,1356293],[1068714624,1364415],[1086782170,1463563],[1107268426,2071860],[1124925083,1445887],[1129914636,1176351]],"monotonic_epoch_ns":1277667924404796,"frame_monotonic_ns":[1277667924404796,1277668056333317,1277668063526819,1277668068051913,1277668074976499,1277668092136408,1277668109686103,1277668127861962,1277668144415787,1277668150202601,1277668153860390,1277668159298798,1277668164855935,1277668170716520,1277668177602668,1277668183158184,1277668190112575,1277668199754243,1277668206533852,1277668214661649,1277668223156471,1277668231357299,1277668240702410,1277668249300628,1277668259287525,1277668270311375,1277668284345617,1277668294341578,1277668304968760,1277668315740289,1277668326049322,1277668338701382,1277668353667989,1277668368443086,1277668373320330,1277668391705604,1277668409614090,1277668427664359,1277668445965615,1277668466940598,1277668484660891,1277668502795086,1277668520353805,1277668538930737,1277668556102144,1277668573408483,1277668591251460,1277668610381945,1277668628838426,1277668646802144,1277668667177264,1277668685346142,1277668703770124,1277668724367078,1277668742951742,1277668763463758,1277668781485634,1277668799422272,1277668819079100,1277668836269304,1277668854578103,1277668864613123,1277668882679086,1277668904405590,1277668922989754,1277668940435202,1277668958021272,1277668975200028,1277668993119321,1277669011186867,1277669031673113,1277669049329769,1277669054319322],"wake_monotonic_ns":[1277668055956010,1277668060231758,1277668060311338,1277668060422956,1277668060526160,1277668060623037,1277668060692842,1277668060735336,1277668060776148,1277668060814856,1277668060847625,1277668060883769,1277668060923529,1277668060964781,1277668061003810,1277668061036609,1277668061077481,1277668061178934,1277668061240075,1277668061277281,1277668063481541,1277668067913274,1277668074901606,1277668091964269,1277668109543358,1277668127731495,1277668144275145,1277668150128620,1277668152510386,1277668152664979,1277668152756256,1277668153831305,1277668156696088,1277668156819685,1277668156909159,1277668156983991,1277668158048385,1277668158207954,1277668158311491,1277668159269884,1277668163612012,1277668163736230,1277668163825875,1277668164824318,1277668169100376,1277668169181559,1277668169282079,1277668169390483,1277668170680195,1277668176314589,1277668176393227,1277668176469722,1277668177572784,1277668181689052,1277668181749433,1277668181864847,1277668181954772,1277668182985103,1277668183049290,1277668183144223,1277668190032565,1277668197405787,1277668198498532,1277668198606365,1277668198659214,1277668198746867,1277668199726621,1277668205154635,1277668205273583,1277668205380475,1277668206504277,1277668212564321,1277668213513721,1277668213602214,1277668213733392,1277668214630242,1277668221194697,1277668221746187,1277668221900870,1277668222017416,1277668223128148,1277668228997466,1277668230035349,1277668230122449,1277668230282160,1277668231326032,1277668238178941,1277668238332252,1277668238515428,1277668238840017,1277668239459489,1277668239609966,1277668239729746,1277668240661429,1277668247992829,1277668248199080,1277668248286781,1277668249268209,1277668256855674,1277668257030346,1277668257938934,1277668258084904,1277668258227659,1277668259258812,1277668267842788,1277668267921786,1277668269084197,1277668269222064,1277668269342745,1277668270280188,1277668282303913,1277668284300628,1277668292894759,1277668293010344,1277668293191016,1277668293292939,1277668293438168,1277668294234106,1277668294317191,1277668302430047,1277668302482075,1277668302591120,1277668302676177,1277668303715743,1277668303853871,1277668303937528,1277668304949911,1277668313965616,1277668314247201,1277668314330365,1277668314399561,1277668315492546,1277668315532586,1277668315626428,1277668315710905,1277668323905093,1277668324229952,1277668324869475,1277668324965319,1277668325053672,1277668325167775,1277668326037264,1277668335827054,1277668338663345,1277668368379860,1277668370430128,1277668373276505,1277668391551321,1277668409528320,1277668427326600,1277668445757482,1277668466582360,1277668484508221,1277668502681615,1277668520176147,1277668538778808,1277668555879409,1277668573255733,1277668591168534,1277668610233121,1277668628696262,1277668646650566,1277668666978204,1277668685185981,1277668703616913,1277668724201248,1277668742791471,1277668763313541,1277668781335307,1277668799266818,1277668818912960,1277668836114141,1277668854391702,1277668864491149,1277668882488669,1277668904202164,1277668922833198,1277668940117644,1277668957876595,1277668975068030,1277668993005880,1277669011024201,1277669031503158,1277669049184421,1277669054249628,1277671072090448],"worker_event_queue_peak":57,"worker_event_queue_lagged":0,"live_text_bytes_current":0,"live_text_bytes_peak":11279,"live_reasoning_bytes_current":0,"live_reasoning_bytes_peak":0,"live_part_count_current":0,"live_part_count_peak":0,"markdown_cache_retained_bytes_current":15414,"markdown_cache_retained_bytes_peak":15414}
+VIS31 burst hz=250 window_us=211753 p50_us=12329 p95_us=17555 max_us=18605
+VIS31 burst metrics={"session":"burst-scheduling","tab_count":1,"tab_ids":["burst-scheduling"],"active_tab":0,"retained_bytes":29955,"window_rows":3,"window_total":2,"panel":"None","status":"Quit","frame_count":73,"frame_sum_ns":249836891,"frame_max_ns":14667545,"changed_frames":56,"wakeups":170,"input_events":55,"worker_events":1029,"terminal_write_calls":13112,"terminal_flush_calls":221,"terminal_write_bytes":19722,"terminal_write_sum_ns":10223109,"terminal_write_max_ns":4055195,"frame_samples_ns":[[0,3599209],[117752856,1268270],[122960518,1321820],[127077277,1480129],[131860700,1030211],[151123284,1531095],[168208199,1321251],[185039934,1194509],[189387110,1104472],[194965209,3718118],[203279078,3792740],[209539794,4586146],[216538272,5670038],[224371517,4750113],[232273336,8455140],[244003699,3793882],[250456586,4496589],[257097194,5108021],[266746714,6189530],[276562204,4927179],[283588122,5608115],[291389500,7178268],[301534937,6809423],[310499875,7100982],[319806689,7735948],[330373150,7688636],[340616152,8523135],[351255583,7756430],[361577024,12907507],[377321412,9806705],[389278476,10439790],[403234310,10230023],[416181155,14667545],[434483133,1417424],[439345995,1216371],[457021571,1194808],[474753900,1227248],[495183623,1485997],[515268756,1459697],[532356775,3131456],[551136534,1414629],[568271464,1336413],[588194003,1439347],[605471598,1515673],[627220046,1549253],[647135073,1488602],[664389563,1283273],[682174153,1286497],[701106049,5481384],[718235742,1414911],[736140363,1230904],[753839813,1257694],[774965804,1438616],[792101366,1311153],[809953718,1441599],[828015002,1362542],[845871640,1961774],[863532613,1892720],[883082940,1317595],[900961481,1341590],[916991269,1350774],[924827568,1168199],[942537254,1938179],[960055763,1176952],[977834283,1278334],[995757831,1433287],[1013761500,1293637],[1031793782,1703064],[1049343819,1884728],[1067879209,1312295],[1085774674,1324464],[1104395332,1331574],[1116512226,2951265]],"monotonic_epoch_ns":1277671441142718,"frame_monotonic_ns":[1277671441142718,1277671558895573,1277671564103245,1277671568219994,1277671573003417,1277671592266121,1277671609350916,1277671626182641,1277671630529817,1277671636107936,1277671644421795,1277671650682511,1277671657680990,1277671665514244,1277671673416053,1277671685146405,1277671691599303,1277671698239902,1277671707889410,1277671717704921,1277671724730820,1277671732532207,1277671742677644,1277671751642582,1277671760949406,1277671771515847,1277671781758859,1277671792398290,1277671802719721,1277671818464129,1277671830421193,1277671844377027,1277671857323872,1277671875625840,1277671880488702,1277671898164288,1277671915896617,1277671936326330,1277671956411462,1277671973499483,1277671992279251,1277672009414171,1277672029336709,1277672046614315,1277672068362763,1277672088277790,1277672105532280,1277672123316860,1277672142248747,1277672159378450,1277672177283070,1277672194982520,1277672216108511,1277672233244073,1277672251096424,1277672269157709,1277672287014357,1277672304675330,1277672324225657,1277672342104189,1277672358133976,1277672365970265,1277672383679971,1277672401198470,1277672418977000,1277672436900548,1277672454904207,1277672472936510,1277672490486536,1277672509021905,1277672526917380,1277672545538039,1277672557654943],"wake_monotonic_ns":[1277671558613619,1277671560483214,1277671560553700,1277671560591668,1277671560628783,1277671560661453,1277671560701373,1277671560733451,1277671560768033,1277671560805069,1277671560841954,1277671560880022,1277671560925380,1277671560982416,1277671561036177,1277671561097960,1277671561144790,1277671561196358,1277671561243238,1277671561275658,1277671568151621,1277671572971779,1277671592101022,1277671609213950,1277671626080567,1277671630484830,1277671632736599,1277671632866805,1277671633032065,1277671636034576,1277671650640328,1277671656451538,1277671657645376,1277671664223201,1277671665005147,1277671665347964,1277671670719342,1277671672202366,1277671673378106,1277671683041296,1277671683574619,1277671684146650,1277671685103842,1277671689427131,1277671690012993,1277671690166775,1277671691561975,1277671696509005,1277671696568785,1277671696655686,1277671696880825,1277671697883675,1277671698028292,1277671698225029,1277671707833627,1277671714418913,1277671714504411,1277671717663698,1277671722908786,1277671723134657,1277671723236390,1277671723327847,1277671724401343,1277671724540162,1277671724668636,1277671724725292,1277671730635040,1277671731096255,1277671731160561,1277671731292169,1277671732311915,1277671732375260,1277671732512177,1277671740069415,1277671740254114,1277671740338641,1277671740443299,1277671740909200,1277671741485128,1277671741537035,1277671741621333,1277671741711218,1277671742653006,1277671749927930,1277671750016945,1277671750144417,1277671750251618,1277671750347132,1277671751440538,1277671751510042,1277671751624424,1277671759083656,1277671759258750,1277671759344861,1277671760914003,1277671769047689,1277671769128782,1277671771473162,1277671779596463,1277671780392553,1277671780462218,1277671780560285,1277671780632604,1277671780891843,1277671781730556,1277671790651921,1277671790904330,1277671791051832,1277671791165775,1277671791416652,1277671792209346,1277671792378340,1277671801367857,1277671801430480,1277671801512413,1277671801617452,1277671802706682,1277671816084025,1277671816266620,1277671817292304,1277671817445575,1277671818438851,1277671828979581,1277671829108696,1277671829179233,1277671830278679,1277671830407022,1277671844323337,1277671857286755,1277671875539479,1277671880435402,1277671898094411,1277671915788264,1277671936173580,1277671956087444,1277671973418762,1277671992106341,1277672009290755,1277672029192772,1277672046466764,1277672068203643,1277672088120493,1277672105439091,1277672123216979,1277672142102897,1277672159246080,1277672177197451,1277672194897472,1277672215924694,1277672233148468,1277672250964976,1277672268989996,1277672286904803,1277672304506336,1277672324085918,1277672342009276,1277672357992142,1277672365911666,1277672383572259,1277672401130147,1277672418902337,1277672436754388,1277672454800361,1277672472651540,1277672490361006,1277672508925830,1277672526802108,1277672545191437,1277672557465418,1277674577285149],"worker_event_queue_peak":64,"worker_event_queue_lagged":0,"live_text_bytes_current":0,"live_text_bytes_peak":11279,"live_reasoning_bytes_current":0,"live_reasoning_bytes_peak":0,"live_part_count_current":0,"live_part_count_peak":0,"markdown_cache_retained_bytes_current":16711,"markdown_cache_retained_bytes_peak":16711}
+ok
+test lifecycle::vis32_detached_stream_anchor_survives_durable_completion_refresh ... ok
+test lifecycle::vis38_pty_dcp_equal_active_archive_resource_samples ... VIS38 S07 DCP archive=0 archive_source_bytes=0 rss_kb=35420 pss_kb=33215 hwm_kb=35420 os_tasks_threads=8 children=0 cpu_ticks=41 elapsed_ms=749 retained_bytes=93220 window_rows=10 queue_peak=0 queue_lagged=0 markdown_cache_peak=8007 frames=8 draw_max_ns=138753839 replay_requests=0 actual_runs=1 summary_page_limit=512
+VIS38 S07 DCP archive=3000 archive_source_bytes=49152000 rss_kb=38664 pss_kb=36437 hwm_kb=38664 os_tasks_threads=8 children=0 cpu_ticks=117 elapsed_ms=1579 retained_bytes=280802 window_rows=27 queue_peak=0 queue_lagged=0 markdown_cache_peak=14343 frames=8 draw_max_ns=391647113 replay_requests=0 actual_runs=1 summary_page_limit=512
+ok
+test lifecycle::vis39_vis41_real_pty_cancel_disposes_tab_and_marquee_deadlines ... ok
+test lifecycle::vis39_vis41_real_pty_held_tab_spinner_and_one_cycle_marquee ... ok
+
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 130.92s
+
+     Running tests/pty_t42.rs (target/debug/deps/pty_t42-68ac10c862f7baec)
+
+running 34 tests
+test aud38_apply_patch_card_shows_bounded_diff ... ok
+test aud38_bare_oc_launches_the_local_tui ... ok
+test aud38_location_switch_is_one_lifecycle ... ok
+test bare_first_accepted_prompt_creates_exactly_one_bound_root_and_turn ... ok
+test bare_home_abandon_and_new_do_not_create_a_root ... ok
+test bare_home_review_completion_submits_pinned_prompt_and_keeps_invocation_on_same_tab ... ok
+test bare_rename_requests_real_title_without_creating_turn_and_restores_on_restart ... ok
+test concurrent_sqlite_deck_edit_cannot_be_overwritten_by_restored_tui ... ok
+test corrupt_parked_selection_keeps_good_tabs_and_original_preference ... ok
+test deck_location_isolation_and_corrupt_preference_are_safe_on_restart ... ok
+test direct_rename_invalid_titles_keep_slash_draft_and_existing_title ... ok
+test direct_rename_owner_storage_refusal_keeps_slash_input_for_single_enter_retry ... ok
+test direct_rename_trims_unicode_and_persists_without_second_enter_or_overwriting_generated_title ... ok
+test explicit_child_is_standalone_read_only_and_preserves_saved_home ... ok
+test explicit_foreign_and_unbound_rows_are_refused_without_claiming_or_listing ... ok
+test explicit_session_still_attaches_and_creates_before_first_prompt ... ok
+test full_saved_deck_with_unreadable_parked_tab_opens_home_without_rewriting_preference ... ok
+test full_sixteen_real_tabs_restart_keeps_selected_route_and_all_ids ... ok
+test home_location_refusal_and_a_b_a_b_remain_sessionless_until_first_submit ... ok
+test hovered_close_reopens_durable_session_without_creating_a_root ... ok
+test immediate_ctrl_c_after_first_home_submit_restores_committed_root_on_restart ... ok
+test invalid_absent_explicit_root_is_rejected_without_creating_a_row ... ok
+test keyboard_and_palette_close_tab_keep_the_root_durable_and_reopenable ... ok
+test keyboard_close_refuses_busy_turn_without_losing_draft ... ok
+test new_from_attached_returns_home_without_an_extra_root ... ok
+test persisted_deck_restores_order_home_close_and_explicit_session_without_new_work ... ok
+test reload_refuses_busy_turn_and_refreshes_parked_tab_after_owner_success ... ok
+test rename_refuses_home_child_foreign_and_busy_without_changing_titles ... ok
+test rename_shortcut_palette_unicode_trim_and_restart_use_owner_title ... ok
+test rename_storage_refusal_keeps_modal_value_draft_and_old_tab_until_retry ... ok
+test retained_deck_refuses_add_during_turn_and_keeps_tabs_on_failed_location ... ok
+test retained_tab_mouse_add_restores_draft_and_home_submit_binds_one_new_root ... ok
+test vis25_reload_rebuilds_real_config_on_home_and_session_without_losing_identity ... ok
+test vis26_bare_oc_mention_tab_submits_durable_location_relative_prompt ... ok
+
+test result: ok. 34 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 54.42s
+
+     Running tests/recovery_startup.rs (target/debug/deps/recovery_startup-23751e4489435732)
+
+running 3 tests
+test isolated_binary_startup_routes ... success: exit 0, terminal restored
+busy: exit 1, terminal restored
+lock released: exit 0, terminal restored
+credential missing: exit 1, terminal restored
+credential empty env: exit 1, terminal restored
+credential present: exit 0, terminal restored
+credential empty literal: exit 1, terminal restored
+query: exit 1, terminal restored
+selection corrupt: exit 1, terminal restored
+selection corrupt headless: detailed error, exit 1, no provider call
+unknown model switch: safe refusal, retained owner, retry exit 0
+malformed config switch: safe refusal, retained owner, retry exit 0
+damaged selection switch: safe refusal, retained owner, retry exit 0
+config: exit 1, terminal restored
+missing config: exit 1, terminal restored
+cli config: exit 1, terminal restored
+warning: exit 0, terminal restored
+unsafe: exit 1, terminal restored
+unavailable: exit 1, terminal restored
+
+ok
+test isolated_discovery_startup_routes ... unauthorized: discovery GET, no Responses, expected exit, terminal restored
+forbidden: discovery GET, no Responses, expected exit, terminal restored
+unauthorized-oversized: discovery GET, no Responses, expected exit, terminal restored
+forbidden-oversized: discovery GET, no Responses, expected exit, terminal restored
+unauthorized-slow: discovery GET, no Responses, expected exit, terminal restored
+forbidden-slow: discovery GET, no Responses, expected exit, terminal restored
+absent: discovery GET, no Responses, expected exit, terminal restored
+present: discovery GET, no Responses, expected exit, terminal restored
+
+ok
+test location_switch_carries_safe_category_and_keeps_detailed_api_error ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 29.29s
+
+     Running tests/recovery_v02.rs (target/debug/deps/recovery_v02-6d0891f0aa7d1192)
+
+running 1 test
+test binary_restart_projects_real_metadata_and_parts ... 
+thread 'binary_restart_projects_real_metadata_and_parts' (2534704) panicked at crates/oc/tests/recovery_v02.rs:827:5:
+restart frame: [?1049h[?1000h[?1002h[?1003h[?1015h[?1006h[1;1H[38;2;255;255;255;48;2;10;10;10m                                                                                                                        [2;1H                                                                                                                        [3;1H                                                                                                                        [4;1H                                                                                                                        [5;1H                                                                                                                        [6;1H                                                                                                                        [7;1H                                                                                                                        [8;1H                                                                                                                        [9;1H                                                                                                                        [10;1H                                                                                                                        [11;1H                                                                                                                        [12;1H                                                                                                                        [13;1H                                                                                                                        [14;1H                                                                                                                        [15;1H                                                                                                                        [16;1H                                                                                                                        [17;1H                                                                                                                        [18;1H                                                                                                                        [19;1H                                                                                                                        [20;1H                                                                                                                        [21;1H                                                                                                                        [22;1H                                                                                                                        [23;1H                                                                                                                        [24;1H                                                                                                                        [25;1H                                                                                                                        [26;1H                                                                                                                        [27;1H                                                                                                                        [28;1H                                                                                                                        [29;1H                                                                                                                        [30;1H                                                                                                                        [31;1H                                                                                                                        [32;1H                                                                                                                        [33;1H                                                                                                                        [34;1H                                                                                                                        [35;1H                                                                                                                        [36;1H                                                                                                                        [37;1H                                                                                                                        [38;1H                                                                                                                        [39;1H                                                                                                                        [40;1H                                                                                                                        [39m[49m[59m[0m[?25l[1;1H[38;2;255;255;255;48;2;30;30;30m   [1m[38;2;238;238;238;48;2;30;30;30mNamed generated title[22m[38;2;255;255;255;48;2;30;30;30m        [38;2;128;128;128;48;2;10;10;10m + [3;3H[38;2;92;156;245;48;2;20;20;20m┃[38;2;255;255;255;48;2;20;20;20m                                                                                                                   [4;3H[38;2;92;156;245;48;2;20;20;20m┃[38;2;255;255;255;48;2;20;20;20m  [38;2;238;238;238;48;2;20;20;20mInspect probe.txt[38;2;255;255;255;48;2;20;20;20m                                                                                                [5;3H[38;2;92;156;245;48;2;20;20;20m┃[38;2;255;255;255;48;2;20;20;20m                                                                                                                   [7;6H[38;2;151;104;44;48;2;10;10;10m+[7;8HThought · 150ms[9;6H[38;2;128;128;128;48;2;10;10;10m→[9;8HExplored — 1 read[11;3H[38;2;10;10;10;48;2;20;20;20m┃[38;2;255;255;255;48;2;20;20;20m                                                                                                                   [12;3H[38;2;10;10;10;48;2;20;20;20m┃[38;2;255;255;255;48;2;20;20;20m  [38;2;128;128;128;48;2;20;20;20m# Created[38;2;255;255;255;48;2;20;20;20m [38;2;128;128;128;48;2;20;20;20mreplay.txt[38;2;255;255;255;48;2;20;20;20m                                                                                             [13;3H[38;2;10;10;10;48;2;20;20;20m┃[38;2;255;255;255;48;2;20;20;20m                                                                                                                   [14;3H[38;2;10;10;10;48;2;20;20;20m┃[38;2;255;255;255;48;2;20;20;20m   [38;2;255;255;255;48;2;27;43;52m [38;2;143;143;143;48;2;27;43;52m1[38;2;184;219;135;48;2;27;43;52m +[38;2;255;255;255;48;2;27;43;52m [38;2;238;238;238;48;2;32;48;59mpayload [38;2;255;255;255;48;2;32;48;59m                                                                                                   [15;3H[38;2;10;10;10;48;2;20;20;20m┃[38;2;255;255;255;48;2;20;20;20m                                                                                                                   [17;6H[38;2;151;104;44;48;2;10;10;10m+[17;8HThought[19;6H[38;2;238;238;238;48;2;10;10;10mFinal durable answer[21;6H[38;2;157;124;216;48;2;10;10;10mNamed[38;2;128;128;128;48;2;10;10;10m · Named model · 519ms · 70.2 tok/s[33;3H[38;2;157;124;216;48;2;10;10;10m┃[38;2;255;255;255;48;2;30;30;30m                                                                                                                   [34;3H[38;2;157;124;216;48;2;10;10;10m┃[38;2;255;255;255;48;2;30;30;30m                                                                                                                   [35;3H[38;2;157;124;216;48;2;10;10;10m┃[38;2;255;255;255;48;2;30;30;30m                                                                                                                   [36;3H[38;2;157;124;216;48;2;10;10;10m┃[38;2;255;255;255;48;2;30;30;30m  [38;2;157;124;216;48;2;30;30;30mNamed[38;2;255;255;255;48;2;30;30;30m [38;2;128;128;128;48;2;30;30;30m·[38;2;255;255;255;48;2;30;30;30m [38;2;238;238;238;48;2;30;30;30mNamed model[38;2;255;255;255;48;2;30;30;30m [38;2;128;128;128;48;2;30;30;30mNamed provider[38;2;255;255;255;48;2;30;30;30m                                                                               [37;3H[38;2;157;124;216;48;2;10;10;10m╹[38;2;30;30;30;48;2;10;10;10m▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀[38;3H[38;2;128;128;128;48;2;10;10;10m/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/.tmpm62nRG/project[38;94H338 (1%)[38;104H[38;2;238;238;238;48;2;10;10;10mctrl+p [38;2;128;128;128;48;2;10;10;10mcommands[40;1H[38;2;128;128;128;48;2;20;20;20m  Native runtime  ○ UI [38;2;255;255;255;48;2;20;20;20m                                                                                                 [39m[49m[59m[0m[?25h[34;6H
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    binary_restart_projects_real_metadata_and_parts
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.79s
+
+error: test failed, to rerun pass `-p oc --test recovery_v02`

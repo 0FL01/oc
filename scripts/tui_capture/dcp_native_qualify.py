@@ -25,10 +25,19 @@ parser.add_argument('--output', required=True, type=Path)
 parser.add_argument('--default-detail-only', action='store_true',
                     help='Match supported display settings; capture only recompression at three sizes, without extra controls; summaries off unless --show-compression')
 parser.add_argument('--show-compression', action='store_true',
-                    help='Include actual saved summaries in --default-detail-only (detailed/chat) captures')
+                     help='Include actual saved summaries in --default-detail-only (detailed/chat) captures')
+parser.add_argument('--comparable-controls', action='store_true',
+                    help='Match supported display settings; capture only real reopened minimal/off/toast controls at three sizes')
+parser.add_argument('--control-continuations', type=int, choices=range(4), default=0,
+                    help='Perform this many additional real reopened continuations before comparable controls; preserve all frozen runs')
 args = parser.parse_args()
+if args.comparable_controls and args.default_detail_only:
+    parser.error('--comparable-controls and --default-detail-only are mutually exclusive')
+if args.control_continuations and not args.comparable_controls:
+    parser.error('--control-continuations requires --comparable-controls')
 if args.show_compression and not args.default_detail_only:
     parser.error('--show-compression requires --default-detail-only')
+comparable_display = args.default_detail_only or args.comparable_controls
 show_compression = not args.default_detail_only or args.show_compression
 repo = Path(__file__).resolve().parents[2]
 output = args.output.resolve()
@@ -65,7 +74,7 @@ def observe():
             wanted = ('messages', 'conversation_messages', 'compression_blocks', 'compression_members',
                       'prune_marks', 'tool_operations', 'dcp_run_views', 'dcp_accounting',
                       'dcp_coverage', 'dcp_run_identity')
-            if args.default_detail_only:
+            if comparable_display:
                 wanted += ('sessions', 'turns', 'turn_acceptances')
             views = {r[0] for r in connection.execute("SELECT name FROM sqlite_master WHERE type='view'")}
             data = {name: [dict(r) for r in connection.execute(f'SELECT * FROM "{name}" LIMIT 101')]
@@ -202,7 +211,7 @@ config = {'model': 'fixture/vis38-native-model', 'plugin': ['@tarquinen/opencode
                   'minContextLimit': 1000000, 'maxContextLimit': 1000000},
     'strategies': {'deduplication': {'enabled': False}, 'purgeErrors': {'enabled': False}}}))
 cli = {'session': {'sidebar': 'hide', 'tps': False}, 'tabs': {'layout': 'horizontal'}}
-if args.default_detail_only:
+if comparable_display:
     display_config = json.loads((project / 'dcp.jsonc').read_text())
     display_config['compress']['showCompression'] = show_compression
     (project / 'dcp.jsonc').write_text(json.dumps(display_config))
@@ -219,7 +228,10 @@ commands, checks = [], []
 result = {'status': 'IN_PROGRESS', 'qualification': 'Actual native compression/continuation and durable typed snapshot, independent of display reference',
            'oc_binary_sha256': binary_sha256, 'parent_released_sha256': args.released_sha256,
            'build_source_association': 'Explicit parent-attested digest; parent retains build/source proof',
-           'capture_selection': {'recompression_only': args.default_detail_only, 'show_compression': show_compression},
+            'capture_selection': {'recompression_only': args.default_detail_only,
+                                  'comparable_controls_only': args.comparable_controls,
+                                  'control_continuations': args.control_continuations,
+                                  'show_compression': show_compression},
            'source_HEAD': subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=repo, capture_output=True, text=True, check=True).stdout.strip(),
             'checks': checks, 'display_cases': [], 'not_qualified': ['failure/cancel/no-gain', 'Undo/Redo routing', 'bounded archive/resources', 'live ToolCallFinished publication / public ToolOpView DTO equality']}
 
@@ -251,6 +263,8 @@ def run(label, prompt):
 def capture_stage(label, context_file, run_snapshot, display=None):
     global stage
     if args.default_detail_only and label != 'recompression':
+        return
+    if args.comparable_controls and label not in ('minimal', 'off', 'toast'):
         return
     display = display or {'notification': 'detailed', 'channel': 'chat', 'show_compression': show_compression}
     observation = observe()
@@ -403,6 +417,19 @@ try:
     assert all(r in rows(restarted, 'messages') for r in rows(committed, 'messages')), 'Restart changed raw history'
     checks.append({'stage': 'restart', 'requests': 1, 'typed_runs_unchanged': True, 'raw_history_preserved': True})
     capture_stage('restart', 'restart-snapshot.json', snapshot)
+    control_context = 'restart-snapshot.json'
+    for index in range(args.control_continuations):
+        before_continuation = restarted
+        label = f'control-continuation-{index + 1}'
+        restarted, requests = run(label, f'VIS38 reopened continuation {index + 1}: keep saved requirements and frozen compression reports; do not replay tools.')
+        assert len(requests) == 1
+        assert rows(restarted, 'dcp_run_views') == stable
+        assert rows(restarted, 'dcp_accounting') == rows(before_continuation, 'dcp_accounting')
+        assert all(r in rows(restarted, 'messages') for r in rows(before_continuation, 'messages'))
+        assert len(rows(restarted, 'messages')) == len(rows(before_continuation, 'messages')) + 2
+        checks.append({'stage': label, 'requests': 1, 'typed_runs_unchanged': True,
+                       'accounting_unchanged': True, 'raw_history_preserved': True})
+        control_context = label + '-snapshot.json'
     dcp_file = project / 'dcp.jsonc'
     original_config = json.loads(dcp_file.read_text())
     controls = [] if args.default_detail_only else [('minimal', {'notification': 'minimal', 'channel': 'chat', 'show_compression': True}),
@@ -416,7 +443,7 @@ try:
         configured['compress']['showCompression'] = display['show_compression']
         dcp_file.write_text(json.dumps(configured))
         save('control-' + label + '-config.json', configured)
-        capture_stage(label, 'restart-snapshot.json', snapshot, display)
+        capture_stage(label, control_context, snapshot, display)
     dcp_file.write_text(json.dumps(original_config))
     save('native-tui-spec.json', {'binary': str(args.oc), 'origin': 'oc', 'session': session, 'isolated_root': str(root),
                                 'argv': [str(args.oc), 'tui', '--session', session], 'cwd': str(project), 'env': env,

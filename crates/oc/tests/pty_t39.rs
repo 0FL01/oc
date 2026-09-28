@@ -7,6 +7,9 @@
 //! the opt-in view-metrics probe — never render snapshots alone.
 
 use std::io::{Read, Write};
+#[path = "support/screen.rs"]
+mod tui_screen;
+use tui_screen::render_screen;
 #[path = "support/terminal.rs"]
 mod terminal;
 #[path = "support/title.rs"]
@@ -39,6 +42,9 @@ const S07_PROMPT: &str = "s07 progressive markdown";
 const S07_NOTE: &str = "S07_NOTE_READ_CONFIRMED\n";
 const S07_REASONING: &str = "S07 public reasoning before the read.";
 const S07_ANSWER: &str = "```rust\nfn s07_probe() {\n    let S07_STREAM_FRAGMENT_42 = 42;\n    let S07_STREAM_DONE_43 = S07_STREAM_FRAGMENT_42 + 1;\n}\n```";
+const VIS38_RESOURCE_FOCUS: &str = "VIS38_RESOURCE";
+const VIS38_RESOURCE_SUMMARY: &str =
+    "VIS38 bounded real summary 中文: preserve the closed requirements. ";
 const REASONING_CLICK_PROMPT: &str = "pty reasoning header click";
 const REASONING_CLICK_BODY: &str = "PTY_REASONING_CLICK_BODY_7819";
 const REASONING_CLICK_ANSWER: &str = "PTY_REASONING_CLICK_FINAL_3826";
@@ -282,11 +288,11 @@ fn script(body: &serde_json::Value) -> Script {
             .as_str()
             .expect("closed anchor id");
         let arguments = serde_json::json!({
-            "topic": "t39 span",
+            "topic": if prompt.contains(VIS38_RESOURCE_FOCUS) { "VIS38 resource 中文" } else { "t39 span" },
             "content": [{
                 "startId": first,
                 "endId": last,
-                "summary": "Compressed early turns into one durable summary."
+                "summary": if prompt.contains(VIS38_RESOURCE_FOCUS) { VIS38_RESOURCE_SUMMARY.repeat(64) } else { "Compressed early turns into one durable summary.".into() }
             }]
         })
         .to_string();
@@ -856,174 +862,6 @@ impl Drop for PtySession {
         let _ = self.child.kill();
         let _ = self.child.wait();
     }
-}
-
-/// Minimal screen reconstruction from a PTY byte stream: applies cursor
-/// moves, writes, and clears to a grid. Byte-needle matching is fragile
-/// against ratatui's cell diff (unchanged cells are skipped on the wire), so
-/// panel rows are asserted against the true final screen state.
-struct Screen {
-    cells: Vec<Vec<char>>,
-    cursor: (usize, usize),
-}
-
-impl Screen {
-    fn blank() -> Self {
-        Self {
-            cells: Vec::new(),
-            cursor: (0, 0),
-        }
-    }
-
-    fn ensure(&mut self, row: usize, col: usize) {
-        while self.cells.len() <= row {
-            self.cells.push(Vec::new());
-        }
-        if self.cells[row].len() <= col {
-            self.cells[row].resize(col + 1, ' ');
-        }
-    }
-
-    fn put(&mut self, row: usize, col: usize, ch: char) {
-        if row >= 200 || col >= 400 {
-            return;
-        }
-        self.ensure(row, col);
-        self.cells[row][col] = ch;
-    }
-
-    fn clear_line_from(&mut self, row: usize, col: usize) {
-        if row < self.cells.len() {
-            for cell in self.cells[row].iter_mut().skip(col) {
-                *cell = ' ';
-            }
-        }
-    }
-
-    fn rows(&self) -> Vec<String> {
-        self.cells
-            .iter()
-            .map(|row| row.iter().collect::<String>().trim_end().to_string())
-            .collect()
-    }
-}
-
-/// Rebuild the final screen grid from raw PTY bytes.
-fn render_screen(buf: &[u8]) -> Screen {
-    let text = String::from_utf8_lossy(buf);
-    let mut screen = Screen::blank();
-    let (mut row, mut col) = (0usize, 0usize);
-    let mut saved = (0usize, 0usize);
-    let bytes = text.as_bytes();
-    let chars: Vec<(char, usize)> = {
-        let mut out = Vec::new();
-        let mut j = 0;
-        while j < bytes.len() {
-            let ch = text[j..].chars().next().unwrap_or('\u{FFFD}');
-            out.push((ch, ch.len_utf8()));
-            j += ch.len_utf8();
-        }
-        out
-    };
-    let mut k = 0;
-    while k < chars.len() {
-        let (ch, _) = chars[k];
-        if ch == '\x1b' {
-            if k + 1 < chars.len() && chars[k + 1].0 == '[' {
-                let mut p = k + 2;
-                let mut params = String::new();
-                while p < chars.len() && !(('@'..='\x7e').contains(&chars[p].0)) {
-                    params.push(chars[p].0);
-                    p += 1;
-                }
-                if p >= chars.len() {
-                    break;
-                }
-                let final_ = chars[p].0;
-                p += 1;
-                let nums: Vec<usize> = params
-                    .trim_matches(|c| c == '?' || c == ' ')
-                    .split(';')
-                    .filter_map(|s| s.parse().ok())
-                    .collect();
-                let n = nums.first().copied().unwrap_or(1).max(1);
-                let m = nums.get(1).copied().unwrap_or(1).max(1);
-                match final_ {
-                    'H' | 'f' => {
-                        row = n.saturating_sub(1);
-                        col = m.saturating_sub(1);
-                    }
-                    'A' => row = row.saturating_sub(n),
-                    'B' => row += n,
-                    'C' => col += n,
-                    'D' => col = col.saturating_sub(n),
-                    'K' => {
-                        if params.starts_with('2') {
-                            if row < screen.cells.len() {
-                                for cell in screen.cells[row].iter_mut() {
-                                    *cell = ' ';
-                                }
-                            }
-                        } else if params.starts_with('1') {
-                            if row < screen.cells.len() {
-                                let end = col.min(screen.cells[row].len());
-                                for cell in screen.cells[row].iter_mut().take(end) {
-                                    *cell = ' ';
-                                }
-                            }
-                        } else {
-                            screen.clear_line_from(row, col);
-                        }
-                    }
-                    'J' => {
-                        if params.starts_with('2') {
-                            screen = Screen::blank();
-                        } else {
-                            screen.clear_line_from(row, col);
-                        }
-                    }
-                    's' => saved = (row, col),
-                    'u' => {
-                        (row, col) = saved;
-                    }
-                    _ => {}
-                }
-                k = p;
-                continue;
-            }
-            if k + 1 < chars.len() && chars[k + 1].0 == ']' {
-                let mut p = k + 2;
-                while p < chars.len() {
-                    if chars[p].0 == '\x07' {
-                        p += 1;
-                        break;
-                    }
-                    if chars[p].0 == '\x1b' && p + 1 < chars.len() && chars[p + 1].0 == '\\' {
-                        p += 2;
-                        break;
-                    }
-                    p += 1;
-                }
-                k = p;
-                continue;
-            }
-            k += 2;
-            continue;
-        }
-        match ch {
-            '\r' => col = 0,
-            '\n' => {
-                row += 1;
-            }
-            _ => {
-                screen.put(row, col, ch);
-                col += 1;
-            }
-        }
-        k += 1;
-    }
-    screen.cursor = (row, col);
-    screen
 }
 
 /// Wait until the reconstructed screen has a row containing `needle`.
@@ -1736,6 +1574,7 @@ struct ProcSample {
     hwm_kb: u64,
     cpu_ticks: u64,
     children: usize,
+    threads: u64,
 }
 
 fn s07_proc_sample(pid: u32) -> ProcSample {
@@ -1777,6 +1616,7 @@ fn s07_proc_sample(pid: u32) -> ProcSample {
         pss_kb,
         cpu_ticks,
         children: children.split_whitespace().count(),
+        threads: kb("Threads:"),
     }
 }
 

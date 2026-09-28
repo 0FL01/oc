@@ -1,0 +1,918 @@
+{
+  "schema_version": 1,
+  "case": "native-recompression",
+  "goldens_sha256": "b583fdc01ca45480ff056b13327af8ce76b72ab5378967e80f6fea43a591f05d",
+  "owner": {
+    "path": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-native20260928-18",
+    "result_sha256": "44f425454e45f41dcf3eeb1585e15c51e5520ac412c0207a0cfdeb4fe044b927",
+    "binary_sha256": "8aac8684f95656dd6fbbfbe6876095491f7eb9188a40f9ced7d0b6e3a866b48e",
+    "source_HEAD": "c649fc5b786daadecb2b40f794a401ec9057adb4",
+    "evidence_seals": {
+      "commands.json": "533453f798362341fc64c932759d6caac08a8d02ca724b8bf831faf26d9f1079",
+      "compress-multi-before.json": "da2ca0447bdd7949aa70d18d4968278112b3121223e4dd75c2df01286c0c78bf",
+      "compress-multi-measurement.json": "f613dd5c8df7a107e8a0c3be40e549b417fb84ddd91e8cb9e6e77e3a5cb94744",
+      "compress-multi-snapshot.json": "0c876a6a5d1a5f5fbc5b112dcccd7ca865980be2908afe805c40078fc5ef50f3",
+      "compress-recompression-before.json": "0c876a6a5d1a5f5fbc5b112dcccd7ca865980be2908afe805c40078fc5ef50f3",
+      "compress-recompression-measurement.json": "814be0041f90eb4cd72aed48b798fbbd1389a2a433dbfe7d99ae6330bb2bdb1b",
+      "compress-recompression-snapshot.json": "f70b779b9f6eea14c42161abcc2de0e5c916c1baea235872fb36f5f2e5b31cb0",
+      "compress-single-before.json": "956c18edd521559f720bc70b64afc6676a5597381243db9a07730ef94099979e",
+      "compress-single-measurement.json": "09f1fa914f35e932bf24ab121b2c75153fd4b3a6e2db09d6f77413cdd6d266a8",
+      "compress-single-snapshot.json": "da2ca0447bdd7949aa70d18d4968278112b3121223e4dd75c2df01286c0c78bf",
+      "fixture-config.json": "f12696c9adf02e3d61f4620d71342a63a4e618d38e0cfad44c096b34528f512e",
+      "native-capture-recompression.json": "2c74b92aae366edfedba0c13a51c4bd23fb232190cc8dbc7da3ff8b9f0ad00f2",
+      "native-tui-recompression-spec.json": "e92fe3003769e6f9c295172603355d0457c6e2800f4464e8123b7883583cb673",
+      "native-tui-spec.json": "29ce4ebd553da15697f85d86cde6160aeba76f9517b073b0192d5f5a2c90e307",
+      "requests.json": "41b92d760d338f56bfa431c7810c60cebb0d15a17a0196960c1a3698683c2733",
+      "restart-snapshot.json": "1853a3757ff00b416f8e42296cbe8f7b14053cc436ddf91f6c40c5c26a93b01a",
+      "seed-A-snapshot.json": "a69aa283920f8ba334de3e0195ff2f5d3c750666887ec38359624c90e884bce3",
+      "seed-B-snapshot.json": "672022e74eef3854ea730927c999d2987c4cacbcbeaed6b97318b5a13126922a",
+      "seed-C-snapshot.json": "956c18edd521559f720bc70b64afc6676a5597381243db9a07730ef94099979e"
+    }
+  },
+  "context_snapshot": "compress-recompression-snapshot.json",
+  "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-18/project",
+  "cli": {
+    "session": {
+      "sidebar": "hide",
+      "tps": false
+    },
+    "tabs": {
+      "layout": "horizontal"
+    },
+    "theme": {
+      "name": "opencode",
+      "mode": "dark"
+    },
+    "animations": false,
+    "attention": {
+      "notifications": false,
+      "sound": false
+    },
+    "cursor": {
+      "style": "block",
+      "blinking": false
+    },
+    "debug": {
+      "devtools": false
+    }
+  },
+  "model": {
+    "providerID": "fixture",
+    "id": "vis38-native-model",
+    "provider_name": "VIS38 Display Fixture",
+    "declaration": {
+      "name": "VIS38 Display Model",
+      "limit": {
+        "context": 1000000,
+        "output": 64000
+      }
+    }
+  },
+  "transfer": {
+    "info": {
+      "id": "ses_vis38_native_s_vis38_actual_owner",
+      "projectID": "global",
+      "agent": "build",
+      "model": {
+        "providerID": "fixture",
+        "id": "vis38-native-model",
+        "variant": "default"
+      },
+      "title": "VIS38 actual compression owner",
+      "location": {
+        "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-18/project"
+      },
+      "time": {
+        "created": 1790604131000,
+        "updated": 1790604133076
+      },
+      "cost": 0,
+      "tokens": {
+        "input": 60000,
+        "output": 18000,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    },
+    "messages": [
+      {
+        "id": "msg_vis38_native_m0001",
+        "type": "user",
+        "text": "VIS38 seed A: closed analysis, retain requirement A. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. ",
+        "time": {
+          "created": 1790604131946
+        },
+        "metadata": {
+          "vis38_native": {
+            "message_id": "m0001",
+            "turn_id": "ts-vis38-actual-owner-1790604131946-2560149-0",
+            "display": {
+              "model_label": "VIS38 Display Model",
+              "agent": "build",
+              "agent_color_index": 0,
+              "duration_ms": 82,
+              "streamed_ms": 55,
+              "usage": [
+                10000,
+                2000
+              ],
+              "context_usage": [
+                10000,
+                2000
+              ]
+            },
+            "time_mapping": "admission epoch; completed = admission + recorded elapsed display duration; not absolute assistant event time"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_native_m0002",
+        "type": "assistant",
+        "agent": "build",
+        "model": {
+          "providerID": "fixture",
+          "id": "vis38-native-model"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "VIS38-ARCHIVE-A: closed analysis complete; retain requirement A."
+          }
+        ],
+        "finish": "stop",
+        "tokens": {
+          "input": 10000,
+          "output": 2000,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        },
+        "time": {
+          "created": 1790604131946,
+          "completed": 1790604132028
+        },
+        "metadata": {
+          "vis38_native": {
+            "message_id": "m0002",
+            "turn_id": "ts-vis38-actual-owner-1790604131946-2560149-0",
+            "display": {
+              "model_label": "VIS38 Display Model",
+              "agent": "build",
+              "agent_color_index": 0,
+              "duration_ms": 82,
+              "streamed_ms": 55,
+              "usage": [
+                10000,
+                2000
+              ],
+              "context_usage": [
+                10000,
+                2000
+              ]
+            },
+            "time_mapping": "admission epoch; completed = admission + recorded elapsed display duration; not absolute assistant event time"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_idle_m0002",
+        "type": "idle",
+        "outcome": "succeeded",
+        "time": {
+          "created": 1790604132028
+        },
+        "metadata": {
+          "vis38_native": {
+            "turn_id": "ts-vis38-actual-owner-1790604131946-2560149-0",
+            "native_status": "completed",
+            "time_mapping": "derived display endpoint"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_native_m0003",
+        "type": "user",
+        "text": "VIS38 seed B: closed analysis, retain requirement B. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. ",
+        "time": {
+          "created": 1790604132095
+        },
+        "metadata": {
+          "vis38_native": {
+            "message_id": "m0003",
+            "turn_id": "ts-vis38-actual-owner-1790604132095-2560158-0",
+            "display": {
+              "model_label": "VIS38 Display Model",
+              "agent": "build",
+              "agent_color_index": 0,
+              "duration_ms": 87,
+              "streamed_ms": 49,
+              "usage": [
+                10000,
+                2000
+              ],
+              "context_usage": [
+                10000,
+                2000
+              ]
+            },
+            "time_mapping": "admission epoch; completed = admission + recorded elapsed display duration; not absolute assistant event time"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_native_m0004",
+        "type": "assistant",
+        "agent": "build",
+        "model": {
+          "providerID": "fixture",
+          "id": "vis38-native-model"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "VIS38-ARCHIVE-B: closed analysis complete; retain requirement B."
+          }
+        ],
+        "finish": "stop",
+        "tokens": {
+          "input": 10000,
+          "output": 2000,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        },
+        "time": {
+          "created": 1790604132095,
+          "completed": 1790604132182
+        },
+        "metadata": {
+          "vis38_native": {
+            "message_id": "m0004",
+            "turn_id": "ts-vis38-actual-owner-1790604132095-2560158-0",
+            "display": {
+              "model_label": "VIS38 Display Model",
+              "agent": "build",
+              "agent_color_index": 0,
+              "duration_ms": 87,
+              "streamed_ms": 49,
+              "usage": [
+                10000,
+                2000
+              ],
+              "context_usage": [
+                10000,
+                2000
+              ]
+            },
+            "time_mapping": "admission epoch; completed = admission + recorded elapsed display duration; not absolute assistant event time"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_idle_m0004",
+        "type": "idle",
+        "outcome": "succeeded",
+        "time": {
+          "created": 1790604132182
+        },
+        "metadata": {
+          "vis38_native": {
+            "turn_id": "ts-vis38-actual-owner-1790604132095-2560158-0",
+            "native_status": "completed",
+            "time_mapping": "derived display endpoint"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_native_m0005",
+        "type": "user",
+        "text": "VIS38 seed C: closed analysis, retain requirement C. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. Closed analysis 日本語 résumé 👩‍💻 é. ",
+        "time": {
+          "created": 1790604132226
+        },
+        "metadata": {
+          "vis38_native": {
+            "message_id": "m0005",
+            "turn_id": "ts-vis38-actual-owner-1790604132226-2560166-0",
+            "display": {
+              "model_label": "VIS38 Display Model",
+              "agent": "build",
+              "agent_color_index": 0,
+              "duration_ms": 125,
+              "streamed_ms": 68,
+              "usage": [
+                10000,
+                2000
+              ],
+              "context_usage": [
+                10000,
+                2000
+              ]
+            },
+            "time_mapping": "admission epoch; completed = admission + recorded elapsed display duration; not absolute assistant event time"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_native_m0006",
+        "type": "assistant",
+        "agent": "build",
+        "model": {
+          "providerID": "fixture",
+          "id": "vis38-native-model"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "VIS38-ARCHIVE-C: closed analysis complete; retain requirement C."
+          }
+        ],
+        "finish": "stop",
+        "tokens": {
+          "input": 10000,
+          "output": 2000,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        },
+        "time": {
+          "created": 1790604132226,
+          "completed": 1790604132351
+        },
+        "metadata": {
+          "vis38_native": {
+            "message_id": "m0006",
+            "turn_id": "ts-vis38-actual-owner-1790604132226-2560166-0",
+            "display": {
+              "model_label": "VIS38 Display Model",
+              "agent": "build",
+              "agent_color_index": 0,
+              "duration_ms": 125,
+              "streamed_ms": 68,
+              "usage": [
+                10000,
+                2000
+              ],
+              "context_usage": [
+                10000,
+                2000
+              ]
+            },
+            "time_mapping": "admission epoch; completed = admission + recorded elapsed display duration; not absolute assistant event time"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_idle_m0006",
+        "type": "idle",
+        "outcome": "succeeded",
+        "time": {
+          "created": 1790604132351
+        },
+        "metadata": {
+          "vis38_native": {
+            "turn_id": "ts-vis38-actual-owner-1790604132226-2560166-0",
+            "native_status": "completed",
+            "time_mapping": "derived display endpoint"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_native_m0007",
+        "type": "user",
+        "text": "VIS38 compress single: execute the closed ranges, then continue.",
+        "time": {
+          "created": 1790604132397
+        },
+        "metadata": {
+          "vis38_native": {
+            "message_id": "m0007",
+            "turn_id": "ts-vis38-actual-owner-1790604132397-2560174-0",
+            "display": {
+              "model_label": "VIS38 Display Model",
+              "agent": "build",
+              "agent_color_index": 0,
+              "duration_ms": 234,
+              "streamed_ms": 120,
+              "usage": [
+                10000,
+                4000
+              ],
+              "context_usage": [
+                10000,
+                2000
+              ]
+            },
+            "time_mapping": "admission epoch; completed = admission + recorded elapsed display duration; not absolute assistant event time"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_dcp_1",
+        "type": "user",
+        "text": "▣ DCP | -2.8K removed, +83 summary\n\n│⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿████████████████████████████████████│\n▣ Compression #1 -2.8K removed, +83 summary\n→ Topic: VIS38 single\n→ Items: 2 messages compressed\n→ Compression (~83 tokens): Closed range 1; preserve requirements; continue safely. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression.",
+        "time": {
+          "created": 1790604132000
+        },
+        "metadata": {
+          "vis38_native": {
+            "operation_id": "ts-vis38-actual-owner-1790604132397-2560174-0-r1-c0-call_vis38_compress-single",
+            "created_at_precision": "stored whole seconds",
+            "delivery": "unchanged D05 ignored/noReply -> U34 display wrapper"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_native_m0008",
+        "type": "assistant",
+        "agent": "build",
+        "model": {
+          "providerID": "fixture",
+          "id": "vis38-native-model"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay."
+          }
+        ],
+        "finish": "stop",
+        "tokens": {
+          "input": 10000,
+          "output": 2000,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        },
+        "time": {
+          "created": 1790604132397,
+          "completed": 1790604132631
+        },
+        "metadata": {
+          "vis38_native": {
+            "message_id": "m0008",
+            "turn_id": "ts-vis38-actual-owner-1790604132397-2560174-0",
+            "display": {
+              "model_label": "VIS38 Display Model",
+              "agent": "build",
+              "agent_color_index": 0,
+              "duration_ms": 234,
+              "streamed_ms": 120,
+              "usage": [
+                10000,
+                4000
+              ],
+              "context_usage": [
+                10000,
+                2000
+              ]
+            },
+            "time_mapping": "admission epoch; completed = admission + recorded elapsed display duration; not absolute assistant event time"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_idle_m0008",
+        "type": "idle",
+        "outcome": "succeeded",
+        "time": {
+          "created": 1790604132631
+        },
+        "metadata": {
+          "vis38_native": {
+            "turn_id": "ts-vis38-actual-owner-1790604132397-2560174-0",
+            "native_status": "completed",
+            "time_mapping": "derived display endpoint"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_native_m0009",
+        "type": "user",
+        "text": "VIS38 compress multi: execute the closed ranges, then continue.",
+        "time": {
+          "created": 1790604132670
+        },
+        "metadata": {
+          "vis38_native": {
+            "message_id": "m0009",
+            "turn_id": "ts-vis38-actual-owner-1790604132670-2560187-0",
+            "display": {
+              "model_label": "VIS38 Display Model",
+              "agent": "build",
+              "agent_color_index": 0,
+              "duration_ms": 191,
+              "streamed_ms": 115,
+              "usage": [
+                10000,
+                4000
+              ],
+              "context_usage": [
+                10000,
+                2000
+              ]
+            },
+            "time_mapping": "admission epoch; completed = admission + recorded elapsed display duration; not absolute assistant event time"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_dcp_2",
+        "type": "user",
+        "text": "▣ DCP | -8.4K removed, +111 summary\n\n│░░░░░░░░░░░⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿█████████████████│\n▣ Compression #2 -5.6K removed, +28 summary\n→ Topic: VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries\n→ Items: 4 messages compressed\n→ Compression (~28 tokens): ### VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries\nClosed range 1; preserve requirements; continue safely.\n\n### VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries\nClosed range 2; preserve requirements; continue safely.",
+        "time": {
+          "created": 1790604132000
+        },
+        "metadata": {
+          "vis38_native": {
+            "operation_id": "ts-vis38-actual-owner-1790604132670-2560187-0-r1-c0-call_vis38_compress-multi",
+            "created_at_precision": "stored whole seconds",
+            "delivery": "unchanged D05 ignored/noReply -> U34 display wrapper"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_native_m0010",
+        "type": "assistant",
+        "agent": "build",
+        "model": {
+          "providerID": "fixture",
+          "id": "vis38-native-model"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay."
+          }
+        ],
+        "finish": "stop",
+        "tokens": {
+          "input": 10000,
+          "output": 2000,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        },
+        "time": {
+          "created": 1790604132670,
+          "completed": 1790604132861
+        },
+        "metadata": {
+          "vis38_native": {
+            "message_id": "m0010",
+            "turn_id": "ts-vis38-actual-owner-1790604132670-2560187-0",
+            "display": {
+              "model_label": "VIS38 Display Model",
+              "agent": "build",
+              "agent_color_index": 0,
+              "duration_ms": 191,
+              "streamed_ms": 115,
+              "usage": [
+                10000,
+                4000
+              ],
+              "context_usage": [
+                10000,
+                2000
+              ]
+            },
+            "time_mapping": "admission epoch; completed = admission + recorded elapsed display duration; not absolute assistant event time"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_idle_m0010",
+        "type": "idle",
+        "outcome": "succeeded",
+        "time": {
+          "created": 1790604132861
+        },
+        "metadata": {
+          "vis38_native": {
+            "turn_id": "ts-vis38-actual-owner-1790604132670-2560187-0",
+            "native_status": "completed",
+            "time_mapping": "derived display endpoint"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_native_m0011",
+        "type": "user",
+        "text": "VIS38 compress recompression: execute the closed ranges, then continue.",
+        "time": {
+          "created": 1790604132900
+        },
+        "metadata": {
+          "vis38_native": {
+            "message_id": "m0011",
+            "turn_id": "ts-vis38-actual-owner-1790604132900-2560200-0",
+            "display": {
+              "model_label": "VIS38 Display Model",
+              "agent": "build",
+              "agent_color_index": 0,
+              "duration_ms": 184,
+              "streamed_ms": 119,
+              "usage": [
+                10000,
+                4000
+              ],
+              "context_usage": [
+                10000,
+                2000
+              ]
+            },
+            "time_mapping": "admission epoch; completed = admission + recorded elapsed display duration; not absolute assistant event time"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_dcp_3",
+        "type": "user",
+        "text": "▣ DCP | -8.4K removed, +34 summary\n\n│░░░░░░░░░░░░░░░░░░░░░░░░░░░███████████████████████│\n▣ Compression #3 -0 removed, +6 summary\n→ Topic: VIS38 recompression\n→ Items: 0 messages compressed\n→ Compression (~6 tokens): Requirement A retained.",
+        "time": {
+          "created": 1790604133000
+        },
+        "metadata": {
+          "vis38_native": {
+            "operation_id": "ts-vis38-actual-owner-1790604132900-2560200-0-r1-c0-call_vis38_compress-recompression",
+            "created_at_precision": "stored whole seconds",
+            "delivery": "unchanged D05 ignored/noReply -> U34 display wrapper"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_native_m0012",
+        "type": "assistant",
+        "agent": "build",
+        "model": {
+          "providerID": "fixture",
+          "id": "vis38-native-model"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay."
+          }
+        ],
+        "finish": "stop",
+        "tokens": {
+          "input": 10000,
+          "output": 2000,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        },
+        "time": {
+          "created": 1790604132900,
+          "completed": 1790604133084
+        },
+        "metadata": {
+          "vis38_native": {
+            "message_id": "m0012",
+            "turn_id": "ts-vis38-actual-owner-1790604132900-2560200-0",
+            "display": {
+              "model_label": "VIS38 Display Model",
+              "agent": "build",
+              "agent_color_index": 0,
+              "duration_ms": 184,
+              "streamed_ms": 119,
+              "usage": [
+                10000,
+                4000
+              ],
+              "context_usage": [
+                10000,
+                2000
+              ]
+            },
+            "time_mapping": "admission epoch; completed = admission + recorded elapsed display duration; not absolute assistant event time"
+          }
+        }
+      },
+      {
+        "id": "msg_vis38_idle_m0012",
+        "type": "idle",
+        "outcome": "succeeded",
+        "time": {
+          "created": 1790604133084
+        },
+        "metadata": {
+          "vis38_native": {
+            "turn_id": "ts-vis38-actual-owner-1790604132900-2560200-0",
+            "native_status": "completed",
+            "time_mapping": "derived display endpoint"
+          }
+        }
+      }
+    ]
+  },
+  "field_traces": [
+    {
+      "native_message_id": "m0001",
+      "original_message_id": "msg_vis38_native_m0001",
+      "native_turn_id": "ts-vis38-actual-owner-1790604131946-2560149-0",
+      "source": "turns.result + turn_acceptances + conversation_messages",
+      "admission_epoch_ms": 1790604131946,
+      "recorded_duration_ms": 82,
+      "derived_display_completed_ms": 1790604132028
+    },
+    {
+      "native_message_id": "m0002",
+      "original_message_id": "msg_vis38_native_m0002",
+      "native_turn_id": "ts-vis38-actual-owner-1790604131946-2560149-0",
+      "source": "turns.result + turn_acceptances + conversation_messages",
+      "admission_epoch_ms": 1790604131946,
+      "recorded_duration_ms": 82,
+      "derived_display_completed_ms": 1790604132028
+    },
+    {
+      "native_message_id": "m0003",
+      "original_message_id": "msg_vis38_native_m0003",
+      "native_turn_id": "ts-vis38-actual-owner-1790604132095-2560158-0",
+      "source": "turns.result + turn_acceptances + conversation_messages",
+      "admission_epoch_ms": 1790604132095,
+      "recorded_duration_ms": 87,
+      "derived_display_completed_ms": 1790604132182
+    },
+    {
+      "native_message_id": "m0004",
+      "original_message_id": "msg_vis38_native_m0004",
+      "native_turn_id": "ts-vis38-actual-owner-1790604132095-2560158-0",
+      "source": "turns.result + turn_acceptances + conversation_messages",
+      "admission_epoch_ms": 1790604132095,
+      "recorded_duration_ms": 87,
+      "derived_display_completed_ms": 1790604132182
+    },
+    {
+      "native_message_id": "m0005",
+      "original_message_id": "msg_vis38_native_m0005",
+      "native_turn_id": "ts-vis38-actual-owner-1790604132226-2560166-0",
+      "source": "turns.result + turn_acceptances + conversation_messages",
+      "admission_epoch_ms": 1790604132226,
+      "recorded_duration_ms": 125,
+      "derived_display_completed_ms": 1790604132351
+    },
+    {
+      "native_message_id": "m0006",
+      "original_message_id": "msg_vis38_native_m0006",
+      "native_turn_id": "ts-vis38-actual-owner-1790604132226-2560166-0",
+      "source": "turns.result + turn_acceptances + conversation_messages",
+      "admission_epoch_ms": 1790604132226,
+      "recorded_duration_ms": 125,
+      "derived_display_completed_ms": 1790604132351
+    },
+    {
+      "native_message_id": "m0007",
+      "original_message_id": "msg_vis38_native_m0007",
+      "native_turn_id": "ts-vis38-actual-owner-1790604132397-2560174-0",
+      "source": "turns.result + turn_acceptances + conversation_messages",
+      "admission_epoch_ms": 1790604132397,
+      "recorded_duration_ms": 234,
+      "derived_display_completed_ms": 1790604132631
+    },
+    {
+      "native_message_id": "m0008",
+      "original_message_id": "msg_vis38_native_m0008",
+      "native_turn_id": "ts-vis38-actual-owner-1790604132397-2560174-0",
+      "source": "turns.result + turn_acceptances + conversation_messages",
+      "admission_epoch_ms": 1790604132397,
+      "recorded_duration_ms": 234,
+      "derived_display_completed_ms": 1790604132631
+    },
+    {
+      "native_message_id": "m0009",
+      "original_message_id": "msg_vis38_native_m0009",
+      "native_turn_id": "ts-vis38-actual-owner-1790604132670-2560187-0",
+      "source": "turns.result + turn_acceptances + conversation_messages",
+      "admission_epoch_ms": 1790604132670,
+      "recorded_duration_ms": 191,
+      "derived_display_completed_ms": 1790604132861
+    },
+    {
+      "native_message_id": "m0010",
+      "original_message_id": "msg_vis38_native_m0010",
+      "native_turn_id": "ts-vis38-actual-owner-1790604132670-2560187-0",
+      "source": "turns.result + turn_acceptances + conversation_messages",
+      "admission_epoch_ms": 1790604132670,
+      "recorded_duration_ms": 191,
+      "derived_display_completed_ms": 1790604132861
+    },
+    {
+      "native_message_id": "m0011",
+      "original_message_id": "msg_vis38_native_m0011",
+      "native_turn_id": "ts-vis38-actual-owner-1790604132900-2560200-0",
+      "source": "turns.result + turn_acceptances + conversation_messages",
+      "admission_epoch_ms": 1790604132900,
+      "recorded_duration_ms": 184,
+      "derived_display_completed_ms": 1790604133084
+    },
+    {
+      "native_message_id": "m0012",
+      "original_message_id": "msg_vis38_native_m0012",
+      "native_turn_id": "ts-vis38-actual-owner-1790604132900-2560200-0",
+      "source": "turns.result + turn_acceptances + conversation_messages",
+      "admission_epoch_ms": 1790604132900,
+      "recorded_duration_ms": 184,
+      "derived_display_completed_ms": 1790604133084
+    }
+  ],
+  "source_contracts": [
+    {
+      "role": "native clock identity and elapsed display metadata",
+      "path": "crates/oc-adapters/src/runtime.rs",
+      "lines": "867-885,1352-1398",
+      "sha256": "41aa9aeeb708a75b1be8f144959783333d06b2e5c551ba01be169bfdecd44764"
+    },
+    {
+      "role": "native turn acceptance and completed report",
+      "path": "crates/oc-adapters/src/runtime/turn.rs",
+      "lines": "895-921,1843-1854",
+      "sha256": "f6ce5ff7c9d6dd92a4d5ca5cea620761af841a24f43c522c969e85f9cbd1a765"
+    },
+    {
+      "role": "original public transfer",
+      "path": "opencode/packages/core/src/session/transfer.ts",
+      "lines": "64-153",
+      "sha256": "6d67dd0bd0aa4be6826c20bfee8fa6a6f71b83b373c61046793e2e0f7d8233c9"
+    },
+    {
+      "role": "original session schema",
+      "path": "opencode/packages/schema/src/session.ts",
+      "lines": "31-59",
+      "sha256": "5d44b69285d63d86be834bd7fb5db67eec80308215216a2791a30f9515eb58f5"
+    },
+    {
+      "role": "original default session variant",
+      "path": "opencode/packages/core/src/session/info.ts",
+      "lines": "29-35",
+      "sha256": "d14557573746c0b2ed65f42f8a881012813f36235bb67d2f2a27661c017c80a6"
+    },
+    {
+      "role": "original message/idle schema",
+      "path": "opencode/packages/schema/src/session-message.ts",
+      "lines": "23-36,212-236,283-293",
+      "sha256": "9b5cfce6c69bb4987771bdbbb36f6af09c76c5d166ca9da764b052f7c92a4e1a"
+    },
+    {
+      "role": "original duration attribution",
+      "path": "opencode/packages/tui/src/routes/session/rows.ts",
+      "lines": "353-404",
+      "sha256": "c6052bd7988c593f101979167614eac193d2ff6720701c8b0d7ce9e91756b99f"
+    },
+    {
+      "role": "original footer terminal requirement",
+      "path": "opencode/packages/tui/src/routes/session/rows.ts",
+      "lines": "326-329",
+      "sha256": "c6052bd7988c593f101979167614eac193d2ff6720701c8b0d7ce9e91756b99f"
+    },
+    {
+      "role": "original completed response normalization",
+      "path": "opencode/packages/ai/src/protocols/open-responses.ts",
+      "lines": "872-881,1324-1368",
+      "sha256": "5372b6267cb21ecfa641a4980c2f51881d2c5f35ba463037a86984b8a1c3efe8"
+    },
+    {
+      "role": "actual bounded response fixture",
+      "path": "scripts/tui_capture/dcp_native_qualify.py",
+      "lines": "148-188",
+      "sha256": "6ff45cc69745d16a850ea52d581072c3f50bd7b5ebc5dfef9da4139e932cc20d"
+    },
+    {
+      "role": "original context usage",
+      "path": "opencode/packages/tui/src/util/session.ts",
+      "lines": "58-72",
+      "sha256": "250da33837f865d2cb66ae366bbefdcd18d77f16b72f2b1cf27d748e6bdca99a"
+    },
+    {
+      "role": "original U34/assistant footer",
+      "path": "opencode/packages/tui/src/routes/session/index.tsx",
+      "lines": "1934-1983,2273-2345",
+      "sha256": "e4af9db141d101d47a61d4ca761f9c1b38e375288442490ce609732450283734"
+    }
+  ],
+  "mapping_limits": [
+    "Native has no absolute per-message created/streamed/completed event timestamps. Created uses the actual source-verified turn-ID epoch; completed is an explicitly derived coordinate preserving the actual stored elapsed display duration, not a fabricated absolute event measurement. Streamed is omitted.",
+    "Real completed native turns map to supported OC2 succeeded idle boundaries, preventing DCP display-only user wrappers from resetting turn duration. No failed/interrupted outcome is fabricated.",
+    "Actual final response item is a completed assistant message, with no outstanding calls; actual probe emits response.completed with incomplete_details:null. Pinned OpenResponses mapFinishReason normalizes this to stop. This supported finish field is required for the original assistant footer.",
+    "Assistant tokens use stored last physical response usage, equal to native display.context_usage here, not aggregated display.usage. Fixture emits no reasoning/cache usage. Session required tokens sum stored per-turn display usage; not a provider billing assertion.",
+    "Session required cost is OC2 zero-default scaffolding: no cost was recorded or configured by this native offline fixture. Not measured billing.",
+    "Original public import resolves projectID/location and overwrites time.updated with actual import time. Session model null/absent variant becomes default per session/info.ts:34, matching native no explicit variant. Title/agent/model/location and all message data are checked by exact public export.",
+    "Native IDs retain an explicit one-to-one source trace under required OC2 msg_/ses_ prefixes. DCP text is display-only user content from unchanged pinned D05, never a native history ingress."
+  ],
+  "helper_sha256": "dba51efdefbf144c134802baa19521280bcff3c076071f29e4e4a7557181be2a"
+}

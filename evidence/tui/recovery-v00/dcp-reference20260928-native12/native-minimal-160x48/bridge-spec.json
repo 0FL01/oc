@@ -1,0 +1,9 @@
+{
+  "binary": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+  "case": "native-minimal",
+  "columns": 160,
+  "rows": 48,
+  "goldens": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-oracle20260928-native09/goldens.json",
+  "isolated_root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference20260928-native12-29e02776bae7/native-minimal-160x48",
+  "display_fixture": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-display20260928-07/fixture.json"
+}

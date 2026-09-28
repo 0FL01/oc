@@ -734,6 +734,333 @@ fn aud21_binary_sigkill_never_publishes_a_partial_multi_range_compression() {
     run_crash_atomicity_at_sqlite_sync();
 }
 
+/// VIS38's actual public event/query seam, independent of reference fixtures.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn vis38_public_multi_range_event_query_replay_and_bounded_summary_agree() {
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+    use oc_core::queries::ConversationAction;
+    use oc_tui::app::TuiState;
+    use oc_tui::events::KeyAction;
+
+    let fixture = Fixture::new();
+    fixture.write_dcp(true);
+    for (prompt, label) in [("first", "seed-early"), ("second", "seed-tail")] {
+        fixture.seed_turn(
+            SESSION,
+            &format!("{prompt} {}", "raw closed analysis ".repeat(1_000)),
+            "closed answer",
+            label,
+        );
+    }
+    fixture.write_dcp(false);
+    let env = std::collections::BTreeMap::from([
+        ("HOME".into(), fixture.home.to_string_lossy().into_owned()),
+        (
+            "XDG_CONFIG_HOME".into(),
+            fixture.home.join("config").to_string_lossy().into_owned(),
+        ),
+        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+    ]);
+    let session = SessionId(SESSION.into());
+    let (app, guard, _) =
+        oc_adapters::application::spawn_with_env(&fixture.project, &fixture.data(), env.clone())
+            .await
+            .unwrap();
+    let original = app.read_history(session.clone()).await.unwrap();
+    assert_eq!(original.len(), 4);
+    let mut events = app.subscribe();
+    let mut state = TuiState::new(app.clone(), session.clone());
+    state.apply_catalog(app.catalog().await.unwrap());
+    state.attach_page(
+        &app.history_page(session.clone(), None, None, 32)
+            .await
+            .unwrap(),
+    );
+    state.handle_paste("compress two completed ranges");
+    state.handle_key(KeyAction::Enter).await;
+    let deadline = Instant::now() + TIMEOUT;
+    while state.active_turn().is_none() {
+        state.poll_submission();
+        assert!(Instant::now() < deadline, "public submission acceptance");
+        tokio::time::sleep(POLL).await;
+    }
+    let turn = state.active_turn().unwrap().clone();
+    let (mut socket, before) = accept_application_request(&fixture).await;
+    let summary = "真实🌍 résumé closed requirements. ".repeat(40);
+    respond_tool(
+        &mut socket,
+        "compress",
+        json!({"topic":"public multi-range 中文", "content":[
+            {"startId":original[0].id.0,"endId":original[1].id.0,"summary":summary},
+            {"startId":original[2].id.0,"endId":original[3].id.0,"summary":"Second requirement retained."}
+        ]}),
+        "public-compress",
+    );
+    let (mut socket, after) = accept_application_request(&fixture).await;
+    assert!(input_bytes(&after) < input_bytes(&before));
+    assert!(
+        function_output(&after, "public-compress", "compress")
+            .contains("\"status\":\"compressed\"")
+    );
+    respond_text(&mut socket, "public continuation complete");
+    let mut started = 0;
+    let mut finished = Vec::new();
+    loop {
+        let event = tokio::time::timeout(TIMEOUT, events.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        match event {
+            CoreEvent::ToolCallStarted {
+                session: owner,
+                turn: id,
+                op,
+                name,
+                input,
+                dcp_topic,
+            } => {
+                assert_eq!(
+                    (owner, id.clone(), name.as_str()),
+                    (session.clone(), turn.clone(), "compress")
+                );
+                state.apply_tool_started_with_presentation(&id, &op, &name, &input, dcp_topic);
+                let pending = state
+                    .transcript_lines(100, 100)
+                    .iter()
+                    .map(oc_tui::styled::Line::plain_text)
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                assert!(
+                    pending.contains("Compressing…") && pending.contains("public multi-range 中文")
+                );
+                assert!(!pending.contains("removed"));
+                started += 1;
+            }
+            CoreEvent::ToolCallFinished {
+                session: owner,
+                turn: id,
+                op,
+                name,
+                state: outcome,
+                output,
+                output_bytes,
+                output_truncated,
+                patch_effects,
+                dcp,
+            } => {
+                assert_eq!(
+                    (owner, id.clone(), outcome.as_str()),
+                    (session.clone(), turn.clone(), "completed")
+                );
+                let run = dcp.clone().expect("actual successful public snapshot");
+                assert_eq!(
+                    (
+                        run.ordinal,
+                        run.block_ids.len(),
+                        run.new_messages,
+                        run.new_tools
+                    ),
+                    (1, 2, 4, 0)
+                );
+                let queried = app.tool_ops_page(session.clone(), None, 1).await.unwrap();
+                assert_eq!(queried.rows.len(), 1);
+                assert_eq!(queried.rows[0].dcp, dcp);
+                assert_eq!(queried.rows[0].op, op);
+                state.apply_tool_finished_with_presentation(
+                    &id,
+                    &op,
+                    &name,
+                    &outcome,
+                    &output,
+                    output_bytes,
+                    output_truncated,
+                    patch_effects,
+                    dcp,
+                );
+                assert_eq!(
+                    state
+                        .transcript_rows()
+                        .iter()
+                        .filter(|r| r.tool.as_ref().is_some_and(|c| c.op == op))
+                        .count(),
+                    1
+                );
+                finished.push(run);
+            }
+            CoreEvent::TurnFinished {
+                turn: id,
+                text,
+                duration_ms,
+                ..
+            } if id == turn => {
+                state.apply_finished(&id, &text, duration_ms);
+                break;
+            }
+            CoreEvent::TurnFailed { error, .. } => panic!("actual public compression: {error}"),
+            _ => {}
+        }
+    }
+    assert_eq!((started, finished.len()), (1, 1));
+    let run = finished.pop().unwrap();
+    let raw = app.read_history(session.clone()).await.unwrap();
+    assert_eq!(&raw[..original.len()], original.as_slice());
+    assert_eq!(
+        raw.len(),
+        original.len() + 2,
+        "no synthetic notification messages"
+    );
+    let page = app
+        .history_page(session.clone(), None, None, 32)
+        .await
+        .unwrap();
+    state.refresh_completed_page(&page);
+    state.apply_dcp_snapshot(app.dcp_snapshot(session.clone()).await.unwrap());
+    state.chrome.dcp.show_compression = true;
+    let preview = app
+        .dcp_summary_page(
+            session.clone(),
+            run.operation_id.clone(),
+            0,
+            0,
+            oc_tui::dcp_view::SUMMARY_PAGE_BYTES,
+        )
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(
+        preview.text.len() <= oc_tui::dcp_view::SUMMARY_PAGE_BYTES && preview.next_offset.is_some()
+    );
+    state.apply_dcp_summary(&session, &run.operation_id, preview);
+    let mut collected = String::new();
+    let mut offset = 0;
+    loop {
+        let summary_page = app
+            .dcp_summary_page(session.clone(), run.operation_id.clone(), 0, offset, 511)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(summary_page.text.len() <= 511 && summary_page.block_id == run.block_ids[0]);
+        collected.push_str(&summary_page.text);
+        match summary_page.next_offset {
+            Some(next) => {
+                assert!(next > offset);
+                offset = next;
+            }
+            None => break,
+        }
+    }
+    assert_eq!(collected, summary);
+    assert!(
+        state
+            .transcript_lines(100, 100)
+            .iter()
+            .any(|r| r.plain_text().contains("summary preview limited"))
+    );
+    app.change_conversation(session.clone(), ConversationAction::Undo)
+        .await
+        .unwrap();
+    assert!(
+        app.tool_ops_page(session.clone(), None, 1)
+            .await
+            .unwrap()
+            .rows
+            .is_empty()
+    );
+    app.change_conversation(session.clone(), ConversationAction::Redo)
+        .await
+        .unwrap();
+    assert_eq!(
+        app.tool_ops_page(session.clone(), None, 1)
+            .await
+            .unwrap()
+            .rows[0]
+            .dcp,
+        Some(run.clone())
+    );
+    let other = SessionId("public-other".into());
+    app.create_session(other.clone()).await.unwrap();
+    state.set_session(other.clone());
+    state.apply_tool_finished_with_presentation(
+        &turn,
+        &run.operation_id,
+        "compress",
+        "completed",
+        "",
+        0,
+        false,
+        None,
+        Some(run.clone()),
+    );
+    assert!(!state.transcript_rows().iter().any(|r| r.tool.is_some()));
+    assert!(
+        app.dcp_snapshot(other.clone())
+            .await
+            .unwrap()
+            .accounting
+            .is_none()
+    );
+    assert!(
+        app.dcp_summary_page(other, run.operation_id.clone(), 0, 0, 512)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    drop(state);
+    drop(app);
+    let (reopened, guard, _) =
+        oc_adapters::application::spawn_with_env(&fixture.project, &fixture.data(), env)
+            .await
+            .unwrap();
+    assert_eq!(
+        reopened
+            .tool_ops_page(session.clone(), None, 1)
+            .await
+            .unwrap()
+            .rows[0]
+            .dcp,
+        Some(run.clone())
+    );
+    assert_eq!(reopened.read_history(session.clone()).await.unwrap(), raw);
+    assert_eq!(
+        reopened.dcp_snapshot(session).await.unwrap().accounting,
+        Some(run.cumulative)
+    );
+    assert_eq!(
+        fixture.listener.accept().unwrap_err().kind(),
+        std::io::ErrorKind::WouldBlock,
+        "queries/switch/Undo/Redo/reopen issue no provider call"
+    );
+    reopened.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    println!(
+        "VIS38 public: started=1 finished=1 ranges=2 ordinal=1 new_messages=4 raw_preserved=true next_request_smaller=true summary_utf8_paged=true replay_requests=0"
+    );
+}
+
+async fn accept_application_request(fixture: &Fixture) -> (TcpStream, Value) {
+    let deadline = Instant::now() + TIMEOUT;
+    loop {
+        match fixture.listener.accept() {
+            Ok((socket, _)) => {
+                if let Some(request) = read_request(socket) {
+                    assert!(!is_title(&request.1), "seeded session already has a title");
+                    return request;
+                }
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {}
+            Err(error) => panic!("public application peer: {error}"),
+        }
+        assert!(
+            Instant::now() < deadline,
+            "public application provider request"
+        );
+        tokio::time::sleep(POLL).await;
+    }
+}
+
 #[derive(Clone)]
 struct RequestedRange {
     start: String,

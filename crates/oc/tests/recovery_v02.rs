@@ -1,4 +1,7 @@
 //! V02: real binary/config/provider followed by a fresh application owner.
+#[path = "support/screen.rs"]
+mod tui_screen;
+
 use oc_core::{domain::SessionId, queries::TranscriptPart};
 use std::{
     collections::BTreeMap,
@@ -790,7 +793,9 @@ fn binary_tui_restart(
         if let Ok(n) = master.read(&mut buffer) {
             bytes.extend_from_slice(&buffer[..n]);
         }
-        let text = String::from_utf8_lossy(&bytes);
+        // Diff rendering may address individual cells and skip already painted
+        // spaces. Assert the actual current screen, not raw VT byte adjacency.
+        let text = tui_screen::render_screen(&bytes).rows().join("\n");
         if !submitted && text.contains(model) {
             master.write_all(b"Inspect probe.txt\r").unwrap();
             submitted = true;
@@ -803,7 +808,7 @@ fn binary_tui_restart(
             .iter()
             .all(|s| text.contains(s))
             && (!compact
-                || (without_sgr(&text).contains("+ Thought · ")
+                || (text.contains("+ Thought · ")
                     && ["probe.txt", "replay.txt"].iter().all(|s| text.contains(s))))
         {
             ready = true;
@@ -833,24 +838,4 @@ fn binary_tui_restart(
             String::from_utf8_lossy(&bytes)
         );
     }
-}
-
-// Only erase color/style changes: cursor moves remain barriers between
-// independently painted cells, so the reasoning icon and label must still
-// appear together in the PTY stream.
-fn without_sgr(text: &str) -> String {
-    let mut parts = text.split('\x1b');
-    let mut visible = parts.next().unwrap_or_default().to_string();
-    for part in parts {
-        if let Some(csi) = part.strip_prefix('[') {
-            let after_params = csi.trim_start_matches(|c: char| c.is_ascii_digit() || c == ';');
-            if let Some(rest) = after_params.strip_prefix('m') {
-                visible.push_str(rest);
-                continue;
-            }
-        }
-        visible.push('\x1b');
-        visible.push_str(part);
-    }
-    visible
 }

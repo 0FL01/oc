@@ -96,14 +96,26 @@ for trace, original in zip(mapping['field_traces'], actual_context, strict=True)
         assert message['finish'] == 'stop' and result['input'][-1]['status'] == 'completed'
         idle = mapped_messages['msg_vis38_idle_' + original['id']]
         assert idle['outcome'] == 'succeeded' and idle['time']['created'] == message['time']['completed']
-for notification in goldens['notifications']:
-    if notification['native_context']['typed_snapshot']['ordinal'] > entry['native_context']['typed_snapshot']['ordinal']:
+notifications = list(entry['native_context']['prior_notifications'])
+if not entry['native_context'].get('reference_delivery'):
+    notifications.append({'operation_id': entry['native_context']['operation_id'],
+                          'before_message_id': actual_context[-1]['id'], 'payload': entry['payload']})
+stored_runs = {r['operation_id']: json.loads(r['snapshot']) for r in rows('dcp_run_views')}
+assert len(notifications) == len(stored_runs) == 3
+assert {n['operation_id'] for n in notifications} == set(stored_runs)
+expected_reports = set()
+for notification in notifications:
+    report_id = 'msg_vis38_dcp_' + str(stored_runs[notification['operation_id']]['ordinal'])
+    if notification['payload'] is None:
+        assert report_id not in mapped_messages, 'Off/toast must not import a persistent report'
         continue
-    report = mapped_messages['msg_vis38_dcp_' + str(notification['native_context']['typed_snapshot']['ordinal'])]
+    expected_reports.add(report_id)
+    report = mapped_messages[report_id]
     assert report['text'] == notification['payload']
-    assert report['metadata']['vis38_native']['operation_id'] == notification['native_context']['operation_id']
+    assert report['metadata']['vis38_native']['operation_id'] == notification['operation_id']
     report_index = mapping['transfer']['messages'].index(report)
-    assert mapping['transfer']['messages'][report_index + 1]['id'] == 'msg_vis38_native_' + notification['native_context']['messages'][-1]['id']
+    assert mapping['transfer']['messages'][report_index + 1]['id'] == 'msg_vis38_native_' + notification['before_message_id']
+assert {identity for identity in mapped_messages if identity.startswith('msg_vis38_dcp_')} == expected_reports
 
 capture_evidence = read(native / ('native-capture-' + stage + '.json'))
 assert capture_evidence['exit_code'] == 0

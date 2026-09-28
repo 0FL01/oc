@@ -1,0 +1,78 @@
+{
+  "config": {
+    "model": "fixture/vis38-native-model",
+    "plugin": [
+      "@tarquinen/opencode-dcp@3.1.15"
+    ],
+    "permissions": {
+      "*": "deny",
+      "compress": "allow"
+    },
+    "provider": {
+      "fixture": {
+        "name": "VIS38 Display Fixture",
+        "npm": "@ai-sdk/openai",
+        "options": {
+          "baseURL": "http://127.0.0.1:36691/v1",
+          "apiKey": "offline-fixture-not-a-secret"
+        },
+        "models": {
+          "vis38-native-model": {
+            "name": "VIS38 Display Model",
+            "limit": {
+              "context": 1000000,
+              "output": 64000
+            }
+          }
+        }
+      }
+    }
+  },
+  "cli": {
+    "session": {
+      "sidebar": "hide",
+      "tps": false
+    },
+    "tabs": {
+      "layout": "horizontal"
+    },
+    "theme": {
+      "name": "opencode",
+      "mode": "dark"
+    },
+    "animations": false,
+    "attention": {
+      "notifications": false,
+      "sound": false
+    },
+    "cursor": {
+      "style": "block",
+      "blinking": false
+    },
+    "debug": {
+      "devtools": false
+    }
+  },
+  "dcp": {
+    "enabled": true,
+    "autoUpdate": false,
+    "pruneNotification": "detailed",
+    "pruneNotificationType": "chat",
+    "compress": {
+      "mode": "range",
+      "permission": "allow",
+      "showCompression": true,
+      "minContextLimit": 1000000,
+      "maxContextLimit": 1000000
+    },
+    "strategies": {
+      "deduplication": {
+        "enabled": false
+      },
+      "purgeErrors": {
+        "enabled": false
+      }
+    }
+  },
+  "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-13/project"
+}

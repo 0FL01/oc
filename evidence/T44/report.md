@@ -2,7 +2,48 @@
 
 **Execution resumed by the owner's changed-plan instruction. T52 R0–R7 /
 ARCH01–ARCH05 is complete and delivered; T44 was restored through the journal.
-T44 remains incomplete, with no full VIS38/V09 or product READY claim.**
+T44 remains incomplete: VIS38 is now qualified below, but V09 and product READY
+are not claimed.**
+
+## Current VIS38 closure (2026-09-28)
+
+[`dcp-report20260928-07.md`](../tui/recovery-v00/dcp-report20260928-07.md)
+closes the frozen VIS38 obligations using actual compression/public DTO/replay
+and resource gates, then the unchanged pinned formatter and actual OC2 renderer.
+Parent review verified all 18 source/helper/map paths against the captured
+`dcp-closure20260928-source04.patch`. Fresh independent re-audits
+`dcp-pair-check20260928-24.json` through `-28.json` confirm **15 full frame pairs,
+72,000 exact styled cells, 15 exact cursors, 15 byte-identical PNG pairs and
+9,709,440 equal decoded pixels**, without masks or normalization. Detailed/chat
+with summaries hidden/shown, minimal, off and toast replay each cover all three
+approved sizes. The short-tail off/Unicode failure was fixed and directly
+rechecked at the original seven-turn state, not avoided by adding history.
+
+Actual public multi-range `ToolCallFinished.dcp` equals queried `ToolOpView.dcp`;
+real pending/finished events reach TuiState, summaries are bounded UTF-8 pages,
+Undo/Redo and reopen do not replay generation. The production router rejects
+foreign-session, child and obsolete-turn events without parent view/query changes.
+Current `/dcp` is a read-only stats command. Shared negative/formatting/lifecycle
+tests and actual resource probes complete the directed obligation table rather
+than repeat a viewport×negative-state matrix. Equal active DCP accounting with
+49,152,000 older archive bytes measured HWM35,904→37,448KiB, eight OS threads/tasks,
+zero children, bounded retained rows/cache/preview and zero replay requests.
+
+Final source fmt, locked workspace tests (**1195 passed, zero failed, nine
+unchanged opt-in ignored**), strict all-target Clippy, debug/release builds and
+help PASS in `dcp-closure20260928-*-04.log`. Parent independently repeated the
+actual public DTO seam and production routing tests, Python helper/journal/docs
+tests, xterm frontend/geometry and diff checks, all PASS. Debug capture SHA
+`8aac8684f95656dd6fbbfbe6876095491f7eb9188a40f9ced7d0b6e3a866b48e`;
+release `850e6f4a66cf5311544156176caea1d72958216811be75d129089a950c9850dd`.
+No authenticated calls, native fixture injection or old JS-plugin compatibility
+claim. M/promotion and bounded transient native toast remain named differences.
+
+Remaining work is full T44/V09 and GOAL A01–A13: next shared T47/VAR01 ordering
+prerequisite, then outstanding presentation/backend slices. No full product
+completion follows from this VIS38 PASS. Earlier checkpoints below are history.
+
+## Earlier post-T52 continuation
 
 The first post-T52 continuation qualifies detailed/chat recompression with real
 saved summaries (`showCompression=true`), including prior multi-range headings.

@@ -2051,6 +2051,39 @@ fn golden_long_lines_wrap_without_loss() {
 }
 
 #[test]
+fn vis38_off_long_user_wrap_keeps_continuity_across_preview_byte_boundaries() {
+    // The off 160x48 actual pair exposed a different last user line after
+    // independent 4096-byte chunks restarted word wrapping. U34 wraps one text.
+    let text = format!(
+        "VIS38 seed C: closed analysis, retain requirement C. {}",
+        "Closed analysis 日本語 résumé 👩‍💻 e\u{301}. ".repeat(300)
+    );
+    let rows = [user(&text, Vec::new())];
+    let theme = Theme::dark();
+    for width in [76, 116, 156] {
+        let full = transcript(&rows, theme, width, width + 4, |_| theme.primary());
+        let cache = RefCell::new(MarkdownCache::default());
+        let (indexed, total) = visible_transcript(
+            &rows,
+            theme,
+            width,
+            width + 4,
+            (10_000, 0, None),
+            |_| theme.primary(),
+            &cache,
+        );
+        assert_eq!(total, full.len() + 1);
+        assert_eq!(
+            indexed,
+            std::iter::once(Line::plain(""))
+                .chain(full)
+                .collect::<Vec<_>>(),
+            "width={width}"
+        );
+    }
+}
+
+#[test]
 fn vis38_summary_wrapper_keeps_source_separator_foreground_at_word_wrap() {
     // Unchanged pinned D05 multi-range payload through original U34 <text>:
     // dcp-pair-check20260928-07.json, (110,3) at 120x40 and (152,12) at 160x48.

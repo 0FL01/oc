@@ -33,7 +33,7 @@ use oc_tui::app::{
 use oc_tui::commands::{CommandAction, dispatch};
 use oc_tui::dcp_panel::DcpOutcome;
 use oc_tui::events::{KeyAction, UiEvent, map_event};
-use oc_tui::shell::{StartupFailure, render_startup_failure};
+use oc_tui::shell::{StartupFailure, render_background, render_startup_failure};
 use oc_tui::terminal::{enter, install_panic_hook};
 use oc_tui::views::render_frame;
 
@@ -934,6 +934,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
     // Mio reader with a second stdin readiness poller can lose edge events.
     let mut input = event::EventStream::new();
     let mut dirty = true;
+    let mut first_paint = true;
     let mut paint_at = Instant::now();
     let mut worker_ready = None;
     let mut input_pending = std::collections::VecDeque::new();
@@ -1020,6 +1021,15 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             let draw_start = frame_metrics
                 .as_ref()
                 .map(|_| (Instant::now(), monotonic_ns()));
+            if first_paint {
+                // Establish base cells before the first content diff, just as
+                // subsequent frames inherit an already painted root canvas.
+                // Include this one-time paint in the same measured UI wake.
+                terminal
+                    .draw(render_background)
+                    .map_err(|e| format!("draw background: {e}"))?;
+                first_paint = false;
+            }
             let painted = terminal
                 .draw(|frame| render_frame(frame, &state))
                 .map_err(|e| format!("draw: {e}"))?;

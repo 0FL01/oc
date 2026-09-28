@@ -1,0 +1,9 @@
+{
+  "binary": "/home/opencode/ai/oc/target/debug/oc",
+  "case": "native-off",
+  "columns": 120,
+  "rows": 40,
+  "goldens": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-native20260928-10/native-tui-off-spec.json",
+  "isolated_root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-nativecapture-dcp-native20260928-10-off-897412ce3569/native-off-120x40",
+  "native_spec": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-native20260928-10/native-tui-off-spec.json"
+}

@@ -1,0 +1,9 @@
+   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.18s
+     Running tests/recovery_v02.rs (target/debug/deps/recovery_v02-6d0891f0aa7d1192)
+
+running 1 test
+test binary_restart_projects_real_metadata_and_parts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.62s
+

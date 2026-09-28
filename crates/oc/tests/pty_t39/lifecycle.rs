@@ -1284,3 +1284,204 @@ fn s07_pty_equal_view_archive_resource_samples() {
         );
     }
 }
+
+/// Same shared process/PTY/view probes with a genuinely committed DCP card and
+/// bounded saved-summary queries. The archive setup and actual manual commit
+/// precede measurement; reopening/display/stats are the measured hot path.
+#[test]
+fn vis38_pty_dcp_equal_active_archive_resource_samples() {
+    let small = measure_vis38_dcp_display(0);
+    let large = measure_vis38_dcp_display(3000);
+    assert_eq!(
+        small.0, large.0,
+        "same active compressed contents/accounting"
+    );
+    assert!(
+        large.1.hwm_kb <= small.1.hwm_kb + 64 * 1024,
+        "shared AUD32 64MiB equal-active peak delta"
+    );
+    assert!(
+        large.1.pss_kb <= small.1.pss_kb + 64 * 1024,
+        "equal-active PSS delta"
+    );
+    assert_eq!(
+        small.1.threads, large.1.threads,
+        "archive does not create OS tasks/threads"
+    );
+}
+
+fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
+    let fixture = Fixture::new();
+    let project = fixture.root.path().join("project");
+    std::fs::write(project.join("dcp.jsonc"), serde_json::json!({
+        "enabled":true,"autoUpdate":false,"pruneNotification":"detailed","pruneNotificationType":"chat",
+        "compress":{"mode":"range","permission":"allow","showCompression":true,"minContextLimit":1000000,"maxContextLimit":1000000},
+        "strategies":{"deduplication":{"enabled":false},"purgeErrors":{"enabled":false}}
+    }).to_string()).unwrap();
+    let config = fixture
+        .root
+        .path()
+        .join("home/config/opencode/opencode.json");
+    let mut settings: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&config).unwrap()).unwrap();
+    settings["provider"]["fixture"]["models"][MODEL]["limit"]["context"] =
+        serde_json::json!(262144);
+    std::fs::write(config, settings.to_string()).unwrap();
+    let session = "s-vis38-resource";
+    seed_session(&fixture.data_dir(), &project, session, 0);
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    db.apply_dcp_schema().unwrap();
+    let mut end = None;
+    for i in 0..archive {
+        end = Some(
+            db.append_message(
+                session,
+                if i.is_multiple_of(2) {
+                    "user"
+                } else {
+                    "assistant"
+                },
+                &format!("archive-{i:04} {}", "x".repeat(16 * 1024)),
+            )
+            .unwrap(),
+        );
+        // Real bounded prune commits, not a synthetic mark that bypasses the
+        // owner's active-input cap for this deliberately 48MiB raw archive.
+        if (i + 1) % 64 == 0 {
+            db.save_prune_mark(session, end.as_ref().unwrap()).unwrap();
+        }
+    }
+    if let Some(id) = end {
+        db.save_prune_mark(session, &id).unwrap();
+    }
+    for i in 0..4 {
+        db.append_message(
+            session,
+            if i % 2 == 0 { "user" } else { "assistant" },
+            &format!("active-{i} {}", "closed requirement ".repeat(1000)),
+        )
+        .unwrap();
+    }
+    drop(db);
+    let mut prepare = PtySession::spawn_sized(fixture.clone(), session, None, 120, 40);
+    prepare.wait_visible(READY, DEADLINE);
+    prepare.send(format!("/dcp-compress {VIS38_RESOURCE_FOCUS}\r").as_bytes());
+    fixture.wait_requests(2);
+    wait_screen_row(&prepare, "compressions 1", DEADLINE);
+    prepare.send(b"\x1b");
+    wait_screen_row(&prepare, "answer:compressed", DEADLINE);
+    wait_idle(&prepare);
+    prepare.send(b"\x03");
+    std::thread::sleep(POLL);
+    prepare.send(b"\x03");
+    let (status, _) = prepare.wait_exit(DEADLINE);
+    assert!(status.success() && prepare.restored());
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    let ops = db.list_tool_ops(session).unwrap();
+    assert_eq!(ops.len(), 1);
+    let run = db
+        .dcp_run(session, &ops[0].op)
+        .unwrap()
+        .expect("actual committed resource operation");
+    // The manual route protects the last legacy anchor as unfinished. Its
+    // actual advertised closed span covers the other three seeded messages.
+    assert_eq!(
+        (run.new_messages, run.block_ids.len(), run.ordinal),
+        (3, 1, 1)
+    );
+    let raw_before = db.read_history_full(session).unwrap();
+    drop(db);
+    let request_count = fixture.requests.lock().unwrap().len();
+    let metrics_path = fixture.root.path().join("vis38-resource-metrics.json");
+    let mut pty = PtySession::spawn_sized(fixture.clone(), session, Some(&metrics_path), 120, 40);
+    wait_screen_row(&pty, "Compression #1", DEADLINE);
+    wait_screen_row(&pty, "summary preview limited", DEADLINE);
+    let pid = pty.child.id();
+    let mut peak = s07_proc_sample(pid);
+    let baseline_cpu = peak.cpu_ticks;
+    let began = Instant::now();
+    let mut sample = |pty: &PtySession| {
+        let now = s07_proc_sample(pty.child.id());
+        peak.rss_kb = peak.rss_kb.max(now.rss_kb);
+        peak.pss_kb = peak.pss_kb.max(now.pss_kb);
+        peak.hwm_kb = peak.hwm_kb.max(now.hwm_kb);
+        peak.children = peak.children.max(now.children);
+        peak.threads = peak.threads.max(now.threads);
+        peak.cpu_ticks = now.cpu_ticks;
+    };
+    pty.send(b"/dcp\r");
+    wait_screen_row(&pty, "compressions 1", DEADLINE);
+    sample(&pty);
+    pty.send(b"\x1b");
+    for (cols, rows) in [(80, 24), (160, 48), (120, 40)] {
+        let offset = pty.snapshot().len();
+        pty.resize(cols, rows);
+        // At 80x24 the long preview pushes its header above the viewport; wait
+        // for the real preview tail, not a header that is honestly offscreen.
+        pty.wait_visible_after(offset, "summary", DEADLINE);
+        wait_screen_row(&pty, "summary preview limited", DEADLINE);
+        sample(&pty);
+    }
+    pty.send(b"\x03");
+    std::thread::sleep(POLL);
+    pty.send(b"\x03");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+    assert!(
+        !Path::new(&format!("/proc/{pid}")).exists(),
+        "measured child and OS tasks reaped"
+    );
+    assert_eq!(peak.children, 0);
+    assert_eq!(
+        fixture.requests.lock().unwrap().len(),
+        request_count,
+        "reopen/summary/stats/resize do not generate"
+    );
+    let metrics: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(metrics_path).unwrap()).unwrap();
+    assert!(metrics["window_rows"].as_u64().unwrap() <= oc_tui::history::WINDOW_ROWS as u64);
+    assert!(
+        metrics["retained_bytes"].as_u64().unwrap()
+            <= (oc_tui::history::WINDOW_BYTES + oc_tui::app::MAX_INPUT_BYTES) as u64
+    );
+    let route_count = metrics["tab_count"].as_u64().unwrap() + 1;
+    assert!(
+        metrics["markdown_cache_retained_bytes_peak"]
+            .as_u64()
+            .unwrap()
+            <= route_count * (512 * 1024 + 2 * 1024 * 1024)
+    );
+    assert_eq!(metrics["worker_event_queue_lagged"].as_u64(), Some(0));
+    assert!(metrics["worker_event_queue_peak"].as_u64().unwrap() <= 256);
+    assert_eq!(metrics["live_text_bytes_current"].as_u64(), Some(0));
+    assert_eq!(metrics["live_part_count_current"].as_u64(), Some(0));
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    assert_eq!(db.read_history_full(session).unwrap(), raw_before);
+    assert_eq!(
+        db.dcp_run(session, &run.operation_id).unwrap(),
+        Some(run.clone())
+    );
+    println!(
+        "VIS38 S07 DCP archive={archive} archive_source_bytes={} rss_kb={} pss_kb={} hwm_kb={} os_tasks_threads={} children={} cpu_ticks={} elapsed_ms={} retained_bytes={} window_rows={} queue_peak={} queue_lagged={} markdown_cache_peak={} frames={} draw_max_ns={} replay_requests=0 actual_runs=1 summary_page_limit={}",
+        archive * 16 * 1024,
+        peak.rss_kb,
+        peak.pss_kb,
+        peak.hwm_kb,
+        peak.threads,
+        peak.children,
+        peak.cpu_ticks.saturating_sub(baseline_cpu),
+        began.elapsed().as_millis(),
+        metrics["retained_bytes"],
+        metrics["window_rows"],
+        metrics["worker_event_queue_peak"],
+        metrics["worker_event_queue_lagged"],
+        metrics["markdown_cache_retained_bytes_peak"],
+        metrics["frame_count"],
+        metrics["frame_max_ns"],
+        oc_tui::dcp_view::SUMMARY_PAGE_BYTES
+    );
+    (
+        (run.removed, run.summary, run.cumulative.active_summary),
+        peak,
+    )
+}

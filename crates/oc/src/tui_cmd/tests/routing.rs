@@ -1,6 +1,75 @@
 use super::*;
 
 #[tokio::test]
+async fn vis38_late_dcp_other_session_child_and_old_turn_never_touch_parent_view_or_query() {
+    use oc_core::dcp_view::{DcpAccounting, DcpRunSnapshot};
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let parent = SessionId::new("dcp-parent").unwrap();
+    let current = WorkerTurnId("current-generation".into());
+    let mut state = TuiState::new(app.clone(), parent.clone());
+    state.restore_prompt("active parent request".into());
+    state.handle_key(KeyAction::Enter).await;
+    let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+        panic!("parent submission")
+    };
+    ack.send(Ok(current.clone())).unwrap();
+    state.poll_submission();
+    assert_eq!(state.active_turn(), Some(&current));
+    let before = state.transcript_lines(100, 100);
+    let mut deck = LoopState::default();
+    for (owner, turn) in [
+        (SessionId::new("dcp-other").unwrap(), current.clone()),
+        (SessionId::new("dcp-child").unwrap(), current.clone()),
+        (parent.clone(), WorkerTurnId("obsolete-generation".into())),
+    ] {
+        let event = CoreEvent::ToolCallFinished {
+            session: owner.clone(),
+            turn,
+            op: "late-operation".into(),
+            name: "compress".into(),
+            state: "completed".into(),
+            output: "successful-looking untrusted output".into(),
+            output_bytes: 44,
+            output_truncated: false,
+            patch_effects: None,
+            dcp: Some(DcpRunSnapshot {
+                session: owner.0,
+                operation_id: "late-operation".into(),
+                ordinal: 42,
+                topic: "late child must not affect parent".into(),
+                block_ids: vec!["foreign-block".into()],
+                removed: 10000,
+                summary: 42,
+                net_saved: 9958,
+                method: Default::default(),
+                new_messages: 2,
+                new_tools: 1,
+                cumulative: DcpAccounting {
+                    gross_removed: 10000,
+                    compressions: 42,
+                    complete: true,
+                    ..Default::default()
+                },
+                bar: "⣿".repeat(50),
+            }),
+        };
+        tokio::time::timeout(
+            Duration::from_millis(250),
+            handle_worker_event(&app, &mut state, &mut deck, &parent, event),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert_eq!(state.transcript_lines(100, 100), before);
+        assert!(state.note().is_none());
+        assert!(
+            inbox.try_recv().is_err(),
+            "late event must not refresh parent counters or summaries"
+        );
+    }
+}
+
+#[tokio::test]
 async fn vis26_key_burst_only_queries_latest_and_route_swap_cancels_old_view() {
     let (app, mut inbox, _) = CoreApp::channel(8);
     let mut state = TuiState::new_home(app.clone());

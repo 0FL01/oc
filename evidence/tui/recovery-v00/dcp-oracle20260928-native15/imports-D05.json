@@ -1,0 +1,31 @@
+{
+  "original_sha256": "626a8978c1386ea206ae1600642a0c268e00f6db85b30670049dd2d33ffb319b",
+  "executable_sha256": "4c1b1276400f408a2855a0bacb2db55d4f2c4f612d1f4ec71dc67c78e0d88f0b",
+  "changes": [
+    {
+      "original": "import type { Logger } from \"../logger\"\n",
+      "replacement": ""
+    },
+    {
+      "original": "import type { SessionState } from \"../state\"\n",
+      "replacement": ""
+    },
+    {
+      "original": "import {\n    formatPrunedItemsList,\n    formatProgressBar,\n    formatStatsHeader,\n    formatTokenCount,\n} from \"./utils\"\n",
+      "replacement": "import {\n    formatPrunedItemsList,\n    formatProgressBar,\n    formatStatsHeader,\n    formatTokenCount,\n} from \"./utils.ts\"\n"
+    },
+    {
+      "original": "import { ToolParameterEntry } from \"../state\"\n",
+      "replacement": ""
+    },
+    {
+      "original": "import { PluginConfig } from \"../config\"\n",
+      "replacement": ""
+    },
+    {
+      "original": "import { getActiveSummaryTokenUsage } from \"../state/utils\"\n\n",
+      "replacement": "import { getActiveSummaryTokenUsage } from \"./state-utils.ts\"\n\n"
+    }
+  ],
+  "body_change": false
+}

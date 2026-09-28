@@ -1,0 +1,19 @@
+{
+  "original_sha256": "3a7f92b604906530d7494511d07330db3c2b6d8ad695c8cea3bca2b819fec7cb",
+  "executable_sha256": "b19cd1ba916531f833776b828d5d28f2c44f61d050e003b66f01ab5f15045241",
+  "changes": [
+    {
+      "original": "import { SessionState, ToolParameterEntry, WithParts } from \"../state\"\n",
+      "replacement": ""
+    },
+    {
+      "original": "import { countTokens } from \"../token-utils\"\n",
+      "replacement": "import { countTokens } from \"./services.ts\"\n"
+    },
+    {
+      "original": "import { isIgnoredUserMessage } from \"../messages/query\"\n\n",
+      "replacement": "import { isIgnoredUserMessage } from \"./services.ts\"\n\n"
+    }
+  ],
+  "body_change": false
+}

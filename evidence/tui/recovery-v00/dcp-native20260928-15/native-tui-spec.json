@@ -1,0 +1,26 @@
+{
+  "binary": "/home/opencode/ai/oc/target/debug/oc",
+  "origin": "oc",
+  "session": "s-vis38-actual-owner",
+  "isolated_root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-15",
+  "argv": [
+    "/home/opencode/ai/oc/target/debug/oc",
+    "tui",
+    "--session",
+    "s-vis38-actual-owner"
+  ],
+  "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-15/project",
+  "env": {
+    "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-15/home",
+    "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-15/home/config",
+    "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-15/home/data",
+    "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-15/home/cache",
+    "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native20260928-15/home/state",
+    "OC_TEST_ALLOW_LOOPBACK": "1",
+    "PATH": "/usr/bin:/bin",
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "TZ": "UTC"
+  },
+  "note": "Use the same real saved owner session for deferred native PTY; no transcript/snapshot injection"
+}

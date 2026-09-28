@@ -241,6 +241,11 @@ pub fn wrap_source_space_line_limited(line: &Line, width: usize, limit: usize) -
     wrap_line_with_space_mode(line, width, limit, true, false)
 }
 
+/// Stream the same source-space rows without retaining a whole long message.
+pub(crate) fn visit_source_space_line(line: &Line, width: usize, emit: impl FnMut(Line)) {
+    visit_wrapped_line(line, width, usize::MAX, true, false, emit);
+}
+
 /// Plain permission text uses OpenTUI word boundaries (including hyphens),
 /// with a grapheme-safe fallback for a resource longer than the available row.
 pub(crate) fn wrap_permission_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
@@ -259,8 +264,30 @@ fn wrap_line_with_space_mode(
     preserve_break_space: bool,
     hyphen_breaks: bool,
 ) -> Vec<Line> {
+    let mut out = Vec::new();
+    visit_wrapped_line(
+        line,
+        width,
+        limit,
+        preserve_break_space,
+        hyphen_breaks,
+        |row| {
+            out.push(row);
+        },
+    );
+    out
+}
+
+fn visit_wrapped_line(
+    line: &Line,
+    width: usize,
+    limit: usize,
+    preserve_break_space: bool,
+    hyphen_breaks: bool,
+    mut emit: impl FnMut(Line),
+) {
     let max = width.max(1);
-    let mut out: Vec<Vec<(String, Style)>> = Vec::new();
+    let mut emitted = 0;
     let mut current: Vec<(String, Style)> = Vec::new();
     let mut used = 0usize;
     // Index just past the last space run in `current`; a wrap can break there.
@@ -270,7 +297,7 @@ fn wrap_line_with_space_mode(
     let mut continuation = false;
     for span in line.spans() {
         for glyph in span.content().graphemes(true) {
-            if out.len() >= limit {
+            if emitted >= limit {
                 break;
             }
             let cells = UnicodeWidthStr::width(glyph);
@@ -308,7 +335,8 @@ fn wrap_line_with_space_mode(
                                 head.pop();
                             }
                         }
-                        out.push(head);
+                        emit(Line::new(coalesce(head)));
+                        emitted += 1;
                         current = rest;
                         used = current
                             .iter()
@@ -316,7 +344,8 @@ fn wrap_line_with_space_mode(
                             .sum();
                     }
                     None => {
-                        out.push(std::mem::take(&mut current));
+                        emit(Line::new(coalesce(std::mem::take(&mut current))));
+                        emitted += 1;
                         used = 0;
                     }
                 }
@@ -332,12 +361,9 @@ fn wrap_line_with_space_mode(
             }
         }
     }
-    if out.len() < limit && (!current.is_empty() || out.is_empty()) {
-        out.push(current);
+    if emitted < limit && (!current.is_empty() || emitted == 0) {
+        emit(Line::new(coalesce(current)));
     }
-    out.into_iter()
-        .map(|cells| Line::new(coalesce(cells)))
-        .collect()
 }
 
 /// Wrap every line, preserving the row order.

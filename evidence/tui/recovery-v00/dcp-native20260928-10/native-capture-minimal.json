@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/usr/bin/node",
+    "/home/opencode/ai/oc/scripts/tui_capture/dcp_reference_capture.mjs",
+    "--native-spec",
+    "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-native20260928-10/native-tui-minimal-spec.json",
+    "--output",
+    "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-10-minimal"
+  ],
+  "exit_code": 0,
+  "stdout": "{\"output\":\"/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-10-minimal\",\"captures\":3,\"attempts\":[{\"name\":\"native-minimal-80x24\",\"status\":\"PASS_NATIVE_STAGE_CAPTURE\",\"genuine_session\":true},{\"name\":\"native-minimal-120x40\",\"status\":\"PASS_NATIVE_STAGE_CAPTURE\",\"genuine_session\":true},{\"name\":\"native-minimal-160x48\",\"status\":\"PASS_NATIVE_STAGE_CAPTURE\",\"genuine_session\":true}]}\n",
+  "stderr": "",
+  "output": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-10-minimal",
+  "lock_sha256": "e912a5000b82859dbed90f86d6d2da480669611e92144b5315349f84893a26b2",
+  "provider_requests_before": 11,
+  "provider_requests_after": 11
+}
