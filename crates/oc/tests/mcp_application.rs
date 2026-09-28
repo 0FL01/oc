@@ -37,6 +37,9 @@ const READY: &str = "Untitled session";
 const IO_TIMEOUT: Duration = Duration::from_secs(2);
 const POLL: Duration = Duration::from_millis(10);
 
+#[path = "mcp_application/config_admission.rs"]
+mod config_admission;
+
 #[test]
 fn pending_edit_screen_accepts_fragmented_cursor_updates_not_raw_substrings() {
     let bytes = concat!(
@@ -2629,8 +2632,12 @@ fn v01_anonymous_remote_and_codex_required_auth() {
     );
     let diagnostic = process.diagnostics();
     assert!(
-        diagnostic.contains("warning: mcp codex_web config: invalid_config (retryable=false)"),
+        diagnostic.contains("warning: mcp codex_web config: missing_credential (retryable=false)"),
         "{diagnostic}"
+    );
+    assert!(
+        diagnostic.contains("mcp.codex_web.headers.authorization"),
+        "R6 safe field details"
     );
     assert_eq!(
         mcp.records().len(),

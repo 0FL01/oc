@@ -2,9 +2,9 @@
 //!
 //! Spawn from an exact retained argv over rmcp's child-process transport:
 //! JSON-RPC on stdout, bounded redacted stderr, TERM→KILL reap ladder,
-//! restart from the same config generation. The child environment is
-//! minimal (`env_clear` + PATH/HOME/TMPDIR/locale allowlist) and never shares
-//! provider/MCP credentials. Each child owns a dedicated process group, so
+//! restart from the same config generation. The child receives the admitted
+//! product-process environment plus configured overlay. Credential-domain
+//! decisions precede inheritance. Each child owns a dedicated process group, so
 //! wrapper descendants are cleaned without signalling the runner group.
 //! `enabled: false` spawns nothing and probes nothing: no process, no Node
 //! requirement.
@@ -37,7 +37,7 @@ const STDERR_DRAIN_TIMEOUT: Duration = Duration::from_secs(1);
 /// Typed stdio errors (no secrets, no child output contents).
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum StdioError {
-    /// Misconfiguration (bad argv, credential-named extra env, OAuth/Code Mode).
+    /// Misconfiguration (bad argv/env, OAuth/Code Mode, failed admission).
     #[error("invalid stdio config")]
     InvalidConfig,
     /// `enabled: false`: zero spawn, zero probe.
@@ -52,6 +52,9 @@ pub enum StdioError {
     /// MCP transport or protocol failure (kind only).
     #[error("transport error")]
     Transport,
+    /// Initialize cannot upgrade this legacy adapter to the modern lifecycle.
+    #[error("stdio protocol mismatch")]
+    ProtocolMismatch,
     /// Owned process/task teardown did not complete successfully.
     #[error("stdio cleanup failed")]
     CleanupFailed,
@@ -87,12 +90,16 @@ pub struct StdioConfig {
     pub argv: Vec<String>,
     /// Trusted project cwd; manually constructed configs may omit it.
     pub cwd: Option<PathBuf>,
-    /// Minimal child env; only PATH/HOME/TMPDIR/LANG/LC_* are accepted.
+    /// Complete admitted child environment, already overlaid by its owner.
     pub extra_env: Vec<(String, String)>,
     /// Secrets redacted from stderr snapshots (values never logged).
     pub secrets: Vec<String>,
     /// Per-operation timeout.
     pub timeout: Duration,
+    /// Handshake deadline; None retains manual transport-config compatibility.
+    pub startup_timeout: Option<Duration>,
+    /// Discovery deadline; None retains manual transport-config compatibility.
+    pub catalog_timeout: Option<Duration>,
     /// `false` refuses to spawn or probe anything.
     pub enabled: bool,
 }
@@ -109,6 +116,8 @@ impl std::fmt::Debug for StdioConfig {
             )
             .field("secrets", &"<redacted>")
             .field("timeout", &self.timeout)
+            .field("startup_timeout", &self.startup_timeout)
+            .field("catalog_timeout", &self.catalog_timeout)
             .field("enabled", &self.enabled)
             .finish()
     }
@@ -122,17 +131,22 @@ impl StdioConfig {
         }
         if self.server_id.trim().is_empty()
             || self.argv.is_empty()
-            || self
-                .argv
-                .iter()
-                .any(|arg| arg.is_empty() || arg.contains('\0'))
+            || self.argv.iter().any(|arg| arg.contains('\0'))
+            || self.argv[0].is_empty()
+            || [
+                self.timeout,
+                self.startup_timeout.unwrap_or(self.timeout),
+                self.catalog_timeout.unwrap_or(self.timeout),
+            ]
+            .iter()
+            .any(|d| d.is_zero() || tokio::time::Instant::now().checked_add(*d).is_none())
         {
             return Err(StdioError::InvalidConfig);
         }
         let mut names = HashSet::new();
         for (name, value) in &self.extra_env {
-            if !is_allowed_env_name(name)
-                || is_credential_name(name)
+            if name.is_empty()
+                || name.contains('=')
                 || !names.insert(name)
                 || name.as_bytes().contains(&0)
                 || value.as_bytes().contains(&0)
@@ -163,6 +177,8 @@ impl StdioConfig {
             || !entry.enabled
             || entry.oauth
             || entry.codemode == Some(true)
+            || entry.protocol != "legacy"
+            || entry.failure.is_some()
             || entry.command.is_empty()
         {
             if entry.kind == "local" && !entry.enabled {
@@ -170,31 +186,49 @@ impl StdioConfig {
             }
             return Err(StdioError::InvalidConfig);
         }
-        let secrets: Vec<String> = parent_env
+        let mut secrets: Vec<String> = parent_env
             .iter()
             .filter(|(name, value)| is_credential_name(name) && !value.is_empty())
             .map(|(_, value)| value.clone())
             .collect::<BTreeSet<_>>()
             .into_iter()
             .collect();
-        let extra_env = parent_env
+        secrets.extend(entry.blocked_inherited_values.iter().cloned());
+        let mut extra_env: BTreeMap<String, String> = parent_env
             .iter()
             .filter(|(name, value)| {
-                is_allowed_env_name(name)
-                    && !is_credential_name(name)
-                    && !secrets
-                        .iter()
-                        .any(|secret| !secret.is_empty() && value.contains(secret))
+                entry.inherit_credentials
+                    || (!is_credential_name(name)
+                        && !secrets
+                            .iter()
+                            .any(|secret| !secret.is_empty() && value.contains(secret)))
             })
             .map(|(name, value)| (name.clone(), value.clone()))
             .collect();
+        extra_env.extend(entry.environment.clone());
+        secrets.extend(entry.environment.values().cloned());
+        let cwd = entry
+            .cwd
+            .as_ref()
+            .map_or_else(|| project_cwd.to_path_buf(), |cwd| project_cwd.join(cwd));
+        let cwd = cwd.canonicalize().map_err(|_| StdioError::InvalidConfig)?;
+        if !cwd.is_dir()
+            || (!entry.resource_admitted && !cwd.starts_with(project_cwd))
+            || (entry.resource_admitted && entry.cwd.as_deref() != cwd.to_str())
+        {
+            return Err(StdioError::InvalidConfig);
+        }
         let config = Self {
             server_id: server_id.to_string(),
             argv: entry.command.clone(),
-            cwd: Some(project_cwd.to_path_buf()),
-            extra_env,
+            cwd: Some(cwd),
+            extra_env: extra_env.into_iter().collect(),
             secrets,
-            timeout: Duration::from_millis(entry.timeout.unwrap_or(60_000)),
+            timeout: Duration::from_millis(entry.timeouts.execution_ms(entry.timeout)),
+            startup_timeout: Some(Duration::from_millis(entry.timeouts.startup_ms())),
+            catalog_timeout: Some(Duration::from_millis(
+                entry.timeouts.catalog_ms(entry.timeout),
+            )),
             enabled: true,
         };
         config.validate()?;
@@ -202,17 +236,17 @@ impl StdioConfig {
     }
 }
 
-fn is_allowed_env_name(name: &str) -> bool {
-    matches!(name, "PATH" | "HOME" | "TMPDIR" | "LANG")
-        || name
-            .strip_prefix("LC_")
-            .is_some_and(|suffix| !suffix.is_empty())
-}
-
-fn is_credential_name(name: &str) -> bool {
+pub(crate) fn is_credential_name(name: &str) -> bool {
     let upper = name.to_ascii_uppercase();
     [
-        "KEY", "TOKEN", "SECRET", "PASSWORD", "AUTH", "COOKIE", "BEARER",
+        "KEY",
+        "TOKEN",
+        "SECRET",
+        "PASSWORD",
+        "AUTH",
+        "COOKIE",
+        "BEARER",
+        "CREDENTIAL",
     ]
     .iter()
     .any(|marker| upper.contains(marker))
@@ -357,7 +391,10 @@ fn snapshot(log: &Arc<Mutex<StderrLog>>, secrets: &[String]) -> StderrSnapshot {
 
 fn redact_text(text: &str, secrets: &[String]) -> String {
     let mut text = text.to_string();
-    for secret in secrets {
+    let mut ordered: Vec<_> = secrets.iter().filter(|s| !s.is_empty()).collect();
+    ordered.sort_by_key(|s| std::cmp::Reverse(s.len()));
+    ordered.dedup();
+    for secret in ordered {
         if !secret.is_empty() {
             text = text.replace(secret.as_str(), "***");
         }
@@ -365,11 +402,15 @@ fn redact_text(text: &str, secrets: &[String]) -> String {
     text
 }
 
-/// Resolve `argv0`: absolute when it names a path, otherwise from the retained
-/// allowlisted PATH (with a read-only parent fallback for manual configs).
-fn resolve_bin(argv0: &str, child_env: &[(String, String)]) -> Result<PathBuf, StdioError> {
+/// Resolve paths from cwd and the retained admitted PATH. When PATH is absent,
+/// use the POSIX system default, never re-read a possibly withheld process PATH.
+fn resolve_bin(
+    argv0: &str,
+    child_env: &[(String, String)],
+    cwd: &Path,
+) -> Result<PathBuf, StdioError> {
     if argv0.contains('/') {
-        let path = PathBuf::from(argv0);
+        let path = cwd.join(argv0);
         if path.is_file() {
             return Ok(path);
         }
@@ -379,10 +420,9 @@ fn resolve_bin(argv0: &str, child_env: &[(String, String)]) -> Result<PathBuf, S
         .iter()
         .find(|(name, _)| name == "PATH")
         .map(|(_, value)| OsStr::new(value).to_os_string())
-        .or_else(|| std::env::var_os("PATH"))
-        .unwrap_or_default();
+        .unwrap_or_else(|| std::ffi::OsString::from("/usr/bin:/bin"));
     for dir in std::env::split_paths(&path_var) {
-        let candidate = dir.join(argv0);
+        let candidate = cwd.join(dir).join(argv0);
         if is_executable(&candidate) {
             return Ok(candidate);
         }
@@ -394,7 +434,8 @@ fn configured_command(
     config: &StdioConfig,
 ) -> Result<(tokio::process::Command, PathBuf), StdioError> {
     config.validate()?;
-    let resolved_bin = resolve_bin(&config.argv[0], &config.extra_env)?;
+    let cwd = config.cwd.as_deref().unwrap_or_else(|| Path::new("/tmp"));
+    let resolved_bin = resolve_bin(&config.argv[0], &config.extra_env, cwd)?;
     let mut cmd = tokio::process::Command::new(&resolved_bin);
     cmd.args(&config.argv[1..]);
     cmd.env_clear();
@@ -431,7 +472,7 @@ fn is_executable(path: &Path) -> bool {
     unsafe { libc::access(cstr.as_ptr(), libc::X_OK) == 0 }
 }
 
-/// Spawn the child with a minimal environment. No handshake happens here.
+/// Spawn with the complete admitted environment. No handshake happens here.
 pub fn spawn_child(config: &StdioConfig) -> Result<SpawnedChild, StdioError> {
     let (mut cmd, resolved_bin) = configured_command(config)?;
     cmd.stdin(std::process::Stdio::piped());
@@ -563,6 +604,12 @@ impl StdioClient {
         generation: u64,
         cancel: &std::sync::atomic::AtomicBool,
     ) -> Result<Self, StdioError> {
+        let mut retained = config.clone();
+        retained
+            .secrets
+            .extend(config.extra_env.iter().map(|(_, value)| value.clone()));
+        retained.secrets.extend(config.argv.iter().cloned());
+        let config = &retained;
         // Keep the Child here: rmcp 3.4 TokioChildProcess::Drop starts an
         // unjoinable kill task. Give the SDK only its protocol pipes instead.
         let mut child = spawn_child(config)?;
@@ -575,7 +622,7 @@ impl StdioClient {
         let handshake = tokio::select! {
             biased;
             _ = wait_cancelled(cancel) => Err(StdioError::Cancelled),
-            result = tokio::time::timeout(config.timeout, rmcp::service::serve_client(events, transport)) => {
+            result = tokio::time::timeout(config.startup_timeout.unwrap_or(config.timeout), rmcp::service::serve_client(events, transport)) => {
                 result.map_err(|_| StdioError::Deadline).and_then(|result| result.map_err(|_| StdioError::Transport))
             }
         };
@@ -593,7 +640,10 @@ impl StdioClient {
         let instructions = peer.peer_info().and_then(|info| {
             crate::mcp_result::instructions(info.instructions.as_deref(), &redactions)
         });
-        Ok(Self {
+        let legacy = peer
+            .peer_info()
+            .is_some_and(|info| crate::mcp_remote::legacy_version(info.protocol_version.as_str()));
+        let client = Self {
             peer,
             child: Box::new(child),
             running: Some(running),
@@ -602,7 +652,19 @@ impl StdioClient {
             tools_changed,
             instructions,
             redactions,
-        })
+        };
+        if !legacy {
+            client
+                .shutdown()
+                .await
+                .map_err(|_| StdioError::CleanupFailed)?;
+            return Err(if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+                StdioError::Cancelled
+            } else {
+                StdioError::ProtocolMismatch
+            });
+        }
+        Ok(client)
     }
 
     /// Bounded, configured-value-redacted server guidance from initialize.
@@ -646,7 +708,7 @@ impl StdioClient {
         let tools = tokio::select! {
             biased;
             _ = wait_cancelled(cancel) => return Err(StdioError::Cancelled),
-            result = tokio::time::timeout(self.config.timeout, bounded_list(&self.peer)) => {
+            result = tokio::time::timeout(self.config.catalog_timeout.unwrap_or(self.config.timeout), bounded_list(&self.peer)) => {
                 result.map_err(|_| StdioError::Deadline)??
             }
         }
@@ -807,6 +869,8 @@ mod cleanup_tests {
             extra_env: Vec::new(),
             secrets: Vec::new(),
             timeout: STDIO_TIMEOUT,
+            startup_timeout: None,
+            catalog_timeout: None,
             enabled: true,
         };
         let mut child = spawn_child(&config).unwrap();

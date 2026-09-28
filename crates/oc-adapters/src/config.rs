@@ -14,6 +14,9 @@ use std::path::{Component, Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+pub(crate) mod mcp;
+pub use mcp::McpTimeouts;
+
 /// Typed config errors with field-level diagnostics (no secrets in messages).
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum ConfigError {
@@ -118,9 +121,8 @@ pub struct ProviderEntry {
     pub models: BTreeMap<String, serde_json::Value>,
 }
 
-/// Single MCP entry (trusted-shape subset for T07).
+/// Normalized MCP entry. Failed entries remain in the generation, but cannot launch.
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct McpEntry {
     /// `remote` or `local`.
     #[serde(rename = "type", default)]
@@ -146,22 +148,71 @@ pub struct McpEntry {
     /// Explicit Code Mode flag: only absent/false allowed here.
     #[serde(default)]
     pub codemode: Option<bool>,
+    /// Workspace-relative before resource admission, canonical afterwards.
+    #[serde(default)]
+    pub cwd: Option<String>,
+    /// Admitted configured overlay (values must never be logged).
+    #[serde(default)]
+    pub environment: BTreeMap<String, String>,
+    /// Separate normalized startup/catalog/execution milliseconds.
+    #[serde(default)]
+    pub timeouts: McpTimeouts,
+    /// This adapter only admits legacy initialize negotiation.
+    #[serde(default = "mcp::legacy_protocol")]
+    pub protocol: String,
+    /// Typed payload-free failed inventory; no fallback to a previous entry.
+    #[serde(skip)]
+    pub failure: Option<oc_core::queries::ServiceDiagnostic>,
+    /// Composition's source/credential-domain decision, never configurable.
+    #[serde(skip)]
+    pub inherit_credentials: bool,
+    /// Values withheld from a lower-trust process even under innocuous env names.
+    #[serde(skip)]
+    pub blocked_inherited_values: Vec<String>,
+    /// Existing resource authority admitted the exact canonical cwd.
+    #[serde(skip)]
+    pub resource_admitted: bool,
 }
 
 impl std::fmt::Debug for McpEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("McpEntry")
-            .field("kind", &self.kind)
+            .field(
+                "kind",
+                &if matches!(self.kind.as_str(), "local" | "remote") {
+                    self.kind.as_str()
+                } else {
+                    "<invalid>"
+                },
+            )
             .field("url", &self.url.as_ref().map(|_| "<configured>"))
             .field("enabled", &self.enabled)
             .field("oauth", &self.oauth)
-            .field("header_names", &self.headers.keys().collect::<Vec<_>>())
+            .field(
+                "headers",
+                &format_args!("<redacted:{}>", self.headers.len()),
+            )
             .field(
                 "command",
                 &format_args!("<redacted:{}>", self.command.len()),
             )
             .field("timeout", &self.timeout)
             .field("codemode", &self.codemode)
+            .field("cwd", &self.cwd.as_ref().map(|_| "<configured>"))
+            .field(
+                "environment",
+                &format_args!("<redacted:{}>", self.environment.len()),
+            )
+            .field("timeouts", &self.timeouts)
+            .field(
+                "protocol",
+                &if self.protocol == "legacy" {
+                    "legacy"
+                } else {
+                    "<unsupported>"
+                },
+            )
+            .field("failure", &self.failure)
             .finish()
     }
 }
@@ -365,6 +416,14 @@ impl Default for McpEntry {
             command: Vec::new(),
             timeout: None,
             codemode: None,
+            cwd: None,
+            environment: BTreeMap::new(),
+            timeouts: McpTimeouts::default(),
+            protocol: mcp::legacy_protocol(),
+            failure: None,
+            inherit_credentials: false,
+            blocked_inherited_values: Vec::new(),
+            resource_admitted: false,
         }
     }
 }
@@ -674,6 +733,8 @@ fn assemble_with_reader(
     // Unknown provider option keys: visible warnings, never a hard failure.
     let mut unknown_options: Vec<String> = Vec::new();
     let mut mcp: BTreeMap<String, (McpEntry, String)> = BTreeMap::new();
+    let mut mcp_timeout = McpTimeouts::default();
+    let mut mcp_provenance = BTreeMap::new();
     let mut permissions: BTreeMap<String, (Permission, String)> = BTreeMap::new();
     let mut permission_rules = crate::permissions::PermissionRules::default();
     let mut terminal_copy_source = None;
@@ -756,21 +817,7 @@ fn assemble_with_reader(
             }
         }
 
-        if let Some(mcp_raw) = obj.get("mcp") {
-            let map = mcp_raw.as_object().ok_or_else(|| ConfigError::Invalid {
-                field: "mcp".to_string(),
-                reason: "must be an object".to_string(),
-            })?;
-            for (id, raw) in map {
-                let entry: McpEntry =
-                    serde_json::from_value(raw.clone()).map_err(|e| ConfigError::Invalid {
-                        field: format!("mcp.{id}"),
-                        reason: format!("shape: {e}"),
-                    })?;
-                validate_mcp(id, &entry)?;
-                mcp.insert(id.clone(), (entry, source.path.clone()));
-            }
-        }
+        mcp::merge_document(source, obj, &mut mcp, &mut mcp_timeout, &mut mcp_provenance)?;
 
         let mut source_rules = crate::permissions::PermissionRules::from_config(&value)?;
         if let Some(home) = env.get("HOME") {
@@ -840,7 +887,14 @@ fn assemble_with_reader(
     for (id, (entry, path)) in &mcp {
         let trusted = sources.iter().any(|s| s.path == *path && s.trusted);
         let mut entry = entry.clone();
-        if entry.enabled {
+        entry.timeouts = mcp_timeout.overlay(entry.timeouts);
+        if entry.enabled && entry.failure.is_none() {
+            if !trusted {
+                return Err(ConfigError::Untrusted {
+                    origin: path.clone(),
+                    reason: "MCP endpoint/command before source trust".into(),
+                });
+            }
             if let Some(url) = &entry.url {
                 entry.url = Some(substitute_with(url, path, trusted, env, reader)?);
             }
@@ -849,6 +903,16 @@ fn assemble_with_reader(
                     .headers
                     .insert(key, substitute_with(&value, path, trusted, env, reader)?);
             }
+            for arg in &mut entry.command {
+                *arg = substitute_with(arg, path, trusted, env, reader)?;
+            }
+            if let Some(cwd) = &mut entry.cwd {
+                *cwd = substitute_with(cwd, path, trusted, env, reader)?;
+            }
+            for value in entry.environment.values_mut() {
+                *value = substitute_with(value, path, trusted, env, reader)?;
+            }
+            mcp::validate_effective(id, path, &mut entry);
         }
         // Disabled entries keep inert templates: no secret/file read and no launch.
         out_mcp.insert(id.clone(), entry);
@@ -870,6 +934,7 @@ fn assemble_with_reader(
         provenance.insert("compaction".into(), path);
     }
     provenance.extend(compaction_provenance);
+    provenance.extend(mcp_provenance);
 
     Ok((
         Generation {
@@ -951,28 +1016,6 @@ fn validate_provider(id: &str, entry: &ProviderEntry) -> Result<(), ConfigError>
         return Err(ConfigError::UnsupportedCapability {
             field: format!("provider.{id}.npm"),
             reason: format!("unknown package {npm}"),
-        });
-    }
-    Ok(())
-}
-
-fn validate_mcp(id: &str, entry: &McpEntry) -> Result<(), ConfigError> {
-    if entry.codemode == Some(true) {
-        return Err(ConfigError::UnsupportedCapability {
-            field: format!("mcp.{id}.codemode"),
-            reason: "codemode:true is unsupported in the direct profile".to_string(),
-        });
-    }
-    if entry.oauth {
-        return Err(ConfigError::UnsupportedCapability {
-            field: format!("mcp.{id}.oauth"),
-            reason: "oauth:true is unsupported; use bearer without discovery".to_string(),
-        });
-    }
-    if entry.kind != "remote" && entry.kind != "local" {
-        return Err(ConfigError::Invalid {
-            field: format!("mcp.{id}.type"),
-            reason: "must be remote or local".to_string(),
         });
     }
     Ok(())
@@ -1099,10 +1142,14 @@ pub fn explain_redacted(generation: &Generation) -> serde_json::Value {
         mcp.insert(
             id.clone(),
             serde_json::json!({
-                "type": entry.kind,
-                "url": entry.url,
+                "type": if matches!(entry.kind.as_str(),"remote"|"local") { entry.kind.as_str() } else { "<invalid>" },
+                "url": entry.url.as_ref().map(|_| "***"),
                 "enabled": entry.enabled,
                 "headers": headers,
+                "environment": entry.environment.keys().map(|key| (key.clone(), "***")).collect::<BTreeMap<_,_>>(),
+                "cwd": entry.cwd.as_ref().map(|_| "***"),
+                "timeout": entry.timeouts,
+                "failure": entry.failure,
                 "provenance": generation.provenance.get(&format!("mcp.{id}")),
             }),
         );
@@ -1429,6 +1476,10 @@ pub fn parse_native_profile(text: &str) -> Result<NativeProfile, ConfigError> {
             .to_string(),
     })
 }
+
+#[cfg(test)]
+#[path = "config/mcp_tests.rs"]
+mod mcp_tests;
 
 #[cfg(test)]
 mod tests {
@@ -1883,16 +1934,28 @@ mod tests {
         ));
         let codemode = r#"{"mcp": {"m": {"type": "local",
             "command": ["npx", "x"], "enabled": true, "codemode": true}}}"#;
-        assert!(matches!(
-            assemble(&[src("s", codemode, true)], &env(&[]), None),
-            Err(ConfigError::UnsupportedCapability { .. })
-        ));
+        assert_eq!(
+            assemble(&[src("s", codemode, true)], &env(&[]), None)
+                .unwrap()
+                .mcp["m"]
+                .failure
+                .as_ref()
+                .unwrap()
+                .code,
+            oc_core::queries::ServiceCode::UnsupportedCapability
+        );
         let oauth = r#"{"mcp": {"w": {"type": "remote", "url": "https://w.invalid/mcp",
             "enabled": true, "oauth": true}}}"#;
-        assert!(matches!(
-            assemble(&[src("s", oauth, true)], &env(&[]), None),
-            Err(ConfigError::UnsupportedCapability { .. })
-        ));
+        assert_eq!(
+            assemble(&[src("s", oauth, true)], &env(&[]), None)
+                .unwrap()
+                .mcp["w"]
+                .failure
+                .as_ref()
+                .unwrap()
+                .code,
+            oc_core::queries::ServiceCode::UnsupportedCapability
+        );
         let dcp = r#"{"dcp": {"experimental": {"allowSubAgents": true}}}"#;
         assert!(
             !matches!(

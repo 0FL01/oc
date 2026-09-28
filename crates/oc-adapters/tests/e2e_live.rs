@@ -343,6 +343,8 @@ async fn live_workflow_harness() {
             bearer: key,
             custom_headers: reqwest::header::HeaderMap::new(),
             timeout: Duration::from_secs(60),
+            startup_timeout: None,
+            catalog_timeout: None,
             allow_private: false,
         };
         let client = oc_adapters::mcp_remote::CodexWebClient::connect(&config)

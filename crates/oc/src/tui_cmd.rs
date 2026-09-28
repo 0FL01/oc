@@ -221,6 +221,9 @@ async fn run_stages(
         eprintln!("warning: {}", startup_notice(notice));
     }
     let catalog = app.catalog().await.map_err(|e| e.to_string())?;
+    for diagnostic in &catalog.chrome.service_diagnostics {
+        eprintln!("warning: {diagnostic}");
+    }
     app.register_approval_consumer(auto_once || catalog.chrome.permissions_auto)
         .await
         .map_err(|e| e.to_string())?;
@@ -1377,6 +1380,9 @@ fn startup_notice(source: StartupNotice) -> &'static str {
         StartupNotice::CompactionConfig => {
             "compaction settings were normalized; review configuration diagnostics"
         }
+        StartupNotice::McpConfig => {
+            "MCP configuration entries failed; review configuration diagnostics"
+        }
         StartupNotice::Definitions => "agent/skill/command definitions need review",
         StartupNotice::Plugin => "configured plugin marker was ignored; review plugin settings",
         StartupNotice::Dcp => "DCP settings have unsupported entries; review native dcp settings",
@@ -1395,6 +1401,9 @@ async fn initial_state(
             .await
             .map_err(|_| StartupFailure::Query)?;
         let mut state = TuiState::new_home(app.clone());
+        for diagnostic in &snapshot.chrome.service_diagnostics {
+            state.push_warning(&diagnostic.to_string());
+        }
         state.apply_catalog(snapshot);
         return Ok(state);
     };
@@ -1408,11 +1417,14 @@ async fn initial_state(
     let mut state = TuiState::new(app.clone(), session);
     state.attach_page(&page);
     // A failed catalog is an initialization error, never a usable empty snapshot.
-    state.apply_catalog(
-        app.session_selection(state.session().clone(), false, SelectionAction::Current)
-            .await
-            .map_err(|_| StartupFailure::Query)?,
-    );
+    let snapshot = app
+        .session_selection(state.session().clone(), false, SelectionAction::Current)
+        .await
+        .map_err(|_| StartupFailure::Query)?;
+    for diagnostic in &snapshot.chrome.service_diagnostics {
+        state.push_warning(&diagnostic.to_string());
+    }
+    state.apply_catalog(snapshot);
     state.apply_compaction_history(
         app.compaction_history(state.session().clone())
             .await

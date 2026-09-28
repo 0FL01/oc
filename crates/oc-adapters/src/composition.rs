@@ -738,6 +738,13 @@ async fn load_stages(
         }
         _ => LoadFailure::Configuration(error.to_string()),
     })?;
+    admit_local_mcp(
+        &mut generation,
+        &project,
+        global.as_deref(),
+        &parent_env,
+        &sources,
+    )?;
     // Keep central authority independent of the startup primary selection.
     // The effective primary's constraints are snapshotted with its workspace.
     if let Some(level) = dcp_config.compress_permission {
@@ -899,6 +906,9 @@ async fn load_stages(
     if !generation.config_diagnostics.is_empty() {
         startup_notices.push(StartupNotice::CompactionConfig);
     }
+    if generation.mcp.values().any(|entry| entry.failure.is_some()) {
+        startup_notices.push(StartupNotice::McpConfig);
+    }
     if !loaded_defs.diagnostics.is_empty() {
         startup_notices.push(StartupNotice::Definitions);
     }
@@ -922,6 +932,13 @@ async fn load_stages(
         })
         .collect();
     diagnostics.extend(plugin_diagnostics);
+    diagnostics.extend(
+        generation
+            .mcp
+            .values()
+            .filter_map(|entry| entry.failure.as_ref())
+            .map(ToString::to_string),
+    );
     diagnostics.extend(
         generation
             .config_diagnostics
@@ -979,6 +996,11 @@ async fn load_stages(
             show_compression: dcp_config.show_compression,
         },
         config_diagnostics: generation.config_diagnostics.clone(),
+        service_diagnostics: generation
+            .mcp
+            .values()
+            .filter_map(|entry| entry.failure.clone())
+            .collect(),
         location: Some(project.to_string_lossy().into_owned()),
         terminal_copy,
         animations: generation.animations,
@@ -1099,6 +1121,125 @@ async fn load_stages(
         dcp_protected,
     })
 }
+
+/// Admit process resources and credential authority before inheriting any env.
+/// A Location source does not gain global credential authority through precedence.
+fn admit_local_mcp(
+    generation: &mut config::Generation,
+    project: &Path,
+    global: Option<&Path>,
+    env: &BTreeMap<String, String>,
+    sources: &[config::Source],
+) -> Result<(), String> {
+    let global = global.and_then(|root| root.canonicalize().ok());
+    let global_source = |source: &str| {
+        global
+            .as_deref()
+            .is_some_and(|root| Path::new(source).parent() == Some(root))
+    };
+    let mut global_credentials = Vec::new();
+    for source in sources.iter().filter(|source| global_source(&source.path)) {
+        global_credentials.extend(
+            config::mcp::source_credential_values(source, env)
+                .map_err(|_| "global MCP credential-domain admission failed")?,
+        );
+    }
+    for (id, provider) in &generation.providers {
+        if generation
+            .provenance
+            .get(&format!("provider.{id}"))
+            .is_some_and(|source| global_source(source))
+        {
+            global_credentials.push(provider.options.api_key.clone());
+            global_credentials.extend(provider.options.headers.values().cloned());
+        }
+    }
+    for (id, entry) in &generation.mcp {
+        if entry.enabled
+            && entry.failure.is_none()
+            && generation
+                .provenance
+                .get(&format!("mcp.{id}"))
+                .is_some_and(|source| global_source(source))
+        {
+            global_credentials.extend(entry.headers.values().cloned());
+            global_credentials.extend(
+                entry
+                    .headers
+                    .values()
+                    .filter_map(|v| v.strip_prefix("Bearer ").map(str::to_string)),
+            );
+            global_credentials.extend(entry.environment.values().cloned());
+        }
+    }
+    for (id, entry) in &mut generation.mcp {
+        if entry.kind != "local" || !entry.enabled || entry.failure.is_some() {
+            continue;
+        }
+        let source = &generation.provenance[&format!("mcp.{id}")];
+        entry.inherit_credentials = global_source(source);
+        if !entry.inherit_credentials {
+            entry.blocked_inherited_values = global_credentials.clone();
+            entry.blocked_inherited_values.extend(
+                env.iter()
+                    .filter(|(name, _)| crate::mcp_stdio::is_credential_name(name))
+                    .map(|(_, value)| value.clone()),
+            );
+            if entry
+                .command
+                .iter()
+                .chain(entry.environment.values())
+                .chain(entry.cwd.iter())
+                .any(|value| {
+                    entry
+                        .blocked_inherited_values
+                        .iter()
+                        .any(|secret| !secret.is_empty() && value.contains(secret))
+                })
+            {
+                return Err(
+                    "Untrusted: local MCP command cannot use a higher-trust credential domain"
+                        .into(),
+                );
+            }
+        }
+        let configured = entry.cwd.as_deref().unwrap_or(".");
+        // No implicit escape or fallback. External cwd requires the same explicit
+        // external_directory authority as other resources, not merely a global source.
+        let candidate = project.join(configured);
+        let cwd = match candidate.canonicalize() {
+            Ok(path) if path.is_dir() => path,
+            _ => {
+                let mut issue = config::mcp::failure(
+                    id,
+                    source,
+                    "cwd",
+                    oc_core::queries::ServiceCode::InvalidCwd,
+                );
+                issue.stage = oc_core::queries::ServiceStage::Admission;
+                entry.failure = Some(issue);
+                continue;
+            }
+        };
+        if !cwd.starts_with(project) {
+            let effect = generation.permission_rules.evaluate_actions(
+                &generation.permissions,
+                &["external_directory"],
+                &cwd.to_string_lossy(),
+            );
+            if effect != config::Permission::Allow {
+                return Err("Untrusted: MCP cwd escapes the admitted Location".into());
+            }
+        }
+        entry.cwd = Some(cwd.to_string_lossy().into_owned());
+        entry.resource_admitted = true;
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+#[path = "composition/mcp_tests.rs"]
+mod mcp_tests;
 
 fn merge_json_object(
     target: &mut serde_json::Value,

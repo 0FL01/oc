@@ -141,6 +141,10 @@ pub struct CodexWebConfig {
     pub custom_headers: HeaderMap,
     /// Per-operation timeout.
     pub timeout: Duration,
+    /// Initialize deadline, separate from catalog and execution.
+    pub startup_timeout: Option<Duration>,
+    /// Catalog deadline, separate from initialize and execution.
+    pub catalog_timeout: Option<Duration>,
     /// Test-only private-network exception.
     pub allow_private: bool,
 }
@@ -152,6 +156,8 @@ impl std::fmt::Debug for CodexWebConfig {
             .field("bearer", &"<redacted>")
             .field("custom_headers", &RedactedHeaders(&self.custom_headers))
             .field("timeout", &self.timeout)
+            .field("startup_timeout", &self.startup_timeout)
+            .field("catalog_timeout", &self.catalog_timeout)
             .field("allow_private", &self.allow_private)
             .finish()
     }
@@ -164,7 +170,16 @@ impl CodexWebConfig {
     }
 
     fn validate_profile(&self, require_bearer: bool) -> Result<(), McpError> {
-        if self.url.trim().is_empty() || (require_bearer && self.bearer.trim().is_empty()) {
+        if self.url.trim().is_empty()
+            || (require_bearer && self.bearer.trim().is_empty())
+            || [
+                self.timeout,
+                self.startup_timeout.unwrap_or(self.timeout),
+                self.catalog_timeout.unwrap_or(self.timeout),
+            ]
+            .iter()
+            .any(|d| d.is_zero() || tokio::time::Instant::now().checked_add(*d).is_none())
+        {
             return Err(McpError::InvalidConfig);
         }
         let url = reqwest::Url::parse(&self.url).map_err(|_| McpError::InvalidConfig)?;
@@ -204,7 +219,13 @@ impl CodexWebConfig {
         entry: &crate::config::McpEntry,
         require_bearer: bool,
     ) -> Result<Self, McpError> {
-        if entry.kind != "remote" || !entry.enabled || entry.oauth {
+        if entry.kind != "remote"
+            || !entry.enabled
+            || entry.oauth
+            || entry.failure.is_some()
+            || entry.codemode == Some(true)
+            || entry.protocol != "legacy"
+        {
             return Err(McpError::InvalidConfig);
         }
         let url = entry.url.clone().ok_or(McpError::InvalidConfig)?;
@@ -240,7 +261,11 @@ impl CodexWebConfig {
             url,
             bearer,
             custom_headers,
-            timeout: Duration::from_millis(entry.timeout.unwrap_or(60_000)),
+            timeout: Duration::from_millis(entry.timeouts.execution_ms(entry.timeout)),
+            startup_timeout: Some(Duration::from_millis(entry.timeouts.startup_ms())),
+            catalog_timeout: Some(Duration::from_millis(
+                entry.timeouts.catalog_ms(entry.timeout),
+            )),
             allow_private: false,
         };
         config.validate_profile(require_bearer)?;
@@ -260,7 +285,7 @@ impl std::fmt::Debug for RedactedHeaders<'_> {
     }
 }
 
-fn normalize_headers(
+pub(crate) fn normalize_headers(
     raw_headers: &std::collections::BTreeMap<String, String>,
 ) -> Result<HeaderMap, McpError> {
     let mut headers = HeaderMap::new();
@@ -463,6 +488,7 @@ pub struct CodexWebClient {
     peer: McpPeer,
     running: McpRunning,
     timeout: Duration,
+    catalog_timeout: Duration,
     tools_changed: Arc<AtomicBool>,
     cleanup: lifecycle::Cleanup,
     secrets: Vec<String>,
@@ -498,11 +524,13 @@ impl CodexWebClient {
         redactions: &[String],
     ) -> Result<Self, McpError> {
         config.validate_profile(codex_web)?;
+        let startup_deadline =
+            tokio::time::Instant::now() + config.startup_timeout.unwrap_or(config.timeout);
         let (host, port) = split_host_port(&config.url)?;
         tokio::select! {
             biased;
             () = crate::provider::wait_cancel(cancel) => return Err(McpError::Cancelled),
-            result = crate::webfetch::check_host(&host, port, config.allow_private) => result,
+            result = tokio::time::timeout_at(startup_deadline, crate::webfetch::check_host(&host, port, config.allow_private)) => result.map_err(|_| McpError::Deadline)?,
         }
         .map_err(|e| match e {
             crate::webfetch::FetchError::PrivateHost => McpError::PrivateHost,
@@ -544,7 +572,7 @@ impl CodexWebClient {
         let handshake = tokio::select! {
             biased;
             () = crate::provider::wait_cancel(cancel) => Err(McpError::Cancelled),
-            result = tokio::time::timeout(config.timeout, rmcp::service::serve_client(events, transport)) => {
+            result = tokio::time::timeout_at(startup_deadline, rmcp::service::serve_client(events, transport)) => {
                 result.map_err(|_| McpError::Deadline).and_then(|result| result.map_err(|e| classify_handshake(&e)))
             }
         };
@@ -561,7 +589,7 @@ impl CodexWebClient {
             .peer_info()
             .map(|info| info.protocol_version.to_string())
             .unwrap_or_default();
-        if codex_web && version != MCP_VERSION {
+        if !legacy_version(&version) || (codex_web && version != MCP_VERSION) {
             let closed = close_running(&mut running).await;
             let cleaned = cleanup.close().await;
             cleaned?;
@@ -585,6 +613,7 @@ impl CodexWebClient {
             peer,
             running,
             timeout: config.timeout,
+            catalog_timeout: config.catalog_timeout.unwrap_or(config.timeout),
             tools_changed,
             cleanup,
             secrets,
@@ -722,7 +751,7 @@ impl CodexWebClient {
         tokio::select! {
             biased;
             _ = wait_cancelled(cancel) => Err(McpError::Cancelled),
-            result = tokio::time::timeout(self.timeout, future) => match result {
+            result = tokio::time::timeout(self.catalog_timeout, future) => match result {
                 Err(_) => Err(McpError::Deadline),
                 Ok(Err(error)) => Err(error),
                 Ok(Ok(value)) => Ok(value),
@@ -735,6 +764,12 @@ async fn wait_cancelled(cancel: &AtomicBool) {
     while !cancel.load(Ordering::Relaxed) {
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
+}
+
+pub(crate) fn legacy_version(version: &str) -> bool {
+    rmcp::model::ProtocolVersion::KNOWN_VERSIONS
+        .iter()
+        .any(|known| known.as_str() == version && known.as_str() <= MCP_VERSION)
 }
 
 fn classify_handshake(error: &rmcp::service::ClientInitializeError) -> McpError {

@@ -1,0 +1,24 @@
+{
+  "source_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "owners": ["packages/core/src/v1/config/mcp.ts", "packages/core/src/v1/config/migrate.ts:202-225", "packages/core/src/config/normalize.ts:260-293,633-696,784-790", "packages/core/src/config/plugin/mcp.ts:40-55", "packages/schema/src/mcp.ts:7-64", "packages/core/src/mcp/client.ts:195-207"],
+  "documents": [
+    {
+      "mcp": {
+        "chrome-devtools": {"type":"local","command":["npx","-y","chrome-devtools-mcp@latest"],"enabled":false,"environment":{"npm_config_offline":"true"},"timeout":5000},
+        "same": {"type":"local","command":["legacy","two words"],"environment":{"OLD":"old"},"timeout":123},
+        "servers": {
+          "same": {"type":"local","command":["canonical"],"disabled":true,"timeout":{"execution":444}},
+          "healthy": {"type":"remote","url":"https://example.invalid/exact/mcp","oauth":false,"metadata":"ignored"}
+        },
+        "timeout": {"startup":101,"catalog":202}
+      }
+    },
+    {
+      "mcp": {
+        "same": {"type":"local","command":["later"],"enabled":true},
+        "servers": {"replacement":{"type":"local","command":["exact argv","two words"]}},
+        "timeout": {"execution":303}
+      }
+    }
+  ]
+}

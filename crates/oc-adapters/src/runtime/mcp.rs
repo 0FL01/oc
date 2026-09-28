@@ -291,6 +291,8 @@ fn mcp_redactions(config: &Generation, parent_env: &BTreeMap<String, String>) ->
         secrets.extend(provider.options.headers.values().cloned());
     }
     for entry in config.mcp.values() {
+        secrets.extend(entry.environment.values().cloned());
+        secrets.extend(entry.blocked_inherited_values.iter().cloned());
         secrets.extend(entry.url.iter().cloned());
         secrets.extend(entry.headers.values().cloned());
         // A header may be reflected as its token without the Bearer prefix.
@@ -395,6 +397,7 @@ fn stdio_attach_error_at(server: &str, stage: &'static str, error: StdioError) -
         StdioError::Spawn => ("spawn", "spawn_failed", false),
         StdioError::Deadline => (stage, "deadline", true),
         StdioError::Transport => (stage, "transport", true),
+        StdioError::ProtocolMismatch => (stage, "protocol_mismatch", false),
         StdioError::CleanupFailed => ("cleanup", "cleanup_failed", false),
         StdioError::CatalogLimited => (stage, "catalog_limit", false),
         StdioError::ToolFailed | StdioError::ToolFailedDetail(_) => (stage, "tool_failed", false),
@@ -618,6 +621,18 @@ impl<'a> Runtime<'a> {
         ids.sort();
         for id in ids {
             let entry = &published.config.mcp[id];
+            if let Some(failure) = &entry.failure {
+                record_degradation(
+                    &mut degraded,
+                    RuntimeError::McpAttach {
+                        server: failure.service.clone(),
+                        stage: failure.stage.as_str(),
+                        safe_code: failure.code.as_str(),
+                        retryable: false,
+                    },
+                );
+                continue;
+            }
             if !entry.enabled {
                 continue;
             }

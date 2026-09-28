@@ -503,6 +503,7 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
                 command: Vec::new(),
                 timeout: None,
                 codemode: None,
+                ..Default::default()
             },
         )]
         .into_iter()

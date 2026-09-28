@@ -563,6 +563,7 @@ async fn dropped_remote_call_cannot_retry_after(shutdown: bool) {
             command: Vec::new(),
             timeout: Some(10_000),
             codemode: None,
+            ..Default::default()
         },
     );
     let project = harness._project.path();

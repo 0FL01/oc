@@ -409,6 +409,7 @@ pub struct TuiChrome {
     pub permission_shortcuts: PermissionShortcuts,
     /// Ordered, value-free diagnostics from admitted configuration sources.
     pub config_diagnostics: Vec<ConfigDiagnostic>,
+    pub service_diagnostics: Vec<ServiceDiagnostic>,
     /// Canonical application Location, unknown in mock workers.
     pub location: Option<String>,
     /// Explicit debug.devtools override; absence uses the build channel.
@@ -511,6 +512,84 @@ impl std::fmt::Display for ConfigDiagnostic {
             self.kind,
             self.action,
             self.message()
+        )
+    }
+}
+
+/// Payload-free optional-service admission failure, shared with startup consumers.
+/// Producers bound/sanitize identities; no remote exceptions or expanded values.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ServiceDiagnostic {
+    pub service: String,
+    pub source: String,
+    pub field: Vec<String>,
+    pub stage: ServiceStage,
+    pub code: ServiceCode,
+    pub action: ServiceAction,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ServiceStage {
+    Config,
+    Capability,
+    Admission,
+}
+
+impl ServiceStage {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Config => "config",
+            Self::Capability => "capability",
+            Self::Admission => "admission",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ServiceCode {
+    InvalidConfig,
+    UnsupportedCapability,
+    UnsupportedProtocol,
+    MissingCredential,
+    InvalidHeader,
+    AuthorizationHeaderConflict,
+    HeaderConflict,
+    InvalidCwd,
+}
+
+impl ServiceCode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::InvalidConfig => "invalid_config",
+            Self::UnsupportedCapability => "unsupported_capability",
+            Self::UnsupportedProtocol => "unsupported_protocol",
+            Self::MissingCredential => "missing_credential",
+            Self::InvalidHeader => "invalid_header",
+            Self::AuthorizationHeaderConflict => "authorization_header_conflict",
+            Self::HeaderConflict => "header_conflict",
+            Self::InvalidCwd => "invalid_cwd",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ServiceAction {
+    ReviewConfiguration,
+}
+
+impl std::fmt::Display for ServiceDiagnostic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "mcp {} {}: {} (retryable=false); {} {}: review configuration",
+            self.service,
+            self.stage.as_str(),
+            self.code.as_str(),
+            self.source,
+            self.field.join(".")
         )
     }
 }
@@ -676,6 +755,8 @@ pub struct FileSuggestionsSnapshot {
 pub enum StartupNotice {
     /// Unsupported, invalid, or conflicting compaction settings were normalized.
     CompactionConfig,
+    /// Individual MCP config/capability entries failed admission.
+    McpConfig,
     /// Agent, skill or command definition could not be admitted.
     Definitions,
     /// A plugin marker was ignored without executing it.

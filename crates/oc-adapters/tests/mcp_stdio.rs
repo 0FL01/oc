@@ -15,6 +15,9 @@ use oc_adapters::mcp_stdio::{
 
 const TEST_TIMEOUT: Duration = Duration::from_secs(5);
 
+#[path = "mcp_stdio/config_admission.rs"]
+mod config_admission;
+
 #[tokio::test]
 async fn cancelled_initialize_reaps_before_return_even_after_stderr_eof() {
     let dir = tempfile::tempdir().unwrap();
@@ -103,6 +106,8 @@ fn fake_config(extra: Vec<(&str, &str)>) -> StdioConfig {
         extra_env: env,
         secrets: vec!["fake-secret-123".to_string()],
         timeout: CLIENT_TIMEOUT,
+        startup_timeout: None,
+        catalog_timeout: None,
         enabled: true,
     }
 }
@@ -239,6 +244,7 @@ fn entry_mapping_keeps_exact_argv_and_refuses_risky_shapes() {
         ],
         timeout: Some(5_000),
         codemode: None,
+        ..Default::default()
     };
     let config = StdioConfig::from_entry("browser", &entry, project.path(), &parent_env)
         .expect("local maps");
@@ -250,7 +256,10 @@ fn entry_mapping_keeps_exact_argv_and_refuses_risky_shapes() {
         .iter()
         .map(|(name, _)| name.as_str())
         .collect();
-    assert_eq!(names, ["HOME", "LANG", "LC_ALL", "PATH", "TMPDIR"]);
+    assert_eq!(
+        names,
+        ["HOME", "IGNORED", "LANG", "LC_ALL", "PATH", "TMPDIR"]
+    );
     assert!(
         config
             .extra_env
@@ -298,17 +307,25 @@ fn entry_mapping_keeps_exact_argv_and_refuses_risky_shapes() {
     cred_env
         .extra_env
         .push(("SOME_API_KEY".to_string(), "x".to_string()));
-    assert_eq!(cred_env.validate(), Err(StdioError::InvalidConfig));
+    assert_eq!(
+        cred_env.validate(),
+        Ok(()),
+        "transport receives an already admitted env"
+    );
 
     let mut arbitrary_env = config;
     arbitrary_env
         .extra_env
         .push(("HELLO".to_string(), "world".to_string()));
-    assert_eq!(arbitrary_env.validate(), Err(StdioError::InvalidConfig));
+    assert_eq!(
+        arbitrary_env.validate(),
+        Ok(()),
+        "R6 permits configured string env"
+    );
 }
 
 #[tokio::test]
-async fn from_entry_uses_trusted_cwd_and_only_working_parent_env() {
+async fn from_entry_uses_trusted_cwd_and_admitted_parent_env() {
     use oc_adapters::config::McpEntry;
 
     let temp = tempfile::tempdir().expect("cwd fixture");
@@ -316,8 +333,16 @@ async fn from_entry_uses_trusted_cwd_and_only_working_parent_env() {
     let output = temp.path().join("output");
     fs::create_dir_all(&project).expect("project");
     fs::create_dir_all(&output).expect("output");
-    let script = r#"pwd > "$1/cwd.tmp" && mv "$1/cwd.tmp" "$1/cwd"
-env | sort > "$1/env.tmp" && mv "$1/env.tmp" "$1/env"
+    let script = r#"{
+[ "$PWD" = "$2" ] && printf 'cwd\n'
+[ "$TMPDIR" = "$3" ] && printf 'tmpdir\n'
+[ "$PATH" = /usr/bin:/bin ] && printf 'path\n'
+[ "$HOME" = /safe/home ] && printf 'home\n'
+[ "$LANG" = C ] && printf 'lang\n'
+[ "$LC_ALL" = C ] && printf 'locale\n'
+[ "$PARENT_POISON" = poison ] && printf 'inherited\n'
+[ -z "${OPENPROXY_TOKEN+x}" ] && printf 'credential_absent\n'
+} > "$1/checks.tmp" && mv "$1/checks.tmp" "$1/checks"
 while :; do sleep 1; done"#;
     let entry = McpEntry {
         kind: "local".to_string(),
@@ -331,9 +356,12 @@ while :; do sleep 1; done"#;
             script.to_string(),
             "cwd-env-fixture".to_string(),
             output.to_string_lossy().into_owned(),
+            project.to_string_lossy().into_owned(),
+            temp.path().join("tmp").to_string_lossy().into_owned(),
         ],
         timeout: Some(2_000),
         codemode: None,
+        ..Default::default()
     };
     let parent_env = BTreeMap::from([
         ("PATH".to_string(), "/usr/bin:/bin".to_string()),
@@ -352,23 +380,22 @@ while :; do sleep 1; done"#;
     assert_eq!(config.argv, entry.command, "argv retained byte-for-byte");
 
     let mut child = spawn_child(&config).expect("spawn cwd/env fixture");
-    wait_for_path(&output.join("env")).await;
-    let cwd = fs::read_to_string(output.join("cwd")).expect("cwd output");
-    assert_eq!(cwd.trim(), project.to_string_lossy());
-    let env = fs::read_to_string(output.join("env")).expect("env output");
+    wait_for_path(&output.join("checks")).await;
+    let checks = fs::read_to_string(output.join("checks")).expect("boolean checks");
     for expected in [
-        "PATH=/usr/bin:/bin",
-        "HOME=/safe/home",
-        "LANG=C",
-        "LC_ALL=C",
+        "cwd",
+        "tmpdir",
+        "path",
+        "home",
+        "lang",
+        "locale",
+        "inherited",
+        "credential_absent",
     ] {
         assert!(
-            env.lines().any(|line| line == expected),
-            "missing {expected}; env={env:?}"
+            checks.lines().any(|line| line == expected),
+            "missing {expected} boolean proof"
         );
-    }
-    for excluded in ["PARENT_POISON=", "OPENPROXY_TOKEN=", "never-in-child"] {
-        assert!(!env.contains(excluded), "environment leak: {excluded}");
     }
     child.kill_reap().await.expect("cwd/env cleanup");
 }
@@ -382,6 +409,8 @@ async fn kill_reap_leaves_no_zombie() {
         extra_env: Vec::new(),
         secrets: Vec::new(),
         timeout: CLIENT_TIMEOUT,
+        startup_timeout: None,
+        catalog_timeout: None,
         enabled: true,
     };
     let mut spawned = spawn_child(&config).expect("spawn sleep");
@@ -430,6 +459,8 @@ fn local_config(path: &Path, args: &[&Path], timeout: Duration) -> StdioConfig {
         ],
         secrets: Vec::new(),
         timeout,
+        startup_timeout: None,
+        catalog_timeout: None,
         enabled: true,
     }
 }
@@ -841,6 +872,8 @@ async fn real_server_smoke() {
         ],
         secrets: Vec::new(),
         timeout: CLIENT_TIMEOUT,
+        startup_timeout: None,
+        catalog_timeout: None,
         enabled: true,
     };
     let client = StdioClient::launch(&config).await.expect("smoke launch");

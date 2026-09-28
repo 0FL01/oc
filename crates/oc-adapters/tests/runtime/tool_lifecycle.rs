@@ -408,6 +408,7 @@ for line in sys.stdin:
             ],
             timeout: Some(2000),
             codemode: None,
+            ..Default::default()
         },
     );
     let runtime = runtime_of(&harness, generation, Vec::new());
@@ -648,6 +649,7 @@ time.sleep(30)
             ],
             timeout: Some(30_000),
             codemode: None,
+            ..Default::default()
         },
     );
     let runtime = runtime_of(&harness, generation, Vec::new());
@@ -766,6 +768,7 @@ for line in sys.stdin:
             ],
             timeout: Some(2_000),
             codemode: None,
+            ..Default::default()
         },
     );
     let runtime = runtime_of(&harness, generation, Vec::new());
@@ -1090,6 +1093,7 @@ for line in sys.stdin:
                 ],
                 timeout: Some(2_000),
                 codemode: None,
+                ..Default::default()
             },
         );
     }
@@ -1189,6 +1193,7 @@ for line in sys.stdin:
             ],
             timeout: Some(2_000),
             codemode: None,
+            ..Default::default()
         },
     );
     let runtime = runtime_of(&harness, generation, Vec::new());
@@ -1276,6 +1281,7 @@ async fn aud23_server_cap_blocks_spawn_before_first_child() {
                 ],
                 timeout: Some(2_000),
                 codemode: None,
+                ..Default::default()
             },
         );
     }
@@ -1334,6 +1340,7 @@ for line in sys.stdin:
             ],
             timeout: Some(2_000),
             codemode: None,
+            ..Default::default()
         },
     );
     generation.mcp.insert(
@@ -1350,6 +1357,7 @@ for line in sys.stdin:
             command: Vec::new(),
             timeout: Some(200),
             codemode: None,
+            ..Default::default()
         },
     );
     let runtime = runtime_of(&harness, generation, Vec::new());
@@ -1406,6 +1414,7 @@ async fn mcp_attach_failure_degrades_the_server() {
             command: Vec::new(),
             timeout: None,
             codemode: None,
+            ..Default::default()
         },
     );
     let runtime = runtime_of(&harness, generation, Vec::new());

@@ -17,6 +17,9 @@ use serde_json::{Value, json};
 type Log = Arc<Mutex<Vec<Record>>>;
 type CatalogVersion = Arc<std::sync::atomic::AtomicUsize>;
 
+#[path = "mcp_remote/config_admission.rs"]
+mod config_admission;
+
 #[tokio::test]
 async fn dns_and_connect_failures_are_distinct_from_private_host() {
     use oc_adapters::webfetch::{FetchError, check_host};
@@ -37,6 +40,8 @@ async fn dns_and_connect_failures_are_distinct_from_private_host() {
         bearer: "fixture".into(),
         custom_headers: Default::default(),
         timeout: Duration::from_secs(2),
+        startup_timeout: None,
+        catalog_timeout: None,
         allow_private: true,
     };
     assert!(matches!(
@@ -54,6 +59,8 @@ async fn protocol_mismatch_observes_stalled_session_cleanup() {
         bearer: "fixture".into(),
         custom_headers: Default::default(),
         timeout: Duration::from_secs(5),
+        startup_timeout: None,
+        catalog_timeout: None,
         allow_private: true,
     };
     let server = async {
@@ -136,6 +143,8 @@ enum Mode {
     Pages17,
     DuplicateTool,
     OversizedSchema,
+    SlowInitialize,
+    SlowCatalog,
 }
 
 #[derive(Clone)]
@@ -283,6 +292,9 @@ impl Fake {
         match rpc_method {
             "server/discover" => (404, Vec::new(), None),
             "initialize" => {
+                if self.mode == Mode::SlowInitialize {
+                    std::thread::sleep(self.slow);
+                }
                 let version = if self.mode == Mode::VersionMismatch {
                     "2025-06-18"
                 } else {
@@ -297,6 +309,9 @@ impl Fake {
             }
             "notifications/initialized" => (202, Vec::new(), None),
             "tools/list" => {
+                if self.mode == Mode::SlowCatalog {
+                    std::thread::sleep(self.slow);
+                }
                 let cursor = parsed
                     .get("params")
                     .and_then(|params| params.get("cursor"))
@@ -483,6 +498,8 @@ fn config_for(url: &str) -> CodexWebConfig {
         custom_headers: Default::default(),
         timeout: CLIENT_TIMEOUT,
         allow_private: true,
+        startup_timeout: None,
+        catalog_timeout: None,
     }
 }
 
@@ -836,6 +853,8 @@ fn config_validation_needs_no_network() {
             custom_headers: Default::default(),
             timeout: CLIENT_TIMEOUT,
             allow_private: true,
+            startup_timeout: None,
+            catalog_timeout: None,
         };
         assert_eq!(
             config.validate(),
@@ -849,6 +868,8 @@ fn config_validation_needs_no_network() {
         custom_headers: Default::default(),
         timeout: CLIENT_TIMEOUT,
         allow_private: true,
+        startup_timeout: None,
+        catalog_timeout: None,
     };
     assert_eq!(config.validate(), Err(McpError::InvalidConfig));
 }
@@ -1075,6 +1096,7 @@ fn header_names_are_case_insensitive_and_conflicts_are_explicit() {
         command: Vec::new(),
         timeout: None,
         codemode: None,
+        ..Default::default()
     };
     for spelling in ["authorization", "Authorization", "aUtHoRiZaTiOn"] {
         let headers = [(spelling.to_string(), "Bearer key".to_string())]
@@ -1126,6 +1148,7 @@ fn entry_mapping_refuses_oauth_and_keeps_exact_url() {
         command: Vec::new(),
         timeout: Some(5_000),
         codemode: None,
+        ..Default::default()
     };
     let config = CodexWebConfig::from_entry(&entry).expect("entry maps");
     assert_eq!(config.url, "https://mcp.example.com/v1/mcp");
@@ -1201,6 +1224,8 @@ async fn live_search_harness() {
         custom_headers: Default::default(),
         timeout: CLIENT_TIMEOUT,
         allow_private: false,
+        startup_timeout: None,
+        catalog_timeout: None,
     };
     let client = CodexWebClient::connect(&config)
         .await
