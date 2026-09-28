@@ -1,0 +1,71 @@
+//! Shared fixtures for binary routing and accepted lifecycle scenarios.
+
+use super::*;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use oc_core::core_app::InboxMsg;
+use oc_core::core_app::WorkerTurnId;
+use oc_core::queries::{AutoAcceptState, HistoryMessage, HistoryPage, ToolOpPage, ToolOpView};
+use oc_core::session::Role;
+
+fn catalog() -> CatalogSnapshot {
+    CatalogSnapshot {
+        chrome: Default::default(),
+        auto_accept: AutoAcceptState::Unsupported,
+        provider: "fixture".into(),
+        models: Vec::new(),
+        model_id: "fixture/model".into(),
+        variant: None,
+        agents: Vec::new(),
+        agent_id: None,
+        commands: Vec::new(),
+        command_descriptions: Default::default(),
+    }
+}
+
+async fn empty_compactions(inbox: &mut tokio::sync::mpsc::Receiver<InboxMsg>) {
+    let Some(InboxMsg::CompactionHistory { ack, .. }) = inbox.recv().await else {
+        panic!("compaction replay query")
+    };
+    ack.send(Ok(Vec::new())).unwrap();
+}
+
+fn tps_page() -> oc_core::queries::HistoryPage {
+    oc_core::queries::HistoryPage {
+        total: 1,
+        rows: vec![oc_core::queries::HistoryMessage {
+            id: oc_core::session::MessageId("measured-answer".into()),
+            seq: 1,
+            role: Role::Assistant,
+            text: "cached body".into(),
+            model_switch: None,
+            turn: Some(oc_core::queries::HistoryTurn {
+                id: "measured-turn".into(),
+                status: "completed".into(),
+                model_label: "Measured model".into(),
+                agent: Some("build".into()),
+                duration_ms: Some(1500),
+                streamed_ms: Some(4000),
+                usage: Some((1000, 200)),
+                ..Default::default()
+            }),
+        }],
+        ..Default::default()
+    }
+}
+
+fn append_tab(app: &CoreApp, deck: &mut LoopState, state: &mut TuiState, id: &str) {
+    let old = deck.active_tab.expect("active real tab");
+    deck.tabs[old] = Some(std::mem::replace(
+        state,
+        TuiState::new(app.clone(), SessionId::new(id).unwrap()),
+    ));
+    deck.tab_cards_before[old] = deck.cards_before;
+    deck.active_tab = Some(deck.tabs.len());
+    deck.tabs.push(None);
+    deck.tab_cards_before.push(None);
+    deck.cards_before = None;
+    deck.sync_tabs(state);
+}
+
+mod lifecycle;
+mod routing;
