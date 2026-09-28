@@ -16,7 +16,11 @@
 
 **M6: Квалификация и handoff.** См. `roadmap/M6.md`.
 
+**M10: Укрупнённые code slices для agent-only разработки.** См. `roadmap/M10.md`, task T52. Это структурная работа без нового product scope, смены baseline и расширения A01–A13.
+
 ## Порядок работы
+
+Утверждённое исключение для первого прохода T52: после явного resume с этой задачей выполнить её до нового функционального роста затрагиваемых T44/T45/T46/T50/T51 owners. T44 сейчас active/PAUSED; её состояние не подменять автоматическим стартом T52. Порядок pause/start/resume — в `roadmap/M10.md`. Не добавлять зависимости T44 → T52 или T52 → done T44: это не минимальные feature prerequisites и ломает текущий active-state. T30 получает done-dependency T52; завершённые задачи/исторические PASS не переписываются.
 
 Выбирать первый ready task по ID, но при blocked live/network task продолжать независимые offline задачи. Например, отсутствие ключей блокирует T16/T27, но не DCP/MCP fake suite/TUI/soak. Никакой обязательной реализации serve/attach, OAuth, migration или Code Mode в этом графе нет.
 

@@ -5,29 +5,51 @@
 ## Packages и разрешённые зависимости
 
 ```text
-crates/oc-core/
-  domain/{ids,session,message,tool,model,context,error}.rs
-  application/{app,commands,queries,permissions}.rs
-  runtime/{session_worker,turn,supervisor,context_projection}.rs
-  ports/{provider,store,tools}.rs
-crates/oc-adapters/
-  config/                  # JSONC/AGENTS/definitions + native TOML + provenance
-  storage/                 # rusqlite worker + blobs
-  providers/openproxy/     # Responses wire + bounded discovery
-  tools/                   # read/search/patch/shell/webfetch/skill/question + session/model controls
-  mcp/                     # rmcp client, remote и stdio
-  dcp/                     # range/protections/nudges/pruning
-crates/oc-tui/
-  app.rs, events.rs, views/, widgets/
-crates/oc/
-  main.rs, cli.rs, bootstrap.rs
+crates/oc-core/src/
+  application.rs, core_app.rs, queries.rs, ports.rs, domain.rs, ...
+crates/oc-adapters/src/
+  application.rs, application_*.rs  # application lifecycle, workers, queries
+  runtime.rs, runtime/             # native turn/tool/MCP/context execution
+  storage.rs, storage_*.rs         # Db owner, transactions, history, DCP
+  config.rs, composition.rs, defs.rs, discovery.rs, provider.rs, ...
+crates/oc-tui/src/
+  app.rs, app/                     # TuiState owner + coarse implementation slices
+  messages.rs, shell.rs            # transcript rendering / frame composition
+  history.rs, styled.rs, editor.rs, tools.rs, ...
+crates/oc/src/
+  main.rs, cli.rs, bootstrap.rs, headless.rs, tui_cmd.rs
+# <owner>/tests.rs и tests/<suite>/ — тесты, не production-зависимости.
 ```
 
-`oc` связывает конкретные реализации и может зависеть от всех остальных. `oc-tui` зависит от публичного application API `oc-core`, не от storage/providers. `oc-adapters` реализует ports `oc-core`; обратной зависимости нет. `oc-core` может использовать Tokio/Serde и простые utility-типы, но не Ratatui, Axum, rusqlite, reqwest или rmcp.
+Это карта укрупнённых владельцев, не предписание создать все возможные подпапки. `app/` и дополнительные slices `runtime/` вводятся T52; фактические и ещё планируемые пути различаются в `CODE_MAP.md`. Не раскладывать небольшие core/config/provider-модули по старому концептуальному дереву ради единообразия.
+
+`oc` связывает конкретные реализации и может зависеть от всех остальных. `oc-tui` использует публичный application API `oc-core` и уже разрешённый D12 read-side `oc-adapters`; эта зависимость есть в Cargo.toml и не устраняется файловым рефакторингом. В текущем TuiState snapshots/intents проходят через CoreApp, а lifecycle Db/runtime/network/process остаётся у существующих application/binary owners. T52 не добавляет UI новый I/O и не расширяет исключение D12. `oc-adapters` реализует ports `oc-core`; обратной зависимости нет. `oc-core` может использовать Tokio/Serde и простые utility-типы, но не Ratatui, Axum, rusqlite, reqwest или rmcp.
 
 DCP placement: детерминированные общие `ContextPlan`/`CompressionBlock` и application commit rules принадлежат core; upstream-specific selection/nudge/strategy policy находится в `oc-adapters::dcp`, возвращает проверяемые изменения через узкий `ContextPolicy` interface. Не создавать crate/trait на каждый тип. Подключение второго контекстного движка не входит в задачу.
 
 Один binary target `oc`; библиотеки statically linked в приложение. Нет runtime DCP/npm loader. Без Axum в production до появления реального remote requirement; fake HTTP test servers могут быть dev-dependency.
+
+## Файлы и тесты
+
+Единица навигации — владелец поведения плюс несколько укрупнённых implementation/test slices. Лимит 5 000 физических строк мягкий и действует на отдельные рукописные production/test/dev-tool файлы; строки комментариев/пустые строки учитываются. Размер модуля со всеми дочерними файлами не ограничен этим числом. Ориентир 1–4k полезен для новых крупных slices, но не является минимумом: фасады, ports и существующие самостоятельные небольшие модули не укрупнять искусственно.
+
+Сначала отделять большие тестовые блоки, затем повторно измерять production. Согласованный файл на 3k строк не дробить только потому, что до выноса тестов он занимал 8k. Выше 5k — warning и объяснение: какие обязанности связаны, почему выбранный перенос опаснее сохранения, следующий шов/условие пересмотра. Запись исключения держать рядом с владельцем в `CODE_MAP.md`, не в отдельной системе waiver/хешей. Уплотнение строк и монолит за `include!` не являются исправлением.
+
+При сохранении публичного `app.rs` Rust ищет его обычные дочерние модули в `app/`; одновременно `app.rs` и `app/mod.rs` не создавать. Корневой owner сохраняет тип состояния и инварианты; тематические файлы могут содержать `impl TuiState`/`impl Runtime`. Не создавать новые копии состояния, `Arc<Mutex<Everything>>`, traits, crates или dispatcher framework ради переноса методов. Private поля предка доступны его потомкам; moved helpers, вызываемые родителем/соседями, получают только необходимую scoped visibility. Старые публичные пути сохранять явными re-exports, без общего `pub use *`.
+
+Unit tests остаются дочерними модулями владельца, но их код читается отдельно:
+
+```rust
+// src/<owner>.rs
+#[cfg(test)]
+mod tests; // src/<owner>/tests.rs; при необходимости содержит mod input; и т.п.
+```
+
+Fixtures общего unit-suite можно оставить в его `tests.rs`, сценарии — в нескольких крупных файлах `tests/<topic>.rs`. Мелкие существующие inline-тесты допустимы; новую крупную сценарную серию не наращивать в production-файле. `#[cfg(test)]` поля, probes и test/non-test branches не путать с целым тестовым блоком и не удалять механически. Уже публичный ScriptDriver не превращать в cfg(test)-only API только из-за переноса: чистая раскладка сохраняет доступность, даже если найденные call sites — unit tests.
+
+Для существующего integration target сохранять `tests/<suite>.rs`; подключать части явными `#[path = "<suite>/<topic>.rs"] mod topic;`. Не добавлять одновременно `<suite>/main.rs`, второй target того же имени или top-level `tests/common.rs`. Shared fixtures остаются внутри suite либо в существующем `tests/support/`, без нового dev-support crate. Отдельный test-файл не означает отдельный Cargo target. За переносом следуют сверка test discovery/ignored и коррекция живых filters, `include_str!`/`include_bytes!`/`#[path]`; публичный API ради доступа тестов не расширять.
+
+Правила относятся к раскладке, а не к переутверждению поведения. Исторические evidence и frozen upstream сохраняются. Новый размерный отчёт — advisory; compile/test failures, нарушение ownership и потеря тестов остаются настоящими failures. Подробный первый проход: `goals/2026-09-28-code-slices.md`.
 
 ## Composition и тестовые швы
 

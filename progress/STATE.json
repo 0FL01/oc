@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-28T06:56:44+00:00",
-  "current": "T44",
+  "updated_at": "2026-09-28T08:49:17+00:00",
+  "current": "T52",
   "tasks": {
     "T00": {
       "status": "done",
@@ -312,9 +312,9 @@
       "reopen_reason": null
     },
     "T44": {
-      "status": "active",
-      "last_seq": 75,
-      "latest": "progress/M9/T44/0075.md",
+      "status": "blocked",
+      "last_seq": 76,
+      "latest": "progress/M9/T44/0076.md",
       "evidence": null,
       "reopen_reason": null
     },
@@ -355,6 +355,13 @@
     },
     "T51": {
       "status": "todo",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
+      "reopen_reason": null
+    },
+    "T52": {
+      "status": "active",
       "last_seq": 0,
       "latest": null,
       "evidence": null,

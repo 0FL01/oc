@@ -12,3 +12,4 @@ Canonical state: STATE.json. Resume: NOW.md.
 - [M7](M7/INDEX.md): 12/12 tasks done (не % parity).
 - [M8](M8/INDEX.md): 1/7 tasks done (не % parity).
 - [M9](M9/INDEX.md): 0/1 tasks done (не % parity).
+- [M10](M10/INDEX.md): 0/1 tasks done (не % parity).

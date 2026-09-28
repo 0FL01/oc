@@ -339,3 +339,15 @@ historical reports and task statuses unchanged until real qualification.
 - T25/T26/T28/T29: по одному соответствующему offline/integration campaign, без дублирующих suites.
 - T16/T27: bounded explicit live campaigns.
 - T30: roll-up evidence и final-code-commit AUD38/AUD39 requalification после backend changes; прежний T42 PASS не заменяет проверки нового кода.
+
+## T52 — файловая структура без изменения поведения
+
+T52 проверяет ARCH01–ARCH05 из `planning/acceptance.json`; это не новые product gates A14+ и не повторное присвоение старых acceptance IDs. Поэтапная матрица и commands — в `goals/2026-09-28-code-slices.md`. Принимается реальный перенос с сохранённой test discovery, scoped visibility и ownership, а не только новый текст AGENTS.
+
+До/после переноса с одинаковыми Cargo options/environment сохранить `-- --list` для затронутых lib/bin/integration targets и отдельно список `-- --ignored --list`. Сверить target + полное имя + ignored membership. Допустимые изменения module prefixes перечислить явно; тестовые функции/assertions/fixtures не удалять ради равных counts. Сохранение одного количества не доказывает сохранение набора. Новые диагностические tests учитывать отдельно. Filter после переезда обязан запускать ожидаемые тесты, не заканчиваться тихим `0 tests`.
+
+Ближайшие suites выполнять в каждом срезе, полный workspace gate — после интеграции. В `oc` unit tests остаются `--bin oc`; их перенос не требует добавлять lib target. Существующие `--test runtime` и `--test pty_t39` сохраняются; это позволяет не размножать Cargo processes/fixtures. `cargo test` библиотеки для integration target не включает cfg(test)-only API: нельзя так скрыть ScriptDriver или открыть private API через новые public методы.
+
+Чистое перемещение не меняет golden/expected output/timeout/skip/ignored/resource thresholds. Любая наблюдаемая разница — расследовать отдельно, не обновлять baseline автоматически. Для затронутых UI paths использовать существующие deterministic PTY/full-frame сценарии; compare styled cells, cursor и PNG там, где этого требует их контракт. Source-path metadata может измениться, а ожидаемое поведение — нет. Недостающие в присланном архиве raw captures — `NOT_AVAILABLE_IN_ARCHIVE`, не новый PASS или требование восстановить всю многогигабайтную историю.
+
+Размерный helper из T52/R0 warning-only при превышении 5k; его тесты проверяют подсчёт/фильтрацию/Git changes и не превращают ориентир в hidden hard gate. Новых SHA256-based regression gates нет; используем Git identity/diff и семантические проверки. Старые frozen locks и используемые продуктом digests не переписываются в этом scope.
