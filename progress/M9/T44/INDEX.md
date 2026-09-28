@@ -1,12 +1,10 @@
 # T44 — TUI pixel parity с opencode v2.0.12, включая Approve (VIS36), question (VIS37), DCP (VIS38), subagent (VIS39), MCP modal/startup (VIS19/VIS40), tab hover-marquee (VIS41), plugin/service errors (VIS42)
 
-Status: blocked
+Status: active
 Spec: ../../../docs/goals/2026-09-21-tui-pixel-parity.md
 
 Последние 12 записей; остальные доступны по номеру/targeted search.
 
-- [0065](0065.md)
-- [0066](0066.md)
 - [0067](0067.md)
 - [0068](0068.md)
 - [0069](0069.md)
@@ -17,3 +15,5 @@ Spec: ../../../docs/goals/2026-09-21-tui-pixel-parity.md
 - [0074](0074.md)
 - [0075](0075.md)
 - [0076](0076.md)
+- [0077](0077.md)
+- [0078](0078.md)
