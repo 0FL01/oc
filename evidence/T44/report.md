@@ -1,5 +1,38 @@
 # T44 — parity qualification remains open (2026-09-28)
 
+**Execution paused at the owner's request after the current checkpoint and
+commit/push. T44 remains incomplete; no new implementation work is authorized
+until the owner resumes it.**
+
+The latest VIS38 checkpoint fixes a real exact-fit word-wrap bug: when a fitting
+word filled the row, its following space incorrectly moved that word to the next
+row. The shared styled wrapper now retains that word, keeps source-space styles
+and bounds, and does not append an empty row for suppressed terminal whitespace.
+Regression coverage includes mixed styles, CJK, row limits and the actual painted
+Explored blank-tail hit, rather than assuming the last cell is always padding.
+
+The corrected comparable fixture now uses the actual native title, Location,
+model/profile, viewport settings, usage, genuine public messages and recorded
+durations. The pinned original receives a supported public transfer; no native
+history is injected. [`dcp-report20260928-04.md`](../tui/recovery-v00/dcp-report20260928-04.md)
+records three default detailed/chat recompression frames at80×24,120×40,160×48:
+**all14,400 styled cells, all three cursors and all1,941,888 PNG pixels are exact**,
+with byte-identical PNGs and no masks. Three genuine compression operations and
+restart continuation made11 localhost requests; display made none, and observed
+native owner tables stayed unchanged. Original completion timestamps are explicitly
+derived display coordinates from real admission epochs and recorded durations,
+not claimed absolute wall-clock event equivalence. This qualifies only those
+three default-detail frames, **not the complete VIS38/T44/V09 matrix**.
+
+Final serial workspace fmt, locked tests (414 TUI tests; zero workspace failures),
+strict all-target Clippy, debug+release builds, xterm frontend, capture JS/Python
+syntax, docs/progress and diff checks **PASS**:
+`tool_0e6c7c8a5001gvzmpZDIjYbOek`. Debug SHA remains the captured
+`b4b9b2440ec92c2079d9ec0492e295ad342ff6e2475075355ac77018781405a0`;
+release SHA `96ee7e337dd5761a884bf9fbba382248768dac9ae3da9bf52eb01dc0b9e88f30`.
+Historical unequal captures and reports remain preserved. Pending controls,
+negative/running states, remaining T44 contracts and full acceptance remain open.
+
 VIS39 own-running tab indicators and VIS41 hover titles now use stable session IDs
 and the existing demand-driven clock. Dots advance through the pinned ten frames
 every80 ms; permission attention and numeric/static-off branches remain distinct.
@@ -52,7 +85,7 @@ user message or duplicate persistent toast is created. Legacy missing metadata
 remains unavailable. Pinned AGPL/MIT provenance is preserved in
 [`DCP_VIS38_PROVENANCE.md`](../../docs/DCP_VIS38_PROVENANCE.md) and oracle artifacts.
 
-Final [`dcp-report20260928-02.md`](../tui/recovery-v00/dcp-report20260928-02.md)
+Earlier [`dcp-report20260928-02.md`](../tui/recovery-v00/dcp-report20260928-02.md)
 qualifies the source-built binary with 11 bounded local requests, three genuine
 single/multi-range/recompression runs, exact coverage/bar and independent content
 measurements, immutable raw history and restart without replay. Pure recompression

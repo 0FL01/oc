@@ -36,6 +36,12 @@ for directory in (project, home / 'config/opencode', home / 'cache', home / 'dat
     directory.mkdir(parents=True)
 oracle = json.loads(Path(spec['goldens']).read_text())
 case = next(c for c in oracle['notifications'] if c['id'] == spec['case'])
+display_fixture = json.loads(Path(spec['display_fixture']).read_text()) if spec.get('display_fixture') else None
+if display_fixture:
+    assert display_fixture['case'] == case['id']
+    assert display_fixture['goldens_sha256'] == hashlib.sha256(Path(spec['goldens']).read_bytes()).hexdigest()
+    project = Path(display_fixture['cwd'])
+    assert project.is_dir() and str(project).startswith('/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/')
 
 
 class RefuseProvider(BaseHTTPRequestHandler):
@@ -62,7 +68,15 @@ config = {'model': 'fixture/fixture-model-1', 'share': 'disabled', 'update': 'di
               'models': {'fixture-model-1': {'name': 'VIS38 Display Model', 'limit': {'context': 32000, 'output': 2048}}}}}}
 cli = {'theme': {'name': 'opencode', 'mode': 'dark'}, 'animations': False,
        'session': {'sidebar': 'hide', 'tps': False}, 'tabs': {'layout': 'horizontal'},
-       'attention': {'notifications': False, 'sound': False}, 'cursor': {'style': 'block', 'blinking': False}}
+        'attention': {'notifications': False, 'sound': False}, 'cursor': {'style': 'block', 'blinking': False}}
+if display_fixture:
+    model = display_fixture['model']
+    config['model'] = model['providerID'] + '/' + model['id']
+    config['providers'] = {model['providerID']: {'name': model['provider_name'],
+        'package': '@opencode/ai/providers/openai/responses',
+        'settings': {'baseURL': f'http://127.0.0.1:{server.server_port}/v1'},
+        'models': {model['id']: model['declaration']}}}
+    cli = display_fixture['cli']
 for name, value in [('opencode.json', config), ('cli.json', cli)]:
     (home / 'config/opencode' / name).write_text(json.dumps(value))
 env = {'HOME': str(home), 'XDG_CONFIG_HOME': str(home / 'config'),
@@ -123,12 +137,19 @@ elif case['prompts']:
 messages.append(assistant('after', native_context['capture_after'] if native_context else 'VIS38-AFTER: continuation display.', len(messages) + 1))
 info['time']['updated'] = stamp + len(messages)
 payload = {'info': info, 'messages': messages}
+if display_fixture:
+    # The legacy synthetic fixture above is not used by this source-traced path.
+    # OC2 import accepts this transfer without renderer overrides; native never imports it.
+    payload = display_fixture['transfer']
+    info, messages = payload['info'], payload['messages']
+    session_id = info['id']
 source = home / 'session.json'
 source.write_text(json.dumps(payload, ensure_ascii=False))
 emit({'kind': 'fixture', 'case': case['id'], 'goldens_sha256': hashlib.sha256(Path(spec['goldens']).read_bytes()).hexdigest(),
       'notification_text_sha256': hashlib.sha256(case['payload'].encode()).hexdigest() if case['payload'] else None,
        'transfer': payload, 'native_context': native_context,
-       'delivery_mapping': 'D05 intercepted ignored noReply text -> OC2 imported user text; display reference only'})
+       'delivery_mapping': 'D05 intercepted ignored noReply text -> OC2 imported user text; display reference only',
+       'display_fixture_sha256': hashlib.sha256(Path(spec['display_fixture']).read_bytes()).hexdigest() if display_fixture else None})
 
 
 def command(argv):
@@ -148,6 +169,9 @@ try:
     exported = json.loads(command([spec['binary'], 'session', 'export', '--standalone', session_id]))
     if exported['messages'] != messages:
         raise RuntimeError('Public export differs from exact imported messages')
+    if display_fixture:
+        for field in ('title', 'agent', 'model', 'tokens', 'cost', 'location'):
+            assert exported['info'][field] == info[field], 'Public export changed display field ' + field
     emit({'kind': 'exact_import_export_verified', 'session_id': session_id, 'message_count': len(messages)})
     master, slave = pty.openpty()
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', spec['rows'], spec['columns'], 0, 0))

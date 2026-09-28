@@ -13631,9 +13631,28 @@ mod tests {
             );
             click(&mut state, area, x, y - 1); // vertical gap
             click(&mut state, area, transcript.x, y); // left padding
-            click(&mut state, area, transcript.right() - 1, y); // blank row tail
+            // At a narrow exact fit, the last cell belongs to the header,
+            // not to blank padding. Test the actual blank continuation tail.
+            let blank_row = lines
+                .iter()
+                .enumerate()
+                .skip(row)
+                .find(|(_, line)| {
+                    line.spans()
+                        .iter()
+                        .map(crate::styled::span_width)
+                        .sum::<usize>()
+                        < transcript.width as usize
+                })
+                .map(|(index, _)| transcript.y + index as u16)
+                .expect("a painted blank tail");
+            click(&mut state, area, transcript.right() - 1, blank_row);
             click(&mut state, area, x, transcript.bottom()); // status/prompt
-            assert!(state.exploration_expanded.is_empty());
+            assert!(
+                state.exploration_expanded.is_empty(),
+                "area={area:?}, transcript={transcript:?}, header={:?}",
+                lines[row].plain_text()
+            );
             state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), x, y), area);
             state.handle_mouse(
                 event(MouseEventKind::Drag(MouseButton::Left), x + 1, y),

@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-28",
+  "task": "T44/VIS38 current default-detail checkpoint after parent's exact-fit wrap fix",
+  "status": "PASS_SOURCE_TRACED_THREE_SIZE_FULL_DISPLAY",
+  "scope": "Actual held recompression stage, detailed/chat/showCompression false, three approved sizes only; not whole-VIS38/T44 acceptance.",
+  "binary_source_association": {
+    "native_path": "target/debug/oc",
+    "native_sha256": "b4b9b2440ec92c2079d9ec0492e295ad342ff6e2475075355ac77018781405a0",
+    "source_HEAD": "9f40fed6dfc3a42e1c7da46468533d3c5a144b54",
+    "clean_HEAD_association": false,
+    "parent_existing_dirty_product_files_sha256_before_and_after": {
+      "crates/oc-tui/src/app.rs": "a07fffa5f8bb3233a9a7653c80b30b36776e6f3b83db0aade5a19b75b28e015d",
+      "crates/oc-tui/src/styled.rs": "8a8f079ed7b5835575565c2a6518a1b13e92256eeb6bbf2ff26ddad90a0d0dbf"
+    },
+    "git_diff_binary_crates_sha256_before_and_after": "931f3ae938947bcb41ecae9fe1c73132694667828301b1d9f0a79e7accaf23f4",
+    "parent_attested_checks": "414 library tests and strict TUI/binary Clippy/build/fmt PASS; caller-supplied results, not rerun here.",
+    "full_workspace_gate": "Parent runs after this capture release; not run here.",
+    "Cargo_commands_in_capture_pass": 0,
+    "verification": "Supplied release digest checked at preflight, every native launch, independent auditor and after capture; product files and product diff unchanged through capture."
+  },
+  "reference": {
+    "binary_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "binary_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "oc_pin": "2670273ff17da96f85c5826ced57aa1b368754fa",
+    "dcp_pin": "11f6517780a502512a3467645074be447cb0369e",
+    "D05_D06_D10_bodies_unchanged": true,
+    "all_source_hashes_and_AGPL_provenance_retained": true
+  },
+  "commands": [
+    {
+      "command": "python3 scripts/tui_capture/dcp_native_qualify.py --oc /home/opencode/ai/oc/target/debug/oc --released-sha256 b4b9b2440ec92c2079d9ec0492e295ad342ff6e2475075355ac77018781405a0 --output /home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-native20260928-07 --default-detail-only",
+      "exit_code": 0,
+      "result": "PASS_ACTUAL_SINGLE_MULTI_RESTART_OWNER_PROBE"
+    },
+    {
+      "command": "bun scripts/tui_capture/dcp_from_native.ts evidence/tui/recovery-v00/dcp-oracle20260927-03 evidence/tui/recovery-v00/dcp-native20260928-07 evidence/tui/recovery-v00/dcp-oracle20260928-native06",
+      "exit_code": 0,
+      "result": "PASS_PINNED_DISPLAY_ORACLE; three native-derived notifications/actual operations."
+    },
+    {
+      "command": "python3 scripts/tui_capture/dcp_display_fixture.py --native evidence/tui/recovery-v00/dcp-native20260928-07 --oracle evidence/tui/recovery-v00/dcp-oracle20260928-native06 --case native-recompression --output evidence/tui/recovery-v00/dcp-display20260928-04",
+      "exit_code": 0,
+      "result": "12 real public messages mapped to 21 supported original messages including three DCP wrappers/six actual completed-turn idle boundaries."
+    },
+    {
+      "command": "node scripts/tui_capture/dcp_reference_capture.mjs --oracle /home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-oracle20260928-native06 --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode --output /home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-reference20260928-native09 --case native-recompression --profiles all --display-fixture /home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-display20260928-04/fixture.json",
+      "exit_code": 0,
+      "result": "Three PASS_REFERENCE_CAPTURE attempts; exact public import/export and zero provider requests."
+    },
+    {
+      "command": "python3 scripts/tui_capture/dcp_display_audit.py --native evidence/tui/recovery-v00/dcp-native20260928-07 --oracle evidence/tui/recovery-v00/dcp-oracle20260928-native06 --reference evidence/tui/recovery-v00/dcp-reference20260928-native09 --fixture evidence/tui/recovery-v00/dcp-display20260928-04/fixture.json --released-sha256 b4b9b2440ec92c2079d9ec0492e295ad342ff6e2475075355ac77018781405a0 --output evidence/tui/recovery-v00/dcp-pair-check20260928-05.json",
+      "exit_code": 0,
+      "result": "All full cells/cursors/PNGs already exact; legacy helper hardcoded WITH_DIFFERENCES status. This immutable first audit is retained."
+    },
+    {
+      "command": "python3 -m py_compile scripts/tui_capture/dcp_display_audit.py && python3 scripts/tui_capture/dcp_display_audit.py --native evidence/tui/recovery-v00/dcp-native20260928-07 --oracle evidence/tui/recovery-v00/dcp-oracle20260928-native06 --reference evidence/tui/recovery-v00/dcp-reference20260928-native09 --fixture evidence/tui/recovery-v00/dcp-display20260928-04/fixture.json --released-sha256 b4b9b2440ec92c2079d9ec0492e295ad342ff6e2475075355ac77018781405a0 --output evidence/tui/recovery-v00/dcp-pair-check20260928-06.json",
+      "exit_code": 0,
+      "result": "PASS_SOURCE_TRACED_THREE_SIZE_FULL_DISPLAY after conditional exact-result status correction; same captures, no new requests."
+    },
+    {
+      "command": "git diff --check && git diff --exit-code -- GOAL.md planning progress docs tui-recovery",
+      "exit_code": 0,
+      "result": "No tracked whitespace diagnostics or acceptance/progress changes."
+    }
+  ],
+  "tooling_change_in_this_pass": {
+    "path": "scripts/tui_capture/dcp_display_audit.py",
+    "sha256": "7fea77c34d5f11f3e0e6f452977919f4c3b32af5cc83cd9881320288ef436776",
+    "change": "Replace unconditional WITH_DIFFERENCES result label with three-size full-display PASS iff every complete grid/cursor/PNG byte/decoded pixel equals; scope explicitly bounded. No comparator assertion relaxation."
+  },
+  "evidence_sha256": {
+    "evidence/tui/recovery-v00/dcp-native20260928-07/result.json": "bab0707a2887d7bda9572c94b690e32dbc01dc7f08a34f1a9400909fd604d398",
+    "evidence/tui/recovery-v00/dcp-oracle20260928-native06/goldens.json": "26979dfb5e3db6483b426cc17112c5db63f8be3c6755b37125d2c3cbfe56075c",
+    "evidence/tui/recovery-v00/dcp-display20260928-04/fixture.json": "2bf8d52e951896e610551e3d5778b2e6c45964fad32dafdc6592b958c5c4e3e4",
+    "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-07-recompression/capture.lock.json": "81eba12e7103acf2bb827cac41e6a6e24a4b8bcc18ab7c27e14ebe5f040959b8",
+    "evidence/tui/recovery-v00/dcp-reference20260928-native09/capture.lock.json": "1cb28f2e7e3d7110549e7420ce73e5624d179bd3078f81db3048222f85d48500",
+    "evidence/tui/recovery-v00/dcp-pair-check20260928-05.json": "97a20fdf6fb252067c44a25d98a8c1c155497432b6a2cc47c5116cc78a5aefc4",
+    "evidence/tui/recovery-v00/dcp-pair-check20260928-06.json": "7e320f6739f945e2649a2b738cef62a37780e50e8f4261480c8d9f968b38e0f3"
+  },
+  "previous_reports_and_audit_unchanged": {
+    "evidence/tui/recovery-v00/dcp-report20260928-02.md": "73b84ba1c8340d216507a788055f7a7d31fa045bb3015ba9abdde2447fa7edab",
+    "evidence/tui/recovery-v00/dcp-report20260928-03.md": "c45b312afa5947088cf8317d206ea1f189ebd3fab3f87b7eb4915d8183d1e9fa",
+    "evidence/tui/recovery-v00/dcp-pair-check20260928-04.json": "04ca9740f2d5bbb7425e36695d81be1c5661d0aa64bcdae9e073ecf0c99ec36f",
+    "evidence/tui/recovery-v00/dcp-validation20260928-01.json": "c0ba4593a7ce337dedcd71d83b63f0354104acdf8ef3ee4e32b51bd4f2be04f4"
+  },
+  "comparison": {
+    "profiles": [[80, 24], [120, 40], [160, 48]],
+    "native_frames": 3,
+    "original_frames": 3,
+    "full_cells": 14400,
+    "unequal_styled_cells": 0,
+    "text": 0,
+    "foreground": 0,
+    "background": 0,
+    "modifiers": 0,
+    "width": 0,
+    "cursor_unequal_frames": 0,
+    "png_bytes_and_pixels_exact_frames": 3,
+    "full_png_pixels": 1941888,
+    "unequal_png_pixels": 0,
+    "geometry_equal": true,
+    "normalization": null,
+    "masked_cells": 0,
+    "png_decoder": {"name": "Pillow", "version": "11.1.0"},
+    "paired_png_sha256": {
+      "80x24": "07960ff4fb852333af054f7dff4d10b3cb1a8129b6dabe8c29435a125c89a406",
+      "120x40": "9942f552ba90695d87e95a350f9325548f1ae238202d9b0428dce8c9081007a1",
+      "160x48": "927697fc37676ca88d0c6f36c0073fcf5fc6270ed107c75d2bd15c1db40ac766"
+    },
+    "residual_differences": []
+  },
+  "actual_owner_and_display": {
+    "actual_successful_compress_calls": 3,
+    "actual_stored_runs": 3,
+    "actual_restart_requests": 1,
+    "actual_bounded_localhost_Responses_requests": 11,
+    "authenticated_requests": 0,
+    "native_display_provider_request_window": [10, 10],
+    "original_display_provider_requests": 0,
+    "observed_native_owner_tables_unchanged": true,
+    "native_history_ingress": false,
+    "qualified_natural_zero_exit_TUI_processes": 6,
+    "actual_title": "VIS38 actual compression owner",
+    "actual_provider_model": "fixture/vis38-native-model",
+    "actual_elapsed_display_durations_ms": [131, 88, 112, 210, 208, 170],
+    "timestamp_limit": "Only source-derived display endpoints: actual admission epoch + stored elapsed duration. Native has no absolute assistant event timestamps; no wall-clock completion measurement claimed. Streamed omitted; original import update remains real.",
+    "accounting_limit": "Required original session cost/tokens are documented reference scaffolding, not provider billing. Assistant tokens preserve actual latest-response/context usage."
+  },
+  "remaining_gaps": [
+    "Parent full workspace gate and delivery follow capture release; not run by this worker.",
+    "Current-binary controls/running/negative/live-public DTO/Undo-Redo/resources-paging/late-routing/M-scale qualification stays separate.",
+    "Absolute assistant message-event timestamps are not stored by native."
+  ],
+  "stop_after_checkpoint": true,
+  "product_or_acceptance_edits_by_this_capture_pass": false,
+  "commit_or_push_by_this_worker": false,
+  "opencode_directory_inspected": false
+}

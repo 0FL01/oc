@@ -22,6 +22,8 @@ parser.add_argument('--oc', required=True, type=Path)
 parser.add_argument('--released-sha256', required=True,
                     help='Parent-attested final binary digest; execution is deferred until release')
 parser.add_argument('--output', required=True, type=Path)
+parser.add_argument('--default-detail-only', action='store_true',
+                    help='Match supported display settings; capture only recompression at three sizes, without summary/controls')
 args = parser.parse_args()
 repo = Path(__file__).resolve().parents[2]
 output = args.output.resolve()
@@ -58,6 +60,8 @@ def observe():
             wanted = ('messages', 'conversation_messages', 'compression_blocks', 'compression_members',
                       'prune_marks', 'tool_operations', 'dcp_run_views', 'dcp_accounting',
                       'dcp_coverage', 'dcp_run_identity')
+            if args.default_detail_only:
+                wanted += ('sessions', 'turns', 'turn_acceptances')
             views = {r[0] for r in connection.execute("SELECT name FROM sqlite_master WHERE type='view'")}
             data = {name: [dict(r) for r in connection.execute(f'SELECT * FROM "{name}" LIMIT 101')]
                     for name in wanted if name in tables | views}
@@ -190,9 +194,19 @@ config = {'model': 'fixture/vis38-native-model', 'plugin': ['@tarquinen/opencode
 (project / 'dcp.jsonc').write_text(json.dumps({'enabled': True, 'autoUpdate': False,
     'pruneNotification': 'detailed', 'pruneNotificationType': 'chat',
     'compress': {'mode': 'range', 'permission': 'allow', 'showCompression': True,
-                 'minContextLimit': 1000000, 'maxContextLimit': 1000000},
+                  'minContextLimit': 1000000, 'maxContextLimit': 1000000},
     'strategies': {'deduplication': {'enabled': False}, 'purgeErrors': {'enabled': False}}}))
-(home / 'config/opencode/cli.json').write_text(json.dumps({'session': {'sidebar': 'hide', 'tps': False}, 'tabs': {'layout': 'horizontal'}}))
+cli = {'session': {'sidebar': 'hide', 'tps': False}, 'tabs': {'layout': 'horizontal'}}
+if args.default_detail_only:
+    display_config = json.loads((project / 'dcp.jsonc').read_text())
+    display_config['compress']['showCompression'] = False
+    (project / 'dcp.jsonc').write_text(json.dumps(display_config))
+    cli.update({'theme': {'name': 'opencode', 'mode': 'dark'}, 'animations': False,
+                'attention': {'notifications': False, 'sound': False},
+                'cursor': {'style': 'block', 'blinking': False}, 'debug': {'devtools': False}})
+(home / 'config/opencode/cli.json').write_text(json.dumps(cli))
+save('fixture-config.json', {'config': config, 'cli': cli,
+     'dcp': json.loads((project / 'dcp.jsonc').read_text()), 'cwd': str(project)})
 env = {'HOME': str(home), 'XDG_CONFIG_HOME': str(home / 'config'), 'XDG_DATA_HOME': str(home / 'data'),
        'XDG_CACHE_HOME': str(home / 'cache'), 'XDG_STATE_HOME': str(home / 'state'),
        'OC_TEST_ALLOW_LOOPBACK': '1', 'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8', 'TZ': 'UTC'}
@@ -230,7 +244,9 @@ def run(label, prompt):
 
 def capture_stage(label, context_file, run_snapshot, display=None):
     global stage
-    display = display or {'notification': 'detailed', 'channel': 'chat', 'show_compression': True}
+    if args.default_detail_only and label != 'recompression':
+        return
+    display = display or {'notification': 'detailed', 'channel': 'chat', 'show_compression': not args.default_detail_only}
     observation = observe()
     canonical = sorted(rows(observation, 'conversation_messages'), key=lambda r: r['seq'])
     spec_file = 'native-tui-' + label + '-spec.json'
@@ -371,7 +387,7 @@ try:
                         'commit_message_ids': [r['id'] for r in canonical], 'prior_message_ids': sorted(prior_ids),
                         'new_message_ids': sorted(recent_ids), 'new_tool_ids': sorted(recent_tools), 'range_inputs': range_inputs,
                          'active_summaries': [{'block_id': b['id'], 'summary_tokens': estimate(b['summary'])} for b in active_blocks],
-                         'display': {'notification': 'detailed', 'channel': 'chat', 'show_compression': True},
+                          'display': {'notification': 'detailed', 'channel': 'chat', 'show_compression': not args.default_detail_only},
                         'categorical_bar_independently_checked': True})
         capture_stage(label, 'compress-' + label + '-snapshot.json', snapshot)
     stable = rows(committed, 'dcp_run_views')
@@ -383,10 +399,11 @@ try:
     capture_stage('restart', 'restart-snapshot.json', snapshot)
     dcp_file = project / 'dcp.jsonc'
     original_config = json.loads(dcp_file.read_text())
-    for label, display in [('minimal', {'notification': 'minimal', 'channel': 'chat', 'show_compression': True}),
+    controls = [] if args.default_detail_only else [('minimal', {'notification': 'minimal', 'channel': 'chat', 'show_compression': True}),
                            ('off', {'notification': 'off', 'channel': 'chat', 'show_compression': True}),
                            ('show-false', {'notification': 'detailed', 'channel': 'chat', 'show_compression': False}),
-                           ('toast', {'notification': 'detailed', 'channel': 'toast', 'show_compression': True})]:
+                           ('toast', {'notification': 'detailed', 'channel': 'toast', 'show_compression': True})]
+    for label, display in controls:
         configured = json.loads(json.dumps(original_config))
         configured['pruneNotification'] = display['notification']
         configured['pruneNotificationType'] = display['channel']

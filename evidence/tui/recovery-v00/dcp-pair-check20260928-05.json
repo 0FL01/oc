@@ -1,0 +1,1586 @@
+{
+  "status": "PASS_SOURCE_TRACED_CAPTURE_INTEGRITY_WITH_DIFFERENCES",
+  "qualification": "No full-frame parity PASS unless all full cells, cursor and full PNG pixels are equal.",
+  "coordinates": "one-based cells and pixels; inclusive pixel difference bbox",
+  "normalization": null,
+  "masked_cells": 0,
+  "native_owner": {
+    "path": "/home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-native20260928-07",
+    "result_sha256": "bab0707a2887d7bda9572c94b690e32dbc01dc7f08a34f1a9400909fd604d398",
+    "binary_sha256": "b4b9b2440ec92c2079d9ec0492e295ad342ff6e2475075355ac77018781405a0",
+    "source_HEAD": "9f40fed6dfc3a42e1c7da46468533d3c5a144b54",
+    "evidence_seals": {
+      "commands.json": "533453f798362341fc64c932759d6caac08a8d02ca724b8bf831faf26d9f1079",
+      "compress-multi-before.json": "63f6c471643bb9d9239b7f482d5addb82c98583d682ade9bba3bd1c08c2cfd6c",
+      "compress-multi-measurement.json": "f613dd5c8df7a107e8a0c3be40e549b417fb84ddd91e8cb9e6e77e3a5cb94744",
+      "compress-multi-snapshot.json": "06b52ea6efb1bc3c1114b7b711ed684c4f79a36900b3c4999ffb26e94dbb2232",
+      "compress-recompression-before.json": "06b52ea6efb1bc3c1114b7b711ed684c4f79a36900b3c4999ffb26e94dbb2232",
+      "compress-recompression-measurement.json": "814be0041f90eb4cd72aed48b798fbbd1389a2a433dbfe7d99ae6330bb2bdb1b",
+      "compress-recompression-snapshot.json": "3d464035427a1d23138b73a5ff8a2776e4bf59de3e6458c0690382c0a3c2d2ed",
+      "compress-single-before.json": "0399fce7f662f392f390055235115750f91d3be23b17f3f5d84c6856e5e28c40",
+      "compress-single-measurement.json": "09f1fa914f35e932bf24ab121b2c75153fd4b3a6e2db09d6f77413cdd6d266a8",
+      "compress-single-snapshot.json": "63f6c471643bb9d9239b7f482d5addb82c98583d682ade9bba3bd1c08c2cfd6c",
+      "fixture-config.json": "9a032b550867ca6feb4fb7136f4d9830dc2389e08afafffa84972c83e430db4a",
+      "native-capture-recompression.json": "11b1f1a76a67dc6cd6eaf4372eab2645a092f886a0be6167a34aab36b7a0d38a",
+      "native-tui-recompression-spec.json": "821bc834dc17aabcafde4daf9b8c6998afef18eaab5deac77f215717f4e181b3",
+      "native-tui-spec.json": "fd5fdd0c92b7b6c50a2c4ef146fb3fb7f53b550f34e890c83b6180634d6193c6",
+      "requests.json": "41b92d760d338f56bfa431c7810c60cebb0d15a17a0196960c1a3698683c2733",
+      "restart-snapshot.json": "5d34b9b4eac27894d64480b01573c752aa5111fe9fa88d27dc6978c3f7cf6e04",
+      "seed-A-snapshot.json": "2891bb1056e99a2c9c83aa4827e750bae0d753a384c94e44bec3240cf3ef3496",
+      "seed-B-snapshot.json": "f2424b0f367b1d78f6b8335fa43fdd1ccf203d3d7bd19333981d695dac4c460f",
+      "seed-C-snapshot.json": "0399fce7f662f392f390055235115750f91d3be23b17f3f5d84c6856e5e28c40"
+    }
+  },
+  "fixture_sha256": "2bf8d52e951896e610551e3d5778b2e6c45964fad32dafdc6592b958c5c4e3e4",
+  "native_capture_lock_sha256": "81eba12e7103acf2bb827cac41e6a6e24a4b8bcc18ab7c27e14ebe5f040959b8",
+  "reference_capture_lock_sha256": "1cb28f2e7e3d7110549e7420ce73e5624d179bd3078f81db3048222f85d48500",
+  "display_provider_requests": 0,
+  "native_capture_provider_request_window": [
+    10,
+    10
+  ],
+  "totals": {
+    "cells": 14400,
+    "unequal": 0,
+    "text": 0,
+    "foreground": 0,
+    "background": 0,
+    "modifiers": 0,
+    "width": 0,
+    "cursor_unequal_frames": 0,
+    "png_equal_frames": 3,
+    "png_pixels": 1941888,
+    "png_unequal_pixels": 0
+  },
+  "cases": [
+    {
+      "name": "native-recompression-80x24",
+      "size": [
+        80,
+        24
+      ],
+      "full_grid": {
+        "cells": 1920,
+        "unequal": 0,
+        "text": 0,
+        "foreground": 0,
+        "background": 0,
+        "modifiers": 0,
+        "width": 0
+      },
+      "row_results": [
+        {
+          "row": 1,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 2,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 3,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 4,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 5,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 6,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 7,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 8,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 9,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 10,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 11,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 12,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 13,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 14,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 15,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 16,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 17,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 18,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 19,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 20,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 21,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 22,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 23,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 24,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        }
+      ],
+      "cell_differences": [],
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 18,
+          "visible": true,
+          "shape": "block"
+        },
+        "original": {
+          "x": 5,
+          "y": 18,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": true
+      },
+      "full_png": {
+        "size": [
+          674,
+          384
+        ],
+        "pixels": 258816,
+        "unequal_pixels": 0,
+        "first_unequal_pixel": null,
+        "difference_bbox_inclusive": null,
+        "native_sha256": "07960ff4fb852333af054f7dff4d10b3cb1a8129b6dabe8c29435a125c89a406",
+        "original_sha256": "07960ff4fb852333af054f7dff4d10b3cb1a8129b6dabe8c29435a125c89a406",
+        "bytes_equal": true,
+        "pixels_equal": true
+      },
+      "locations": {
+        "native": {
+          "dcp_header": [
+            {
+              "x": 6,
+              "y": 6
+            }
+          ],
+          "dcp_run": [
+            {
+              "x": 6,
+              "y": 9
+            }
+          ],
+          "assistant_footer": [
+            {
+              "x": 6,
+              "y": 16
+            }
+          ],
+          "prompt_metadata": [
+            {
+              "x": 6,
+              "y": 21
+            }
+          ]
+        },
+        "original": {
+          "dcp_header": [
+            {
+              "x": 6,
+              "y": 6
+            }
+          ],
+          "dcp_run": [
+            {
+              "x": 6,
+              "y": 9
+            }
+          ],
+          "assistant_footer": [
+            {
+              "x": 6,
+              "y": 16
+            }
+          ],
+          "prompt_metadata": [
+            {
+              "x": 6,
+              "y": 21
+            }
+          ]
+        }
+      },
+      "public_export_info": [
+        {
+          "time_created": 1790577222000,
+          "time_updated": 1790577255815,
+          "projectID": "92e7983ec160a5e3314521cc86396e74f9fd5318"
+        }
+      ],
+      "terminal_geometry_equal": true,
+      "unmasked": true
+    },
+    {
+      "name": "native-recompression-120x40",
+      "size": [
+        120,
+        40
+      ],
+      "full_grid": {
+        "cells": 4800,
+        "unequal": 0,
+        "text": 0,
+        "foreground": 0,
+        "background": 0,
+        "modifiers": 0,
+        "width": 0
+      },
+      "row_results": [
+        {
+          "row": 1,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 2,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 3,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 4,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 5,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 6,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 7,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 8,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 9,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 10,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 11,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 12,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 13,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 14,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 15,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 16,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 17,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 18,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 19,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 20,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 21,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 22,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 23,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 24,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 25,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 26,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 27,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 28,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 29,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 30,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 31,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 32,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 33,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 34,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 35,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 36,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 37,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 38,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 39,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 40,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        }
+      ],
+      "cell_differences": [],
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "original": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": true
+      },
+      "full_png": {
+        "size": [
+          1011,
+          640
+        ],
+        "pixels": 647040,
+        "unequal_pixels": 0,
+        "first_unequal_pixel": null,
+        "difference_bbox_inclusive": null,
+        "native_sha256": "9942f552ba90695d87e95a350f9325548f1ae238202d9b0428dce8c9081007a1",
+        "original_sha256": "9942f552ba90695d87e95a350f9325548f1ae238202d9b0428dce8c9081007a1",
+        "bytes_equal": true,
+        "pixels_equal": true
+      },
+      "locations": {
+        "native": {
+          "dcp_header": [
+            {
+              "x": 6,
+              "y": 4
+            },
+            {
+              "x": 6,
+              "y": 22
+            }
+          ],
+          "assistant_footer": [
+            {
+              "x": 6,
+              "y": 15
+            },
+            {
+              "x": 6,
+              "y": 32
+            }
+          ],
+          "dcp_run": [
+            {
+              "x": 6,
+              "y": 25
+            }
+          ],
+          "prompt_metadata": [
+            {
+              "x": 6,
+              "y": 37
+            }
+          ]
+        },
+        "original": {
+          "dcp_header": [
+            {
+              "x": 6,
+              "y": 4
+            },
+            {
+              "x": 6,
+              "y": 22
+            }
+          ],
+          "assistant_footer": [
+            {
+              "x": 6,
+              "y": 15
+            },
+            {
+              "x": 6,
+              "y": 32
+            }
+          ],
+          "dcp_run": [
+            {
+              "x": 6,
+              "y": 25
+            }
+          ],
+          "prompt_metadata": [
+            {
+              "x": 6,
+              "y": 37
+            }
+          ]
+        }
+      },
+      "public_export_info": [
+        {
+          "time_created": 1790577222000,
+          "time_updated": 1790577260153,
+          "projectID": "92e7983ec160a5e3314521cc86396e74f9fd5318"
+        }
+      ],
+      "terminal_geometry_equal": true,
+      "unmasked": true
+    },
+    {
+      "name": "native-recompression-160x48",
+      "size": [
+        160,
+        48
+      ],
+      "full_grid": {
+        "cells": 7680,
+        "unequal": 0,
+        "text": 0,
+        "foreground": 0,
+        "background": 0,
+        "modifiers": 0,
+        "width": 0
+      },
+      "row_results": [
+        {
+          "row": 1,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 2,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 3,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 4,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 5,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 6,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 7,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 8,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 9,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 10,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 11,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 12,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 13,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 14,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 15,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 16,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 17,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 18,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 19,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 20,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 21,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 22,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 23,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 24,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 25,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 26,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 27,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 28,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 29,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 30,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 31,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 32,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 33,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 34,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 35,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 36,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 37,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 38,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 39,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 40,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 41,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 42,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 43,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 44,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 45,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 46,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 47,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        },
+        {
+          "row": 48,
+          "unequal": 0,
+          "text": 0,
+          "foreground": 0,
+          "background": 0,
+          "modifiers": 0,
+          "width": 0
+        }
+      ],
+      "cell_differences": [],
+      "cursor": {
+        "native": {
+          "x": 5,
+          "y": 42,
+          "visible": true,
+          "shape": "block"
+        },
+        "original": {
+          "x": 5,
+          "y": 42,
+          "visible": true,
+          "shape": "block"
+        },
+        "equal": true
+      },
+      "full_png": {
+        "size": [
+          1349,
+          768
+        ],
+        "pixels": 1036032,
+        "unequal_pixels": 0,
+        "first_unequal_pixel": null,
+        "difference_bbox_inclusive": null,
+        "native_sha256": "927697fc37676ca88d0c6f36c0073fcf5fc6270ed107c75d2bd15c1db40ac766",
+        "original_sha256": "927697fc37676ca88d0c6f36c0073fcf5fc6270ed107c75d2bd15c1db40ac766",
+        "bytes_equal": true,
+        "pixels_equal": true
+      },
+      "locations": {
+        "native": {
+          "assistant_footer": [
+            {
+              "x": 6,
+              "y": 6
+            },
+            {
+              "x": 6,
+              "y": 23
+            },
+            {
+              "x": 6,
+              "y": 40
+            }
+          ],
+          "dcp_header": [
+            {
+              "x": 6,
+              "y": 13
+            },
+            {
+              "x": 6,
+              "y": 30
+            }
+          ],
+          "dcp_run": [
+            {
+              "x": 6,
+              "y": 33
+            }
+          ],
+          "prompt_metadata": [
+            {
+              "x": 6,
+              "y": 45
+            }
+          ]
+        },
+        "original": {
+          "assistant_footer": [
+            {
+              "x": 6,
+              "y": 6
+            },
+            {
+              "x": 6,
+              "y": 23
+            },
+            {
+              "x": 6,
+              "y": 40
+            }
+          ],
+          "dcp_header": [
+            {
+              "x": 6,
+              "y": 13
+            },
+            {
+              "x": 6,
+              "y": 30
+            }
+          ],
+          "dcp_run": [
+            {
+              "x": 6,
+              "y": 33
+            }
+          ],
+          "prompt_metadata": [
+            {
+              "x": 6,
+              "y": 45
+            }
+          ]
+        }
+      },
+      "public_export_info": [
+        {
+          "time_created": 1790577222000,
+          "time_updated": 1790577265395,
+          "projectID": "92e7983ec160a5e3314521cc86396e74f9fd5318"
+        }
+      ],
+      "terminal_geometry_equal": true,
+      "unmasked": true
+    }
+  ],
+  "file_seals": [
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-07-recompression/native-recompression-80x24/bottom.cells.json",
+      "sha256": "5b2dce6f55641dd67123c6cb2dff3e634066d25821e633c23b7cc5a9bf74e413"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-07-recompression/native-recompression-80x24/bottom.png",
+      "sha256": "07960ff4fb852333af054f7dff4d10b3cb1a8129b6dabe8c29435a125c89a406"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-07-recompression/native-recompression-80x24/bottom.txt",
+      "sha256": "eddd81dabf3f861e1f76aa2085a2be74f259d71b833ca1d5e1278ae57e3faa81"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-07-recompression/native-recompression-80x24/bottom.vt",
+      "sha256": "2a8d32dd76d514ea9c40a35e0ecd605d1c13b315551dec76aee32618e361295e"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-07-recompression/native-recompression-80x24/bottom.render.json",
+      "sha256": "0857228c756ed4acb2ff29bd537f365285a04a663aa3479ce43267967048d632"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native09/native-recompression-80x24/bottom.cells.json",
+      "sha256": "20c2a46943e8f2772cdb97597fcd7ccf866741f56a97a534def35b8babdff733"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native09/native-recompression-80x24/bottom.png",
+      "sha256": "07960ff4fb852333af054f7dff4d10b3cb1a8129b6dabe8c29435a125c89a406"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native09/native-recompression-80x24/bottom.txt",
+      "sha256": "eddd81dabf3f861e1f76aa2085a2be74f259d71b833ca1d5e1278ae57e3faa81"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native09/native-recompression-80x24/bottom.vt",
+      "sha256": "6fc9dc545495b8aefcc0570aa6ed5ad8f05ea1688b96b0f1d92fece6b9ed6ed3"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native09/native-recompression-80x24/bottom.render.json",
+      "sha256": "0857228c756ed4acb2ff29bd537f365285a04a663aa3479ce43267967048d632"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-07-recompression/native-recompression-120x40/bottom.cells.json",
+      "sha256": "172f1c174298236a22e8824fbe53b626a011d8217398e2f16341ed66f68b1b80"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-07-recompression/native-recompression-120x40/bottom.png",
+      "sha256": "9942f552ba90695d87e95a350f9325548f1ae238202d9b0428dce8c9081007a1"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-07-recompression/native-recompression-120x40/bottom.txt",
+      "sha256": "bbdc8b2d815baef5457f6d7adf3e8992d53fbcf93611e98eda2d88d16bf882e7"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-07-recompression/native-recompression-120x40/bottom.vt",
+      "sha256": "c169b77826d98d5ee07050587a7efe838bde11c310d7438acbefbddfa99a56b1"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-07-recompression/native-recompression-120x40/bottom.render.json",
+      "sha256": "3b0d0bd36b4806d3aed4caa55ade8cccc92e3f4d2b7eedaaa551caee35cba8e2"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native09/native-recompression-120x40/bottom.cells.json",
+      "sha256": "23c0fb622d3ee65c776780e4e5e0ef301600873291b88dbd1abf8c91250fcdcb"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native09/native-recompression-120x40/bottom.png",
+      "sha256": "9942f552ba90695d87e95a350f9325548f1ae238202d9b0428dce8c9081007a1"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native09/native-recompression-120x40/bottom.txt",
+      "sha256": "bbdc8b2d815baef5457f6d7adf3e8992d53fbcf93611e98eda2d88d16bf882e7"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native09/native-recompression-120x40/bottom.vt",
+      "sha256": "a8f0df9f15c500fd9aa133ec97fde5129b12ccfd6e3bc3fd7abf416d308d92dd"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native09/native-recompression-120x40/bottom.render.json",
+      "sha256": "3b0d0bd36b4806d3aed4caa55ade8cccc92e3f4d2b7eedaaa551caee35cba8e2"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-07-recompression/native-recompression-160x48/bottom.cells.json",
+      "sha256": "97f16e1659fec3bf0e5d3475f68618169dcb52bfafa30882f13001c3de2110d5"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-07-recompression/native-recompression-160x48/bottom.png",
+      "sha256": "927697fc37676ca88d0c6f36c0073fcf5fc6270ed107c75d2bd15c1db40ac766"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-07-recompression/native-recompression-160x48/bottom.txt",
+      "sha256": "2d77443ebf34a66a63f5f1e2f778e07396285daa959f21387e23906b4ea255fb"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-07-recompression/native-recompression-160x48/bottom.vt",
+      "sha256": "1cf7d83f7fd0c10f18b3c05c01d7c2e09d3836457512027ee2052ca6aa9eb75d"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-07-recompression/native-recompression-160x48/bottom.render.json",
+      "sha256": "2fc11c15f504ef1ae0785b4ac97eb6306d778e32225bb0bf21ead832a7565225"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native09/native-recompression-160x48/bottom.cells.json",
+      "sha256": "8603899c99cc74f0bf0d651e7ffa87accbaf98a0e411a4b8b40e33f760a519ec"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native09/native-recompression-160x48/bottom.png",
+      "sha256": "927697fc37676ca88d0c6f36c0073fcf5fc6270ed107c75d2bd15c1db40ac766"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native09/native-recompression-160x48/bottom.txt",
+      "sha256": "2d77443ebf34a66a63f5f1e2f778e07396285daa959f21387e23906b4ea255fb"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native09/native-recompression-160x48/bottom.vt",
+      "sha256": "f765a135e4a52060b72163d4aa81996e8e9327880736c97c5147ea2f7470663c"
+    },
+    {
+      "file": "evidence/tui/recovery-v00/dcp-reference20260928-native09/native-recompression-160x48/bottom.render.json",
+      "sha256": "2fc11c15f504ef1ae0785b4ac97eb6306d778e32225bb0bf21ead832a7565225"
+    }
+  ],
+  "mapping_limits": [
+    "Native has no absolute per-message created/streamed/completed event timestamps. Created uses the actual source-verified turn-ID epoch; completed is an explicitly derived coordinate preserving the actual stored elapsed display duration, not a fabricated absolute event measurement. Streamed is omitted.",
+    "Real completed native turns map to supported OC2 succeeded idle boundaries, preventing DCP display-only user wrappers from resetting turn duration. No failed/interrupted outcome is fabricated.",
+    "Actual final response item is a completed assistant message, with no outstanding calls; actual probe emits response.completed with incomplete_details:null. Pinned OpenResponses mapFinishReason normalizes this to stop. This supported finish field is required for the original assistant footer.",
+    "Assistant tokens use stored last physical response usage, equal to native display.context_usage here, not aggregated display.usage. Fixture emits no reasoning/cache usage. Session required tokens sum stored per-turn display usage; not a provider billing assertion.",
+    "Session required cost is OC2 zero-default scaffolding: no cost was recorded or configured by this native offline fixture. Not measured billing.",
+    "Original public import resolves projectID/location and overwrites time.updated with actual import time. Session model null/absent variant becomes default per session/info.ts:34, matching native no explicit variant. Title/agent/model/location and all message data are checked by exact public export.",
+    "Native IDs retain an explicit one-to-one source trace under required OC2 msg_/ses_ prefixes. DCP text is display-only user content from unchanged pinned D05, never a native history ingress."
+  ],
+  "runner_hashes": {
+    "native": {
+      "dcp_reference_capture.mjs": "38d1f09d5a5f2a4daa88fbf1a897e701aad886a977861008146def9592fc41be",
+      "dcp_native_bridge.py": "375ca1a6a3bdabb32d4fd0c070f6b0f27ae6c85e4d3a126c31fb8d39fa51a019",
+      "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e"
+    },
+    "original": {
+      "dcp_reference_capture.mjs": "38d1f09d5a5f2a4daa88fbf1a897e701aad886a977861008146def9592fc41be",
+      "dcp_reference_bridge.py": "11e9f50920a57e76c2ab6be9562f7b5e77688d2575e6058803c91fe8005b5f2a",
+      "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e"
+    }
+  },
+  "helper_sha256": "8fc463b3b8d7297bd583cd67de633af2f95cde61f2fc620186f73ac9cada9177",
+  "png_decoder": {
+    "name": "Pillow",
+    "version": "11.1.0"
+  }
+}

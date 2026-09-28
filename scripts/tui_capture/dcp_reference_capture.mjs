@@ -11,7 +11,7 @@ import {fileURLToPath} from 'node:url';
 
 const here=path.dirname(fileURLToPath(import.meta.url)),repo=path.resolve(here,'../..');
 const args=Object.fromEntries(process.argv.slice(2).map((v,i,a)=>v.startsWith('--')?[v.slice(2),a[i+1]]:null).filter(Boolean));
-for(const key of Object.keys(args))assert(['oracle','output','reference','tools','case','columns','rows','native-spec'].includes(key),'Unknown option '+key);
+for(const key of Object.keys(args))assert(['oracle','output','reference','tools','case','columns','rows','native-spec','display-fixture','profiles'].includes(key),'Unknown option '+key);
 const tools=path.resolve(args.tools||'/home/opencode/.cache/opencode-tmp/opencode/t44-reference');
 const output=path.resolve(args.output||''),oracle=path.resolve(args.oracle||'');
 assert.equal(path.dirname(output),path.join(repo,'evidence/tui/recovery-v00'));
@@ -24,6 +24,13 @@ assert.equal(sha(fs.readFileSync(binary)),nativeSpec?.binary_sha256||'2b0825721c
 const goldens=nativeSpec?path.resolve(args['native-spec']):path.join(oracle,'goldens.json');
 const oracleResult=nativeSpec?{status:'PASS_PINNED_DISPLAY_ORACLE',goldens_sha256:sha(fs.readFileSync(goldens))}:JSON.parse(fs.readFileSync(path.join(oracle,'result.json')));
 const goldenData=nativeSpec?{provenance:{native_owner:true},notifications:[{id:'native-'+nativeSpec.stage,native_context:{capture_after:nativeSpec.capture_after},payload:null}]}:JSON.parse(fs.readFileSync(goldens));
+const displayFixture=args['display-fixture']?JSON.parse(fs.readFileSync(args['display-fixture'])):null;
+if(displayFixture){
+  assert(!nativeSpec,'Reference-only transfer must never enter native capture');
+  assert.equal(displayFixture.goldens_sha256,sha(fs.readFileSync(goldens)));
+  assert.equal(displayFixture.case,args.case);
+}
+if(args.profiles)assert.equal(args.profiles,'all');
 assert.equal(oracleResult.status,'PASS_PINNED_DISPLAY_ORACLE');
 assert.equal(oracleResult.goldens_sha256,sha(fs.readFileSync(goldens)));
 fs.mkdirSync(output); // immutable attempt
@@ -35,7 +42,7 @@ fs.mkdirSync(env.HOME);
 process.env.PLAYWRIGHT_BROWSERS_PATH=env.PLAYWRIGHT_BROWSERS_PATH;
 const require=createRequire(path.join(tools,'package.json')),{chromium}=require('playwright');
 fs.copyFileSync(path.join(tools,'package-lock.json'),path.join(output,'tooling.package-lock.json'));
-const requests=args.case?[{case:args.case,columns:Number(args.columns||120),rows:Number(args.rows||40)}]:goldenData.provenance.native_owner?
+const requests=args.case?(args.profiles==='all'?[[80,24],[120,40],[160,48]].map(([columns,rows])=>({case:args.case,columns,rows})):[{case:args.case,columns:Number(args.columns||120),rows:Number(args.rows||40)}]):goldenData.provenance.native_owner?
   goldenData.notifications.flatMap(g=>[[80,24],[120,40],[160,48]].map(([columns,rows])=>({case:g.id,columns,rows}))):[
   ...['detailed','minimal','off','show-single','multi-range','zero-summary-tools','recompression','large-k-only'].map(c=>({case:c,columns:120,rows:40})),
   {case:'detailed',columns:80,rows:24},{case:'detailed',columns:160,rows:48},
@@ -43,6 +50,7 @@ const requests=args.case?[{case:args.case,columns:Number(args.columns||120),rows
 ];
 for(const r of requests)assert([[80,24],[120,40],[160,48]].some(([c,h])=>c===r.columns&&h===r.rows),'Use an approved profile');
 const lock={schema_version:1,method:nativeSpec?'Released native binary -> genuine held owner session -> real PTY, no import':'source-derived display; intercepted pinned DCP payload -> original public session import -> unmodified U34 renderer',qualification:'Capture integrity only; no full parity claim',binary:{path:binary,sha256:sha(fs.readFileSync(binary)),commit:nativeSpec?.source_HEAD||'2670273ff17da96f85c5826ced57aa1b368754fa'},goldens_sha256:sha(fs.readFileSync(goldens)),source_manifest:nativeSpec||JSON.parse(fs.readFileSync(path.join(oracle,'source-manifest.json'))),runner_hashes:Object.fromEntries(['dcp_reference_capture.mjs',nativeSpec?'dcp_native_bridge.py':'dcp_reference_bridge.py','frontend.js'].map(n=>[n,sha(fs.readFileSync(path.join(here,n)))])),captures:[],attempts:[]};
+if(displayFixture)lock.display_fixture={path:path.resolve(args['display-fixture']),sha256:sha(fs.readFileSync(args['display-fixture'])),owner:displayFixture.owner};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 let browser;
 try {
@@ -54,7 +62,7 @@ try {
     const name=`${request.case}-${request.columns}x${request.rows}`,dir=path.join(output,name);
     fs.mkdirSync(dir);
     const localSave=(name,value)=>fs.writeFileSync(path.join(dir,name),JSON.stringify(value,null,2)+'\n',{flag:'wx'});
-    const spec={binary,...request,goldens,isolated_root:path.join(root,name),...(nativeSpec?{native_spec:path.resolve(args['native-spec'])}:{})};
+    const spec={binary,...request,goldens,isolated_root:path.join(root,name),...(nativeSpec?{native_spec:path.resolve(args['native-spec'])}:{}),...(displayFixture?{display_fixture:path.resolve(args['display-fixture'])}:{})};
     localSave('bridge-spec.json',spec);
     const page=await browser.newPage({viewport:{width:1800,height:1100},deviceScaleFactor:1});
     await page.setContent('<style>html,body{margin:0;background:#0a0a0a}#terminal{display:inline-block;font-variant-ligatures:none}.xterm-viewport{scrollbar-width:none}</style><div id="terminal"></div>');
@@ -143,7 +151,7 @@ try {
     }catch(error){
       lock.attempts.push({name,status:'FAILED_REFERENCE_CAPTURE',reason:error.message});
       console.error(name+': '+error.message);
-      const f=await frame();await shot('failure',f);
+      if(chunks.length){const f=await frame();await shot('failure',f);}
     }finally{
       if(exit===undefined&&!child.stdin.destroyed)child.stdin.write(JSON.stringify({kind:'stop'})+'\n');
       await closed;

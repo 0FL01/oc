@@ -282,7 +282,21 @@ fn wrap_line_with_space_mode(
                 (glyph, cells)
             };
             if used + cells > max && !current.is_empty() {
-                match break_at.take() {
+                // A separator following an exactly fitting word belongs to the
+                // next wrap boundary, not the earlier boundary before that word.
+                // Keep the full row and suppress only the overflowing space.
+                let boundary = if glyph == " " {
+                    break_at = None;
+                    if !preserve_break_space {
+                        while current.last().is_some_and(|(ch, _)| ch == " ") {
+                            current.pop();
+                        }
+                    }
+                    None
+                } else {
+                    break_at.take()
+                };
+                match boundary {
                     Some(index) => {
                         let mut rest = current.split_off(index);
                         while rest.first().is_some_and(|(ch, _)| ch == " ") {
@@ -318,7 +332,7 @@ fn wrap_line_with_space_mode(
             }
         }
     }
-    if out.len() < limit {
+    if out.len() < limit && (!current.is_empty() || out.is_empty()) {
         out.push(current);
     }
     out.into_iter()
@@ -476,7 +490,7 @@ mod tests {
         let wrapped = wrap_line(&line, 10);
         assert_eq!(
             wrapped.iter().map(Line::plain_text).collect::<Vec<_>>(),
-            vec!["alpha", "beta gamma"]
+            vec!["alpha beta", "gamma"]
         );
         // The first row keeps the red style from the source span.
         assert_eq!(
@@ -510,6 +524,45 @@ mod tests {
             vec!["中🧑‍💻", "文"]
         );
         assert_eq!(wrap_line_limited(&Line::plain("abcdefghij"), 2, 2).len(), 2);
+    }
+
+    #[test]
+    fn exact_fit_word_stays_before_an_overflowing_source_separator() {
+        let accent = Style::default().fg(Color::Rgb(100, 200, 100));
+        let line = Line::new(vec![
+            Span::plain("alpha "),
+            Span::styled("beta", accent),
+            Span::plain("   gamma"),
+        ]);
+        for wrap in [
+            wrap_line_limited,
+            wrap_source_space_line_limited,
+            wrap_permission_line_limited,
+            wrap_code_line_limited,
+        ] {
+            let rows = wrap(&line, 10, 3);
+            assert_eq!(
+                rows.iter().map(Line::plain_text).collect::<Vec<_>>(),
+                ["alpha beta", "gamma"]
+            );
+            assert_eq!(rows[0].spans().last().unwrap().style(), accent);
+            assert_eq!(wrap(&line, 10, 1), rows[..1]);
+            assert_eq!(
+                wrap(&Line::plain("ab 界界 tail"), 7, 3)
+                    .iter()
+                    .map(Line::plain_text)
+                    .collect::<Vec<_>>(),
+                ["ab 界界", "tail"]
+            );
+            assert_eq!(
+                wrap(&Line::plain("alpha beta   "), 10, 3)
+                    .iter()
+                    .map(Line::plain_text)
+                    .collect::<Vec<_>>(),
+                ["alpha beta"],
+                "suppressed overflow whitespace must not create an empty final row"
+            );
+        }
     }
 
     #[test]

@@ -1,0 +1,97 @@
+{
+  "before_content": [
+    "[compressed b0001] Closed range 1; preserve requirements; continue safely. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression.",
+    "VIS38-ARCHIVE-A: closed analysis complete; retain requirement A.",
+    "[compressed b0002] Closed range 1; preserve requirements; continue safely.",
+    "VIS38-ARCHIVE-B: closed analysis complete; retain requirement B.",
+    "[compressed b0003] Closed range 2; preserve requirements; continue safely.",
+    "VIS38-ARCHIVE-C: closed analysis complete; retain requirement C.",
+    "VIS38 compress single: execute the closed ranges, then continue.",
+    "{\"topic\": \"VIS38 single\", \"content\": [{\"startId\": \"m0001\", \"endId\": \"m0002\", \"summary\": \"Closed range 1; preserve requirements; continue safely. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression.\"}]}",
+    "{\"status\":\"compressed\",\"blocks\":[\"b0001\"],\"savedTokens\":2700,\"beforeBytes\":49089,\"afterBytes\":33732}",
+    "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay.",
+    "VIS38 compress multi: execute the closed ranges, then continue.",
+    "{\"topic\": \"VIS38 multi long topic \\u65e5\\u672c\\u8a9e r\\u00e9sum\\u00e9 \\ud83d\\udc69\\u200d\\ud83d\\udcbb e\\u0301 \\u2014 preserve closed analysis and requirements across ranges with full real summaries\", \"content\": [{\"startId\": \"m0003\", \"endId\": \"m0004\", \"summary\": \"Closed range 1; preserve requirements; continue safely.\"}, {\"startId\": \"m0005\", \"endId\": \"m0006\", \"summary\": \"Closed range 2; preserve requirements; continue safely.\"}]}",
+    "{\"status\":\"compressed\",\"blocks\":[\"b0002\",\"b0003\"],\"savedTokens\":5538,\"beforeBytes\":34988,\"afterBytes\":3722}",
+    "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay.",
+    "VIS38 compress recompression: execute the closed ranges, then continue."
+  ],
+  "after_content": [
+    "[compressed b0004] Requirement A retained.",
+    "VIS38-ARCHIVE-A: closed analysis complete; retain requirement A.",
+    "[compressed b0002] Closed range 1; preserve requirements; continue safely.",
+    "VIS38-ARCHIVE-B: closed analysis complete; retain requirement B.",
+    "[compressed b0003] Closed range 2; preserve requirements; continue safely.",
+    "VIS38-ARCHIVE-C: closed analysis complete; retain requirement C.",
+    "VIS38 compress single: execute the closed ranges, then continue.",
+    "{\"topic\": \"VIS38 single\", \"content\": [{\"startId\": \"m0001\", \"endId\": \"m0002\", \"summary\": \"Closed range 1; preserve requirements; continue safely. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression.\"}]}",
+    "{\"status\":\"compressed\",\"blocks\":[\"b0001\"],\"savedTokens\":2700,\"beforeBytes\":49089,\"afterBytes\":33732}",
+    "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay.",
+    "VIS38 compress multi: execute the closed ranges, then continue.",
+    "{\"topic\": \"VIS38 multi long topic \\u65e5\\u672c\\u8a9e r\\u00e9sum\\u00e9 \\ud83d\\udc69\\u200d\\ud83d\\udcbb e\\u0301 \\u2014 preserve closed analysis and requirements across ranges with full real summaries\", \"content\": [{\"startId\": \"m0003\", \"endId\": \"m0004\", \"summary\": \"Closed range 1; preserve requirements; continue safely.\"}, {\"startId\": \"m0005\", \"endId\": \"m0006\", \"summary\": \"Closed range 2; preserve requirements; continue safely.\"}]}",
+    "{\"status\":\"compressed\",\"blocks\":[\"b0002\",\"b0003\"],\"savedTokens\":5538,\"beforeBytes\":34988,\"afterBytes\":3722}",
+    "VIS38-NATIVE-CONTINUED: retain requirements; no tool replay.",
+    "VIS38 compress recompression: execute the closed ranges, then continue."
+  ],
+  "removed_content": [
+    "[compressed b0001] Closed range 1; preserve requirements; continue safely. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression."
+  ],
+  "before_excluded": [
+    {
+      "index": 0,
+      "reason": "generated-DCP-anchor-lane",
+      "item": {
+        "type": "message",
+        "role": "developer",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: [{\"id\":\"b0001\",\"role\":\"system\",\"closed\":true},{\"id\":\"b0002\",\"role\":\"system\",\"closed\":true},{\"id\":\"b0003\",\"role\":\"system\",\"closed\":true},{\"id\":\"m0007\",\"role\":\"user\",\"closed\":true},{\"id\":\"m0008\",\"role\":\"assistant\",\"closed\":true},{\"id\":\"m0009\",\"role\":\"user\",\"closed\":true},{\"id\":\"m0010\",\"role\":\"assistant\",\"closed\":false}]"
+          }
+        ]
+      }
+    }
+  ],
+  "after_excluded": [
+    {
+      "index": 0,
+      "reason": "generated-DCP-anchor-lane",
+      "item": {
+        "type": "message",
+        "role": "developer",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: [{\"id\":\"b0004\",\"role\":\"system\",\"closed\":true},{\"id\":\"b0002\",\"role\":\"system\",\"closed\":true},{\"id\":\"b0003\",\"role\":\"system\",\"closed\":true},{\"id\":\"m0007\",\"role\":\"user\",\"closed\":true},{\"id\":\"m0008\",\"role\":\"assistant\",\"closed\":true},{\"id\":\"m0009\",\"role\":\"user\",\"closed\":true},{\"id\":\"m0010\",\"role\":\"assistant\",\"closed\":true},{\"id\":\"m0011\",\"role\":\"user\",\"closed\":false}]"
+          }
+        ]
+      }
+    },
+    {
+      "index": 16,
+      "reason": "current-compress-call/result",
+      "item": {
+        "id": "fc_vis38_9",
+        "type": "function_call",
+        "status": "completed",
+        "call_id": "call_vis38_compress-recompression",
+        "name": "compress",
+        "arguments": "{\"topic\": \"VIS38 recompression\", \"content\": [{\"startId\": \"b0001\", \"endId\": \"b0001\", \"summary\": \"Requirement A retained.\"}]}"
+      }
+    },
+    {
+      "index": 17,
+      "reason": "current-compress-call/result",
+      "item": {
+        "type": "function_call_output",
+        "call_id": "call_vis38_compress-recompression",
+        "output": "{\"status\":\"compressed\",\"blocks\":[\"b0004\"],\"savedTokens\":77,\"beforeBytes\":4670,\"afterBytes\":4362}"
+      }
+    }
+  ],
+  "inherited_content_excluded_from_gross": [
+    "[compressed b0001] Closed range 1; preserve requirements; continue safely. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression. Bounded real summary detail retained for later actual recompression."
+  ],
+  "independent_removed": 0,
+  "independent_net_saved": 77
+}

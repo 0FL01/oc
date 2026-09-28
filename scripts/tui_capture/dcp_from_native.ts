@@ -25,6 +25,9 @@ for (const [name, hash] of Object.entries(qualification.evidence_seals)) {
   assert.equal(sha(fs.readFileSync(path.join(native, name))), hash, name + " owner evidence seal")
 }
 const nativeRows = (file: string, table: string) => read(path.join(native, file)).flatMap((o: any) => o.data[table] ?? [])
+const nativeConfig = qualification.evidence_seals["fixture-config.json"] ? read(path.join(native, "fixture-config.json")) : null
+const [providerId, modelId] = (nativeConfig?.config.model ?? "fixture/fixture-model-1").split("/")
+const promptIdentity = { agent: "build", providerId, modelId }
 const result = read(path.join(oracle, "result.json")), manifest = read(path.join(oracle, "source-manifest.json"))
 assert.equal(result.status, "PASS_PINNED_DISPLAY_ORACLE")
 assert.equal(result.goldens_sha256, sha(fs.readFileSync(path.join(oracle, "goldens.json"))))
@@ -103,7 +106,7 @@ for (const check of qualification.checks.filter((c: any) => ["single", "multi", 
   assert.equal(formatProgressBar(check.commit_message_ids, new Map([...pruned].map(id => [id, 0])), check.new_message_ids, 50).slice(1, -1), run.bar)
   const config = { pruneNotification: check.display.notification, pruneNotificationType: check.display.channel, compress: { showCompression: check.display.show_compression } }
   const prompts: any[] = [], toasts: any[] = [], errors: any[] = []
-  const sent = await sendCompressNotification({ session: { prompt: async (p: any) => { prompts.push(p) } }, tui: { showToast: async (p: any) => { toasts.push(p) } } }, { error: (...e: any[]) => errors.push(e) }, config, state, run.session, entries, run.topic, check.commit_message_ids, { agent: "build", providerId: "fixture", modelId: "fixture-model-1" })
+   const sent = await sendCompressNotification({ session: { prompt: async (p: any) => { prompts.push(p) } }, tui: { showToast: async (p: any) => { toasts.push(p) } } }, { error: (...e: any[]) => errors.push(e) }, config, state, run.session, entries, run.topic, check.commit_message_ids, promptIdentity)
   assert.equal(errors.length, 0)
   assert.deepEqual(context.slice(0, -1).map((r: any) => r.id), check.commit_message_ids)
   replayInputs.push({check, run, state, entries, context})
@@ -133,7 +136,7 @@ for (const displayCase of qualification.display_cases.filter((c: any) => ["resta
     const prompts: any[] = [], toasts: any[] = [], errors: any[] = []
     const sent = await sendCompressNotification({session:{prompt:async (p: any) => {prompts.push(p)}},tui:{showToast:async (t: any) => {toasts.push(t)}}},
       {error:(...e: any[]) => errors.push(e)},config,input.state,input.run.session,input.entries,input.run.topic,input.check.commit_message_ids,
-      {agent:"build",providerId:"fixture",modelId:"fixture-model-1"})
+       promptIdentity)
     assert.equal(errors.length,0)
     return {result:sent,prompts,toasts,errors,payload:prompts[0]?.body.parts[0].text??null}
   }

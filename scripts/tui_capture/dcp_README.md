@@ -172,3 +172,56 @@ no-gain, live/public DTO equality, Undo/Redo, archive/paging/resource and routin
 The pinned donor's K-only baseline and native approved M/promotion/half-up rules
 remain separate named differences; no native M-scale operation is implied by this
 small offline campaign.
+
+## Source-traced comparable default display (bounded first pass)
+
+Use `dcp_native_qualify.py --default-detail-only` with the usual explicit released
+binary digest and fresh output. It still executes all three real compress calls
+and restart, but captures only the held recompression stage at the three sizes.
+It records the real session/turn/acceptance metadata, selects detailed/chat with
+showCompression:false, and matches supported theme, sidebar, TPS, animation,
+cursor and debug-footer settings. No fixture enters native history.
+
+After `dcp_from_native.ts`, prepare the original's public transfer:
+
+```sh
+python3 scripts/tui_capture/dcp_display_fixture.py \
+  --native evidence/tui/recovery-v00/dcp-nativeQUALIFIED \
+  --oracle evidence/tui/recovery-v00/dcp-oracleNATIVE \
+  --case native-recompression \
+  --output evidence/tui/recovery-v00/dcp-displayNEW
+```
+
+Pass `--case native-recompression --profiles all --display-fixture /absolute/path/to/fixture.json`
+to `dcp_reference_capture.mjs`. The transfer uses the real title, selected
+agent/model, model limits, public text, operation boundaries, latest-response
+context usage and recorded display durations. Each field has a native source
+trace and pinned OC2 schema/rendering locator. Public import/export checks all
+message data exactly. Original `session/info.ts` normalizes the absent session
+variant to `default`; original `rows.ts` requires the supported normalized `stop`
+finish for footers and actual completed-turn idle boundaries for timing attribution.
+
+**Time mapping limit:** native stores elapsed display duration and the admission
+epoch inside the turn ID, but no absolute assistant event timestamps. The imported
+completion coordinate is explicitly derived as admission epoch + recorded duration;
+it is not a new absolute-event measurement. Streamed time is omitted. Import's
+own session `time.updated` remains its real import time. Required zero cost and
+session-token fields are documented reference scaffolding, not measured billing.
+
+```sh
+python3 scripts/tui_capture/dcp_display_audit.py \
+  --native evidence/tui/recovery-v00/dcp-nativeQUALIFIED \
+  --oracle evidence/tui/recovery-v00/dcp-oracleNATIVE \
+  --reference evidence/tui/recovery-v00/dcp-referenceNATIVE \
+  --fixture evidence/tui/recovery-v00/dcp-displayNEW/fixture.json \
+  --released-sha256 PARENT_ATTESTED_FINAL_BINARY_SHA256 \
+  --output evidence/tui/recovery-v00/dcp-pair-checkNEW.json
+```
+
+The bounded auditor verifies owner/source/public-export/capture seals, all full
+styled cells (including width), complete cursors, geometry, and every decoded
+RGBA PNG pixel using the existing Pillow installation. All differing cells retain
+both complete values and exact coordinates. No normalization, mask or tolerance.
+Expand controls only after reviewing this comparable default pass. The actual
+2026-09-28 result and residual exact-fit word-wrap diagnosis are recorded in
+`evidence/tui/recovery-v00/dcp-report20260928-03.md`.

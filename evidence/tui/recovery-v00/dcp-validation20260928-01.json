@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-28",
+  "task": "T44/VIS38 bounded tooling-only comparable default display correction",
+  "status": "PASS_CAPTURE_INTEGRITY_TWO_EXACT_DEFAULT_FRAMES_ONE_RESIDUAL",
+  "qualification": "Not a whole-VIS38 or T44 acceptance claim.",
+  "source_HEAD": "9f40fed6dfc3a42e1c7da46468533d3c5a144b54",
+  "product_changes": false,
+  "acceptance_changes": false,
+  "commit_or_push": false,
+  "native_binary": {
+    "path": "target/debug/oc",
+    "sha256": "895d476534e71b2db42317cabb78f6e0c2c6ccbf778156b6af3cd4b49f74358f",
+    "existing_parent_build_association": [
+      "evidence/tui/recovery-v00/tabs-report20260928-03.md",
+      "evidence/tui/recovery-v00/tabs-validation20260928-03.json"
+    ],
+    "Cargo_run_in_this_pass": false,
+    "digest_checks": "Before owner qualification, every native PTY launch, independent audit and after campaign."
+  },
+  "reference_binary": {
+    "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "source_pin": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "dcp_pin": "11f6517780a502512a3467645074be447cb0369e",
+  "commands": [
+    {
+      "command": "python3 scripts/tui_capture/dcp_native_qualify.py --oc /home/opencode/ai/oc/target/debug/oc --released-sha256 895d476534e71b2db42317cabb78f6e0c2c6ccbf778156b6af3cd4b49f74358f --output /home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-native20260928-06 --default-detail-only",
+      "exit_code": 0,
+      "result": "PASS_ACTUAL_SINGLE_MULTI_RESTART_OWNER_PROBE"
+    },
+    {
+      "command": "bun scripts/tui_capture/dcp_from_native.ts evidence/tui/recovery-v00/dcp-oracle20260927-03 evidence/tui/recovery-v00/dcp-native20260928-06 evidence/tui/recovery-v00/dcp-oracle20260928-native05",
+      "exit_code": 0,
+      "result": "PASS_PINNED_DISPLAY_ORACLE"
+    },
+    {
+      "command": "python3 scripts/tui_capture/dcp_display_fixture.py --native evidence/tui/recovery-v00/dcp-native20260928-06 --oracle evidence/tui/recovery-v00/dcp-oracle20260928-native05 --case native-recompression --output evidence/tui/recovery-v00/dcp-display20260928-03",
+      "exit_code": 0,
+      "native_public_messages": 12,
+      "original_imported_messages_including_reports_and_terminal_idle_boundaries": 21
+    },
+    {
+      "command": "node scripts/tui_capture/dcp_reference_capture.mjs --oracle /home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-oracle20260928-native05 --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode --output /home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-reference20260928-native08 --case native-recompression --profiles all --display-fixture /home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-display20260928-03/fixture.json",
+      "exit_code": 0,
+      "result": "Three PASS_REFERENCE_CAPTURE attempts; exact public import/export and natural TUI exits."
+    },
+    {
+      "command": "python3 scripts/tui_capture/dcp_display_audit.py --native evidence/tui/recovery-v00/dcp-native20260928-06 --oracle evidence/tui/recovery-v00/dcp-oracle20260928-native05 --reference evidence/tui/recovery-v00/dcp-reference20260928-native08 --fixture evidence/tui/recovery-v00/dcp-display20260928-03/fixture.json --released-sha256 895d476534e71b2db42317cabb78f6e0c2c6ccbf778156b6af3cd4b49f74358f --output evidence/tui/recovery-v00/dcp-pair-check20260928-04.json",
+      "exit_code": 0,
+      "result": "PASS_SOURCE_TRACED_CAPTURE_INTEGRITY_WITH_DIFFERENCES"
+    },
+    {
+      "command": "python3 -m py_compile scripts/tui_capture/dcp_native_qualify.py scripts/tui_capture/dcp_reference_bridge.py scripts/tui_capture/dcp_display_fixture.py scripts/tui_capture/dcp_display_audit.py && node --check scripts/tui_capture/dcp_reference_capture.mjs && git diff --check && git diff --exit-code -- crates GOAL.md planning progress tui-recovery docs evidence/tui/recovery-v00/dcp-report20260928-02.md evidence/tui/recovery-v00/dcp-native20260928-05 evidence/tui/recovery-v00/dcp-oracle20260928-native04 evidence/tui/recovery-v00/dcp-reference20260928-native05",
+      "exit_code": 0,
+      "result": "Syntax, tracked diff whitespace, product/acceptance/previous evidence unchanged."
+    },
+    {
+      "command": "git diff --no-index --check /dev/null scripts/tui_capture/dcp_display_fixture.py",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "",
+      "result": "No whitespace diagnostics. Git no-index implies exit-code: 1 means the new file differs from /dev/null."
+    },
+    {
+      "command": "git diff --no-index --check /dev/null scripts/tui_capture/dcp_display_audit.py",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "",
+      "result": "No whitespace diagnostics; normal no-index new-file difference."
+    },
+    {
+      "command": "git diff --no-index --check /dev/null evidence/tui/recovery-v00/dcp-report20260928-03.md",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "",
+      "result": "No whitespace diagnostics; normal no-index new-file difference."
+    },
+    {
+      "command": "git diff --no-index --check /dev/null evidence/tui/recovery-v00/dcp-validation20260928-01.json",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "",
+      "result": "No whitespace diagnostics; normal no-index new-file difference. Checks executed independently by subprocess, with raw exit/status/output retained."
+    }
+  ],
+  "current_tooling_sha256": {
+    "scripts/tui_capture/dcp_native_qualify.py": "86c813b1e7dfaddbebddae88bbc0ecce65d66aa7e1d84eaab7a84ff8d56f5f1c",
+    "scripts/tui_capture/dcp_from_native.ts": "9cb88802d6bc3f3df79952576f2cbb5d31e99149a0d71f80af2cf3cb4b719b39",
+    "scripts/tui_capture/dcp_reference_capture.mjs": "38d1f09d5a5f2a4daa88fbf1a897e701aad886a977861008146def9592fc41be",
+    "scripts/tui_capture/dcp_reference_bridge.py": "11e9f50920a57e76c2ab6be9562f7b5e77688d2575e6058803c91fe8005b5f2a",
+    "scripts/tui_capture/dcp_display_fixture.py": "23b068195da731580214a2d78a71e0945cbe76b89bcbf73915991c414d0115de",
+    "scripts/tui_capture/dcp_display_audit.py": "8fc463b3b8d7297bd583cd67de633af2f95cde61f2fc620186f73ac9cada9177",
+    "scripts/tui_capture/dcp_README.md": "8461dff2bf2173344d287b38d5b9be21b0ed0ddcd158770b7043a6eb195fdf35"
+  },
+  "qualified_evidence_sha256": {
+    "evidence/tui/recovery-v00/dcp-native20260928-06/result.json": "73a2428ad71993932e63c983069d9bf4afe81f360828715060a2a69e155e0601",
+    "evidence/tui/recovery-v00/dcp-oracle20260928-native05/goldens.json": "0aba37634d899bb11dc7893b6f748c9c77d9937d5db465740c553a026428ed53",
+    "evidence/tui/recovery-v00/dcp-display20260928-03/fixture.json": "88f1f2c3c8694c007652d9d8263f1e721641af1db8e37e6cd20190473f406af3",
+    "evidence/tui/recovery-v00/dcp-nativecapture-dcp-native20260928-06-recompression/capture.lock.json": "f8683cabf605d140ff0ef8e98bf8b5ef2f883d48c71f39350d17c56c7401689c",
+    "evidence/tui/recovery-v00/dcp-reference20260928-native08/capture.lock.json": "e3406ef975e2871b4c337e22aec9b472e759e24777f41f4e35eee897ce22bc31",
+    "evidence/tui/recovery-v00/dcp-pair-check20260928-04.json": "04ca9740f2d5bbb7425e36695d81be1c5661d0aa64bcdae9e073ecf0c99ec36f",
+    "evidence/tui/recovery-v00/dcp-report20260928-03.md": "c45b312afa5947088cf8317d206ea1f189ebd3fab3f87b7eb4915d8183d1e9fa"
+  },
+  "previous_evidence_sha256_unchanged_matching_report_02": {
+    "evidence/tui/recovery-v00/dcp-native20260928-05/result.json": "34b4000ff32d88419235fd990635a0d8a38cad7bc9dde2737feaea0510888c69",
+    "evidence/tui/recovery-v00/dcp-oracle20260928-native04/goldens.json": "723446a89b363d418868644ec64e23d7090e0ce3705492a1cf854ace5144fba9",
+    "evidence/tui/recovery-v00/dcp-reference20260928-native05/capture.lock.json": "5469b476f0b4650b49b28fd20808c2e6826400e2cb683d1cd9693507587fcf97",
+    "evidence/tui/recovery-v00/dcp-pair-check20260928-03.json": "cdc14668bdf85346dfdef7fbcafdab458d7540979768aa92ae73b48ed2cd04d5"
+  },
+  "comparators": {
+    "profiles": [[80, 24], [120, 40], [160, 48]],
+    "qualified_frames": {"native": 3, "original": 3},
+    "full_cells": 14400,
+    "unequal_styled_cells": 26,
+    "text": 25,
+    "foreground": 10,
+    "background": 0,
+    "modifiers": 0,
+    "width": 0,
+    "cursor_unequal_frames": 0,
+    "png_byte_and_pixel_exact_frames": 2,
+    "full_png_pixels": 1941888,
+    "unequal_png_pixels": 1215,
+    "normalization": null,
+    "masked_cells": 0,
+    "png_decoder": {"name": "Pillow", "version": "11.1.0"},
+    "terminal_geometry": "Identical full geometry for each pair; same frontend/font/device scale.",
+    "coordinate_convention": "Cells/pixels one-based; inclusive pixel bbox; raw xterm cursor objects zero-based.",
+    "residual": {
+      "profile": [120, 40],
+      "one_based_row_and_column_ranges": [
+        {"row": 8, "columns": [[114, 118]]},
+        {"row": 9, "columns": [[6, 9], [11, 13], [16, 29]]}
+      ],
+      "png_inclusive_bbox": [43, 115, 992, 141],
+      "first_unequal_pixel": [972, 115],
+      "cause": "Exact-fit following-space overflow in native styled::wrap_line_with_space_mode: fitting word with moved to continuation because overflow uses the earlier break_at before processing following space.",
+      "source_locators": ["crates/oc-tui/src/layout.rs:78,514-522", "crates/oc-tui/src/messages.rs:2376-2384", "crates/oc-tui/src/styled.rs:272-318"]
+    }
+  },
+  "owner_and_display": {
+    "actual_successful_compress_calls": 3,
+    "actual_stored_runs": 3,
+    "actual_restart_continuation": true,
+    "total_bounded_localhost_response_requests": 11,
+    "authenticated_requests": 0,
+    "native_capture_provider_request_window": [10, 10],
+    "original_display_provider_requests": 0,
+    "native_observed_owner_state_unchanged": true,
+    "natural_zero_exit_qualified_processes": 6,
+    "actual_title": "VIS38 actual compression owner",
+    "actual_selected_provider_model": "fixture/vis38-native-model",
+    "actual_display_durations_ms": [147, 99, 134, 221, 237, 173],
+    "native_history_ingress": false,
+    "original_public_import_and_export_exact_messages": true,
+    "timestamp_limit": "Native has no absolute assistant event timestamps. Reference completion is explicitly derived admission epoch + recorded elapsed display duration, not an invented recorded absolute event timestamp. Streamed time omitted; import update time is real.",
+    "accounting_limit": "Assistant tokens use actual last-response/context usage. Required original session token/cost scaffolding is documented, not measured provider billing."
+  },
+  "width_probe": {
+    "path": "/home/opencode/.cache/opencode-tmp/opencode/dcp-wrap20260928.rs",
+    "source_sha256": "396c9afe7145085ae2415936bb5cdb46ec7f95b6ff924a4dd4d3f556f01867b3",
+    "source": "use unicode_width::UnicodeWidthStr;\n\nfn main() {\n    let text = \"→ Topic: VIS38 multi long topic 日本語 résumé 👩‍💻 é — preserve closed analysis and requirements across ranges with full real summaries\";\n    let prefix = text.split(\" with full\").next().unwrap().to_owned() + \" with\";\n    println!(\"prefix_through_with_display_width={}\", UnicodeWidthStr::width(prefix.as_str()));\n    println!(\"prefix_through_with_following_space_display_width={}\", UnicodeWidthStr::width((prefix + \" \").as_str()));\n    println!(\"native_text_content_width=120-2*2-1-2=113\");\n}\n",
+    "toolchain": "rustc 1.93.0 (254b59607 2026-01-19)",
+    "unicode_width_rlib": "target/debug/deps/libunicode_width-63d235428d9da8a3.rlib",
+    "unicode_width_rlib_sha256": "52a5d8af7bf3ffe701c5f3115f42f0b7998644d6790d6c214a5df5209f240bf1",
+    "command": "rustc --edition=2024 /home/opencode/.cache/opencode-tmp/opencode/dcp-wrap20260928.rs --extern unicode_width=/home/opencode/ai/oc/target/debug/deps/libunicode_width-63d235428d9da8a3.rlib -L dependency=/home/opencode/ai/oc/target/debug/deps -o /home/opencode/.cache/opencode-tmp/opencode/dcp-wrap20260928 && /home/opencode/.cache/opencode-tmp/opencode/dcp-wrap20260928",
+    "exit_code": 0,
+    "stdout": "prefix_through_with_display_width=113\nprefix_through_with_following_space_display_width=114\nnative_text_content_width=120-2*2-1-2=113\n",
+    "measurement_limit": "Width only; source inspection plus full captures diagnose wrapping. No product build or reconstructed renderer claimed. Initial oc_tui-link attempt failed E0463 and supplied no evidence."
+  },
+  "diagnostic_attempts_retained_immutable": [
+    {"fixture": "dcp-display20260928-01", "captures": "dcp-reference20260928-native06", "result": "Pre-TUI public export model assertion rejected unsupported omission of OC2 default variant; three blank failure frames retained."},
+    {"fixture": "dcp-display20260928-02", "captures": "dcp-reference20260928-native07", "result": "Exact import/export but assistant finish omitted, so OC2 did not display footers. Three diagnostic frames retained; not qualified comparator."}
+  ],
+  "remaining_gaps": [
+    "120x40 exact-fit word wrap; no product correction in this pass.",
+    "Controls not expanded: showCompression true, minimal/off/toast remain separate current-binary parity work.",
+    "Absolute assistant event timestamps are not stored by native; only source-derived display timeline equivalence.",
+    "Running/negative/live-public DTO/Undo-Redo/resource-paging/late-routing qualification remains separate.",
+    "M/promotion/toast named differences remain; no M-scale actual operation claim."
+  ],
+  "validation_consistency": {
+    "result": "PASS",
+    "checks": [
+      "Every recorded current-tooling, qualified-evidence and previous-evidence SHA-256 equals the current file.",
+      "Every full-cell/cursor/full-PNG total equals the independently audited dcp-pair-check20260928-04.json.",
+      "Embedded complete width-probe source hashes to its recorded source SHA-256.",
+      "Native display request window, original display request count and Pillow version equal the audit."
+    ]
+  }
+}
