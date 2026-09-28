@@ -1,3 +1,58 @@
+# T47 — current qualification and historical R1 evidence
+
+## Current Result (2026-09-28)
+
+**T47 assigned R1/AUD41 and R6/VAR01 outcomes are verified.** Implementation
+`6cf1cdc859031919d467423c5f375dfbf50029cd`, base
+`7e594e670dc6ddf11db001fcee72a1a67ba12eca`. Full frozen behavior, exact commands
+and observations are in [canonical-effort.md](canonical-effort.md); this current
+section does not reclassify the historical checks below.
+
+One borrowed stable model/catalog view ranks effective merged metadata by exact
+explicit effort, otherwise the standard name, then stable custom entries. Nullable
+absence follows existing typed snapshots. Disabled/reserved facts remain in the
+snapshot; available consumers omit them and Default is separately no overlay.
+Picker, Ctrl+T and enabled diagnostics agree; aliases/IDs/wire/source-order ties,
+merge precedence, legacy allowlist validation and immutable generations are preserved.
+No vendor/model allowlist, synthesized effort or competing lexical variant sort.
+
+## Current Checks
+
+Final serial fmt, strict workspace all-target Clippy, locked workspace tests
+**1202 passed / 0 failed / 9 unchanged opt-in ignored**, `cargo build --locked`,
+plain `cargo build`, native help and diff checks PASS. Full actual PTY suite39 PASS.
+Final native SHA `d28c457f67cdf276e199955580a60ffc21f0ebb3256f56dd9c9046a153ad67da`.
+Parent independently repeated models8, effective-merge/refresh1, actual binary
+VAR01 PTY3 and actual binary AUD41 admission/title3, all PASS on the same final binary.
+Docs/progress/size checks PASS, no >5000-line warning.
+
+| Required task behavior / affected gate | Current evidence |
+|---|---|
+| R1/AUD41 unknown/zero/partial capacities, positive native caps/warnings, no fabricated discovery limits | Fresh whole runtime/model/child regressions; actual native AUD41 primary and title fixtures |
+| Default adds no variant overlay; named none distinct; title/child/assembled-input admission preserved | Actual requests, current fallback/title/child tests, full workspace regression |
+| R6/VAR01 exact ranks, permutations/subsets, stable aliases/custom, absent/unknown/case/space, disabled/reserved | Models corpus includes5040 permutations and128 subsets; raw metadata unchanged |
+| A03/A13 effective discovery/local override and refresh, immutable choice identity | Real GET+merge/reload, owner snapshot, actual PTY refresh/reopen/process restart |
+| A04 scoped fake Responses wire, no inferred effort or silent retired-choice request | Exact low/none/custom strings, no overlay for Default/name-only, rejection before HTTP, actual six main requests |
+| A08 picker/cycle agreement, full Default cycle, drafts/model/guards/no-op | Actual Home/session PTY traversal, genuinely enabled read-only child, held busy barrier |
+
+## Current Risks
+
+T44 VIS09/VIS29 still owns paired geometry/colors/cursor; canonical fixtures match
+both sides while unsorted donor declared order is an explicit native difference.
+T50 TOOL18 must consume this shared view when implemented. Full product A01–A13,
+mandatory live OpenProxy/MCP/coding checks and T44/V09 remain open; task-scoped fake
+regressions above are not a claim of aggregate A-gate readiness. No authenticated
+or paid request was made. Other combined-spec outcomes owned by T43/T46/T27/T45
+are not claimed delivered by T47.
+
+## Current Next
+
+Finish T47 through the existing progress owner after this implementation commit,
+deliver its closeout, then restore T44 for VIS09/VIS29 and continue the remaining
+approved backend/presentation/product gates. No stop at this partial product status.
+
+## Historical R1 report — 2026-09-22 (body retained)
+
 # T47 / R1 — unknown model limits and absent variant
 
 Date: 2026-09-22. Base HEAD: `15719e976030a8fdaadd843ac13556de237f559d`.

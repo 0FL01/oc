@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-28T14:25:55+00:00",
-  "current": "T47",
+  "updated_at": "2026-09-28T15:22:56+00:00",
+  "current": null,
   "tasks": {
     "T00": {
       "status": "done",
@@ -333,10 +333,10 @@
       "reopen_reason": null
     },
     "T47": {
-      "status": "active",
-      "last_seq": 0,
-      "latest": null,
-      "evidence": null,
+      "status": "done",
+      "last_seq": 1,
+      "latest": "progress/M8/T47/0001.md",
+      "evidence": "evidence/T47/report.md",
       "reopen_reason": null
     },
     "T49": {
@@ -368,5 +368,5 @@
       "reopen_reason": null
     }
   },
-  "last_checkpoint_task": "T44"
+  "last_checkpoint_task": "T47"
 }
