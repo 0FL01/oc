@@ -5,7 +5,7 @@
 //! panics by restoring first and then chaining the previous hook. Restore
 //! is idempotent and safe to call when the terminal was never entered.
 
-use std::sync::OnceLock;
+use std::{io::Write, sync::OnceLock};
 
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::terminal::{
@@ -39,7 +39,26 @@ pub fn enter() -> Result<TerminalGuard, String> {
 /// call when the terminal was never entered (errors ignored).
 pub fn restore() {
     let _ = disable_raw_mode();
-    let _ = crossterm::execute!(std::io::stderr(), DisableMouseCapture, LeaveAlternateScreen);
+    let _ = crossterm::execute!(
+        std::io::stderr(),
+        crossterm::style::Print("\x1b]112\x07"),
+        DisableMouseCapture,
+        LeaveAlternateScreen
+    );
+}
+
+/// Cursor paint is terminal state, outside Ratatui's styled cell buffer. Reset
+/// returns to the terminal's default; restore also covers errors and panics.
+pub fn set_cursor_color(
+    output: &mut impl Write,
+    color: ratatui::style::Color,
+) -> std::io::Result<()> {
+    match color {
+        ratatui::style::Color::Rgb(r, g, b) => {
+            write!(output, "\x1b]12;#{r:02x}{g:02x}{b:02x}\x07")
+        }
+        _ => output.write_all(b"\x1b]112\x07"),
+    }
 }
 
 static PANIC_HOOK_ONCE: OnceLock<()> = OnceLock::new();

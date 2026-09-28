@@ -2033,6 +2033,38 @@ async fn v04_variant_current_focus_restores_after_clearing_search() {
 }
 
 #[tokio::test]
+async fn vis29_variant_current_focus_centers_on_open_and_clear_in_narrow_view() {
+    use crate::commands::CommandAction;
+    let mut state = fresh_state("vis29-narrow-current").await;
+    let mut catalog = snapshot();
+    catalog.variant = Some("max".into());
+    catalog.models[0].variants = [
+        "none", "minimal", "low", "medium", "high", "xhigh", "max", "zeta", "alpha",
+    ]
+    .into_iter()
+    .map(|name| VariantEntry {
+        name: name.into(),
+        disabled: false,
+        reasoning_effort: None,
+    })
+    .collect();
+    state.apply_catalog(catalog);
+    type_text(&mut state, "draft retained").await;
+    state.run_command(CommandAction::OpenVariants);
+    let rows = crate::views::render_test(&state, 80, 24);
+    assert!(rows[11].contains("medium"));
+    assert!(rows[14].contains("● max"));
+    assert!(rows[16].contains("alpha"));
+    state.handle_paste("Default");
+    crate::views::render_test(&state, 80, 24);
+    state.handle_panel_key(KeyAction::Interrupt);
+    let restored = crate::views::render_test(&state, 80, 24);
+    assert_eq!(restored, rows);
+    state.handle_panel_key(KeyAction::Cancel);
+    assert_eq!(state.input(), "draft retained");
+}
+
+#[tokio::test]
 async fn variant_cycle_keeps_draft_and_modal_focus_and_refuses_pending_submit() {
     let (app, mut inbox, _) = CoreApp::channel(4);
     let mut state = TuiState::new(app, sid("cycle-focus"));
@@ -2185,6 +2217,10 @@ async fn vis09_keyboard_model_focus_centers_clamped_viewport_without_moving_curr
     catalog.model_id = "m03".into();
     state.apply_catalog(catalog);
     state.run_command(CommandAction::OpenModelPicker);
+    let mut cursor_output = Vec::new();
+    crate::terminal::set_cursor_color(&mut cursor_output, crate::views::cursor_color(&state))
+        .unwrap();
+    assert_eq!(cursor_output, b"\x1b]12;#fab283\x07");
     let area = Rect::new(0, 0, 120, 40);
     let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
     let row = |terminal: &Terminal<TestBackend>, y| -> String {
@@ -2244,6 +2280,10 @@ async fn vis09_keyboard_model_focus_centers_clamped_viewport_without_moving_curr
     assert_eq!(state.modal_options().len(), 1);
     assert_eq!(state.select.cursor, 0);
     assert_eq!(row(&terminal, 15), "Model 00");
+    state.handle_panel_key(KeyAction::Cancel);
+    crate::terminal::set_cursor_color(&mut cursor_output, crate::views::cursor_color(&state))
+        .unwrap();
+    assert!(cursor_output.ends_with(b"\x1b]112\x07"));
 }
 
 #[tokio::test]

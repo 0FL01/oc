@@ -1,0 +1,102 @@
+[
+  {
+    "x": 44,
+    "y": 44,
+    "fields": [
+      "symbol"
+    ],
+    "native": {
+      "symbol": "h",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    },
+    "original": {
+      "symbol": "a",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    }
+  },
+  {
+    "x": 45,
+    "y": 44,
+    "fields": [
+      "symbol"
+    ],
+    "native": {
+      "symbol": "i",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    },
+    "original": {
+      "symbol": "l",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    }
+  },
+  {
+    "x": 46,
+    "y": 44,
+    "fields": [
+      "symbol"
+    ],
+    "native": {
+      "symbol": "g",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    },
+    "original": {
+      "symbol": "p",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    }
+  },
+  {
+    "x": 48,
+    "y": 44,
+    "fields": [
+      "symbol",
+      "fg",
+      "modifiers"
+    ],
+    "native": {
+      "symbol": " ",
+      "fg": "#ffffff",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": []
+    },
+    "original": {
+      "symbol": "a",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    }
+  }
+]

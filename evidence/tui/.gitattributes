@@ -109,5 +109,9 @@ recovery-v00/dcp-closure20260928-*.log whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/dcp-canvas20260928-*.log whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/dcp-closure20260928-source*.patch whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/dcp-canvas20260928-source*.patch whitespace=-blank-at-eol,-blank-at-eof
+recovery-v00/variants-paired*/**/*.txt whitespace=-blank-at-eol,-blank-at-eof
+recovery-v00/variants-paired*/**/*.vt binary
+recovery-v00/variants-*20260928-*.log whitespace=-blank-at-eol,-blank-at-eof
+recovery-v00/variants-check*/native-source.patch whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/tabs-*/**/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/tabs-*/**/*.vt binary

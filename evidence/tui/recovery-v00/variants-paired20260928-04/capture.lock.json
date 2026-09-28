@@ -1,0 +1,4186 @@
+{
+  "schema_version": 1,
+  "scope": "T44 VIS09/VIS29",
+  "order": "canonical",
+  "source_HEAD": "9d2af6c98a47a5ab94e0cbbf7e898e4c3309d0ca",
+  "native_sources_before": {
+    "Cargo.lock": "8d8718e1966bf60373a514d2a5b4bdfa516c8e11b054d9c09373a28684a4453d",
+    "Cargo.toml": "e5e3d488f5381f9b7452d51981a42096fc370f5e2f074c56c37e525210b9e76a",
+    "crates/oc-adapters/Cargo.toml": "132625b8f7dcda76443c015866d16242bebda894f652bf008d555dbb1aef18b8",
+    "crates/oc-adapters/assets/upstream/PROVENANCE.md": "2f3d5eab575430e352b2244d1a1daf9a5b8c27dea50417141dd666822003d951",
+    "crates/oc-adapters/assets/upstream/v2/review.txt": "727292c08ee718fff8852ec91408a255ce08c716b3d46cc56be3d399589e3479",
+    "crates/oc-adapters/src/admitted_fs.rs": "175c40ea26de4e83610f94f45f20d66d8132cdac6d7e483e5891244e0c98c3b0",
+    "crates/oc-adapters/src/application.rs": "5eb741a1b02c8ee42e6094c4058e5c35c2c5c2b307e19fa95de1c6c3210ef5b9",
+    "crates/oc-adapters/src/application/tests.rs": "2caa37cb6027115b983350a5307daa0ce512fbcf2020bba56ef681be618f8ee7",
+    "crates/oc-adapters/src/application_conversation_tests.rs": "3af08469aa81a990fe391ab15e7d2735c2cdfd94fad103e5927ee3200a40800a",
+    "crates/oc-adapters/src/application_fork_tests.rs": "1c7c5a4a8fa79acd97a1cee79d364285523656df36c0bf780a02f5f4aaccb964",
+    "crates/oc-adapters/src/application_selection.rs": "732bc4e9eccb14ede85ff274e47a6a5f6a7253bfa885c1c4b0960106af87d15f",
+    "crates/oc-adapters/src/application_tab_deck.rs": "1e489e3719c521ea8f3c7cf4844fe93002e8c0b55afda9ddd4a81610868febaf",
+    "crates/oc-adapters/src/approval.rs": "4a4e5127da60f343d4a24b9703758e66c3d1d33ba208c9d65866d2d494d1adbc",
+    "crates/oc-adapters/src/approval_tests.rs": "1d828cce684a83f9d69976fc0a57bd26b6a1dbac5226e1f5f3a9b8f7b1581117",
+    "crates/oc-adapters/src/attachments.rs": "97ca7933c7e33b85d2e20c4ac4a30e9380148a5b35f9250814155458ea17710c",
+    "crates/oc-adapters/src/cli_permissions.rs": "5bb0050bdcf48c7faf4ad9fb342dff6d9a21c0403baa8495efe00f16033280fb",
+    "crates/oc-adapters/src/compaction.rs": "d183b6254234fe33bf5be043f4e5eca4d226712487ceebcd8d5e890d55caa63a",
+    "crates/oc-adapters/src/composition.rs": "a1726ca5e238ea4ceef953484ec831f37a12da52d09c97f8c7405aad0510ab37",
+    "crates/oc-adapters/src/config.rs": "7ec366b6b94d9eecfeabc6cb2bfc6bf224ab7828aec4cd635c9901627be62152",
+    "crates/oc-adapters/src/dcp.rs": "7b29385071ceb806586bad104af61f67d515a5bbb96a7a1c04dc95cf2d700b34",
+    "crates/oc-adapters/src/dcp_auto.rs": "13aa09982bf9da779b42f1563a1e465f5ea341fe90d2e100511659e82c5711dc",
+    "crates/oc-adapters/src/defs.rs": "7b270c6b39b7a2b26224940c26a356b1d99755d533522f5a8688f4755554ef64",
+    "crates/oc-adapters/src/discovery.rs": "fd064f0d0c133f0cde10a354a0532ff84e3cb35700e0c1f1fa0669983b8b1c34",
+    "crates/oc-adapters/src/files.rs": "926bd1f7040368501c8af5bff2f0b7184e8dae84b87f0d4791ce726c10de2b50",
+    "crates/oc-adapters/src/lib.rs": "5b3ca33873b626baa19866274710594e91c453a74d959b55e1841ef7cec0c4e5",
+    "crates/oc-adapters/src/mcp_http_lifecycle.rs": "797bb9a8ff61dd98ddc95ffca10da844321bc0a2fe64c63b1c69ad1b3f9775c3",
+    "crates/oc-adapters/src/mcp_remote.rs": "e1b74c0774b8e4773e560d4b54cbf863735f0b48ffa9089cc26f6eff66687381",
+    "crates/oc-adapters/src/mcp_result.rs": "3f2d0616b60035cfe4f40d7f0b8ad51bdcdc42ba6221cee6e4ebb7207e58c76f",
+    "crates/oc-adapters/src/mcp_stdio.rs": "c62f60390ad433975304eec64f04879fb6025de00ec778cc7e5af628076c6c8b",
+    "crates/oc-adapters/src/models.rs": "9363adcb64f19719f89428d6557cfa925da4a28825139b7afe02fe5dc7abf64b",
+    "crates/oc-adapters/src/models/tests.rs": "7c4328e617ce28fa759469003b0fb625cb933cb6193e5ece859c63395cae850e",
+    "crates/oc-adapters/src/patch.rs": "f7b15bb7e06a62cfb4f2613eb38a16cdd852012afc8125a5411741589787bd46",
+    "crates/oc-adapters/src/patch/effects.rs": "397d17a466bf4bc9fb7e3b6c1bf455220a466ba68b96a0b70c413bdcdbf8ffa8",
+    "crates/oc-adapters/src/patch/fs.rs": "843d54a6a62a602fa51cafe2d12b7fb3a778ae7f70b55ea05335e92f6a02c5e1",
+    "crates/oc-adapters/src/permissions.rs": "f8e8cc2fb6b92196bcdd319feaead16e9f24c447052acf8fb9877bd1ac87cffe",
+    "crates/oc-adapters/src/provider.rs": "8e5b17b2e44a17d583b14315b42b387afdfeb9a846de4a23ccee40bcd0efc9d7",
+    "crates/oc-adapters/src/runtime.rs": "41aa9aeeb708a75b1be8f144959783333d06b2e5c551ba01be169bfdecd44764",
+    "crates/oc-adapters/src/runtime/context.rs": "0fd86f3ea1b4f95da489dbdcb831f78df54c55a4548c8664b7034e08322890d6",
+    "crates/oc-adapters/src/runtime/mcp.rs": "8ca2dd9b77f9ca5e8741465bf974acbfe82dfa0425e925ded0a5a93fad084a6e",
+    "crates/oc-adapters/src/runtime/tests.rs": "953a49c69510a97a9d189e1c609e26c0d17601898d84f9f1dcaa8c55f5a64dce",
+    "crates/oc-adapters/src/runtime/tool_stream.rs": "867c2c1229af912067cdc9cb0dc4a5ffabbe27ea7050841152d94cf0f34173c2",
+    "crates/oc-adapters/src/runtime/turn.rs": "f6ce5ff7c9d6dd92a4d5ca5cea620761af841a24f43c522c969e85f9cbd1a765",
+    "crates/oc-adapters/src/runtime_compaction.rs": "8bee31d9d10fdd61ca7c7509f209f4e24c2db9c57aeeb49b84ce32497812d604",
+    "crates/oc-adapters/src/runtime_compaction_tests.rs": "9f4c52976d4c7a34c2c688d7c100beae3e7075512be461d97e89fc85dc470ef1",
+    "crates/oc-adapters/src/shell.rs": "c51156847ec11190a8846d67e9279731883e1fb299d4a3d7b1fa9f8528f6cf42",
+    "crates/oc-adapters/src/smoke.rs": "3579c89f6bd4373040bd1f8d2a62c759eed0cb136417263ef56c515efc3b0cce",
+    "crates/oc-adapters/src/storage.rs": "706645c3a7bbeb85ca8d2c2794fbf6177e8b3a4c275f0977b3b7c4807da90b7a",
+    "crates/oc-adapters/src/storage/tests.rs": "0528317b086c79a1d547172160533acfb7816895a72abb2d2d5286c7bae9b642",
+    "crates/oc-adapters/src/storage_checkpoint_dcp_tests.rs": "412be70c514d7a39f44f79ce0f4b3e1efde1660215046827076e33f3dd751201",
+    "crates/oc-adapters/src/storage_compaction.rs": "3572f5a6f641be98fe119e0a7213ddcfbcbb03f9fd198b3fe4abee7ab7662ff9",
+    "crates/oc-adapters/src/storage_conversation.rs": "4bca0942e7132cb124c4e09adc1a4e91c51cc35a10b9d1ad349cf1bb681ac5b3",
+    "crates/oc-adapters/src/storage_conversation_tests.rs": "cb63787a4851d56ae571c8f778b4eb1c9172c12cef1f9fc639877e6f05b1dddc",
+    "crates/oc-adapters/src/storage_dcp_lifecycle_fixture.rs": "e762c4f757bd17c3a5cfdc8240fea3a11083ee803663e68fc2f57b58a8c7a099",
+    "crates/oc-adapters/src/storage_dcp_view.rs": "5cc6b52b66c13327aa29c8bc99527bb730bae618aabc60e19995762594ce44e9",
+    "crates/oc-adapters/src/storage_dcp_view_tests.rs": "6e0cecc920501acb28aa90af4443f47ff975347f0279f968744f5d144bb00906",
+    "crates/oc-adapters/src/storage_fork.rs": "2192959a6721a5dad8b738bc736aca0f75837d4737ed784b7c88585955632aea",
+    "crates/oc-adapters/src/storage_fork_context.rs": "296d94caabd8bd49ee2efb1b58a441fd2a0be348f3373bb3b6b279f7860643ba",
+    "crates/oc-adapters/src/storage_fork_dcp_tests.rs": "56407f43479bc82808d35b0c2e55b4e261ed857a5ffaccd494f6aa2e0846a4f7",
+    "crates/oc-adapters/src/storage_grants.rs": "63b47e740902e37542030c849b9b19e29b2909cabf536d73e64d8f8b34b75805",
+    "crates/oc-adapters/src/tools.rs": "94328eb09f19a3a726b786f69a7bb53a7a1378f6e23b926e9dd57c940b58675b",
+    "crates/oc-adapters/src/trace.rs": "9504dc77dfc5b860e23eb568afa4f2abf481d15ec8c7be6b641f727d4eeb9367",
+    "crates/oc-adapters/src/tui_workspace.rs": "a4cc6c6263899ad242025936c552ff28115607558faafa942554d37e3b7f5e93",
+    "crates/oc-adapters/src/webfetch.rs": "fcd5726b433e18d47be63bf5496597a29a043ebd879e39be0be2a1b30c160fdb",
+    "crates/oc-adapters/tests/blob_audit.rs": "3da8c3d9a164a46496b539529871f68a63414bc16a65eb3b3396cfc19386e4ec",
+    "crates/oc-adapters/tests/context_bounds.rs": "1151224ad9a0ce938f918cfae5675a7c1b52717874cca8095a5a3ea22e52e74a",
+    "crates/oc-adapters/tests/dcp_atomic.rs": "0ab7df37952fb327916b112250a6294536ad10da90339f8ebb3162884b6c7d71",
+    "crates/oc-adapters/tests/e2e_live.rs": "4a9c0d40d6d44f3e851fde61cbbfa26b22fa5907d5601b700f0bf141b679b6ff",
+    "crates/oc-adapters/tests/e2e_offline.rs": "f7aa58e68dc629242872a057750652d998714fa30a9c8e50cbd344b1ba1e6afe",
+    "crates/oc-adapters/tests/fixtures/approval_lifecycle.rs": "6591f7378486f7a0b2b49014511a670a2d62aa37db56df9173eb176ecd51fb43",
+    "crates/oc-adapters/tests/fixtures/compaction_normalization.json": "88370643949a68fce15915573c3e85d5960192f8d8411bb217e702a1faaa4c26",
+    "crates/oc-adapters/tests/mcp_remote.rs": "95de08ef6ce56f8b8049c303b41eb74d7ecbc2b0735ea9cecda9a7354955b44a",
+    "crates/oc-adapters/tests/mcp_stdio.rs": "2b0bea78d3b275964ca4b9adad1e5393dfe7fc7ec2a14f633f6593bd56ab1e39",
+    "crates/oc-adapters/tests/patch_audit.rs": "8464da4f94ce67fae50653f7bfec5ce5f46bc5504033871e9248c58749754a0e",
+    "crates/oc-adapters/tests/patch_effects.rs": "ed08cb4fe8e78761ee557efcbfaec421be44b5c46c0cf2d39a85a9a93b951b09",
+    "crates/oc-adapters/tests/permissions.rs": "2108c8d5e4ca672e38af9bc4b985275f9ae4d95474a0b8062901fbb20eee155a",
+    "crates/oc-adapters/tests/runtime.rs": "aaf842c811b73caf7a8c834e893e02e060a4f63ae773af861fe99099da76477c",
+    "crates/oc-adapters/tests/runtime/context.rs": "44861c05a48f004f9eaaf330fca4e9ab622f78105fedd12eaf67a16626583629",
+    "crates/oc-adapters/tests/runtime/tool_lifecycle.rs": "a418fbfc59d55235a2800a30fa6bdcf7db90edc17f1c9e6dd4e246e8df485224",
+    "crates/oc-adapters/tests/runtime/turns.rs": "034c3f429e8813b3d3245d0e8ab580bbb02a19ed9d4e28f2710273f08b202491",
+    "crates/oc-adapters/tests/session_rename.rs": "aebdf1fb3ceafb510b01acc40cda2bb422e2c0c3b2db8d4fc82fad0e075118ac",
+    "crates/oc-adapters/tests/shell_watchdog.rs": "0ac9f4f2e7d2a2112780b5bd5bd8dbdc8a4f261609b7e92351bebd6c6ec9c36b",
+    "crates/oc-adapters/tests/soak.rs": "9962206291f52d5d47ef6d407c7b1c3597b590fc51fac1e63941bf23d0b42a62",
+    "crates/oc-adapters/tests/storage_lock.rs": "8d1bdea426ddbffe2f79d9576f656cf73a9cf63ddd193471f75e813bb1978d12",
+    "crates/oc-adapters/tests/subagent.rs": "b6d772e4145e4fadf8a1017e46d02a8986f0d6f19e9a8f9e511076311140f66f",
+    "crates/oc-adapters/tests/tab_deck.rs": "338d432c5906b4e07eee28f24885d4d792537e5dd1491ba227b0730ef004bba2",
+    "crates/oc-core/Cargo.toml": "0182c888635e1408db27c824eab663a6291beee3f658fe757392675a2d589d74",
+    "crates/oc-core/src/application.rs": "9ed0e19d3bce40e2a36425f37b33ba0eb1a94181e0117cf083e29eaeae71cf40",
+    "crates/oc-core/src/approval.rs": "248e96b46cf635199a61a29191586d41b5bc11087362d8a613925768847c4dc3",
+    "crates/oc-core/src/compaction.rs": "500f4c3d380154274072bb7a0c34ef035e2312cacc39d07bc3f945e88336619f",
+    "crates/oc-core/src/context_plan.rs": "19c07416fa4c631529327c3541f5188bc19097e7738dd172d25fa3a29b4b6dfc",
+    "crates/oc-core/src/core_app.rs": "b1c6b5ec7753d323be10e14a0216b3f922e5bf7e2878bec3944e20d3cd8c25e6",
+    "crates/oc-core/src/dcp_view.rs": "74886e66b64736dc163b21daa35ab5a214a1b7dc61ccff5b291d310b7d11f0c1",
+    "crates/oc-core/src/domain.rs": "f2ceeb587ba7cb754d6e652307961530198d3d53853d28ce164bf5e84874258c",
+    "crates/oc-core/src/lib.rs": "9c7406d69121d49eaba5ce6efc9aea7c49b6364156b7eb90eca4b9060e3c93b3",
+    "crates/oc-core/src/patch.rs": "47a03dfe26fd3de36467c28f437b5396b14342e49c3add5a72551730ecd4e1e6",
+    "crates/oc-core/src/ports.rs": "c9bf84cd9218e2c43553cee96a6f949985cb83dfe00dde4a393adf61a6de43a3",
+    "crates/oc-core/src/queries.rs": "8d2dc92261e977bcc7a0ac8cbe5cb3a7639bac0d662ef535bdd09a260b5b28ef",
+    "crates/oc-core/src/runtime.rs": "3734ea8fce8f0767f4acc671dfd3f72a713a3e4694785be2cc2fdc20e04fb38e",
+    "crates/oc-core/src/session.rs": "f7baff30840eba19e72cc90acaf55d8c236be16d3ca537508e07eaf31e6b603b",
+    "crates/oc-core/src/tool_stream.rs": "9259cdd3cd8dc2469c203699d5141c336c5fde7fd196fe24266dde299efc66d0",
+    "crates/oc-tui/Cargo.toml": "3bb2af6f296222e030586170983a1325e2b99c1e6bda95a160ef90a1ceeb04ba",
+    "crates/oc-tui/assets/fuzzysort-LICENSE": "9401e2d038d10f35d32aa1938e674f96fc32a689ef69a3ab0ae938f9d79365df",
+    "crates/oc-tui/assets/fuzzysort-oracle.json": "5d49daa5c4881ec956439911d371302d5da6d78e37b200d867453a62f6618484",
+    "crates/oc-tui/assets/upstream/PROVENANCE.md": "439736c466d570e348a394d4327f5250eb1a686b435d7603fd23c6ae81ca3137",
+    "crates/oc-tui/assets/upstream/v2/opencode.json": "f25bc5ae9187524f1997cccadeb9f724b2fac2fe7cc4a250bdadb24311e6b367",
+    "crates/oc-tui/src/app.rs": "0c0b80efe8b36435497c397827719db3bc0906617432f73e1c2e7b25a114ef5e",
+    "crates/oc-tui/src/app/input.rs": "ae648bf4b1166ba952b396ff797b8fa9fb01353cf52d5770102ac72c7cf8f97d",
+    "crates/oc-tui/src/app/live.rs": "af09cc5821b333c9704c33aaba40478e51a480c5ccddf3a3b48db31d7eeccb69",
+    "crates/oc-tui/src/app/tabs.rs": "7e98571b90cce494f248dda94fcc38c5e7158aa6937a3233faa7a8b0456ef352",
+    "crates/oc-tui/src/app/tests.rs": "caa864ec9536ffee18fa43c03f1464b08a0742f1291d841a4c1a796a240850a4",
+    "crates/oc-tui/src/app/tests/input.rs": "43f44e65c9ff172bcc0c10ab341caf833e13075ead7e38210025ec3e094ad98e",
+    "crates/oc-tui/src/app/tests/lifecycle.rs": "a697c9fcf30b0fc260f3d1bf7e50cdcbc3de641fc1e8136d3d9dd527fcbe49b6",
+    "crates/oc-tui/src/app/tests/tabs.rs": "385a7486b4e981d4596e0755ca2884496e94599349d0871efb32b78e00e60548",
+    "crates/oc-tui/src/app/tests/transcript.rs": "15c9850a3a9a514343ffec1a1adfa1961e5dab2213815ba9478fd0b338402585",
+    "crates/oc-tui/src/app/transcript.rs": "61b25ca4ce3b9eca8a4e3b97abc9edf05b7fbddade3585ddd4211ea6ed0e63f3",
+    "crates/oc-tui/src/approval_view.rs": "8936b7b4d6c55d424de6d1194ea784d54ed4f5ee0a3d334f6e867f47b20df711",
+    "crates/oc-tui/src/autocomplete.rs": "84cb3cdb6ecfea6d53d514c5915fba3ec03df82505138e4e4fd8289f69ea27ad",
+    "crates/oc-tui/src/commands.rs": "5048996f68826822439351bfd672cdd9d83dc1a00ddb1d9d7ae07ef7788358be",
+    "crates/oc-tui/src/compaction.rs": "189000dad49b61b292724db463ba6aa1745808a74548cb38668ef406d2a1ce90",
+    "crates/oc-tui/src/dcp_panel.rs": "fe2b7583d852baa92b31baf525c9c296a6e110bd1884517075fd07b63a734043",
+    "crates/oc-tui/src/dcp_view.rs": "40381297fa313ab32ed2492d678d9dc3fa185c2c103a55b3bc0b1d40df3063ba",
+    "crates/oc-tui/src/dialog.rs": "61612ec97be6beb3899d6dd5e8c6223e0f5cc367ce9b826baf4e74c2c0bcb643",
+    "crates/oc-tui/src/editor.rs": "d39c42ce8257997d57bc5bc0943473c557d13c60548ae37329302f7374d75419",
+    "crates/oc-tui/src/events.rs": "eb6ad9a23382f2597da219d51e6f63453f15b0722850f86efa6d9a250d6c8048",
+    "crates/oc-tui/src/fuzzy.rs": "31a520dd92402c5b3303c841ceba538fb0983ae6250d9efbd37792425cfa155f",
+    "crates/oc-tui/src/history.rs": "f47e51392df047e40673fededa2488354c5c9b7d4127e8051094fe8121605b34",
+    "crates/oc-tui/src/layout.rs": "f14c5aaa66829a9dc71f1bf971fc800daa6717045d54560e05ffb1a5f8ce4ba9",
+    "crates/oc-tui/src/lib.rs": "67e6d25ead7d8065f2986fbd0917dfadc16e0f95fe0cc8c6e1b980aa50043c42",
+    "crates/oc-tui/src/messages.rs": "2ae6f3ae2add20c4d856729eb6ffd52161c790810e0a0ecf9abb13c31e3e160d",
+    "crates/oc-tui/src/messages/tests.rs": "8c695efeb1d25a2b469e41b7c85d3ae9e6e1672d901a513585028cd37306825d",
+    "crates/oc-tui/src/patch_view.rs": "ca6b06d226c16e84f7c64faccaa698537e6c4f99156581e2dc7a1590df2110d0",
+    "crates/oc-tui/src/picker.rs": "fe98b072a7aaeb761e6aff6a175c1e43ee4c4289083dc16f9f5b28ca1971025f",
+    "crates/oc-tui/src/scanner.rs": "1adc90a2bdb6ba42b7b86b6212d554f7d960ff4a2984cb43fa78ee88f4b592e6",
+    "crates/oc-tui/src/shell.rs": "0a94252b2b6e8499c29918ba774ab008b30d9451cd415150e68fd01b3dbc154a",
+    "crates/oc-tui/src/shell/tests.rs": "107a087be07cdff71b44302165725534ef5eee8f344a6032ed38769d4b93f853",
+    "crates/oc-tui/src/smoke.rs": "3fd338f0ff7cbbe524e02c6e099c3a3e261a2239adf3e33935ee055012f064a7",
+    "crates/oc-tui/src/styled.rs": "4864fecfb972d9944de85b64ef0d3843ce50c580d227495ebf1f7ce0a1a7133c",
+    "crates/oc-tui/src/terminal.rs": "6adbe148c813c39b4e3b4fc7ed0f10cb3039c2e435d0fe97d3fb6a11d6289006",
+    "crates/oc-tui/src/theme.rs": "d42dd77557cb80c89e445b36073da2e4d01d51f2860998af1f8dc1fe3868cc6e",
+    "crates/oc-tui/src/tools.rs": "fd41cbbc8f6817bec64b480a4e941d382db2020cf384ff8dae9b422770214cff",
+    "crates/oc-tui/src/views.rs": "c169a9e1b90c19de9db4e8df0bb24a0a4a290a66bca711d89722b65b5f9d5bcc",
+    "crates/oc/Cargo.toml": "d06d1a6ae71b91640ec804d38b3fdcb868aa8294d14f0d2454b2c86ea070f140",
+    "crates/oc/src/approval_tests.rs": "b531639aaea0754c01a4abcd9405f090373e31f4da7f33b9a4096e2e6e5a33f7",
+    "crates/oc/src/bootstrap.rs": "f41c928abf3b232636a59f790be163bef4d78ed9f913eb7e4cfc7641f6029b86",
+    "crates/oc/src/cli.rs": "6e8ca52f0f33024d5e8c463bc5cf5b17c9f4ddcfad3e12c032a14fcdf210185f",
+    "crates/oc/src/clipboard.rs": "7152ab1d8fc1767b8d0048d0f8c20fd72b6fb236b978630f2b3af7bb143ca342",
+    "crates/oc/src/headless.rs": "9b9afbf09a867f584382b19b16a51f2f8a5f208b1485cdbd24b802293b76d898",
+    "crates/oc/src/main.rs": "212e5848911111de6c584afe9fbab15c04ab99cf8bdda8285d4005c281d5f222",
+    "crates/oc/src/tui_cmd.rs": "a59187362456a0691bed95c5f4f6650a2160807f83091d54731d1adc246fb238",
+    "crates/oc/src/tui_cmd/tests.rs": "84774336f17ca907aa2f4cc736fcae875f73831d95fbe8e0f35dc03f014b89c7",
+    "crates/oc/src/tui_cmd/tests/lifecycle.rs": "97bd45845a014a76a0ccef7c79f953a9e2116a35483684e497d3bd0531429c29",
+    "crates/oc/src/tui_cmd/tests/routing.rs": "a02022ab98b3dd67d702070c858d84f66a672fe488f1160e706efc975df442c9",
+    "crates/oc/tests/application.rs": "faf2d5d56b4de7e2029ddc8b74c9aa43357b73d758c7f1ad4a899a645b9b5718",
+    "crates/oc/tests/approval_binary.rs": "b0b7a4fe873aa7ae267cd8fb52497844ae0a789387ab09a9986679c7d6b69c62",
+    "crates/oc/tests/configured_workspace.rs": "cc2ac71c8e5bb6e84341d9af0a1c073125c404e5f755a98bda405a050804c047",
+    "crates/oc/tests/dcp_runtime.rs": "11027a9d6dc2477b91bb67ed3b8a7f2ad80838c1e1218e076a54a10ce143a375",
+    "crates/oc/tests/durability.rs": "ae7d528460b64b80919e873ab1356067654655de6a3772498cd22f09e9ce7590",
+    "crates/oc/tests/golden_binary.rs": "bc2cf88a5f20f658d316224846dd11b813f00fe717665637c173e37fb3277f87",
+    "crates/oc/tests/live_bounded.rs": "5b225b43421d5bbcf397b83fba7a3d55f20ae1752d4286ea62e649b42e17bfb7",
+    "crates/oc/tests/mcp_application.rs": "2392a9a02d165eef07b1ac8d2df22740d103dba6f12cb03367fe1f89649019ff",
+    "crates/oc/tests/memory_bounds.rs": "80f0bc51b5026bf6fe64dc88a72d6a66509502984aa274f1d08a44d8d46c0fd6",
+    "crates/oc/tests/pty.rs": "5ccb72bc231a23f34edf82e6a1b8b55669910e11b137954b8c5b33aaa3e48a93",
+    "crates/oc/tests/pty_t39.rs": "882c03f499e55d95bf9345bb7230073f8df8c52b3e9ebe2c9b9c3ea42fb49ce8",
+    "crates/oc/tests/pty_t39/interaction.rs": "0fe61e458c4c3da12599bc451ced7336ae6e4a3a62cc5873b4a24bc8ddb1475b",
+    "crates/oc/tests/pty_t39/lifecycle.rs": "b7d363e202bdc64318e7e58fbf7a7cb003e86279db4a8495e5d266379542229f",
+    "crates/oc/tests/pty_t42.rs": "d6b0da8cad6a1fdaaa111506eb284f04d71052d5ff56edd60e1990fb766733a7",
+    "crates/oc/tests/recovery_startup.rs": "90a08f425f8e22b4503f11bfa5bb6cf48aa61bfd2d330e127ebe723e6944f7e2",
+    "crates/oc/tests/recovery_v02.rs": "f32d54a64070b988b4ba8ac1ecfccf63ff01c831a839ddfd5ba16d0b8efce4cb",
+    "crates/oc/tests/recovery_v03.rs": "754dccc76891e7a801cbab883fb734cbd71a102976772e592afc85321d192162",
+    "crates/oc/tests/responses.rs": "fd1b6e84fcb63a6728e9895abd18faa9e5d4456bc6c68253d2e1e2a125b64a73",
+    "crates/oc/tests/support/discovery_startup.py": "d7af7bb5d59161726a60e00f8007fdd64704c219b2c0e4fadf41a7605d77748c",
+    "crates/oc/tests/support/geometry.py": "fd33b20bf6373854309cecd80d5b917e882a27beba320b2ee25e05c470b218bc",
+    "crates/oc/tests/support/screen.rs": "cce51131b9f0786e5312fd66168d80e1da238901ed193459de8e496ec37063ba",
+    "crates/oc/tests/support/startup.py": "0db0ba1979d61cae56c58a3157bba3e961bb6d299c9b151a81adcf8d9f36b69d",
+    "crates/oc/tests/support/terminal.rs": "74ca1a73b2a18baab4c25bb17f7e225ac69246b2970f97eb7733d303bb78db89",
+    "crates/oc/tests/support/title.rs": "649fbc875c894a44cc2ec414659aa7f01f6952d8b9f6fb946ea77399af208937",
+    "crates/oc/tests/t49_live_smoke.rs": "75acbdb157fa4f333b6d4937676311cdc0c447c139a68ce4b93e8849db2f3ca8",
+    "crates/oc/tests/tui_render_alloc.rs": "257967ad8e12ea013ae5d08870ef7a26f420cd20dec59e3a80295e8ffa00366c",
+    "rust-toolchain.toml": "b364b7e44eff5aaa6f8f8357d2536dd284fe5af3c3a64eea4f6d0555d79c2c7a"
+  },
+  "native_sha256": "d28c457f67cdf276e199955580a60ffc21f0ebb3256f56dd9c9046a153ad67da",
+  "reference_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+  "reference_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "fixture_sha256": "16d41d4731f23480844b2cd040289bef6b6f0d0ec8a62606b8319ebcaa867f23",
+  "commands": [
+    "/usr/local/bin/node",
+    "/home/opencode/ai/oc/scripts/tui_capture/variants_capture.mjs",
+    "--oc",
+    "/home/opencode/ai/oc/target/debug/oc",
+    "--native-sha256",
+    "d28c457f67cdf276e199955580a60ffc21f0ebb3256f56dd9c9046a153ad67da",
+    "--reference",
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "--output",
+    "/home/opencode/ai/oc/evidence/tui/recovery-v00/variants-paired20260928-04",
+    "--columns",
+    "120",
+    "--rows",
+    "40"
+  ],
+  "profiles": [
+    [
+      120,
+      40
+    ]
+  ],
+  "attempts": [
+    {
+      "name": "oc-120x40",
+      "status": "PASS_ACTIONS_CAPTURE",
+      "checks": [
+        {
+          "label": "cycle-0",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "none"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "none"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-0",
+            "observations": [
+              {
+                "table": "sessions",
+                "rows": [
+                  {
+                    "id": "vis09-presentation",
+                    "created_at": "1790610417",
+                    "parent_id": null,
+                    "agent": null,
+                    "model": null,
+                    "title": "VIS09 Presentation",
+                    "updated_at": "1790610419.064"
+                  }
+                ]
+              },
+              {
+                "table": "messages",
+                "rows": []
+              },
+              {
+                "table": "turns",
+                "rows": []
+              },
+              {
+                "table": "prefs",
+                "rows": [
+                  {
+                    "key": "tui.session_location.vis09-presentation",
+                    "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\"]",
+                    "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+                    "value": "\"none\"",
+                    "updated_at": "1790610426"
+                  },
+                  {
+                    "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+                    "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"none\"}},\"epoch\":0}",
+                    "updated_at": "1790610426"
+                  }
+                ]
+              },
+              {
+                "table": "turn_acceptances",
+                "rows": []
+              }
+            ],
+            "client_persistence": [],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-1",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "minimal"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "minimal"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-1",
+            "observations": [
+              {
+                "table": "sessions",
+                "rows": [
+                  {
+                    "id": "vis09-presentation",
+                    "created_at": "1790610417",
+                    "parent_id": null,
+                    "agent": null,
+                    "model": null,
+                    "title": "VIS09 Presentation",
+                    "updated_at": "1790610419.064"
+                  }
+                ]
+              },
+              {
+                "table": "messages",
+                "rows": []
+              },
+              {
+                "table": "turns",
+                "rows": []
+              },
+              {
+                "table": "prefs",
+                "rows": [
+                  {
+                    "key": "tui.session_location.vis09-presentation",
+                    "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\"]",
+                    "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+                    "value": "\"minimal\"",
+                    "updated_at": "1790610432"
+                  },
+                  {
+                    "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+                    "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"minimal\"}},\"epoch\":0}",
+                    "updated_at": "1790610432"
+                  }
+                ]
+              },
+              {
+                "table": "turn_acceptances",
+                "rows": []
+              }
+            ],
+            "client_persistence": [],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-2",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "fast"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "fast"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-2",
+            "observations": [
+              {
+                "table": "sessions",
+                "rows": [
+                  {
+                    "id": "vis09-presentation",
+                    "created_at": "1790610417",
+                    "parent_id": null,
+                    "agent": null,
+                    "model": null,
+                    "title": "VIS09 Presentation",
+                    "updated_at": "1790610419.064"
+                  }
+                ]
+              },
+              {
+                "table": "messages",
+                "rows": []
+              },
+              {
+                "table": "turns",
+                "rows": []
+              },
+              {
+                "table": "prefs",
+                "rows": [
+                  {
+                    "key": "tui.session_location.vis09-presentation",
+                    "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\"]",
+                    "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+                    "value": "\"fast\"",
+                    "updated_at": "1790610438"
+                  },
+                  {
+                    "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+                    "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"fast\"}},\"epoch\":0}",
+                    "updated_at": "1790610438"
+                  }
+                ]
+              },
+              {
+                "table": "turn_acceptances",
+                "rows": []
+              }
+            ],
+            "client_persistence": [],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-3",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "low"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "low"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-3",
+            "observations": [
+              {
+                "table": "sessions",
+                "rows": [
+                  {
+                    "id": "vis09-presentation",
+                    "created_at": "1790610417",
+                    "parent_id": null,
+                    "agent": null,
+                    "model": null,
+                    "title": "VIS09 Presentation",
+                    "updated_at": "1790610419.064"
+                  }
+                ]
+              },
+              {
+                "table": "messages",
+                "rows": []
+              },
+              {
+                "table": "turns",
+                "rows": []
+              },
+              {
+                "table": "prefs",
+                "rows": [
+                  {
+                    "key": "tui.session_location.vis09-presentation",
+                    "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\"]",
+                    "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+                    "value": "\"low\"",
+                    "updated_at": "1790610443"
+                  },
+                  {
+                    "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+                    "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"low\"}},\"epoch\":0}",
+                    "updated_at": "1790610443"
+                  }
+                ]
+              },
+              {
+                "table": "turn_acceptances",
+                "rows": []
+              }
+            ],
+            "client_persistence": [],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-4",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "medium"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "medium"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-4",
+            "observations": [
+              {
+                "table": "sessions",
+                "rows": [
+                  {
+                    "id": "vis09-presentation",
+                    "created_at": "1790610417",
+                    "parent_id": null,
+                    "agent": null,
+                    "model": null,
+                    "title": "VIS09 Presentation",
+                    "updated_at": "1790610419.064"
+                  }
+                ]
+              },
+              {
+                "table": "messages",
+                "rows": []
+              },
+              {
+                "table": "turns",
+                "rows": []
+              },
+              {
+                "table": "prefs",
+                "rows": [
+                  {
+                    "key": "tui.session_location.vis09-presentation",
+                    "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\"]",
+                    "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+                    "value": "\"medium\"",
+                    "updated_at": "1790610450"
+                  },
+                  {
+                    "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+                    "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"medium\"}},\"epoch\":0}",
+                    "updated_at": "1790610450"
+                  }
+                ]
+              },
+              {
+                "table": "turn_acceptances",
+                "rows": []
+              }
+            ],
+            "client_persistence": [],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-5",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "high"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "high"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-5",
+            "observations": [
+              {
+                "table": "sessions",
+                "rows": [
+                  {
+                    "id": "vis09-presentation",
+                    "created_at": "1790610417",
+                    "parent_id": null,
+                    "agent": null,
+                    "model": null,
+                    "title": "VIS09 Presentation",
+                    "updated_at": "1790610419.064"
+                  }
+                ]
+              },
+              {
+                "table": "messages",
+                "rows": []
+              },
+              {
+                "table": "turns",
+                "rows": []
+              },
+              {
+                "table": "prefs",
+                "rows": [
+                  {
+                    "key": "tui.session_location.vis09-presentation",
+                    "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\"]",
+                    "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+                    "value": "\"high\"",
+                    "updated_at": "1790610456"
+                  },
+                  {
+                    "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+                    "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"high\"}},\"epoch\":0}",
+                    "updated_at": "1790610456"
+                  }
+                ]
+              },
+              {
+                "table": "turn_acceptances",
+                "rows": []
+              }
+            ],
+            "client_persistence": [],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-6",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "xhigh"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "xhigh"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-6",
+            "observations": [
+              {
+                "table": "sessions",
+                "rows": [
+                  {
+                    "id": "vis09-presentation",
+                    "created_at": "1790610417",
+                    "parent_id": null,
+                    "agent": null,
+                    "model": null,
+                    "title": "VIS09 Presentation",
+                    "updated_at": "1790610419.064"
+                  }
+                ]
+              },
+              {
+                "table": "messages",
+                "rows": []
+              },
+              {
+                "table": "turns",
+                "rows": []
+              },
+              {
+                "table": "prefs",
+                "rows": [
+                  {
+                    "key": "tui.session_location.vis09-presentation",
+                    "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\"]",
+                    "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+                    "value": "\"xhigh\"",
+                    "updated_at": "1790610462"
+                  },
+                  {
+                    "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+                    "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"xhigh\"}},\"epoch\":0}",
+                    "updated_at": "1790610462"
+                  }
+                ]
+              },
+              {
+                "table": "turn_acceptances",
+                "rows": []
+              }
+            ],
+            "client_persistence": [],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-7",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "max"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "max"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-7",
+            "observations": [
+              {
+                "table": "sessions",
+                "rows": [
+                  {
+                    "id": "vis09-presentation",
+                    "created_at": "1790610417",
+                    "parent_id": null,
+                    "agent": null,
+                    "model": null,
+                    "title": "VIS09 Presentation",
+                    "updated_at": "1790610419.064"
+                  }
+                ]
+              },
+              {
+                "table": "messages",
+                "rows": []
+              },
+              {
+                "table": "turns",
+                "rows": []
+              },
+              {
+                "table": "prefs",
+                "rows": [
+                  {
+                    "key": "tui.session_location.vis09-presentation",
+                    "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\"]",
+                    "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+                    "value": "\"max\"",
+                    "updated_at": "1790610467"
+                  },
+                  {
+                    "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+                    "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"max\"}},\"epoch\":0}",
+                    "updated_at": "1790610467"
+                  }
+                ]
+              },
+              {
+                "table": "turn_acceptances",
+                "rows": []
+              }
+            ],
+            "client_persistence": [],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-8",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "zeta"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "zeta"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-8",
+            "observations": [
+              {
+                "table": "sessions",
+                "rows": [
+                  {
+                    "id": "vis09-presentation",
+                    "created_at": "1790610417",
+                    "parent_id": null,
+                    "agent": null,
+                    "model": null,
+                    "title": "VIS09 Presentation",
+                    "updated_at": "1790610419.064"
+                  }
+                ]
+              },
+              {
+                "table": "messages",
+                "rows": []
+              },
+              {
+                "table": "turns",
+                "rows": []
+              },
+              {
+                "table": "prefs",
+                "rows": [
+                  {
+                    "key": "tui.session_location.vis09-presentation",
+                    "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\"]",
+                    "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+                    "value": "\"zeta\"",
+                    "updated_at": "1790610474"
+                  },
+                  {
+                    "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+                    "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"zeta\"}},\"epoch\":0}",
+                    "updated_at": "1790610474"
+                  }
+                ]
+              },
+              {
+                "table": "turn_acceptances",
+                "rows": []
+              }
+            ],
+            "client_persistence": [],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-9",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "alpha"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "alpha"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-9",
+            "observations": [
+              {
+                "table": "sessions",
+                "rows": [
+                  {
+                    "id": "vis09-presentation",
+                    "created_at": "1790610417",
+                    "parent_id": null,
+                    "agent": null,
+                    "model": null,
+                    "title": "VIS09 Presentation",
+                    "updated_at": "1790610419.064"
+                  }
+                ]
+              },
+              {
+                "table": "messages",
+                "rows": []
+              },
+              {
+                "table": "turns",
+                "rows": []
+              },
+              {
+                "table": "prefs",
+                "rows": [
+                  {
+                    "key": "tui.session_location.vis09-presentation",
+                    "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\"]",
+                    "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+                    "value": "\"alpha\"",
+                    "updated_at": "1790610479"
+                  },
+                  {
+                    "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+                    "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"alpha\"}},\"epoch\":0}",
+                    "updated_at": "1790610479"
+                  }
+                ]
+              },
+              {
+                "table": "turn_acceptances",
+                "rows": []
+              }
+            ],
+            "client_persistence": [],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-10",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": null
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": null
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-10",
+            "observations": [
+              {
+                "table": "sessions",
+                "rows": [
+                  {
+                    "id": "vis09-presentation",
+                    "created_at": "1790610417",
+                    "parent_id": null,
+                    "agent": null,
+                    "model": null,
+                    "title": "VIS09 Presentation",
+                    "updated_at": "1790610419.064"
+                  }
+                ]
+              },
+              {
+                "table": "messages",
+                "rows": []
+              },
+              {
+                "table": "turns",
+                "rows": []
+              },
+              {
+                "table": "prefs",
+                "rows": [
+                  {
+                    "key": "tui.session_location.vis09-presentation",
+                    "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\"]",
+                    "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+                    "value": "null",
+                    "updated_at": "1790610485"
+                  },
+                  {
+                    "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+                    "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":null}},\"epoch\":0}",
+                    "updated_at": "1790610485"
+                  }
+                ]
+              },
+              {
+                "table": "turn_acceptances",
+                "rows": []
+              }
+            ],
+            "client_persistence": [],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "picker-alias",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "fast"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "fast"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "picker-alias",
+            "observations": [
+              {
+                "table": "sessions",
+                "rows": [
+                  {
+                    "id": "vis09-presentation",
+                    "created_at": "1790610417",
+                    "parent_id": null,
+                    "agent": null,
+                    "model": null,
+                    "title": "VIS09 Presentation",
+                    "updated_at": "1790610419.064"
+                  }
+                ]
+              },
+              {
+                "table": "messages",
+                "rows": []
+              },
+              {
+                "table": "turns",
+                "rows": []
+              },
+              {
+                "table": "prefs",
+                "rows": [
+                  {
+                    "key": "tui.session_location.vis09-presentation",
+                    "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\"]",
+                    "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+                    "value": "\"fast\"",
+                    "updated_at": "1790610496"
+                  },
+                  {
+                    "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+                    "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"fast\"}},\"epoch\":0}",
+                    "updated_at": "1790610496"
+                  }
+                ]
+              },
+              {
+                "table": "turn_acceptances",
+                "rows": []
+              }
+            ],
+            "client_persistence": [],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "picker-default",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": null
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": null
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "picker-default",
+            "observations": [
+              {
+                "table": "sessions",
+                "rows": [
+                  {
+                    "id": "vis09-presentation",
+                    "created_at": "1790610417",
+                    "parent_id": null,
+                    "agent": null,
+                    "model": null,
+                    "title": "VIS09 Presentation",
+                    "updated_at": "1790610419.064"
+                  }
+                ]
+              },
+              {
+                "table": "messages",
+                "rows": []
+              },
+              {
+                "table": "turns",
+                "rows": []
+              },
+              {
+                "table": "prefs",
+                "rows": [
+                  {
+                    "key": "tui.session_location.vis09-presentation",
+                    "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\"]",
+                    "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+                    "value": "null",
+                    "updated_at": "1790610501"
+                  },
+                  {
+                    "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+                    "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":null}},\"epoch\":0}",
+                    "updated_at": "1790610501"
+                  }
+                ]
+              },
+              {
+                "table": "turn_acceptances",
+                "rows": []
+              }
+            ],
+            "client_persistence": [],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "model-selected",
+          "expected": {
+            "id": "vis09-model-15",
+            "variant": null
+          },
+          "observed": [
+            {
+              "id": "vis09-model-15",
+              "variant": null
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "model-selected",
+            "observations": [
+              {
+                "table": "sessions",
+                "rows": [
+                  {
+                    "id": "vis09-presentation",
+                    "created_at": "1790610417",
+                    "parent_id": null,
+                    "agent": null,
+                    "model": null,
+                    "title": "VIS09 Presentation",
+                    "updated_at": "1790610419.064"
+                  }
+                ]
+              },
+              {
+                "table": "messages",
+                "rows": []
+              },
+              {
+                "table": "turns",
+                "rows": []
+              },
+              {
+                "table": "prefs",
+                "rows": [
+                  {
+                    "key": "tui.session_location.vis09-presentation",
+                    "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\"]",
+                    "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+                    "value": "null",
+                    "updated_at": "1790610501"
+                  },
+                  {
+                    "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+                    "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-15\",\"variant\":null}},\"epoch\":0}",
+                    "updated_at": "1790610512"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-15\"]",
+                    "value": "null",
+                    "updated_at": "1790610512"
+                  }
+                ]
+              },
+              {
+                "table": "turn_acceptances",
+                "rows": []
+              }
+            ],
+            "client_persistence": [],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "final-selection",
+          "expected": {
+            "id": "vis09-model-15",
+            "variant": "fast"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-15",
+              "variant": "fast"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "final-selection",
+            "observations": [
+              {
+                "table": "sessions",
+                "rows": [
+                  {
+                    "id": "vis09-presentation",
+                    "created_at": "1790610417",
+                    "parent_id": null,
+                    "agent": null,
+                    "model": null,
+                    "title": "VIS09 Presentation",
+                    "updated_at": "1790610419.064"
+                  }
+                ]
+              },
+              {
+                "table": "messages",
+                "rows": []
+              },
+              {
+                "table": "turns",
+                "rows": []
+              },
+              {
+                "table": "prefs",
+                "rows": [
+                  {
+                    "key": "tui.session_location.vis09-presentation",
+                    "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\"]",
+                    "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+                    "value": "null",
+                    "updated_at": "1790610501"
+                  },
+                  {
+                    "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+                    "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-15\",\"variant\":\"fast\"}},\"epoch\":0}",
+                    "updated_at": "1790610520"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-15\"]",
+                    "value": "\"fast\"",
+                    "updated_at": "1790610520"
+                  }
+                ]
+              },
+              {
+                "table": "turn_acceptances",
+                "rows": []
+              }
+            ],
+            "client_persistence": [],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "wire",
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "wire-owner",
+            "observations": [
+              {
+                "table": "sessions",
+                "rows": [
+                  {
+                    "id": "vis09-presentation",
+                    "created_at": "1790610417",
+                    "parent_id": null,
+                    "agent": null,
+                    "model": null,
+                    "title": "VIS09 Presentation",
+                    "updated_at": "1790610522.091"
+                  }
+                ]
+              },
+              {
+                "table": "messages",
+                "rows": [
+                  {
+                    "id": "m0001",
+                    "session_id": "vis09-presentation",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "VIS09 retained draft"
+                  },
+                  {
+                    "id": "m0002",
+                    "session_id": "vis09-presentation",
+                    "seq": 2,
+                    "role": "assistant",
+                    "text": "VIS09-WIRE: exact selected model and alias effort accepted."
+                  }
+                ]
+              },
+              {
+                "table": "turns",
+                "rows": [
+                  {
+                    "id": "tvis09-presentation-1790610521992-2673993-0",
+                    "session_id": "vis09-presentation",
+                    "status": "completed",
+                    "prompt": "VIS09 retained draft",
+                    "result": "{\"display\":{\"model_label\":\"VIS09 Model 15\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":107,\"streamed_ms\":75,\"usage\":[100,12],\"context_usage\":[100,12]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"tvis09-presentation-1790610521992-2673993-0\",\"model\":\"vis09-model-15\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[100,12],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS09 retained draft\"}]},{\"id\":\"msg_vis09_wire\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS09-WIRE: exact selected model and alias effort accepted.\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+                  }
+                ]
+              },
+              {
+                "table": "prefs",
+                "rows": [
+                  {
+                    "key": "tui.session_location.vis09-presentation",
+                    "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\"]",
+                    "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+                    "updated_at": "1790610417"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+                    "value": "null",
+                    "updated_at": "1790610501"
+                  },
+                  {
+                    "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+                    "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-15\",\"variant\":\"fast\"}},\"epoch\":0}",
+                    "updated_at": "1790610520"
+                  },
+                  {
+                    "key": "tui.selection.variant:[\"fixture\",\"vis09-model-15\"]",
+                    "value": "\"fast\"",
+                    "updated_at": "1790610520"
+                  },
+                  {
+                    "key": "dcp.nudge.vis09-presentation\u0000fixture\u0000vis09-model-15",
+                    "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+                    "updated_at": "1790610522"
+                  }
+                ]
+              },
+              {
+                "table": "turn_acceptances",
+                "rows": [
+                  {
+                    "turn_id": "tvis09-presentation-1790610521992-2673993-0",
+                    "session_id": "vis09-presentation",
+                    "user_message": "m0001",
+                    "model_ref": "{\"provider\":\"fixture\",\"id\":\"vis09-model-15\",\"variant\":\"fast\"}"
+                  }
+                ]
+              }
+            ],
+            "client_persistence": [],
+            "requests": 1,
+            "readonly_sqlite": true,
+            "project_files": []
+          },
+          "request": {
+            "kind": "provider",
+            "path": "/v1/responses",
+            "request": {
+              "model": "vis09-model-15",
+              "store": false,
+              "stream": true,
+              "input": [
+                {
+                  "type": "message",
+                  "role": "user",
+                  "content": [
+                    {
+                      "type": "input_text",
+                      "text": "VIS09 retained draft"
+                    }
+                  ]
+                }
+              ],
+              "include": [
+                "reasoning.encrypted_content"
+              ],
+              "max_output_tokens": 2048,
+              "tools": [
+                {
+                  "type": "function",
+                  "name": "read",
+                  "description": "Read a project file slice. `path` is relative to the project root; `offset` is the 1-based first line, `limit` caps lines (default 50).",
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string"
+                      },
+                      "offset": {
+                        "type": "integer"
+                      },
+                      "limit": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "path"
+                    ]
+                  }
+                },
+                {
+                  "type": "function",
+                  "name": "glob",
+                  "description": "List project paths matching a bounded glob. Results are sorted and paginated.",
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "pattern": {
+                        "type": "string"
+                      },
+                      "offset": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000
+                      }
+                    },
+                    "required": [
+                      "pattern"
+                    ]
+                  }
+                },
+                {
+                  "type": "function",
+                  "name": "grep",
+                  "description": "Search project text with a bounded literal pattern. Results are sorted and paginated; regex mode is unsupported.",
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "pattern": {
+                        "type": "string"
+                      },
+                      "literal": {
+                        "type": "boolean"
+                      },
+                      "offset": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000
+                      }
+                    },
+                    "required": [
+                      "pattern"
+                    ]
+                  }
+                },
+                {
+                  "type": "function",
+                  "name": "apply_patch",
+                  "description": "Apply a patch to project files. `patchText` must start with `*** Begin Patch` and end with `*** End Patch`. For `*** Add File: <relative path>`, prefix every content line with `+`; no content lines creates an empty file. Update hunks use `*** Update File: <relative path>`, optionally immediately followed by `*** Move to: <relative path>`, then `@@` and lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Delete uses `*** Delete File: <relative path>`. Paths stay inside the project root.",
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "patchText": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "patchText"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                {
+                  "type": "function",
+                  "name": "bash",
+                  "description": "Run a supervised command. `argv` is the exact executable plus args (no shell); omit `cwd` to run in the project root — any `cwd` must stay inside the project root. `timeout_ms` caps the run (default 30000).",
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "argv": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "cwd": {
+                        "type": "string"
+                      },
+                      "timeout_ms": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "argv"
+                    ]
+                  }
+                },
+                {
+                  "type": "function",
+                  "name": "webfetch",
+                  "description": "Fetch a URL as text",
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "url"
+                    ]
+                  }
+                },
+                {
+                  "type": "function",
+                  "name": "skill",
+                  "description": "Invoke a pinned skill",
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ]
+                  }
+                }
+              ],
+              "reasoning": {
+                "effort": "low"
+              }
+            },
+            "valid": true
+          }
+        }
+      ],
+      "requests": 1
+    },
+    {
+      "name": "upstream-120x40",
+      "status": "PASS_ACTIONS_CAPTURE",
+      "checks": [
+        {
+          "label": "cycle-0",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "none"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "none",
+              "recent": []
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-0",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "c407670a80e6925d036e84f3b7a856599ef399d4",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "tidy-river",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790610417000,
+                    "time_updated": 1790610524918,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/model.json",
+                "data": {
+                  "recent": [],
+                  "favorite": [],
+                  "variant": {
+                    "fixture/vis09-model-03": "none"
+                  }
+                }
+              },
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-1",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "minimal"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "minimal",
+              "recent": []
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-1",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "c407670a80e6925d036e84f3b7a856599ef399d4",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "tidy-river",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790610417000,
+                    "time_updated": 1790610524918,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/model.json",
+                "data": {
+                  "recent": [],
+                  "favorite": [],
+                  "variant": {
+                    "fixture/vis09-model-03": "minimal"
+                  }
+                }
+              },
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-2",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "fast"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "fast",
+              "recent": []
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-2",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "c407670a80e6925d036e84f3b7a856599ef399d4",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "tidy-river",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790610417000,
+                    "time_updated": 1790610524918,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/model.json",
+                "data": {
+                  "recent": [],
+                  "favorite": [],
+                  "variant": {
+                    "fixture/vis09-model-03": "fast"
+                  }
+                }
+              },
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-3",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "low"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "low",
+              "recent": []
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-3",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "c407670a80e6925d036e84f3b7a856599ef399d4",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "tidy-river",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790610417000,
+                    "time_updated": 1790610524918,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/model.json",
+                "data": {
+                  "recent": [],
+                  "favorite": [],
+                  "variant": {
+                    "fixture/vis09-model-03": "low"
+                  }
+                }
+              },
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-4",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "medium"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "medium",
+              "recent": []
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-4",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "c407670a80e6925d036e84f3b7a856599ef399d4",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "tidy-river",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790610417000,
+                    "time_updated": 1790610524918,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/model.json",
+                "data": {
+                  "recent": [],
+                  "favorite": [],
+                  "variant": {
+                    "fixture/vis09-model-03": "medium"
+                  }
+                }
+              },
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-5",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "high"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "high",
+              "recent": []
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-5",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "c407670a80e6925d036e84f3b7a856599ef399d4",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "tidy-river",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790610417000,
+                    "time_updated": 1790610524918,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/model.json",
+                "data": {
+                  "recent": [],
+                  "favorite": [],
+                  "variant": {
+                    "fixture/vis09-model-03": "high"
+                  }
+                }
+              },
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-6",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "xhigh"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "xhigh",
+              "recent": []
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-6",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "c407670a80e6925d036e84f3b7a856599ef399d4",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "tidy-river",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790610417000,
+                    "time_updated": 1790610524918,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/model.json",
+                "data": {
+                  "recent": [],
+                  "favorite": [],
+                  "variant": {
+                    "fixture/vis09-model-03": "xhigh"
+                  }
+                }
+              },
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-7",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "max"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "max",
+              "recent": []
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-7",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "c407670a80e6925d036e84f3b7a856599ef399d4",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "tidy-river",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790610417000,
+                    "time_updated": 1790610524918,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/model.json",
+                "data": {
+                  "recent": [],
+                  "favorite": [],
+                  "variant": {
+                    "fixture/vis09-model-03": "max"
+                  }
+                }
+              },
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-8",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "zeta"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "zeta",
+              "recent": []
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-8",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "c407670a80e6925d036e84f3b7a856599ef399d4",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "tidy-river",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790610417000,
+                    "time_updated": 1790610524918,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/model.json",
+                "data": {
+                  "recent": [],
+                  "favorite": [],
+                  "variant": {
+                    "fixture/vis09-model-03": "zeta"
+                  }
+                }
+              },
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-9",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "alpha"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "alpha",
+              "recent": []
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-9",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "c407670a80e6925d036e84f3b7a856599ef399d4",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "tidy-river",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790610417000,
+                    "time_updated": 1790610524918,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/model.json",
+                "data": {
+                  "recent": [],
+                  "favorite": [],
+                  "variant": {
+                    "fixture/vis09-model-03": "alpha"
+                  }
+                }
+              },
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-10",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": null
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": null,
+              "recent": []
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-10",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "c407670a80e6925d036e84f3b7a856599ef399d4",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "tidy-river",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790610417000,
+                    "time_updated": 1790610524918,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/model.json",
+                "data": {
+                  "recent": [],
+                  "favorite": [],
+                  "variant": {
+                    "fixture/vis09-model-03": "default"
+                  }
+                }
+              },
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "picker-alias",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "fast"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": "fast",
+              "recent": []
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "picker-alias",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "c407670a80e6925d036e84f3b7a856599ef399d4",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "tidy-river",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790610417000,
+                    "time_updated": 1790610524918,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/model.json",
+                "data": {
+                  "recent": [],
+                  "favorite": [],
+                  "variant": {
+                    "fixture/vis09-model-03": "fast"
+                  }
+                }
+              },
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "picker-default",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": null
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": null,
+              "recent": []
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "picker-default",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "c407670a80e6925d036e84f3b7a856599ef399d4",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "tidy-river",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790610417000,
+                    "time_updated": 1790610524918,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/model.json",
+                "data": {
+                  "recent": [],
+                  "favorite": [],
+                  "variant": {
+                    "fixture/vis09-model-03": "default"
+                  }
+                }
+              },
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "model-selected",
+          "expected": {
+            "id": "vis09-model-15",
+            "variant": null
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": null,
+              "recent": [
+                {
+                  "providerID": "fixture",
+                  "modelID": "vis09-model-15"
+                }
+              ]
+            },
+            {
+              "id": "vis09-model-15",
+              "variant": null,
+              "recent": [
+                {
+                  "providerID": "fixture",
+                  "modelID": "vis09-model-15"
+                }
+              ]
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "model-selected",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "c407670a80e6925d036e84f3b7a856599ef399d4",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "tidy-river",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790610417000,
+                    "time_updated": 1790610524918,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/model.json",
+                "data": {
+                  "recent": [
+                    {
+                      "providerID": "fixture",
+                      "modelID": "vis09-model-15"
+                    }
+                  ],
+                  "favorite": [],
+                  "variant": {
+                    "fixture/vis09-model-03": "default",
+                    "fixture/vis09-model-15": "default"
+                  }
+                }
+              },
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "final-selection",
+          "expected": {
+            "id": "vis09-model-15",
+            "variant": "fast"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "variant": null,
+              "recent": [
+                {
+                  "providerID": "fixture",
+                  "modelID": "vis09-model-15"
+                }
+              ]
+            },
+            {
+              "id": "vis09-model-15",
+              "variant": "fast",
+              "recent": [
+                {
+                  "providerID": "fixture",
+                  "modelID": "vis09-model-15"
+                }
+              ]
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "final-selection",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "c407670a80e6925d036e84f3b7a856599ef399d4",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "tidy-river",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790610417000,
+                    "time_updated": 1790610524918,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/model.json",
+                "data": {
+                  "recent": [
+                    {
+                      "providerID": "fixture",
+                      "modelID": "vis09-model-15"
+                    }
+                  ],
+                  "favorite": [],
+                  "variant": {
+                    "fixture/vis09-model-03": "default",
+                    "fixture/vis09-model-15": "fast"
+                  }
+                }
+              },
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-04/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        }
+      ],
+      "requests": 0
+    }
+  ],
+  "captures": [
+    {
+      "name": "oc-120x40",
+      "label": "normal-default",
+      "files": {
+        "cells.json": "f56ed250ab71847d535a24bc4bac4295ee81dae32281bb1841f6e13df2078d7e",
+        "png": "9c00827c7fbee20e3e41dd0d124c946e9d2546cec0a9731006a2b713ff65d197",
+        "vt": "70fc702c0ab510c67133d722d1ff3427a4db501cf62b525b6aa665958a202d24",
+        "txt": "516d56f6c127e8506e3862bcd2667282a0c432b8b562b1549f963a0264315d2a",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "variant-initial",
+      "files": {
+        "cells.json": "617dac64cf7ad72a8d4a227674ae46878ed4d10b060ddeaf93186605d4d302fc",
+        "png": "513747cdafc0dc712186f0628f19088b7a3ef856f44324a60ca4799b81ada5cc",
+        "vt": "42cbc6b05a743378b014a47922e81703c5a6c2bbf8e3a221662901bb08a0f8dd",
+        "txt": "63b4239806259fc41de22584d58992120c77e61fca849538186172a47cfb2e68",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-0",
+      "files": {
+        "cells.json": "d7853e86023b8be1cf7abc44af641c513a6ef07084e263d3c480a7a9c1199ad8",
+        "png": "ddea6fa780e6a898c1a395a7af72a7d941f1a263486a2be38ceabf9330c8b29d",
+        "vt": "0a8b1cd90c98ad7bb918c345bd827507f69747440c5ef8e522cd501048d3085c",
+        "txt": "8f77572d3f21e4b21001064348d0c263f3250bdcb39811507436a691f5ced403",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-picker-0",
+      "files": {
+        "cells.json": "42e1e31c7ac178393ab4b382476a699fe900e4b165bffcafc23323caab1a5e6e",
+        "png": "7fbb2758f12ee34b942430db6a003855966f14777d24edb9842d3ebe62ba9295",
+        "vt": "ec8e5a4db97c947174822a028485ff279c82afab37082fe8a9a587d608945987",
+        "txt": "1ea464435729a223934ce990081289f43c4f155bc45922688f7737d3f22c8094",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-1",
+      "files": {
+        "cells.json": "95ab43c7c27ac7ad4fbf0968c2a481c9fbf0c78d14f814635da975c3aa2f6a9d",
+        "png": "5614f990979aea445e379f12ed0693b7d9b320679c3551131e524ebe301978d6",
+        "vt": "41b131f7bc3a7ea461aab3fe3d5de441f76c226a51b502ad24a68e028e225c5f",
+        "txt": "6b0130cf2195efe24e21ec38b1298931f0521c68f1547d52ea3d95ce6205bb35",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-picker-1",
+      "files": {
+        "cells.json": "a4cf27732c0b0fb59f51b1104fa9863e00099c211bf207ae6da428cd5be29c32",
+        "png": "ed71f8bc4d7ce32e8e92b0216c7c0082e9232fc055e4548c52ea15dc0ff5f332",
+        "vt": "2d83b094fa515a0868102331ce9471378b79fe3407c4a20ada1e664cd654cd23",
+        "txt": "20473062eceb780bc0c3d95662da7baf69a3bb893d78becd4390b78801fc9d3a",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-2",
+      "files": {
+        "cells.json": "cb8d1843596d41945e7ba1f4d924d5fa5ea933b0dac342ac0d0d4c95628d0b2d",
+        "png": "a4870968c6b4cbaebb980f68b05a93581aa1e084ee558d0a4a7f0112a9364718",
+        "vt": "7b1cb62ee96c52c33fe50795acdb7feb2582c2974914890d1479fa987b5cc4da",
+        "txt": "a77457ec041a7a037b35ee09a3c00afcc0edb59d3b3b36337ac2ff61bca7ed55",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-picker-2",
+      "files": {
+        "cells.json": "116bf4f539e36cf253746c2ff21a1cd6a44f1d400fd93e029e961f6afd16ac25",
+        "png": "6abcaf93410259696b5756b7b5ed43556dad52dafc0de015911da543d90d970d",
+        "vt": "6312d050a6e2d3bf73e456a9a7ec717ce81df4d84b019afa2f53ea0d28161550",
+        "txt": "5599f7a50ebb635c33e71e5e17a6acbe8797e299e25c4d7dccc09a3225498ede",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-3",
+      "files": {
+        "cells.json": "c3a33f906843cab4a57bc51236c7e36737ebcd224ccbd563f21fd1ab47719886",
+        "png": "1f306a64b1925f47c025d3b2ec1fd5caaa026d1fcaaafc19f77bd32e3d80713b",
+        "vt": "842001600c94af43182bec8b3d7dcf687bb1952df00e7e4a153c01876ffdbb35",
+        "txt": "ce8d2d00bd8d185478e81d7311a833bd9f9a981cc8143bbe70146e0e85fd17cb",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-picker-3",
+      "files": {
+        "cells.json": "dc08af5b6d7b8c4e275b813f2b55ce0a580def6ec81a46e2fc8591be7ad8ea54",
+        "png": "7c9b757b0a9d2d4285625bd161c72dc10ed35d18dff7072ec55eab8c51a53c55",
+        "vt": "1126c65594bd16ac8934bdd7df545458f0774b5c3ab6e05d3ec6ccb9ba7c31a3",
+        "txt": "5cebf5a21eaad6db989b5c56d18b8bc5868677314be692b8fda25436732c08dd",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-4",
+      "files": {
+        "cells.json": "97e673dd4943af9c7381616173701a921ec8d744349bea27ff219794ac7a8449",
+        "png": "9ed65b46dafa0c72046915787da13bde39818f2bbe468589cb02df1f61dc5c55",
+        "vt": "0fe8d26a09e16790229284949246f696eaba450b5e4329c02d1da0e7bf419214",
+        "txt": "2062c61937fa5455a953ded9c0b89460be055044dfaf51f208826e4349b34532",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-picker-4",
+      "files": {
+        "cells.json": "966f8de09e33537851bcd68e234a19059d3d03f565b33589fa871bbf1016f297",
+        "png": "1cddf92380ad089e7041569265a737e762c45aa0d550198e3cf52988dc19e0fb",
+        "vt": "134d2dc0d4cbdd3d0394e162d3c6df85e8ab035ea02cf22fca6f8679e887b1a8",
+        "txt": "4b63b48e36c89b919b1e07e20bc07cb0f32f09c3755247df55f3ed9d8fb55f66",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-5",
+      "files": {
+        "cells.json": "1b3be98d8cd6abd91dff823cfb3873f6b4f35eb42eecdf3a416448c8c93ff9fb",
+        "png": "9f829904beec3515ab1c84693fb30f37c862ced1ba2b018caa3fb8303fd88879",
+        "vt": "077762759bdaa98d7841addf117dc4720a8c56b000adaca711171a7759af9773",
+        "txt": "901946017656303b6dbb1d3388bc7ae6236110e3338f3d7cb926eadfd327a1fe",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-picker-5",
+      "files": {
+        "cells.json": "bbd407adfee5a2b37d25591c2de1ba89f5682517302c80fe9ead7969805a4581",
+        "png": "6488330e56c9502f035dcfb6e495658fd5f03f1fb1b0189071ef02de66337b38",
+        "vt": "fa6a2825d154a083ab1c839f6f7ab9d2cb56948fb851eeca1514bf2602042c90",
+        "txt": "b12f59860e54a6ac6ddfcc29f809271bafb7b6cc438ca14f4c18b618fb527738",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-6",
+      "files": {
+        "cells.json": "c2d90bd9120e1d712c2e1093d41e15602fb5218ebe4cb33e2297ff276900fdb5",
+        "png": "fdfc0322fc263d1dee6d36e99660ad51f1111af03226becd2834d701c0f20802",
+        "vt": "60ac3ea84aca6ef9ea4dd2545896377877393cd270e7a9326728221a6efdc8ea",
+        "txt": "78eb6b07e5b77b47ceb7e0802f6ee817c8fbc1695c8b3be11b05583988fdd0a1",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-picker-6",
+      "files": {
+        "cells.json": "13d03be9a5cf69151e11b64fc20b62ca271e485934095389cd36bac41660cd38",
+        "png": "1d27c15cd3fd18bb22d2ac55b252ffb8dc645416aec7e30afcb33ebca9b43054",
+        "vt": "d841661add0272697c1bace078e38999f221cffacbbb7d3f51ee5b0ef26b21d9",
+        "txt": "f28608d5b9cb49bcc75c2814fd7cab854cc381cea1c0adf630e1bbc1360d61d2",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-7",
+      "files": {
+        "cells.json": "a7591f0b063c28d446e6a7437499d79ed52d587c28d2091d82951dff4d5ff7b1",
+        "png": "89416ba2bc190f270964fcc027fe67d17aa77171ca0d4096193f8fdb84f8ccad",
+        "vt": "c70c46d94d6183027a082d7a10ffea6d63030f6953cb6bd3e2a731e021af5227",
+        "txt": "59c1969a0bf001907a4a2e42a420ea2920f93b3c53ae7d142146915d59966c82",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-picker-7",
+      "files": {
+        "cells.json": "b6fb4d6adf9019c40326a08897cda87c13c257f1ab0b6366347f1e647ecdb076",
+        "png": "20421854e66fafc601b25a88163e7b524c5b417436675d42963e92f6a883c177",
+        "vt": "44b20d354c3577ffa58811df271a89707213e2ee8e7c163ebb84a292edf6c8d7",
+        "txt": "90e8b5e19a13eedf58783a446c133414ac84d1235d9f9142d1318b86be12002a",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-8",
+      "files": {
+        "cells.json": "847c78d9bb92d4414ffd86d3512e752bb7c09b698686d77b791a2c9d39429bf5",
+        "png": "2f2ee957f2f8ce7108e0be3a24c2ad4f03a2104fe5d83a56d88f05e0a739e8d2",
+        "vt": "89975b8882358b850bdd1946bca3136d0a9d4049001fb6e03a2fd2d399aae004",
+        "txt": "7c82393caa521fac10166e92c73dc1ce9314a6fe5f3751bff285c7afd0f21b13",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-picker-8",
+      "files": {
+        "cells.json": "cb207eda665349a4be629262e250b81b679005f604bfe1ef21f3b556bf640443",
+        "png": "3dd68bbc50933243880ce88a96d7fb428d5b344b4a2c92fb14adb1170ac9f15e",
+        "vt": "0b01a127a27ec82956aa75791160fc4a6613158872022c03501158d9c7d4f62f",
+        "txt": "fefff18c35ff91b8ad4e6be8f39a6cc92865eebd5d3fe118baad4e14406e1be5",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-9",
+      "files": {
+        "cells.json": "054db80737f53fb13be429f8337258342458e4d1e08d4e7bcbef3cc566572aff",
+        "png": "db4f872e40433130331e850b0bcd7c551582cf7fb28e352e322d5ab1e4d6d2d3",
+        "vt": "05c256e00baf2c436b3e55b130e5ce10337d634dd2fe9b261692e652ff9560dd",
+        "txt": "3503fcb35ea396e8cbebab5eda26a568fee4161bedf0c0ceba875b85e6becbd7",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-picker-9",
+      "files": {
+        "cells.json": "3ccf8dabe470bf5c059486c08ff335bbe161d8994f7d21b939159dd8379144d3",
+        "png": "6638a14215dcd2fb9acc2f65936ab9b4ec1010802d0aa9fe276582e1f011b3c3",
+        "vt": "399f1c73fbb78f7fc9b023219ca10f65b21951fdbdf03ab2e2237c4e24487c4f",
+        "txt": "9179c7f058d62c5b170719256e7223d4e56878e2ad021946e8488722520fa9d8",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-10",
+      "files": {
+        "cells.json": "b4f63f85fbf5b4d675247c6da46c2c4f02cb82bbbc890b767526a4ce0142f0fb",
+        "png": "9c00827c7fbee20e3e41dd0d124c946e9d2546cec0a9731006a2b713ff65d197",
+        "vt": "ea0dccc38febd81aca33dad61c44e1054f8ef02db133f6d951f53cf146a45045",
+        "txt": "516d56f6c127e8506e3862bcd2667282a0c432b8b562b1549f963a0264315d2a",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "cycle-picker-10",
+      "files": {
+        "cells.json": "f1f50bc1e2cb95c2192e04f9534bc9da0e2c2c15f0f9ad5d1e21bf69c1bfdb8f",
+        "png": "513747cdafc0dc712186f0628f19088b7a3ef856f44324a60ca4799b81ada5cc",
+        "vt": "420868546785e2aa73b173784e2b746d6869f620ac418dbe2d7982b897f0bc76",
+        "txt": "63b4239806259fc41de22584d58992120c77e61fca849538186172a47cfb2e68",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "variant-filtered",
+      "files": {
+        "cells.json": "ab332ab86688c34915e1677c9ee33783b873c2af84c12f5849f7bdb431ddbdd5",
+        "png": "cbe946b5d82e7c2d4a067dbce9ea50cf9b5d8fd5988c39c05b64495205ad4edd",
+        "vt": "ca0aabebf4f0a01809a517ff2b9a2347adff6e23b675cb091bce4a32d904cec3",
+        "txt": "f153b6e0bf83670926be4d2bd6d5154e027ac960e6a90a0601db638835f2a99d",
+        "render.json": "0b5486f846b4b63d04a844a3acbe9b290ab59f099c69938bc32cfd312320ad8c"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "variant-selected",
+      "files": {
+        "cells.json": "bbda3bbab2e7178b23fcb5c9294b1b451cec36dc2be375cf5c45b0bc15e21eb9",
+        "png": "a4870968c6b4cbaebb980f68b05a93581aa1e084ee558d0a4a7f0112a9364718",
+        "vt": "8b4ac340b31cf989d3384b628ad045b3f9ed8a828c52d2a4c2d49fb3188fb6bf",
+        "txt": "a77457ec041a7a037b35ee09a3c00afcc0edb59d3b3b36337ac2ff61bca7ed55",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "variant-reopened",
+      "files": {
+        "cells.json": "0cfc88992a941d73fd4a2787bd9ac878e828d5d251ce9391d63870fd2c287678",
+        "png": "6abcaf93410259696b5756b7b5ed43556dad52dafc0de015911da543d90d970d",
+        "vt": "6974e9857dbb9f10042cc870193d4ff0551ff2581c763251bdc377bd956d0742",
+        "txt": "5599f7a50ebb635c33e71e5e17a6acbe8797e299e25c4d7dccc09a3225498ede",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "model-initial",
+      "files": {
+        "cells.json": "9e7638403201950b97c1d6443e846a4788febbf4bef19da35d167a924bc73268",
+        "png": "77b08726012b6702167eba8d7d7b9a5c82b6c23a58002e94dc4453938a0ab911",
+        "vt": "16de6548e3a3ad9a5e1e681817230a988872c08eba8f9cbd80bc96de925f786b",
+        "txt": "bdbf23b3c6abef841babac30b23881e2affb12db7261a87efdda89e5b388ea4e",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "model-scrolled",
+      "files": {
+        "cells.json": "9a04dbef16bd72f889179be3e2c0f9bfb091e36feca781955071a4883be0a69f",
+        "png": "cd7ec2dac5d1746b6eae0e28f909e8146975fab771b74b7fd825e164a83cd14a",
+        "vt": "28f1f1dda3ffaba6e546f6bcfe7245e72d495dcd5e7eb3159adc9e235bc7c8de",
+        "txt": "7f1280b8848cbb31f0b5629239c57f1968eebb3b70dc1758bc27bdfbfbb06042",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "model-no-match",
+      "files": {
+        "cells.json": "f1035ef2260c96b5290aae144c05081ab907c96ce542d356343d0679ae8f2e61",
+        "png": "bb113ac9d01e01b2b16c3ab84bc40e682949f54d2b826471f7c29a3b7ed81d6a",
+        "vt": "ca64484480a96e311016fc0ddc1a31f5c3e38c8f3c39c8d5e15ae36c61598ccd",
+        "txt": "9fe98f804f0b57210392ec8bc0a9b6e2addbd76b5dad72e94987641b11b74692",
+        "render.json": "3c20ea07366c4dcf8efd1a4342766e1c7fcea63a631db2cd06d29baf38bc7abc"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "model-filtered",
+      "files": {
+        "cells.json": "8f9c5ea7d7b8decb2de1c3e8c37a5398b72e31816b75a1056a161751552560e9",
+        "png": "3c1800499ca2d2b18b0a8d49226e0fc7e451238a3e35f54973d928b2df856925",
+        "vt": "1cb8000728f98bbdcce3c8cc8475e2ef2ef32473b819b48fe378b9b57bcb9c42",
+        "txt": "92b13610919f4445953eec1e859e78a389f78d2ce56c246ec743f4577621e0d1",
+        "render.json": "e4c742906f1ac51747c65203c9d117b288762a7fa9fe0bf3078cae7478020eff"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "model-selected-variant",
+      "files": {
+        "cells.json": "0a6487cb3d39d7bdf2971be9a7cedebba30771a1b7ed11d2e7182bae57d0f825",
+        "png": "8098f23f40e786b8bf082634ba8c5763aee50f1072a9d0dd754ce32a1bc672d0",
+        "vt": "f78ce5ce0bfe828d3cc497ca9d37894bce87f46626e393e865b34ee105ecbd8b",
+        "txt": "1431671299694f6cd16729f9628b76885b00bf28f4846c5043dd2a979a3df97c",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "model-selected",
+      "files": {
+        "cells.json": "8244a86b38ed47277b0b606047349a2d5c244ad08933ef9b096048c5c7be365d",
+        "png": "342f2f64c34b8b6a258f2f59ce735dacdde07e6ab98ad5ebe3667ef37e4e9112",
+        "vt": "0ff03600ff3e5ff3392bcdc751897ff506ea1a506276d9c2300dc85cead903c0",
+        "txt": "6c028898e34d28c211d650a3c1baf363dc2ca38df9fd3b126baae67329459f89",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "model-reopened",
+      "files": {
+        "cells.json": "398c2fbbd175a2006581e1c643590b29464c28af45ea98fe402d16f9a239a83a",
+        "png": "8622856ce68abdafef41aa59a8b6a9f065bf1a119b402a78c1bd52f4b8061637",
+        "vt": "3f48c883b2206cf8fbeed5dfa8575f4996d6c4cbffb9f83101f4e6caf87326c0",
+        "txt": "74cbe0f4909cc1877f7d75a1c1764038082d9f2b57784fe6455ae8fcbe5179e1",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "draft-restored",
+      "files": {
+        "cells.json": "804aec43c8eb66920c2122f642da2b653637b77f31311d9d5e3632e473b0d1c7",
+        "png": "342f2f64c34b8b6a258f2f59ce735dacdde07e6ab98ad5ebe3667ef37e4e9112",
+        "vt": "14d0ff1b2a032d2a63e9e2c808930699a84978d834f4cf29f8972cabbe51107b",
+        "txt": "6c028898e34d28c211d650a3c1baf363dc2ca38df9fd3b126baae67329459f89",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "normal-default",
+      "files": {
+        "cells.json": "93138587bc997bf61b71823871f543723cacd19a51891910203ebb3e5062756c",
+        "png": "9c00827c7fbee20e3e41dd0d124c946e9d2546cec0a9731006a2b713ff65d197",
+        "vt": "220559936643f7ea54ff6e705f69e64e90272c08e7a5f13573e79a684cd55f89",
+        "txt": "516d56f6c127e8506e3862bcd2667282a0c432b8b562b1549f963a0264315d2a",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "variant-initial",
+      "files": {
+        "cells.json": "66161810b328780d79e534e99f39199ab74ab7f65b82090248d43a9acfb1fda1",
+        "png": "55d15359327dd7d9e6b98ae75d1c9c8ebcf7011de8d8a85c2cc530050f17abd6",
+        "vt": "a8b376cc19290e7a174f1ad204d99110a1f1c1ca99bb22d201b058af5664f015",
+        "txt": "63b4239806259fc41de22584d58992120c77e61fca849538186172a47cfb2e68",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-0",
+      "files": {
+        "cells.json": "2885f7a7e7d850e0038ddefa0b1bc1ef35c857aa550c2489d8b38120adf1491d",
+        "png": "ddea6fa780e6a898c1a395a7af72a7d941f1a263486a2be38ceabf9330c8b29d",
+        "vt": "540d907bec37dcbac6ddec525208b177b7efd6f18d28fa546648a580bfaaef90",
+        "txt": "8f77572d3f21e4b21001064348d0c263f3250bdcb39811507436a691f5ced403",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-0",
+      "files": {
+        "cells.json": "bf5cd1ff00e6713368b536c9519afb22db2002233568e816432adad05325cce9",
+        "png": "be2579ee5cf69636abf4a2cfd9303cb01cd75e6902540b086313a512bf027f4e",
+        "vt": "56f1e3e089541b5520b57af96d87808e8578d08c366f7a5367b1e751910a76ca",
+        "txt": "1ea464435729a223934ce990081289f43c4f155bc45922688f7737d3f22c8094",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-1",
+      "files": {
+        "cells.json": "32029da00aa0eba5a5cd489364e5400eaf8269fcde057ba9644fd361adb83d2b",
+        "png": "5614f990979aea445e379f12ed0693b7d9b320679c3551131e524ebe301978d6",
+        "vt": "a7e437a5329411d6f22f4ec7f98e5fcfe5f3a24c2131fff1d4248af4a60d492c",
+        "txt": "6b0130cf2195efe24e21ec38b1298931f0521c68f1547d52ea3d95ce6205bb35",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-1",
+      "files": {
+        "cells.json": "d26101736f981bd53a7c5b10a73e2dd040304076db9db74072d73e39f9487c7d",
+        "png": "f4a235e3b8c4691b2bf71cd968403bdc98545f7d36cacbc4d69bed640e864ac1",
+        "vt": "bc33037de133f4d69d6de21407e5a06902c2769248682dcd8e2c339a58a4efac",
+        "txt": "20473062eceb780bc0c3d95662da7baf69a3bb893d78becd4390b78801fc9d3a",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-2",
+      "files": {
+        "cells.json": "b0777d17e97175839044280f4bafc2dca2aea985ded9f59b79e0eddd405c8249",
+        "png": "a4870968c6b4cbaebb980f68b05a93581aa1e084ee558d0a4a7f0112a9364718",
+        "vt": "7d3fbc3d073d57f793e799f3bc1239b82bb29770127a06033da6d209235bd917",
+        "txt": "a77457ec041a7a037b35ee09a3c00afcc0edb59d3b3b36337ac2ff61bca7ed55",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-2",
+      "files": {
+        "cells.json": "c27a4c6ba6b08589c1ca67aab1276e150e36adc866832531850d07b275fb4bed",
+        "png": "90e70ed1306b67b55f790e220a1b6be08ab72601417cad8d2e585ff335815dd9",
+        "vt": "f865f97b0703b5e911ec52ee9913fcfba13fbf24b11280a1750a80e7bec2979e",
+        "txt": "5599f7a50ebb635c33e71e5e17a6acbe8797e299e25c4d7dccc09a3225498ede",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-3",
+      "files": {
+        "cells.json": "731d6223624521eaa31d6905a4b4fcdea851594fb6adc678dfb2d16e6e73db0b",
+        "png": "1f306a64b1925f47c025d3b2ec1fd5caaa026d1fcaaafc19f77bd32e3d80713b",
+        "vt": "b403a944c38ed3ec5193d7946f15731795afa944f7f6d16c5b78489ee24ef5c2",
+        "txt": "ce8d2d00bd8d185478e81d7311a833bd9f9a981cc8143bbe70146e0e85fd17cb",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-3",
+      "files": {
+        "cells.json": "ff84e38dfdfa25fc60f1acb8568edc316a11035c67b785b5d55bba29b0006fa8",
+        "png": "7865b735ca48ba42ccb0cf1f2f143fed070d69a385453e02ab79d1b8b31d6038",
+        "vt": "49001e41d612d6e94a137f2322de4f2ec3f5d92c2f06cdef149f264e90be65df",
+        "txt": "5cebf5a21eaad6db989b5c56d18b8bc5868677314be692b8fda25436732c08dd",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-4",
+      "files": {
+        "cells.json": "35e1b50f637c7549f25526ffbf208ded6e288550e9e773cad1d48e56b8139611",
+        "png": "9ed65b46dafa0c72046915787da13bde39818f2bbe468589cb02df1f61dc5c55",
+        "vt": "c566685ec34883381b7df8a2a65ddc7f28be5ecd7b01f5f97e2322fe2a90611b",
+        "txt": "2062c61937fa5455a953ded9c0b89460be055044dfaf51f208826e4349b34532",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-4",
+      "files": {
+        "cells.json": "95c7b60275b596c79eb2046763865f022e45218324a8222aa936c81daa02f788",
+        "png": "7f55ab2c45608dd1e3ba37c3f2b24ede67506b72f11a597faa0b2c15e736c38f",
+        "vt": "24ae005a2104e411624a3dd67a6e260276dcbdb9a2e593e8dcf69f9303392348",
+        "txt": "4b63b48e36c89b919b1e07e20bc07cb0f32f09c3755247df55f3ed9d8fb55f66",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-5",
+      "files": {
+        "cells.json": "0361f31b3e548397b17a51073ff0b1115ac16a43323a900bce90e626857fa59f",
+        "png": "9f829904beec3515ab1c84693fb30f37c862ced1ba2b018caa3fb8303fd88879",
+        "vt": "cc1d95406f11589bd1c8cb81ad169247faf7a112ffc8f447986697956ce193c3",
+        "txt": "901946017656303b6dbb1d3388bc7ae6236110e3338f3d7cb926eadfd327a1fe",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-5",
+      "files": {
+        "cells.json": "9871f908983d53d19e7c0d6994891583986c69215029a1d549fe76535fdebe19",
+        "png": "4f040f6163b41a352d0a4a7b7d2a403f92b5f1cbfd577db79334dcf1993226b5",
+        "vt": "d807a9aa35c69b2b780a0d74b9cc21030405fe36fb83583c8ce9691bef8aaf27",
+        "txt": "b12f59860e54a6ac6ddfcc29f809271bafb7b6cc438ca14f4c18b618fb527738",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-6",
+      "files": {
+        "cells.json": "8bf8c15c3f356a041010ef394ed8270298449db092901714ca333772ae0ed47c",
+        "png": "fdfc0322fc263d1dee6d36e99660ad51f1111af03226becd2834d701c0f20802",
+        "vt": "0ff426ab129b171252da7cb9ed5a557135a9c2daf1ea7634999f7502205da97a",
+        "txt": "78eb6b07e5b77b47ceb7e0802f6ee817c8fbc1695c8b3be11b05583988fdd0a1",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-6",
+      "files": {
+        "cells.json": "0eb907474e20aa776c98a86ee3ef2299dcaf1685d2dc5c07c3e37e09af8d3d1b",
+        "png": "205a9c3df1293019a7d0aacc1e5849a3a0ce767cf049bd5d808b67b9907abee8",
+        "vt": "1626bb878f227f393f2369bdbc14a4f08bb9b7573bce2da92df8bb6ad97b62bd",
+        "txt": "f28608d5b9cb49bcc75c2814fd7cab854cc381cea1c0adf630e1bbc1360d61d2",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-7",
+      "files": {
+        "cells.json": "b71c1b893231c1e8ce40a13bb61cedcb6f7cd1b672b8dc0432899990c930c333",
+        "png": "89416ba2bc190f270964fcc027fe67d17aa77171ca0d4096193f8fdb84f8ccad",
+        "vt": "7174283f3aa49c26d82d952ea1f66ffccf2d0f7430124e2d7b3325d7de6b6abb",
+        "txt": "59c1969a0bf001907a4a2e42a420ea2920f93b3c53ae7d142146915d59966c82",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-7",
+      "files": {
+        "cells.json": "3c89e3b6383f981eed6ba1cee6e0f896d9a08c83f16c9606bfde4524ef48a158",
+        "png": "955f1e45f01758a16fc016ed808e3905b1fa51cc271b24aaa323b76b420538f9",
+        "vt": "04a7b9dc601110ef3e711df76646ef6c904b2ac013ff9a9aaaef0e4f67e5c1a0",
+        "txt": "90e8b5e19a13eedf58783a446c133414ac84d1235d9f9142d1318b86be12002a",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-8",
+      "files": {
+        "cells.json": "4fdebdd6a75f8d140a4031a278cf3e1ea4900376524bb1af5b639e5562f46a7e",
+        "png": "2f2ee957f2f8ce7108e0be3a24c2ad4f03a2104fe5d83a56d88f05e0a739e8d2",
+        "vt": "950284e9684b63e2398063f21df2a889746c05580945a287311eab0430f231d5",
+        "txt": "7c82393caa521fac10166e92c73dc1ce9314a6fe5f3751bff285c7afd0f21b13",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-8",
+      "files": {
+        "cells.json": "84ed0a51db004fa49493c7f25a136b3baf479418714a86a5647dfed6ff592b5c",
+        "png": "a5e0e94fcec079920efe77153ae3aee532610aa74b23c226c7a19059c72c3ef5",
+        "vt": "a072e2f228cee92efd2e84ba2cacd272a0bf4f8e1eb31379d82bae186a6ee704",
+        "txt": "fefff18c35ff91b8ad4e6be8f39a6cc92865eebd5d3fe118baad4e14406e1be5",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-9",
+      "files": {
+        "cells.json": "94c73fe2e27a985e731d0c5bdb8985de678b53468c78788024688bb509ae0944",
+        "png": "db4f872e40433130331e850b0bcd7c551582cf7fb28e352e322d5ab1e4d6d2d3",
+        "vt": "5cf083d08bde309c7bf4cf5075fae8f9836d94d86e9613309eb7b68372ad7de9",
+        "txt": "3503fcb35ea396e8cbebab5eda26a568fee4161bedf0c0ceba875b85e6becbd7",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-9",
+      "files": {
+        "cells.json": "86b4880965b50d8e464b7bcba0778d5f918fa42237e33b58e5122a2276c42bd8",
+        "png": "275d5959eaa7a518b1340684b49db736136e42449696fddee3e62536264f7f75",
+        "vt": "1d91c7f09323b45900d99cf108ba38e1de6db20e1ae26ff022d5ab8e42976990",
+        "txt": "9179c7f058d62c5b170719256e7223d4e56878e2ad021946e8488722520fa9d8",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-10",
+      "files": {
+        "cells.json": "1c7cebbce61a585e39b9e26116d083f1ff94637e3549cf83a000f71ae45a6d17",
+        "png": "9c00827c7fbee20e3e41dd0d124c946e9d2546cec0a9731006a2b713ff65d197",
+        "vt": "c1b84ae1052d477f4e43dcf293ac2bb18faacdab559d89b3744fa3095032b7f2",
+        "txt": "516d56f6c127e8506e3862bcd2667282a0c432b8b562b1549f963a0264315d2a",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-10",
+      "files": {
+        "cells.json": "c7166f293d009886a35e50a83a7d56e9356eb6ada66cf13088f15759229bda5a",
+        "png": "55d15359327dd7d9e6b98ae75d1c9c8ebcf7011de8d8a85c2cc530050f17abd6",
+        "vt": "4cca7e6a2830074fbfe98ca1b448b8f9af93dba29c72b5150a7af3f47d405df7",
+        "txt": "63b4239806259fc41de22584d58992120c77e61fca849538186172a47cfb2e68",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "variant-filtered",
+      "files": {
+        "cells.json": "71f365ff9a4e693aa8fb1e62bbc494d966110ed0b6af528b1cb34184e1b07294",
+        "png": "be59a3154917ca2ae7b42f7fc8b99bc9a07b4005033a63fcadb4dc941dc2fa24",
+        "vt": "3a7b123736d46bc412cf83c50cff25d2a9784249742270dcdc7c23b4d46bc9d6",
+        "txt": "f153b6e0bf83670926be4d2bd6d5154e027ac960e6a90a0601db638835f2a99d",
+        "render.json": "0b5486f846b4b63d04a844a3acbe9b290ab59f099c69938bc32cfd312320ad8c"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "variant-selected",
+      "files": {
+        "cells.json": "12d81ce8cfd39b7be0faff60cdab99a67f64b7a62504a01c0ef325756adb0b64",
+        "png": "a4870968c6b4cbaebb980f68b05a93581aa1e084ee558d0a4a7f0112a9364718",
+        "vt": "b07a333c8e7f657589dc23da9d5f1b2a893be8e560ba69b203f25eb8110a9c5a",
+        "txt": "a77457ec041a7a037b35ee09a3c00afcc0edb59d3b3b36337ac2ff61bca7ed55",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "variant-reopened",
+      "files": {
+        "cells.json": "6c0cbfdb0c0b083bad83a420be0005fd88c2f234cb298527ca2b948271a64125",
+        "png": "90e70ed1306b67b55f790e220a1b6be08ab72601417cad8d2e585ff335815dd9",
+        "vt": "44a17afa449a962808713583c476901c56f203dd9fa863ca08861f9c88b20ac1",
+        "txt": "5599f7a50ebb635c33e71e5e17a6acbe8797e299e25c4d7dccc09a3225498ede",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "model-initial",
+      "files": {
+        "cells.json": "5963e56dbe8db462eb0cd60ae6f19cc88bf801f46e2ce7d2159dba361a7a7183",
+        "png": "86e36b0f1bc29f7759d8ce58c0efa0331160937adf0f360afbb01abba1c7cbce",
+        "vt": "9ac70cee843a4a388e125924a444c8ef9477aa33fc35353a57d6958c5788e30b",
+        "txt": "b028eba343824f3a6141335ead48677f585418e95bd995c1cee888be02f6085b",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "model-scrolled",
+      "files": {
+        "cells.json": "c57070f4f45d2800d59646c71895cf835acf7f2bf0106499beeb508f39e4c91a",
+        "png": "b0541ed08cd1eadeb8c098fb65e5657dff02d8c30c0db90acd5094b46da31091",
+        "vt": "d2ea6e8e397f95b4fa8c77a267a115d93f9b1515489a4cb835a342b3817d2724",
+        "txt": "a6cf2de50766686ddf9666c757dcd7a4ee172b44b03119a9ebe45b9525c0800c",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "model-no-match",
+      "files": {
+        "cells.json": "357958b8bdb5d232a344aa03d340b7471f5a5c0858a3c141be536944954bebd6",
+        "png": "3be467a63873fbd63359cb3513b2fbe6b1276356896de8737dbcbb9461cb10ad",
+        "vt": "c9d5500696b3d1640e156b5491e9e661d9635944e9016db7897eda6d2ab542b7",
+        "txt": "1fa99a9525241d1317a8312a1949c4aee9c63735975273aed73a64dc936fb6f1",
+        "render.json": "3c20ea07366c4dcf8efd1a4342766e1c7fcea63a631db2cd06d29baf38bc7abc"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "model-filtered",
+      "files": {
+        "cells.json": "9d4860aae1e3d27f8c6089ae4178d5c4ee53d5f8ba7971f01f6e4d07c2831a56",
+        "png": "a13e5062c935ff9511c19a83f2fd48d2a7d7a3c3d3500d877af9cca1e3fbb821",
+        "vt": "6b657f505799fa91908e1f8f101b05de875cd2060551757a4ec54036d20fec0c",
+        "txt": "f8835181592a4658182e9bfa267aea8c8ce1b53ed98f37ea646be2321891cbe3",
+        "render.json": "e4c742906f1ac51747c65203c9d117b288762a7fa9fe0bf3078cae7478020eff"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "model-selected-variant",
+      "files": {
+        "cells.json": "aa90f90f390899809705b4c06c8ea5b0e813c1504373443af9e276e95d16b0d8",
+        "png": "84934be50edde62fdcd4324c1476e3e19b0cc8fe652ecef92d2387278d3d8334",
+        "vt": "db8146528becc0062f2ef260abd6b5a6c2db96c4b6497f872bec80002897e39a",
+        "txt": "1431671299694f6cd16729f9628b76885b00bf28f4846c5043dd2a979a3df97c",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "model-selected",
+      "files": {
+        "cells.json": "48d5c2e679c67ed80678fdeff859c21971b03eb31188d472723267030252f36b",
+        "png": "342f2f64c34b8b6a258f2f59ce735dacdde07e6ab98ad5ebe3667ef37e4e9112",
+        "vt": "61c7568c51e47159f66ca20d37340b8070d978b91380f7ab2b391d46a6f3fa5c",
+        "txt": "6c028898e34d28c211d650a3c1baf363dc2ca38df9fd3b126baae67329459f89",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "model-reopened",
+      "files": {
+        "cells.json": "109d0c6ad72da43938bbfcdce5de40282aba1554c3fdd33076af183d7743d07c",
+        "png": "6ce361b767ff64082435faad4e76dd14ef6c9619e8975e9b5df0030700ff5ad9",
+        "vt": "b6396c54a7dc27ff7209417fd736e3d2ec0306bd8edf677a41f6fd0aa294a4b0",
+        "txt": "21999c7d4e71032838d4ba4cc80ae01b4ef603040139b548a22ac71b7d01880a",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "draft-restored",
+      "files": {
+        "cells.json": "20d757ece8e8e8931054837664bd30aef9c8f2e9151990294cf8c7ef57e39359",
+        "png": "342f2f64c34b8b6a258f2f59ce735dacdde07e6ab98ad5ebe3667ef37e4e9112",
+        "vt": "29e755eb2bc094f4e9935bba48980da81fee2f7d66b73c383dd5a7ea8288a829",
+        "txt": "6c028898e34d28c211d650a3c1baf363dc2ca38df9fd3b126baae67329459f89",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    }
+  ],
+  "helpers": {
+    "variants_capture.mjs": "b06b5490b8b5b090eedfd8094f34f04b52e091d85e908f16d01753ce7682b4ec",
+    "variants_bridge.py": "db3c1a86196261e2028b73364a0d7fa7a9c3304cdd4e90a3eb61d30ae3f540ec",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e"
+  },
+  "reference_sources": {
+    "component/dialog-model.tsx": "0369c5f395043f6ae3583ff1793fa3795c225ff515fb97a4be71a51fd15aab36",
+    "component/dialog-variant.tsx": "deeef517482eec2ee07fa93e96549959f57aa61fcd14b69e05674f611c759d29",
+    "model-preference.ts": "05ee028d04d364a5b72784d878e30a4ed3c8d5c78f51680912512518ac2a99b0",
+    "context/local.tsx": "7a9cb135cab419641d183f4918eed2f10cfdb243eea5e223b1a8cc0bf8f1afff",
+    "ui/dialog-select.tsx": "d61c485356900bf1ed39dc696a378c1889804ee3783c9d9f62ed863a8c72260a"
+  },
+  "mapping": "Native real public rename of genuinely empty session -> original public transfer/import/export only. No native history/pref injection; no masks, row normalization, version replacement or donor rewriting.",
+  "shared_behavior": "evidence/T47/canonical-effort.md; implementation 6cf1cdc859",
+  "qualification": "Per-frame full styled-cell/cursor/PNG equality required for canonical. Unsorted is an approved order difference, never global pixel PASS.",
+  "frontend": {
+    "chromium": "145.0.7632.6",
+    "playwright": "1.58.2",
+    "xterm": "6.0.0",
+    "unicode": "0.9.0",
+    "font": "DejaVu Sans Mono",
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "padding": 0,
+    "unmasked": true
+  },
+  "native_sources_after": {
+    "Cargo.lock": "8d8718e1966bf60373a514d2a5b4bdfa516c8e11b054d9c09373a28684a4453d",
+    "Cargo.toml": "e5e3d488f5381f9b7452d51981a42096fc370f5e2f074c56c37e525210b9e76a",
+    "crates/oc-adapters/Cargo.toml": "132625b8f7dcda76443c015866d16242bebda894f652bf008d555dbb1aef18b8",
+    "crates/oc-adapters/assets/upstream/PROVENANCE.md": "2f3d5eab575430e352b2244d1a1daf9a5b8c27dea50417141dd666822003d951",
+    "crates/oc-adapters/assets/upstream/v2/review.txt": "727292c08ee718fff8852ec91408a255ce08c716b3d46cc56be3d399589e3479",
+    "crates/oc-adapters/src/admitted_fs.rs": "175c40ea26de4e83610f94f45f20d66d8132cdac6d7e483e5891244e0c98c3b0",
+    "crates/oc-adapters/src/application.rs": "5eb741a1b02c8ee42e6094c4058e5c35c2c5c2b307e19fa95de1c6c3210ef5b9",
+    "crates/oc-adapters/src/application/tests.rs": "2caa37cb6027115b983350a5307daa0ce512fbcf2020bba56ef681be618f8ee7",
+    "crates/oc-adapters/src/application_conversation_tests.rs": "3af08469aa81a990fe391ab15e7d2735c2cdfd94fad103e5927ee3200a40800a",
+    "crates/oc-adapters/src/application_fork_tests.rs": "1c7c5a4a8fa79acd97a1cee79d364285523656df36c0bf780a02f5f4aaccb964",
+    "crates/oc-adapters/src/application_selection.rs": "732bc4e9eccb14ede85ff274e47a6a5f6a7253bfa885c1c4b0960106af87d15f",
+    "crates/oc-adapters/src/application_tab_deck.rs": "1e489e3719c521ea8f3c7cf4844fe93002e8c0b55afda9ddd4a81610868febaf",
+    "crates/oc-adapters/src/approval.rs": "4a4e5127da60f343d4a24b9703758e66c3d1d33ba208c9d65866d2d494d1adbc",
+    "crates/oc-adapters/src/approval_tests.rs": "1d828cce684a83f9d69976fc0a57bd26b6a1dbac5226e1f5f3a9b8f7b1581117",
+    "crates/oc-adapters/src/attachments.rs": "97ca7933c7e33b85d2e20c4ac4a30e9380148a5b35f9250814155458ea17710c",
+    "crates/oc-adapters/src/cli_permissions.rs": "5bb0050bdcf48c7faf4ad9fb342dff6d9a21c0403baa8495efe00f16033280fb",
+    "crates/oc-adapters/src/compaction.rs": "d183b6254234fe33bf5be043f4e5eca4d226712487ceebcd8d5e890d55caa63a",
+    "crates/oc-adapters/src/composition.rs": "a1726ca5e238ea4ceef953484ec831f37a12da52d09c97f8c7405aad0510ab37",
+    "crates/oc-adapters/src/config.rs": "7ec366b6b94d9eecfeabc6cb2bfc6bf224ab7828aec4cd635c9901627be62152",
+    "crates/oc-adapters/src/dcp.rs": "7b29385071ceb806586bad104af61f67d515a5bbb96a7a1c04dc95cf2d700b34",
+    "crates/oc-adapters/src/dcp_auto.rs": "13aa09982bf9da779b42f1563a1e465f5ea341fe90d2e100511659e82c5711dc",
+    "crates/oc-adapters/src/defs.rs": "7b270c6b39b7a2b26224940c26a356b1d99755d533522f5a8688f4755554ef64",
+    "crates/oc-adapters/src/discovery.rs": "fd064f0d0c133f0cde10a354a0532ff84e3cb35700e0c1f1fa0669983b8b1c34",
+    "crates/oc-adapters/src/files.rs": "926bd1f7040368501c8af5bff2f0b7184e8dae84b87f0d4791ce726c10de2b50",
+    "crates/oc-adapters/src/lib.rs": "5b3ca33873b626baa19866274710594e91c453a74d959b55e1841ef7cec0c4e5",
+    "crates/oc-adapters/src/mcp_http_lifecycle.rs": "797bb9a8ff61dd98ddc95ffca10da844321bc0a2fe64c63b1c69ad1b3f9775c3",
+    "crates/oc-adapters/src/mcp_remote.rs": "e1b74c0774b8e4773e560d4b54cbf863735f0b48ffa9089cc26f6eff66687381",
+    "crates/oc-adapters/src/mcp_result.rs": "3f2d0616b60035cfe4f40d7f0b8ad51bdcdc42ba6221cee6e4ebb7207e58c76f",
+    "crates/oc-adapters/src/mcp_stdio.rs": "c62f60390ad433975304eec64f04879fb6025de00ec778cc7e5af628076c6c8b",
+    "crates/oc-adapters/src/models.rs": "9363adcb64f19719f89428d6557cfa925da4a28825139b7afe02fe5dc7abf64b",
+    "crates/oc-adapters/src/models/tests.rs": "7c4328e617ce28fa759469003b0fb625cb933cb6193e5ece859c63395cae850e",
+    "crates/oc-adapters/src/patch.rs": "f7b15bb7e06a62cfb4f2613eb38a16cdd852012afc8125a5411741589787bd46",
+    "crates/oc-adapters/src/patch/effects.rs": "397d17a466bf4bc9fb7e3b6c1bf455220a466ba68b96a0b70c413bdcdbf8ffa8",
+    "crates/oc-adapters/src/patch/fs.rs": "843d54a6a62a602fa51cafe2d12b7fb3a778ae7f70b55ea05335e92f6a02c5e1",
+    "crates/oc-adapters/src/permissions.rs": "f8e8cc2fb6b92196bcdd319feaead16e9f24c447052acf8fb9877bd1ac87cffe",
+    "crates/oc-adapters/src/provider.rs": "8e5b17b2e44a17d583b14315b42b387afdfeb9a846de4a23ccee40bcd0efc9d7",
+    "crates/oc-adapters/src/runtime.rs": "41aa9aeeb708a75b1be8f144959783333d06b2e5c551ba01be169bfdecd44764",
+    "crates/oc-adapters/src/runtime/context.rs": "0fd86f3ea1b4f95da489dbdcb831f78df54c55a4548c8664b7034e08322890d6",
+    "crates/oc-adapters/src/runtime/mcp.rs": "8ca2dd9b77f9ca5e8741465bf974acbfe82dfa0425e925ded0a5a93fad084a6e",
+    "crates/oc-adapters/src/runtime/tests.rs": "953a49c69510a97a9d189e1c609e26c0d17601898d84f9f1dcaa8c55f5a64dce",
+    "crates/oc-adapters/src/runtime/tool_stream.rs": "867c2c1229af912067cdc9cb0dc4a5ffabbe27ea7050841152d94cf0f34173c2",
+    "crates/oc-adapters/src/runtime/turn.rs": "f6ce5ff7c9d6dd92a4d5ca5cea620761af841a24f43c522c969e85f9cbd1a765",
+    "crates/oc-adapters/src/runtime_compaction.rs": "8bee31d9d10fdd61ca7c7509f209f4e24c2db9c57aeeb49b84ce32497812d604",
+    "crates/oc-adapters/src/runtime_compaction_tests.rs": "9f4c52976d4c7a34c2c688d7c100beae3e7075512be461d97e89fc85dc470ef1",
+    "crates/oc-adapters/src/shell.rs": "c51156847ec11190a8846d67e9279731883e1fb299d4a3d7b1fa9f8528f6cf42",
+    "crates/oc-adapters/src/smoke.rs": "3579c89f6bd4373040bd1f8d2a62c759eed0cb136417263ef56c515efc3b0cce",
+    "crates/oc-adapters/src/storage.rs": "706645c3a7bbeb85ca8d2c2794fbf6177e8b3a4c275f0977b3b7c4807da90b7a",
+    "crates/oc-adapters/src/storage/tests.rs": "0528317b086c79a1d547172160533acfb7816895a72abb2d2d5286c7bae9b642",
+    "crates/oc-adapters/src/storage_checkpoint_dcp_tests.rs": "412be70c514d7a39f44f79ce0f4b3e1efde1660215046827076e33f3dd751201",
+    "crates/oc-adapters/src/storage_compaction.rs": "3572f5a6f641be98fe119e0a7213ddcfbcbb03f9fd198b3fe4abee7ab7662ff9",
+    "crates/oc-adapters/src/storage_conversation.rs": "4bca0942e7132cb124c4e09adc1a4e91c51cc35a10b9d1ad349cf1bb681ac5b3",
+    "crates/oc-adapters/src/storage_conversation_tests.rs": "cb63787a4851d56ae571c8f778b4eb1c9172c12cef1f9fc639877e6f05b1dddc",
+    "crates/oc-adapters/src/storage_dcp_lifecycle_fixture.rs": "e762c4f757bd17c3a5cfdc8240fea3a11083ee803663e68fc2f57b58a8c7a099",
+    "crates/oc-adapters/src/storage_dcp_view.rs": "5cc6b52b66c13327aa29c8bc99527bb730bae618aabc60e19995762594ce44e9",
+    "crates/oc-adapters/src/storage_dcp_view_tests.rs": "6e0cecc920501acb28aa90af4443f47ff975347f0279f968744f5d144bb00906",
+    "crates/oc-adapters/src/storage_fork.rs": "2192959a6721a5dad8b738bc736aca0f75837d4737ed784b7c88585955632aea",
+    "crates/oc-adapters/src/storage_fork_context.rs": "296d94caabd8bd49ee2efb1b58a441fd2a0be348f3373bb3b6b279f7860643ba",
+    "crates/oc-adapters/src/storage_fork_dcp_tests.rs": "56407f43479bc82808d35b0c2e55b4e261ed857a5ffaccd494f6aa2e0846a4f7",
+    "crates/oc-adapters/src/storage_grants.rs": "63b47e740902e37542030c849b9b19e29b2909cabf536d73e64d8f8b34b75805",
+    "crates/oc-adapters/src/tools.rs": "94328eb09f19a3a726b786f69a7bb53a7a1378f6e23b926e9dd57c940b58675b",
+    "crates/oc-adapters/src/trace.rs": "9504dc77dfc5b860e23eb568afa4f2abf481d15ec8c7be6b641f727d4eeb9367",
+    "crates/oc-adapters/src/tui_workspace.rs": "a4cc6c6263899ad242025936c552ff28115607558faafa942554d37e3b7f5e93",
+    "crates/oc-adapters/src/webfetch.rs": "fcd5726b433e18d47be63bf5496597a29a043ebd879e39be0be2a1b30c160fdb",
+    "crates/oc-adapters/tests/blob_audit.rs": "3da8c3d9a164a46496b539529871f68a63414bc16a65eb3b3396cfc19386e4ec",
+    "crates/oc-adapters/tests/context_bounds.rs": "1151224ad9a0ce938f918cfae5675a7c1b52717874cca8095a5a3ea22e52e74a",
+    "crates/oc-adapters/tests/dcp_atomic.rs": "0ab7df37952fb327916b112250a6294536ad10da90339f8ebb3162884b6c7d71",
+    "crates/oc-adapters/tests/e2e_live.rs": "4a9c0d40d6d44f3e851fde61cbbfa26b22fa5907d5601b700f0bf141b679b6ff",
+    "crates/oc-adapters/tests/e2e_offline.rs": "f7aa58e68dc629242872a057750652d998714fa30a9c8e50cbd344b1ba1e6afe",
+    "crates/oc-adapters/tests/fixtures/approval_lifecycle.rs": "6591f7378486f7a0b2b49014511a670a2d62aa37db56df9173eb176ecd51fb43",
+    "crates/oc-adapters/tests/fixtures/compaction_normalization.json": "88370643949a68fce15915573c3e85d5960192f8d8411bb217e702a1faaa4c26",
+    "crates/oc-adapters/tests/mcp_remote.rs": "95de08ef6ce56f8b8049c303b41eb74d7ecbc2b0735ea9cecda9a7354955b44a",
+    "crates/oc-adapters/tests/mcp_stdio.rs": "2b0bea78d3b275964ca4b9adad1e5393dfe7fc7ec2a14f633f6593bd56ab1e39",
+    "crates/oc-adapters/tests/patch_audit.rs": "8464da4f94ce67fae50653f7bfec5ce5f46bc5504033871e9248c58749754a0e",
+    "crates/oc-adapters/tests/patch_effects.rs": "ed08cb4fe8e78761ee557efcbfaec421be44b5c46c0cf2d39a85a9a93b951b09",
+    "crates/oc-adapters/tests/permissions.rs": "2108c8d5e4ca672e38af9bc4b985275f9ae4d95474a0b8062901fbb20eee155a",
+    "crates/oc-adapters/tests/runtime.rs": "aaf842c811b73caf7a8c834e893e02e060a4f63ae773af861fe99099da76477c",
+    "crates/oc-adapters/tests/runtime/context.rs": "44861c05a48f004f9eaaf330fca4e9ab622f78105fedd12eaf67a16626583629",
+    "crates/oc-adapters/tests/runtime/tool_lifecycle.rs": "a418fbfc59d55235a2800a30fa6bdcf7db90edc17f1c9e6dd4e246e8df485224",
+    "crates/oc-adapters/tests/runtime/turns.rs": "034c3f429e8813b3d3245d0e8ab580bbb02a19ed9d4e28f2710273f08b202491",
+    "crates/oc-adapters/tests/session_rename.rs": "aebdf1fb3ceafb510b01acc40cda2bb422e2c0c3b2db8d4fc82fad0e075118ac",
+    "crates/oc-adapters/tests/shell_watchdog.rs": "0ac9f4f2e7d2a2112780b5bd5bd8dbdc8a4f261609b7e92351bebd6c6ec9c36b",
+    "crates/oc-adapters/tests/soak.rs": "9962206291f52d5d47ef6d407c7b1c3597b590fc51fac1e63941bf23d0b42a62",
+    "crates/oc-adapters/tests/storage_lock.rs": "8d1bdea426ddbffe2f79d9576f656cf73a9cf63ddd193471f75e813bb1978d12",
+    "crates/oc-adapters/tests/subagent.rs": "b6d772e4145e4fadf8a1017e46d02a8986f0d6f19e9a8f9e511076311140f66f",
+    "crates/oc-adapters/tests/tab_deck.rs": "338d432c5906b4e07eee28f24885d4d792537e5dd1491ba227b0730ef004bba2",
+    "crates/oc-core/Cargo.toml": "0182c888635e1408db27c824eab663a6291beee3f658fe757392675a2d589d74",
+    "crates/oc-core/src/application.rs": "9ed0e19d3bce40e2a36425f37b33ba0eb1a94181e0117cf083e29eaeae71cf40",
+    "crates/oc-core/src/approval.rs": "248e96b46cf635199a61a29191586d41b5bc11087362d8a613925768847c4dc3",
+    "crates/oc-core/src/compaction.rs": "500f4c3d380154274072bb7a0c34ef035e2312cacc39d07bc3f945e88336619f",
+    "crates/oc-core/src/context_plan.rs": "19c07416fa4c631529327c3541f5188bc19097e7738dd172d25fa3a29b4b6dfc",
+    "crates/oc-core/src/core_app.rs": "b1c6b5ec7753d323be10e14a0216b3f922e5bf7e2878bec3944e20d3cd8c25e6",
+    "crates/oc-core/src/dcp_view.rs": "74886e66b64736dc163b21daa35ab5a214a1b7dc61ccff5b291d310b7d11f0c1",
+    "crates/oc-core/src/domain.rs": "f2ceeb587ba7cb754d6e652307961530198d3d53853d28ce164bf5e84874258c",
+    "crates/oc-core/src/lib.rs": "9c7406d69121d49eaba5ce6efc9aea7c49b6364156b7eb90eca4b9060e3c93b3",
+    "crates/oc-core/src/patch.rs": "47a03dfe26fd3de36467c28f437b5396b14342e49c3add5a72551730ecd4e1e6",
+    "crates/oc-core/src/ports.rs": "c9bf84cd9218e2c43553cee96a6f949985cb83dfe00dde4a393adf61a6de43a3",
+    "crates/oc-core/src/queries.rs": "8d2dc92261e977bcc7a0ac8cbe5cb3a7639bac0d662ef535bdd09a260b5b28ef",
+    "crates/oc-core/src/runtime.rs": "3734ea8fce8f0767f4acc671dfd3f72a713a3e4694785be2cc2fdc20e04fb38e",
+    "crates/oc-core/src/session.rs": "f7baff30840eba19e72cc90acaf55d8c236be16d3ca537508e07eaf31e6b603b",
+    "crates/oc-core/src/tool_stream.rs": "9259cdd3cd8dc2469c203699d5141c336c5fde7fd196fe24266dde299efc66d0",
+    "crates/oc-tui/Cargo.toml": "3bb2af6f296222e030586170983a1325e2b99c1e6bda95a160ef90a1ceeb04ba",
+    "crates/oc-tui/assets/fuzzysort-LICENSE": "9401e2d038d10f35d32aa1938e674f96fc32a689ef69a3ab0ae938f9d79365df",
+    "crates/oc-tui/assets/fuzzysort-oracle.json": "5d49daa5c4881ec956439911d371302d5da6d78e37b200d867453a62f6618484",
+    "crates/oc-tui/assets/upstream/PROVENANCE.md": "439736c466d570e348a394d4327f5250eb1a686b435d7603fd23c6ae81ca3137",
+    "crates/oc-tui/assets/upstream/v2/opencode.json": "f25bc5ae9187524f1997cccadeb9f724b2fac2fe7cc4a250bdadb24311e6b367",
+    "crates/oc-tui/src/app.rs": "0c0b80efe8b36435497c397827719db3bc0906617432f73e1c2e7b25a114ef5e",
+    "crates/oc-tui/src/app/input.rs": "ae648bf4b1166ba952b396ff797b8fa9fb01353cf52d5770102ac72c7cf8f97d",
+    "crates/oc-tui/src/app/live.rs": "af09cc5821b333c9704c33aaba40478e51a480c5ccddf3a3b48db31d7eeccb69",
+    "crates/oc-tui/src/app/tabs.rs": "7e98571b90cce494f248dda94fcc38c5e7158aa6937a3233faa7a8b0456ef352",
+    "crates/oc-tui/src/app/tests.rs": "caa864ec9536ffee18fa43c03f1464b08a0742f1291d841a4c1a796a240850a4",
+    "crates/oc-tui/src/app/tests/input.rs": "43f44e65c9ff172bcc0c10ab341caf833e13075ead7e38210025ec3e094ad98e",
+    "crates/oc-tui/src/app/tests/lifecycle.rs": "a697c9fcf30b0fc260f3d1bf7e50cdcbc3de641fc1e8136d3d9dd527fcbe49b6",
+    "crates/oc-tui/src/app/tests/tabs.rs": "385a7486b4e981d4596e0755ca2884496e94599349d0871efb32b78e00e60548",
+    "crates/oc-tui/src/app/tests/transcript.rs": "15c9850a3a9a514343ffec1a1adfa1961e5dab2213815ba9478fd0b338402585",
+    "crates/oc-tui/src/app/transcript.rs": "61b25ca4ce3b9eca8a4e3b97abc9edf05b7fbddade3585ddd4211ea6ed0e63f3",
+    "crates/oc-tui/src/approval_view.rs": "8936b7b4d6c55d424de6d1194ea784d54ed4f5ee0a3d334f6e867f47b20df711",
+    "crates/oc-tui/src/autocomplete.rs": "84cb3cdb6ecfea6d53d514c5915fba3ec03df82505138e4e4fd8289f69ea27ad",
+    "crates/oc-tui/src/commands.rs": "5048996f68826822439351bfd672cdd9d83dc1a00ddb1d9d7ae07ef7788358be",
+    "crates/oc-tui/src/compaction.rs": "189000dad49b61b292724db463ba6aa1745808a74548cb38668ef406d2a1ce90",
+    "crates/oc-tui/src/dcp_panel.rs": "fe2b7583d852baa92b31baf525c9c296a6e110bd1884517075fd07b63a734043",
+    "crates/oc-tui/src/dcp_view.rs": "40381297fa313ab32ed2492d678d9dc3fa185c2c103a55b3bc0b1d40df3063ba",
+    "crates/oc-tui/src/dialog.rs": "61612ec97be6beb3899d6dd5e8c6223e0f5cc367ce9b826baf4e74c2c0bcb643",
+    "crates/oc-tui/src/editor.rs": "d39c42ce8257997d57bc5bc0943473c557d13c60548ae37329302f7374d75419",
+    "crates/oc-tui/src/events.rs": "eb6ad9a23382f2597da219d51e6f63453f15b0722850f86efa6d9a250d6c8048",
+    "crates/oc-tui/src/fuzzy.rs": "31a520dd92402c5b3303c841ceba538fb0983ae6250d9efbd37792425cfa155f",
+    "crates/oc-tui/src/history.rs": "f47e51392df047e40673fededa2488354c5c9b7d4127e8051094fe8121605b34",
+    "crates/oc-tui/src/layout.rs": "f14c5aaa66829a9dc71f1bf971fc800daa6717045d54560e05ffb1a5f8ce4ba9",
+    "crates/oc-tui/src/lib.rs": "67e6d25ead7d8065f2986fbd0917dfadc16e0f95fe0cc8c6e1b980aa50043c42",
+    "crates/oc-tui/src/messages.rs": "2ae6f3ae2add20c4d856729eb6ffd52161c790810e0a0ecf9abb13c31e3e160d",
+    "crates/oc-tui/src/messages/tests.rs": "8c695efeb1d25a2b469e41b7c85d3ae9e6e1672d901a513585028cd37306825d",
+    "crates/oc-tui/src/patch_view.rs": "ca6b06d226c16e84f7c64faccaa698537e6c4f99156581e2dc7a1590df2110d0",
+    "crates/oc-tui/src/picker.rs": "fe98b072a7aaeb761e6aff6a175c1e43ee4c4289083dc16f9f5b28ca1971025f",
+    "crates/oc-tui/src/scanner.rs": "1adc90a2bdb6ba42b7b86b6212d554f7d960ff4a2984cb43fa78ee88f4b592e6",
+    "crates/oc-tui/src/shell.rs": "0a94252b2b6e8499c29918ba774ab008b30d9451cd415150e68fd01b3dbc154a",
+    "crates/oc-tui/src/shell/tests.rs": "107a087be07cdff71b44302165725534ef5eee8f344a6032ed38769d4b93f853",
+    "crates/oc-tui/src/smoke.rs": "3fd338f0ff7cbbe524e02c6e099c3a3e261a2239adf3e33935ee055012f064a7",
+    "crates/oc-tui/src/styled.rs": "4864fecfb972d9944de85b64ef0d3843ce50c580d227495ebf1f7ce0a1a7133c",
+    "crates/oc-tui/src/terminal.rs": "6adbe148c813c39b4e3b4fc7ed0f10cb3039c2e435d0fe97d3fb6a11d6289006",
+    "crates/oc-tui/src/theme.rs": "d42dd77557cb80c89e445b36073da2e4d01d51f2860998af1f8dc1fe3868cc6e",
+    "crates/oc-tui/src/tools.rs": "fd41cbbc8f6817bec64b480a4e941d382db2020cf384ff8dae9b422770214cff",
+    "crates/oc-tui/src/views.rs": "c169a9e1b90c19de9db4e8df0bb24a0a4a290a66bca711d89722b65b5f9d5bcc",
+    "crates/oc/Cargo.toml": "d06d1a6ae71b91640ec804d38b3fdcb868aa8294d14f0d2454b2c86ea070f140",
+    "crates/oc/src/approval_tests.rs": "b531639aaea0754c01a4abcd9405f090373e31f4da7f33b9a4096e2e6e5a33f7",
+    "crates/oc/src/bootstrap.rs": "f41c928abf3b232636a59f790be163bef4d78ed9f913eb7e4cfc7641f6029b86",
+    "crates/oc/src/cli.rs": "6e8ca52f0f33024d5e8c463bc5cf5b17c9f4ddcfad3e12c032a14fcdf210185f",
+    "crates/oc/src/clipboard.rs": "7152ab1d8fc1767b8d0048d0f8c20fd72b6fb236b978630f2b3af7bb143ca342",
+    "crates/oc/src/headless.rs": "9b9afbf09a867f584382b19b16a51f2f8a5f208b1485cdbd24b802293b76d898",
+    "crates/oc/src/main.rs": "212e5848911111de6c584afe9fbab15c04ab99cf8bdda8285d4005c281d5f222",
+    "crates/oc/src/tui_cmd.rs": "a59187362456a0691bed95c5f4f6650a2160807f83091d54731d1adc246fb238",
+    "crates/oc/src/tui_cmd/tests.rs": "84774336f17ca907aa2f4cc736fcae875f73831d95fbe8e0f35dc03f014b89c7",
+    "crates/oc/src/tui_cmd/tests/lifecycle.rs": "97bd45845a014a76a0ccef7c79f953a9e2116a35483684e497d3bd0531429c29",
+    "crates/oc/src/tui_cmd/tests/routing.rs": "a02022ab98b3dd67d702070c858d84f66a672fe488f1160e706efc975df442c9",
+    "crates/oc/tests/application.rs": "faf2d5d56b4de7e2029ddc8b74c9aa43357b73d758c7f1ad4a899a645b9b5718",
+    "crates/oc/tests/approval_binary.rs": "b0b7a4fe873aa7ae267cd8fb52497844ae0a789387ab09a9986679c7d6b69c62",
+    "crates/oc/tests/configured_workspace.rs": "cc2ac71c8e5bb6e84341d9af0a1c073125c404e5f755a98bda405a050804c047",
+    "crates/oc/tests/dcp_runtime.rs": "11027a9d6dc2477b91bb67ed3b8a7f2ad80838c1e1218e076a54a10ce143a375",
+    "crates/oc/tests/durability.rs": "ae7d528460b64b80919e873ab1356067654655de6a3772498cd22f09e9ce7590",
+    "crates/oc/tests/golden_binary.rs": "bc2cf88a5f20f658d316224846dd11b813f00fe717665637c173e37fb3277f87",
+    "crates/oc/tests/live_bounded.rs": "5b225b43421d5bbcf397b83fba7a3d55f20ae1752d4286ea62e649b42e17bfb7",
+    "crates/oc/tests/mcp_application.rs": "2392a9a02d165eef07b1ac8d2df22740d103dba6f12cb03367fe1f89649019ff",
+    "crates/oc/tests/memory_bounds.rs": "80f0bc51b5026bf6fe64dc88a72d6a66509502984aa274f1d08a44d8d46c0fd6",
+    "crates/oc/tests/pty.rs": "5ccb72bc231a23f34edf82e6a1b8b55669910e11b137954b8c5b33aaa3e48a93",
+    "crates/oc/tests/pty_t39.rs": "882c03f499e55d95bf9345bb7230073f8df8c52b3e9ebe2c9b9c3ea42fb49ce8",
+    "crates/oc/tests/pty_t39/interaction.rs": "0fe61e458c4c3da12599bc451ced7336ae6e4a3a62cc5873b4a24bc8ddb1475b",
+    "crates/oc/tests/pty_t39/lifecycle.rs": "b7d363e202bdc64318e7e58fbf7a7cb003e86279db4a8495e5d266379542229f",
+    "crates/oc/tests/pty_t42.rs": "d6b0da8cad6a1fdaaa111506eb284f04d71052d5ff56edd60e1990fb766733a7",
+    "crates/oc/tests/recovery_startup.rs": "90a08f425f8e22b4503f11bfa5bb6cf48aa61bfd2d330e127ebe723e6944f7e2",
+    "crates/oc/tests/recovery_v02.rs": "f32d54a64070b988b4ba8ac1ecfccf63ff01c831a839ddfd5ba16d0b8efce4cb",
+    "crates/oc/tests/recovery_v03.rs": "754dccc76891e7a801cbab883fb734cbd71a102976772e592afc85321d192162",
+    "crates/oc/tests/responses.rs": "fd1b6e84fcb63a6728e9895abd18faa9e5d4456bc6c68253d2e1e2a125b64a73",
+    "crates/oc/tests/support/discovery_startup.py": "d7af7bb5d59161726a60e00f8007fdd64704c219b2c0e4fadf41a7605d77748c",
+    "crates/oc/tests/support/geometry.py": "fd33b20bf6373854309cecd80d5b917e882a27beba320b2ee25e05c470b218bc",
+    "crates/oc/tests/support/screen.rs": "cce51131b9f0786e5312fd66168d80e1da238901ed193459de8e496ec37063ba",
+    "crates/oc/tests/support/startup.py": "0db0ba1979d61cae56c58a3157bba3e961bb6d299c9b151a81adcf8d9f36b69d",
+    "crates/oc/tests/support/terminal.rs": "74ca1a73b2a18baab4c25bb17f7e225ac69246b2970f97eb7733d303bb78db89",
+    "crates/oc/tests/support/title.rs": "649fbc875c894a44cc2ec414659aa7f01f6952d8b9f6fb946ea77399af208937",
+    "crates/oc/tests/t49_live_smoke.rs": "75acbdb157fa4f333b6d4937676311cdc0c447c139a68ce4b93e8849db2f3ca8",
+    "crates/oc/tests/tui_render_alloc.rs": "257967ad8e12ea013ae5d08870ef7a26f420cd20dec59e3a80295e8ffa00366c",
+    "rust-toolchain.toml": "b364b7e44eff5aaa6f8f8357d2536dd284fe5af3c3a64eea4f6d0555d79c2c7a"
+  },
+  "source_unchanged": true,
+  "native_binary_after": "d28c457f67cdf276e199955580a60ffc21f0ebb3256f56dd9c9046a153ad67da"
+}

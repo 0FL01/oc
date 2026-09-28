@@ -1,0 +1,2237 @@
+{
+  "schema_version": 1,
+  "scope": "T44 VIS09/VIS29",
+  "order": "canonical",
+  "source_HEAD": "9d2af6c98a47a5ab94e0cbbf7e898e4c3309d0ca",
+  "native_sources_before": {
+    "Cargo.lock": "8d8718e1966bf60373a514d2a5b4bdfa516c8e11b054d9c09373a28684a4453d",
+    "Cargo.toml": "e5e3d488f5381f9b7452d51981a42096fc370f5e2f074c56c37e525210b9e76a",
+    "crates/oc-adapters/Cargo.toml": "132625b8f7dcda76443c015866d16242bebda894f652bf008d555dbb1aef18b8",
+    "crates/oc-adapters/assets/upstream/PROVENANCE.md": "2f3d5eab575430e352b2244d1a1daf9a5b8c27dea50417141dd666822003d951",
+    "crates/oc-adapters/assets/upstream/v2/review.txt": "727292c08ee718fff8852ec91408a255ce08c716b3d46cc56be3d399589e3479",
+    "crates/oc-adapters/src/admitted_fs.rs": "175c40ea26de4e83610f94f45f20d66d8132cdac6d7e483e5891244e0c98c3b0",
+    "crates/oc-adapters/src/application.rs": "5eb741a1b02c8ee42e6094c4058e5c35c2c5c2b307e19fa95de1c6c3210ef5b9",
+    "crates/oc-adapters/src/application/tests.rs": "2caa37cb6027115b983350a5307daa0ce512fbcf2020bba56ef681be618f8ee7",
+    "crates/oc-adapters/src/application_conversation_tests.rs": "3af08469aa81a990fe391ab15e7d2735c2cdfd94fad103e5927ee3200a40800a",
+    "crates/oc-adapters/src/application_fork_tests.rs": "1c7c5a4a8fa79acd97a1cee79d364285523656df36c0bf780a02f5f4aaccb964",
+    "crates/oc-adapters/src/application_selection.rs": "732bc4e9eccb14ede85ff274e47a6a5f6a7253bfa885c1c4b0960106af87d15f",
+    "crates/oc-adapters/src/application_tab_deck.rs": "1e489e3719c521ea8f3c7cf4844fe93002e8c0b55afda9ddd4a81610868febaf",
+    "crates/oc-adapters/src/approval.rs": "4a4e5127da60f343d4a24b9703758e66c3d1d33ba208c9d65866d2d494d1adbc",
+    "crates/oc-adapters/src/approval_tests.rs": "1d828cce684a83f9d69976fc0a57bd26b6a1dbac5226e1f5f3a9b8f7b1581117",
+    "crates/oc-adapters/src/attachments.rs": "97ca7933c7e33b85d2e20c4ac4a30e9380148a5b35f9250814155458ea17710c",
+    "crates/oc-adapters/src/cli_permissions.rs": "5bb0050bdcf48c7faf4ad9fb342dff6d9a21c0403baa8495efe00f16033280fb",
+    "crates/oc-adapters/src/compaction.rs": "d183b6254234fe33bf5be043f4e5eca4d226712487ceebcd8d5e890d55caa63a",
+    "crates/oc-adapters/src/composition.rs": "a1726ca5e238ea4ceef953484ec831f37a12da52d09c97f8c7405aad0510ab37",
+    "crates/oc-adapters/src/config.rs": "7ec366b6b94d9eecfeabc6cb2bfc6bf224ab7828aec4cd635c9901627be62152",
+    "crates/oc-adapters/src/dcp.rs": "7b29385071ceb806586bad104af61f67d515a5bbb96a7a1c04dc95cf2d700b34",
+    "crates/oc-adapters/src/dcp_auto.rs": "13aa09982bf9da779b42f1563a1e465f5ea341fe90d2e100511659e82c5711dc",
+    "crates/oc-adapters/src/defs.rs": "7b270c6b39b7a2b26224940c26a356b1d99755d533522f5a8688f4755554ef64",
+    "crates/oc-adapters/src/discovery.rs": "fd064f0d0c133f0cde10a354a0532ff84e3cb35700e0c1f1fa0669983b8b1c34",
+    "crates/oc-adapters/src/files.rs": "926bd1f7040368501c8af5bff2f0b7184e8dae84b87f0d4791ce726c10de2b50",
+    "crates/oc-adapters/src/lib.rs": "5b3ca33873b626baa19866274710594e91c453a74d959b55e1841ef7cec0c4e5",
+    "crates/oc-adapters/src/mcp_http_lifecycle.rs": "797bb9a8ff61dd98ddc95ffca10da844321bc0a2fe64c63b1c69ad1b3f9775c3",
+    "crates/oc-adapters/src/mcp_remote.rs": "e1b74c0774b8e4773e560d4b54cbf863735f0b48ffa9089cc26f6eff66687381",
+    "crates/oc-adapters/src/mcp_result.rs": "3f2d0616b60035cfe4f40d7f0b8ad51bdcdc42ba6221cee6e4ebb7207e58c76f",
+    "crates/oc-adapters/src/mcp_stdio.rs": "c62f60390ad433975304eec64f04879fb6025de00ec778cc7e5af628076c6c8b",
+    "crates/oc-adapters/src/models.rs": "9363adcb64f19719f89428d6557cfa925da4a28825139b7afe02fe5dc7abf64b",
+    "crates/oc-adapters/src/models/tests.rs": "7c4328e617ce28fa759469003b0fb625cb933cb6193e5ece859c63395cae850e",
+    "crates/oc-adapters/src/patch.rs": "f7b15bb7e06a62cfb4f2613eb38a16cdd852012afc8125a5411741589787bd46",
+    "crates/oc-adapters/src/patch/effects.rs": "397d17a466bf4bc9fb7e3b6c1bf455220a466ba68b96a0b70c413bdcdbf8ffa8",
+    "crates/oc-adapters/src/patch/fs.rs": "843d54a6a62a602fa51cafe2d12b7fb3a778ae7f70b55ea05335e92f6a02c5e1",
+    "crates/oc-adapters/src/permissions.rs": "f8e8cc2fb6b92196bcdd319feaead16e9f24c447052acf8fb9877bd1ac87cffe",
+    "crates/oc-adapters/src/provider.rs": "8e5b17b2e44a17d583b14315b42b387afdfeb9a846de4a23ccee40bcd0efc9d7",
+    "crates/oc-adapters/src/runtime.rs": "41aa9aeeb708a75b1be8f144959783333d06b2e5c551ba01be169bfdecd44764",
+    "crates/oc-adapters/src/runtime/context.rs": "0fd86f3ea1b4f95da489dbdcb831f78df54c55a4548c8664b7034e08322890d6",
+    "crates/oc-adapters/src/runtime/mcp.rs": "8ca2dd9b77f9ca5e8741465bf974acbfe82dfa0425e925ded0a5a93fad084a6e",
+    "crates/oc-adapters/src/runtime/tests.rs": "953a49c69510a97a9d189e1c609e26c0d17601898d84f9f1dcaa8c55f5a64dce",
+    "crates/oc-adapters/src/runtime/tool_stream.rs": "867c2c1229af912067cdc9cb0dc4a5ffabbe27ea7050841152d94cf0f34173c2",
+    "crates/oc-adapters/src/runtime/turn.rs": "f6ce5ff7c9d6dd92a4d5ca5cea620761af841a24f43c522c969e85f9cbd1a765",
+    "crates/oc-adapters/src/runtime_compaction.rs": "8bee31d9d10fdd61ca7c7509f209f4e24c2db9c57aeeb49b84ce32497812d604",
+    "crates/oc-adapters/src/runtime_compaction_tests.rs": "9f4c52976d4c7a34c2c688d7c100beae3e7075512be461d97e89fc85dc470ef1",
+    "crates/oc-adapters/src/shell.rs": "c51156847ec11190a8846d67e9279731883e1fb299d4a3d7b1fa9f8528f6cf42",
+    "crates/oc-adapters/src/smoke.rs": "3579c89f6bd4373040bd1f8d2a62c759eed0cb136417263ef56c515efc3b0cce",
+    "crates/oc-adapters/src/storage.rs": "706645c3a7bbeb85ca8d2c2794fbf6177e8b3a4c275f0977b3b7c4807da90b7a",
+    "crates/oc-adapters/src/storage/tests.rs": "0528317b086c79a1d547172160533acfb7816895a72abb2d2d5286c7bae9b642",
+    "crates/oc-adapters/src/storage_checkpoint_dcp_tests.rs": "412be70c514d7a39f44f79ce0f4b3e1efde1660215046827076e33f3dd751201",
+    "crates/oc-adapters/src/storage_compaction.rs": "3572f5a6f641be98fe119e0a7213ddcfbcbb03f9fd198b3fe4abee7ab7662ff9",
+    "crates/oc-adapters/src/storage_conversation.rs": "4bca0942e7132cb124c4e09adc1a4e91c51cc35a10b9d1ad349cf1bb681ac5b3",
+    "crates/oc-adapters/src/storage_conversation_tests.rs": "cb63787a4851d56ae571c8f778b4eb1c9172c12cef1f9fc639877e6f05b1dddc",
+    "crates/oc-adapters/src/storage_dcp_lifecycle_fixture.rs": "e762c4f757bd17c3a5cfdc8240fea3a11083ee803663e68fc2f57b58a8c7a099",
+    "crates/oc-adapters/src/storage_dcp_view.rs": "5cc6b52b66c13327aa29c8bc99527bb730bae618aabc60e19995762594ce44e9",
+    "crates/oc-adapters/src/storage_dcp_view_tests.rs": "6e0cecc920501acb28aa90af4443f47ff975347f0279f968744f5d144bb00906",
+    "crates/oc-adapters/src/storage_fork.rs": "2192959a6721a5dad8b738bc736aca0f75837d4737ed784b7c88585955632aea",
+    "crates/oc-adapters/src/storage_fork_context.rs": "296d94caabd8bd49ee2efb1b58a441fd2a0be348f3373bb3b6b279f7860643ba",
+    "crates/oc-adapters/src/storage_fork_dcp_tests.rs": "56407f43479bc82808d35b0c2e55b4e261ed857a5ffaccd494f6aa2e0846a4f7",
+    "crates/oc-adapters/src/storage_grants.rs": "63b47e740902e37542030c849b9b19e29b2909cabf536d73e64d8f8b34b75805",
+    "crates/oc-adapters/src/tools.rs": "94328eb09f19a3a726b786f69a7bb53a7a1378f6e23b926e9dd57c940b58675b",
+    "crates/oc-adapters/src/trace.rs": "9504dc77dfc5b860e23eb568afa4f2abf481d15ec8c7be6b641f727d4eeb9367",
+    "crates/oc-adapters/src/tui_workspace.rs": "a4cc6c6263899ad242025936c552ff28115607558faafa942554d37e3b7f5e93",
+    "crates/oc-adapters/src/webfetch.rs": "fcd5726b433e18d47be63bf5496597a29a043ebd879e39be0be2a1b30c160fdb",
+    "crates/oc-adapters/tests/blob_audit.rs": "3da8c3d9a164a46496b539529871f68a63414bc16a65eb3b3396cfc19386e4ec",
+    "crates/oc-adapters/tests/context_bounds.rs": "1151224ad9a0ce938f918cfae5675a7c1b52717874cca8095a5a3ea22e52e74a",
+    "crates/oc-adapters/tests/dcp_atomic.rs": "0ab7df37952fb327916b112250a6294536ad10da90339f8ebb3162884b6c7d71",
+    "crates/oc-adapters/tests/e2e_live.rs": "4a9c0d40d6d44f3e851fde61cbbfa26b22fa5907d5601b700f0bf141b679b6ff",
+    "crates/oc-adapters/tests/e2e_offline.rs": "f7aa58e68dc629242872a057750652d998714fa30a9c8e50cbd344b1ba1e6afe",
+    "crates/oc-adapters/tests/fixtures/approval_lifecycle.rs": "6591f7378486f7a0b2b49014511a670a2d62aa37db56df9173eb176ecd51fb43",
+    "crates/oc-adapters/tests/fixtures/compaction_normalization.json": "88370643949a68fce15915573c3e85d5960192f8d8411bb217e702a1faaa4c26",
+    "crates/oc-adapters/tests/mcp_remote.rs": "95de08ef6ce56f8b8049c303b41eb74d7ecbc2b0735ea9cecda9a7354955b44a",
+    "crates/oc-adapters/tests/mcp_stdio.rs": "2b0bea78d3b275964ca4b9adad1e5393dfe7fc7ec2a14f633f6593bd56ab1e39",
+    "crates/oc-adapters/tests/patch_audit.rs": "8464da4f94ce67fae50653f7bfec5ce5f46bc5504033871e9248c58749754a0e",
+    "crates/oc-adapters/tests/patch_effects.rs": "ed08cb4fe8e78761ee557efcbfaec421be44b5c46c0cf2d39a85a9a93b951b09",
+    "crates/oc-adapters/tests/permissions.rs": "2108c8d5e4ca672e38af9bc4b985275f9ae4d95474a0b8062901fbb20eee155a",
+    "crates/oc-adapters/tests/runtime.rs": "aaf842c811b73caf7a8c834e893e02e060a4f63ae773af861fe99099da76477c",
+    "crates/oc-adapters/tests/runtime/context.rs": "44861c05a48f004f9eaaf330fca4e9ab622f78105fedd12eaf67a16626583629",
+    "crates/oc-adapters/tests/runtime/tool_lifecycle.rs": "a418fbfc59d55235a2800a30fa6bdcf7db90edc17f1c9e6dd4e246e8df485224",
+    "crates/oc-adapters/tests/runtime/turns.rs": "034c3f429e8813b3d3245d0e8ab580bbb02a19ed9d4e28f2710273f08b202491",
+    "crates/oc-adapters/tests/session_rename.rs": "aebdf1fb3ceafb510b01acc40cda2bb422e2c0c3b2db8d4fc82fad0e075118ac",
+    "crates/oc-adapters/tests/shell_watchdog.rs": "0ac9f4f2e7d2a2112780b5bd5bd8dbdc8a4f261609b7e92351bebd6c6ec9c36b",
+    "crates/oc-adapters/tests/soak.rs": "9962206291f52d5d47ef6d407c7b1c3597b590fc51fac1e63941bf23d0b42a62",
+    "crates/oc-adapters/tests/storage_lock.rs": "8d1bdea426ddbffe2f79d9576f656cf73a9cf63ddd193471f75e813bb1978d12",
+    "crates/oc-adapters/tests/subagent.rs": "b6d772e4145e4fadf8a1017e46d02a8986f0d6f19e9a8f9e511076311140f66f",
+    "crates/oc-adapters/tests/tab_deck.rs": "338d432c5906b4e07eee28f24885d4d792537e5dd1491ba227b0730ef004bba2",
+    "crates/oc-core/Cargo.toml": "0182c888635e1408db27c824eab663a6291beee3f658fe757392675a2d589d74",
+    "crates/oc-core/src/application.rs": "9ed0e19d3bce40e2a36425f37b33ba0eb1a94181e0117cf083e29eaeae71cf40",
+    "crates/oc-core/src/approval.rs": "248e96b46cf635199a61a29191586d41b5bc11087362d8a613925768847c4dc3",
+    "crates/oc-core/src/compaction.rs": "500f4c3d380154274072bb7a0c34ef035e2312cacc39d07bc3f945e88336619f",
+    "crates/oc-core/src/context_plan.rs": "19c07416fa4c631529327c3541f5188bc19097e7738dd172d25fa3a29b4b6dfc",
+    "crates/oc-core/src/core_app.rs": "b1c6b5ec7753d323be10e14a0216b3f922e5bf7e2878bec3944e20d3cd8c25e6",
+    "crates/oc-core/src/dcp_view.rs": "74886e66b64736dc163b21daa35ab5a214a1b7dc61ccff5b291d310b7d11f0c1",
+    "crates/oc-core/src/domain.rs": "f2ceeb587ba7cb754d6e652307961530198d3d53853d28ce164bf5e84874258c",
+    "crates/oc-core/src/lib.rs": "9c7406d69121d49eaba5ce6efc9aea7c49b6364156b7eb90eca4b9060e3c93b3",
+    "crates/oc-core/src/patch.rs": "47a03dfe26fd3de36467c28f437b5396b14342e49c3add5a72551730ecd4e1e6",
+    "crates/oc-core/src/ports.rs": "c9bf84cd9218e2c43553cee96a6f949985cb83dfe00dde4a393adf61a6de43a3",
+    "crates/oc-core/src/queries.rs": "8d2dc92261e977bcc7a0ac8cbe5cb3a7639bac0d662ef535bdd09a260b5b28ef",
+    "crates/oc-core/src/runtime.rs": "3734ea8fce8f0767f4acc671dfd3f72a713a3e4694785be2cc2fdc20e04fb38e",
+    "crates/oc-core/src/session.rs": "f7baff30840eba19e72cc90acaf55d8c236be16d3ca537508e07eaf31e6b603b",
+    "crates/oc-core/src/tool_stream.rs": "9259cdd3cd8dc2469c203699d5141c336c5fde7fd196fe24266dde299efc66d0",
+    "crates/oc-tui/Cargo.toml": "3bb2af6f296222e030586170983a1325e2b99c1e6bda95a160ef90a1ceeb04ba",
+    "crates/oc-tui/assets/fuzzysort-LICENSE": "9401e2d038d10f35d32aa1938e674f96fc32a689ef69a3ab0ae938f9d79365df",
+    "crates/oc-tui/assets/fuzzysort-oracle.json": "5d49daa5c4881ec956439911d371302d5da6d78e37b200d867453a62f6618484",
+    "crates/oc-tui/assets/upstream/PROVENANCE.md": "439736c466d570e348a394d4327f5250eb1a686b435d7603fd23c6ae81ca3137",
+    "crates/oc-tui/assets/upstream/v2/opencode.json": "f25bc5ae9187524f1997cccadeb9f724b2fac2fe7cc4a250bdadb24311e6b367",
+    "crates/oc-tui/src/app.rs": "0c0b80efe8b36435497c397827719db3bc0906617432f73e1c2e7b25a114ef5e",
+    "crates/oc-tui/src/app/input.rs": "ae648bf4b1166ba952b396ff797b8fa9fb01353cf52d5770102ac72c7cf8f97d",
+    "crates/oc-tui/src/app/live.rs": "af09cc5821b333c9704c33aaba40478e51a480c5ccddf3a3b48db31d7eeccb69",
+    "crates/oc-tui/src/app/tabs.rs": "7e98571b90cce494f248dda94fcc38c5e7158aa6937a3233faa7a8b0456ef352",
+    "crates/oc-tui/src/app/tests.rs": "caa864ec9536ffee18fa43c03f1464b08a0742f1291d841a4c1a796a240850a4",
+    "crates/oc-tui/src/app/tests/input.rs": "43f44e65c9ff172bcc0c10ab341caf833e13075ead7e38210025ec3e094ad98e",
+    "crates/oc-tui/src/app/tests/lifecycle.rs": "a697c9fcf30b0fc260f3d1bf7e50cdcbc3de641fc1e8136d3d9dd527fcbe49b6",
+    "crates/oc-tui/src/app/tests/tabs.rs": "385a7486b4e981d4596e0755ca2884496e94599349d0871efb32b78e00e60548",
+    "crates/oc-tui/src/app/tests/transcript.rs": "15c9850a3a9a514343ffec1a1adfa1961e5dab2213815ba9478fd0b338402585",
+    "crates/oc-tui/src/app/transcript.rs": "61b25ca4ce3b9eca8a4e3b97abc9edf05b7fbddade3585ddd4211ea6ed0e63f3",
+    "crates/oc-tui/src/approval_view.rs": "8936b7b4d6c55d424de6d1194ea784d54ed4f5ee0a3d334f6e867f47b20df711",
+    "crates/oc-tui/src/autocomplete.rs": "84cb3cdb6ecfea6d53d514c5915fba3ec03df82505138e4e4fd8289f69ea27ad",
+    "crates/oc-tui/src/commands.rs": "5048996f68826822439351bfd672cdd9d83dc1a00ddb1d9d7ae07ef7788358be",
+    "crates/oc-tui/src/compaction.rs": "189000dad49b61b292724db463ba6aa1745808a74548cb38668ef406d2a1ce90",
+    "crates/oc-tui/src/dcp_panel.rs": "fe2b7583d852baa92b31baf525c9c296a6e110bd1884517075fd07b63a734043",
+    "crates/oc-tui/src/dcp_view.rs": "40381297fa313ab32ed2492d678d9dc3fa185c2c103a55b3bc0b1d40df3063ba",
+    "crates/oc-tui/src/dialog.rs": "61612ec97be6beb3899d6dd5e8c6223e0f5cc367ce9b826baf4e74c2c0bcb643",
+    "crates/oc-tui/src/editor.rs": "d39c42ce8257997d57bc5bc0943473c557d13c60548ae37329302f7374d75419",
+    "crates/oc-tui/src/events.rs": "eb6ad9a23382f2597da219d51e6f63453f15b0722850f86efa6d9a250d6c8048",
+    "crates/oc-tui/src/fuzzy.rs": "31a520dd92402c5b3303c841ceba538fb0983ae6250d9efbd37792425cfa155f",
+    "crates/oc-tui/src/history.rs": "f47e51392df047e40673fededa2488354c5c9b7d4127e8051094fe8121605b34",
+    "crates/oc-tui/src/layout.rs": "f14c5aaa66829a9dc71f1bf971fc800daa6717045d54560e05ffb1a5f8ce4ba9",
+    "crates/oc-tui/src/lib.rs": "67e6d25ead7d8065f2986fbd0917dfadc16e0f95fe0cc8c6e1b980aa50043c42",
+    "crates/oc-tui/src/messages.rs": "2ae6f3ae2add20c4d856729eb6ffd52161c790810e0a0ecf9abb13c31e3e160d",
+    "crates/oc-tui/src/messages/tests.rs": "8c695efeb1d25a2b469e41b7c85d3ae9e6e1672d901a513585028cd37306825d",
+    "crates/oc-tui/src/patch_view.rs": "ca6b06d226c16e84f7c64faccaa698537e6c4f99156581e2dc7a1590df2110d0",
+    "crates/oc-tui/src/picker.rs": "fe98b072a7aaeb761e6aff6a175c1e43ee4c4289083dc16f9f5b28ca1971025f",
+    "crates/oc-tui/src/scanner.rs": "1adc90a2bdb6ba42b7b86b6212d554f7d960ff4a2984cb43fa78ee88f4b592e6",
+    "crates/oc-tui/src/shell.rs": "0a94252b2b6e8499c29918ba774ab008b30d9451cd415150e68fd01b3dbc154a",
+    "crates/oc-tui/src/shell/tests.rs": "107a087be07cdff71b44302165725534ef5eee8f344a6032ed38769d4b93f853",
+    "crates/oc-tui/src/smoke.rs": "3fd338f0ff7cbbe524e02c6e099c3a3e261a2239adf3e33935ee055012f064a7",
+    "crates/oc-tui/src/styled.rs": "4864fecfb972d9944de85b64ef0d3843ce50c580d227495ebf1f7ce0a1a7133c",
+    "crates/oc-tui/src/terminal.rs": "6adbe148c813c39b4e3b4fc7ed0f10cb3039c2e435d0fe97d3fb6a11d6289006",
+    "crates/oc-tui/src/theme.rs": "d42dd77557cb80c89e445b36073da2e4d01d51f2860998af1f8dc1fe3868cc6e",
+    "crates/oc-tui/src/tools.rs": "fd41cbbc8f6817bec64b480a4e941d382db2020cf384ff8dae9b422770214cff",
+    "crates/oc-tui/src/views.rs": "c169a9e1b90c19de9db4e8df0bb24a0a4a290a66bca711d89722b65b5f9d5bcc",
+    "crates/oc/Cargo.toml": "d06d1a6ae71b91640ec804d38b3fdcb868aa8294d14f0d2454b2c86ea070f140",
+    "crates/oc/src/approval_tests.rs": "b531639aaea0754c01a4abcd9405f090373e31f4da7f33b9a4096e2e6e5a33f7",
+    "crates/oc/src/bootstrap.rs": "f41c928abf3b232636a59f790be163bef4d78ed9f913eb7e4cfc7641f6029b86",
+    "crates/oc/src/cli.rs": "6e8ca52f0f33024d5e8c463bc5cf5b17c9f4ddcfad3e12c032a14fcdf210185f",
+    "crates/oc/src/clipboard.rs": "7152ab1d8fc1767b8d0048d0f8c20fd72b6fb236b978630f2b3af7bb143ca342",
+    "crates/oc/src/headless.rs": "9b9afbf09a867f584382b19b16a51f2f8a5f208b1485cdbd24b802293b76d898",
+    "crates/oc/src/main.rs": "212e5848911111de6c584afe9fbab15c04ab99cf8bdda8285d4005c281d5f222",
+    "crates/oc/src/tui_cmd.rs": "a59187362456a0691bed95c5f4f6650a2160807f83091d54731d1adc246fb238",
+    "crates/oc/src/tui_cmd/tests.rs": "84774336f17ca907aa2f4cc736fcae875f73831d95fbe8e0f35dc03f014b89c7",
+    "crates/oc/src/tui_cmd/tests/lifecycle.rs": "97bd45845a014a76a0ccef7c79f953a9e2116a35483684e497d3bd0531429c29",
+    "crates/oc/src/tui_cmd/tests/routing.rs": "a02022ab98b3dd67d702070c858d84f66a672fe488f1160e706efc975df442c9",
+    "crates/oc/tests/application.rs": "faf2d5d56b4de7e2029ddc8b74c9aa43357b73d758c7f1ad4a899a645b9b5718",
+    "crates/oc/tests/approval_binary.rs": "b0b7a4fe873aa7ae267cd8fb52497844ae0a789387ab09a9986679c7d6b69c62",
+    "crates/oc/tests/configured_workspace.rs": "cc2ac71c8e5bb6e84341d9af0a1c073125c404e5f755a98bda405a050804c047",
+    "crates/oc/tests/dcp_runtime.rs": "11027a9d6dc2477b91bb67ed3b8a7f2ad80838c1e1218e076a54a10ce143a375",
+    "crates/oc/tests/durability.rs": "ae7d528460b64b80919e873ab1356067654655de6a3772498cd22f09e9ce7590",
+    "crates/oc/tests/golden_binary.rs": "bc2cf88a5f20f658d316224846dd11b813f00fe717665637c173e37fb3277f87",
+    "crates/oc/tests/live_bounded.rs": "5b225b43421d5bbcf397b83fba7a3d55f20ae1752d4286ea62e649b42e17bfb7",
+    "crates/oc/tests/mcp_application.rs": "2392a9a02d165eef07b1ac8d2df22740d103dba6f12cb03367fe1f89649019ff",
+    "crates/oc/tests/memory_bounds.rs": "80f0bc51b5026bf6fe64dc88a72d6a66509502984aa274f1d08a44d8d46c0fd6",
+    "crates/oc/tests/pty.rs": "5ccb72bc231a23f34edf82e6a1b8b55669910e11b137954b8c5b33aaa3e48a93",
+    "crates/oc/tests/pty_t39.rs": "882c03f499e55d95bf9345bb7230073f8df8c52b3e9ebe2c9b9c3ea42fb49ce8",
+    "crates/oc/tests/pty_t39/interaction.rs": "0fe61e458c4c3da12599bc451ced7336ae6e4a3a62cc5873b4a24bc8ddb1475b",
+    "crates/oc/tests/pty_t39/lifecycle.rs": "b7d363e202bdc64318e7e58fbf7a7cb003e86279db4a8495e5d266379542229f",
+    "crates/oc/tests/pty_t42.rs": "d6b0da8cad6a1fdaaa111506eb284f04d71052d5ff56edd60e1990fb766733a7",
+    "crates/oc/tests/recovery_startup.rs": "90a08f425f8e22b4503f11bfa5bb6cf48aa61bfd2d330e127ebe723e6944f7e2",
+    "crates/oc/tests/recovery_v02.rs": "f32d54a64070b988b4ba8ac1ecfccf63ff01c831a839ddfd5ba16d0b8efce4cb",
+    "crates/oc/tests/recovery_v03.rs": "754dccc76891e7a801cbab883fb734cbd71a102976772e592afc85321d192162",
+    "crates/oc/tests/responses.rs": "fd1b6e84fcb63a6728e9895abd18faa9e5d4456bc6c68253d2e1e2a125b64a73",
+    "crates/oc/tests/support/discovery_startup.py": "d7af7bb5d59161726a60e00f8007fdd64704c219b2c0e4fadf41a7605d77748c",
+    "crates/oc/tests/support/geometry.py": "fd33b20bf6373854309cecd80d5b917e882a27beba320b2ee25e05c470b218bc",
+    "crates/oc/tests/support/screen.rs": "cce51131b9f0786e5312fd66168d80e1da238901ed193459de8e496ec37063ba",
+    "crates/oc/tests/support/startup.py": "0db0ba1979d61cae56c58a3157bba3e961bb6d299c9b151a81adcf8d9f36b69d",
+    "crates/oc/tests/support/terminal.rs": "74ca1a73b2a18baab4c25bb17f7e225ac69246b2970f97eb7733d303bb78db89",
+    "crates/oc/tests/support/title.rs": "649fbc875c894a44cc2ec414659aa7f01f6952d8b9f6fb946ea77399af208937",
+    "crates/oc/tests/t49_live_smoke.rs": "75acbdb157fa4f333b6d4937676311cdc0c447c139a68ce4b93e8849db2f3ca8",
+    "crates/oc/tests/tui_render_alloc.rs": "257967ad8e12ea013ae5d08870ef7a26f420cd20dec59e3a80295e8ffa00366c",
+    "rust-toolchain.toml": "b364b7e44eff5aaa6f8f8357d2536dd284fe5af3c3a64eea4f6d0555d79c2c7a"
+  },
+  "native_sha256": "d28c457f67cdf276e199955580a60ffc21f0ebb3256f56dd9c9046a153ad67da",
+  "reference_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+  "reference_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "fixture_sha256": "16d41d4731f23480844b2cd040289bef6b6f0d0ec8a62606b8319ebcaa867f23",
+  "commands": [
+    "/usr/local/bin/node",
+    "/home/opencode/ai/oc/scripts/tui_capture/variants_capture.mjs",
+    "--oc",
+    "/home/opencode/ai/oc/target/debug/oc",
+    "--native-sha256",
+    "d28c457f67cdf276e199955580a60ffc21f0ebb3256f56dd9c9046a153ad67da",
+    "--reference",
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "--output",
+    "/home/opencode/ai/oc/evidence/tui/recovery-v00/variants-paired20260928-02",
+    "--columns",
+    "120",
+    "--rows",
+    "40"
+  ],
+  "profiles": [
+    [
+      120,
+      40
+    ]
+  ],
+  "attempts": [
+    {
+      "name": "oc-120x40",
+      "status": "FAIL",
+      "reason": "Exact native persisted choice cycle-0: []",
+      "checks": []
+    },
+    {
+      "name": "upstream-120x40",
+      "status": "PASS_ACTIONS_CAPTURE",
+      "checks": [
+        {
+          "label": "cycle-0",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "none"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "providerID": "fixture",
+              "variant": "default"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-0",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "08baf5890a115205b70c6a3b6b96b1987a5e65b0",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "cosmic-eagle",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790609898000,
+                    "time_updated": 1790609909506,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-1",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "minimal"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "providerID": "fixture",
+              "variant": "default"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-1",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "08baf5890a115205b70c6a3b6b96b1987a5e65b0",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "cosmic-eagle",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790609898000,
+                    "time_updated": 1790609909506,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-2",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "fast"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "providerID": "fixture",
+              "variant": "default"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-2",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "08baf5890a115205b70c6a3b6b96b1987a5e65b0",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "cosmic-eagle",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790609898000,
+                    "time_updated": 1790609909506,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-3",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "low"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "providerID": "fixture",
+              "variant": "default"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-3",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "08baf5890a115205b70c6a3b6b96b1987a5e65b0",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "cosmic-eagle",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790609898000,
+                    "time_updated": 1790609909506,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-4",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "medium"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "providerID": "fixture",
+              "variant": "default"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-4",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "08baf5890a115205b70c6a3b6b96b1987a5e65b0",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "cosmic-eagle",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790609898000,
+                    "time_updated": 1790609909506,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-5",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "high"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "providerID": "fixture",
+              "variant": "default"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-5",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "08baf5890a115205b70c6a3b6b96b1987a5e65b0",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "cosmic-eagle",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790609898000,
+                    "time_updated": 1790609909506,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-6",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "xhigh"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "providerID": "fixture",
+              "variant": "default"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-6",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "08baf5890a115205b70c6a3b6b96b1987a5e65b0",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "cosmic-eagle",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790609898000,
+                    "time_updated": 1790609909506,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-7",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "max"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "providerID": "fixture",
+              "variant": "default"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-7",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "08baf5890a115205b70c6a3b6b96b1987a5e65b0",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "cosmic-eagle",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790609898000,
+                    "time_updated": 1790609909506,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-8",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "zeta"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "providerID": "fixture",
+              "variant": "default"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-8",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "08baf5890a115205b70c6a3b6b96b1987a5e65b0",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "cosmic-eagle",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790609898000,
+                    "time_updated": 1790609909506,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-9",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "alpha"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "providerID": "fixture",
+              "variant": "default"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-9",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "08baf5890a115205b70c6a3b6b96b1987a5e65b0",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "cosmic-eagle",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790609898000,
+                    "time_updated": 1790609909506,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "cycle-10",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": null
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "providerID": "fixture",
+              "variant": "default"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "cycle-10",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "08baf5890a115205b70c6a3b6b96b1987a5e65b0",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "cosmic-eagle",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790609898000,
+                    "time_updated": 1790609909506,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "picker-alias",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": "fast"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "providerID": "fixture",
+              "variant": "default"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "picker-alias",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "08baf5890a115205b70c6a3b6b96b1987a5e65b0",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "cosmic-eagle",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790609898000,
+                    "time_updated": 1790609909506,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "picker-default",
+          "expected": {
+            "id": "vis09-model-03",
+            "variant": null
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "providerID": "fixture",
+              "variant": "default"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "picker-default",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "08baf5890a115205b70c6a3b6b96b1987a5e65b0",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "cosmic-eagle",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790609898000,
+                    "time_updated": 1790609909506,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "model-selected",
+          "expected": {
+            "id": "vis09-model-15",
+            "variant": null
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "providerID": "fixture",
+              "variant": "default"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "model-selected",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "08baf5890a115205b70c6a3b6b96b1987a5e65b0",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "cosmic-eagle",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790609898000,
+                    "time_updated": 1790609909506,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        },
+        {
+          "label": "final-selection",
+          "expected": {
+            "id": "vis09-model-15",
+            "variant": "fast"
+          },
+          "observed": [
+            {
+              "id": "vis09-model-03",
+              "providerID": "fixture",
+              "variant": "default"
+            }
+          ],
+          "snapshot": {
+            "kind": "owner_snapshot",
+            "request_id": "final-selection",
+            "observations": [
+              {
+                "table": "session_v2",
+                "rows": [
+                  {
+                    "id": "ses_vis09_presentation",
+                    "project_id": "08baf5890a115205b70c6a3b6b96b1987a5e65b0",
+                    "workspace_id": null,
+                    "parent_id": null,
+                    "fork_session_id": null,
+                    "fork_boundary": null,
+                    "slug": "cosmic-eagle",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project",
+                    "path": "",
+                    "title": "VIS09 Presentation",
+                    "version": "2.0.12",
+                    "share_url": null,
+                    "summary_additions": null,
+                    "summary_deletions": null,
+                    "summary_files": null,
+                    "summary_diffs": null,
+                    "metadata": null,
+                    "cost": 0,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_reasoning": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "revert": null,
+                    "permission": null,
+                    "agent": "build",
+                    "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+                    "time_created": 1790609898000,
+                    "time_updated": 1790609909506,
+                    "time_idle": null,
+                    "time_viewed": null,
+                    "idle_outcome": null,
+                    "time_compacting": null,
+                    "time_archived": null,
+                    "time_suspended": null,
+                    "resume_attempts": 0
+                  }
+                ]
+              },
+              {
+                "table": "session_message",
+                "rows": []
+              }
+            ],
+            "client_persistence": [
+              {
+                "path": "state/opencode/latest/tui/tabs.json",
+                "data": {
+                  "global": {
+                    "tabs": [],
+                    "unread": {}
+                  },
+                  "cwd": {
+                    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-02/120x40-shared/project": {
+                      "tabs": [
+                        {
+                          "sessionID": "ses_vis09_presentation",
+                          "title": "VIS09 Presentation"
+                        }
+                      ],
+                      "unread": {}
+                    }
+                  }
+                }
+              }
+            ],
+            "requests": 0,
+            "readonly_sqlite": true,
+            "project_files": []
+          }
+        }
+      ],
+      "requests": 0
+    }
+  ],
+  "captures": [
+    {
+      "name": "oc-120x40",
+      "label": "normal-default",
+      "files": {
+        "cells.json": "2bb61ca72b76051e4259748ef9c67a00cc91cd39ea7bc8a601ba4ad353460604",
+        "png": "8e6e1b68804501c46b538cbef65d101942ffdea34624cf6c421bcad57d8110a2",
+        "vt": "2b4f301efba4688dec1faa07a0f084e858150affb817cc917f69fecbdee01d35",
+        "txt": "f61372fcda005b7e15b23d3fbb5a75d0a69f7c8eab3747c307bdf33760517300",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "variant-initial",
+      "files": {
+        "cells.json": "dfe87a6ba1c7d0b3e79fc149eb2ac9855aa38206cc0850128479b7f3631344b3",
+        "png": "76816c9bc7071d4cd297a9f5a8d53e25fe0d1ae125701b1ebe62b858e7d46396",
+        "vt": "bf9493c45fd313673d00017961af4259c70198f0be5c01f94bbe01d9c440ca1b",
+        "txt": "603d26d65b1d721e0ee4d02df9e87878f07265c5c80d233c6254b4d6ab008159",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "oc-120x40",
+      "label": "failure",
+      "files": {
+        "cells.json": "5f04c6dfeb7ebd673f0d426530a6646249805cc2dab6f13e97badea0f234c19c",
+        "png": "58230ccc2813317eca98767c03836eb0b3ddf78a5ef05ab349724fbb2c6709ce",
+        "vt": "b30066252ed44c7c2d92e22e600495bd502c974a8369beb322372eb1fc56c5b7",
+        "txt": "9b73940c3036fecf0c570607300149bdfc4cd57c36e1b9707c0300dc66a8dac5",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "normal-default",
+      "files": {
+        "cells.json": "5d6e15a5f616e8cd08925a97c470f4222615ec60997fa59fcfad47429c0c82b3",
+        "png": "8e6e1b68804501c46b538cbef65d101942ffdea34624cf6c421bcad57d8110a2",
+        "vt": "f8ba96cefe6f2a06855305a0b0e75fc4b2737358ef39309bfb3cd4604d879f59",
+        "txt": "f61372fcda005b7e15b23d3fbb5a75d0a69f7c8eab3747c307bdf33760517300",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "variant-initial",
+      "files": {
+        "cells.json": "1c20a8667d46255759ea6fe4bcdfd3a74b1398bc7e283dd1a65adef2235bb0c5",
+        "png": "3fbf5f7a79a1c6e8a7971ab329ed72e42857bff0722a6f913ae013f5d1a28921",
+        "vt": "bed5ab13065aaba3e4f09821fc6901b74c3e592af8e962411f9665c3001274e5",
+        "txt": "603d26d65b1d721e0ee4d02df9e87878f07265c5c80d233c6254b4d6ab008159",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-0",
+      "files": {
+        "cells.json": "ba25b887e8efcf3041d0a99862021d723cc0dd5fff2ef7973b23fcf3f3d92ba6",
+        "png": "58230ccc2813317eca98767c03836eb0b3ddf78a5ef05ab349724fbb2c6709ce",
+        "vt": "4f2bc371adbebf2d8ee9d580ea6c1c648cff3a44fb04e86b0d81fabd522281c0",
+        "txt": "9b73940c3036fecf0c570607300149bdfc4cd57c36e1b9707c0300dc66a8dac5",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-0",
+      "files": {
+        "cells.json": "2f7e7555771103ac5a5197c51feced02c52957764ede4ec007be3107f6d8bc9c",
+        "png": "fb4473383d33a8ac931585e05d2f86e26da973ca990a38ab550dccec408dac6f",
+        "vt": "ecc0607b4a1105a03fd2f43e2ef4a51e59d6b9ef17d39f3ecb6358e56c297a26",
+        "txt": "cd1b2938df90c7bc984869ee716ff9a5791f3734cf685f5dbbfc65cf3282352b",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-1",
+      "files": {
+        "cells.json": "b8633870c4bd841875844a8b44dc481f4665923ce002fffe86254a0f3b8100ef",
+        "png": "6c53ebda7ffdf6c205532782eba404fa503542e2e9a7b4b1d932b43f47ed3815",
+        "vt": "b3754a29e1360d70f48265906bae80688626f1c5a1645f25a3ac9e21e4186531",
+        "txt": "7ca0aa1d7ca041143b7b9a504fc0e2db689217c2c93da386c17c3a1e900ca59c",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-1",
+      "files": {
+        "cells.json": "79b010ade4fe3113fc2ce8f5bc8103bd4d1c8c63da38c1b235185dfb8fd916b0",
+        "png": "72a0be01d366ae0c811ee7414ec844e0793a41d911cba1c48f74658a0d836f1c",
+        "vt": "a9938e28fe05bdadeff71aaaa8c705ed9c076b1df1c4d73631148ba4e9141a3d",
+        "txt": "07a36f5bd0240043b8fd109693e868122415889c4955802a8c59c71a49dc7bc3",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-2",
+      "files": {
+        "cells.json": "ade672a0ecfe2e4ed255c8f8f2ae24e692822e93ea04183bd3fefcb8568d28fe",
+        "png": "9de1b0fc84e7dd97569c6c6ade012d9dfe3d8c0dd3d8c7ab035e7cb2de2384ff",
+        "vt": "fdc6191c266abe9bf5e0640ce5f9c20d9069f4d2eb6b7199bc60ab0cd4988c3f",
+        "txt": "baa1ec08494f677682769157fea1376b5b41f14fbe86e6b292311d7a92c0337a",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-2",
+      "files": {
+        "cells.json": "2e91f8fab57aac5d24aa8e4569fb54c99ab0ad48686c52ed78bc39687dd690be",
+        "png": "f1898453212da36aab987c021c8d8e8c11e65a64c53d1de4621d4db5b81f67b0",
+        "vt": "25ec1129e38ab11b55d2956d033c1985d95489c065df7a8941b13e6f5f34ccb0",
+        "txt": "1263b2acee8737b15a452c47fe35060bd86806c4208a12143353480c4c49a0ca",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-3",
+      "files": {
+        "cells.json": "b1c5c6dcec3661ebd45190e1dd7e7d5cce80b7a262822612d818f45aa7a7013c",
+        "png": "83bd8e43af620a74afd5742b8cff9bd385b780a188b94e631a68eeaf9a3ea31a",
+        "vt": "2388bfe0cb83bbfd7a1ae84c9b532eb757fbae5f39614e607eceeb7b7e60b13e",
+        "txt": "937d1ba45c3c9e22d0b048676712a6ad3dea1107e555ecdf1101ca46e8b4038b",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-3",
+      "files": {
+        "cells.json": "996c34e67f92b365b0a9c407ec76a9eaa89c00b03d3dd18fe82a82be798bacbe",
+        "png": "ee3a0ff4ee0f9f77b6115be4e5b433b11a67674e3f1263637e673145b7b2fdb7",
+        "vt": "373691a8218a7d24ec817ccc91436324e50e223a3474b73c47b6ed54836ac80f",
+        "txt": "634047d4d4591fd8a8e522383091a3f4129601e98884d8ac6603a0232807078b",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-4",
+      "files": {
+        "cells.json": "77289d94affddbd9f704bba28dcd4e7d398e4a5924a80f2da23f563fca6a6191",
+        "png": "ad1ca77b225bc17b40e6fa775efefe11b4cd0d6198e039ba9c3f590334bd34d4",
+        "vt": "0db9d5bb95ede2213a80ef0631a607722970e85a55cf667c147ef2b310cc4c7e",
+        "txt": "6d9564c5881e1e4fef40676669b67cff8097c2acf8c25ddce107ef34f050e614",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-4",
+      "files": {
+        "cells.json": "4a67cf327e6d72bfea62017ddd17f97f3a61c4f33bfb64fd5c2380f5a24c805f",
+        "png": "570ee3d984d95938ce5c1d6b9cd3ff207bdbe9eda30ed865d06818d378ff9032",
+        "vt": "041b21ff2d7477a39ee92fffd411fa03823e3b8159416d6efe40ee7e82eafb1e",
+        "txt": "223bc1402a20df53daab7925737eb54490ef77d275f3ea5af2775b88eb5febd9",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-5",
+      "files": {
+        "cells.json": "da19035603ac14d402af6d2ec0a174e5f33772874dc745133cd4885d1e4df4e9",
+        "png": "e219431ea15af3b46dc9cb8479e587c9b1e3a84d927ebf3ac94748669386f71a",
+        "vt": "d8f32503e73506cb9ed653490923b00882721d0cfbfb58359842e2be6b728144",
+        "txt": "47e062089c8d919141ff142788de4bd35a1a5db9c652edbf0f32f678ad382724",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-5",
+      "files": {
+        "cells.json": "f48d126b6603db4e841219ce94432377005658beb749644daf49ef19da26cca5",
+        "png": "3febc895cef79f42ec077cd1273dcb592b23ff24143e349919cf2bb1faefe285",
+        "vt": "2b9587dfa84e33a4e94f3dc332d4867dac0a26018123b9ec04d2d40953be231e",
+        "txt": "57671923871a5752bfda3d9a9f952b48b29206639576cdb4cafff8b64aa7690a",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-6",
+      "files": {
+        "cells.json": "da2e3baddba127c4188f5e7c54a647331f63a0a6f034fd7ab28cdfd95dbfb0cf",
+        "png": "33058b3f2994f92c9d55a8031b895cc8e2af6d3a600462950ac7e72f37ea1d10",
+        "vt": "508de8aa6d26d7c69282e265f726d46c2c31013a5cd375c57e69247dd86b2cd0",
+        "txt": "28ec57a7955d2071cfadd7b2f241c32d18e27df8f9a780bded861b832a3f8181",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-6",
+      "files": {
+        "cells.json": "238b1d79fea111258c41813e237a4eea2bb07d43f944ae6f41dcb9ab73d1f9b5",
+        "png": "eadc98e32b50b01edbcdb69d35067667c539b1b876ace71cf3fddf92089d58fd",
+        "vt": "a75a3b131ceb5a621cd522d480dd9dcd6657194691c3185e1650bbfd1ea190a2",
+        "txt": "88e8c88c5003c499b39f9233a161cd5166f9f00ee9ded1dfbee743d31226bf6f",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-7",
+      "files": {
+        "cells.json": "dfe65a8c3874d3e38021d8b4490f08c60a2b502c9ed7039fa8b631a7ca1e1707",
+        "png": "7aba705295ff0ee521153333be5ff84c06f0c342d5bec0245c3b79a6ed940a3a",
+        "vt": "3d367aea7e9a12ad9b5a83ea2477227225a53d12784c64a3ca67a57167793867",
+        "txt": "b10f57e101b227aa557996f1baf237cb6025051ef7d121b9bde55bc3c4c67f6e",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-7",
+      "files": {
+        "cells.json": "dbd5f503178bc18180d6c1e7577f3430cd2d6f88bc5479534aea3ab597053d5c",
+        "png": "2cdeaf20026a2fa189987e9bd12c6db97dad4ceef83586f09f5c2e8ce8c82361",
+        "vt": "2b94a08353472046ebf07b62118959ffb97f92f54dd42e1846757f4c2aa45710",
+        "txt": "1ad8d9a4e8b5a6204e7d365aba498a5f722a406d59067331fdbe21e3f6302e9f",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-8",
+      "files": {
+        "cells.json": "aed2103d361af5231280fa202222bc796e7f826469f9353b78f8a40cfe50846c",
+        "png": "87ac2c7f7c005f59c74ca202fcd7a8e9248353abd157be27338a1f9ed772713f",
+        "vt": "8050edba8d2c68e7159f599a3dafd8cb9724e7bd0f8d9a050e9b84177071aabe",
+        "txt": "441d611f038ac74e0351ed481b2af1d3dc4d8eee4e2a8d006e41229193eaeb6f",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-8",
+      "files": {
+        "cells.json": "3b44f6d392a068226438e0359825be72e3142790786c3bb48791cc01575f8ba7",
+        "png": "c624c9f054e4d8b95c88e597468f68c516f37c49848e4ab5f8771bf8f388c770",
+        "vt": "f0f8b43c63be064ed2f100476bb744191dabeedc4ef8252004318a86cd21305b",
+        "txt": "3f510fb09453c6ac38a2db9e9078b69184ff43e385e6f67be2cb8075f7abc06f",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-9",
+      "files": {
+        "cells.json": "6877b7db8a02784a53e650dec1e2a5ea756721015b1477d3b09f5b96df9ef329",
+        "png": "2285136db4a42021e8788d19ac4857820b939af1653e7749c73e4be79fee9d04",
+        "vt": "fca851bec4ece02ae178649e399290b360abb041132ef43d58b5428e3e040c99",
+        "txt": "52dd3bce1a0a874c14a7a6bac5ef2b23fe9786030e9e9beb957356bd376459c5",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-9",
+      "files": {
+        "cells.json": "d1529cc96d9cdc0355bd28f19592c1acee16971c0b93afab809c1402ca5cbe06",
+        "png": "96e13736b2b5dea22973a88038a145ea48fc208900ea6f05338415b48056f702",
+        "vt": "86e952d8bfaac7ddf14036ff3bca6b166ec592d70d56bdb53a5367e7186dd207",
+        "txt": "04b2d31dd052e1eefbff9b9f5755d80dff2524e3e43c9ab2622d907e7084475e",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-10",
+      "files": {
+        "cells.json": "01b3e80b92a272f31aebdaee7563a19f6b6752c28a0207b0a5486bec4cd20f1e",
+        "png": "8e6e1b68804501c46b538cbef65d101942ffdea34624cf6c421bcad57d8110a2",
+        "vt": "ff9071a8476bd28594835917a3060d4d7f54c77cf69099678b7d35e0446ef3aa",
+        "txt": "f61372fcda005b7e15b23d3fbb5a75d0a69f7c8eab3747c307bdf33760517300",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "cycle-picker-10",
+      "files": {
+        "cells.json": "455a6eff2412a4c757afbb5fee679b5367f241a0845ae6fe902c3be8e29ee2a5",
+        "png": "3fbf5f7a79a1c6e8a7971ab329ed72e42857bff0722a6f913ae013f5d1a28921",
+        "vt": "14669cdd574814eb20ce067fd6b7c03f1015bef845684e3678ce1e65ded81e18",
+        "txt": "603d26d65b1d721e0ee4d02df9e87878f07265c5c80d233c6254b4d6ab008159",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "variant-filtered",
+      "files": {
+        "cells.json": "81034c06ba33fa86bc08e394f213f7d379bac855ef12c3d60eed72198fb782cb",
+        "png": "9aded61b4815e9899036512bfd98e1224547c5d9ae0c6f8df36101658e820744",
+        "vt": "5309bf64e2f968f8cdf8e59a997acb6fafe843e8071eee57b124ae235f34b67e",
+        "txt": "b9b837ffb114b4eb24731998add2c1046d6dbcecef95480fe510da41ad184b1a",
+        "render.json": "0b5486f846b4b63d04a844a3acbe9b290ab59f099c69938bc32cfd312320ad8c"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "variant-selected",
+      "files": {
+        "cells.json": "2473acf4dbfadb13b5680352ec1e07c556a72c269c1d61b876ef36930dd15ab1",
+        "png": "9de1b0fc84e7dd97569c6c6ade012d9dfe3d8c0dd3d8c7ab035e7cb2de2384ff",
+        "vt": "6eb943f2d239d6482ea14230783b0b8b7073f7a30d0a3169bba76aba0ea85f19",
+        "txt": "baa1ec08494f677682769157fea1376b5b41f14fbe86e6b292311d7a92c0337a",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "variant-reopened",
+      "files": {
+        "cells.json": "60ce4c3fc3cef7db2b49df46dc75abf039b99350c378e275f703843f6aca4f29",
+        "png": "f1898453212da36aab987c021c8d8e8c11e65a64c53d1de4621d4db5b81f67b0",
+        "vt": "b64c05a0afa5cf6dfb24756f1a58ae888c37b5bf3a7506d5fc9593fd130bc23a",
+        "txt": "1263b2acee8737b15a452c47fe35060bd86806c4208a12143353480c4c49a0ca",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "model-initial",
+      "files": {
+        "cells.json": "4882b50035beda41537e888eff095d4578330e1ef74cf1639c94c1292ac5d94e",
+        "png": "888c904cbd79388030440af7f6dc71113e849061f273ac0aaa2fd8b9a8ce9b72",
+        "vt": "3038ddccea82a25202c819c06497c0d3a8b5ef46f76421d6d05b3aa72253f62b",
+        "txt": "d22d1dd78e8a602f73db2f3e79bed55c4d0665ae7eae255a714a270fbb0f6a85",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "model-scrolled",
+      "files": {
+        "cells.json": "3bdcbc36f837f6193fd3d3f264a9ea5b1dc91ce03bc4658a9084bdb782ba8b72",
+        "png": "342ef4036b06499db5e96af5deeea4018ded0469f876ad36fe3f75ef44f8eda5",
+        "vt": "adb910d4ad79309970513776edc699e1021ef244652e33159f053095486910a9",
+        "txt": "e9e14e2363b5cec9547efa7baa79ef718315e2fb58eaa7abc5fe74853156c7d1",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "model-no-match",
+      "files": {
+        "cells.json": "be5ccbdcd1cfae850e2e7509e48ba2d44d02e57301261e308f67420fc9cd7ab2",
+        "png": "e52f3e250cd7a1a387a1bb0dc865b117ee49fb275dff947336e559608685bd04",
+        "vt": "d5b01a4e128666ae68bd7246fa7397b5c04e9f3e40618e5db0dac17f58da7550",
+        "txt": "ea29fc0cf87e6a1ca9c999231bf4d09d07af6baf80301c39913c4eb896a1e226",
+        "render.json": "3c20ea07366c4dcf8efd1a4342766e1c7fcea63a631db2cd06d29baf38bc7abc"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "model-filtered",
+      "files": {
+        "cells.json": "2836bf91896065b410dc2a4f9fc6793f1a5c29931e133828259cec3ed0c3ddf6",
+        "png": "92251b92d978de61aee13c9512c84dc6a735138fda0c68abe6defc8dc2c9715f",
+        "vt": "ff0c71b84465d3506db52ba030815fc439286d293311c6694cfc23ca0c3dbf29",
+        "txt": "b6a2215f7e7e80132ad17330dd9a7f461c4c0377e8e77b38d044923c0535a373",
+        "render.json": "e4c742906f1ac51747c65203c9d117b288762a7fa9fe0bf3078cae7478020eff"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "model-selected-variant",
+      "files": {
+        "cells.json": "15b38b3ed498798a7431d5e71732aa070be36d748badd9a7eca5c372a193743f",
+        "png": "4abf9baebcb852c3151c89365e4e1c085883fb560c556853d07ee7ba0b739b2d",
+        "vt": "1944e0bfeb5b826e7da1ec90dc4326326a7730e7102d893a938e803d856709c5",
+        "txt": "e540d7691edbfdb7f94d70bde385afee2b445e37950ac2c833bd4d4c5ec99f2d",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "model-selected",
+      "files": {
+        "cells.json": "46966702e8a8ba8aa6d60f29c4b1aefbb00646b23b3934cc31cd9291ae574717",
+        "png": "6eef5ed422e8a8199395616244a809f799ced97dd136dc4df7d1f1e3ebcafcf9",
+        "vt": "5d068744a7f9a7b53a9ac65b1c4c4a40ecb35b41cc10a0092cb8c2f2a8df830c",
+        "txt": "43a9737fb3ff7fddadba605060ddb2542a969e3cfff5f2e629955892d43c28a5",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "model-reopened",
+      "files": {
+        "cells.json": "8e47660d6372c49e16cf13d3cb5f062be14901031fd2da43425ffa71a2be8f49",
+        "png": "d2654ed9325a70dd65c139c8b12e01e19b3fde5675ad3d0f1e4bf2a499849291",
+        "vt": "326e95c2a69501fb0f4520bfaf847bf52f2640e62ede6b15dedb6e9d09cefbb9",
+        "txt": "70416b9ef5acc0cb338cd4e775df69f32a9f95e6647c9c131486e3ef684c6d15",
+        "render.json": "3997de535bd7e48df059ffe6b809f90919dcd8959d144fd66a1f2f1d16e5083b"
+      }
+    },
+    {
+      "name": "upstream-120x40",
+      "label": "draft-restored",
+      "files": {
+        "cells.json": "bb5a6baaf959d3f05699666936a367b5dccdb2a3683f0f3f2e7f6ad346593cea",
+        "png": "6eef5ed422e8a8199395616244a809f799ced97dd136dc4df7d1f1e3ebcafcf9",
+        "vt": "f4ea0773dc9c3a8abe1841e767a7b12a3a423e05c07c09d16c2db6b24fe66cb3",
+        "txt": "43a9737fb3ff7fddadba605060ddb2542a969e3cfff5f2e629955892d43c28a5",
+        "render.json": "e558b2f753f3b69cdb23ae595262051ae67b4106883b14bf6558491a49ae3a6e"
+      }
+    }
+  ],
+  "helpers": {
+    "variants_capture.mjs": "f71429bb2cc27a6eeeae3ffac2342b648696b4f12bbb6d43271e63df0904835e",
+    "variants_bridge.py": "8f1fc045dbb304cad6a3afa4a90756546578b8e5aef6a27e8ebf2c9a33302ef4",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e"
+  },
+  "reference_sources": {
+    "component/dialog-model.tsx": "0369c5f395043f6ae3583ff1793fa3795c225ff515fb97a4be71a51fd15aab36",
+    "component/dialog-variant.tsx": "deeef517482eec2ee07fa93e96549959f57aa61fcd14b69e05674f611c759d29",
+    "model-preference.ts": "05ee028d04d364a5b72784d878e30a4ed3c8d5c78f51680912512518ac2a99b0",
+    "context/local.tsx": "7a9cb135cab419641d183f4918eed2f10cfdb243eea5e223b1a8cc0bf8f1afff",
+    "ui/dialog-select.tsx": "d61c485356900bf1ed39dc696a378c1889804ee3783c9d9f62ed863a8c72260a"
+  },
+  "mapping": "Native real public rename of genuinely empty session -> original public transfer/import/export only. No native history/pref injection; no masks, row normalization, version replacement or donor rewriting.",
+  "shared_behavior": "evidence/T47/canonical-effort.md; implementation 6cf1cdc859",
+  "qualification": "Per-frame full styled-cell/cursor/PNG equality required for canonical. Unsorted is an approved order difference, never global pixel PASS.",
+  "frontend": {
+    "chromium": "145.0.7632.6",
+    "playwright": "1.58.2",
+    "xterm": "6.0.0",
+    "unicode": "0.9.0",
+    "font": "DejaVu Sans Mono",
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "padding": 0,
+    "unmasked": true
+  },
+  "native_sources_after": {
+    "Cargo.lock": "8d8718e1966bf60373a514d2a5b4bdfa516c8e11b054d9c09373a28684a4453d",
+    "Cargo.toml": "e5e3d488f5381f9b7452d51981a42096fc370f5e2f074c56c37e525210b9e76a",
+    "crates/oc-adapters/Cargo.toml": "132625b8f7dcda76443c015866d16242bebda894f652bf008d555dbb1aef18b8",
+    "crates/oc-adapters/assets/upstream/PROVENANCE.md": "2f3d5eab575430e352b2244d1a1daf9a5b8c27dea50417141dd666822003d951",
+    "crates/oc-adapters/assets/upstream/v2/review.txt": "727292c08ee718fff8852ec91408a255ce08c716b3d46cc56be3d399589e3479",
+    "crates/oc-adapters/src/admitted_fs.rs": "175c40ea26de4e83610f94f45f20d66d8132cdac6d7e483e5891244e0c98c3b0",
+    "crates/oc-adapters/src/application.rs": "5eb741a1b02c8ee42e6094c4058e5c35c2c5c2b307e19fa95de1c6c3210ef5b9",
+    "crates/oc-adapters/src/application/tests.rs": "2caa37cb6027115b983350a5307daa0ce512fbcf2020bba56ef681be618f8ee7",
+    "crates/oc-adapters/src/application_conversation_tests.rs": "3af08469aa81a990fe391ab15e7d2735c2cdfd94fad103e5927ee3200a40800a",
+    "crates/oc-adapters/src/application_fork_tests.rs": "1c7c5a4a8fa79acd97a1cee79d364285523656df36c0bf780a02f5f4aaccb964",
+    "crates/oc-adapters/src/application_selection.rs": "732bc4e9eccb14ede85ff274e47a6a5f6a7253bfa885c1c4b0960106af87d15f",
+    "crates/oc-adapters/src/application_tab_deck.rs": "1e489e3719c521ea8f3c7cf4844fe93002e8c0b55afda9ddd4a81610868febaf",
+    "crates/oc-adapters/src/approval.rs": "4a4e5127da60f343d4a24b9703758e66c3d1d33ba208c9d65866d2d494d1adbc",
+    "crates/oc-adapters/src/approval_tests.rs": "1d828cce684a83f9d69976fc0a57bd26b6a1dbac5226e1f5f3a9b8f7b1581117",
+    "crates/oc-adapters/src/attachments.rs": "97ca7933c7e33b85d2e20c4ac4a30e9380148a5b35f9250814155458ea17710c",
+    "crates/oc-adapters/src/cli_permissions.rs": "5bb0050bdcf48c7faf4ad9fb342dff6d9a21c0403baa8495efe00f16033280fb",
+    "crates/oc-adapters/src/compaction.rs": "d183b6254234fe33bf5be043f4e5eca4d226712487ceebcd8d5e890d55caa63a",
+    "crates/oc-adapters/src/composition.rs": "a1726ca5e238ea4ceef953484ec831f37a12da52d09c97f8c7405aad0510ab37",
+    "crates/oc-adapters/src/config.rs": "7ec366b6b94d9eecfeabc6cb2bfc6bf224ab7828aec4cd635c9901627be62152",
+    "crates/oc-adapters/src/dcp.rs": "7b29385071ceb806586bad104af61f67d515a5bbb96a7a1c04dc95cf2d700b34",
+    "crates/oc-adapters/src/dcp_auto.rs": "13aa09982bf9da779b42f1563a1e465f5ea341fe90d2e100511659e82c5711dc",
+    "crates/oc-adapters/src/defs.rs": "7b270c6b39b7a2b26224940c26a356b1d99755d533522f5a8688f4755554ef64",
+    "crates/oc-adapters/src/discovery.rs": "fd064f0d0c133f0cde10a354a0532ff84e3cb35700e0c1f1fa0669983b8b1c34",
+    "crates/oc-adapters/src/files.rs": "926bd1f7040368501c8af5bff2f0b7184e8dae84b87f0d4791ce726c10de2b50",
+    "crates/oc-adapters/src/lib.rs": "5b3ca33873b626baa19866274710594e91c453a74d959b55e1841ef7cec0c4e5",
+    "crates/oc-adapters/src/mcp_http_lifecycle.rs": "797bb9a8ff61dd98ddc95ffca10da844321bc0a2fe64c63b1c69ad1b3f9775c3",
+    "crates/oc-adapters/src/mcp_remote.rs": "e1b74c0774b8e4773e560d4b54cbf863735f0b48ffa9089cc26f6eff66687381",
+    "crates/oc-adapters/src/mcp_result.rs": "3f2d0616b60035cfe4f40d7f0b8ad51bdcdc42ba6221cee6e4ebb7207e58c76f",
+    "crates/oc-adapters/src/mcp_stdio.rs": "c62f60390ad433975304eec64f04879fb6025de00ec778cc7e5af628076c6c8b",
+    "crates/oc-adapters/src/models.rs": "9363adcb64f19719f89428d6557cfa925da4a28825139b7afe02fe5dc7abf64b",
+    "crates/oc-adapters/src/models/tests.rs": "7c4328e617ce28fa759469003b0fb625cb933cb6193e5ece859c63395cae850e",
+    "crates/oc-adapters/src/patch.rs": "f7b15bb7e06a62cfb4f2613eb38a16cdd852012afc8125a5411741589787bd46",
+    "crates/oc-adapters/src/patch/effects.rs": "397d17a466bf4bc9fb7e3b6c1bf455220a466ba68b96a0b70c413bdcdbf8ffa8",
+    "crates/oc-adapters/src/patch/fs.rs": "843d54a6a62a602fa51cafe2d12b7fb3a778ae7f70b55ea05335e92f6a02c5e1",
+    "crates/oc-adapters/src/permissions.rs": "f8e8cc2fb6b92196bcdd319feaead16e9f24c447052acf8fb9877bd1ac87cffe",
+    "crates/oc-adapters/src/provider.rs": "8e5b17b2e44a17d583b14315b42b387afdfeb9a846de4a23ccee40bcd0efc9d7",
+    "crates/oc-adapters/src/runtime.rs": "41aa9aeeb708a75b1be8f144959783333d06b2e5c551ba01be169bfdecd44764",
+    "crates/oc-adapters/src/runtime/context.rs": "0fd86f3ea1b4f95da489dbdcb831f78df54c55a4548c8664b7034e08322890d6",
+    "crates/oc-adapters/src/runtime/mcp.rs": "8ca2dd9b77f9ca5e8741465bf974acbfe82dfa0425e925ded0a5a93fad084a6e",
+    "crates/oc-adapters/src/runtime/tests.rs": "953a49c69510a97a9d189e1c609e26c0d17601898d84f9f1dcaa8c55f5a64dce",
+    "crates/oc-adapters/src/runtime/tool_stream.rs": "867c2c1229af912067cdc9cb0dc4a5ffabbe27ea7050841152d94cf0f34173c2",
+    "crates/oc-adapters/src/runtime/turn.rs": "f6ce5ff7c9d6dd92a4d5ca5cea620761af841a24f43c522c969e85f9cbd1a765",
+    "crates/oc-adapters/src/runtime_compaction.rs": "8bee31d9d10fdd61ca7c7509f209f4e24c2db9c57aeeb49b84ce32497812d604",
+    "crates/oc-adapters/src/runtime_compaction_tests.rs": "9f4c52976d4c7a34c2c688d7c100beae3e7075512be461d97e89fc85dc470ef1",
+    "crates/oc-adapters/src/shell.rs": "c51156847ec11190a8846d67e9279731883e1fb299d4a3d7b1fa9f8528f6cf42",
+    "crates/oc-adapters/src/smoke.rs": "3579c89f6bd4373040bd1f8d2a62c759eed0cb136417263ef56c515efc3b0cce",
+    "crates/oc-adapters/src/storage.rs": "706645c3a7bbeb85ca8d2c2794fbf6177e8b3a4c275f0977b3b7c4807da90b7a",
+    "crates/oc-adapters/src/storage/tests.rs": "0528317b086c79a1d547172160533acfb7816895a72abb2d2d5286c7bae9b642",
+    "crates/oc-adapters/src/storage_checkpoint_dcp_tests.rs": "412be70c514d7a39f44f79ce0f4b3e1efde1660215046827076e33f3dd751201",
+    "crates/oc-adapters/src/storage_compaction.rs": "3572f5a6f641be98fe119e0a7213ddcfbcbb03f9fd198b3fe4abee7ab7662ff9",
+    "crates/oc-adapters/src/storage_conversation.rs": "4bca0942e7132cb124c4e09adc1a4e91c51cc35a10b9d1ad349cf1bb681ac5b3",
+    "crates/oc-adapters/src/storage_conversation_tests.rs": "cb63787a4851d56ae571c8f778b4eb1c9172c12cef1f9fc639877e6f05b1dddc",
+    "crates/oc-adapters/src/storage_dcp_lifecycle_fixture.rs": "e762c4f757bd17c3a5cfdc8240fea3a11083ee803663e68fc2f57b58a8c7a099",
+    "crates/oc-adapters/src/storage_dcp_view.rs": "5cc6b52b66c13327aa29c8bc99527bb730bae618aabc60e19995762594ce44e9",
+    "crates/oc-adapters/src/storage_dcp_view_tests.rs": "6e0cecc920501acb28aa90af4443f47ff975347f0279f968744f5d144bb00906",
+    "crates/oc-adapters/src/storage_fork.rs": "2192959a6721a5dad8b738bc736aca0f75837d4737ed784b7c88585955632aea",
+    "crates/oc-adapters/src/storage_fork_context.rs": "296d94caabd8bd49ee2efb1b58a441fd2a0be348f3373bb3b6b279f7860643ba",
+    "crates/oc-adapters/src/storage_fork_dcp_tests.rs": "56407f43479bc82808d35b0c2e55b4e261ed857a5ffaccd494f6aa2e0846a4f7",
+    "crates/oc-adapters/src/storage_grants.rs": "63b47e740902e37542030c849b9b19e29b2909cabf536d73e64d8f8b34b75805",
+    "crates/oc-adapters/src/tools.rs": "94328eb09f19a3a726b786f69a7bb53a7a1378f6e23b926e9dd57c940b58675b",
+    "crates/oc-adapters/src/trace.rs": "9504dc77dfc5b860e23eb568afa4f2abf481d15ec8c7be6b641f727d4eeb9367",
+    "crates/oc-adapters/src/tui_workspace.rs": "a4cc6c6263899ad242025936c552ff28115607558faafa942554d37e3b7f5e93",
+    "crates/oc-adapters/src/webfetch.rs": "fcd5726b433e18d47be63bf5496597a29a043ebd879e39be0be2a1b30c160fdb",
+    "crates/oc-adapters/tests/blob_audit.rs": "3da8c3d9a164a46496b539529871f68a63414bc16a65eb3b3396cfc19386e4ec",
+    "crates/oc-adapters/tests/context_bounds.rs": "1151224ad9a0ce938f918cfae5675a7c1b52717874cca8095a5a3ea22e52e74a",
+    "crates/oc-adapters/tests/dcp_atomic.rs": "0ab7df37952fb327916b112250a6294536ad10da90339f8ebb3162884b6c7d71",
+    "crates/oc-adapters/tests/e2e_live.rs": "4a9c0d40d6d44f3e851fde61cbbfa26b22fa5907d5601b700f0bf141b679b6ff",
+    "crates/oc-adapters/tests/e2e_offline.rs": "f7aa58e68dc629242872a057750652d998714fa30a9c8e50cbd344b1ba1e6afe",
+    "crates/oc-adapters/tests/fixtures/approval_lifecycle.rs": "6591f7378486f7a0b2b49014511a670a2d62aa37db56df9173eb176ecd51fb43",
+    "crates/oc-adapters/tests/fixtures/compaction_normalization.json": "88370643949a68fce15915573c3e85d5960192f8d8411bb217e702a1faaa4c26",
+    "crates/oc-adapters/tests/mcp_remote.rs": "95de08ef6ce56f8b8049c303b41eb74d7ecbc2b0735ea9cecda9a7354955b44a",
+    "crates/oc-adapters/tests/mcp_stdio.rs": "2b0bea78d3b275964ca4b9adad1e5393dfe7fc7ec2a14f633f6593bd56ab1e39",
+    "crates/oc-adapters/tests/patch_audit.rs": "8464da4f94ce67fae50653f7bfec5ce5f46bc5504033871e9248c58749754a0e",
+    "crates/oc-adapters/tests/patch_effects.rs": "ed08cb4fe8e78761ee557efcbfaec421be44b5c46c0cf2d39a85a9a93b951b09",
+    "crates/oc-adapters/tests/permissions.rs": "2108c8d5e4ca672e38af9bc4b985275f9ae4d95474a0b8062901fbb20eee155a",
+    "crates/oc-adapters/tests/runtime.rs": "aaf842c811b73caf7a8c834e893e02e060a4f63ae773af861fe99099da76477c",
+    "crates/oc-adapters/tests/runtime/context.rs": "44861c05a48f004f9eaaf330fca4e9ab622f78105fedd12eaf67a16626583629",
+    "crates/oc-adapters/tests/runtime/tool_lifecycle.rs": "a418fbfc59d55235a2800a30fa6bdcf7db90edc17f1c9e6dd4e246e8df485224",
+    "crates/oc-adapters/tests/runtime/turns.rs": "034c3f429e8813b3d3245d0e8ab580bbb02a19ed9d4e28f2710273f08b202491",
+    "crates/oc-adapters/tests/session_rename.rs": "aebdf1fb3ceafb510b01acc40cda2bb422e2c0c3b2db8d4fc82fad0e075118ac",
+    "crates/oc-adapters/tests/shell_watchdog.rs": "0ac9f4f2e7d2a2112780b5bd5bd8dbdc8a4f261609b7e92351bebd6c6ec9c36b",
+    "crates/oc-adapters/tests/soak.rs": "9962206291f52d5d47ef6d407c7b1c3597b590fc51fac1e63941bf23d0b42a62",
+    "crates/oc-adapters/tests/storage_lock.rs": "8d1bdea426ddbffe2f79d9576f656cf73a9cf63ddd193471f75e813bb1978d12",
+    "crates/oc-adapters/tests/subagent.rs": "b6d772e4145e4fadf8a1017e46d02a8986f0d6f19e9a8f9e511076311140f66f",
+    "crates/oc-adapters/tests/tab_deck.rs": "338d432c5906b4e07eee28f24885d4d792537e5dd1491ba227b0730ef004bba2",
+    "crates/oc-core/Cargo.toml": "0182c888635e1408db27c824eab663a6291beee3f658fe757392675a2d589d74",
+    "crates/oc-core/src/application.rs": "9ed0e19d3bce40e2a36425f37b33ba0eb1a94181e0117cf083e29eaeae71cf40",
+    "crates/oc-core/src/approval.rs": "248e96b46cf635199a61a29191586d41b5bc11087362d8a613925768847c4dc3",
+    "crates/oc-core/src/compaction.rs": "500f4c3d380154274072bb7a0c34ef035e2312cacc39d07bc3f945e88336619f",
+    "crates/oc-core/src/context_plan.rs": "19c07416fa4c631529327c3541f5188bc19097e7738dd172d25fa3a29b4b6dfc",
+    "crates/oc-core/src/core_app.rs": "b1c6b5ec7753d323be10e14a0216b3f922e5bf7e2878bec3944e20d3cd8c25e6",
+    "crates/oc-core/src/dcp_view.rs": "74886e66b64736dc163b21daa35ab5a214a1b7dc61ccff5b291d310b7d11f0c1",
+    "crates/oc-core/src/domain.rs": "f2ceeb587ba7cb754d6e652307961530198d3d53853d28ce164bf5e84874258c",
+    "crates/oc-core/src/lib.rs": "9c7406d69121d49eaba5ce6efc9aea7c49b6364156b7eb90eca4b9060e3c93b3",
+    "crates/oc-core/src/patch.rs": "47a03dfe26fd3de36467c28f437b5396b14342e49c3add5a72551730ecd4e1e6",
+    "crates/oc-core/src/ports.rs": "c9bf84cd9218e2c43553cee96a6f949985cb83dfe00dde4a393adf61a6de43a3",
+    "crates/oc-core/src/queries.rs": "8d2dc92261e977bcc7a0ac8cbe5cb3a7639bac0d662ef535bdd09a260b5b28ef",
+    "crates/oc-core/src/runtime.rs": "3734ea8fce8f0767f4acc671dfd3f72a713a3e4694785be2cc2fdc20e04fb38e",
+    "crates/oc-core/src/session.rs": "f7baff30840eba19e72cc90acaf55d8c236be16d3ca537508e07eaf31e6b603b",
+    "crates/oc-core/src/tool_stream.rs": "9259cdd3cd8dc2469c203699d5141c336c5fde7fd196fe24266dde299efc66d0",
+    "crates/oc-tui/Cargo.toml": "3bb2af6f296222e030586170983a1325e2b99c1e6bda95a160ef90a1ceeb04ba",
+    "crates/oc-tui/assets/fuzzysort-LICENSE": "9401e2d038d10f35d32aa1938e674f96fc32a689ef69a3ab0ae938f9d79365df",
+    "crates/oc-tui/assets/fuzzysort-oracle.json": "5d49daa5c4881ec956439911d371302d5da6d78e37b200d867453a62f6618484",
+    "crates/oc-tui/assets/upstream/PROVENANCE.md": "439736c466d570e348a394d4327f5250eb1a686b435d7603fd23c6ae81ca3137",
+    "crates/oc-tui/assets/upstream/v2/opencode.json": "f25bc5ae9187524f1997cccadeb9f724b2fac2fe7cc4a250bdadb24311e6b367",
+    "crates/oc-tui/src/app.rs": "0c0b80efe8b36435497c397827719db3bc0906617432f73e1c2e7b25a114ef5e",
+    "crates/oc-tui/src/app/input.rs": "ae648bf4b1166ba952b396ff797b8fa9fb01353cf52d5770102ac72c7cf8f97d",
+    "crates/oc-tui/src/app/live.rs": "af09cc5821b333c9704c33aaba40478e51a480c5ccddf3a3b48db31d7eeccb69",
+    "crates/oc-tui/src/app/tabs.rs": "7e98571b90cce494f248dda94fcc38c5e7158aa6937a3233faa7a8b0456ef352",
+    "crates/oc-tui/src/app/tests.rs": "caa864ec9536ffee18fa43c03f1464b08a0742f1291d841a4c1a796a240850a4",
+    "crates/oc-tui/src/app/tests/input.rs": "43f44e65c9ff172bcc0c10ab341caf833e13075ead7e38210025ec3e094ad98e",
+    "crates/oc-tui/src/app/tests/lifecycle.rs": "a697c9fcf30b0fc260f3d1bf7e50cdcbc3de641fc1e8136d3d9dd527fcbe49b6",
+    "crates/oc-tui/src/app/tests/tabs.rs": "385a7486b4e981d4596e0755ca2884496e94599349d0871efb32b78e00e60548",
+    "crates/oc-tui/src/app/tests/transcript.rs": "15c9850a3a9a514343ffec1a1adfa1961e5dab2213815ba9478fd0b338402585",
+    "crates/oc-tui/src/app/transcript.rs": "61b25ca4ce3b9eca8a4e3b97abc9edf05b7fbddade3585ddd4211ea6ed0e63f3",
+    "crates/oc-tui/src/approval_view.rs": "8936b7b4d6c55d424de6d1194ea784d54ed4f5ee0a3d334f6e867f47b20df711",
+    "crates/oc-tui/src/autocomplete.rs": "84cb3cdb6ecfea6d53d514c5915fba3ec03df82505138e4e4fd8289f69ea27ad",
+    "crates/oc-tui/src/commands.rs": "5048996f68826822439351bfd672cdd9d83dc1a00ddb1d9d7ae07ef7788358be",
+    "crates/oc-tui/src/compaction.rs": "189000dad49b61b292724db463ba6aa1745808a74548cb38668ef406d2a1ce90",
+    "crates/oc-tui/src/dcp_panel.rs": "fe2b7583d852baa92b31baf525c9c296a6e110bd1884517075fd07b63a734043",
+    "crates/oc-tui/src/dcp_view.rs": "40381297fa313ab32ed2492d678d9dc3fa185c2c103a55b3bc0b1d40df3063ba",
+    "crates/oc-tui/src/dialog.rs": "61612ec97be6beb3899d6dd5e8c6223e0f5cc367ce9b826baf4e74c2c0bcb643",
+    "crates/oc-tui/src/editor.rs": "d39c42ce8257997d57bc5bc0943473c557d13c60548ae37329302f7374d75419",
+    "crates/oc-tui/src/events.rs": "eb6ad9a23382f2597da219d51e6f63453f15b0722850f86efa6d9a250d6c8048",
+    "crates/oc-tui/src/fuzzy.rs": "31a520dd92402c5b3303c841ceba538fb0983ae6250d9efbd37792425cfa155f",
+    "crates/oc-tui/src/history.rs": "f47e51392df047e40673fededa2488354c5c9b7d4127e8051094fe8121605b34",
+    "crates/oc-tui/src/layout.rs": "f14c5aaa66829a9dc71f1bf971fc800daa6717045d54560e05ffb1a5f8ce4ba9",
+    "crates/oc-tui/src/lib.rs": "67e6d25ead7d8065f2986fbd0917dfadc16e0f95fe0cc8c6e1b980aa50043c42",
+    "crates/oc-tui/src/messages.rs": "2ae6f3ae2add20c4d856729eb6ffd52161c790810e0a0ecf9abb13c31e3e160d",
+    "crates/oc-tui/src/messages/tests.rs": "8c695efeb1d25a2b469e41b7c85d3ae9e6e1672d901a513585028cd37306825d",
+    "crates/oc-tui/src/patch_view.rs": "ca6b06d226c16e84f7c64faccaa698537e6c4f99156581e2dc7a1590df2110d0",
+    "crates/oc-tui/src/picker.rs": "fe98b072a7aaeb761e6aff6a175c1e43ee4c4289083dc16f9f5b28ca1971025f",
+    "crates/oc-tui/src/scanner.rs": "1adc90a2bdb6ba42b7b86b6212d554f7d960ff4a2984cb43fa78ee88f4b592e6",
+    "crates/oc-tui/src/shell.rs": "0a94252b2b6e8499c29918ba774ab008b30d9451cd415150e68fd01b3dbc154a",
+    "crates/oc-tui/src/shell/tests.rs": "107a087be07cdff71b44302165725534ef5eee8f344a6032ed38769d4b93f853",
+    "crates/oc-tui/src/smoke.rs": "3fd338f0ff7cbbe524e02c6e099c3a3e261a2239adf3e33935ee055012f064a7",
+    "crates/oc-tui/src/styled.rs": "4864fecfb972d9944de85b64ef0d3843ce50c580d227495ebf1f7ce0a1a7133c",
+    "crates/oc-tui/src/terminal.rs": "6adbe148c813c39b4e3b4fc7ed0f10cb3039c2e435d0fe97d3fb6a11d6289006",
+    "crates/oc-tui/src/theme.rs": "d42dd77557cb80c89e445b36073da2e4d01d51f2860998af1f8dc1fe3868cc6e",
+    "crates/oc-tui/src/tools.rs": "fd41cbbc8f6817bec64b480a4e941d382db2020cf384ff8dae9b422770214cff",
+    "crates/oc-tui/src/views.rs": "c169a9e1b90c19de9db4e8df0bb24a0a4a290a66bca711d89722b65b5f9d5bcc",
+    "crates/oc/Cargo.toml": "d06d1a6ae71b91640ec804d38b3fdcb868aa8294d14f0d2454b2c86ea070f140",
+    "crates/oc/src/approval_tests.rs": "b531639aaea0754c01a4abcd9405f090373e31f4da7f33b9a4096e2e6e5a33f7",
+    "crates/oc/src/bootstrap.rs": "f41c928abf3b232636a59f790be163bef4d78ed9f913eb7e4cfc7641f6029b86",
+    "crates/oc/src/cli.rs": "6e8ca52f0f33024d5e8c463bc5cf5b17c9f4ddcfad3e12c032a14fcdf210185f",
+    "crates/oc/src/clipboard.rs": "7152ab1d8fc1767b8d0048d0f8c20fd72b6fb236b978630f2b3af7bb143ca342",
+    "crates/oc/src/headless.rs": "9b9afbf09a867f584382b19b16a51f2f8a5f208b1485cdbd24b802293b76d898",
+    "crates/oc/src/main.rs": "212e5848911111de6c584afe9fbab15c04ab99cf8bdda8285d4005c281d5f222",
+    "crates/oc/src/tui_cmd.rs": "a59187362456a0691bed95c5f4f6650a2160807f83091d54731d1adc246fb238",
+    "crates/oc/src/tui_cmd/tests.rs": "84774336f17ca907aa2f4cc736fcae875f73831d95fbe8e0f35dc03f014b89c7",
+    "crates/oc/src/tui_cmd/tests/lifecycle.rs": "97bd45845a014a76a0ccef7c79f953a9e2116a35483684e497d3bd0531429c29",
+    "crates/oc/src/tui_cmd/tests/routing.rs": "a02022ab98b3dd67d702070c858d84f66a672fe488f1160e706efc975df442c9",
+    "crates/oc/tests/application.rs": "faf2d5d56b4de7e2029ddc8b74c9aa43357b73d758c7f1ad4a899a645b9b5718",
+    "crates/oc/tests/approval_binary.rs": "b0b7a4fe873aa7ae267cd8fb52497844ae0a789387ab09a9986679c7d6b69c62",
+    "crates/oc/tests/configured_workspace.rs": "cc2ac71c8e5bb6e84341d9af0a1c073125c404e5f755a98bda405a050804c047",
+    "crates/oc/tests/dcp_runtime.rs": "11027a9d6dc2477b91bb67ed3b8a7f2ad80838c1e1218e076a54a10ce143a375",
+    "crates/oc/tests/durability.rs": "ae7d528460b64b80919e873ab1356067654655de6a3772498cd22f09e9ce7590",
+    "crates/oc/tests/golden_binary.rs": "bc2cf88a5f20f658d316224846dd11b813f00fe717665637c173e37fb3277f87",
+    "crates/oc/tests/live_bounded.rs": "5b225b43421d5bbcf397b83fba7a3d55f20ae1752d4286ea62e649b42e17bfb7",
+    "crates/oc/tests/mcp_application.rs": "2392a9a02d165eef07b1ac8d2df22740d103dba6f12cb03367fe1f89649019ff",
+    "crates/oc/tests/memory_bounds.rs": "80f0bc51b5026bf6fe64dc88a72d6a66509502984aa274f1d08a44d8d46c0fd6",
+    "crates/oc/tests/pty.rs": "5ccb72bc231a23f34edf82e6a1b8b55669910e11b137954b8c5b33aaa3e48a93",
+    "crates/oc/tests/pty_t39.rs": "882c03f499e55d95bf9345bb7230073f8df8c52b3e9ebe2c9b9c3ea42fb49ce8",
+    "crates/oc/tests/pty_t39/interaction.rs": "0fe61e458c4c3da12599bc451ced7336ae6e4a3a62cc5873b4a24bc8ddb1475b",
+    "crates/oc/tests/pty_t39/lifecycle.rs": "b7d363e202bdc64318e7e58fbf7a7cb003e86279db4a8495e5d266379542229f",
+    "crates/oc/tests/pty_t42.rs": "d6b0da8cad6a1fdaaa111506eb284f04d71052d5ff56edd60e1990fb766733a7",
+    "crates/oc/tests/recovery_startup.rs": "90a08f425f8e22b4503f11bfa5bb6cf48aa61bfd2d330e127ebe723e6944f7e2",
+    "crates/oc/tests/recovery_v02.rs": "f32d54a64070b988b4ba8ac1ecfccf63ff01c831a839ddfd5ba16d0b8efce4cb",
+    "crates/oc/tests/recovery_v03.rs": "754dccc76891e7a801cbab883fb734cbd71a102976772e592afc85321d192162",
+    "crates/oc/tests/responses.rs": "fd1b6e84fcb63a6728e9895abd18faa9e5d4456bc6c68253d2e1e2a125b64a73",
+    "crates/oc/tests/support/discovery_startup.py": "d7af7bb5d59161726a60e00f8007fdd64704c219b2c0e4fadf41a7605d77748c",
+    "crates/oc/tests/support/geometry.py": "fd33b20bf6373854309cecd80d5b917e882a27beba320b2ee25e05c470b218bc",
+    "crates/oc/tests/support/screen.rs": "cce51131b9f0786e5312fd66168d80e1da238901ed193459de8e496ec37063ba",
+    "crates/oc/tests/support/startup.py": "0db0ba1979d61cae56c58a3157bba3e961bb6d299c9b151a81adcf8d9f36b69d",
+    "crates/oc/tests/support/terminal.rs": "74ca1a73b2a18baab4c25bb17f7e225ac69246b2970f97eb7733d303bb78db89",
+    "crates/oc/tests/support/title.rs": "649fbc875c894a44cc2ec414659aa7f01f6952d8b9f6fb946ea77399af208937",
+    "crates/oc/tests/t49_live_smoke.rs": "75acbdb157fa4f333b6d4937676311cdc0c447c139a68ce4b93e8849db2f3ca8",
+    "crates/oc/tests/tui_render_alloc.rs": "257967ad8e12ea013ae5d08870ef7a26f420cd20dec59e3a80295e8ffa00366c",
+    "rust-toolchain.toml": "b364b7e44eff5aaa6f8f8357d2536dd284fe5af3c3a64eea4f6d0555d79c2c7a"
+  },
+  "source_unchanged": true,
+  "native_binary_after": "d28c457f67cdf276e199955580a60ffc21f0ebb3256f56dd9c9046a153ad67da"
+}

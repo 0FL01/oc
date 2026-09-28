@@ -2,8 +2,42 @@
 
 **Execution resumed by the owner's changed-plan instruction. T52 R0–R7 /
 ARCH01–ARCH05 is complete and delivered; T44 was restored through the journal.
-T44 remains incomplete: VIS38 is now qualified below, but V09 and product READY
-are not claimed.**
+T44 remains incomplete: VIS38 and configured canonical VIS09/VIS29 presentation
+are qualified below, but V09 and product READY are not claimed.**
+
+## Current canonical model/variant presentation (2026-09-28)
+
+T47 R1/AUD41 and R6/VAR01 is complete/delivered (`6cf1cdc859`, closeout `9d2af6c98`).
+[`variants-report20260928-01.md`](../tui/recovery-v00/variants-report20260928-01.md)
+adds real owner model/variant selection and full paired presentation. Parent
+reviewed all five production/test paths and the three new bounded helpers;
+independent audits13/14 repeat the final captures against current source/binary.
+Canonical: **105/105 full frames, 504,000 styled cells, full PNG pixels and cursors
+including color are exact**, all three sizes, no masks/normalization. Identical
+unsorted input retains **33 exact independent controls and72 order-affected
+differences (2305 cells/145866 pixels)**, explicitly native canonical rank versus
+donor declared order, never universal pixel PASS.
+
+Real query/no-match/clear/scroll/current-dot/focus/model→variant/draft and all eleven
+Ctrl+T steps use actual owner choices. Selection sends zero generation requests;
+each final native launch's one explicit submission confirms model15/fast→low wire,
+while every original launch makes zero provider requests. Public empty-session
+rename/import/export, independent fixture order, pins/source hashes and natural
+restored terminal exits are checked. Current-option centering and real focused
+field cursor paint/teardown reset have narrow regressions. Fresh workspace1203/0/9
+existing opt-in ignored, fmt/strict Clippy/debug+release/help PASS. Parent repeated
+the nonzero centering/caret tests and frontend/geometry/docs/progress/diff checks.
+
+Exact profile includes the same public `model.dialog.provider=none` binding on
+both sides. It disables config-authoring integration action via actual supported
+config, not footer masking or a fake action. Original default integration-footer
+attempt04 remains unequal/historical; this is not a claim that native implements
+that default config-authoring UI. Remaining default service/integration inventory
+and supported-capability differences must still be reconciled under full V09 and
+VIS19/VIS42. Other backend/UI/live gates remain open; no whole-product completion.
+
+Debug `6313f913a088385fa059d5acdd1f80ad884a973d6e7b47d193f2ac159ffbbe79`;
+release `ac4ea89479f8265d6b056f3ea719d5ded099202a96ef7b5db75127e945f9e3b6`.
 
 ## Current VIS38 closure (2026-09-28)
 

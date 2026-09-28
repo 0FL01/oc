@@ -1,0 +1,46 @@
+{
+  "native_history_ingress": false,
+  "native_history": [],
+  "native_session_row": {
+    "id": "vis09-presentation",
+    "created_at": "1790610076",
+    "parent_id": null,
+    "agent": null,
+    "model": null,
+    "title": "VIS09 Presentation",
+    "updated_at": "1790610077.949"
+  },
+  "fixture_sha256": "16d41d4731f23480844b2cd040289bef6b6f0d0ec8a62606b8319ebcaa867f23",
+  "transfer": {
+    "info": {
+      "id": "ses_vis09_presentation",
+      "projectID": "global",
+      "agent": "build",
+      "model": {
+        "providerID": "fixture",
+        "id": "vis09-model-03",
+        "variant": "default"
+      },
+      "title": "VIS09 Presentation",
+      "location": {
+        "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-03/120x40-shared/project"
+      },
+      "time": {
+        "created": 1790610076000,
+        "updated": 1790610077949
+      },
+      "cost": 0,
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    },
+    "messages": []
+  },
+  "mapping": "Real public rename of empty owner session; zero usage/cost scaffolding; no message timestamps or history injection."
+}

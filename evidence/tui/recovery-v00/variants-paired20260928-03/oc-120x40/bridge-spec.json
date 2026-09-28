@@ -1,0 +1,11 @@
+{
+  "origin": "oc",
+  "columns": 120,
+  "rows": 40,
+  "binary": "/home/opencode/ai/oc/target/debug/oc",
+  "binary_sha256": "d28c457f67cdf276e199955580a60ffc21f0ebb3256f56dd9c9046a153ad67da",
+  "root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-03/oc-120x40",
+  "project": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-03/120x40-shared/project",
+  "fixture": "/home/opencode/ai/oc/evidence/tui/recovery-v00/variants-paired20260928-03/fixture.json",
+  "native_transfer": "/home/opencode/ai/oc/evidence/tui/recovery-v00/variants-paired20260928-03/120x40-native-transfer.json"
+}

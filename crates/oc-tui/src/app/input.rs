@@ -516,6 +516,9 @@ impl TuiState {
             .iter()
             .position(|o| o.current)
             .unwrap_or(0);
+        // DialogSelect centers its current option after the first layout, not
+        // only when that option falls outside the viewport.
+        self.select.follow_selection();
     }
 
     fn changed_modal_query(&mut self) {
@@ -527,6 +530,7 @@ impl TuiState {
                 .iter()
                 .position(|o| o.current)
                 .unwrap_or(0);
+            self.select.follow_selection();
         }
         self.sync_modal_cursor();
     }

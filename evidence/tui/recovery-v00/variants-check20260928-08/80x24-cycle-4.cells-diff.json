@@ -1,0 +1,152 @@
+[
+  {
+    "x": 44,
+    "y": 20,
+    "fields": [
+      "symbol"
+    ],
+    "native": {
+      "symbol": "m",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    },
+    "original": {
+      "symbol": "h",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    }
+  },
+  {
+    "x": 45,
+    "y": 20,
+    "fields": [
+      "symbol"
+    ],
+    "native": {
+      "symbol": "e",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    },
+    "original": {
+      "symbol": "i",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    }
+  },
+  {
+    "x": 46,
+    "y": 20,
+    "fields": [
+      "symbol"
+    ],
+    "native": {
+      "symbol": "d",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    },
+    "original": {
+      "symbol": "g",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    }
+  },
+  {
+    "x": 47,
+    "y": 20,
+    "fields": [
+      "symbol"
+    ],
+    "native": {
+      "symbol": "i",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    },
+    "original": {
+      "symbol": "h",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    }
+  },
+  {
+    "x": 48,
+    "y": 20,
+    "fields": [
+      "symbol",
+      "fg",
+      "modifiers"
+    ],
+    "native": {
+      "symbol": "u",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    },
+    "original": {
+      "symbol": " ",
+      "fg": "#ffffff",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": []
+    }
+  },
+  {
+    "x": 49,
+    "y": 20,
+    "fields": [
+      "symbol",
+      "fg",
+      "modifiers"
+    ],
+    "native": {
+      "symbol": "m",
+      "fg": "#f5a742",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": [
+        "bold"
+      ]
+    },
+    "original": {
+      "symbol": " ",
+      "fg": "#ffffff",
+      "bg": "#1e1e1e",
+      "width": 1,
+      "modifiers": []
+    }
+  }
+]

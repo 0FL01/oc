@@ -1,0 +1,2672 @@
+[
+  {
+    "kind": "command",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "session",
+      "import",
+      "--standalone",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/upstream-120x40/home/session.json"
+    ],
+    "exit_code": 0,
+    "stdout": "Imported session: ses_vis09_presentation\n",
+    "stderr": ""
+  },
+  {
+    "kind": "command",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "session",
+      "export",
+      "--standalone",
+      "ses_vis09_presentation"
+    ],
+    "exit_code": 0,
+    "stdout": "{\n  \"info\": {\n    \"id\": \"ses_vis09_presentation\",\n    \"projectID\": \"dfe27d9054135f74679834fa2375d6907acc2c4a\",\n    \"agent\": \"build\",\n    \"model\": {\n      \"id\": \"vis09-model-03\",\n      \"providerID\": \"fixture\",\n      \"variant\": \"default\"\n    },\n    \"cost\": 0,\n    \"tokens\": {\n      \"input\": 0,\n      \"output\": 0,\n      \"reasoning\": 0,\n      \"cache\": {\n        \"read\": 0,\n        \"write\": 0\n      }\n    },\n    \"time\": {\n      \"created\": 1790610963000,\n      \"updated\": 1790611067155\n    },\n    \"title\": \"VIS09 Presentation\",\n    \"location\": {\n      \"directory\": \"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"\n    }\n  },\n  \"messages\": []\n}\n",
+    "stderr": ""
+  },
+  {
+    "kind": "exact_import_export_verified",
+    "payload": {
+      "info": {
+        "id": "ses_vis09_presentation",
+        "projectID": "global",
+        "agent": "build",
+        "model": {
+          "providerID": "fixture",
+          "id": "vis09-model-03",
+          "variant": "default"
+        },
+        "title": "VIS09 Presentation",
+        "location": {
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project"
+        },
+        "time": {
+          "created": 1790610963000,
+          "updated": 1790610964757
+        },
+        "cost": 0,
+        "tokens": {
+          "input": 0,
+          "output": 0,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        }
+      },
+      "messages": []
+    },
+    "exported": {
+      "info": {
+        "id": "ses_vis09_presentation",
+        "projectID": "dfe27d9054135f74679834fa2375d6907acc2c4a",
+        "agent": "build",
+        "model": {
+          "id": "vis09-model-03",
+          "providerID": "fixture",
+          "variant": "default"
+        },
+        "cost": 0,
+        "tokens": {
+          "input": 0,
+          "output": 0,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        },
+        "time": {
+          "created": 1790610963000,
+          "updated": 1790611067155
+        },
+        "title": "VIS09 Presentation",
+        "location": {
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project"
+        }
+      },
+      "messages": []
+    }
+  },
+  {
+    "kind": "command",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--version"
+    ],
+    "exit_code": 0,
+    "stdout": "opencode v2.0.12\n",
+    "stderr": ""
+  },
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone",
+      "--session",
+      "ses_vis09_presentation"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+    "config": {
+      "model": "fixture/vis09-model-03",
+      "plugins": [
+        "-opencode.models.dev"
+      ],
+      "share": "disabled",
+      "update": "disable",
+      "snapshots": false,
+      "compaction": {
+        "auto": false
+      },
+      "providers": {
+        "fixture": {
+          "name": "VIS09 Fixture",
+          "package": "@opencode/ai/providers/openai/responses",
+          "settings": {
+            "baseURL": "http://127.0.0.1:38285/v1",
+            "apiKey": "offline-fixture-not-a-secret"
+          },
+          "models": {
+            "vis09-model-00": {
+              "name": "VIS09 Model 00",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 0,
+                "output": 0
+              },
+              "variants": [
+                {
+                  "id": "none",
+                  "settings": {
+                    "reasoningEffort": "none"
+                  }
+                },
+                {
+                  "id": "minimal",
+                  "settings": {
+                    "reasoningEffort": "minimal"
+                  }
+                },
+                {
+                  "id": "fast",
+                  "settings": {
+                    "reasoningEffort": "low"
+                  }
+                },
+                {
+                  "id": "low",
+                  "settings": {}
+                },
+                {
+                  "id": "medium",
+                  "settings": {
+                    "reasoningEffort": "medium"
+                  }
+                },
+                {
+                  "id": "high",
+                  "settings": {
+                    "reasoningEffort": "high"
+                  }
+                },
+                {
+                  "id": "xhigh",
+                  "settings": {
+                    "reasoningEffort": "xhigh"
+                  }
+                },
+                {
+                  "id": "max",
+                  "settings": {
+                    "reasoningEffort": "max"
+                  }
+                },
+                {
+                  "id": "zeta",
+                  "settings": {
+                    "reasoningEffort": " deep "
+                  }
+                },
+                {
+                  "id": "alpha",
+                  "settings": {
+                    "reasoningEffort": "custom"
+                  }
+                }
+              ]
+            },
+            "vis09-model-01": {
+              "name": "VIS09 Model 01",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": [
+                {
+                  "id": "none",
+                  "settings": {
+                    "reasoningEffort": "none"
+                  }
+                },
+                {
+                  "id": "minimal",
+                  "settings": {
+                    "reasoningEffort": "minimal"
+                  }
+                },
+                {
+                  "id": "fast",
+                  "settings": {
+                    "reasoningEffort": "low"
+                  }
+                },
+                {
+                  "id": "low",
+                  "settings": {}
+                },
+                {
+                  "id": "medium",
+                  "settings": {
+                    "reasoningEffort": "medium"
+                  }
+                },
+                {
+                  "id": "high",
+                  "settings": {
+                    "reasoningEffort": "high"
+                  }
+                },
+                {
+                  "id": "xhigh",
+                  "settings": {
+                    "reasoningEffort": "xhigh"
+                  }
+                },
+                {
+                  "id": "max",
+                  "settings": {
+                    "reasoningEffort": "max"
+                  }
+                },
+                {
+                  "id": "zeta",
+                  "settings": {
+                    "reasoningEffort": " deep "
+                  }
+                },
+                {
+                  "id": "alpha",
+                  "settings": {
+                    "reasoningEffort": "custom"
+                  }
+                }
+              ]
+            },
+            "vis09-model-02": {
+              "name": "VIS09 Model 02",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": [
+                {
+                  "id": "none",
+                  "settings": {
+                    "reasoningEffort": "none"
+                  }
+                },
+                {
+                  "id": "minimal",
+                  "settings": {
+                    "reasoningEffort": "minimal"
+                  }
+                },
+                {
+                  "id": "fast",
+                  "settings": {
+                    "reasoningEffort": "low"
+                  }
+                },
+                {
+                  "id": "low",
+                  "settings": {}
+                },
+                {
+                  "id": "medium",
+                  "settings": {
+                    "reasoningEffort": "medium"
+                  }
+                },
+                {
+                  "id": "high",
+                  "settings": {
+                    "reasoningEffort": "high"
+                  }
+                },
+                {
+                  "id": "xhigh",
+                  "settings": {
+                    "reasoningEffort": "xhigh"
+                  }
+                },
+                {
+                  "id": "max",
+                  "settings": {
+                    "reasoningEffort": "max"
+                  }
+                },
+                {
+                  "id": "zeta",
+                  "settings": {
+                    "reasoningEffort": " deep "
+                  }
+                },
+                {
+                  "id": "alpha",
+                  "settings": {
+                    "reasoningEffort": "custom"
+                  }
+                }
+              ]
+            },
+            "vis09-model-03": {
+              "name": "VIS09 Model 03",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 0,
+                "output": 0
+              },
+              "variants": [
+                {
+                  "id": "none",
+                  "settings": {
+                    "reasoningEffort": "none"
+                  }
+                },
+                {
+                  "id": "minimal",
+                  "settings": {
+                    "reasoningEffort": "minimal"
+                  }
+                },
+                {
+                  "id": "fast",
+                  "settings": {
+                    "reasoningEffort": "low"
+                  }
+                },
+                {
+                  "id": "low",
+                  "settings": {}
+                },
+                {
+                  "id": "medium",
+                  "settings": {
+                    "reasoningEffort": "medium"
+                  }
+                },
+                {
+                  "id": "high",
+                  "settings": {
+                    "reasoningEffort": "high"
+                  }
+                },
+                {
+                  "id": "xhigh",
+                  "settings": {
+                    "reasoningEffort": "xhigh"
+                  }
+                },
+                {
+                  "id": "max",
+                  "settings": {
+                    "reasoningEffort": "max"
+                  }
+                },
+                {
+                  "id": "zeta",
+                  "settings": {
+                    "reasoningEffort": " deep "
+                  }
+                },
+                {
+                  "id": "alpha",
+                  "settings": {
+                    "reasoningEffort": "custom"
+                  }
+                }
+              ]
+            },
+            "vis09-model-04": {
+              "name": "VIS09 Model 04",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": [
+                {
+                  "id": "none",
+                  "settings": {
+                    "reasoningEffort": "none"
+                  }
+                },
+                {
+                  "id": "minimal",
+                  "settings": {
+                    "reasoningEffort": "minimal"
+                  }
+                },
+                {
+                  "id": "fast",
+                  "settings": {
+                    "reasoningEffort": "low"
+                  }
+                },
+                {
+                  "id": "low",
+                  "settings": {}
+                },
+                {
+                  "id": "medium",
+                  "settings": {
+                    "reasoningEffort": "medium"
+                  }
+                },
+                {
+                  "id": "high",
+                  "settings": {
+                    "reasoningEffort": "high"
+                  }
+                },
+                {
+                  "id": "xhigh",
+                  "settings": {
+                    "reasoningEffort": "xhigh"
+                  }
+                },
+                {
+                  "id": "max",
+                  "settings": {
+                    "reasoningEffort": "max"
+                  }
+                },
+                {
+                  "id": "zeta",
+                  "settings": {
+                    "reasoningEffort": " deep "
+                  }
+                },
+                {
+                  "id": "alpha",
+                  "settings": {
+                    "reasoningEffort": "custom"
+                  }
+                }
+              ]
+            },
+            "vis09-model-05": {
+              "name": "VIS09 Model 05",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": [
+                {
+                  "id": "none",
+                  "settings": {
+                    "reasoningEffort": "none"
+                  }
+                },
+                {
+                  "id": "minimal",
+                  "settings": {
+                    "reasoningEffort": "minimal"
+                  }
+                },
+                {
+                  "id": "fast",
+                  "settings": {
+                    "reasoningEffort": "low"
+                  }
+                },
+                {
+                  "id": "low",
+                  "settings": {}
+                },
+                {
+                  "id": "medium",
+                  "settings": {
+                    "reasoningEffort": "medium"
+                  }
+                },
+                {
+                  "id": "high",
+                  "settings": {
+                    "reasoningEffort": "high"
+                  }
+                },
+                {
+                  "id": "xhigh",
+                  "settings": {
+                    "reasoningEffort": "xhigh"
+                  }
+                },
+                {
+                  "id": "max",
+                  "settings": {
+                    "reasoningEffort": "max"
+                  }
+                },
+                {
+                  "id": "zeta",
+                  "settings": {
+                    "reasoningEffort": " deep "
+                  }
+                },
+                {
+                  "id": "alpha",
+                  "settings": {
+                    "reasoningEffort": "custom"
+                  }
+                }
+              ]
+            },
+            "vis09-model-06": {
+              "name": "VIS09 Model 06",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": [
+                {
+                  "id": "none",
+                  "settings": {
+                    "reasoningEffort": "none"
+                  }
+                },
+                {
+                  "id": "minimal",
+                  "settings": {
+                    "reasoningEffort": "minimal"
+                  }
+                },
+                {
+                  "id": "fast",
+                  "settings": {
+                    "reasoningEffort": "low"
+                  }
+                },
+                {
+                  "id": "low",
+                  "settings": {}
+                },
+                {
+                  "id": "medium",
+                  "settings": {
+                    "reasoningEffort": "medium"
+                  }
+                },
+                {
+                  "id": "high",
+                  "settings": {
+                    "reasoningEffort": "high"
+                  }
+                },
+                {
+                  "id": "xhigh",
+                  "settings": {
+                    "reasoningEffort": "xhigh"
+                  }
+                },
+                {
+                  "id": "max",
+                  "settings": {
+                    "reasoningEffort": "max"
+                  }
+                },
+                {
+                  "id": "zeta",
+                  "settings": {
+                    "reasoningEffort": " deep "
+                  }
+                },
+                {
+                  "id": "alpha",
+                  "settings": {
+                    "reasoningEffort": "custom"
+                  }
+                }
+              ]
+            },
+            "vis09-model-07": {
+              "name": "VIS09 Model 07",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": [
+                {
+                  "id": "none",
+                  "settings": {
+                    "reasoningEffort": "none"
+                  }
+                },
+                {
+                  "id": "minimal",
+                  "settings": {
+                    "reasoningEffort": "minimal"
+                  }
+                },
+                {
+                  "id": "fast",
+                  "settings": {
+                    "reasoningEffort": "low"
+                  }
+                },
+                {
+                  "id": "low",
+                  "settings": {}
+                },
+                {
+                  "id": "medium",
+                  "settings": {
+                    "reasoningEffort": "medium"
+                  }
+                },
+                {
+                  "id": "high",
+                  "settings": {
+                    "reasoningEffort": "high"
+                  }
+                },
+                {
+                  "id": "xhigh",
+                  "settings": {
+                    "reasoningEffort": "xhigh"
+                  }
+                },
+                {
+                  "id": "max",
+                  "settings": {
+                    "reasoningEffort": "max"
+                  }
+                },
+                {
+                  "id": "zeta",
+                  "settings": {
+                    "reasoningEffort": " deep "
+                  }
+                },
+                {
+                  "id": "alpha",
+                  "settings": {
+                    "reasoningEffort": "custom"
+                  }
+                }
+              ]
+            },
+            "vis09-model-08": {
+              "name": "VIS09 Model 08",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": [
+                {
+                  "id": "none",
+                  "settings": {
+                    "reasoningEffort": "none"
+                  }
+                },
+                {
+                  "id": "minimal",
+                  "settings": {
+                    "reasoningEffort": "minimal"
+                  }
+                },
+                {
+                  "id": "fast",
+                  "settings": {
+                    "reasoningEffort": "low"
+                  }
+                },
+                {
+                  "id": "low",
+                  "settings": {}
+                },
+                {
+                  "id": "medium",
+                  "settings": {
+                    "reasoningEffort": "medium"
+                  }
+                },
+                {
+                  "id": "high",
+                  "settings": {
+                    "reasoningEffort": "high"
+                  }
+                },
+                {
+                  "id": "xhigh",
+                  "settings": {
+                    "reasoningEffort": "xhigh"
+                  }
+                },
+                {
+                  "id": "max",
+                  "settings": {
+                    "reasoningEffort": "max"
+                  }
+                },
+                {
+                  "id": "zeta",
+                  "settings": {
+                    "reasoningEffort": " deep "
+                  }
+                },
+                {
+                  "id": "alpha",
+                  "settings": {
+                    "reasoningEffort": "custom"
+                  }
+                }
+              ]
+            },
+            "vis09-model-09": {
+              "name": "VIS09 Model 09",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": [
+                {
+                  "id": "none",
+                  "settings": {
+                    "reasoningEffort": "none"
+                  }
+                },
+                {
+                  "id": "minimal",
+                  "settings": {
+                    "reasoningEffort": "minimal"
+                  }
+                },
+                {
+                  "id": "fast",
+                  "settings": {
+                    "reasoningEffort": "low"
+                  }
+                },
+                {
+                  "id": "low",
+                  "settings": {}
+                },
+                {
+                  "id": "medium",
+                  "settings": {
+                    "reasoningEffort": "medium"
+                  }
+                },
+                {
+                  "id": "high",
+                  "settings": {
+                    "reasoningEffort": "high"
+                  }
+                },
+                {
+                  "id": "xhigh",
+                  "settings": {
+                    "reasoningEffort": "xhigh"
+                  }
+                },
+                {
+                  "id": "max",
+                  "settings": {
+                    "reasoningEffort": "max"
+                  }
+                },
+                {
+                  "id": "zeta",
+                  "settings": {
+                    "reasoningEffort": " deep "
+                  }
+                },
+                {
+                  "id": "alpha",
+                  "settings": {
+                    "reasoningEffort": "custom"
+                  }
+                }
+              ]
+            },
+            "vis09-model-10": {
+              "name": "VIS09 Model 10",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": [
+                {
+                  "id": "none",
+                  "settings": {
+                    "reasoningEffort": "none"
+                  }
+                },
+                {
+                  "id": "minimal",
+                  "settings": {
+                    "reasoningEffort": "minimal"
+                  }
+                },
+                {
+                  "id": "fast",
+                  "settings": {
+                    "reasoningEffort": "low"
+                  }
+                },
+                {
+                  "id": "low",
+                  "settings": {}
+                },
+                {
+                  "id": "medium",
+                  "settings": {
+                    "reasoningEffort": "medium"
+                  }
+                },
+                {
+                  "id": "high",
+                  "settings": {
+                    "reasoningEffort": "high"
+                  }
+                },
+                {
+                  "id": "xhigh",
+                  "settings": {
+                    "reasoningEffort": "xhigh"
+                  }
+                },
+                {
+                  "id": "max",
+                  "settings": {
+                    "reasoningEffort": "max"
+                  }
+                },
+                {
+                  "id": "zeta",
+                  "settings": {
+                    "reasoningEffort": " deep "
+                  }
+                },
+                {
+                  "id": "alpha",
+                  "settings": {
+                    "reasoningEffort": "custom"
+                  }
+                }
+              ]
+            },
+            "vis09-model-11": {
+              "name": "VIS09 Model 11",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": [
+                {
+                  "id": "none",
+                  "settings": {
+                    "reasoningEffort": "none"
+                  }
+                },
+                {
+                  "id": "minimal",
+                  "settings": {
+                    "reasoningEffort": "minimal"
+                  }
+                },
+                {
+                  "id": "fast",
+                  "settings": {
+                    "reasoningEffort": "low"
+                  }
+                },
+                {
+                  "id": "low",
+                  "settings": {}
+                },
+                {
+                  "id": "medium",
+                  "settings": {
+                    "reasoningEffort": "medium"
+                  }
+                },
+                {
+                  "id": "high",
+                  "settings": {
+                    "reasoningEffort": "high"
+                  }
+                },
+                {
+                  "id": "xhigh",
+                  "settings": {
+                    "reasoningEffort": "xhigh"
+                  }
+                },
+                {
+                  "id": "max",
+                  "settings": {
+                    "reasoningEffort": "max"
+                  }
+                },
+                {
+                  "id": "zeta",
+                  "settings": {
+                    "reasoningEffort": " deep "
+                  }
+                },
+                {
+                  "id": "alpha",
+                  "settings": {
+                    "reasoningEffort": "custom"
+                  }
+                }
+              ]
+            },
+            "vis09-model-12": {
+              "name": "VIS09 Model 12",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": [
+                {
+                  "id": "none",
+                  "settings": {
+                    "reasoningEffort": "none"
+                  }
+                },
+                {
+                  "id": "minimal",
+                  "settings": {
+                    "reasoningEffort": "minimal"
+                  }
+                },
+                {
+                  "id": "fast",
+                  "settings": {
+                    "reasoningEffort": "low"
+                  }
+                },
+                {
+                  "id": "low",
+                  "settings": {}
+                },
+                {
+                  "id": "medium",
+                  "settings": {
+                    "reasoningEffort": "medium"
+                  }
+                },
+                {
+                  "id": "high",
+                  "settings": {
+                    "reasoningEffort": "high"
+                  }
+                },
+                {
+                  "id": "xhigh",
+                  "settings": {
+                    "reasoningEffort": "xhigh"
+                  }
+                },
+                {
+                  "id": "max",
+                  "settings": {
+                    "reasoningEffort": "max"
+                  }
+                },
+                {
+                  "id": "zeta",
+                  "settings": {
+                    "reasoningEffort": " deep "
+                  }
+                },
+                {
+                  "id": "alpha",
+                  "settings": {
+                    "reasoningEffort": "custom"
+                  }
+                }
+              ]
+            },
+            "vis09-model-13": {
+              "name": "VIS09 Model 13",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": [
+                {
+                  "id": "none",
+                  "settings": {
+                    "reasoningEffort": "none"
+                  }
+                },
+                {
+                  "id": "minimal",
+                  "settings": {
+                    "reasoningEffort": "minimal"
+                  }
+                },
+                {
+                  "id": "fast",
+                  "settings": {
+                    "reasoningEffort": "low"
+                  }
+                },
+                {
+                  "id": "low",
+                  "settings": {}
+                },
+                {
+                  "id": "medium",
+                  "settings": {
+                    "reasoningEffort": "medium"
+                  }
+                },
+                {
+                  "id": "high",
+                  "settings": {
+                    "reasoningEffort": "high"
+                  }
+                },
+                {
+                  "id": "xhigh",
+                  "settings": {
+                    "reasoningEffort": "xhigh"
+                  }
+                },
+                {
+                  "id": "max",
+                  "settings": {
+                    "reasoningEffort": "max"
+                  }
+                },
+                {
+                  "id": "zeta",
+                  "settings": {
+                    "reasoningEffort": " deep "
+                  }
+                },
+                {
+                  "id": "alpha",
+                  "settings": {
+                    "reasoningEffort": "custom"
+                  }
+                }
+              ]
+            },
+            "vis09-model-14": {
+              "name": "VIS09 Model 14",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": [
+                {
+                  "id": "none",
+                  "settings": {
+                    "reasoningEffort": "none"
+                  }
+                },
+                {
+                  "id": "minimal",
+                  "settings": {
+                    "reasoningEffort": "minimal"
+                  }
+                },
+                {
+                  "id": "fast",
+                  "settings": {
+                    "reasoningEffort": "low"
+                  }
+                },
+                {
+                  "id": "low",
+                  "settings": {}
+                },
+                {
+                  "id": "medium",
+                  "settings": {
+                    "reasoningEffort": "medium"
+                  }
+                },
+                {
+                  "id": "high",
+                  "settings": {
+                    "reasoningEffort": "high"
+                  }
+                },
+                {
+                  "id": "xhigh",
+                  "settings": {
+                    "reasoningEffort": "xhigh"
+                  }
+                },
+                {
+                  "id": "max",
+                  "settings": {
+                    "reasoningEffort": "max"
+                  }
+                },
+                {
+                  "id": "zeta",
+                  "settings": {
+                    "reasoningEffort": " deep "
+                  }
+                },
+                {
+                  "id": "alpha",
+                  "settings": {
+                    "reasoningEffort": "custom"
+                  }
+                }
+              ]
+            },
+            "vis09-model-15": {
+              "name": "VIS09 Model 15",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": [
+                {
+                  "id": "none",
+                  "settings": {
+                    "reasoningEffort": "none"
+                  }
+                },
+                {
+                  "id": "minimal",
+                  "settings": {
+                    "reasoningEffort": "minimal"
+                  }
+                },
+                {
+                  "id": "fast",
+                  "settings": {
+                    "reasoningEffort": "low"
+                  }
+                },
+                {
+                  "id": "low",
+                  "settings": {}
+                },
+                {
+                  "id": "medium",
+                  "settings": {
+                    "reasoningEffort": "medium"
+                  }
+                },
+                {
+                  "id": "high",
+                  "settings": {
+                    "reasoningEffort": "high"
+                  }
+                },
+                {
+                  "id": "xhigh",
+                  "settings": {
+                    "reasoningEffort": "xhigh"
+                  }
+                },
+                {
+                  "id": "max",
+                  "settings": {
+                    "reasoningEffort": "max"
+                  }
+                },
+                {
+                  "id": "zeta",
+                  "settings": {
+                    "reasoningEffort": " deep "
+                  }
+                },
+                {
+                  "id": "alpha",
+                  "settings": {
+                    "reasoningEffort": "custom"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "permissions": [
+        {
+          "action": "*",
+          "resource": "*",
+          "effect": "deny"
+        }
+      ]
+    },
+    "cli": {
+      "theme": {
+        "name": "opencode",
+        "mode": "dark"
+      },
+      "animations": false,
+      "session": {
+        "sidebar": "hide",
+        "tps": false
+      },
+      "tabs": {
+        "layout": "horizontal"
+      },
+      "keybinds": {
+        "model.dialog.provider": "none"
+      },
+      "debug": {
+        "devtools": false
+      },
+      "attention": {
+        "notifications": false,
+        "sound": false
+      },
+      "cursor": {
+        "style": "block",
+        "blinking": false
+      }
+    },
+    "binary_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "env_names": [
+      "COLORTERM",
+      "HOME",
+      "LANG",
+      "LC_ALL",
+      "OC_TEST_ALLOW_LOOPBACK",
+      "OPENCODE_CONFIG_CONTENT",
+      "OPENCODE_CONFIG_PROJECT_DISABLE",
+      "OPENCODE_DISABLE_AUTOUPDATE",
+      "OPENCODE_DISABLE_FILEWATCHER",
+      "OPENCODE_DISABLE_MODELS_FETCH",
+      "OPENCODE_TEST_HOME",
+      "PATH",
+      "SHELL",
+      "TERM",
+      "TZ",
+      "XDG_CACHE_HOME",
+      "XDG_CONFIG_HOME",
+      "XDG_DATA_HOME",
+      "XDG_STATE_HOME"
+    ],
+    "inherited_environment": false,
+    "history_ingress": true,
+    "session": "ses_vis09_presentation"
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-0",
+    "observations": [
+      {
+        "table": "session_v2",
+        "rows": [
+          {
+            "id": "ses_vis09_presentation",
+            "project_id": "dfe27d9054135f74679834fa2375d6907acc2c4a",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "brave-rocket",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "path": "",
+            "title": "VIS09 Presentation",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 0,
+            "tokens_output": 0,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+            "time_created": 1790610963000,
+            "time_updated": 1790611067155,
+            "time_idle": null,
+            "time_viewed": null,
+            "idle_outcome": null,
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "table": "session_message",
+        "rows": []
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/model.json",
+        "data": {
+          "recent": [],
+          "favorite": [],
+          "variant": {
+            "fixture/vis09-model-03": "none"
+          }
+        }
+      },
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_vis09_presentation",
+                  "title": "VIS09 Presentation"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-1",
+    "observations": [
+      {
+        "table": "session_v2",
+        "rows": [
+          {
+            "id": "ses_vis09_presentation",
+            "project_id": "dfe27d9054135f74679834fa2375d6907acc2c4a",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "brave-rocket",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "path": "",
+            "title": "VIS09 Presentation",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 0,
+            "tokens_output": 0,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+            "time_created": 1790610963000,
+            "time_updated": 1790611067155,
+            "time_idle": null,
+            "time_viewed": null,
+            "idle_outcome": null,
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "table": "session_message",
+        "rows": []
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/model.json",
+        "data": {
+          "recent": [],
+          "favorite": [],
+          "variant": {
+            "fixture/vis09-model-03": "minimal"
+          }
+        }
+      },
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_vis09_presentation",
+                  "title": "VIS09 Presentation"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-2",
+    "observations": [
+      {
+        "table": "session_v2",
+        "rows": [
+          {
+            "id": "ses_vis09_presentation",
+            "project_id": "dfe27d9054135f74679834fa2375d6907acc2c4a",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "brave-rocket",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "path": "",
+            "title": "VIS09 Presentation",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 0,
+            "tokens_output": 0,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+            "time_created": 1790610963000,
+            "time_updated": 1790611067155,
+            "time_idle": null,
+            "time_viewed": null,
+            "idle_outcome": null,
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "table": "session_message",
+        "rows": []
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/model.json",
+        "data": {
+          "recent": [],
+          "favorite": [],
+          "variant": {
+            "fixture/vis09-model-03": "fast"
+          }
+        }
+      },
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_vis09_presentation",
+                  "title": "VIS09 Presentation"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-3",
+    "observations": [
+      {
+        "table": "session_v2",
+        "rows": [
+          {
+            "id": "ses_vis09_presentation",
+            "project_id": "dfe27d9054135f74679834fa2375d6907acc2c4a",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "brave-rocket",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "path": "",
+            "title": "VIS09 Presentation",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 0,
+            "tokens_output": 0,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+            "time_created": 1790610963000,
+            "time_updated": 1790611067155,
+            "time_idle": null,
+            "time_viewed": null,
+            "idle_outcome": null,
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "table": "session_message",
+        "rows": []
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/model.json",
+        "data": {
+          "recent": [],
+          "favorite": [],
+          "variant": {
+            "fixture/vis09-model-03": "low"
+          }
+        }
+      },
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_vis09_presentation",
+                  "title": "VIS09 Presentation"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-4",
+    "observations": [
+      {
+        "table": "session_v2",
+        "rows": [
+          {
+            "id": "ses_vis09_presentation",
+            "project_id": "dfe27d9054135f74679834fa2375d6907acc2c4a",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "brave-rocket",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "path": "",
+            "title": "VIS09 Presentation",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 0,
+            "tokens_output": 0,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+            "time_created": 1790610963000,
+            "time_updated": 1790611067155,
+            "time_idle": null,
+            "time_viewed": null,
+            "idle_outcome": null,
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "table": "session_message",
+        "rows": []
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/model.json",
+        "data": {
+          "recent": [],
+          "favorite": [],
+          "variant": {
+            "fixture/vis09-model-03": "medium"
+          }
+        }
+      },
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_vis09_presentation",
+                  "title": "VIS09 Presentation"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-5",
+    "observations": [
+      {
+        "table": "session_v2",
+        "rows": [
+          {
+            "id": "ses_vis09_presentation",
+            "project_id": "dfe27d9054135f74679834fa2375d6907acc2c4a",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "brave-rocket",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "path": "",
+            "title": "VIS09 Presentation",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 0,
+            "tokens_output": 0,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+            "time_created": 1790610963000,
+            "time_updated": 1790611067155,
+            "time_idle": null,
+            "time_viewed": null,
+            "idle_outcome": null,
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "table": "session_message",
+        "rows": []
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/model.json",
+        "data": {
+          "recent": [],
+          "favorite": [],
+          "variant": {
+            "fixture/vis09-model-03": "high"
+          }
+        }
+      },
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_vis09_presentation",
+                  "title": "VIS09 Presentation"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-6",
+    "observations": [
+      {
+        "table": "session_v2",
+        "rows": [
+          {
+            "id": "ses_vis09_presentation",
+            "project_id": "dfe27d9054135f74679834fa2375d6907acc2c4a",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "brave-rocket",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "path": "",
+            "title": "VIS09 Presentation",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 0,
+            "tokens_output": 0,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+            "time_created": 1790610963000,
+            "time_updated": 1790611067155,
+            "time_idle": null,
+            "time_viewed": null,
+            "idle_outcome": null,
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "table": "session_message",
+        "rows": []
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/model.json",
+        "data": {
+          "recent": [],
+          "favorite": [],
+          "variant": {
+            "fixture/vis09-model-03": "xhigh"
+          }
+        }
+      },
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_vis09_presentation",
+                  "title": "VIS09 Presentation"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-7",
+    "observations": [
+      {
+        "table": "session_v2",
+        "rows": [
+          {
+            "id": "ses_vis09_presentation",
+            "project_id": "dfe27d9054135f74679834fa2375d6907acc2c4a",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "brave-rocket",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "path": "",
+            "title": "VIS09 Presentation",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 0,
+            "tokens_output": 0,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+            "time_created": 1790610963000,
+            "time_updated": 1790611067155,
+            "time_idle": null,
+            "time_viewed": null,
+            "idle_outcome": null,
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "table": "session_message",
+        "rows": []
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/model.json",
+        "data": {
+          "recent": [],
+          "favorite": [],
+          "variant": {
+            "fixture/vis09-model-03": "max"
+          }
+        }
+      },
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_vis09_presentation",
+                  "title": "VIS09 Presentation"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-8",
+    "observations": [
+      {
+        "table": "session_v2",
+        "rows": [
+          {
+            "id": "ses_vis09_presentation",
+            "project_id": "dfe27d9054135f74679834fa2375d6907acc2c4a",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "brave-rocket",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "path": "",
+            "title": "VIS09 Presentation",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 0,
+            "tokens_output": 0,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+            "time_created": 1790610963000,
+            "time_updated": 1790611067155,
+            "time_idle": null,
+            "time_viewed": null,
+            "idle_outcome": null,
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "table": "session_message",
+        "rows": []
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/model.json",
+        "data": {
+          "recent": [],
+          "favorite": [],
+          "variant": {
+            "fixture/vis09-model-03": "zeta"
+          }
+        }
+      },
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_vis09_presentation",
+                  "title": "VIS09 Presentation"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-9",
+    "observations": [
+      {
+        "table": "session_v2",
+        "rows": [
+          {
+            "id": "ses_vis09_presentation",
+            "project_id": "dfe27d9054135f74679834fa2375d6907acc2c4a",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "brave-rocket",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "path": "",
+            "title": "VIS09 Presentation",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 0,
+            "tokens_output": 0,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+            "time_created": 1790610963000,
+            "time_updated": 1790611067155,
+            "time_idle": null,
+            "time_viewed": null,
+            "idle_outcome": null,
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "table": "session_message",
+        "rows": []
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/model.json",
+        "data": {
+          "recent": [],
+          "favorite": [],
+          "variant": {
+            "fixture/vis09-model-03": "alpha"
+          }
+        }
+      },
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_vis09_presentation",
+                  "title": "VIS09 Presentation"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-10",
+    "observations": [
+      {
+        "table": "session_v2",
+        "rows": [
+          {
+            "id": "ses_vis09_presentation",
+            "project_id": "dfe27d9054135f74679834fa2375d6907acc2c4a",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "brave-rocket",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "path": "",
+            "title": "VIS09 Presentation",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 0,
+            "tokens_output": 0,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+            "time_created": 1790610963000,
+            "time_updated": 1790611067155,
+            "time_idle": null,
+            "time_viewed": null,
+            "idle_outcome": null,
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "table": "session_message",
+        "rows": []
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/model.json",
+        "data": {
+          "recent": [],
+          "favorite": [],
+          "variant": {
+            "fixture/vis09-model-03": "default"
+          }
+        }
+      },
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_vis09_presentation",
+                  "title": "VIS09 Presentation"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "picker-alias",
+    "observations": [
+      {
+        "table": "session_v2",
+        "rows": [
+          {
+            "id": "ses_vis09_presentation",
+            "project_id": "dfe27d9054135f74679834fa2375d6907acc2c4a",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "brave-rocket",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "path": "",
+            "title": "VIS09 Presentation",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 0,
+            "tokens_output": 0,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+            "time_created": 1790610963000,
+            "time_updated": 1790611067155,
+            "time_idle": null,
+            "time_viewed": null,
+            "idle_outcome": null,
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "table": "session_message",
+        "rows": []
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/model.json",
+        "data": {
+          "recent": [],
+          "favorite": [],
+          "variant": {
+            "fixture/vis09-model-03": "fast"
+          }
+        }
+      },
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_vis09_presentation",
+                  "title": "VIS09 Presentation"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "picker-default",
+    "observations": [
+      {
+        "table": "session_v2",
+        "rows": [
+          {
+            "id": "ses_vis09_presentation",
+            "project_id": "dfe27d9054135f74679834fa2375d6907acc2c4a",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "brave-rocket",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "path": "",
+            "title": "VIS09 Presentation",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 0,
+            "tokens_output": 0,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+            "time_created": 1790610963000,
+            "time_updated": 1790611067155,
+            "time_idle": null,
+            "time_viewed": null,
+            "idle_outcome": null,
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "table": "session_message",
+        "rows": []
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/model.json",
+        "data": {
+          "recent": [],
+          "favorite": [],
+          "variant": {
+            "fixture/vis09-model-03": "default"
+          }
+        }
+      },
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_vis09_presentation",
+                  "title": "VIS09 Presentation"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "model-selected",
+    "observations": [
+      {
+        "table": "session_v2",
+        "rows": [
+          {
+            "id": "ses_vis09_presentation",
+            "project_id": "dfe27d9054135f74679834fa2375d6907acc2c4a",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "brave-rocket",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "path": "",
+            "title": "VIS09 Presentation",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 0,
+            "tokens_output": 0,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+            "time_created": 1790610963000,
+            "time_updated": 1790611067155,
+            "time_idle": null,
+            "time_viewed": null,
+            "idle_outcome": null,
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "table": "session_message",
+        "rows": []
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/model.json",
+        "data": {
+          "recent": [
+            {
+              "providerID": "fixture",
+              "modelID": "vis09-model-15"
+            }
+          ],
+          "favorite": [],
+          "variant": {
+            "fixture/vis09-model-03": "default",
+            "fixture/vis09-model-15": "default"
+          }
+        }
+      },
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_vis09_presentation",
+                  "title": "VIS09 Presentation"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "final-selection",
+    "observations": [
+      {
+        "table": "session_v2",
+        "rows": [
+          {
+            "id": "ses_vis09_presentation",
+            "project_id": "dfe27d9054135f74679834fa2375d6907acc2c4a",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "brave-rocket",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "path": "",
+            "title": "VIS09 Presentation",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 0,
+            "tokens_output": 0,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"vis09-model-03\",\"providerID\":\"fixture\",\"variant\":\"default\"}",
+            "time_created": 1790610963000,
+            "time_updated": 1790611067155,
+            "time_idle": null,
+            "time_viewed": null,
+            "idle_outcome": null,
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "table": "session_message",
+        "rows": []
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/model.json",
+        "data": {
+          "recent": [
+            {
+              "providerID": "fixture",
+              "modelID": "vis09-model-15"
+            }
+          ],
+          "favorite": [],
+          "variant": {
+            "fixture/vis09-model-03": "default",
+            "fixture/vis09-model-15": "fast"
+          }
+        }
+      },
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_vis09_presentation",
+                  "title": "VIS09 Presentation"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "exit",
+    "code": 0,
+    "termination": "natural",
+    "terminal_restored": true,
+    "provider_requests": 0
+  }
+]

@@ -1,0 +1,2071 @@
+[
+  {
+    "kind": "command",
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--version"
+    ],
+    "exit_code": 0,
+    "stdout": "oc 0.1.0\n",
+    "stderr": ""
+  },
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "tui",
+      "--session",
+      "vis09-presentation"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+    "config": {
+      "model": "fixture/vis09-model-03",
+      "animations": false,
+      "snapshots": false,
+      "compaction": {
+        "auto": false
+      },
+      "permissions": {
+        "*": "deny"
+      },
+      "provider": {
+        "fixture": {
+          "name": "VIS09 Fixture",
+          "npm": "@ai-sdk/openai",
+          "options": {
+            "baseURL": "http://127.0.0.1:45893/v1",
+            "apiKey": "offline-fixture-not-a-secret"
+          },
+          "models": {
+            "vis09-model-00": {
+              "name": "VIS09 Model 00",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 0,
+                "output": 0
+              },
+              "variants": {
+                "none": {
+                  "reasoningEffort": "none"
+                },
+                "minimal": {
+                  "reasoningEffort": "minimal"
+                },
+                "fast": {
+                  "reasoningEffort": "low"
+                },
+                "low": {},
+                "medium": {
+                  "reasoningEffort": "medium"
+                },
+                "high": {
+                  "reasoningEffort": "high"
+                },
+                "xhigh": {
+                  "reasoningEffort": "xhigh"
+                },
+                "max": {
+                  "reasoningEffort": "max"
+                },
+                "zeta": {
+                  "reasoningEffort": " deep "
+                },
+                "alpha": {
+                  "reasoningEffort": "custom"
+                }
+              }
+            },
+            "vis09-model-01": {
+              "name": "VIS09 Model 01",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": {
+                "none": {
+                  "reasoningEffort": "none"
+                },
+                "minimal": {
+                  "reasoningEffort": "minimal"
+                },
+                "fast": {
+                  "reasoningEffort": "low"
+                },
+                "low": {},
+                "medium": {
+                  "reasoningEffort": "medium"
+                },
+                "high": {
+                  "reasoningEffort": "high"
+                },
+                "xhigh": {
+                  "reasoningEffort": "xhigh"
+                },
+                "max": {
+                  "reasoningEffort": "max"
+                },
+                "zeta": {
+                  "reasoningEffort": " deep "
+                },
+                "alpha": {
+                  "reasoningEffort": "custom"
+                }
+              }
+            },
+            "vis09-model-02": {
+              "name": "VIS09 Model 02",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": {
+                "none": {
+                  "reasoningEffort": "none"
+                },
+                "minimal": {
+                  "reasoningEffort": "minimal"
+                },
+                "fast": {
+                  "reasoningEffort": "low"
+                },
+                "low": {},
+                "medium": {
+                  "reasoningEffort": "medium"
+                },
+                "high": {
+                  "reasoningEffort": "high"
+                },
+                "xhigh": {
+                  "reasoningEffort": "xhigh"
+                },
+                "max": {
+                  "reasoningEffort": "max"
+                },
+                "zeta": {
+                  "reasoningEffort": " deep "
+                },
+                "alpha": {
+                  "reasoningEffort": "custom"
+                }
+              }
+            },
+            "vis09-model-03": {
+              "name": "VIS09 Model 03",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 0,
+                "output": 0
+              },
+              "variants": {
+                "none": {
+                  "reasoningEffort": "none"
+                },
+                "minimal": {
+                  "reasoningEffort": "minimal"
+                },
+                "fast": {
+                  "reasoningEffort": "low"
+                },
+                "low": {},
+                "medium": {
+                  "reasoningEffort": "medium"
+                },
+                "high": {
+                  "reasoningEffort": "high"
+                },
+                "xhigh": {
+                  "reasoningEffort": "xhigh"
+                },
+                "max": {
+                  "reasoningEffort": "max"
+                },
+                "zeta": {
+                  "reasoningEffort": " deep "
+                },
+                "alpha": {
+                  "reasoningEffort": "custom"
+                }
+              }
+            },
+            "vis09-model-04": {
+              "name": "VIS09 Model 04",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": {
+                "none": {
+                  "reasoningEffort": "none"
+                },
+                "minimal": {
+                  "reasoningEffort": "minimal"
+                },
+                "fast": {
+                  "reasoningEffort": "low"
+                },
+                "low": {},
+                "medium": {
+                  "reasoningEffort": "medium"
+                },
+                "high": {
+                  "reasoningEffort": "high"
+                },
+                "xhigh": {
+                  "reasoningEffort": "xhigh"
+                },
+                "max": {
+                  "reasoningEffort": "max"
+                },
+                "zeta": {
+                  "reasoningEffort": " deep "
+                },
+                "alpha": {
+                  "reasoningEffort": "custom"
+                }
+              }
+            },
+            "vis09-model-05": {
+              "name": "VIS09 Model 05",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": {
+                "none": {
+                  "reasoningEffort": "none"
+                },
+                "minimal": {
+                  "reasoningEffort": "minimal"
+                },
+                "fast": {
+                  "reasoningEffort": "low"
+                },
+                "low": {},
+                "medium": {
+                  "reasoningEffort": "medium"
+                },
+                "high": {
+                  "reasoningEffort": "high"
+                },
+                "xhigh": {
+                  "reasoningEffort": "xhigh"
+                },
+                "max": {
+                  "reasoningEffort": "max"
+                },
+                "zeta": {
+                  "reasoningEffort": " deep "
+                },
+                "alpha": {
+                  "reasoningEffort": "custom"
+                }
+              }
+            },
+            "vis09-model-06": {
+              "name": "VIS09 Model 06",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": {
+                "none": {
+                  "reasoningEffort": "none"
+                },
+                "minimal": {
+                  "reasoningEffort": "minimal"
+                },
+                "fast": {
+                  "reasoningEffort": "low"
+                },
+                "low": {},
+                "medium": {
+                  "reasoningEffort": "medium"
+                },
+                "high": {
+                  "reasoningEffort": "high"
+                },
+                "xhigh": {
+                  "reasoningEffort": "xhigh"
+                },
+                "max": {
+                  "reasoningEffort": "max"
+                },
+                "zeta": {
+                  "reasoningEffort": " deep "
+                },
+                "alpha": {
+                  "reasoningEffort": "custom"
+                }
+              }
+            },
+            "vis09-model-07": {
+              "name": "VIS09 Model 07",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": {
+                "none": {
+                  "reasoningEffort": "none"
+                },
+                "minimal": {
+                  "reasoningEffort": "minimal"
+                },
+                "fast": {
+                  "reasoningEffort": "low"
+                },
+                "low": {},
+                "medium": {
+                  "reasoningEffort": "medium"
+                },
+                "high": {
+                  "reasoningEffort": "high"
+                },
+                "xhigh": {
+                  "reasoningEffort": "xhigh"
+                },
+                "max": {
+                  "reasoningEffort": "max"
+                },
+                "zeta": {
+                  "reasoningEffort": " deep "
+                },
+                "alpha": {
+                  "reasoningEffort": "custom"
+                }
+              }
+            },
+            "vis09-model-08": {
+              "name": "VIS09 Model 08",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": {
+                "none": {
+                  "reasoningEffort": "none"
+                },
+                "minimal": {
+                  "reasoningEffort": "minimal"
+                },
+                "fast": {
+                  "reasoningEffort": "low"
+                },
+                "low": {},
+                "medium": {
+                  "reasoningEffort": "medium"
+                },
+                "high": {
+                  "reasoningEffort": "high"
+                },
+                "xhigh": {
+                  "reasoningEffort": "xhigh"
+                },
+                "max": {
+                  "reasoningEffort": "max"
+                },
+                "zeta": {
+                  "reasoningEffort": " deep "
+                },
+                "alpha": {
+                  "reasoningEffort": "custom"
+                }
+              }
+            },
+            "vis09-model-09": {
+              "name": "VIS09 Model 09",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": {
+                "none": {
+                  "reasoningEffort": "none"
+                },
+                "minimal": {
+                  "reasoningEffort": "minimal"
+                },
+                "fast": {
+                  "reasoningEffort": "low"
+                },
+                "low": {},
+                "medium": {
+                  "reasoningEffort": "medium"
+                },
+                "high": {
+                  "reasoningEffort": "high"
+                },
+                "xhigh": {
+                  "reasoningEffort": "xhigh"
+                },
+                "max": {
+                  "reasoningEffort": "max"
+                },
+                "zeta": {
+                  "reasoningEffort": " deep "
+                },
+                "alpha": {
+                  "reasoningEffort": "custom"
+                }
+              }
+            },
+            "vis09-model-10": {
+              "name": "VIS09 Model 10",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": {
+                "none": {
+                  "reasoningEffort": "none"
+                },
+                "minimal": {
+                  "reasoningEffort": "minimal"
+                },
+                "fast": {
+                  "reasoningEffort": "low"
+                },
+                "low": {},
+                "medium": {
+                  "reasoningEffort": "medium"
+                },
+                "high": {
+                  "reasoningEffort": "high"
+                },
+                "xhigh": {
+                  "reasoningEffort": "xhigh"
+                },
+                "max": {
+                  "reasoningEffort": "max"
+                },
+                "zeta": {
+                  "reasoningEffort": " deep "
+                },
+                "alpha": {
+                  "reasoningEffort": "custom"
+                }
+              }
+            },
+            "vis09-model-11": {
+              "name": "VIS09 Model 11",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": {
+                "none": {
+                  "reasoningEffort": "none"
+                },
+                "minimal": {
+                  "reasoningEffort": "minimal"
+                },
+                "fast": {
+                  "reasoningEffort": "low"
+                },
+                "low": {},
+                "medium": {
+                  "reasoningEffort": "medium"
+                },
+                "high": {
+                  "reasoningEffort": "high"
+                },
+                "xhigh": {
+                  "reasoningEffort": "xhigh"
+                },
+                "max": {
+                  "reasoningEffort": "max"
+                },
+                "zeta": {
+                  "reasoningEffort": " deep "
+                },
+                "alpha": {
+                  "reasoningEffort": "custom"
+                }
+              }
+            },
+            "vis09-model-12": {
+              "name": "VIS09 Model 12",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": {
+                "none": {
+                  "reasoningEffort": "none"
+                },
+                "minimal": {
+                  "reasoningEffort": "minimal"
+                },
+                "fast": {
+                  "reasoningEffort": "low"
+                },
+                "low": {},
+                "medium": {
+                  "reasoningEffort": "medium"
+                },
+                "high": {
+                  "reasoningEffort": "high"
+                },
+                "xhigh": {
+                  "reasoningEffort": "xhigh"
+                },
+                "max": {
+                  "reasoningEffort": "max"
+                },
+                "zeta": {
+                  "reasoningEffort": " deep "
+                },
+                "alpha": {
+                  "reasoningEffort": "custom"
+                }
+              }
+            },
+            "vis09-model-13": {
+              "name": "VIS09 Model 13",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": {
+                "none": {
+                  "reasoningEffort": "none"
+                },
+                "minimal": {
+                  "reasoningEffort": "minimal"
+                },
+                "fast": {
+                  "reasoningEffort": "low"
+                },
+                "low": {},
+                "medium": {
+                  "reasoningEffort": "medium"
+                },
+                "high": {
+                  "reasoningEffort": "high"
+                },
+                "xhigh": {
+                  "reasoningEffort": "xhigh"
+                },
+                "max": {
+                  "reasoningEffort": "max"
+                },
+                "zeta": {
+                  "reasoningEffort": " deep "
+                },
+                "alpha": {
+                  "reasoningEffort": "custom"
+                }
+              }
+            },
+            "vis09-model-14": {
+              "name": "VIS09 Model 14",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": {
+                "none": {
+                  "reasoningEffort": "none"
+                },
+                "minimal": {
+                  "reasoningEffort": "minimal"
+                },
+                "fast": {
+                  "reasoningEffort": "low"
+                },
+                "low": {},
+                "medium": {
+                  "reasoningEffort": "medium"
+                },
+                "high": {
+                  "reasoningEffort": "high"
+                },
+                "xhigh": {
+                  "reasoningEffort": "xhigh"
+                },
+                "max": {
+                  "reasoningEffort": "max"
+                },
+                "zeta": {
+                  "reasoningEffort": " deep "
+                },
+                "alpha": {
+                  "reasoningEffort": "custom"
+                }
+              }
+            },
+            "vis09-model-15": {
+              "name": "VIS09 Model 15",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              },
+              "cost": {
+                "input": 1,
+                "output": 2
+              },
+              "variants": {
+                "none": {
+                  "reasoningEffort": "none"
+                },
+                "minimal": {
+                  "reasoningEffort": "minimal"
+                },
+                "fast": {
+                  "reasoningEffort": "low"
+                },
+                "low": {},
+                "medium": {
+                  "reasoningEffort": "medium"
+                },
+                "high": {
+                  "reasoningEffort": "high"
+                },
+                "xhigh": {
+                  "reasoningEffort": "xhigh"
+                },
+                "max": {
+                  "reasoningEffort": "max"
+                },
+                "zeta": {
+                  "reasoningEffort": " deep "
+                },
+                "alpha": {
+                  "reasoningEffort": "custom"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "cli": {
+      "theme": {
+        "name": "opencode",
+        "mode": "dark"
+      },
+      "animations": false,
+      "session": {
+        "sidebar": "hide",
+        "tps": false
+      },
+      "tabs": {
+        "layout": "horizontal"
+      },
+      "keybinds": {
+        "model.dialog.provider": "none"
+      },
+      "debug": {
+        "devtools": false
+      },
+      "attention": {
+        "notifications": false,
+        "sound": false
+      },
+      "cursor": {
+        "style": "block",
+        "blinking": false
+      }
+    },
+    "binary_sha256": "10a4abb451617e7d28b7f5aecd729abae8928b9a4c64d64a56ec36e65f5beaf9",
+    "env_names": [
+      "COLORTERM",
+      "HOME",
+      "LANG",
+      "LC_ALL",
+      "OC_TEST_ALLOW_LOOPBACK",
+      "OPENCODE_CONFIG_CONTENT",
+      "OPENCODE_CONFIG_PROJECT_DISABLE",
+      "OPENCODE_DISABLE_AUTOUPDATE",
+      "OPENCODE_DISABLE_FILEWATCHER",
+      "OPENCODE_DISABLE_MODELS_FETCH",
+      "OPENCODE_TEST_HOME",
+      "PATH",
+      "SHELL",
+      "TERM",
+      "TZ",
+      "XDG_CACHE_HOME",
+      "XDG_CONFIG_HOME",
+      "XDG_DATA_HOME",
+      "XDG_STATE_HOME"
+    ],
+    "inherited_environment": false,
+    "history_ingress": false,
+    "session": "vis09-presentation"
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "native-transfer",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790610964.757"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": []
+      },
+      {
+        "table": "turns",
+        "rows": []
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": []
+      }
+    ],
+    "client_persistence": [],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": [],
+    "transfer": {
+      "native_history_ingress": false,
+      "native_history": [],
+      "native_session_row": {
+        "id": "vis09-presentation",
+        "created_at": "1790610963",
+        "parent_id": null,
+        "agent": null,
+        "model": null,
+        "title": "VIS09 Presentation",
+        "updated_at": "1790610964.757"
+      },
+      "fixture_sha256": "ee5350ec5e8fb9062542bb4139949b63bedad09f4f7ad7907b6d6bcbc3e629d1",
+      "transfer": {
+        "info": {
+          "id": "ses_vis09_presentation",
+          "projectID": "global",
+          "agent": "build",
+          "model": {
+            "providerID": "fixture",
+            "id": "vis09-model-03",
+            "variant": "default"
+          },
+          "title": "VIS09 Presentation",
+          "location": {
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project"
+          },
+          "time": {
+            "created": 1790610963000,
+            "updated": 1790610964757
+          },
+          "cost": 0,
+          "tokens": {
+            "input": 0,
+            "output": 0,
+            "reasoning": 0,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          }
+        },
+        "messages": []
+      },
+      "mapping": "Real public rename of empty owner session; zero usage/cost scaffolding; no message timestamps or history injection."
+    }
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-0",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790610964.757"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": []
+      },
+      {
+        "table": "turns",
+        "rows": []
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+            "value": "\"none\"",
+            "updated_at": "1790610972"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"none\"}},\"epoch\":0}",
+            "updated_at": "1790610972"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": []
+      }
+    ],
+    "client_persistence": [],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-1",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790610964.757"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": []
+      },
+      {
+        "table": "turns",
+        "rows": []
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+            "value": "\"minimal\"",
+            "updated_at": "1790610978"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"minimal\"}},\"epoch\":0}",
+            "updated_at": "1790610978"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": []
+      }
+    ],
+    "client_persistence": [],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-2",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790610964.757"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": []
+      },
+      {
+        "table": "turns",
+        "rows": []
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+            "value": "\"fast\"",
+            "updated_at": "1790610984"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"fast\"}},\"epoch\":0}",
+            "updated_at": "1790610984"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": []
+      }
+    ],
+    "client_persistence": [],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-3",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790610964.757"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": []
+      },
+      {
+        "table": "turns",
+        "rows": []
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+            "value": "\"low\"",
+            "updated_at": "1790610989"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"low\"}},\"epoch\":0}",
+            "updated_at": "1790610989"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": []
+      }
+    ],
+    "client_persistence": [],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-4",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790610964.757"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": []
+      },
+      {
+        "table": "turns",
+        "rows": []
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+            "value": "\"medium\"",
+            "updated_at": "1790610995"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"medium\"}},\"epoch\":0}",
+            "updated_at": "1790610995"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": []
+      }
+    ],
+    "client_persistence": [],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-5",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790610964.757"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": []
+      },
+      {
+        "table": "turns",
+        "rows": []
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+            "value": "\"high\"",
+            "updated_at": "1790611001"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"high\"}},\"epoch\":0}",
+            "updated_at": "1790611001"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": []
+      }
+    ],
+    "client_persistence": [],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-6",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790610964.757"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": []
+      },
+      {
+        "table": "turns",
+        "rows": []
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+            "value": "\"xhigh\"",
+            "updated_at": "1790611007"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"xhigh\"}},\"epoch\":0}",
+            "updated_at": "1790611007"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": []
+      }
+    ],
+    "client_persistence": [],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-7",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790610964.757"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": []
+      },
+      {
+        "table": "turns",
+        "rows": []
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+            "value": "\"max\"",
+            "updated_at": "1790611013"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"max\"}},\"epoch\":0}",
+            "updated_at": "1790611013"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": []
+      }
+    ],
+    "client_persistence": [],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-8",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790610964.757"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": []
+      },
+      {
+        "table": "turns",
+        "rows": []
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+            "value": "\"zeta\"",
+            "updated_at": "1790611019"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"zeta\"}},\"epoch\":0}",
+            "updated_at": "1790611019"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": []
+      }
+    ],
+    "client_persistence": [],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-9",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790610964.757"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": []
+      },
+      {
+        "table": "turns",
+        "rows": []
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+            "value": "\"alpha\"",
+            "updated_at": "1790611024"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"alpha\"}},\"epoch\":0}",
+            "updated_at": "1790611024"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": []
+      }
+    ],
+    "client_persistence": [],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "cycle-10",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790610964.757"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": []
+      },
+      {
+        "table": "turns",
+        "rows": []
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+            "value": "null",
+            "updated_at": "1790611030"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790611030"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": []
+      }
+    ],
+    "client_persistence": [],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "picker-alias",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790610964.757"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": []
+      },
+      {
+        "table": "turns",
+        "rows": []
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+            "value": "\"fast\"",
+            "updated_at": "1790611040"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":\"fast\"}},\"epoch\":0}",
+            "updated_at": "1790611040"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": []
+      }
+    ],
+    "client_persistence": [],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "picker-default",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790610964.757"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": []
+      },
+      {
+        "table": "turns",
+        "rows": []
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+            "value": "null",
+            "updated_at": "1790611045"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-03\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790611045"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": []
+      }
+    ],
+    "client_persistence": [],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "model-selected",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790610964.757"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": []
+      },
+      {
+        "table": "turns",
+        "rows": []
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+            "value": "null",
+            "updated_at": "1790611045"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-15\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790611055"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-15\"]",
+            "value": "null",
+            "updated_at": "1790611055"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": []
+      }
+    ],
+    "client_persistence": [],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "final-selection",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790610964.757"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": []
+      },
+      {
+        "table": "turns",
+        "rows": []
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+            "value": "null",
+            "updated_at": "1790611045"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-15\",\"variant\":\"fast\"}},\"epoch\":0}",
+            "updated_at": "1790611063"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-15\"]",
+            "value": "\"fast\"",
+            "updated_at": "1790611063"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": []
+      }
+    ],
+    "client_persistence": [],
+    "requests": 0,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "wire_admitted"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "request": {
+      "model": "vis09-model-15",
+      "store": false,
+      "stream": true,
+      "input": [
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "VIS09 retained draft"
+            }
+          ]
+        }
+      ],
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "max_output_tokens": 2048,
+      "tools": [
+        {
+          "type": "function",
+          "name": "read",
+          "description": "Read a project file slice. `path` is relative to the project root; `offset` is the 1-based first line, `limit` caps lines (default 50).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "glob",
+          "description": "List project paths matching a bounded glob. Results are sorted and paginated.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "grep",
+          "description": "Search project text with a bounded literal pattern. Results are sorted and paginated; regex mode is unsupported.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "literal": {
+                "type": "boolean"
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "apply_patch",
+          "description": "Apply a patch to project files. `patchText` must start with `*** Begin Patch` and end with `*** End Patch`. For `*** Add File: <relative path>`, prefix every content line with `+`; no content lines creates an empty file. Update hunks use `*** Update File: <relative path>`, optionally immediately followed by `*** Move to: <relative path>`, then `@@` and lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Delete uses `*** Delete File: <relative path>`. Paths stay inside the project root.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "patchText": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "patchText"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "function",
+          "name": "bash",
+          "description": "Run a supervised command. `argv` is the exact executable plus args (no shell); omit `cwd` to run in the project root — any `cwd` must stay inside the project root. `timeout_ms` caps the run (default 30000).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "argv": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "cwd": {
+                "type": "string"
+              },
+              "timeout_ms": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "argv"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "webfetch",
+          "description": "Fetch a URL as text",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url"
+            ]
+          }
+        },
+        {
+          "type": "function",
+          "name": "skill",
+          "description": "Invoke a pinned skill",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        }
+      ],
+      "reasoning": {
+        "effort": "low"
+      }
+    },
+    "valid": true
+  },
+  {
+    "kind": "provider_completed",
+    "model": "vis09-model-15"
+  },
+  {
+    "kind": "owner_snapshot",
+    "request_id": "wire-owner",
+    "observations": [
+      {
+        "table": "sessions",
+        "rows": [
+          {
+            "id": "vis09-presentation",
+            "created_at": "1790610963",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS09 Presentation",
+            "updated_at": "1790611064.522"
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "rows": [
+          {
+            "id": "m0001",
+            "session_id": "vis09-presentation",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS09 retained draft"
+          },
+          {
+            "id": "m0002",
+            "session_id": "vis09-presentation",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS09-WIRE: exact selected model and alias effort accepted."
+          }
+        ]
+      },
+      {
+        "table": "turns",
+        "rows": [
+          {
+            "id": "tvis09-presentation-1790611064443-2681889-0",
+            "session_id": "vis09-presentation",
+            "status": "completed",
+            "prompt": "VIS09 retained draft",
+            "result": "{\"display\":{\"model_label\":\"VIS09 Model 15\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":86,\"streamed_ms\":60,\"usage\":[100,12],\"context_usage\":[100,12]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"tvis09-presentation-1790611064443-2681889-0\",\"model\":\"vis09-model-15\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[100,12],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS09 retained draft\"}]},{\"id\":\"msg_vis09_wire\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS09-WIRE: exact selected model and alias effort accepted.\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+          }
+        ]
+      },
+      {
+        "table": "prefs",
+        "rows": [
+          {
+            "key": "tui.session_location.vis09-presentation",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"vis09-presentation\"],\"active\":\"vis09-presentation\"}",
+            "updated_at": "1790610963"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-03\"]",
+            "value": "null",
+            "updated_at": "1790611045"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/variants-paired20260928-05/120x40-shared/project\",\"fixture\",\"vis09-presentation\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"vis09-model-15\",\"variant\":\"fast\"}},\"epoch\":0}",
+            "updated_at": "1790611063"
+          },
+          {
+            "key": "tui.selection.variant:[\"fixture\",\"vis09-model-15\"]",
+            "value": "\"fast\"",
+            "updated_at": "1790611063"
+          },
+          {
+            "key": "dcp.nudge.vis09-presentation\u0000fixture\u0000vis09-model-15",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790611064"
+          }
+        ]
+      },
+      {
+        "table": "turn_acceptances",
+        "rows": [
+          {
+            "turn_id": "tvis09-presentation-1790611064443-2681889-0",
+            "session_id": "vis09-presentation",
+            "user_message": "m0001",
+            "model_ref": "{\"provider\":\"fixture\",\"id\":\"vis09-model-15\",\"variant\":\"fast\"}"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [],
+    "requests": 1,
+    "readonly_sqlite": true,
+    "project_files": []
+  },
+  {
+    "kind": "exit",
+    "code": 0,
+    "termination": "natural",
+    "terminal_restored": true,
+    "provider_requests": 1
+  }
+]

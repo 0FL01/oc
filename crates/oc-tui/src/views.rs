@@ -23,6 +23,29 @@ pub fn render_frame(frame: &mut Frame<'_>, state: &TuiState) {
     crate::shell::render(frame, state);
 }
 
+/// Pinned DialogSelect paints its caret with the focused form-field token.
+/// This cannot be represented by the underlying cell foreground/background.
+pub fn cursor_color(state: &TuiState) -> ratatui::style::Color {
+    if matches!(
+        state.panel(),
+        TuiPanel::Commands
+            | TuiPanel::Settings
+            | TuiPanel::MessageActions { .. }
+            | TuiPanel::Model
+            | TuiPanel::Variant
+            | TuiPanel::Agents
+            | TuiPanel::Sessions
+            | TuiPanel::Skills
+    ) && state.approvals.active().is_none()
+    {
+        crate::theme::Theme::dark()
+            .color("@dialog.text.formfield.$focused")
+            .unwrap_or_else(|| crate::theme::Theme::dark().border_active())
+    } else {
+        ratatui::style::Color::Reset
+    }
+}
+
 /// Reversible, terminal-inert text view: a literal backslash is escaped,
 /// so `\\n` (stored newline) can never be mistaken for a stored `\n`.
 fn escaped_result(text: &str) -> String {

@@ -1,0 +1,198 @@
+diff --git a/crates/oc-tui/src/app/input.rs b/crates/oc-tui/src/app/input.rs
+index 1a16787b7..e00d9cebe 100644
+--- a/crates/oc-tui/src/app/input.rs
++++ b/crates/oc-tui/src/app/input.rs
+@@ -516,6 +516,9 @@ impl TuiState {
+             .iter()
+             .position(|o| o.current)
+             .unwrap_or(0);
++        // DialogSelect centers its current option after the first layout, not
++        // only when that option falls outside the viewport.
++        self.select.follow_selection();
+     }
+ 
+     fn changed_modal_query(&mut self) {
+@@ -527,6 +530,7 @@ impl TuiState {
+                 .iter()
+                 .position(|o| o.current)
+                 .unwrap_or(0);
++            self.select.follow_selection();
+         }
+         self.sync_modal_cursor();
+     }
+diff --git a/crates/oc-tui/src/app/tests/input.rs b/crates/oc-tui/src/app/tests/input.rs
+index a7e8ba66e..0231f7e98 100644
+--- a/crates/oc-tui/src/app/tests/input.rs
++++ b/crates/oc-tui/src/app/tests/input.rs
+@@ -2032,6 +2032,38 @@ async fn v04_variant_current_focus_restores_after_clearing_search() {
+     assert_eq!(state.panel(), &TuiPanel::None);
+ }
+ 
++#[tokio::test]
++async fn vis29_variant_current_focus_centers_on_open_and_clear_in_narrow_view() {
++    use crate::commands::CommandAction;
++    let mut state = fresh_state("vis29-narrow-current").await;
++    let mut catalog = snapshot();
++    catalog.variant = Some("max".into());
++    catalog.models[0].variants = [
++        "none", "minimal", "low", "medium", "high", "xhigh", "max", "zeta", "alpha",
++    ]
++    .into_iter()
++    .map(|name| VariantEntry {
++        name: name.into(),
++        disabled: false,
++        reasoning_effort: None,
++    })
++    .collect();
++    state.apply_catalog(catalog);
++    type_text(&mut state, "draft retained").await;
++    state.run_command(CommandAction::OpenVariants);
++    let rows = crate::views::render_test(&state, 80, 24);
++    assert!(rows[11].contains("medium"));
++    assert!(rows[14].contains("● max"));
++    assert!(rows[16].contains("alpha"));
++    state.handle_paste("Default");
++    crate::views::render_test(&state, 80, 24);
++    state.handle_panel_key(KeyAction::Interrupt);
++    let restored = crate::views::render_test(&state, 80, 24);
++    assert_eq!(restored, rows);
++    state.handle_panel_key(KeyAction::Cancel);
++    assert_eq!(state.input(), "draft retained");
++}
++
+ #[tokio::test]
+ async fn variant_cycle_keeps_draft_and_modal_focus_and_refuses_pending_submit() {
+     let (app, mut inbox, _) = CoreApp::channel(4);
+@@ -2185,6 +2217,10 @@ async fn vis09_keyboard_model_focus_centers_clamped_viewport_without_moving_curr
+     catalog.model_id = "m03".into();
+     state.apply_catalog(catalog);
+     state.run_command(CommandAction::OpenModelPicker);
++    let mut cursor_output = Vec::new();
++    crate::terminal::set_cursor_color(&mut cursor_output, crate::views::cursor_color(&state))
++        .unwrap();
++    assert_eq!(cursor_output, b"\x1b]12;#fab283\x07");
+     let area = Rect::new(0, 0, 120, 40);
+     let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+     let row = |terminal: &Terminal<TestBackend>, y| -> String {
+@@ -2244,6 +2280,10 @@ async fn vis09_keyboard_model_focus_centers_clamped_viewport_without_moving_curr
+     assert_eq!(state.modal_options().len(), 1);
+     assert_eq!(state.select.cursor, 0);
+     assert_eq!(row(&terminal, 15), "Model 00");
++    state.handle_panel_key(KeyAction::Cancel);
++    crate::terminal::set_cursor_color(&mut cursor_output, crate::views::cursor_color(&state))
++        .unwrap();
++    assert!(cursor_output.ends_with(b"\x1b]112\x07"));
+ }
+ 
+ #[tokio::test]
+diff --git a/crates/oc-tui/src/terminal.rs b/crates/oc-tui/src/terminal.rs
+index 474156841..83142d996 100644
+--- a/crates/oc-tui/src/terminal.rs
++++ b/crates/oc-tui/src/terminal.rs
+@@ -5,7 +5,7 @@
+ //! panics by restoring first and then chaining the previous hook. Restore
+ //! is idempotent and safe to call when the terminal was never entered.
+ 
+-use std::sync::OnceLock;
++use std::{io::Write, sync::OnceLock};
+ 
+ use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
+ use crossterm::terminal::{
+@@ -39,7 +39,26 @@ pub fn enter() -> Result<TerminalGuard, String> {
+ /// call when the terminal was never entered (errors ignored).
+ pub fn restore() {
+     let _ = disable_raw_mode();
+-    let _ = crossterm::execute!(std::io::stderr(), DisableMouseCapture, LeaveAlternateScreen);
++    let _ = crossterm::execute!(
++        std::io::stderr(),
++        crossterm::style::Print("\x1b]112\x07"),
++        DisableMouseCapture,
++        LeaveAlternateScreen
++    );
++}
++
++/// Cursor paint is terminal state, outside Ratatui's styled cell buffer. Reset
++/// returns to the terminal's default; restore also covers errors and panics.
++pub fn set_cursor_color(
++    output: &mut impl Write,
++    color: ratatui::style::Color,
++) -> std::io::Result<()> {
++    match color {
++        ratatui::style::Color::Rgb(r, g, b) => {
++            write!(output, "\x1b]12;#{r:02x}{g:02x}{b:02x}\x07")
++        }
++        _ => output.write_all(b"\x1b]112\x07"),
++    }
+ }
+ 
+ static PANIC_HOOK_ONCE: OnceLock<()> = OnceLock::new();
+diff --git a/crates/oc-tui/src/views.rs b/crates/oc-tui/src/views.rs
+index 9409068ff..a2725773e 100644
+--- a/crates/oc-tui/src/views.rs
++++ b/crates/oc-tui/src/views.rs
+@@ -23,6 +23,29 @@ pub fn render_frame(frame: &mut Frame<'_>, state: &TuiState) {
+     crate::shell::render(frame, state);
+ }
+ 
++/// Pinned DialogSelect paints its caret with the focused form-field token.
++/// This cannot be represented by the underlying cell foreground/background.
++pub fn cursor_color(state: &TuiState) -> ratatui::style::Color {
++    if matches!(
++        state.panel(),
++        TuiPanel::Commands
++            | TuiPanel::Settings
++            | TuiPanel::MessageActions { .. }
++            | TuiPanel::Model
++            | TuiPanel::Variant
++            | TuiPanel::Agents
++            | TuiPanel::Sessions
++            | TuiPanel::Skills
++    ) && state.approvals.active().is_none()
++    {
++        crate::theme::Theme::dark()
++            .color("@dialog.text.formfield.$focused")
++            .unwrap_or_else(|| crate::theme::Theme::dark().border_active())
++    } else {
++        ratatui::style::Color::Reset
++    }
++}
++
+ /// Reversible, terminal-inert text view: a literal backslash is escaped,
+ /// so `\\n` (stored newline) can never be mistaken for a stored `\n`.
+ fn escaped_result(text: &str) -> String {
+diff --git a/crates/oc/src/tui_cmd.rs b/crates/oc/src/tui_cmd.rs
+index 1171b6058..6f2458233 100644
+--- a/crates/oc/src/tui_cmd.rs
++++ b/crates/oc/src/tui_cmd.rs
+@@ -34,8 +34,8 @@ use oc_tui::commands::{CommandAction, dispatch};
+ use oc_tui::dcp_panel::DcpOutcome;
+ use oc_tui::events::{KeyAction, UiEvent, map_event};
+ use oc_tui::shell::{StartupFailure, render_background, render_startup_failure};
+-use oc_tui::terminal::{enter, install_panic_hook};
+-use oc_tui::views::render_frame;
++use oc_tui::terminal::{enter, install_panic_hook, set_cursor_color};
++use oc_tui::views::{cursor_color, render_frame};
+ 
+ /// Qualification probe (T26): when set, panic right after entering the
+ /// terminal so PTY tests can verify panic-path restoration. Never set in
+@@ -935,6 +935,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) ->
+     let mut input = event::EventStream::new();
+     let mut dirty = true;
+     let mut first_paint = true;
++    let mut painted_cursor_color = ratatui::style::Color::Reset;
+     let mut paint_at = Instant::now();
+     let mut worker_ready = None;
+     let mut input_pending = std::collections::VecDeque::new();
+@@ -1030,6 +1031,12 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) ->
+                     .map_err(|e| format!("draw background: {e}"))?;
+                 first_paint = false;
+             }
++            let color = cursor_color(&state);
++            if color != painted_cursor_color {
++                set_cursor_color(terminal.backend_mut(), color)
++                    .map_err(|e| format!("cursor color: {e}"))?;
++                painted_cursor_color = color;
++            }
+             let painted = terminal
+                 .draw(|frame| render_frame(frame, &state))
+                 .map_err(|e| format!("draw: {e}"))?;

@@ -34,8 +34,8 @@ use oc_tui::commands::{CommandAction, dispatch};
 use oc_tui::dcp_panel::DcpOutcome;
 use oc_tui::events::{KeyAction, UiEvent, map_event};
 use oc_tui::shell::{StartupFailure, render_background, render_startup_failure};
-use oc_tui::terminal::{enter, install_panic_hook};
-use oc_tui::views::render_frame;
+use oc_tui::terminal::{enter, install_panic_hook, set_cursor_color};
+use oc_tui::views::{cursor_color, render_frame};
 
 /// Qualification probe (T26): when set, panic right after entering the
 /// terminal so PTY tests can verify panic-path restoration. Never set in
@@ -935,6 +935,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
     let mut input = event::EventStream::new();
     let mut dirty = true;
     let mut first_paint = true;
+    let mut painted_cursor_color = ratatui::style::Color::Reset;
     let mut paint_at = Instant::now();
     let mut worker_ready = None;
     let mut input_pending = std::collections::VecDeque::new();
@@ -1029,6 +1030,12 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                     .draw(render_background)
                     .map_err(|e| format!("draw background: {e}"))?;
                 first_paint = false;
+            }
+            let color = cursor_color(&state);
+            if color != painted_cursor_color {
+                set_cursor_color(terminal.backend_mut(), color)
+                    .map_err(|e| format!("cursor color: {e}"))?;
+                painted_cursor_color = color;
             }
             let painted = terminal
                 .draw(|frame| render_frame(frame, &state))
