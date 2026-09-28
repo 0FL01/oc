@@ -21,7 +21,7 @@ crates/oc/src/
 # <owner>/tests.rs и tests/<suite>/ — тесты, не production-зависимости.
 ```
 
-Это карта укрупнённых владельцев, не предписание создать все возможные подпапки. `app/` и дополнительные slices `runtime/` вводятся T52; фактические и ещё планируемые пути различаются в `CODE_MAP.md`. Не раскладывать небольшие core/config/provider-модули по старому концептуальному дереву ради единообразия.
+Это карта укрупнённых владельцев, не предписание создать все возможные подпапки. `app/` и дополнительные slices `runtime/` уже содержат implementation/test parts с прежними state owners; реальные маршруты и ближайшие tests — в `CODE_MAP.md`. Не раскладывать небольшие core/config/provider-модули по старому концептуальному дереву ради единообразия.
 
 `oc` связывает конкретные реализации и может зависеть от всех остальных. `oc-tui` использует публичный application API `oc-core` и уже разрешённый D12 read-side `oc-adapters`; эта зависимость есть в Cargo.toml и не устраняется файловым рефакторингом. В текущем TuiState snapshots/intents проходят через CoreApp, а lifecycle Db/runtime/network/process остаётся у существующих application/binary owners. T52 не добавляет UI новый I/O и не расширяет исключение D12. `oc-adapters` реализует ports `oc-core`; обратной зависимости нет. `oc-core` может использовать Tokio/Serde и простые utility-типы, но не Ratatui, Axum, rusqlite, reqwest или rmcp.
 

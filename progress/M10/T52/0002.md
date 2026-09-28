@@ -1,12 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-28T10:49:28+00:00
-Active: нет
-
-Сверить Git status/diff до выполнения команд.
-
-Последний срез: T52 [done]; сверить незакоммиченный diff.
-
 # T52 closeout
 
 ## Result
@@ -36,11 +27,3 @@ preclaimed by progress utility.
 
 Normal closeout commit/push, then progress.py start T44 under the latest explicit
 continuation instruction; resume the unfinished T44 feature/qualification slice.
-
-
-Следующий шаг: проверить зависимости и начать первую ready-задачу.
-
-Ready (до 5): T45, T46, T47, T50, T51
-Blocked: T27, T43, T44
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

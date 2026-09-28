@@ -1,0 +1,4043 @@
+[
+  {
+    "path": "crates/oc-adapters/src/admitted_fs.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 58,
+      "bytes": 2042
+    },
+    "base": {
+      "lines": 58,
+      "bytes": 2042
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/application.rs",
+    "role": "mixed/unknown",
+    "status": "modified",
+    "current": {
+      "lines": 3272,
+      "bytes": 142389
+    },
+    "base": {
+      "lines": 4553,
+      "bytes": 195264
+    },
+    "warning": false,
+    "delta": {
+      "lines": -1281,
+      "bytes": -52875
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/application/tests.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 1298,
+      "bytes": 53316
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 1298,
+      "bytes": 53316
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/application_conversation_tests.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 1494,
+      "bytes": 62520
+    },
+    "base": {
+      "lines": 1494,
+      "bytes": 62520
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/application_fork_tests.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 323,
+      "bytes": 12041
+    },
+    "base": {
+      "lines": 323,
+      "bytes": 12041
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/application_selection.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 445,
+      "bytes": 15100
+    },
+    "base": {
+      "lines": 445,
+      "bytes": 15100
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/application_tab_deck.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 176,
+      "bytes": 6190
+    },
+    "base": {
+      "lines": 176,
+      "bytes": 6190
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/approval.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 306,
+      "bytes": 11115
+    },
+    "base": {
+      "lines": 306,
+      "bytes": 11115
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/approval_tests.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 181,
+      "bytes": 5620
+    },
+    "base": {
+      "lines": 181,
+      "bytes": 5620
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/attachments.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 133,
+      "bytes": 4779
+    },
+    "base": {
+      "lines": 133,
+      "bytes": 4779
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/cli_permissions.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 200,
+      "bytes": 6346
+    },
+    "base": {
+      "lines": 200,
+      "bytes": 6346
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/compaction.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 434,
+      "bytes": 16484
+    },
+    "base": {
+      "lines": 434,
+      "bytes": 16484
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/composition.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 2302,
+      "bytes": 94733
+    },
+    "base": {
+      "lines": 2302,
+      "bytes": 94733
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/config.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 2236,
+      "bytes": 83570
+    },
+    "base": {
+      "lines": 2236,
+      "bytes": 83570
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/dcp.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 1704,
+      "bytes": 62768
+    },
+    "base": {
+      "lines": 1704,
+      "bytes": 62768
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/dcp_auto.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 1203,
+      "bytes": 46426
+    },
+    "base": {
+      "lines": 1203,
+      "bytes": 46426
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/defs.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 1851,
+      "bytes": 67987
+    },
+    "base": {
+      "lines": 1851,
+      "bytes": 67987
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/discovery.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 1867,
+      "bytes": 68789
+    },
+    "base": {
+      "lines": 1867,
+      "bytes": 68789
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/files.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 1148,
+      "bytes": 42473
+    },
+    "base": {
+      "lines": 1148,
+      "bytes": 42473
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/lib.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 47,
+      "bytes": 1359
+    },
+    "base": {
+      "lines": 47,
+      "bytes": 1359
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/mcp_http_lifecycle.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 183,
+      "bytes": 5277
+    },
+    "base": {
+      "lines": 183,
+      "bytes": 5277
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/mcp_remote.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 866,
+      "bytes": 33086
+    },
+    "base": {
+      "lines": 866,
+      "bytes": 33086
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/mcp_result.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 314,
+      "bytes": 12187
+    },
+    "base": {
+      "lines": 314,
+      "bytes": 12187
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/mcp_stdio.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 828,
+      "bytes": 30128
+    },
+    "base": {
+      "lines": 828,
+      "bytes": 30128
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/models.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 496,
+      "bytes": 17543
+    },
+    "base": {
+      "lines": 496,
+      "bytes": 17543
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/patch.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 1939,
+      "bytes": 67913
+    },
+    "base": {
+      "lines": 1939,
+      "bytes": 67913
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/patch/effects.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 659,
+      "bytes": 24439
+    },
+    "base": {
+      "lines": 659,
+      "bytes": 24439
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/patch/fs.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 323,
+      "bytes": 11002
+    },
+    "base": {
+      "lines": 323,
+      "bytes": 11002
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/permissions.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 289,
+      "bytes": 9967
+    },
+    "base": {
+      "lines": 289,
+      "bytes": 9967
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/provider.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 2193,
+      "bytes": 85455
+    },
+    "base": {
+      "lines": 2193,
+      "bytes": 85455
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/runtime.rs",
+    "role": "mixed/unknown",
+    "status": "modified",
+    "current": {
+      "lines": 1548,
+      "bytes": 59701
+    },
+    "base": {
+      "lines": 6189,
+      "bytes": 248998
+    },
+    "warning": false,
+    "delta": {
+      "lines": -4641,
+      "bytes": -189297
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/runtime/context.rs",
+    "role": "source",
+    "status": "new",
+    "current": {
+      "lines": 1041,
+      "bytes": 40123
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 1041,
+      "bytes": 40123
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/runtime/mcp.rs",
+    "role": "source",
+    "status": "new",
+    "current": {
+      "lines": 843,
+      "bytes": 35154
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 843,
+      "bytes": 35154
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/runtime/tests.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 439,
+      "bytes": 16877
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 439,
+      "bytes": 16877
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/runtime/tool_stream.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 136,
+      "bytes": 4296
+    },
+    "base": {
+      "lines": 136,
+      "bytes": 4296
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/runtime/turn.rs",
+    "role": "source",
+    "status": "new",
+    "current": {
+      "lines": 2359,
+      "bytes": 98466
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 2359,
+      "bytes": 98466
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/runtime_compaction.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 546,
+      "bytes": 20453
+    },
+    "base": {
+      "lines": 546,
+      "bytes": 20453
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/runtime_compaction_tests.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 1016,
+      "bytes": 39919
+    },
+    "base": {
+      "lines": 1016,
+      "bytes": 39919
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/shell.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 1007,
+      "bytes": 34885
+    },
+    "base": {
+      "lines": 1007,
+      "bytes": 34885
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/smoke.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 92,
+      "bytes": 3104
+    },
+    "base": {
+      "lines": 92,
+      "bytes": 3104
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/storage.rs",
+    "role": "mixed/unknown",
+    "status": "modified",
+    "current": {
+      "lines": 3502,
+      "bytes": 145511
+    },
+    "base": {
+      "lines": 5177,
+      "bytes": 213026
+    },
+    "warning": false,
+    "delta": {
+      "lines": -1675,
+      "bytes": -67515
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/storage/tests.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 1674,
+      "bytes": 61234
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 1674,
+      "bytes": 61234
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/storage_checkpoint_dcp_tests.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 247,
+      "bytes": 9124
+    },
+    "base": {
+      "lines": 247,
+      "bytes": 9124
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/storage_compaction.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 329,
+      "bytes": 16623
+    },
+    "base": {
+      "lines": 329,
+      "bytes": 16623
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/storage_conversation.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 556,
+      "bytes": 29132
+    },
+    "base": {
+      "lines": 556,
+      "bytes": 29132
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/storage_conversation_tests.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 606,
+      "bytes": 20585
+    },
+    "base": {
+      "lines": 606,
+      "bytes": 20585
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/storage_dcp_lifecycle_fixture.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 113,
+      "bytes": 3369
+    },
+    "base": {
+      "lines": 113,
+      "bytes": 3369
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/storage_dcp_view.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 839,
+      "bytes": 41589
+    },
+    "base": {
+      "lines": 839,
+      "bytes": 41589
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/storage_dcp_view_tests.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 403,
+      "bytes": 13201
+    },
+    "base": {
+      "lines": 403,
+      "bytes": 13201
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/storage_fork.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 1489,
+      "bytes": 64631
+    },
+    "base": {
+      "lines": 1489,
+      "bytes": 64631
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/storage_fork_context.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 442,
+      "bytes": 23886
+    },
+    "base": {
+      "lines": 442,
+      "bytes": 23886
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/storage_fork_dcp_tests.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 213,
+      "bytes": 7689
+    },
+    "base": {
+      "lines": 213,
+      "bytes": 7689
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/storage_grants.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 74,
+      "bytes": 3049
+    },
+    "base": {
+      "lines": 74,
+      "bytes": 3049
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/tools.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 2138,
+      "bytes": 76628
+    },
+    "base": {
+      "lines": 2138,
+      "bytes": 76628
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/trace.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 310,
+      "bytes": 10282
+    },
+    "base": {
+      "lines": 310,
+      "bytes": 10282
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/tui_workspace.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 317,
+      "bytes": 10432
+    },
+    "base": {
+      "lines": 317,
+      "bytes": 10432
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/src/webfetch.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 1214,
+      "bytes": 42887
+    },
+    "base": {
+      "lines": 1214,
+      "bytes": 42887
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/blob_audit.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 311,
+      "bytes": 11515
+    },
+    "base": {
+      "lines": 311,
+      "bytes": 11515
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/context_bounds.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 672,
+      "bytes": 25052
+    },
+    "base": {
+      "lines": 672,
+      "bytes": 25052
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/dcp_atomic.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 437,
+      "bytes": 14512
+    },
+    "base": {
+      "lines": 437,
+      "bytes": 14512
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/e2e_live.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 365,
+      "bytes": 13570
+    },
+    "base": {
+      "lines": 365,
+      "bytes": 13570
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/e2e_offline.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 754,
+      "bytes": 26731
+    },
+    "base": {
+      "lines": 754,
+      "bytes": 26731
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/fixtures/approval_lifecycle.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 895,
+      "bytes": 32207
+    },
+    "base": {
+      "lines": 895,
+      "bytes": 32207
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/mcp_remote.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 1216,
+      "bytes": 43823
+    },
+    "base": {
+      "lines": 1216,
+      "bytes": 43823
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/mcp_stdio.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 851,
+      "bytes": 31181
+    },
+    "base": {
+      "lines": 851,
+      "bytes": 31181
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/patch_audit.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 282,
+      "bytes": 10562
+    },
+    "base": {
+      "lines": 282,
+      "bytes": 10562
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/patch_effects.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 270,
+      "bytes": 9971
+    },
+    "base": {
+      "lines": 270,
+      "bytes": 9971
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/permissions.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 236,
+      "bytes": 9410
+    },
+    "base": {
+      "lines": 236,
+      "bytes": 9410
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/runtime.rs",
+    "role": "test",
+    "status": "modified",
+    "current": {
+      "lines": 954,
+      "bytes": 35595
+    },
+    "base": {
+      "lines": 7930,
+      "bytes": 284442
+    },
+    "warning": false,
+    "delta": {
+      "lines": -6976,
+      "bytes": -248847
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/runtime/context.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 1696,
+      "bytes": 58416
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 1696,
+      "bytes": 58416
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/runtime/tool_lifecycle.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 1994,
+      "bytes": 74341
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 1994,
+      "bytes": 74341
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/runtime/turns.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 3302,
+      "bytes": 116493
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 3302,
+      "bytes": 116493
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/session_rename.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 606,
+      "bytes": 21197
+    },
+    "base": {
+      "lines": 606,
+      "bytes": 21197
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/shell_watchdog.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 183,
+      "bytes": 6848
+    },
+    "base": {
+      "lines": 183,
+      "bytes": 6848
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/soak.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 719,
+      "bytes": 26671
+    },
+    "base": {
+      "lines": 719,
+      "bytes": 26671
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/storage_lock.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 113,
+      "bytes": 3964
+    },
+    "base": {
+      "lines": 113,
+      "bytes": 3964
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/subagent.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 1551,
+      "bytes": 54349
+    },
+    "base": {
+      "lines": 1551,
+      "bytes": 54349
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-adapters/tests/tab_deck.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 993,
+      "bytes": 35683
+    },
+    "base": {
+      "lines": 993,
+      "bytes": 35683
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-core/src/application.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 47,
+      "bytes": 1297
+    },
+    "base": {
+      "lines": 47,
+      "bytes": 1297
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-core/src/approval.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 341,
+      "bytes": 10856
+    },
+    "base": {
+      "lines": 341,
+      "bytes": 10856
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-core/src/compaction.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 52,
+      "bytes": 1486
+    },
+    "base": {
+      "lines": 52,
+      "bytes": 1486
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-core/src/context_plan.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 482,
+      "bytes": 16456
+    },
+    "base": {
+      "lines": 482,
+      "bytes": 16456
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-core/src/core_app.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 2227,
+      "bytes": 83131
+    },
+    "base": {
+      "lines": 2227,
+      "bytes": 83131
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-core/src/dcp_view.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 97,
+      "bytes": 3692
+    },
+    "base": {
+      "lines": 97,
+      "bytes": 3692
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-core/src/domain.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 39,
+      "bytes": 1093
+    },
+    "base": {
+      "lines": 39,
+      "bytes": 1093
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-core/src/lib.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 38,
+      "bytes": 893
+    },
+    "base": {
+      "lines": 38,
+      "bytes": 893
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-core/src/patch.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 95,
+      "bytes": 2985
+    },
+    "base": {
+      "lines": 95,
+      "bytes": 2985
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-core/src/ports.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 51,
+      "bytes": 1465
+    },
+    "base": {
+      "lines": 51,
+      "bytes": 1465
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-core/src/queries.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 763,
+      "bytes": 27844
+    },
+    "base": {
+      "lines": 763,
+      "bytes": 27844
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-core/src/runtime.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 18,
+      "bytes": 398
+    },
+    "base": {
+      "lines": 18,
+      "bytes": 398
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-core/src/session.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 154,
+      "bytes": 5112
+    },
+    "base": {
+      "lines": 154,
+      "bytes": 5112
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-core/src/tool_stream.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 45,
+      "bytes": 1601
+    },
+    "base": {
+      "lines": 45,
+      "bytes": 1601
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/app.rs",
+    "role": "mixed/unknown",
+    "status": "modified",
+    "current": {
+      "lines": 1308,
+      "bytes": 46260
+    },
+    "base": {
+      "lines": 17604,
+      "bytes": 697744
+    },
+    "warning": false,
+    "delta": {
+      "lines": -16296,
+      "bytes": -651484
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/app/input.rs",
+    "role": "source",
+    "status": "new",
+    "current": {
+      "lines": 2931,
+      "bytes": 120480
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 2931,
+      "bytes": 120480
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/app/live.rs",
+    "role": "source",
+    "status": "new",
+    "current": {
+      "lines": 1666,
+      "bytes": 64950
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 1666,
+      "bytes": 64950
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/app/tabs.rs",
+    "role": "mixed/unknown",
+    "status": "new",
+    "current": {
+      "lines": 1229,
+      "bytes": 42179
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 1229,
+      "bytes": 42179
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/app/tests.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 251,
+      "bytes": 7675
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 251,
+      "bytes": 7675
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/app/tests/input.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 2668,
+      "bytes": 102483
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 2668,
+      "bytes": 102483
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/app/tests/lifecycle.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 1376,
+      "bytes": 48678
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 1376,
+      "bytes": 48678
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/app/tests/tabs.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 1304,
+      "bytes": 46152
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 1304,
+      "bytes": 46152
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/app/tests/transcript.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 3227,
+      "bytes": 119554
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 3227,
+      "bytes": 119554
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/app/transcript.rs",
+    "role": "mixed/unknown",
+    "status": "new",
+    "current": {
+      "lines": 1680,
+      "bytes": 66662
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 1680,
+      "bytes": 66662
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/approval_view.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 1527,
+      "bytes": 55884
+    },
+    "base": {
+      "lines": 1527,
+      "bytes": 55884
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/autocomplete.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 127,
+      "bytes": 4638
+    },
+    "base": {
+      "lines": 127,
+      "bytes": 4638
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/commands.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 499,
+      "bytes": 16500
+    },
+    "base": {
+      "lines": 499,
+      "bytes": 16500
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/compaction.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 609,
+      "bytes": 23713
+    },
+    "base": {
+      "lines": 609,
+      "bytes": 23713
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/dcp_panel.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 292,
+      "bytes": 10133
+    },
+    "base": {
+      "lines": 292,
+      "bytes": 10133
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/dcp_view.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 586,
+      "bytes": 22705
+    },
+    "base": {
+      "lines": 586,
+      "bytes": 22705
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/dialog.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 1250,
+      "bytes": 43997
+    },
+    "base": {
+      "lines": 1250,
+      "bytes": 43997
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/editor.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 1458,
+      "bytes": 54585
+    },
+    "base": {
+      "lines": 1458,
+      "bytes": 54585
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/events.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 350,
+      "bytes": 13034
+    },
+    "base": {
+      "lines": 350,
+      "bytes": 13034
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/fuzzy.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 598,
+      "bytes": 19758
+    },
+    "base": {
+      "lines": 598,
+      "bytes": 19758
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/history.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 1530,
+      "bytes": 55904
+    },
+    "base": {
+      "lines": 1530,
+      "bytes": 55904
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/layout.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 836,
+      "bytes": 32417
+    },
+    "base": {
+      "lines": 836,
+      "bytes": 32417
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/lib.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 46,
+      "bytes": 1117
+    },
+    "base": {
+      "lines": 46,
+      "bytes": 1117
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/messages.rs",
+    "role": "mixed/unknown",
+    "status": "modified",
+    "current": {
+      "lines": 3670,
+      "bytes": 133969
+    },
+    "base": {
+      "lines": 7408,
+      "bytes": 273768
+    },
+    "warning": false,
+    "delta": {
+      "lines": -3738,
+      "bytes": -139799
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/messages/tests.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 3746,
+      "bytes": 125508
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 3746,
+      "bytes": 125508
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/patch_view.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 1092,
+      "bytes": 41674
+    },
+    "base": {
+      "lines": 1092,
+      "bytes": 41674
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/picker.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 639,
+      "bytes": 23052
+    },
+    "base": {
+      "lines": 639,
+      "bytes": 23052
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/scanner.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 138,
+      "bytes": 5466
+    },
+    "base": {
+      "lines": 138,
+      "bytes": 5466
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/shell.rs",
+    "role": "mixed/unknown",
+    "status": "modified",
+    "current": {
+      "lines": 2207,
+      "bytes": 80259
+    },
+    "base": {
+      "lines": 5561,
+      "bytes": 223680
+    },
+    "warning": false,
+    "delta": {
+      "lines": -3354,
+      "bytes": -143421
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/shell/tests.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 3350,
+      "bytes": 130541
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 3350,
+      "bytes": 130541
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/smoke.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 67,
+      "bytes": 2205
+    },
+    "base": {
+      "lines": 67,
+      "bytes": 2205
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/styled.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 643,
+      "bytes": 22554
+    },
+    "base": {
+      "lines": 643,
+      "bytes": 22554
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/terminal.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 58,
+      "bytes": 2071
+    },
+    "base": {
+      "lines": 58,
+      "bytes": 2071
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/theme.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 1412,
+      "bytes": 49552
+    },
+    "base": {
+      "lines": 1412,
+      "bytes": 49552
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/tools.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 2208,
+      "bytes": 80275
+    },
+    "base": {
+      "lines": 2208,
+      "bytes": 80275
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc-tui/src/views.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 589,
+      "bytes": 23194
+    },
+    "base": {
+      "lines": 589,
+      "bytes": 23194
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/src/approval_tests.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 917,
+      "bytes": 36430
+    },
+    "base": {
+      "lines": 917,
+      "bytes": 36430
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/src/bootstrap.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 128,
+      "bytes": 4215
+    },
+    "base": {
+      "lines": 128,
+      "bytes": 4215
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/src/cli.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 65,
+      "bytes": 2108
+    },
+    "base": {
+      "lines": 65,
+      "bytes": 2108
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/src/clipboard.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 138,
+      "bytes": 5301
+    },
+    "base": {
+      "lines": 138,
+      "bytes": 5301
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/src/headless.rs",
+    "role": "mixed/unknown",
+    "status": "unchanged",
+    "current": {
+      "lines": 221,
+      "bytes": 8207
+    },
+    "base": {
+      "lines": 221,
+      "bytes": 8207
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/src/main.rs",
+    "role": "source",
+    "status": "unchanged",
+    "current": {
+      "lines": 18,
+      "bytes": 431
+    },
+    "base": {
+      "lines": 18,
+      "bytes": 431
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/src/tui_cmd.rs",
+    "role": "mixed/unknown",
+    "status": "modified",
+    "current": {
+      "lines": 3255,
+      "bytes": 130622
+    },
+    "base": {
+      "lines": 8502,
+      "bytes": 343822
+    },
+    "warning": false,
+    "delta": {
+      "lines": -5247,
+      "bytes": -213200
+    }
+  },
+  {
+    "path": "crates/oc/src/tui_cmd/tests.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 71,
+      "bytes": 2352
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 71,
+      "bytes": 2352
+    }
+  },
+  {
+    "path": "crates/oc/src/tui_cmd/tests/lifecycle.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 3347,
+      "bytes": 125446
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 3347,
+      "bytes": 125446
+    }
+  },
+  {
+    "path": "crates/oc/src/tui_cmd/tests/routing.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 1821,
+      "bytes": 64926
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 1821,
+      "bytes": 64926
+    }
+  },
+  {
+    "path": "crates/oc/tests/application.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 297,
+      "bytes": 11584
+    },
+    "base": {
+      "lines": 297,
+      "bytes": 11584
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/approval_binary.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 153,
+      "bytes": 6222
+    },
+    "base": {
+      "lines": 153,
+      "bytes": 6222
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/configured_workspace.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 1118,
+      "bytes": 41148
+    },
+    "base": {
+      "lines": 1118,
+      "bytes": 41148
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/dcp_runtime.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 1547,
+      "bytes": 55688
+    },
+    "base": {
+      "lines": 1547,
+      "bytes": 55688
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/durability.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 608,
+      "bytes": 23265
+    },
+    "base": {
+      "lines": 608,
+      "bytes": 23265
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/golden_binary.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 969,
+      "bytes": 35040
+    },
+    "base": {
+      "lines": 969,
+      "bytes": 35040
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/live_bounded.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 1674,
+      "bytes": 63494
+    },
+    "base": {
+      "lines": 1674,
+      "bytes": 63494
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/mcp_application.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 3756,
+      "bytes": 136354
+    },
+    "base": {
+      "lines": 3756,
+      "bytes": 136354
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/memory_bounds.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 526,
+      "bytes": 19461
+    },
+    "base": {
+      "lines": 526,
+      "bytes": 19461
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/pty.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 1656,
+      "bytes": 61258
+    },
+    "base": {
+      "lines": 1656,
+      "bytes": 61258
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/pty_t39.rs",
+    "role": "test",
+    "status": "modified",
+    "current": {
+      "lines": 2128,
+      "bytes": 79307
+    },
+    "base": {
+      "lines": 5496,
+      "bytes": 213147
+    },
+    "warning": false,
+    "delta": {
+      "lines": -3368,
+      "bytes": -133840
+    }
+  },
+  {
+    "path": "crates/oc/tests/pty_t39/interaction.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 2093,
+      "bytes": 82638
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 2093,
+      "bytes": 82638
+    }
+  },
+  {
+    "path": "crates/oc/tests/pty_t39/lifecycle.rs",
+    "role": "test",
+    "status": "new",
+    "current": {
+      "lines": 1286,
+      "bytes": 51499
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 1286,
+      "bytes": 51499
+    }
+  },
+  {
+    "path": "crates/oc/tests/pty_t42.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 3553,
+      "bytes": 134268
+    },
+    "base": {
+      "lines": 3553,
+      "bytes": 134268
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/recovery_startup.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 100,
+      "bytes": 3521
+    },
+    "base": {
+      "lines": 100,
+      "bytes": 3521
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/recovery_v02.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 856,
+      "bytes": 35192
+    },
+    "base": {
+      "lines": 856,
+      "bytes": 35192
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/recovery_v03.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 172,
+      "bytes": 7071
+    },
+    "base": {
+      "lines": 172,
+      "bytes": 7071
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/responses.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 534,
+      "bytes": 20438
+    },
+    "base": {
+      "lines": 534,
+      "bytes": 20438
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/support/terminal.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 23,
+      "bytes": 918
+    },
+    "base": {
+      "lines": 23,
+      "bytes": 918
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/support/title.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 26,
+      "bytes": 1231
+    },
+    "base": {
+      "lines": 26,
+      "bytes": 1231
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/t49_live_smoke.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 359,
+      "bytes": 14390
+    },
+    "base": {
+      "lines": 359,
+      "bytes": 14390
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "crates/oc/tests/tui_render_alloc.rs",
+    "role": "test",
+    "status": "unchanged",
+    "current": {
+      "lines": 295,
+      "bytes": 10554
+    },
+    "base": {
+      "lines": 295,
+      "bytes": 10554
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/check_docs.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 192,
+      "bytes": 7913
+    },
+    "base": {
+      "lines": 192,
+      "bytes": 7913
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/code_size.py",
+    "role": "dev-tool",
+    "status": "new",
+    "current": {
+      "lines": 151,
+      "bytes": 6631
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 151,
+      "bytes": 6631
+    }
+  },
+  {
+    "path": "scripts/compaction_normalization_oracle.ts",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 30,
+      "bytes": 2582
+    },
+    "base": {
+      "lines": 30,
+      "bytes": 2582
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/progress.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 369,
+      "bytes": 17519
+    },
+    "base": {
+      "lines": 369,
+      "bytes": 17519
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/test_check_docs.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 127,
+      "bytes": 5636
+    },
+    "base": {
+      "lines": 127,
+      "bytes": 5636
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/test_code_size.py",
+    "role": "dev-tool",
+    "status": "new",
+    "current": {
+      "lines": 130,
+      "bytes": 7210
+    },
+    "base": null,
+    "warning": false,
+    "delta": {
+      "lines": 130,
+      "bytes": 7210
+    }
+  },
+  {
+    "path": "scripts/test_discovery_reference.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 133,
+      "bytes": 6753
+    },
+    "base": {
+      "lines": 133,
+      "bytes": 6753
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/test_progress.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 179,
+      "bytes": 7551
+    },
+    "base": {
+      "lines": 179,
+      "bytes": 7551
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/analyze_apply_patch.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 116,
+      "bytes": 13294
+    },
+    "base": {
+      "lines": 116,
+      "bytes": 13294
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/analyze_compaction_frames.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 34,
+      "bytes": 3356
+    },
+    "base": {
+      "lines": 34,
+      "bytes": 3356
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/analyze_leader_pairs.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 67,
+      "bytes": 6171
+    },
+    "base": {
+      "lines": 67,
+      "bytes": 6171
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/analyze_leader_pending.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 41,
+      "bytes": 2846
+    },
+    "base": {
+      "lines": 41,
+      "bytes": 2846
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/analyze_permission.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 39,
+      "bytes": 5430
+    },
+    "base": {
+      "lines": 39,
+      "bytes": 5430
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/analyze_prompt_paste.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 123,
+      "bytes": 12776
+    },
+    "base": {
+      "lines": 123,
+      "bytes": 12776
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/apply_patch.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 70,
+      "bytes": 9684
+    },
+    "base": {
+      "lines": 70,
+      "bytes": 9684
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/apply_patch_admission.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 18,
+      "bytes": 1430
+    },
+    "base": {
+      "lines": 18,
+      "bytes": 1430
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/apply_patch_fixture.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 121,
+      "bytes": 9205
+    },
+    "base": {
+      "lines": 121,
+      "bytes": 9205
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/bounded.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 83,
+      "bytes": 5844
+    },
+    "base": {
+      "lines": 83,
+      "bytes": 5844
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/bridge.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 806,
+      "bytes": 53625
+    },
+    "base": {
+      "lines": 806,
+      "bytes": 53625
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/capture.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 2954,
+      "bytes": 221185
+    },
+    "base": {
+      "lines": 2954,
+      "bytes": 221185
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/check_capture_geometry.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 71,
+      "bytes": 4610
+    },
+    "base": {
+      "lines": 71,
+      "bytes": 4610
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/check_compaction_evidence.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 183,
+      "bytes": 16981
+    },
+    "base": {
+      "lines": 183,
+      "bytes": 16981
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/check_frontend.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 43,
+      "bytes": 2651
+    },
+    "base": {
+      "lines": 43,
+      "bytes": 2651
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/check_leader_roles.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 35,
+      "bytes": 2584
+    },
+    "base": {
+      "lines": 35,
+      "bytes": 2584
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/check_permission_evidence.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 67,
+      "bytes": 6102
+    },
+    "base": {
+      "lines": 67,
+      "bytes": 6102
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/check_permission_headless_pair.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 33,
+      "bytes": 2585
+    },
+    "base": {
+      "lines": 33,
+      "bytes": 2585
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/check_region.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 62,
+      "bytes": 3143
+    },
+    "base": {
+      "lines": 62,
+      "bytes": 3143
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/check_revert_redo_evidence.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 47,
+      "bytes": 2935
+    },
+    "base": {
+      "lines": 47,
+      "bytes": 2935
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/compaction.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 149,
+      "bytes": 14690
+    },
+    "base": {
+      "lines": 149,
+      "bytes": 14690
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/compaction_fixture.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 117,
+      "bytes": 8898
+    },
+    "base": {
+      "lines": 117,
+      "bytes": 8898
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/dcp_check_reference.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 99,
+      "bytes": 8066
+    },
+    "base": {
+      "lines": 99,
+      "bytes": 8066
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/dcp_display_audit.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 227,
+      "bytes": 15227
+    },
+    "base": {
+      "lines": 227,
+      "bytes": 15227
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/dcp_display_fixture.py",
+    "role": "dev-tool",
+    "status": "modified",
+    "current": {
+      "lines": 175,
+      "bytes": 12563
+    },
+    "base": {
+      "lines": 174,
+      "bytes": 12450
+    },
+    "warning": false,
+    "delta": {
+      "lines": 1,
+      "bytes": 113
+    }
+  },
+  {
+    "path": "scripts/tui_capture/dcp_from_native.ts",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 176,
+      "bytes": 14499
+    },
+    "base": {
+      "lines": 176,
+      "bytes": 14499
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/dcp_native_bridge.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 86,
+      "bytes": 2974
+    },
+    "base": {
+      "lines": 86,
+      "bytes": 2974
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/dcp_native_qualify.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 436,
+      "bytes": 31330
+    },
+    "base": {
+      "lines": 436,
+      "bytes": 31330
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/dcp_oracle.ts",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 177,
+      "bytes": 17250
+    },
+    "base": {
+      "lines": 177,
+      "bytes": 17250
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/dcp_pair_audit.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 129,
+      "bytes": 9855
+    },
+    "base": {
+      "lines": 129,
+      "bytes": 9855
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/dcp_reference_bridge.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 233,
+      "bytes": 11669
+    },
+    "base": {
+      "lines": 233,
+      "bytes": 11669
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/dcp_reference_capture.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 168,
+      "bytes": 13067
+    },
+    "base": {
+      "lines": 168,
+      "bytes": 13067
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/frontend.js",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 91,
+      "bytes": 5464
+    },
+    "base": {
+      "lines": 91,
+      "bytes": 5464
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/fuzzy_oracle.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 30,
+      "bytes": 2038
+    },
+    "base": {
+      "lines": 30,
+      "bytes": 2038
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/geometry.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 41,
+      "bytes": 2697
+    },
+    "base": {
+      "lines": 41,
+      "bytes": 2697
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/inspect_blanks.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 24,
+      "bytes": 793
+    },
+    "base": {
+      "lines": 24,
+      "bytes": 793
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/leader_pending.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 71,
+      "bytes": 6694
+    },
+    "base": {
+      "lines": 71,
+      "bytes": 6694
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/message_actions.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 118,
+      "bytes": 9633
+    },
+    "base": {
+      "lines": 118,
+      "bytes": 9633
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/observe_compaction_timeline.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 58,
+      "bytes": 4769
+    },
+    "base": {
+      "lines": 58,
+      "bytes": 4769
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/permission.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 104,
+      "bytes": 15082
+    },
+    "base": {
+      "lines": 104,
+      "bytes": 15082
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/permission_association.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 27,
+      "bytes": 2201
+    },
+    "base": {
+      "lines": 27,
+      "bytes": 2201
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/permission_fix_cells.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 31,
+      "bytes": 3050
+    },
+    "base": {
+      "lines": 31,
+      "bytes": 3050
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/permission_fixture.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 74,
+      "bytes": 5034
+    },
+    "base": {
+      "lines": 74,
+      "bytes": 5034
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/permission_headless.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 66,
+      "bytes": 4087
+    },
+    "base": {
+      "lines": 66,
+      "bytes": 4087
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/permission_mcp.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 20,
+      "bytes": 1046
+    },
+    "base": {
+      "lines": 20,
+      "bytes": 1046
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/permission_reference_headless.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 90,
+      "bytes": 5197
+    },
+    "base": {
+      "lines": 90,
+      "bytes": 5197
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/permission_rejection_audit.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 33,
+      "bytes": 2856
+    },
+    "base": {
+      "lines": 33,
+      "bytes": 2856
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/permission_syscall_audit.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 44,
+      "bytes": 3681
+    },
+    "base": {
+      "lines": 44,
+      "bytes": 3681
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/prompt_paste.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 54,
+      "bytes": 4030
+    },
+    "base": {
+      "lines": 54,
+      "bytes": 4030
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/revert_redo.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 110,
+      "bytes": 8288
+    },
+    "base": {
+      "lines": 110,
+      "bytes": 8288
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/run_prompt_paste.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 33,
+      "bytes": 2713
+    },
+    "base": {
+      "lines": 33,
+      "bytes": 2713
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/sessions.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 163,
+      "bytes": 11297
+    },
+    "base": {
+      "lines": 163,
+      "bytes": 11297
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/summarize_permission.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 50,
+      "bytes": 5765
+    },
+    "base": {
+      "lines": 50,
+      "bytes": 5765
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/summarize_prompt_paste.mjs",
+    "role": "dev-tool",
+    "status": "modified",
+    "current": {
+      "lines": 220,
+      "bytes": 15904
+    },
+    "base": {
+      "lines": 213,
+      "bytes": 15581
+    },
+    "warning": false,
+    "delta": {
+      "lines": 7,
+      "bytes": 323
+    }
+  },
+  {
+    "path": "scripts/tui_capture/summarize_wheel.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 45,
+      "bytes": 3467
+    },
+    "base": {
+      "lines": 45,
+      "bytes": 3467
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/tabs_audit.py",
+    "role": "dev-tool",
+    "status": "modified",
+    "current": {
+      "lines": 224,
+      "bytes": 19752
+    },
+    "base": {
+      "lines": 217,
+      "bytes": 19111
+    },
+    "warning": false,
+    "delta": {
+      "lines": 7,
+      "bytes": 641
+    }
+  },
+  {
+    "path": "scripts/tui_capture/tabs_bridge.py",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 300,
+      "bytes": 16735
+    },
+    "base": {
+      "lines": 300,
+      "bytes": 16735
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/tabs_capture.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 437,
+      "bytes": 42081
+    },
+    "base": {
+      "lines": 437,
+      "bytes": 42081
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/tabs_check.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 145,
+      "bytes": 15072
+    },
+    "base": {
+      "lines": 145,
+      "bytes": 15072
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/tabs_oracle.ts",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 101,
+      "bytes": 10838
+    },
+    "base": {
+      "lines": 101,
+      "bytes": 10838
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  },
+  {
+    "path": "scripts/tui_capture/wheel.mjs",
+    "role": "dev-tool",
+    "status": "unchanged",
+    "current": {
+      "lines": 123,
+      "bytes": 9271
+    },
+    "base": {
+      "lines": 123,
+      "bytes": 9271
+    },
+    "warning": false,
+    "delta": {
+      "lines": 0,
+      "bytes": 0
+    }
+  }
+]
