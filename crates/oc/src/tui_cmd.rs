@@ -2229,8 +2229,8 @@ async fn apply_intent_with_origin(
                 return Err("turn active; action unavailable".into());
             }
             let current = selection(app, state, SelectionAction::Current).await?;
-            // Pinned model-preference.ts:67–75: declared order, default first,
-            // stale names and the last named variant return to default.
+            // T47/VAR01: owner snapshot supplies canonical effective order.
+            // Preserve pinned stale/last-name → Default and empty no-op rules.
             let named: Vec<_> = current
                 .models
                 .iter()

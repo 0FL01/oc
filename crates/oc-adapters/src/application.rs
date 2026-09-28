@@ -537,26 +537,20 @@ impl Effective {
                         output: output.to_string(),
                     })
                 })(),
-                variants: spec
-                    .get("variants")
-                    .and_then(|value| value.as_object())
-                    .map(|variants| {
-                        variants
-                            .iter()
-                            .map(|(name, value)| VariantEntry {
-                                name: name.clone(),
-                                disabled: value
-                                    .get("disabled")
-                                    .and_then(|flag| flag.as_bool())
-                                    .unwrap_or(false),
-                                reasoning_effort: value
-                                    .get("reasoningEffort")
-                                    .and_then(|effort| effort.as_str())
-                                    .map(str::to_string),
-                            })
-                            .collect()
+                variants: crate::models::ordered_variants(spec)
+                    .into_iter()
+                    .map(|(name, value)| VariantEntry {
+                        name: name.to_string(),
+                        disabled: value
+                            .get("disabled")
+                            .and_then(|flag| flag.as_bool())
+                            .unwrap_or(false),
+                        reasoning_effort: value
+                            .get("reasoningEffort")
+                            .and_then(|effort| effort.as_str())
+                            .map(str::to_string),
                     })
-                    .unwrap_or_default(),
+                    .collect(),
                 context: spec
                     .pointer("/limit/context")
                     .and_then(serde_json::Value::as_u64)

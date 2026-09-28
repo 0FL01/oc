@@ -306,7 +306,8 @@ pub struct ModelEntry {
     pub provider_name: String,
     /// Explicit input/output tariffs. None is unknown, never free.
     pub price: Option<ModelPrice>,
-    /// Declared variants.
+    /// Declared variants in stable effective effort order, including disabled
+    /// and reserved metadata. Available consumers omit those entries.
     pub variants: Vec<VariantEntry>,
     /// Context limit (0 when undeclared).
     pub context: u64,

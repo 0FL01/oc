@@ -798,6 +798,112 @@ mod reload_tests {
         ])
     }
 
+    #[tokio::test]
+    async fn canonical_effort_snapshot_ranks_effective_overrides_after_discovery_and_refresh() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}/v1", listener.local_addr().unwrap());
+        let mut value: serde_json::Value =
+            serde_json::from_str(&config("m", &base, false)).unwrap();
+        value["provider"]["ludka2"]["models"]["m"] = serde_json::json!({"variants":{
+            "fast":{"reasoningEffort":"low"},
+            "low":{"reasoningEffort":"custom-low"},
+            "xhigh":{"disabled":true},
+            "minimal":{},
+            "default":{"reasoningEffort":"none"}
+        }});
+        std::fs::write(project.join("opencode.json"), value.to_string()).unwrap();
+        let server = tokio::spawn(async move {
+            for variants in [
+                serde_json::json!({"max":{"reasoningEffort":"max"}, "xhigh":{"reasoningEffort":"xhigh"},
+                    "zeta":{"reasoningEffort":"deep"}, "fast":{"reasoningEffort":"high"},
+                    "alpha":{"reasoningEffort":"deep"}, "low":{"reasoningEffort":"low"}}),
+                serde_json::json!({"alpha":{"reasoningEffort":"deep"}, "fast":{"reasoningEffort":"max"},
+                    "low":{"reasoningEffort":"low"}, "zeta":{"reasoningEffort":"deep"},
+                    "max":{"reasoningEffort":"max"}, "xhigh":{"reasoningEffort":"xhigh"}}),
+            ] {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let mut request = Vec::new();
+                while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+                    let mut buf = [0; 1024];
+                    let n = stream.read(&mut buf).await.unwrap();
+                    assert!(n > 0);
+                    request.extend_from_slice(&buf[..n]);
+                }
+                assert!(request.starts_with(b"GET /v1/models HTTP/1.1"));
+                let body = serde_json::json!({"object":"list", "data":[{"id":"m", "opencode":{"variants":variants}}]}).to_string();
+                stream.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+            }
+        });
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let snapshot = app.catalog().await.unwrap();
+        let available = |snapshot: &CatalogSnapshot| {
+            snapshot.models[0]
+                .variants
+                .iter()
+                .filter(|v| !v.disabled && v.name != "default")
+                .map(|v| v.name.clone())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            available(&snapshot),
+            ["minimal", "fast", "max", "zeta", "alpha", "low"]
+        );
+        assert!(
+            snapshot.models[0]
+                .variants
+                .iter()
+                .any(|v| v.name == "xhigh" && v.disabled)
+        );
+        assert!(
+            snapshot.models[0]
+                .variants
+                .iter()
+                .any(|v| v.name == "default")
+        );
+        assert!(
+            snapshot.models[0]
+                .variants
+                .iter()
+                .find(|v| v.name == "minimal")
+                .unwrap()
+                .reasoning_effort
+                .is_none()
+        );
+        let selected = app
+            .home_selection(Action::Variant(Some("fast".into())))
+            .await
+            .unwrap();
+        assert_eq!(selected.variant.as_deref(), Some("fast"));
+        let refreshed = app.reload_location().await.unwrap();
+        assert_eq!(
+            available(&refreshed.catalog),
+            ["minimal", "fast", "max", "alpha", "low", "zeta"]
+        );
+        let selected = app.home_selection(Action::Current).await.unwrap();
+        assert_eq!(
+            (&*selected.model_id, selected.variant.as_deref()),
+            ("m", Some("fast"))
+        );
+        assert_eq!(
+            selected.models[0]
+                .variants
+                .iter()
+                .find(|v| v.name == "fast")
+                .unwrap()
+                .reasoning_effort
+                .as_deref(),
+            Some("low")
+        );
+        server.await.unwrap();
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
     #[test]
     fn model_switch_projection_uses_only_matching_current_catalog_name() {
         let raw = r#"{"previous":{"provider":"fixture","id":"old","variant":null},"current":{"provider":"fixture","id":"new","variant":null},"display_name":"Stale"}"#;

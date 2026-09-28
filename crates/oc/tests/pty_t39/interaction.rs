@@ -2,6 +2,420 @@
 
 use super::*;
 
+/// VAR01: the same effective order reaches the real picker and Ctrl+T,
+/// without a request until explicit submission. Both session and Home paths.
+#[test]
+fn var01_full_canonical_cycle_picker_agreement_and_exact_wire() {
+    let fixture = Fixture::new();
+    let path = fixture
+        .root
+        .path()
+        .join("home/config/opencode/opencode.json");
+    let mut config: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    config["provider"]["fixture"]["options"]["setCacheKey"] = true.into();
+    config["provider"]["fixture"]["options"]["nativeFallbackLimits"] =
+        serde_json::json!({"context":32768,"output":128});
+    config["provider"]["fixture"]["models"][MODEL]["variants"] = serde_json::json!({
+        "max":{"reasoningEffort":"max"}, "xhigh":{"reasoningEffort":"xhigh"},
+        "zeta":{"reasoningEffort":" deep "}, "fast":{"reasoningEffort":"low"},
+        "high":{"reasoningEffort":"high"}, "alpha":{"reasoningEffort":"custom"},
+        "medium":{"reasoningEffort":"medium"}, "default":{"reasoningEffort":"none"},
+        "low":{}, "minimal":{"reasoningEffort":"minimal"},
+        "disabled":{"reasoningEffort":"medium","disabled":true}, "none":{"reasoningEffort":"none"}
+    });
+    std::fs::write(&path, config.to_string()).unwrap();
+    let mut pty = PtySession::spawn_sized(fixture.clone(), "var01-cycle", None, 100, 40);
+    pty.wait_visible(READY, DEADLINE);
+    pty.send(b"/rename VAR01 retained root\r");
+    wait_screen_row(&pty, "VAR01 retained root", DEADLINE);
+    let named = [
+        "none", "minimal", "fast", "low", "medium", "high", "xhigh", "max", "zeta", "alpha",
+    ];
+    for home in [false, true] {
+        if home {
+            pty.send(b"\x18n"); // park the session draft via the actual New chord
+            wait_screen_row(&pty, "█▀▀█ █▀▀█", DEADLINE);
+        }
+        let draft = if home {
+            "var01 home draft"
+        } else {
+            "var01 session draft"
+        };
+        pty.send(draft.as_bytes());
+        wait_screen_row(&pty, draft, DEADLINE);
+        for (index, name) in named.iter().enumerate() {
+            pty.send(b"\x14"); // actual Ctrl+T
+            wait_screen_row(&pty, &format!("T39 model fixture · {name}"), DEADLINE);
+            wait_screen_row(&pty, draft, DEADLINE);
+            // Independent keyboard indexing proves the picker's order agrees,
+            // including aliases, custom order and reserved/disabled omissions.
+            pty.send(b"\x10Switch model variant\r");
+            wait_screen_row(&pty, "Select variant", DEADLINE);
+            wait_screen_row(&pty, &format!("● {name}"), DEADLINE);
+            pty.send(b"\x1b[H");
+            for _ in 0..=index {
+                pty.send(b"\x1b[B");
+            }
+            pty.send(b"\r");
+            dismissed(&pty, "Select variant");
+            wait_screen_row(&pty, &format!("T39 model fixture · {name}"), DEADLINE);
+            wait_screen_row(&pty, draft, DEADLINE);
+            assert!(
+                fixture.requests.lock().unwrap().is_empty(),
+                "cycle/picker submitted"
+            );
+        }
+        pty.send(b"\x14");
+        pty.send(b"\x10Switch model variant\r");
+        wait_screen_row(&pty, "Select variant", DEADLINE);
+        wait_screen_row(&pty, "● Default", DEADLINE);
+        pty.send(b"\x1b");
+        dismissed(&pty, "Select variant");
+        wait_screen_row(&pty, draft, DEADLINE);
+        assert!(fixture.requests.lock().unwrap().is_empty());
+    }
+    // Return to the existing root (its choice was Default), retaining the
+    // independently persisted session and Home selection identities.
+    pty.send(b"\x03");
+    wait_screen_absent(&pty, "var01 home draft");
+    pty.send(b"/continue\r");
+    wait_screen_row(&pty, "Sessions", DEADLINE);
+    pty.send(b"VAR01 retained root\r");
+    dismissed(&pty, "Sessions");
+    wait_screen_row(&pty, "var01 session draft", DEADLINE);
+    pty.send(b"\x14\x14\x14"); // none → minimal → exact alias fast/low
+    wait_screen_row(&pty, "T39 model fixture · fast", DEADLINE);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "echo: var01 session draft", DEADLINE);
+    assert_eq!(fixture.wait_requests(1)[0]["reasoning"]["effort"], "low");
+    wait_idle(&pty);
+    pty.send(b"\x14");
+    wait_screen_row(&pty, "T39 model fixture · low", DEADLINE);
+    submit(&mut pty, "rank does not synthesize effort");
+    wait_screen_row(&pty, "echo: rank does not synthesize effort", DEADLINE);
+    assert!(fixture.wait_requests(2)[1].get("reasoning").is_none());
+    wait_idle(&pty);
+    pty.send(b"/variants\r");
+    choose_variant(&mut pty, "Default");
+    submit(&mut pty, "default has no variant overlay");
+    wait_screen_row(&pty, "echo: default has no variant overlay", DEADLINE);
+    assert!(fixture.wait_requests(3)[2].get("reasoning").is_none());
+    wait_idle(&pty);
+    pty.send(b"\x14");
+    wait_screen_row(&pty, "T39 model fixture · none", DEADLINE);
+    submit(&mut pty, "named none has exact effort");
+    wait_screen_row(&pty, "echo: named none has exact effort", DEADLINE);
+    assert_eq!(fixture.wait_requests(4)[3]["reasoning"]["effort"], "none");
+    wait_idle(&pty);
+    pty.send(b"/variants\r");
+    choose_variant(&mut pty, "zeta");
+    submit(&mut pty, "custom effort is not repaired");
+    wait_screen_row(&pty, "echo: custom effort is not repaired", DEADLINE);
+    assert_eq!(fixture.wait_requests(5)[4]["reasoning"]["effort"], " deep ");
+    wait_idle(&pty);
+    pty.send(b"/variants\r");
+    choose_variant(&mut pty, "none");
+    submit(&mut pty, "vis28 held stream");
+    fixture.wait_requests(6);
+    wait_screen_row(&pty, "esc interrupt", DEADLINE);
+    pty.send(b"busy preserved draft\x14");
+    wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
+    wait_screen_row(&pty, "busy preserved draft", DEADLINE);
+    wait_screen_row(&pty, "T39 model fixture · none", DEADLINE);
+    fixture.vis28_continue.store(true, Ordering::Relaxed);
+    wait_screen_row(&pty, "answer:vis28 completed", DEADLINE);
+    wait_idle(&pty);
+    pty.send(b"\x03");
+    wait_screen_absent(&pty, "busy preserved draft");
+    pty.send(b"/quit\r");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+    let requests = fixture.wait_requests(6);
+    assert_eq!(requests.len(), 6, "busy shortcut must not submit");
+    for request in &requests {
+        assert_eq!(request["model"], MODEL);
+        assert_eq!(
+            request["max_output_tokens"], 128,
+            "configured base budget survives every overlay"
+        );
+        assert!(
+            request["prompt_cache_key"].is_string(),
+            "configured base cache option survives Default"
+        );
+    }
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    assert_eq!(
+        saved_selection(&db, &fixture, "var01-cycle", DEFAULT_AGENT),
+        serde_json::json!({"id":MODEL,"variant":"none"})
+    );
+}
+
+#[test]
+fn var01_empty_disabled_noop_and_readonly_shortcut_preserve_draft_and_selection() {
+    for all_disabled in [false, true] {
+        let fixture = Fixture::new();
+        let path = fixture
+            .root
+            .path()
+            .join("home/config/opencode/opencode.json");
+        if all_disabled {
+            let mut config: serde_json::Value =
+                serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+            config["provider"]["fixture"]["models"][MODEL]["variants"] = serde_json::json!({
+                "max":{"disabled":true}, "low":{"disabled":true}, "default":{}
+            });
+            std::fs::write(&path, config.to_string()).unwrap();
+        }
+        let mut pty = PtySession::spawn(fixture.clone(), "var01-guards", None);
+        pty.wait_visible(READY, DEADLINE);
+        choose_model(&mut pty, "T39 model"); // seed an exact durable selection
+        pty.send(b"noop draft\x14\x10"); // palette supplies a processed-key barrier
+        wait_screen_row(&pty, "Commands", DEADLINE);
+        pty.send(b"\x1b");
+        dismissed(&pty, "Commands");
+        wait_screen_row(&pty, "noop draft", DEADLINE);
+        wait_screen_row(&pty, "T39 model fixture", DEADLINE);
+        pty.send(b"\x03");
+        wait_screen_absent(&pty, "noop draft");
+        pty.send(b"/quit\r");
+        assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+        let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+        assert_eq!(
+            saved_selection(&db, &fixture, "var01-guards", DEFAULT_AGENT),
+            serde_json::json!({"id":MODEL,"variant":null})
+        );
+        assert!(db.read_history("var01-guards").unwrap().is_empty());
+        db.create_child_session(
+            "var01-guards",
+            "var01-readonly",
+            None,
+            None,
+            Some("Read-only child"),
+        )
+        .unwrap();
+        db.set_pref(
+            &format!(
+                "{}var01-readonly",
+                oc_adapters::runtime::SESSION_LOCATION_PREFIX
+            ),
+            &fixture
+                .root
+                .path()
+                .join("project")
+                .canonicalize()
+                .unwrap()
+                .to_string_lossy(),
+        )
+        .unwrap();
+        db.append_message("var01-readonly", "assistant", "VAR01 readonly sentinel")
+            .unwrap();
+        drop(db);
+        // Give the child a genuinely cycleable catalog: a missing guard would
+        // select low, so no-op fixtures cannot hide a read-only regression.
+        let mut config: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        config["provider"]["fixture"]["models"][MODEL]["variants"] =
+            serde_json::json!({"low":{"reasoningEffort":"low"}});
+        std::fs::write(&path, config.to_string()).unwrap();
+        let mut child = PtySession::spawn(fixture.clone(), "var01-readonly", None);
+        wait_screen_row(&child, "VAR01 readonly", DEADLINE); // startup notice overlays the suffix
+        child.send(b"readonly draft\x14\x10");
+        wait_screen_row(&child, "Commands", DEADLINE);
+        child.send(b"\x1b");
+        dismissed(&child, "Commands");
+        wait_screen_row(&child, "read-only history", DEADLINE);
+        wait_screen_row(&child, "readonly draft", DEADLINE);
+        assert!(
+            !render_screen(&child.snapshot())
+                .rows()
+                .iter()
+                .any(|r| r.contains("fixture · low"))
+        );
+        child.send(b"\x03");
+        wait_screen_absent(&child, "readonly draft");
+        child.send(b"\x03");
+        assert!(child.wait_exit(DEADLINE).0.success() && child.restored());
+        assert!(
+            fixture.requests.lock().unwrap().is_empty(),
+            "no-op/read-only shortcut submitted"
+        );
+        let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+        assert_eq!(
+            db.read_history("var01-readonly").unwrap(),
+            [("assistant".into(), "VAR01 readonly sentinel".into())]
+        );
+        assert_eq!(
+            saved_selection(&db, &fixture, "var01-guards", DEFAULT_AGENT),
+            serde_json::json!({"id":MODEL,"variant":null})
+        );
+    }
+}
+
+/// VAR01: real discovery/local merge, refresh, reopen and OS-process restart
+/// keep the exact alias. Removed/disabled Home choices remain actionable and
+/// refuse submission until the explicit stale Ctrl+T → Default recovery.
+#[test]
+fn var01_discovery_refresh_reopen_restart_and_retired_identity() {
+    let fixture = Fixture::new();
+    let path = fixture
+        .root
+        .path()
+        .join("home/config/opencode/opencode.json");
+    let mut config: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    let provider = config["provider"]
+        .as_object_mut()
+        .unwrap()
+        .remove("fixture")
+        .unwrap();
+    config["provider"]["ludka2"] = provider;
+    config["model"] = format!("ludka2/{MODEL}").into();
+    config["agent"].as_object_mut().unwrap().remove("t39agent");
+    config["provider"]["ludka2"]["models"] = serde_json::json!({MODEL:{"name":"Canonical probe 0", "variants":{
+        "fast":{"reasoningEffort":"low"}, "low":{"reasoningEffort":"custom-low"}, "minimal":{}
+    }}});
+    std::fs::write(&path, config.to_string()).unwrap();
+    let publish = |variants: serde_json::Value| {
+        *fixture.models.lock().unwrap() = serde_json::json!({"object":"list", "data":[{
+            "id":MODEL,"opencode":{"variants":variants}
+        }]});
+    };
+    publish(serde_json::json!({
+        "max":{"reasoningEffort":"max"}, "xhigh":{"reasoningEffort":"xhigh"},
+        "zeta":{"reasoningEffort":"deep"}, "fast":{"reasoningEffort":"high"},
+        "alpha":{"reasoningEffort":"deep"}, "low":{"reasoningEffort":"low"}
+    }));
+    let mut pty = PtySession::spawn_sized(fixture.clone(), "var01-refresh", None, 100, 40);
+    pty.wait_visible(READY, DEADLINE);
+    pty.send(b"/rename VAR01 identity root\r");
+    wait_screen_row(&pty, "VAR01 identity root", DEADLINE);
+    pty.send(b"identity draft\x14\x14"); // minimal then local-overridden fast/low
+    wait_screen_row(&pty, "Canonical probe 0 ludka2 · fast", DEADLINE);
+    let mut reordered = serde_json::json!({
+        "alpha":{"reasoningEffort":"deep"}, "quick":{"reasoningEffort":"low"},
+        "fast":{"reasoningEffort":"high"}, "max":{"reasoningEffort":"max"},
+        "xhigh":{"reasoningEffort":"xhigh"}, "zeta":{"reasoningEffort":"deep"},
+        "none":{"reasoningEffort":"none"}, "low":{"reasoningEffort":"low"}
+    });
+    publish(reordered.clone());
+    config["provider"]["ludka2"]["models"][MODEL]["name"] = "Canonical probe 1".into();
+    std::fs::write(&path, config.to_string()).unwrap();
+    pty.send(b"\x10Reload configuration\r");
+    wait_screen_row(&pty, "Canonical probe 1 ludka2 · fast", DEADLINE);
+    wait_screen_row(&pty, "identity draft", DEADLINE);
+    pty.send(b"\x10Switch model variant\r");
+    wait_screen_row(&pty, "● fast", DEADLINE);
+    // Fast moved from index 2 to index 4: reopening focuses identity, not index.
+    pty.send(b"\r");
+    dismissed(&pty, "Select variant");
+    wait_screen_row(&pty, "Canonical probe 1 ludka2 · fast", DEADLINE);
+    pty.send(b"\x03");
+    wait_screen_absent(&pty, "identity draft");
+    pty.send(b"/quit\r");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+    let before = {
+        let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+        saved_provider_selection(&db, &fixture, "var01-refresh", DEFAULT_AGENT, "ludka2")
+    };
+    assert_eq!(before, serde_json::json!({"id":MODEL,"variant":"fast"}));
+    let mut pty = PtySession::spawn_sized(fixture.clone(), "var01-refresh", None, 100, 40);
+    wait_screen_row(&pty, "Canonical probe 1 ludka2 · fast", DEADLINE);
+    pty.send(b"/new\r");
+    wait_screen_row(&pty, "█▀▀█ █▀▀█", DEADLINE);
+    pty.send(b"/continue\r");
+    wait_screen_row(&pty, "Sessions", DEADLINE);
+    pty.send(b"VAR01 identity root\r");
+    dismissed(&pty, "Sessions");
+    wait_screen_row(&pty, "Canonical probe 1 ludka2 · fast", DEADLINE);
+    pty.send(b"/variants\r");
+    choose_variant(&mut pty, "Default");
+    // Keep the saved session valid while explicitly retiring the independent
+    // Home draft through successful refresh; retained-tab reload guards remain.
+    pty.send(b"/new\r");
+    wait_screen_row(&pty, "█▀▀█ █▀▀█", DEADLINE);
+    for (phase, disabled) in [(2, false), (3, true)] {
+        pty.send(b"/variants\r");
+        choose_variant(&mut pty, "fast");
+        config["provider"]["ludka2"]["models"][MODEL]["variants"]
+            .as_object_mut()
+            .unwrap()
+            .remove("fast");
+        reordered.as_object_mut().unwrap().remove("fast");
+        if disabled {
+            reordered["fast"] = serde_json::json!({"disabled":true});
+        }
+        publish(reordered.clone());
+        config["provider"]["ludka2"]["models"][MODEL]["name"] =
+            format!("Canonical probe {phase}").into();
+        std::fs::write(&path, config.to_string()).unwrap();
+        pty.send(b"retired draft\x10Reload configuration\r");
+        wait_screen_row(
+            &pty,
+            &format!("Canonical probe {phase} ludka2 · fast (unavailable)"),
+            DEADLINE,
+        );
+        wait_screen_row(&pty, "retired draft", DEADLINE);
+        pty.send(b"\x10Switch model variant\r");
+        wait_screen_row(&pty, "fast unavailable", DEADLINE);
+        assert!(
+            !render_screen(&pty.snapshot())
+                .rows()
+                .iter()
+                .any(|r| r.contains("● Default"))
+        );
+        pty.send(b"\x1b");
+        dismissed(&pty, "Select variant");
+        pty.send(b"\r");
+        wait_screen_row(&pty, "unavailable variant fast", DEADLINE);
+        wait_screen_row(&pty, "enabled: none, minimal, quick, xhigh", DEADLINE);
+        wait_screen_row(&pty, "retired draft", DEADLINE);
+        assert!(
+            fixture.requests.lock().unwrap().is_empty(),
+            "retired Home choice reached Responses"
+        );
+        pty.send(b"\x14"); // explicit existing stale → Default rule
+        pty.send(b"\x10Switch model variant\r");
+        wait_screen_row(&pty, "● Default", DEADLINE);
+        pty.send(b"\x1b");
+        dismissed(&pty, "Select variant");
+        wait_screen_row(&pty, "retired draft", DEADLINE);
+        pty.send(b"\x03");
+        wait_screen_absent(&pty, "retired draft");
+        if !disabled {
+            reordered["fast"] = serde_json::json!({"reasoningEffort":"low"});
+            publish(reordered.clone());
+            config["provider"]["ludka2"]["models"][MODEL]["name"] = "Canonical restored".into();
+            std::fs::write(&path, config.to_string()).unwrap();
+            pty.send(b"/reload\r");
+            wait_screen_row(&pty, "Canonical restored ludka2", DEADLINE);
+            pty.send(b"/variants\r");
+            wait_screen_row(&pty, "fast", DEADLINE);
+            pty.send(b"\x1b");
+            dismissed(&pty, "Select variant");
+        }
+    }
+    submit(&mut pty, "accepted after explicit stale recovery");
+    wait_screen_row(
+        &pty,
+        "echo: accepted after explicit stale recovery",
+        DEADLINE,
+    );
+    let request = fixture.wait_requests(1);
+    assert_eq!(request[0]["model"], MODEL);
+    assert!(request[0].get("reasoning").is_none());
+    pty.send(b"/quit\r");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    assert_eq!(
+        saved_provider_selection(&db, &fixture, "var01-refresh", DEFAULT_AGENT, "ludka2"),
+        serde_json::json!({"id":MODEL,"variant":null})
+    );
+    assert!(
+        db.read_history("var01-refresh").unwrap().is_empty(),
+        "navigation/rejected submit did not accept history"
+    );
+}
+
 #[test]
 fn vis27_real_pty_osc52_select_and_manual_clipboard_modes() {
     const PROMPT: &str = "amber cobalt zircon";

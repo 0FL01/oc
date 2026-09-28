@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 
 use thiserror::Error;
 
-/// Standard variant order used for diagnostics.
+/// Exact known effort ranks for the effective variants view.
 pub const STANDARD_VARIANTS: [&str; 7] =
     ["none", "minimal", "low", "medium", "high", "xhigh", "max"];
 
@@ -44,7 +44,7 @@ pub enum SelectError {
         id: String,
         /// Requested variant.
         variant: String,
-        /// Sorted enabled variants.
+        /// Enabled variants in canonical effort order (bounded).
         enabled: String,
     },
     /// Entry lacks a usable context+output limit.
@@ -129,22 +129,39 @@ pub fn select_model(catalog: &ModelCatalog, id: &str) -> Result<Selection, Selec
     }
 }
 
-fn enabled_variants(entry: &serde_json::Value) -> BTreeMap<String, Option<String>> {
-    let mut out = BTreeMap::new();
-    if let Some(map) = entry.get("variants").and_then(|v| v.as_object()) {
-        for (name, variant) in map {
-            let disabled = variant.get("disabled") == Some(&serde_json::Value::Bool(true));
-            if disabled {
-                continue;
-            }
-            let effort = variant
-                .get("reasoningEffort")
-                .and_then(|v| v.as_str())
-                .map(String::from);
-            out.insert(name.clone(), effort);
-        }
-    }
-    out
+/// Declared metadata in stable canonical effort order, after effective merge.
+/// Explicit effort outranks the name; absent/nullable effort permits name rank
+/// consistently with typed snapshots. Discovery validates malformed data first.
+/// Unknown explicit values and names stay custom, preserving source order and
+/// exact wire values. Disabled/reserved entries remain available as metadata.
+pub fn ordered_variants(entry: &serde_json::Value) -> Vec<(&str, &serde_json::Value)> {
+    let mut variants: Vec<_> = entry
+        .get("variants")
+        .and_then(serde_json::Value::as_object)
+        .into_iter()
+        .flatten()
+        .map(|(name, value)| (name.as_str(), value))
+        .collect();
+    variants.sort_by_key(|(name, value)| {
+        let effort = match value.get("reasoningEffort") {
+            None | Some(serde_json::Value::Null) => Some(*name),
+            Some(explicit) => explicit.as_str(),
+        };
+        effort
+            .and_then(|effort| STANDARD_VARIANTS.iter().position(|known| *known == effort))
+            .unwrap_or(STANDARD_VARIANTS.len())
+    });
+    variants
+}
+
+/// Named selectable choices from the shared ordered view. Default is a
+/// separate no-overlay UI choice, never the exact reserved `default` entry.
+pub fn available_variants(
+    entry: &serde_json::Value,
+) -> impl Iterator<Item = (&str, &serde_json::Value)> {
+    ordered_variants(entry).into_iter().filter(|(name, value)| {
+        *name != "default" && value.get("disabled") != Some(&serde_json::Value::Bool(true))
+    })
 }
 
 /// Validate an explicit variant against the entry allowlist.
@@ -152,31 +169,36 @@ pub fn select_variant(
     selection: &Selection,
     variant: Option<&str>,
 ) -> Result<Selection, SelectError> {
-    let enabled = enabled_variants(&selection.entry);
+    // Preserve the declared backend allowlist, including legacy explicit
+    // `default` metadata. The UI sentinel and available diagnostics omit it.
+    let enabled: Vec<_> = ordered_variants(&selection.entry)
+        .into_iter()
+        .filter(|(_, value)| value.get("disabled") != Some(&serde_json::Value::Bool(true)))
+        .collect();
     match variant {
-        Some(name) => match enabled.get(name) {
-            Some(effort) => Ok(Selection {
+        Some(name) => match enabled.iter().find(|(candidate, _)| *candidate == name) {
+            Some((_, value)) => Ok(Selection {
                 id: selection.id.clone(),
                 entry: selection.entry.clone(),
                 variant: Some(SelectedVariant {
                     name: name.to_string(),
-                    reasoning_effort: effort.clone(),
+                    reasoning_effort: value
+                        .get("reasoningEffort")
+                        .and_then(serde_json::Value::as_str)
+                        .map(str::to_string),
                 }),
             }),
-            None => {
-                let mut names: Vec<&String> = enabled.keys().collect();
-                names.sort();
-                Err(SelectError::UnavailableVariant {
-                    id: selection.id.clone(),
-                    variant: name.to_string(),
-                    enabled: names
-                        .into_iter()
-                        .take(20)
-                        .map(String::as_str)
-                        .collect::<Vec<_>>()
-                        .join(", "),
-                })
-            }
+            None => Err(SelectError::UnavailableVariant {
+                id: selection.id.clone(),
+                variant: name.to_string(),
+                enabled: enabled
+                    .into_iter()
+                    .map(|(name, _)| name)
+                    .filter(|name| *name != "default")
+                    .take(20)
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            }),
         },
         None => Ok(Selection {
             id: selection.id.clone(),
@@ -185,6 +207,10 @@ pub fn select_variant(
         }),
     }
 }
+
+#[cfg(test)]
+#[path = "models/tests.rs"]
+mod ordering_tests;
 
 /// Native fallback caps and default output request; never catalog capacities.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

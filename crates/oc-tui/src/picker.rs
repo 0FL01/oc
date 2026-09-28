@@ -114,15 +114,11 @@ impl ModelPicker {
     }
 
     pub fn has_variants(&self) -> bool {
-        self.selected
-            .as_ref()
-            .and_then(|selection| selection.entry.get("variants"))
-            .and_then(|variants| variants.as_object())
-            .is_some_and(|variants| {
-                variants
-                    .values()
-                    .any(|v| v.get("disabled") != Some(&serde_json::Value::Bool(true)))
-            })
+        self.selected.as_ref().is_some_and(|selection| {
+            models::available_variants(&selection.entry)
+                .next()
+                .is_some()
+        })
     }
 
     /// Pinned dialog-variant.tsx: Default clears the overlay; a declared `none`
@@ -138,17 +134,8 @@ impl ModelPicker {
             .or_else(|| self.retired_variant())
             .unwrap_or("default");
         let mut names = vec!["default".to_string()];
-        if let Some(variants) = selection.entry.get("variants").and_then(|v| v.as_object()) {
-            names.extend(
-                variants
-                    .iter()
-                    .filter(|(name, v)| {
-                        name.as_str() != "default"
-                            && v.get("disabled") != Some(&serde_json::Value::Bool(true))
-                    })
-                    .map(|(name, _)| name.clone()),
-            );
-        }
+        names
+            .extend(models::available_variants(&selection.entry).map(|(name, _)| name.to_string()));
         names
             .into_iter()
             .map(|name| crate::dialog::SelectOption {
@@ -297,7 +284,7 @@ impl ModelPicker {
         }
     }
 
-    /// Enabled variant names (sorted) of the model under the cursor.
+    /// Available named variants in canonical effort order under the cursor.
     pub fn variants(&self) -> Vec<String> {
         let Some(id) = self.cursor_id() else {
             return Vec::new();
@@ -305,21 +292,9 @@ impl ModelPicker {
         let Some(entry) = self.catalog.models.get(&id) else {
             return Vec::new();
         };
-        let mut names: Vec<String> = entry
-            .get("variants")
-            .and_then(|value| value.as_object())
-            .map(|variants| {
-                variants
-                    .iter()
-                    .filter(|(_, variant)| {
-                        variant.get("disabled") != Some(&serde_json::Value::Bool(true))
-                    })
-                    .map(|(name, _)| name.clone())
-                    .collect()
-            })
-            .unwrap_or_default();
-        names.sort();
-        names
+        models::available_variants(entry)
+            .map(|(name, _)| name.to_string())
+            .collect()
     }
 
     /// Move the browse cursor (clamped, never wraps silently past the end).
@@ -538,11 +513,10 @@ mod tests {
                 .collect::<Vec<_>>(),
             [("Default", true), ("low", false)]
         );
-        // The pinned model flow tests the declared list before DialogVariant
-        // removes its reserved `default` name from the displayed choices.
+        // The exact reserved sentinel does not create a named choice.
         p.catalog.models.get_mut("b").unwrap()["variants"] = json!({"default": {}});
         p.choose_id("b", None).unwrap();
-        assert!(p.has_variants());
+        assert!(!p.has_variants());
         assert_eq!(p.variant_options().len(), 1);
         assert!(p.variant_options()[0].current);
     }

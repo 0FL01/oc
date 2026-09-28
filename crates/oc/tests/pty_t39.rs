@@ -60,6 +60,7 @@ const DEFAULT_AGENT: &str = "build";
 struct Fixture {
     root: tempfile::TempDir,
     requests: Arc<Mutex<Vec<serde_json::Value>>>,
+    models: Arc<Mutex<serde_json::Value>>,
     hold_title: Arc<AtomicBool>,
     title_closed: Arc<AtomicBool>,
     s07_continue: Arc<AtomicBool>,
@@ -113,6 +114,8 @@ impl Fixture {
         .expect("skill file");
         let requests = Arc::new(Mutex::new(Vec::new()));
         let captured = requests.clone();
+        let models = Arc::new(Mutex::new(serde_json::json!({"object":"list", "data":[]})));
+        let discovered = models.clone();
         let hold_title = Arc::new(AtomicBool::new(false));
         let hold = hold_title.clone();
         let title_closed = Arc::new(AtomicBool::new(false));
@@ -135,7 +138,7 @@ impl Fixture {
                         socket
                             .set_write_timeout(Some(DEADLINE))
                             .expect("write timeout");
-                        let Some(body) = read_request(&mut socket) else {
+                        let Some(body) = read_request(&mut socket, &discovered) else {
                             continue;
                         };
                         captured.lock().expect("requests").push(body.clone());
@@ -178,6 +181,7 @@ impl Fixture {
         Arc::new(Self {
             root,
             requests,
+            models,
             hold_title,
             title_closed,
             s07_continue,
@@ -366,7 +370,10 @@ fn dcp_anchors(body: &serde_json::Value) -> Option<Vec<serde_json::Value>> {
     None
 }
 
-fn read_request(socket: &mut TcpStream) -> Option<serde_json::Value> {
+fn read_request(
+    socket: &mut TcpStream,
+    models: &Mutex<serde_json::Value>,
+) -> Option<serde_json::Value> {
     let mut bytes = Vec::new();
     let mut chunk = [0; 4096];
     let header_end = loop {
@@ -382,12 +389,18 @@ fn read_request(socket: &mut TcpStream) -> Option<serde_json::Value> {
         assert!(bytes.len() < 65_536, "bounded headers");
     };
     let headers = String::from_utf8(bytes[..header_end].to_vec()).expect("headers");
-    assert!(headers.starts_with("POST /proxy/v1/responses HTTP/1.1\r\n"));
     assert!(
         headers
             .to_ascii_lowercase()
             .contains("authorization: bearer fixture-not-a-secret\r\n")
     );
+    if headers.starts_with("GET /proxy/v1/models HTTP/1.1\r\n") {
+        let body = models.lock().unwrap().to_string();
+        write!(socket, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).expect("discovery response");
+        socket.flush().expect("discovery flush");
+        return None;
+    }
+    assert!(headers.starts_with("POST /proxy/v1/responses HTTP/1.1\r\n"));
     let length: usize = headers
         .lines()
         .find_map(|line| {
@@ -1171,6 +1184,16 @@ fn saved_selection(
     session: &str,
     agent: &str,
 ) -> serde_json::Value {
+    saved_provider_selection(db, fixture, session, agent, "fixture")
+}
+
+fn saved_provider_selection(
+    db: &oc_adapters::storage::Db,
+    fixture: &Fixture,
+    session: &str,
+    agent: &str,
+    provider: &str,
+) -> serde_json::Value {
     let key = format!(
         "tui.selection.session:{}",
         serde_json::json!([
@@ -1181,7 +1204,7 @@ fn saved_selection(
                 .canonicalize()
                 .unwrap()
                 .to_string_lossy(),
-            "fixture",
+            provider,
             session
         ])
     );
