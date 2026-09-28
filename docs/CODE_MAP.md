@@ -6,7 +6,7 @@
 
 | Вопрос / владелец | Читать сейчас | Назначение после T52 и ближайшие тесты |
 | --- | --- | --- |
-| UI state, input, selection, turn projections | `crates/oc-tui/src/app.rs`; по вопросу `events.rs`, `editor.rs`, `dialog.rs` | Тесты уже отдельно: `app/tests.rs` + `app/tests/{input,transcript,tabs,lifecycle}.rs`; `cargo test -p oc-tui --lib app::`. Production parts R2 ещё pending. |
+| UI state, input, selection, turn projections | `crates/oc-tui/src/app.rs` — state/reset/API; `app/input.rs` — composer/panels/pointer dispatch; `app/transcript.rs` — history/viewport/selection/copy; `app/tabs.rs` — tab presentation/clocks; `app/live.rs` — receipts/worker/tool/DCP events | `app/tests.rs` shared fixtures + `app/tests/{input,transcript,tabs,lifecycle}.rs`; tab suite подключена в `app/tabs.rs`, чтобы private animation state не раскрывать ради tests. `cargo test -p oc-tui --lib app::`; `oc --test tui_render_alloc`. |
 | Markdown / transcript rendering и wrapping | `crates/oc-tui/src/messages.rs`; `styled.rs`, `history.rs`, `tools.rs`, `dcp_view.rs` только по зависимости | `messages/tests.rs`; `cargo test -p oc-tui --lib messages::`. Shared wrapping в `styled.rs`, не создавать второй renderer. |
 | Геометрия кадра, prompt/sidebar/tabs/toast | `crates/oc-tui/src/shell.rs`, затем `layout.rs` | `shell/tests.rs`; `cargo test -p oc-tui --lib shell::`. Не путать с shell executor в adapters. |
 | TUI lifecycle, bounded event loop, PanelIntent и tab deck | `crates/oc/src/tui_cmd.rs`; `clipboard.rs`/`bootstrap.rs` при необходимости | `tui_cmd/tests.rs` + `tui_cmd/tests/{routing,lifecycle}.rs`. `src/approval_tests.rs` сохраняет прежнее подключение; `cargo test -p oc --bin oc tui_cmd::`. |

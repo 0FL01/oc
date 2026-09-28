@@ -3,9 +3,8 @@
 use super::{
     ClipboardMode, HOME_EXAMPLES, KeyOutcome, LIVE_PARTS_MAX, LivePart, MAX_INPUT_BYTES,
     MAX_SELECTION_BYTES, MAX_SESSION_TITLE_BYTES, NoteVariant, PaintedTranscript, PanelIntent,
-    PumpOutcome, ScriptDriver, TAB_FADE_FRAME, TAB_MARQUEE_DELAY, TAB_STEP, TabAttention,
-    TabCloseHold, TabIdentity, TabPresentation, TabPulse, TabPulseTarget, TextPoint, Theme,
-    TranscriptSelection, TuiPanel, TuiState, TuiStatus, VIEWPORT_LINES,
+    PumpOutcome, ScriptDriver, TabPresentation, TextPoint, Theme, TranscriptSelection, TuiPanel,
+    TuiState, TuiStatus, VIEWPORT_LINES,
 };
 use crate::events::KeyAction;
 use crate::history::{WINDOW_BYTES, WINDOW_ROWS};
@@ -18,11 +17,11 @@ use oc_core::session::{CoreError, Role};
 use ratatui::layout::Rect;
 use std::time::{Duration, Instant};
 
-fn sid(raw: &str) -> SessionId {
+pub(super) fn sid(raw: &str) -> SessionId {
     SessionId::new(raw).expect("id")
 }
 
-fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
+pub(super) fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
     HistoryMessage {
         id: oc_core::session::MessageId(format!("fixture-{seq}")),
         turn: None,
@@ -33,7 +32,12 @@ fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
     }
 }
 
-fn page(rows: Vec<HistoryMessage>, total: usize, older: bool, newer: bool) -> HistoryPage {
+pub(super) fn page(
+    rows: Vec<HistoryMessage>,
+    total: usize,
+    older: bool,
+    newer: bool,
+) -> HistoryPage {
     HistoryPage {
         parent_id: None,
         title: None,
@@ -45,7 +49,7 @@ fn page(rows: Vec<HistoryMessage>, total: usize, older: bool, newer: bool) -> Hi
     }
 }
 
-async fn fresh_state(name: &str) -> TuiState {
+pub(super) async fn fresh_state(name: &str) -> TuiState {
     let (app, guard) = CoreApp::spawn(MockProvider::echo());
     std::mem::forget(guard);
     app.create_session(sid(name)).await.expect("create");
@@ -65,7 +69,7 @@ fn file_result(
     }
 }
 
-fn tab_pointer_at(state: &mut TuiState, area: Rect, index: usize, now: Instant) {
+pub(super) fn tab_pointer_at(state: &mut TuiState, area: Rect, index: usize, now: Instant) {
     let rect = crate::shell::tab_strip(state, area)
         .unwrap()
         .tabs
@@ -139,7 +143,7 @@ fn user_border_colors(state: &TuiState) -> Vec<ratatui::style::Color> {
         .collect()
 }
 
-async fn type_text(state: &mut TuiState, text: &str) {
+pub(super) async fn type_text(state: &mut TuiState, text: &str) {
     for c in text.chars() {
         state.handle_key(KeyAction::Char(c)).await;
     }
@@ -244,5 +248,4 @@ fn paint_selection_fixture(state: &mut TuiState, frame: Rect, needle: &str) -> (
 
 mod input;
 mod lifecycle;
-mod tabs;
 mod transcript;

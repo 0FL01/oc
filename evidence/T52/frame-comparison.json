@@ -1,0 +1,30 @@
+{
+  "kind": "T52 in-memory regression, NOT T44 parity",
+  "masks": [],
+  "pairs": [
+    {
+      "size": "80x24",
+      "cells": 1920,
+      "raw_cells_equal": true,
+      "xterm_equal": true,
+      "png_bytes_equal": true,
+      "cursor_equal": true
+    },
+    {
+      "size": "120x40",
+      "cells": 4800,
+      "raw_cells_equal": true,
+      "xterm_equal": true,
+      "png_bytes_equal": true,
+      "cursor_equal": true
+    },
+    {
+      "size": "160x48",
+      "cells": 7680,
+      "raw_cells_equal": true,
+      "xterm_equal": true,
+      "png_bytes_equal": true,
+      "cursor_equal": true
+    }
+  ]
+}

@@ -1,4 +1,6 @@
 use super::*;
+use crate::app::tests::{fresh_state, msg, page, sid, tab_pointer_at, type_text};
+use oc_core::session::Role;
 
 #[tokio::test]
 async fn close_tab_chord_uses_the_presented_active_slot_without_mutating_the_deck() {
