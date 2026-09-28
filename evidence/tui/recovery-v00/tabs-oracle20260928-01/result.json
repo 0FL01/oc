@@ -1,0 +1,102 @@
+{
+  "status": "PASS_PINNED_SOURCE_ORACLE",
+  "checks": [
+    "U59 short/exact-hover-fit",
+    "U59 source offsets/one spaced-dot cycle",
+    "U59 generated dot versus title dot",
+    "U59 Unicode display cells",
+    "U58 delay/short-next with animations:false",
+    "U58 one-cycle retains identity/same-tab motion does not restart",
+    "U58 ordinary leave/reset/disposal",
+    "U56 deferred nested leave then reentry / U58 rail leave",
+    "U56 compact Infinity disables title overflow"
+  ],
+  "profiles": [
+    {
+      "columns": 80,
+      "rows": 24,
+      "two_root_tab_widths": [
+        32,
+        32
+      ],
+      "horizontal_resting": [
+        29,
+        29
+      ],
+      "horizontal_hovered": [
+        27,
+        27
+      ],
+      "vertical_noncompact": {
+        "rail_width": 42,
+        "resting": 38,
+        "hovered": 37
+      },
+      "compact": {
+        "hovered_width": "Infinity",
+        "no_title_marquee": true
+      }
+    },
+    {
+      "columns": 120,
+      "rows": 40,
+      "two_root_tab_widths": [
+        32,
+        32
+      ],
+      "horizontal_resting": [
+        29,
+        29
+      ],
+      "horizontal_hovered": [
+        27,
+        27
+      ],
+      "vertical_noncompact": {
+        "rail_width": 42,
+        "resting": 38,
+        "hovered": 37
+      },
+      "compact": {
+        "hovered_width": "Infinity",
+        "no_title_marquee": true
+      }
+    },
+    {
+      "columns": 160,
+      "rows": 48,
+      "two_root_tab_widths": [
+        32,
+        32
+      ],
+      "horizontal_resting": [
+        29,
+        29
+      ],
+      "horizontal_hovered": [
+        27,
+        27
+      ],
+      "vertical_noncompact": {
+        "rail_width": 42,
+        "resting": 38,
+        "hovered": 37
+      },
+      "compact": {
+        "hovered_width": "Infinity",
+        "no_title_marquee": true
+      }
+    }
+  ],
+  "source_ids": [
+    "U46",
+    "U47",
+    "U48",
+    "U49",
+    "U56",
+    "U57",
+    "U58",
+    "U59"
+  ],
+  "qualification": "Source/controller fixture oracle only; actual running original/native and enabled visual tween are separate gates"
+}

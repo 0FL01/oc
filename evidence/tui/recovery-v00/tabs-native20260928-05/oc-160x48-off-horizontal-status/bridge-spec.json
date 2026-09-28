@@ -1,0 +1,19 @@
+{
+  "origin": "oc",
+  "binary": "/home/opencode/ai/oc/target/debug/oc",
+  "binary_sha256": "895d476534e71b2db42317cabb78f6e0c2c6ccbf778156b6af3cd4b49f74358f",
+  "columns": 160,
+  "rows": 48,
+  "animations": false,
+  "tabs": "horizontal",
+  "indicators": "status",
+  "root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-05-oc-160x48-off-horizontal-status",
+  "evidence": "/home/opencode/ai/oc/evidence/tui/recovery-v00/tabs-native20260928-05/oc-160x48-off-horizontal-status",
+  "project": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-11-upstream-160x48-off-horizontal-status/project",
+  "reference_project": {
+    "project": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-11-upstream-160x48-off-horizontal-status/project",
+    "reference_root": "/home/opencode/ai/oc/evidence/tui/recovery-v00/tabs-reference20260928-11",
+    "reference_attempt": "upstream-160x48-off-horizontal-status",
+    "reference_status": "PASS_BOUNDED_OWNER_AND_OBSERVATIONS"
+  }
+}

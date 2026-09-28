@@ -1,0 +1,2500 @@
+{
+  "name": "upstream-120x40-off-horizontal-status",
+  "status": "IN_PROGRESS",
+  "hover": [
+    {
+      "kind": "long",
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "width": 27,
+      "source_cycle_width": 57,
+      "overflow": true,
+      "target": {
+        "x": 5,
+        "y": 1
+      },
+      "busy": false,
+      "inactive": false,
+      "samples": [
+        {
+          "elapsed_ms": 3536.7593540000016,
+          "raw_byte_end": 90491,
+          "text": "ng-title abcdefghijklmnopqr",
+          "observed_source_offsets": [
+            8
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 10725.268996000006,
+          "raw_byte_end": 105418,
+          "text": "uvwxyz 0123456789 · VIS41 l",
+          "observed_source_offsets": [
+            37
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ],
+      "captures": [],
+      "first_changed_ms": 3536.7593540000016,
+      "changed": true,
+      "returned_to_entered_text": true,
+      "exactly_one_pointer_input": true,
+      "owner_rows_unchanged": true,
+      "requests_unchanged": true,
+      "project_unchanged": true,
+      "idle": "long-idle",
+      "checks_ok": true
+    },
+    {
+      "kind": "inactive",
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "width": 27,
+      "source_cycle_width": 57,
+      "overflow": true,
+      "target": {
+        "x": 5,
+        "y": 1
+      },
+      "busy": false,
+      "inactive": true,
+      "samples": [
+        {
+          "elapsed_ms": 3344.1998310000054,
+          "raw_byte_end": 145067,
+          "text": "ng-title abcdefghijklmnopqr",
+          "observed_source_offsets": [
+            8
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 9595.951472,
+          "raw_byte_end": 157799,
+          "text": "stuvwxyz 0123456789 · VIS41",
+          "observed_source_offsets": [
+            35
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ],
+      "captures": [],
+      "first_changed_ms": 3344.1998310000054,
+      "changed": true,
+      "returned_to_entered_text": true,
+      "exactly_one_pointer_input": true,
+      "owner_rows_unchanged": true,
+      "requests_unchanged": true,
+      "project_unchanged": true,
+      "idle": "inactive-idle",
+      "checks_ok": true
+    },
+    {
+      "kind": "busy",
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "width": 27,
+      "source_cycle_width": 57,
+      "overflow": true,
+      "target": {
+        "x": 5,
+        "y": 1
+      },
+      "busy": true,
+      "inactive": false,
+      "samples": [
+        {
+          "elapsed_ms": 2377.441332000002,
+          "raw_byte_end": 180530,
+          "text": " long-title abcdefghijklmno",
+          "observed_source_offsets": [
+            5
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 6625.981262000001,
+          "raw_byte_end": 189512,
+          "text": "ghijklmnopqrstuvwxyz 012345",
+          "observed_source_offsets": [
+            23
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 14271.012006999998,
+          "raw_byte_end": 208107,
+          "text": "VIS41 long-title abcdefghij",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ],
+      "captures": [],
+      "first_changed_ms": 2377.441332000002,
+      "changed": true,
+      "returned_to_entered_text": true,
+      "exactly_one_pointer_input": true,
+      "owner_rows_unchanged": true,
+      "requests_unchanged": true,
+      "project_unchanged": true,
+      "idle": "busy-idle",
+      "checks_ok": true
+    }
+  ],
+  "idle": [
+    {
+      "label": "long-idle",
+      "start": {
+        "at_ns": 1227770831135486,
+        "kind": "process_sample",
+        "request_id": "long-idle-start",
+        "pid": 1734679,
+        "cpu_ticks": 249,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1734679,
+            "voluntary": 798,
+            "involuntary": 1437
+          },
+          {
+            "tid": 1734681,
+            "voluntary": 1021,
+            "involuntary": 87
+          },
+          {
+            "tid": 1734682,
+            "voluntary": 156,
+            "involuntary": 43
+          },
+          {
+            "tid": 1734685,
+            "voluntary": 199,
+            "involuntary": 28
+          },
+          {
+            "tid": 1734686,
+            "voluntary": 193,
+            "involuntary": 21
+          },
+          {
+            "tid": 1734720,
+            "voluntary": 130,
+            "involuntary": 17
+          },
+          {
+            "tid": 1734721,
+            "voluntary": 174,
+            "involuntary": 22
+          },
+          {
+            "tid": 1734723,
+            "voluntary": 16,
+            "involuntary": 2
+          },
+          {
+            "tid": 1734724,
+            "voluntary": 167,
+            "involuntary": 18
+          },
+          {
+            "tid": 1734725,
+            "voluntary": 568,
+            "involuntary": 362
+          },
+          {
+            "tid": 1734726,
+            "voluntary": 561,
+            "involuntary": 419
+          },
+          {
+            "tid": 1734727,
+            "voluntary": 549,
+            "involuntary": 473
+          },
+          {
+            "tid": 1734728,
+            "voluntary": 574,
+            "involuntary": 360
+          },
+          {
+            "tid": 1734729,
+            "voluntary": 568,
+            "involuntary": 403
+          },
+          {
+            "tid": 1734775,
+            "voluntary": 207,
+            "involuntary": 253
+          }
+        ],
+        "voluntary_context_switches": 5881,
+        "involuntary_context_switches": 3945
+      },
+      "end": {
+        "at_ns": 1227772620745300,
+        "kind": "process_sample",
+        "request_id": "long-idle-end",
+        "pid": 1734679,
+        "cpu_ticks": 251,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1734679,
+            "voluntary": 820,
+            "involuntary": 1461
+          },
+          {
+            "tid": 1734681,
+            "voluntary": 1038,
+            "involuntary": 87
+          },
+          {
+            "tid": 1734682,
+            "voluntary": 156,
+            "involuntary": 43
+          },
+          {
+            "tid": 1734685,
+            "voluntary": 204,
+            "involuntary": 29
+          },
+          {
+            "tid": 1734686,
+            "voluntary": 200,
+            "involuntary": 21
+          },
+          {
+            "tid": 1734720,
+            "voluntary": 130,
+            "involuntary": 17
+          },
+          {
+            "tid": 1734721,
+            "voluntary": 179,
+            "involuntary": 22
+          },
+          {
+            "tid": 1734723,
+            "voluntary": 16,
+            "involuntary": 2
+          },
+          {
+            "tid": 1734724,
+            "voluntary": 173,
+            "involuntary": 19
+          },
+          {
+            "tid": 1734725,
+            "voluntary": 585,
+            "involuntary": 369
+          },
+          {
+            "tid": 1734726,
+            "voluntary": 574,
+            "involuntary": 423
+          },
+          {
+            "tid": 1734727,
+            "voluntary": 566,
+            "involuntary": 482
+          },
+          {
+            "tid": 1734728,
+            "voluntary": 597,
+            "involuntary": 370
+          },
+          {
+            "tid": 1734729,
+            "voluntary": 587,
+            "involuntary": 413
+          },
+          {
+            "tid": 1734775,
+            "voluntary": 210,
+            "involuntary": 260
+          },
+          {
+            "tid": 1735695,
+            "voluntary": 1,
+            "involuntary": 0
+          }
+        ],
+        "voluntary_context_switches": 6036,
+        "involuntary_context_switches": 4018
+      },
+      "duration_ms": 1789.609814,
+      "cpu_ticks": 2,
+      "cpu_ms": 20,
+      "cpu_percent": 1.11756204305214,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": false,
+      "voluntary_context_switches": 155,
+      "involuntary_context_switches": 73,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "inactive-idle",
+      "start": {
+        "at_ns": 1227798150071420,
+        "kind": "process_sample",
+        "request_id": "inactive-idle-start",
+        "pid": 1734679,
+        "cpu_ticks": 295,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1734679,
+            "voluntary": 1154,
+            "involuntary": 1810
+          },
+          {
+            "tid": 1734681,
+            "voluntary": 1362,
+            "involuntary": 112
+          },
+          {
+            "tid": 1734682,
+            "voluntary": 165,
+            "involuntary": 43
+          },
+          {
+            "tid": 1734685,
+            "voluntary": 260,
+            "involuntary": 34
+          },
+          {
+            "tid": 1734686,
+            "voluntary": 256,
+            "involuntary": 22
+          },
+          {
+            "tid": 1734720,
+            "voluntary": 146,
+            "involuntary": 19
+          },
+          {
+            "tid": 1734721,
+            "voluntary": 236,
+            "involuntary": 24
+          },
+          {
+            "tid": 1734723,
+            "voluntary": 16,
+            "involuntary": 2
+          },
+          {
+            "tid": 1734724,
+            "voluntary": 232,
+            "involuntary": 23
+          },
+          {
+            "tid": 1734725,
+            "voluntary": 767,
+            "involuntary": 488
+          },
+          {
+            "tid": 1734726,
+            "voluntary": 768,
+            "involuntary": 530
+          },
+          {
+            "tid": 1734727,
+            "voluntary": 765,
+            "involuntary": 642
+          },
+          {
+            "tid": 1734728,
+            "voluntary": 797,
+            "involuntary": 492
+          },
+          {
+            "tid": 1734729,
+            "voluntary": 771,
+            "involuntary": 524
+          },
+          {
+            "tid": 1734775,
+            "voluntary": 232,
+            "involuntary": 295
+          },
+          {
+            "tid": 1735695,
+            "voluntary": 79,
+            "involuntary": 50
+          }
+        ],
+        "voluntary_context_switches": 8006,
+        "involuntary_context_switches": 5110
+      },
+      "end": {
+        "at_ns": 1227799906533837,
+        "kind": "process_sample",
+        "request_id": "inactive-idle-end",
+        "pid": 1734679,
+        "cpu_ticks": 295,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1734679,
+            "voluntary": 1172,
+            "involuntary": 1823
+          },
+          {
+            "tid": 1734681,
+            "voluntary": 1372,
+            "involuntary": 112
+          },
+          {
+            "tid": 1734682,
+            "voluntary": 165,
+            "involuntary": 43
+          },
+          {
+            "tid": 1734685,
+            "voluntary": 263,
+            "involuntary": 34
+          },
+          {
+            "tid": 1734686,
+            "voluntary": 260,
+            "involuntary": 22
+          },
+          {
+            "tid": 1734720,
+            "voluntary": 147,
+            "involuntary": 19
+          },
+          {
+            "tid": 1734721,
+            "voluntary": 239,
+            "involuntary": 24
+          },
+          {
+            "tid": 1734723,
+            "voluntary": 16,
+            "involuntary": 2
+          },
+          {
+            "tid": 1734724,
+            "voluntary": 237,
+            "involuntary": 23
+          },
+          {
+            "tid": 1734725,
+            "voluntary": 780,
+            "involuntary": 504
+          },
+          {
+            "tid": 1734726,
+            "voluntary": 780,
+            "involuntary": 543
+          },
+          {
+            "tid": 1734727,
+            "voluntary": 777,
+            "involuntary": 658
+          },
+          {
+            "tid": 1734728,
+            "voluntary": 811,
+            "involuntary": 492
+          },
+          {
+            "tid": 1734729,
+            "voluntary": 786,
+            "involuntary": 536
+          },
+          {
+            "tid": 1734775,
+            "voluntary": 232,
+            "involuntary": 295
+          },
+          {
+            "tid": 1735695,
+            "voluntary": 79,
+            "involuntary": 50
+          }
+        ],
+        "voluntary_context_switches": 8116,
+        "involuntary_context_switches": 5180
+      },
+      "duration_ms": 1756.462417,
+      "cpu_ticks": 0,
+      "cpu_ms": 0,
+      "cpu_percent": 0,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 110,
+      "involuntary_context_switches": 70,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "busy-idle",
+      "start": {
+        "at_ns": 1227824323795224,
+        "kind": "process_sample",
+        "request_id": "busy-idle-start",
+        "pid": 1734679,
+        "cpu_ticks": 352,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1734679,
+            "voluntary": 1579,
+            "involuntary": 2215
+          },
+          {
+            "tid": 1734681,
+            "voluntary": 1757,
+            "involuntary": 148
+          },
+          {
+            "tid": 1734682,
+            "voluntary": 194,
+            "involuntary": 45
+          },
+          {
+            "tid": 1734685,
+            "voluntary": 319,
+            "involuntary": 38
+          },
+          {
+            "tid": 1734686,
+            "voluntary": 320,
+            "involuntary": 24
+          },
+          {
+            "tid": 1734720,
+            "voluntary": 165,
+            "involuntary": 19
+          },
+          {
+            "tid": 1734721,
+            "voluntary": 292,
+            "involuntary": 29
+          },
+          {
+            "tid": 1734723,
+            "voluntary": 17,
+            "involuntary": 2
+          },
+          {
+            "tid": 1734724,
+            "voluntary": 291,
+            "involuntary": 32
+          },
+          {
+            "tid": 1734725,
+            "voluntary": 1035,
+            "involuntary": 687
+          },
+          {
+            "tid": 1734726,
+            "voluntary": 1016,
+            "involuntary": 724
+          },
+          {
+            "tid": 1734727,
+            "voluntary": 996,
+            "involuntary": 883
+          },
+          {
+            "tid": 1734728,
+            "voluntary": 1047,
+            "involuntary": 659
+          },
+          {
+            "tid": 1734729,
+            "voluntary": 1034,
+            "involuntary": 680
+          },
+          {
+            "tid": 1734775,
+            "voluntary": 327,
+            "involuntary": 410
+          },
+          {
+            "tid": 1735695,
+            "voluntary": 154,
+            "involuntary": 108
+          },
+          {
+            "tid": 1736180,
+            "voluntary": 41,
+            "involuntary": 20
+          },
+          {
+            "tid": 1736442,
+            "voluntary": 1,
+            "involuntary": 0
+          }
+        ],
+        "voluntary_context_switches": 10585,
+        "involuntary_context_switches": 6723
+      },
+      "end": {
+        "at_ns": 1227825028253187,
+        "kind": "process_sample",
+        "request_id": "busy-idle-end",
+        "pid": 1734679,
+        "cpu_ticks": 352,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1734679,
+            "voluntary": 1586,
+            "involuntary": 2215
+          },
+          {
+            "tid": 1734681,
+            "voluntary": 1763,
+            "involuntary": 148
+          },
+          {
+            "tid": 1734682,
+            "voluntary": 194,
+            "involuntary": 45
+          },
+          {
+            "tid": 1734685,
+            "voluntary": 321,
+            "involuntary": 38
+          },
+          {
+            "tid": 1734686,
+            "voluntary": 321,
+            "involuntary": 24
+          },
+          {
+            "tid": 1734720,
+            "voluntary": 165,
+            "involuntary": 19
+          },
+          {
+            "tid": 1734721,
+            "voluntary": 292,
+            "involuntary": 29
+          },
+          {
+            "tid": 1734723,
+            "voluntary": 17,
+            "involuntary": 2
+          },
+          {
+            "tid": 1734724,
+            "voluntary": 291,
+            "involuntary": 32
+          },
+          {
+            "tid": 1734725,
+            "voluntary": 1051,
+            "involuntary": 704
+          },
+          {
+            "tid": 1734726,
+            "voluntary": 1026,
+            "involuntary": 724
+          },
+          {
+            "tid": 1734727,
+            "voluntary": 1009,
+            "involuntary": 898
+          },
+          {
+            "tid": 1734728,
+            "voluntary": 1056,
+            "involuntary": 681
+          },
+          {
+            "tid": 1734729,
+            "voluntary": 1045,
+            "involuntary": 695
+          },
+          {
+            "tid": 1734775,
+            "voluntary": 331,
+            "involuntary": 422
+          },
+          {
+            "tid": 1735695,
+            "voluntary": 154,
+            "involuntary": 108
+          },
+          {
+            "tid": 1736180,
+            "voluntary": 41,
+            "involuntary": 20
+          },
+          {
+            "tid": 1736442,
+            "voluntary": 1,
+            "involuntary": 0
+          }
+        ],
+        "voluntary_context_switches": 10664,
+        "involuntary_context_switches": 6804
+      },
+      "duration_ms": 704.457963,
+      "cpu_ticks": 0,
+      "cpu_ms": 0,
+      "cpu_percent": 0,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 79,
+      "involuntary_context_switches": 81,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "completed-idle",
+      "start": {
+        "at_ns": 1227833863448004,
+        "kind": "process_sample",
+        "request_id": "completed-idle-start",
+        "pid": 1734679,
+        "cpu_ticks": 369,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1734679,
+            "voluntary": 1704,
+            "involuntary": 2308
+          },
+          {
+            "tid": 1734681,
+            "voluntary": 1875,
+            "involuntary": 158
+          },
+          {
+            "tid": 1734682,
+            "voluntary": 198,
+            "involuntary": 45
+          },
+          {
+            "tid": 1734685,
+            "voluntary": 340,
+            "involuntary": 41
+          },
+          {
+            "tid": 1734686,
+            "voluntary": 344,
+            "involuntary": 25
+          },
+          {
+            "tid": 1734720,
+            "voluntary": 180,
+            "involuntary": 19
+          },
+          {
+            "tid": 1734721,
+            "voluntary": 313,
+            "involuntary": 29
+          },
+          {
+            "tid": 1734723,
+            "voluntary": 17,
+            "involuntary": 2
+          },
+          {
+            "tid": 1734724,
+            "voluntary": 310,
+            "involuntary": 33
+          },
+          {
+            "tid": 1734725,
+            "voluntary": 1142,
+            "involuntary": 779
+          },
+          {
+            "tid": 1734726,
+            "voluntary": 1122,
+            "involuntary": 800
+          },
+          {
+            "tid": 1734727,
+            "voluntary": 1097,
+            "involuntary": 942
+          },
+          {
+            "tid": 1734728,
+            "voluntary": 1153,
+            "involuntary": 750
+          },
+          {
+            "tid": 1734729,
+            "voluntary": 1120,
+            "involuntary": 769
+          },
+          {
+            "tid": 1734775,
+            "voluntary": 368,
+            "involuntary": 481
+          },
+          {
+            "tid": 1735695,
+            "voluntary": 182,
+            "involuntary": 117
+          },
+          {
+            "tid": 1736180,
+            "voluntary": 70,
+            "involuntary": 25
+          },
+          {
+            "tid": 1736442,
+            "voluntary": 12,
+            "involuntary": 3
+          }
+        ],
+        "voluntary_context_switches": 11547,
+        "involuntary_context_switches": 7326
+      },
+      "end": {
+        "at_ns": 1227835585728411,
+        "kind": "process_sample",
+        "request_id": "completed-idle-end",
+        "pid": 1734679,
+        "cpu_ticks": 370,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1734679,
+            "voluntary": 1720,
+            "involuntary": 2321
+          },
+          {
+            "tid": 1734681,
+            "voluntary": 1889,
+            "involuntary": 158
+          },
+          {
+            "tid": 1734682,
+            "voluntary": 198,
+            "involuntary": 45
+          },
+          {
+            "tid": 1734685,
+            "voluntary": 344,
+            "involuntary": 41
+          },
+          {
+            "tid": 1734686,
+            "voluntary": 348,
+            "involuntary": 25
+          },
+          {
+            "tid": 1734720,
+            "voluntary": 181,
+            "involuntary": 19
+          },
+          {
+            "tid": 1734721,
+            "voluntary": 317,
+            "involuntary": 30
+          },
+          {
+            "tid": 1734723,
+            "voluntary": 17,
+            "involuntary": 2
+          },
+          {
+            "tid": 1734724,
+            "voluntary": 315,
+            "involuntary": 33
+          },
+          {
+            "tid": 1734725,
+            "voluntary": 1154,
+            "involuntary": 790
+          },
+          {
+            "tid": 1734726,
+            "voluntary": 1140,
+            "involuntary": 801
+          },
+          {
+            "tid": 1734727,
+            "voluntary": 1109,
+            "involuntary": 952
+          },
+          {
+            "tid": 1734728,
+            "voluntary": 1169,
+            "involuntary": 759
+          },
+          {
+            "tid": 1734729,
+            "voluntary": 1144,
+            "involuntary": 779
+          },
+          {
+            "tid": 1734775,
+            "voluntary": 379,
+            "involuntary": 495
+          },
+          {
+            "tid": 1735695,
+            "voluntary": 182,
+            "involuntary": 117
+          },
+          {
+            "tid": 1736180,
+            "voluntary": 70,
+            "involuntary": 25
+          },
+          {
+            "tid": 1736442,
+            "voluntary": 12,
+            "involuntary": 3
+          }
+        ],
+        "voluntary_context_switches": 11688,
+        "involuntary_context_switches": 7395
+      },
+      "duration_ms": 1722.280407,
+      "cpu_ticks": 1,
+      "cpu_ms": 10,
+      "cpu_percent": 0.5806255450248526,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 141,
+      "involuntary_context_switches": 69,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "cancelled-idle",
+      "start": {
+        "at_ns": 1227842209192202,
+        "kind": "process_sample",
+        "request_id": "cancelled-idle-start",
+        "pid": 1734679,
+        "cpu_ticks": 390,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1734679,
+            "voluntary": 1807,
+            "involuntary": 2530
+          },
+          {
+            "tid": 1734681,
+            "voluntary": 1998,
+            "involuntary": 171
+          },
+          {
+            "tid": 1734682,
+            "voluntary": 215,
+            "involuntary": 45
+          },
+          {
+            "tid": 1734685,
+            "voluntary": 361,
+            "involuntary": 44
+          },
+          {
+            "tid": 1734686,
+            "voluntary": 367,
+            "involuntary": 25
+          },
+          {
+            "tid": 1734720,
+            "voluntary": 203,
+            "involuntary": 45
+          },
+          {
+            "tid": 1734721,
+            "voluntary": 335,
+            "involuntary": 33
+          },
+          {
+            "tid": 1734723,
+            "voluntary": 18,
+            "involuntary": 2
+          },
+          {
+            "tid": 1734724,
+            "voluntary": 334,
+            "involuntary": 34
+          },
+          {
+            "tid": 1734725,
+            "voluntary": 1228,
+            "involuntary": 910
+          },
+          {
+            "tid": 1734726,
+            "voluntary": 1212,
+            "involuntary": 862
+          },
+          {
+            "tid": 1734727,
+            "voluntary": 1173,
+            "involuntary": 995
+          },
+          {
+            "tid": 1734728,
+            "voluntary": 1233,
+            "involuntary": 862
+          },
+          {
+            "tid": 1734729,
+            "voluntary": 1222,
+            "involuntary": 842
+          },
+          {
+            "tid": 1734775,
+            "voluntary": 415,
+            "involuntary": 583
+          },
+          {
+            "tid": 1735695,
+            "voluntary": 229,
+            "involuntary": 121
+          },
+          {
+            "tid": 1736180,
+            "voluntary": 84,
+            "involuntary": 81
+          },
+          {
+            "tid": 1736442,
+            "voluntary": 21,
+            "involuntary": 11
+          }
+        ],
+        "voluntary_context_switches": 12455,
+        "involuntary_context_switches": 8196
+      },
+      "end": {
+        "at_ns": 1227843959874084,
+        "kind": "process_sample",
+        "request_id": "cancelled-idle-end",
+        "pid": 1734679,
+        "cpu_ticks": 392,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1734679,
+            "voluntary": 1826,
+            "involuntary": 2650
+          },
+          {
+            "tid": 1734681,
+            "voluntary": 2019,
+            "involuntary": 178
+          },
+          {
+            "tid": 1734682,
+            "voluntary": 215,
+            "involuntary": 45
+          },
+          {
+            "tid": 1734685,
+            "voluntary": 363,
+            "involuntary": 45
+          },
+          {
+            "tid": 1734686,
+            "voluntary": 370,
+            "involuntary": 25
+          },
+          {
+            "tid": 1734720,
+            "voluntary": 206,
+            "involuntary": 46
+          },
+          {
+            "tid": 1734721,
+            "voluntary": 338,
+            "involuntary": 33
+          },
+          {
+            "tid": 1734723,
+            "voluntary": 18,
+            "involuntary": 2
+          },
+          {
+            "tid": 1734724,
+            "voluntary": 338,
+            "involuntary": 34
+          },
+          {
+            "tid": 1734725,
+            "voluntary": 1242,
+            "involuntary": 920
+          },
+          {
+            "tid": 1734726,
+            "voluntary": 1228,
+            "involuntary": 876
+          },
+          {
+            "tid": 1734727,
+            "voluntary": 1191,
+            "involuntary": 1002
+          },
+          {
+            "tid": 1734728,
+            "voluntary": 1254,
+            "involuntary": 870
+          },
+          {
+            "tid": 1734729,
+            "voluntary": 1238,
+            "involuntary": 886
+          },
+          {
+            "tid": 1734775,
+            "voluntary": 421,
+            "involuntary": 583
+          },
+          {
+            "tid": 1735695,
+            "voluntary": 229,
+            "involuntary": 121
+          },
+          {
+            "tid": 1736180,
+            "voluntary": 84,
+            "involuntary": 81
+          },
+          {
+            "tid": 1736442,
+            "voluntary": 21,
+            "involuntary": 11
+          }
+        ],
+        "voluntary_context_switches": 12601,
+        "involuntary_context_switches": 8408
+      },
+      "duration_ms": 1750.681882,
+      "cpu_ticks": 2,
+      "cpu_ms": 20,
+      "cpu_percent": 1.1424120056095948,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 146,
+      "involuntary_context_switches": 212,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "final-settled-idle",
+      "start": {
+        "at_ns": 1227852081610387,
+        "kind": "process_sample",
+        "request_id": "final-settled-idle-start",
+        "pid": 1734679,
+        "cpu_ticks": 407,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1734679,
+            "voluntary": 1939,
+            "involuntary": 2824
+          },
+          {
+            "tid": 1734681,
+            "voluntary": 2123,
+            "involuntary": 192
+          },
+          {
+            "tid": 1734682,
+            "voluntary": 217,
+            "involuntary": 45
+          },
+          {
+            "tid": 1734685,
+            "voluntary": 381,
+            "involuntary": 47
+          },
+          {
+            "tid": 1734686,
+            "voluntary": 388,
+            "involuntary": 25
+          },
+          {
+            "tid": 1734720,
+            "voluntary": 208,
+            "involuntary": 46
+          },
+          {
+            "tid": 1734721,
+            "voluntary": 354,
+            "involuntary": 38
+          },
+          {
+            "tid": 1734723,
+            "voluntary": 18,
+            "involuntary": 2
+          },
+          {
+            "tid": 1734724,
+            "voluntary": 354,
+            "involuntary": 38
+          },
+          {
+            "tid": 1734725,
+            "voluntary": 1334,
+            "involuntary": 972
+          },
+          {
+            "tid": 1734726,
+            "voluntary": 1319,
+            "involuntary": 945
+          },
+          {
+            "tid": 1734727,
+            "voluntary": 1291,
+            "involuntary": 1071
+          },
+          {
+            "tid": 1734728,
+            "voluntary": 1351,
+            "involuntary": 902
+          },
+          {
+            "tid": 1734729,
+            "voluntary": 1326,
+            "involuntary": 953
+          },
+          {
+            "tid": 1734775,
+            "voluntary": 461,
+            "involuntary": 621
+          },
+          {
+            "tid": 1735695,
+            "voluntary": 243,
+            "involuntary": 124
+          },
+          {
+            "tid": 1736180,
+            "voluntary": 91,
+            "involuntary": 81
+          },
+          {
+            "tid": 1736442,
+            "voluntary": 25,
+            "involuntary": 12
+          }
+        ],
+        "voluntary_context_switches": 13423,
+        "involuntary_context_switches": 8938
+      },
+      "end": {
+        "at_ns": 1227853811300469,
+        "kind": "process_sample",
+        "request_id": "final-settled-idle-end",
+        "pid": 1734679,
+        "cpu_ticks": 408,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1734679,
+            "voluntary": 1960,
+            "involuntary": 2828
+          },
+          {
+            "tid": 1734681,
+            "voluntary": 2136,
+            "involuntary": 194
+          },
+          {
+            "tid": 1734682,
+            "voluntary": 217,
+            "involuntary": 45
+          },
+          {
+            "tid": 1734685,
+            "voluntary": 385,
+            "involuntary": 49
+          },
+          {
+            "tid": 1734686,
+            "voluntary": 392,
+            "involuntary": 25
+          },
+          {
+            "tid": 1734720,
+            "voluntary": 208,
+            "involuntary": 46
+          },
+          {
+            "tid": 1734721,
+            "voluntary": 358,
+            "involuntary": 41
+          },
+          {
+            "tid": 1734723,
+            "voluntary": 18,
+            "involuntary": 2
+          },
+          {
+            "tid": 1734724,
+            "voluntary": 357,
+            "involuntary": 38
+          },
+          {
+            "tid": 1734725,
+            "voluntary": 1348,
+            "involuntary": 980
+          },
+          {
+            "tid": 1734726,
+            "voluntary": 1335,
+            "involuntary": 953
+          },
+          {
+            "tid": 1734727,
+            "voluntary": 1307,
+            "involuntary": 1081
+          },
+          {
+            "tid": 1734728,
+            "voluntary": 1360,
+            "involuntary": 902
+          },
+          {
+            "tid": 1734729,
+            "voluntary": 1344,
+            "involuntary": 965
+          },
+          {
+            "tid": 1734775,
+            "voluntary": 469,
+            "involuntary": 622
+          },
+          {
+            "tid": 1735695,
+            "voluntary": 243,
+            "involuntary": 124
+          },
+          {
+            "tid": 1736180,
+            "voluntary": 91,
+            "involuntary": 81
+          },
+          {
+            "tid": 1736442,
+            "voluntary": 25,
+            "involuntary": 12
+          }
+        ],
+        "voluntary_context_switches": 13553,
+        "involuntary_context_switches": 8988
+      },
+      "duration_ms": 1729.690082,
+      "cpu_ticks": 1,
+      "cpu_ms": 10,
+      "cpu_percent": 0.5781382517056023,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 130,
+      "involuntary_context_switches": 50,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    }
+  ],
+  "checks": [
+    {
+      "label": "root-b-short",
+      "requested_title": "Short",
+      "owner_rows": [
+        {
+          "id": "ses_f1abdc4b4ffejJ6dksiqZOmjTQ",
+          "project_id": "19de3b804d97a77fef3dc9f44e95e9bebaaf51a5",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "curious-island",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-02-upstream-120x40-off-horizontal-status/project",
+          "path": "",
+          "title": "VIS41 fixture A",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790552718171,
+          "time_updated": 1790552718329,
+          "time_idle": 1790552718349,
+          "time_viewed": 1790552718349,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        },
+        {
+          "id": "ses_f1abda67effejcnkHTJse2sFDh",
+          "project_id": "19de3b804d97a77fef3dc9f44e95e9bebaaf51a5",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "hidden-nebula",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-02-upstream-120x40-off-horizontal-status/project",
+          "path": "",
+          "title": "Short",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790552725902,
+          "time_updated": 1790552733701,
+          "time_idle": 1790552726041,
+          "time_viewed": 1790552726041,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        }
+      ],
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      }
+    },
+    {
+      "label": "long",
+      "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "owner_rows": [
+        {
+          "id": "ses_f1abdc4b4ffejJ6dksiqZOmjTQ",
+          "project_id": "19de3b804d97a77fef3dc9f44e95e9bebaaf51a5",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "curious-island",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-02-upstream-120x40-off-horizontal-status/project",
+          "path": "",
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790552718171,
+          "time_updated": 1790552740755,
+          "time_idle": 1790552718349,
+          "time_viewed": 1790552718349,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        },
+        {
+          "id": "ses_f1abda67effejcnkHTJse2sFDh",
+          "project_id": "19de3b804d97a77fef3dc9f44e95e9bebaaf51a5",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "hidden-nebula",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-02-upstream-120x40-off-horizontal-status/project",
+          "path": "",
+          "title": "Short",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790552725902,
+          "time_updated": 1790552733701,
+          "time_idle": 1790552726041,
+          "time_viewed": 1790552726041,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        }
+      ],
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      }
+    },
+    {
+      "label": "inactive-long",
+      "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "owner_rows": [
+        {
+          "id": "ses_f1abdc4b4ffejJ6dksiqZOmjTQ",
+          "project_id": "19de3b804d97a77fef3dc9f44e95e9bebaaf51a5",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "curious-island",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-02-upstream-120x40-off-horizontal-status/project",
+          "path": "",
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790552718171,
+          "time_updated": 1790552768682,
+          "time_idle": 1790552718349,
+          "time_viewed": 1790552718349,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        },
+        {
+          "id": "ses_f1abda67effejcnkHTJse2sFDh",
+          "project_id": "19de3b804d97a77fef3dc9f44e95e9bebaaf51a5",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "hidden-nebula",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-02-upstream-120x40-off-horizontal-status/project",
+          "path": "",
+          "title": "Short",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790552725902,
+          "time_updated": 1790552733701,
+          "time_idle": 1790552726041,
+          "time_viewed": 1790552726041,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        }
+      ],
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      }
+    }
+  ],
+  "counts": [
+    {
+      "requests": 6,
+      "completed": 5,
+      "invalid": 0
+    }
+  ],
+  "observed_phase_matching": "Source-title text and actual glyph observed independently, never elapsed global clock",
+  "root_b": "ses_f1abda67effejcnkHTJse2sFDh",
+  "root_a": "ses_f1abdc4b4ffejJ6dksiqZOmjTQ",
+  "spinner": {
+    "line": 0,
+    "animations": false,
+    "indicators": "status",
+    "observations": [
+      {
+        "at_ns": 1227804494945053,
+        "raw_byte_end": 173267,
+        "row": "   S41 long-title abcdefghijkl✕    Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1227804580097993,
+        "raw_byte_end": 173766,
+        "row": "   41 long-title abcdefghijklm✕    Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1227804657519272,
+        "raw_byte_end": 174265,
+        "row": "   1 long-title abcdefghijklmn✕    Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1227804737509760,
+        "raw_byte_end": 174764,
+        "row": "    long-title abcdefghijklmno✕    Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1227804821175811,
+        "raw_byte_end": 175263,
+        "row": "   long-title abcdefghijklmnop✕    Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1227804899488632,
+        "raw_byte_end": 175762,
+        "row": "   ong-title abcdefghijklmnopq✕    Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1227804916502917,
+        "raw_byte_end": 176073,
+        "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1227805214810946,
+        "raw_byte_end": 176206,
+        "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1227805244404531,
+        "raw_byte_end": 177104,
+        "row": " ⠋ VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227805354826813,
+        "raw_byte_end": 177702,
+        "row": " ⠋ VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227808974781125,
+        "raw_byte_end": 178035,
+        "row": " ⠋ VIS41 long-title abcdefghij✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227809575036343,
+        "raw_byte_end": 178534,
+        "row": " ⠋ IS41 long-title abcdefghijk✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227809655699814,
+        "raw_byte_end": 179033,
+        "row": " ⠋ S41 long-title abcdefghijkl✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227809736093978,
+        "raw_byte_end": 179532,
+        "row": " ⠋ 41 long-title abcdefghijklm✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227809816114662,
+        "raw_byte_end": 180031,
+        "row": " ⠋ 1 long-title abcdefghijklmn✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227809896322006,
+        "raw_byte_end": 180530,
+        "row": " ⠋  long-title abcdefghijklmno✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227809975884950,
+        "raw_byte_end": 181029,
+        "row": " ⠋ long-title abcdefghijklmnop✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227810056056279,
+        "raw_byte_end": 181528,
+        "row": " ⠋ ong-title abcdefghijklmnopq✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227810136130473,
+        "raw_byte_end": 182027,
+        "row": " ⠋ ng-title abcdefghijklmnopqr✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227810217415930,
+        "raw_byte_end": 182526,
+        "row": " ⠋ g-title abcdefghijklmnopqrs✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227810296404960,
+        "raw_byte_end": 183025,
+        "row": " ⠋ -title abcdefghijklmnopqrst✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227810376884133,
+        "raw_byte_end": 183524,
+        "row": " ⠋ title abcdefghijklmnopqrstu✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227810460246006,
+        "raw_byte_end": 184023,
+        "row": " ⠋ itle abcdefghijklmnopqrstuv✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227810537685283,
+        "raw_byte_end": 184522,
+        "row": " ⠋ tle abcdefghijklmnopqrstuvw✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227810618119699,
+        "raw_byte_end": 185021,
+        "row": " ⠋ le abcdefghijklmnopqrstuvwx✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227810696964222,
+        "raw_byte_end": 185520,
+        "row": " ⠋ e abcdefghijklmnopqrstuvwxy✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227810781043695,
+        "raw_byte_end": 186019,
+        "row": " ⠋  abcdefghijklmnopqrstuvwxyz✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227810859030426,
+        "raw_byte_end": 186518,
+        "row": " ⠋ abcdefghijklmnopqrstuvwxyz ✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227810937398501,
+        "raw_byte_end": 187017,
+        "row": " ⠋ bcdefghijklmnopqrstuvwxyz 0✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227811021410123,
+        "raw_byte_end": 187516,
+        "row": " ⠋ cdefghijklmnopqrstuvwxyz 01✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227811101398166,
+        "raw_byte_end": 188015,
+        "row": " ⠋ defghijklmnopqrstuvwxyz 012✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227811185993106,
+        "raw_byte_end": 188514,
+        "row": " ⠋ efghijklmnopqrstuvwxyz 0123✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227811265397892,
+        "raw_byte_end": 189013,
+        "row": " ⠋ fghijklmnopqrstuvwxyz 01234✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227811345655451,
+        "raw_byte_end": 189512,
+        "row": " ⠋ ghijklmnopqrstuvwxyz 012345✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227811428088165,
+        "raw_byte_end": 190011,
+        "row": " ⠋ hijklmnopqrstuvwxyz 0123456✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227811526418053,
+        "raw_byte_end": 190510,
+        "row": " ⠋ ijklmnopqrstuvwxyz 01234567✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227811606201248,
+        "raw_byte_end": 191009,
+        "row": " ⠋ jklmnopqrstuvwxyz 012345678✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227811686360160,
+        "raw_byte_end": 191508,
+        "row": " ⠋ klmnopqrstuvwxyz 0123456789✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227811766559202,
+        "raw_byte_end": 192007,
+        "row": " ⠋ lmnopqrstuvwxyz 0123456789 ✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227811846541446,
+        "raw_byte_end": 192507,
+        "row": " ⠋ mnopqrstuvwxyz 0123456789 ·✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227811929521575,
+        "raw_byte_end": 193007,
+        "row": " ⠋ nopqrstuvwxyz 0123456789 · ✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227812009538713,
+        "raw_byte_end": 193504,
+        "row": " ⠋ opqrstuvwxyz 0123456789 · V✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227812092766734,
+        "raw_byte_end": 194004,
+        "row": " ⠋ pqrstuvwxyz 0123456789 · VI✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227812172848870,
+        "raw_byte_end": 194554,
+        "row": " ⠋ qrstuvwxyz 0123456789 · VIS✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227812254384904,
+        "raw_byte_end": 195154,
+        "row": " ⠋ rstuvwxyz 0123456789 · VIS4✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227812335441137,
+        "raw_byte_end": 195754,
+        "row": " ⠋ stuvwxyz 0123456789 · VIS41✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227812414881205,
+        "raw_byte_end": 196354,
+        "row": " ⠋ tuvwxyz 0123456789 · VIS41 ✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227812501768787,
+        "raw_byte_end": 196954,
+        "row": " ⠋ uvwxyz 0123456789 · VIS41 l✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227812584097346,
+        "raw_byte_end": 197554,
+        "row": " ⠋ vwxyz 0123456789 · VIS41 lo✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227812662435385,
+        "raw_byte_end": 198154,
+        "row": " ⠋ wxyz 0123456789 · VIS41 lon✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227812744243157,
+        "raw_byte_end": 198754,
+        "row": " ⠋ xyz 0123456789 · VIS41 long✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227812827779695,
+        "raw_byte_end": 199354,
+        "row": " ⠋ yz 0123456789 · VIS41 long-✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227812905624761,
+        "raw_byte_end": 199954,
+        "row": " ⠋ z 0123456789 · VIS41 long-t✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227812985647398,
+        "raw_byte_end": 200554,
+        "row": " ⠋  0123456789 · VIS41 long-ti✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227813068596340,
+        "raw_byte_end": 201154,
+        "row": " ⠋ 0123456789 · VIS41 long-tit✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227813145833642,
+        "raw_byte_end": 201754,
+        "row": " ⠋ 123456789 · VIS41 long-titl✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227813226993480,
+        "raw_byte_end": 202354,
+        "row": " ⠋ 23456789 · VIS41 long-title✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227813310705030,
+        "raw_byte_end": 202954,
+        "row": " ⠋ 3456789 · VIS41 long-title ✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227813390343227,
+        "raw_byte_end": 203554,
+        "row": " ⠋ 456789 · VIS41 long-title a✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227813470094104,
+        "raw_byte_end": 204154,
+        "row": " ⠋ 56789 · VIS41 long-title ab✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227813550450883,
+        "raw_byte_end": 204753,
+        "row": " ⠋ 6789 · VIS41 long-title abc✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227813631969111,
+        "raw_byte_end": 205302,
+        "row": " ⠋ 789 · VIS41 long-title abcd✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227813714655668,
+        "raw_byte_end": 205802,
+        "row": " ⠋ 89 · VIS41 long-title abcde✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227813793301280,
+        "raw_byte_end": 206299,
+        "row": " ⠋ 9 · VIS41 long-title abcdef✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227813872922022,
+        "raw_byte_end": 206799,
+        "row": " ⠋  · VIS41 long-title abcdefg✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227813955442969,
+        "raw_byte_end": 207299,
+        "row": " ⠋ · VIS41 long-title abcdefgh✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227814033117068,
+        "raw_byte_end": 207798,
+        "row": " ⠋  VIS41 long-title abcdefghi✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227814113274428,
+        "raw_byte_end": 208107,
+        "row": " ⠋ VIS41 long-title abcdefghij✕    Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1227827966643156,
+        "raw_byte_end": 208396,
+        "row": " ⠋ VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+        "glyphs": [
+          "⠋"
+        ]
+      }
+    ]
+  },
+  "final_owner": {
+    "at_ns": 1227844434937227,
+    "kind": "owner_snapshot",
+    "request_id": "cancelled-owner",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-02-upstream-120x40-off-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_v2",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ses_f1abdc4b4ffejJ6dksiqZOmjTQ",
+            "project_id": "19de3b804d97a77fef3dc9f44e95e9bebaaf51a5",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "curious-island",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-02-upstream-120x40-off-horizontal-status/project",
+            "path": "",
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1536,
+            "tokens_output": 48,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790552718171,
+            "time_updated": 1790552826081,
+            "time_idle": 1790552827610,
+            "time_viewed": 1790552827610,
+            "idle_outcome": "interrupted",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          },
+          {
+            "id": "ses_f1abda67effejcnkHTJse2sFDh",
+            "project_id": "19de3b804d97a77fef3dc9f44e95e9bebaaf51a5",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "hidden-nebula",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-02-upstream-120x40-off-horizontal-status/project",
+            "path": "",
+            "title": "Short",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790552725902,
+            "time_updated": 1790552733701,
+            "time_idle": 1790552726041,
+            "time_viewed": 1790552726041,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-02-upstream-120x40-off-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_message",
+        "count": 12,
+        "rows": [
+          {
+            "id": "msg_0e5423b4e001fY2he3e9zKt1hG",
+            "session_id": "ses_f1abdc4b4ffejJ6dksiqZOmjTQ",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790552718254,
+            "time_updated": 1790552718256,
+            "data": "{\"time\":{\"created\":1790552718254},\"text\":\"VIS41 seed-a: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e5423bd3001MmeY6zooDqqgkv",
+            "session_id": "ses_f1abdc4b4ffejJ6dksiqZOmjTQ",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790552718302,
+            "time_updated": 1790552718346,
+            "data": "{\"time\":{\"created\":1790552718302,\"streamed\":1790552718341,\"completed\":1790552718344},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-a\",\"state\":{\"itemId\":\"msg_vis41_1\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_1\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e5423c0d001iK13UmBs76hxnE",
+            "session_id": "ses_f1abdc4b4ffejJ6dksiqZOmjTQ",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790552718349,
+            "time_updated": 1790552718349,
+            "data": "{\"time\":{\"created\":1790552718349},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e5425984001Eq0KM6RvoPINjZ",
+            "session_id": "ses_f1abda67effejcnkHTJse2sFDh",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790552725988,
+            "time_updated": 1790552725989,
+            "data": "{\"time\":{\"created\":1790552725988},\"text\":\"VIS41 seed-b: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e54259ef001pm0r6oAUfpAtCH",
+            "session_id": "ses_f1abda67effejcnkHTJse2sFDh",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790552726004,
+            "time_updated": 1790552726036,
+            "data": "{\"time\":{\"created\":1790552726004,\"streamed\":1790552726028,\"completed\":1790552726034},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-b\",\"state\":{\"itemId\":\"msg_vis41_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_3\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e5425a19001HJCPl50J8hOkhW",
+            "session_id": "ses_f1abda67effejcnkHTJse2sFDh",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790552726041,
+            "time_updated": 1790552726042,
+            "data": "{\"time\":{\"created\":1790552726041},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e543678e0010EzMH2jvZc7FI9",
+            "session_id": "ses_f1abdc4b4ffejJ6dksiqZOmjTQ",
+            "type": "user",
+            "seq": 18,
+            "time_created": 1790552795076,
+            "time_updated": 1790552795077,
+            "data": "{\"time\":{\"created\":1790552795076},\"text\":\"VIS41 complete: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e54367cd001V1tWXRIiI12FgF",
+            "session_id": "ses_f1abdc4b4ffejJ6dksiqZOmjTQ",
+            "type": "assistant",
+            "seq": 19,
+            "time_created": 1790552795094,
+            "time_updated": 1790552819568,
+            "data": "{\"time\":{\"created\":1790552795094,\"streamed\":1790552819565,\"completed\":1790552819567},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE complete\",\"state\":{\"itemId\":\"msg_vis41_4\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_4\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e543c7730018Csw6Igyb0IGfI",
+            "session_id": "ses_f1abdc4b4ffejJ6dksiqZOmjTQ",
+            "type": "idle",
+            "seq": 24,
+            "time_created": 1790552819571,
+            "time_updated": 1790552819571,
+            "data": "{\"time\":{\"created\":1790552819571},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e543e0d2001w1F2shZaCEVysG",
+            "session_id": "ses_f1abdc4b4ffejJ6dksiqZOmjTQ",
+            "type": "user",
+            "seq": 28,
+            "time_created": 1790552826093,
+            "time_updated": 1790552826096,
+            "data": "{\"time\":{\"created\":1790552826093},\"text\":\"VIS41 cancel: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e543e0f50010m5SHmwGqM3HcP",
+            "session_id": "ses_f1abdc4b4ffejJ6dksiqZOmjTQ",
+            "type": "assistant",
+            "seq": 29,
+            "time_created": 1790552826105,
+            "time_updated": 1790552827608,
+            "data": "{\"time\":{\"created\":1790552826105,\"completed\":1790552827604},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[],\"finish\":\"error\",\"error\":{\"type\":\"aborted\",\"message\":\"Step interrupted\"}}"
+          },
+          {
+            "id": "msg_0e543e6da001xVBk5C8thaT5V5",
+            "session_id": "ses_f1abdc4b4ffejJ6dksiqZOmjTQ",
+            "type": "idle",
+            "seq": 31,
+            "time_created": 1790552827610,
+            "time_updated": 1790552827610,
+            "data": "{\"time\":{\"created\":1790552827610},\"outcome\":\"interrupted\"}"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-02-upstream-120x40-off-horizontal-status/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_f1abdc4b4ffejJ6dksiqZOmjTQ",
+                  "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789"
+                },
+                {
+                  "sessionID": "ses_f1abda67effejcnkHTJse2sFDh",
+                  "title": "Short"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "project_files": {},
+    "requests": 6,
+    "completed": 5,
+    "invalid": 0,
+    "readonly_sqlite": true
+  }
+}

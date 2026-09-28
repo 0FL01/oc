@@ -1,0 +1,2643 @@
+{
+  "scope": "T44 VIS41 / VIS39 own-running only",
+  "capture_gate": "PENDING_NATIVE_PAIRED_CAPTURE",
+  "sides": {
+    "reference": {
+      "directory": "/home/opencode/ai/oc/evidence/tui/recovery-v00/tabs-reference20260928-10",
+      "lock_sha256": "42c3ed44b84c6c1394d8235a0778a38798b83f7e89818dea99c81caa02c36c8d",
+      "binaries": [
+        {
+          "origin": "upstream",
+          "binary": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+          "hash": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+          "commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+        }
+      ],
+      "attempts": [
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "status": "PASS_BOUNDED_OWNER_AND_OBSERVATIONS",
+          "functional": true,
+          "temporal": true,
+          "settled": true,
+          "spinner": true,
+          "observed_spinner_glyphs": [],
+          "captures": 39,
+          "missing_first_offset": [],
+          "hover": [
+            {
+              "kind": "long",
+              "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+              "width": 27,
+              "source_cycle_width": 57,
+              "overflow": true,
+              "target": {
+                "x": 5,
+                "y": 1
+              },
+              "busy": false,
+              "inactive": false,
+              "captures": [
+                {
+                  "offset": 1,
+                  "elapsed_ms": 654.1780309999995,
+                  "source_elapsed_ms": 610.705296
+                },
+                {
+                  "offset": 2,
+                  "elapsed_ms": 1235.886398999999,
+                  "source_elapsed_ms": 692.351816
+                },
+                {
+                  "offset": 54,
+                  "elapsed_ms": 4954.892777999998,
+                  "source_elapsed_ms": 4924.415078
+                }
+              ],
+              "first_changed_ms": 654.1780309999995,
+              "changed": true,
+              "returned_to_entered_text": true,
+              "exactly_one_pointer_input": true,
+              "owner_rows_unchanged": true,
+              "requests_unchanged": true,
+              "project_unchanged": true,
+              "idle": "long-idle",
+              "checks_ok": true,
+              "samples": 43
+            },
+            {
+              "kind": "inactive",
+              "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+              "width": 27,
+              "source_cycle_width": 57,
+              "overflow": true,
+              "target": {
+                "x": 5,
+                "y": 1
+              },
+              "busy": false,
+              "inactive": true,
+              "captures": [
+                {
+                  "offset": 1,
+                  "elapsed_ms": 627.9275659999985,
+                  "source_elapsed_ms": 604.041563
+                },
+                {
+                  "offset": 2,
+                  "elapsed_ms": 1266.2499739999985,
+                  "source_elapsed_ms": 685.117423
+                },
+                {
+                  "offset": 54,
+                  "elapsed_ms": 4925.352588999998,
+                  "source_elapsed_ms": 4903.596421
+                }
+              ],
+              "first_changed_ms": 627.9275659999985,
+              "changed": true,
+              "returned_to_entered_text": true,
+              "exactly_one_pointer_input": true,
+              "owner_rows_unchanged": true,
+              "requests_unchanged": true,
+              "project_unchanged": true,
+              "idle": "inactive-idle",
+              "checks_ok": true,
+              "samples": 42
+            },
+            {
+              "kind": "busy",
+              "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+              "width": 27,
+              "source_cycle_width": 57,
+              "overflow": true,
+              "target": {
+                "x": 5,
+                "y": 1
+              },
+              "busy": true,
+              "inactive": false,
+              "captures": [
+                {
+                  "offset": 1,
+                  "elapsed_ms": 654.7092399999965,
+                  "source_elapsed_ms": 605.913842
+                },
+                {
+                  "offset": 2,
+                  "elapsed_ms": 1257.7780589999966,
+                  "source_elapsed_ms": 689.077945
+                },
+                {
+                  "offset": 54,
+                  "elapsed_ms": 4916.571326999998,
+                  "source_elapsed_ms": 4894.074383
+                }
+              ],
+              "first_changed_ms": 654.7092399999965,
+              "changed": true,
+              "returned_to_entered_text": true,
+              "exactly_one_pointer_input": true,
+              "owner_rows_unchanged": true,
+              "requests_unchanged": true,
+              "project_unchanged": true,
+              "idle": "busy-idle",
+              "checks_ok": true,
+              "samples": 44
+            }
+          ],
+          "idle": [
+            {
+              "label": "long-idle",
+              "start": {
+                "at_ns": 1231615455243653,
+                "kind": "process_sample",
+                "request_id": "long-idle-start",
+                "pid": 1793166,
+                "cpu_ticks": 222,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1793166,
+                    "voluntary": 477,
+                    "involuntary": 1139
+                  },
+                  {
+                    "tid": 1793167,
+                    "voluntary": 666,
+                    "involuntary": 295
+                  },
+                  {
+                    "tid": 1793168,
+                    "voluntary": 685,
+                    "involuntary": 25
+                  },
+                  {
+                    "tid": 1793169,
+                    "voluntary": 133,
+                    "involuntary": 30
+                  },
+                  {
+                    "tid": 1793170,
+                    "voluntary": 437,
+                    "involuntary": 171
+                  },
+                  {
+                    "tid": 1793171,
+                    "voluntary": 277,
+                    "involuntary": 164
+                  },
+                  {
+                    "tid": 1793172,
+                    "voluntary": 151,
+                    "involuntary": 27
+                  },
+                  {
+                    "tid": 1793173,
+                    "voluntary": 159,
+                    "involuntary": 16
+                  },
+                  {
+                    "tid": 1793174,
+                    "voluntary": 142,
+                    "involuntary": 19
+                  },
+                  {
+                    "tid": 1793189,
+                    "voluntary": 115,
+                    "involuntary": 24
+                  },
+                  {
+                    "tid": 1793209,
+                    "voluntary": 24,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1793232,
+                    "voluntary": 291,
+                    "involuntary": 184
+                  },
+                  {
+                    "tid": 1793233,
+                    "voluntary": 286,
+                    "involuntary": 252
+                  },
+                  {
+                    "tid": 1793234,
+                    "voluntary": 306,
+                    "involuntary": 180
+                  },
+                  {
+                    "tid": 1793235,
+                    "voluntary": 267,
+                    "involuntary": 233
+                  },
+                  {
+                    "tid": 1793236,
+                    "voluntary": 283,
+                    "involuntary": 204
+                  },
+                  {
+                    "tid": 1793253,
+                    "voluntary": 93,
+                    "involuntary": 164
+                  },
+                  {
+                    "tid": 1793254,
+                    "voluntary": 17,
+                    "involuntary": 29
+                  },
+                  {
+                    "tid": 1793255,
+                    "voluntary": 9,
+                    "involuntary": 13
+                  },
+                  {
+                    "tid": 1793256,
+                    "voluntary": 14,
+                    "involuntary": 3
+                  }
+                ],
+                "voluntary_context_switches": 4832,
+                "involuntary_context_switches": 3174
+              },
+              "end": {
+                "at_ns": 1231616976042604,
+                "kind": "process_sample",
+                "request_id": "long-idle-end",
+                "pid": 1793166,
+                "cpu_ticks": 230,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1793166,
+                    "voluntary": 494,
+                    "involuntary": 1173
+                  },
+                  {
+                    "tid": 1793167,
+                    "voluntary": 666,
+                    "involuntary": 295
+                  },
+                  {
+                    "tid": 1793168,
+                    "voluntary": 703,
+                    "involuntary": 29
+                  },
+                  {
+                    "tid": 1793169,
+                    "voluntary": 133,
+                    "involuntary": 30
+                  },
+                  {
+                    "tid": 1793170,
+                    "voluntary": 437,
+                    "involuntary": 171
+                  },
+                  {
+                    "tid": 1793171,
+                    "voluntary": 277,
+                    "involuntary": 164
+                  },
+                  {
+                    "tid": 1793172,
+                    "voluntary": 156,
+                    "involuntary": 27
+                  },
+                  {
+                    "tid": 1793173,
+                    "voluntary": 165,
+                    "involuntary": 16
+                  },
+                  {
+                    "tid": 1793174,
+                    "voluntary": 147,
+                    "involuntary": 19
+                  },
+                  {
+                    "tid": 1793189,
+                    "voluntary": 116,
+                    "involuntary": 24
+                  },
+                  {
+                    "tid": 1793209,
+                    "voluntary": 24,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1793232,
+                    "voluntary": 306,
+                    "involuntary": 200
+                  },
+                  {
+                    "tid": 1793233,
+                    "voluntary": 308,
+                    "involuntary": 263
+                  },
+                  {
+                    "tid": 1793234,
+                    "voluntary": 329,
+                    "involuntary": 185
+                  },
+                  {
+                    "tid": 1793235,
+                    "voluntary": 284,
+                    "involuntary": 251
+                  },
+                  {
+                    "tid": 1793236,
+                    "voluntary": 301,
+                    "involuntary": 228
+                  },
+                  {
+                    "tid": 1793253,
+                    "voluntary": 94,
+                    "involuntary": 165
+                  }
+                ],
+                "voluntary_context_switches": 4940,
+                "involuntary_context_switches": 3242
+              },
+              "duration_ms": 1520.798951,
+              "cpu_ticks": 8,
+              "cpu_ms": 80,
+              "cpu_percent": 5.260392897259435,
+              "terminal_chunks": 0,
+              "terminal_bytes": 0,
+              "no_input": true,
+              "styled_grid_and_cursor_equal": true,
+              "same_threads": false,
+              "voluntary_context_switches": 108,
+              "involuntary_context_switches": 68,
+              "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+            },
+            {
+              "label": "inactive-idle",
+              "start": {
+                "at_ns": 1231629070947534,
+                "kind": "process_sample",
+                "request_id": "inactive-idle-start",
+                "pid": 1793166,
+                "cpu_ticks": 266,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1793166,
+                    "voluntary": 720,
+                    "involuntary": 1597
+                  },
+                  {
+                    "tid": 1793167,
+                    "voluntary": 757,
+                    "involuntary": 316
+                  },
+                  {
+                    "tid": 1793168,
+                    "voluntary": 973,
+                    "involuntary": 56
+                  },
+                  {
+                    "tid": 1793169,
+                    "voluntary": 145,
+                    "involuntary": 30
+                  },
+                  {
+                    "tid": 1793170,
+                    "voluntary": 475,
+                    "involuntary": 190
+                  },
+                  {
+                    "tid": 1793171,
+                    "voluntary": 296,
+                    "involuntary": 169
+                  },
+                  {
+                    "tid": 1793172,
+                    "voluntary": 195,
+                    "involuntary": 27
+                  },
+                  {
+                    "tid": 1793173,
+                    "voluntary": 204,
+                    "involuntary": 16
+                  },
+                  {
+                    "tid": 1793174,
+                    "voluntary": 187,
+                    "involuntary": 20
+                  },
+                  {
+                    "tid": 1793189,
+                    "voluntary": 130,
+                    "involuntary": 25
+                  },
+                  {
+                    "tid": 1793209,
+                    "voluntary": 24,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1793232,
+                    "voluntary": 418,
+                    "involuntary": 291
+                  },
+                  {
+                    "tid": 1793233,
+                    "voluntary": 435,
+                    "involuntary": 340
+                  },
+                  {
+                    "tid": 1793234,
+                    "voluntary": 466,
+                    "involuntary": 252
+                  },
+                  {
+                    "tid": 1793235,
+                    "voluntary": 388,
+                    "involuntary": 325
+                  },
+                  {
+                    "tid": 1793236,
+                    "voluntary": 413,
+                    "involuntary": 306
+                  },
+                  {
+                    "tid": 1793253,
+                    "voluntary": 130,
+                    "involuntary": 207
+                  },
+                  {
+                    "tid": 1793530,
+                    "voluntary": 1,
+                    "involuntary": 1
+                  },
+                  {
+                    "tid": 1793531,
+                    "voluntary": 1,
+                    "involuntary": 0
+                  },
+                  {
+                    "tid": 1793532,
+                    "voluntary": 1,
+                    "involuntary": 0
+                  },
+                  {
+                    "tid": 1793533,
+                    "voluntary": 1,
+                    "involuntary": 0
+                  },
+                  {
+                    "tid": 1793534,
+                    "voluntary": 1,
+                    "involuntary": 0
+                  }
+                ],
+                "voluntary_context_switches": 6361,
+                "involuntary_context_switches": 4170
+              },
+              "end": {
+                "at_ns": 1231630593486816,
+                "kind": "process_sample",
+                "request_id": "inactive-idle-end",
+                "pid": 1793166,
+                "cpu_ticks": 267,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1793166,
+                    "voluntary": 739,
+                    "involuntary": 1613
+                  },
+                  {
+                    "tid": 1793167,
+                    "voluntary": 758,
+                    "involuntary": 316
+                  },
+                  {
+                    "tid": 1793168,
+                    "voluntary": 991,
+                    "involuntary": 57
+                  },
+                  {
+                    "tid": 1793169,
+                    "voluntary": 145,
+                    "involuntary": 30
+                  },
+                  {
+                    "tid": 1793170,
+                    "voluntary": 475,
+                    "involuntary": 190
+                  },
+                  {
+                    "tid": 1793171,
+                    "voluntary": 296,
+                    "involuntary": 169
+                  },
+                  {
+                    "tid": 1793172,
+                    "voluntary": 199,
+                    "involuntary": 27
+                  },
+                  {
+                    "tid": 1793173,
+                    "voluntary": 209,
+                    "involuntary": 16
+                  },
+                  {
+                    "tid": 1793174,
+                    "voluntary": 191,
+                    "involuntary": 20
+                  },
+                  {
+                    "tid": 1793189,
+                    "voluntary": 131,
+                    "involuntary": 25
+                  },
+                  {
+                    "tid": 1793209,
+                    "voluntary": 24,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1793232,
+                    "voluntary": 435,
+                    "involuntary": 302
+                  },
+                  {
+                    "tid": 1793233,
+                    "voluntary": 455,
+                    "involuntary": 353
+                  },
+                  {
+                    "tid": 1793234,
+                    "voluntary": 481,
+                    "involuntary": 264
+                  },
+                  {
+                    "tid": 1793235,
+                    "voluntary": 401,
+                    "involuntary": 339
+                  },
+                  {
+                    "tid": 1793236,
+                    "voluntary": 433,
+                    "involuntary": 317
+                  },
+                  {
+                    "tid": 1793253,
+                    "voluntary": 135,
+                    "involuntary": 218
+                  },
+                  {
+                    "tid": 1793530,
+                    "voluntary": 1,
+                    "involuntary": 1
+                  },
+                  {
+                    "tid": 1793531,
+                    "voluntary": 1,
+                    "involuntary": 0
+                  },
+                  {
+                    "tid": 1793532,
+                    "voluntary": 1,
+                    "involuntary": 0
+                  },
+                  {
+                    "tid": 1793533,
+                    "voluntary": 1,
+                    "involuntary": 0
+                  },
+                  {
+                    "tid": 1793534,
+                    "voluntary": 1,
+                    "involuntary": 0
+                  }
+                ],
+                "voluntary_context_switches": 6503,
+                "involuntary_context_switches": 4259
+              },
+              "duration_ms": 1522.539282,
+              "cpu_ticks": 1,
+              "cpu_ms": 10,
+              "cpu_percent": 0.6567975038952065,
+              "terminal_chunks": 0,
+              "terminal_bytes": 0,
+              "no_input": true,
+              "styled_grid_and_cursor_equal": true,
+              "same_threads": true,
+              "voluntary_context_switches": 142,
+              "involuntary_context_switches": 89,
+              "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+            },
+            {
+              "label": "busy-idle",
+              "start": {
+                "at_ns": 1231642141508568,
+                "kind": "process_sample",
+                "request_id": "busy-idle-start",
+                "pid": 1793166,
+                "cpu_ticks": 317,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1793166,
+                    "voluntary": 947,
+                    "involuntary": 2006
+                  },
+                  {
+                    "tid": 1793167,
+                    "voluntary": 827,
+                    "involuntary": 370
+                  },
+                  {
+                    "tid": 1793168,
+                    "voluntary": 1253,
+                    "involuntary": 82
+                  },
+                  {
+                    "tid": 1793169,
+                    "voluntary": 165,
+                    "involuntary": 32
+                  },
+                  {
+                    "tid": 1793170,
+                    "voluntary": 502,
+                    "involuntary": 223
+                  },
+                  {
+                    "tid": 1793171,
+                    "voluntary": 323,
+                    "involuntary": 172
+                  },
+                  {
+                    "tid": 1793172,
+                    "voluntary": 234,
+                    "involuntary": 30
+                  },
+                  {
+                    "tid": 1793173,
+                    "voluntary": 248,
+                    "involuntary": 16
+                  },
+                  {
+                    "tid": 1793174,
+                    "voluntary": 227,
+                    "involuntary": 22
+                  },
+                  {
+                    "tid": 1793189,
+                    "voluntary": 145,
+                    "involuntary": 28
+                  },
+                  {
+                    "tid": 1793209,
+                    "voluntary": 25,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1793232,
+                    "voluntary": 539,
+                    "involuntary": 350
+                  },
+                  {
+                    "tid": 1793233,
+                    "voluntary": 559,
+                    "involuntary": 416
+                  },
+                  {
+                    "tid": 1793234,
+                    "voluntary": 592,
+                    "involuntary": 329
+                  },
+                  {
+                    "tid": 1793235,
+                    "voluntary": 506,
+                    "involuntary": 462
+                  },
+                  {
+                    "tid": 1793236,
+                    "voluntary": 551,
+                    "involuntary": 413
+                  },
+                  {
+                    "tid": 1793253,
+                    "voluntary": 175,
+                    "involuntary": 243
+                  },
+                  {
+                    "tid": 1793688,
+                    "voluntary": 3,
+                    "involuntary": 1
+                  },
+                  {
+                    "tid": 1793689,
+                    "voluntary": 1,
+                    "involuntary": 0
+                  },
+                  {
+                    "tid": 1793690,
+                    "voluntary": 1,
+                    "involuntary": 1
+                  },
+                  {
+                    "tid": 1793691,
+                    "voluntary": 1,
+                    "involuntary": 1
+                  },
+                  {
+                    "tid": 1793692,
+                    "voluntary": 1,
+                    "involuntary": 0
+                  }
+                ],
+                "voluntary_context_switches": 7825,
+                "involuntary_context_switches": 5199
+              },
+              "end": {
+                "at_ns": 1231642665280184,
+                "kind": "process_sample",
+                "request_id": "busy-idle-end",
+                "pid": 1793166,
+                "cpu_ticks": 318,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1793166,
+                    "voluntary": 956,
+                    "involuntary": 2006
+                  },
+                  {
+                    "tid": 1793167,
+                    "voluntary": 827,
+                    "involuntary": 370
+                  },
+                  {
+                    "tid": 1793168,
+                    "voluntary": 1259,
+                    "involuntary": 82
+                  },
+                  {
+                    "tid": 1793169,
+                    "voluntary": 165,
+                    "involuntary": 32
+                  },
+                  {
+                    "tid": 1793170,
+                    "voluntary": 502,
+                    "involuntary": 223
+                  },
+                  {
+                    "tid": 1793171,
+                    "voluntary": 323,
+                    "involuntary": 172
+                  },
+                  {
+                    "tid": 1793172,
+                    "voluntary": 236,
+                    "involuntary": 30
+                  },
+                  {
+                    "tid": 1793173,
+                    "voluntary": 250,
+                    "involuntary": 16
+                  },
+                  {
+                    "tid": 1793174,
+                    "voluntary": 228,
+                    "involuntary": 22
+                  },
+                  {
+                    "tid": 1793189,
+                    "voluntary": 145,
+                    "involuntary": 28
+                  },
+                  {
+                    "tid": 1793209,
+                    "voluntary": 25,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1793232,
+                    "voluntary": 549,
+                    "involuntary": 351
+                  },
+                  {
+                    "tid": 1793233,
+                    "voluntary": 568,
+                    "involuntary": 422
+                  },
+                  {
+                    "tid": 1793234,
+                    "voluntary": 602,
+                    "involuntary": 334
+                  },
+                  {
+                    "tid": 1793235,
+                    "voluntary": 517,
+                    "involuntary": 468
+                  },
+                  {
+                    "tid": 1793236,
+                    "voluntary": 562,
+                    "involuntary": 419
+                  },
+                  {
+                    "tid": 1793253,
+                    "voluntary": 179,
+                    "involuntary": 246
+                  },
+                  {
+                    "tid": 1793688,
+                    "voluntary": 3,
+                    "involuntary": 1
+                  },
+                  {
+                    "tid": 1793689,
+                    "voluntary": 1,
+                    "involuntary": 0
+                  },
+                  {
+                    "tid": 1793690,
+                    "voluntary": 1,
+                    "involuntary": 1
+                  },
+                  {
+                    "tid": 1793691,
+                    "voluntary": 1,
+                    "involuntary": 1
+                  },
+                  {
+                    "tid": 1793692,
+                    "voluntary": 1,
+                    "involuntary": 0
+                  }
+                ],
+                "voluntary_context_switches": 7900,
+                "involuntary_context_switches": 5226
+              },
+              "duration_ms": 523.771616,
+              "cpu_ticks": 1,
+              "cpu_ms": 10,
+              "cpu_percent": 1.9092290789579556,
+              "terminal_chunks": 0,
+              "terminal_bytes": 0,
+              "no_input": true,
+              "styled_grid_and_cursor_equal": true,
+              "same_threads": true,
+              "voluntary_context_switches": 75,
+              "involuntary_context_switches": 27,
+              "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+            },
+            {
+              "label": "completed-idle",
+              "start": {
+                "at_ns": 1231648610403446,
+                "kind": "process_sample",
+                "request_id": "completed-idle-start",
+                "pid": 1793166,
+                "cpu_ticks": 337,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1793166,
+                    "voluntary": 1029,
+                    "involuntary": 2127
+                  },
+                  {
+                    "tid": 1793167,
+                    "voluntary": 849,
+                    "involuntary": 377
+                  },
+                  {
+                    "tid": 1793168,
+                    "voluntary": 1350,
+                    "involuntary": 88
+                  },
+                  {
+                    "tid": 1793169,
+                    "voluntary": 170,
+                    "involuntary": 36
+                  },
+                  {
+                    "tid": 1793170,
+                    "voluntary": 513,
+                    "involuntary": 230
+                  },
+                  {
+                    "tid": 1793172,
+                    "voluntary": 255,
+                    "involuntary": 31
+                  },
+                  {
+                    "tid": 1793173,
+                    "voluntary": 269,
+                    "involuntary": 16
+                  },
+                  {
+                    "tid": 1793174,
+                    "voluntary": 248,
+                    "involuntary": 25
+                  },
+                  {
+                    "tid": 1793189,
+                    "voluntary": 158,
+                    "involuntary": 30
+                  },
+                  {
+                    "tid": 1793209,
+                    "voluntary": 25,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1793232,
+                    "voluntary": 607,
+                    "involuntary": 408
+                  },
+                  {
+                    "tid": 1793233,
+                    "voluntary": 628,
+                    "involuntary": 473
+                  },
+                  {
+                    "tid": 1793234,
+                    "voluntary": 669,
+                    "involuntary": 388
+                  },
+                  {
+                    "tid": 1793235,
+                    "voluntary": 579,
+                    "involuntary": 515
+                  },
+                  {
+                    "tid": 1793236,
+                    "voluntary": 633,
+                    "involuntary": 472
+                  },
+                  {
+                    "tid": 1793253,
+                    "voluntary": 201,
+                    "involuntary": 259
+                  },
+                  {
+                    "tid": 1793868,
+                    "voluntary": 6,
+                    "involuntary": 5
+                  }
+                ],
+                "voluntary_context_switches": 8189,
+                "involuntary_context_switches": 5482
+              },
+              "end": {
+                "at_ns": 1231650131470550,
+                "kind": "process_sample",
+                "request_id": "completed-idle-end",
+                "pid": 1793166,
+                "cpu_ticks": 338,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1793166,
+                    "voluntary": 1035,
+                    "involuntary": 2134
+                  },
+                  {
+                    "tid": 1793167,
+                    "voluntary": 849,
+                    "involuntary": 377
+                  },
+                  {
+                    "tid": 1793168,
+                    "voluntary": 1360,
+                    "involuntary": 88
+                  },
+                  {
+                    "tid": 1793169,
+                    "voluntary": 170,
+                    "involuntary": 36
+                  },
+                  {
+                    "tid": 1793170,
+                    "voluntary": 513,
+                    "involuntary": 230
+                  },
+                  {
+                    "tid": 1793172,
+                    "voluntary": 261,
+                    "involuntary": 31
+                  },
+                  {
+                    "tid": 1793173,
+                    "voluntary": 273,
+                    "involuntary": 16
+                  },
+                  {
+                    "tid": 1793174,
+                    "voluntary": 252,
+                    "involuntary": 25
+                  },
+                  {
+                    "tid": 1793189,
+                    "voluntary": 158,
+                    "involuntary": 30
+                  },
+                  {
+                    "tid": 1793209,
+                    "voluntary": 25,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1793232,
+                    "voluntary": 609,
+                    "involuntary": 409
+                  },
+                  {
+                    "tid": 1793233,
+                    "voluntary": 630,
+                    "involuntary": 474
+                  },
+                  {
+                    "tid": 1793234,
+                    "voluntary": 671,
+                    "involuntary": 390
+                  },
+                  {
+                    "tid": 1793235,
+                    "voluntary": 581,
+                    "involuntary": 516
+                  },
+                  {
+                    "tid": 1793236,
+                    "voluntary": 635,
+                    "involuntary": 473
+                  },
+                  {
+                    "tid": 1793253,
+                    "voluntary": 202,
+                    "involuntary": 261
+                  },
+                  {
+                    "tid": 1793868,
+                    "voluntary": 6,
+                    "involuntary": 5
+                  }
+                ],
+                "voluntary_context_switches": 8230,
+                "involuntary_context_switches": 5497
+              },
+              "duration_ms": 1521.067104,
+              "cpu_ticks": 1,
+              "cpu_ms": 10,
+              "cpu_percent": 0.6574331910605832,
+              "terminal_chunks": 0,
+              "terminal_bytes": 0,
+              "no_input": true,
+              "styled_grid_and_cursor_equal": true,
+              "same_threads": true,
+              "voluntary_context_switches": 41,
+              "involuntary_context_switches": 15,
+              "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+            },
+            {
+              "label": "cancelled-idle",
+              "start": {
+                "at_ns": 1231654133440883,
+                "kind": "process_sample",
+                "request_id": "cancelled-idle-start",
+                "pid": 1793166,
+                "cpu_ticks": 358,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1793166,
+                    "voluntary": 1109,
+                    "involuntary": 2284
+                  },
+                  {
+                    "tid": 1793167,
+                    "voluntary": 888,
+                    "involuntary": 393
+                  },
+                  {
+                    "tid": 1793168,
+                    "voluntary": 1449,
+                    "involuntary": 95
+                  },
+                  {
+                    "tid": 1793169,
+                    "voluntary": 193,
+                    "involuntary": 45
+                  },
+                  {
+                    "tid": 1793170,
+                    "voluntary": 530,
+                    "involuntary": 234
+                  },
+                  {
+                    "tid": 1793172,
+                    "voluntary": 277,
+                    "involuntary": 34
+                  },
+                  {
+                    "tid": 1793173,
+                    "voluntary": 289,
+                    "involuntary": 16
+                  },
+                  {
+                    "tid": 1793174,
+                    "voluntary": 266,
+                    "involuntary": 27
+                  },
+                  {
+                    "tid": 1793189,
+                    "voluntary": 179,
+                    "involuntary": 38
+                  },
+                  {
+                    "tid": 1793209,
+                    "voluntary": 26,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1793232,
+                    "voluntary": 674,
+                    "involuntary": 463
+                  },
+                  {
+                    "tid": 1793233,
+                    "voluntary": 692,
+                    "involuntary": 529
+                  },
+                  {
+                    "tid": 1793234,
+                    "voluntary": 716,
+                    "involuntary": 421
+                  },
+                  {
+                    "tid": 1793235,
+                    "voluntary": 634,
+                    "involuntary": 555
+                  },
+                  {
+                    "tid": 1793236,
+                    "voluntary": 687,
+                    "involuntary": 511
+                  },
+                  {
+                    "tid": 1793253,
+                    "voluntary": 219,
+                    "involuntary": 276
+                  },
+                  {
+                    "tid": 1793868,
+                    "voluntary": 13,
+                    "involuntary": 5
+                  }
+                ],
+                "voluntary_context_switches": 8841,
+                "involuntary_context_switches": 5928
+              },
+              "end": {
+                "at_ns": 1231655656714168,
+                "kind": "process_sample",
+                "request_id": "cancelled-idle-end",
+                "pid": 1793166,
+                "cpu_ticks": 360,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1793166,
+                    "voluntary": 1122,
+                    "involuntary": 2307
+                  },
+                  {
+                    "tid": 1793167,
+                    "voluntary": 888,
+                    "involuntary": 393
+                  },
+                  {
+                    "tid": 1793168,
+                    "voluntary": 1465,
+                    "involuntary": 98
+                  },
+                  {
+                    "tid": 1793169,
+                    "voluntary": 193,
+                    "involuntary": 45
+                  },
+                  {
+                    "tid": 1793170,
+                    "voluntary": 530,
+                    "involuntary": 234
+                  },
+                  {
+                    "tid": 1793172,
+                    "voluntary": 282,
+                    "involuntary": 34
+                  },
+                  {
+                    "tid": 1793173,
+                    "voluntary": 291,
+                    "involuntary": 17
+                  },
+                  {
+                    "tid": 1793174,
+                    "voluntary": 270,
+                    "involuntary": 27
+                  },
+                  {
+                    "tid": 1793189,
+                    "voluntary": 179,
+                    "involuntary": 38
+                  },
+                  {
+                    "tid": 1793209,
+                    "voluntary": 26,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1793232,
+                    "voluntary": 695,
+                    "involuntary": 477
+                  },
+                  {
+                    "tid": 1793233,
+                    "voluntary": 713,
+                    "involuntary": 539
+                  },
+                  {
+                    "tid": 1793234,
+                    "voluntary": 737,
+                    "involuntary": 431
+                  },
+                  {
+                    "tid": 1793235,
+                    "voluntary": 652,
+                    "involuntary": 569
+                  },
+                  {
+                    "tid": 1793236,
+                    "voluntary": 711,
+                    "involuntary": 520
+                  },
+                  {
+                    "tid": 1793253,
+                    "voluntary": 231,
+                    "involuntary": 289
+                  },
+                  {
+                    "tid": 1793868,
+                    "voluntary": 13,
+                    "involuntary": 5
+                  }
+                ],
+                "voluntary_context_switches": 8998,
+                "involuntary_context_switches": 6025
+              },
+              "duration_ms": 1523.273285,
+              "cpu_ticks": 2,
+              "cpu_ms": 20,
+              "cpu_percent": 1.3129620401633972,
+              "terminal_chunks": 0,
+              "terminal_bytes": 0,
+              "no_input": true,
+              "styled_grid_and_cursor_equal": true,
+              "same_threads": true,
+              "voluntary_context_switches": 157,
+              "involuntary_context_switches": 97,
+              "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+            },
+            {
+              "label": "final-settled-idle",
+              "start": {
+                "at_ns": 1231660396353016,
+                "kind": "process_sample",
+                "request_id": "final-settled-idle-start",
+                "pid": 1793166,
+                "cpu_ticks": 367,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1793166,
+                    "voluntary": 1197,
+                    "involuntary": 2357
+                  },
+                  {
+                    "tid": 1793167,
+                    "voluntary": 900,
+                    "involuntary": 402
+                  },
+                  {
+                    "tid": 1793168,
+                    "voluntary": 1542,
+                    "involuntary": 101
+                  },
+                  {
+                    "tid": 1793169,
+                    "voluntary": 193,
+                    "involuntary": 45
+                  },
+                  {
+                    "tid": 1793170,
+                    "voluntary": 537,
+                    "involuntary": 234
+                  },
+                  {
+                    "tid": 1793172,
+                    "voluntary": 301,
+                    "involuntary": 34
+                  },
+                  {
+                    "tid": 1793173,
+                    "voluntary": 308,
+                    "involuntary": 17
+                  },
+                  {
+                    "tid": 1793174,
+                    "voluntary": 287,
+                    "involuntary": 28
+                  },
+                  {
+                    "tid": 1793189,
+                    "voluntary": 184,
+                    "involuntary": 38
+                  },
+                  {
+                    "tid": 1793209,
+                    "voluntary": 26,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1793232,
+                    "voluntary": 732,
+                    "involuntary": 494
+                  },
+                  {
+                    "tid": 1793233,
+                    "voluntary": 748,
+                    "involuntary": 557
+                  },
+                  {
+                    "tid": 1793234,
+                    "voluntary": 779,
+                    "involuntary": 449
+                  },
+                  {
+                    "tid": 1793235,
+                    "voluntary": 693,
+                    "involuntary": 592
+                  },
+                  {
+                    "tid": 1793236,
+                    "voluntary": 750,
+                    "involuntary": 540
+                  },
+                  {
+                    "tid": 1793253,
+                    "voluntary": 240,
+                    "involuntary": 292
+                  },
+                  {
+                    "tid": 1793868,
+                    "voluntary": 16,
+                    "involuntary": 5
+                  }
+                ],
+                "voluntary_context_switches": 9433,
+                "involuntary_context_switches": 6187
+              },
+              "end": {
+                "at_ns": 1231661917647532,
+                "kind": "process_sample",
+                "request_id": "final-settled-idle-end",
+                "pid": 1793166,
+                "cpu_ticks": 373,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1793166,
+                    "voluntary": 1216,
+                    "involuntary": 2396
+                  },
+                  {
+                    "tid": 1793167,
+                    "voluntary": 900,
+                    "involuntary": 402
+                  },
+                  {
+                    "tid": 1793168,
+                    "voluntary": 1559,
+                    "involuntary": 101
+                  },
+                  {
+                    "tid": 1793169,
+                    "voluntary": 194,
+                    "involuntary": 45
+                  },
+                  {
+                    "tid": 1793170,
+                    "voluntary": 537,
+                    "involuntary": 234
+                  },
+                  {
+                    "tid": 1793172,
+                    "voluntary": 304,
+                    "involuntary": 34
+                  },
+                  {
+                    "tid": 1793173,
+                    "voluntary": 312,
+                    "involuntary": 17
+                  },
+                  {
+                    "tid": 1793174,
+                    "voluntary": 291,
+                    "involuntary": 28
+                  },
+                  {
+                    "tid": 1793189,
+                    "voluntary": 184,
+                    "involuntary": 38
+                  },
+                  {
+                    "tid": 1793209,
+                    "voluntary": 26,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1793232,
+                    "voluntary": 756,
+                    "involuntary": 547
+                  },
+                  {
+                    "tid": 1793233,
+                    "voluntary": 767,
+                    "involuntary": 577
+                  },
+                  {
+                    "tid": 1793234,
+                    "voluntary": 799,
+                    "involuntary": 476
+                  },
+                  {
+                    "tid": 1793235,
+                    "voluntary": 708,
+                    "involuntary": 597
+                  },
+                  {
+                    "tid": 1793236,
+                    "voluntary": 775,
+                    "involuntary": 592
+                  },
+                  {
+                    "tid": 1793253,
+                    "voluntary": 242,
+                    "involuntary": 295
+                  },
+                  {
+                    "tid": 1793868,
+                    "voluntary": 16,
+                    "involuntary": 5
+                  }
+                ],
+                "voluntary_context_switches": 9586,
+                "involuntary_context_switches": 6386
+              },
+              "duration_ms": 1521.294516,
+              "cpu_ticks": 6,
+              "cpu_ms": 60,
+              "cpu_percent": 3.944009484617113,
+              "terminal_chunks": 0,
+              "terminal_bytes": 0,
+              "no_input": true,
+              "styled_grid_and_cursor_equal": true,
+              "same_threads": true,
+              "voluntary_context_switches": 153,
+              "involuntary_context_switches": 199,
+              "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+            }
+          ],
+          "timeline": {
+            "records": 39,
+            "stages": {
+              "startup": {
+                "first_at_ns": 1231600194225432,
+                "last_at_ns": 1231600194225432,
+                "rows": [
+                  {
+                    "at_ns": 1231600194225432,
+                    "raw_byte_end": 16735,
+                    "row": "                                                                                                                        ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 1,
+                "changed_frames": 1
+              },
+              "seed-a": {
+                "first_at_ns": 1231601288630763,
+                "last_at_ns": 1231601288630763,
+                "rows": [
+                  {
+                    "at_ns": 1231601288630763,
+                    "raw_byte_end": 24101,
+                    "row": " 1 VIS41 fixture A               +                                                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 1,
+                "changed_frames": 1
+              },
+              "seed-b": {
+                "first_at_ns": 1231603375849152,
+                "last_at_ns": 1231607735159752,
+                "rows": [
+                  {
+                    "at_ns": 1231603375849152,
+                    "raw_byte_end": 40031,
+                    "row": " 1 VIS41 fixture A               2 VIS41 fixture B               +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231607013432908,
+                    "raw_byte_end": 76104,
+                    "row": " 1 VIS41 fixture A               2 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231607735159752,
+                    "raw_byte_end": 85858,
+                    "row": " 1 VIS41 long-title abcdefghijkl 2 Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 4,
+                "changed_frames": 4
+              },
+              "long": {
+                "first_at_ns": 1231608710952645,
+                "last_at_ns": 1231613872633678,
+                "rows": [
+                  {
+                    "at_ns": 1231608710952645,
+                    "raw_byte_end": 86191,
+                    "row": " 1 VIS41 long-title abcdefghij✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231609318138623,
+                    "raw_byte_end": 86690,
+                    "row": " 1 IS41 long-title abcdefghijk✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231609399785143,
+                    "raw_byte_end": 87189,
+                    "row": " 1 S41 long-title abcdefghijkl✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231613631848405,
+                    "raw_byte_end": 114955,
+                    "row": " 1  · VIS41 long-title abcdefg✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231613872633678,
+                    "raw_byte_end": 116263,
+                    "row": " 1 VIS41 long-title abcdefghij✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 5,
+                "changed_frames": 4
+              },
+              "long-idle": {
+                "first_at_ns": 1231613872633678,
+                "last_at_ns": 1231620777532050,
+                "rows": [
+                  {
+                    "at_ns": 1231613872633678,
+                    "raw_byte_end": 116263,
+                    "row": " 1 VIS41 long-title abcdefghij✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231619841064357,
+                    "raw_byte_end": 116728,
+                    "row": " 1 VIS41 long-title abcdefghijkl 2 Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 4,
+                "changed_frames": 4
+              },
+              "inactive": {
+                "first_at_ns": 1231622462745488,
+                "last_at_ns": 1231627605506083,
+                "rows": [
+                  {
+                    "at_ns": 1231622462745488,
+                    "raw_byte_end": 141826,
+                    "row": " 1 VIS41 long-title abcdefghij✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231623063402275,
+                    "raw_byte_end": 142289,
+                    "row": " 1 IS41 long-title abcdefghijk✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231623144478135,
+                    "raw_byte_end": 142752,
+                    "row": " 1 S41 long-title abcdefghijkl✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231627362957133,
+                    "raw_byte_end": 168496,
+                    "row": " 1  · VIS41 long-title abcdefg✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231627605506083,
+                    "raw_byte_end": 169712,
+                    "row": " 1 VIS41 long-title abcdefghij✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 5,
+                "changed_frames": 4
+              },
+              "inactive-idle": {
+                "first_at_ns": 1231627605506083,
+                "last_at_ns": 1231633449288114,
+                "rows": [
+                  {
+                    "at_ns": 1231627605506083,
+                    "raw_byte_end": 169712,
+                    "row": " 1 VIS41 long-title abcdefghij✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231633449288114,
+                    "raw_byte_end": 170314,
+                    "row": " 1 VIS41 long-title abcdefghijkl 2 Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 3,
+                "changed_frames": 3
+              },
+              "running-complete": {
+                "first_at_ns": 1231634692994135,
+                "last_at_ns": 1231634692994135,
+                "rows": [
+                  {
+                    "at_ns": 1231634692994135,
+                    "raw_byte_end": 174499,
+                    "row": " 1 VIS41 long-title abcdefghijkl 2 Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 1,
+                "changed_frames": 1
+              },
+              "busy": {
+                "first_at_ns": 1231635494107975,
+                "last_at_ns": 1231640622850202,
+                "rows": [
+                  {
+                    "at_ns": 1231635494107975,
+                    "raw_byte_end": 175383,
+                    "row": " 1 VIS41 long-title abcdefghij✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231636094142826,
+                    "raw_byte_end": 175882,
+                    "row": " 1 IS41 long-title abcdefghijk✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231636177306929,
+                    "raw_byte_end": 176381,
+                    "row": " 1 S41 long-title abcdefghijkl✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231640382303367,
+                    "raw_byte_end": 204147,
+                    "row": " 1  · VIS41 long-title abcdefg✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231640622850202,
+                    "raw_byte_end": 205455,
+                    "row": " 1 VIS41 long-title abcdefghij✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 5,
+                "changed_frames": 4
+              },
+              "busy-idle": {
+                "first_at_ns": 1231640622850202,
+                "last_at_ns": 1231645971713718,
+                "rows": [
+                  {
+                    "at_ns": 1231640622850202,
+                    "raw_byte_end": 205455,
+                    "row": " 1 VIS41 long-title abcdefghij✕  2 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1231644599717430,
+                    "raw_byte_end": 205744,
+                    "row": " 1 VIS41 long-title abcdefghijkl 2 Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 4,
+                "changed_frames": 3
+              },
+              "running-cancel": {
+                "first_at_ns": 1231650538313074,
+                "last_at_ns": 1231651586178770,
+                "rows": [
+                  {
+                    "at_ns": 1231650538313074,
+                    "raw_byte_end": 208060,
+                    "row": " 1 VIS41 long-title abcdefghijkl 2 Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 2,
+                "changed_frames": 2
+              },
+              "resize-0-80x24": {
+                "first_at_ns": 1231656076095891,
+                "last_at_ns": 1231656076095891,
+                "rows": [
+                  {
+                    "at_ns": 1231656076095891,
+                    "raw_byte_end": 215925,
+                    "row": " 1 VIS41 long-title abcdefghijkl 2 Short                         +              ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 1,
+                "changed_frames": 1
+              },
+              "resize-1-120x40": {
+                "first_at_ns": 1231656812345841,
+                "last_at_ns": 1231656812345841,
+                "rows": [
+                  {
+                    "at_ns": 1231656812345841,
+                    "raw_byte_end": 227097,
+                    "row": " 1 VIS41 long-title abcdefghijkl 2 Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 1,
+                "changed_frames": 1
+              },
+              "resize-2-160x48": {
+                "first_at_ns": 1231657852307688,
+                "last_at_ns": 1231657852307688,
+                "rows": [
+                  {
+                    "at_ns": 1231657852307688,
+                    "raw_byte_end": 241561,
+                    "row": " 1 VIS41 long-title abcdefghijkl 2 Short                         +                                                                                              ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 1,
+                "changed_frames": 1
+              },
+              "resize-3-120x40": {
+                "first_at_ns": 1231659280257961,
+                "last_at_ns": 1231659280257961,
+                "rows": [
+                  {
+                    "at_ns": 1231659280257961,
+                    "raw_byte_end": 252645,
+                    "row": " 1 VIS41 long-title abcdefghijkl 2 Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 1,
+                "changed_frames": 1
+              }
+            }
+          }
+        }
+      ],
+      "captures": [
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "home",
+          "columns": 120,
+          "rows": 40,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "e939f262a90155fe4351670515a23e7f6b922c7cff5c7743a0f483351b133162",
+            "png": "3fef74659d0d1e98758eb827009263882430f9f270c039817b06c2848febdd5f",
+            "txt": "96ba0cc3e5c38c07e2e470cc304c5550e37e111f9fd9f7c62278f4bdafa8f004",
+            "vt": "3c5aa8d4685d668c5f6cc1c4dd0b166f738a2ffb94eff694ba8fd24f7ffcecb7",
+            "render.json": "730fac09ffde0a995a77468dad63083e18637c0247583e03796e42d7b557d726"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "seed-a-completed",
+          "columns": 120,
+          "rows": 40,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "a27dfa3ddac22d163ccc2bc5c11f259ec7edb7b2ff8dbecb58a7b3a0e479d3a9",
+            "png": "a4e2f4e6e976640b69ec486cb67f0065889d62f876292aef55d717dffaf00d7e",
+            "txt": "be023b7554510a75b0b279338779a39dda4054a623a96e2bc8a9c353777af27b",
+            "vt": "e1037c79d528a93ee616cab073624c40b804228a0a5d9d635fb1b635f2a15968",
+            "render.json": "51996ee41586cf275a48146b6b38bdd7f408fb27b12e19c079c3dd3a88aac64c"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "seed-b-completed",
+          "columns": 120,
+          "rows": 40,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "038082cae659dcb1f590a958cc444e232fa36d149dc1bf6b6fc2d89f9db57787",
+            "png": "363a1b56529551c11fb0e214782ab4b719eb10a7937b5baa6668eb6cd22e0c6f",
+            "txt": "5a539c4a1828ce3f7f1b9138a00c51163e9606d8e2eeae383ab68c8b77657f29",
+            "vt": "ff5da902656eac4e6c6b61f7665ebc41a3fb1843a5ef10209ca5200fe0c6dd8a",
+            "render.json": "d2d6ce2873c8aa8674591bd8462035b0bb5f73f7c8a70c9bdbbb4e4ce751677e"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "root-b-short-rename-input",
+          "columns": 120,
+          "rows": 40,
+          "requested_title": "Short",
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "336e96a26e7694afdb6ab2ebd379ad1f8db5661f51cfa71a9fccb522279a6d79",
+            "png": "aeeb65ebc1a033a444b63fefde224d67b6a16f63b9078c8c7a0963d6fb2aadc3",
+            "txt": "d53582b22cbe3d93fe7324e1481b473a5754a8b05800d369242982e8eea47d72",
+            "vt": "d7f3eddb5db1ec2b52a9d4887eb8967e2e28c24a5d4e31b3574853dcf4b7586a",
+            "render.json": "da8571708c14372da212bd33a2f968826995703d10bbf1a16ebfda5e1f098225"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "long-rename-input",
+          "columns": 120,
+          "rows": 40,
+          "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "ceff1b118a769a96c8582b207307ffb259573dd7ca27dc2896fef75cbb4e3efa",
+            "png": "ba881c00e77acc348d40610585171c9c0e42f9f1eff539246e0f18b8b73e28db",
+            "txt": "a03f9acc5c56b0c588cea3a50fa3beafa46b588026cd1b3e98c18be9f756ebaf",
+            "vt": "52154181bf2c73ece415cb5c8d16b5cc6a1e88e9db486d44019c76fd2b20f0b8",
+            "render.json": "aed77d4e0ca52078bd76c9b0d103077083aecf410ff356b04fb0f84d40bc4aff"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "long-rest",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "494a5656fffd2afb8eb50dabe526bcc020313732e70191058f0368a735f8f73c",
+            "png": "7043fee0c20203810c229fcbca0c0213e2f61e5492be2407bf16b4ec710a3ca7",
+            "txt": "4a748617284b982e903b5dfb44a0f374cb0a084e4a59a09492e201495cbe3bb0",
+            "vt": "dce7796dcf1873fd792baf894050a5116f116633bae8ea38a068e8ec168df1c5",
+            "render.json": "d51c0ba80bf51151f1a9a89c25a17f2ee2808c36757e50f29ee83eaab6e959bf"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "long-enter",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": false,
+          "expected_offset": 0,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "VIS41 long-title abcdefghij"
+          },
+          "source_at_ns": 1231608710952645,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "88c6df66dd29cca0a3742e89bd9191794472f616b221878848ee461169c94ec8",
+            "png": "dd3c172a219991f63a12c805d6b6bf617ecd14d12430c6545bec5a8c93d311d0",
+            "txt": "4903c1cbd026e7fdda84932295a2a734e985e120a248f4728e8c0cd42cba4c25",
+            "vt": "a3fe3c5e7f52ab0312243c98f60705c4fdf1ec7de4b2b97de5fab06ae520a748",
+            "render.json": "d52f6e6f530276ca44eb0104c2d64664418afb33647e8a5fea4adcec1bb9b300"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "long-offset-1",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": false,
+          "observed_offset": 1,
+          "source_at_ns": 1231609318138623,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "IS41 long-title abcdefghijk"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "40b1824b0d40a494b9d7652f3ee9f74a28b2c2e69fb8c68b8ba57e8d0c820101",
+            "png": "31e61956a3ff85866068a0dec3ce11809017a1af79b030c6023ea780427c8c23",
+            "txt": "64ceb93f2e23f61a2693099b0ae25c5f9e736f28714b3317f22141101ac33dbd",
+            "vt": "8f584943c99b79651081fd64c37438ada0bc91e1c804fe8ecf37df87a3a2733a",
+            "render.json": "47547fae253b8dbdda2df4d7fa881c377b360ac533ce8c54fcf5f42bd94c42a1"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "long-offset-2",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": false,
+          "observed_offset": 2,
+          "source_at_ns": 1231609399785143,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "S41 long-title abcdefghijkl"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "4872314464d5dd538a6dffc97cd52fdf609da6dba834cf418c6ef26cd38a65ca",
+            "png": "c988c9fa7d36194466d30e39805bbabc0a296be0ea25de3d549dcb18c0e4ccaa",
+            "txt": "3f824fb7e876a963cbf86a39d738184d5640e58a9ea4f9031fb6cc0e9e681fa7",
+            "vt": "612ef25db400717a945c4c9f7a65f01a4e1cd492eb1b406bc1f83bdd44874bcc",
+            "render.json": "006d67aa3fd89b965644b1e7cf0326f035850b36e065efe89ae0156eb6a2ad1c"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "long-offset-54",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": false,
+          "observed_offset": 54,
+          "source_at_ns": 1231613631848405,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": " · VIS41 long-title abcdefg"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "ffce8f7c4d97e3da6d09314bfac8bd642788844456a98cc33da3d9cd94a9d834",
+            "png": "38d071a18b3b4d4e473f534a4dba9c0f6ac1c4d095e2dbeb12e653af3c3fb846",
+            "txt": "5a5f85c01b16595d9cff0923437744289ffaac115ed99a052341ff73a6a78d2b",
+            "vt": "9a3c705a30993196ff4e1f77a7997d4bbe62d9068edea30d4c29569b3c0e1d95",
+            "render.json": "33aae615ad87a4bf5058d4498eaf2e4e8f304dc6ba94f5bc545465658a6e0d20"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "long-settled",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": false,
+          "expected_offset": 0,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "VIS41 long-title abcdefghij"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "5f2ddfb0d5930bbab77f2a168eb4f7b97ec318781ffab331abab9c4145344388",
+            "png": "dd3c172a219991f63a12c805d6b6bf617ecd14d12430c6545bec5a8c93d311d0",
+            "txt": "4903c1cbd026e7fdda84932295a2a734e985e120a248f4728e8c0cd42cba4c25",
+            "vt": "32416b49e39329aa85792c5ec18bbcecddcf3a9f73d5875f6353f2b7d6636419",
+            "render.json": "ee6afae08e7b1934d01174e908115679d7b77da33e329dfc30d9de65cb3cb161"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "long-same-tab-no-restart",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": false,
+          "expected_offset": 0,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "VIS41 long-title abcdefghij"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "2aff6992eb113511f93ee3bf82998d9cb830b67c2d7514c1bffebe95cfcef046",
+            "png": "dd3c172a219991f63a12c805d6b6bf617ecd14d12430c6545bec5a8c93d311d0",
+            "txt": "4903c1cbd026e7fdda84932295a2a734e985e120a248f4728e8c0cd42cba4c25",
+            "vt": "32416b49e39329aa85792c5ec18bbcecddcf3a9f73d5875f6353f2b7d6636419",
+            "render.json": "c347ce4c21ceec378b6710b2a9469e50a0b3aa09bb43e9b01ddecf4ff2092e79"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "long-nested-close",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": false,
+          "expected_offset": 0,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "VIS41 long-title abcdefghij"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "d5f78c90708f0ab2ba31b20dd085f0db5c6dcc21ed1d6d3e67b2e346d005050a",
+            "png": "13f44bec36d4de24d3e2c995e4994257def38c05d879e759c4ed7f43faab84c9",
+            "txt": "4903c1cbd026e7fdda84932295a2a734e985e120a248f4728e8c0cd42cba4c25",
+            "vt": "8dc77acc48cc4c5bee70b10aa4254443a78b6f073df6819a429d11465ce7c9af",
+            "render.json": "99940816d071847f6cf5bab412fe86e8e263efc4cce50910a00162b0cc9c6ab4"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "long-leave",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": false,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "66b47fa48172572a36f501878a859b2b350b4d54429051035eb83537551d6e2a",
+            "png": "7043fee0c20203810c229fcbca0c0213e2f61e5492be2407bf16b4ec710a3ca7",
+            "txt": "4a748617284b982e903b5dfb44a0f374cb0a084e4a59a09492e201495cbe3bb0",
+            "vt": "ab74ccac3bb74e27d06ff9e654b19d4e170c250349e10787736db0de14866174",
+            "render.json": "56aeb83c02efdd8cfb7f9cf1a6519a43d6327946c9e0b127c94693316f6bb984"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "inactive-long-rename-input",
+          "columns": 120,
+          "rows": 40,
+          "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "7d00203ea3cd071f991e5b1a3d3980bc52bac5d640e0148885a910ff3fbe87ec",
+            "png": "51c15bbb8f25cf410574fa3e1fb80a0a2e96e824fb22e818926542f0d88d58fc",
+            "txt": "e05caad1b55a3311d41d7fd0adaa3aab78cdcd7919b776b4a5e198fcb0e05c72",
+            "vt": "af842069ad6d22448098ace020c75abb3434b52967790a9cf96a23df6145fe31",
+            "render.json": "8d0414412f089559002e4b4b01666069831442e5689b4a1b0673f4cc511f6a81"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "inactive-enter",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": true,
+          "expected_offset": 0,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "VIS41 long-title abcdefghij"
+          },
+          "source_at_ns": 1231622462745488,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "7d0faf0a8deacc6034121a494a277d20caed87c78f00395ba745f09d800bf4f9",
+            "png": "16ac3c909acf003058f4ee06a9218a19d1db1a3508ac6fd3ca99dabc6481f280",
+            "txt": "633580edf1728e3bfbba13bf84bdc6b511eae479957438c331734c7328d4eac7",
+            "vt": "ef8a6c3fdbb7bd8af4c60bd650d92806ab975633d8b8d810f2436d3d0ae9dfe1",
+            "render.json": "0a8679cb7b3aac572f13b36f3cea0234e3565512d0cc03de8273812129d15c2e"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "inactive-offset-1",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": true,
+          "observed_offset": 1,
+          "source_at_ns": 1231623063402275,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "IS41 long-title abcdefghijk"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "b53b78b36d83211ffaa03c4c247004b10c40397450e1ad1c32af908a2f6d97fc",
+            "png": "26445ec665bcda13e0c276442e8c3d25eb40e96e50bdd4644a072d2460b479d1",
+            "txt": "79b6a92360d0ddedecb68333641af7103a5a7b16714a96fd6e78061f2382ea0d",
+            "vt": "56f150df36299f210156448d6b3a86191130da022ba77b82d994cf96fe88532c",
+            "render.json": "2db25d61a28c78518b83d8416e9c792fcdb469359c1592b205a7724a36fe7f70"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "inactive-offset-2",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": true,
+          "observed_offset": 2,
+          "source_at_ns": 1231623144478135,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "S41 long-title abcdefghijkl"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "e3d3f6697d28a261187762ce8b0f370b282e532c95771ec3f18b7df94455f051",
+            "png": "981c0fac0993849f6ca1649db13083189c27e1e080404ed3476d1e06dc0a9cc3",
+            "txt": "ba53b16c3a5cf280e653c16ec0590d8d2dbb85f8be1ba9c9fc461e2308184116",
+            "vt": "35b81eb1ec44c026fe3e39e50222319da6eb0cfe036ba0d8c900b5939d607d3b",
+            "render.json": "d2497b674302a988e20cb6da9e129fa778d7797fd5bd5b37073d3a994a5c6b2c"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "inactive-offset-54",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": true,
+          "observed_offset": 54,
+          "source_at_ns": 1231627362957133,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": " · VIS41 long-title abcdefg"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "fca389674fde7b9012e35e43d1a1eb7244ee8a03d3f769ca946acb1c9db55d6e",
+            "png": "587544540ac403e3fe6aae78acfb0ea3325f164f2d65a35c6b8d2fa6fbc1f8b3",
+            "txt": "3f143e2952aed0a5991d8d5a7f4f2cdf92505d09653aebba139839996182253c",
+            "vt": "ffb127afef11027de9b6e07b82e67137ec2a8062f1a8ff844009b7707d9e466c",
+            "render.json": "457c16d830776b464e79b6a827eb51cd0ba2119c7e5d737606e80f4159761f63"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "inactive-settled",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": true,
+          "expected_offset": 0,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "VIS41 long-title abcdefghij"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "70c7ea07577b34ea247d3de8e50546c7534daf57198f8d55520bd25fb2733212",
+            "png": "16ac3c909acf003058f4ee06a9218a19d1db1a3508ac6fd3ca99dabc6481f280",
+            "txt": "633580edf1728e3bfbba13bf84bdc6b511eae479957438c331734c7328d4eac7",
+            "vt": "a3bf0497704b99a9b698bb89c12eb06983ff939c6c3d0da28864d8831004fb80",
+            "render.json": "47aaa428fd786db3dc88e629d5de2149e9d67d219c2b5e32f642d5be29a9efb1"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "inactive-same-tab-no-restart",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": true,
+          "expected_offset": 0,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "VIS41 long-title abcdefghij"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "e4b10dce20ffa95a04c3cb802e9d07749822d51cd306ef94cf33b7e2dd882b3c",
+            "png": "16ac3c909acf003058f4ee06a9218a19d1db1a3508ac6fd3ca99dabc6481f280",
+            "txt": "633580edf1728e3bfbba13bf84bdc6b511eae479957438c331734c7328d4eac7",
+            "vt": "a3bf0497704b99a9b698bb89c12eb06983ff939c6c3d0da28864d8831004fb80",
+            "render.json": "643465a504f6c6f68c5a10ad995eeaaae24af9a7f52a75ab0b6f765b0e7debfb"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "inactive-nested-close",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": true,
+          "expected_offset": 0,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "VIS41 long-title abcdefghij"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "2290e4bf212a753be2b8559ce0d6ec84bff0417d8c056ba6e68fee3ebb3c45c6",
+            "png": "ff25a3a793283144dd608ff61fe53b043b759e4aa30787aa4e1ec2b55c2e32a3",
+            "txt": "633580edf1728e3bfbba13bf84bdc6b511eae479957438c331734c7328d4eac7",
+            "vt": "63efec815a621703fb5ca7664b0a7a15b966ff8df297fc0b10f80dd3d95b51e8",
+            "render.json": "0ce081776b1d3d182b19828b1ed7e4c317d6d476e58299529f39f7c5ff887b01"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "inactive-leave",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": true,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "9b1df5a36ee8dc5c597b3071d6152497264e564d67f3313ce595b1d08666af80",
+            "png": "c40bd02140c4bfd6d1e5740abf22bd7f8d2aa5ce258c95b24a8831a765f4cd78",
+            "txt": "ab08f99333d70352f12633573bab09b68d1dd5d52a85528f9fe3ad60e4fe2f3f",
+            "vt": "35f7217bb3f3208433e782246bb81f7b15cb5799204925387f29104352452908",
+            "render.json": "8b71886dcfda9bc31addb16b176719375fab499f17978e20f409a53aa02a10cc"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "running-before-hover",
+          "columns": 120,
+          "rows": 40,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "b3fb86fd73585ed36ec5d43954b307ab2e4570d543c537ded0c546be88cf052f",
+            "png": "baccb82d4c4e2863dc96f890cea41c936426450ec927d9d7a12d6d8729da9e0d",
+            "txt": "66c2934e35c5e16ae843a2e78e794e30e411da669dee7b540760efa8fa29c579",
+            "vt": "b70c4b3ddd281555e7633b5bdd2c1cdf55c4271c410d99aff8866caede71821b",
+            "render.json": "7361770cada01de6ee8ecf4524b38df587923e1d0433df0437401ddf0594de53"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "busy-enter",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": true,
+          "inactive": false,
+          "expected_offset": 0,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "VIS41 long-title abcdefghij"
+          },
+          "source_at_ns": 1231635494107975,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "7ef88f7aebc4e988c9ecc192ae51774681a08358133105a5be20a14efb0b55c1",
+            "png": "3452ffd1904d983fe790f6cb8d20d14a6e176ffd53e355fe9b6f914ebd5592fe",
+            "txt": "a3c400d3b67a297efc2e9c16ea538680fb2e501c8a2d7e4208a357d1c42622de",
+            "vt": "d0392ead679d90ad9fae2814951eee8a362c44b5962d9bc6485b40f67b4435e9",
+            "render.json": "2be63827fd39dab34ad5ffcb4369915ba55a661356b35201b97ba68b45219b6d"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "busy-offset-1",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": true,
+          "inactive": false,
+          "observed_offset": 1,
+          "source_at_ns": 1231636094142826,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "IS41 long-title abcdefghijk"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "bf4384b19f27a5b001ffe23e8a84946298143493b2833ed07060a6ee704cd45b",
+            "png": "7d4856726e99733c362ba6cf0462da8ad037f732281bd4bd48f36ae5134de444",
+            "txt": "3b6fe64bb8658e9a2bd00e62779efb716551a6ef36dc9ed05c1647c7f8dee3e4",
+            "vt": "62fe77a7766e85c3c8b393a2751113188359fc66b7ef4987abd96465c49b0089",
+            "render.json": "f916eb13d516c5bbbd68873fc8f93862d403db5af156001076d6acbb5655c7a0"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "busy-offset-2",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": true,
+          "inactive": false,
+          "observed_offset": 2,
+          "source_at_ns": 1231636177306929,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "S41 long-title abcdefghijkl"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "4d57e73152073f475656430b15fc1f1b0b356cbc24250f02645226ee806ccb9e",
+            "png": "b0ae5aaa436d5929e844edfe9446b21c01a6aa8bf7ab0cf268a7ae9e58437e44",
+            "txt": "b1ff405dc6e7660c04df0337b950f6959e642bf6a5e7b2e78f2dd5d53957be20",
+            "vt": "de1bb2e3cd20eb24af7e4ad3c387d13b441aee078ff7029aa4f09ca306df51e0",
+            "render.json": "4afc2e230b82cfeaef7c5e5dc54e48ffba8fe056dad30fba198dd22fddccd757"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "busy-offset-54",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": true,
+          "inactive": false,
+          "observed_offset": 54,
+          "source_at_ns": 1231640382303367,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": " · VIS41 long-title abcdefg"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "bbef9fcef9d60408e2f7ed85357e8e85caaeef8b2c89e6f6d2c86e1f31fd4d03",
+            "png": "1ee6c9bda0939139d4c9591d248ef0d422fdd39bf106b5fcf4bcc890231d63a6",
+            "txt": "4dc17d801d10b091a65682c46319a7d2d6f8f342269d8b382e760e8ed6805624",
+            "vt": "51642aa26532d8c02f634527e0086f41b938a5d0f65aa88c4c1a0fad50a5febf",
+            "render.json": "498f24d2dfa3c61465c5ae7c6634d8a89b1f11213059430ed8fa4ff865fa9d4a"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "busy-settled",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": true,
+          "inactive": false,
+          "expected_offset": 0,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "VIS41 long-title abcdefghij"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "1498a0eb46d6ae62ccb5477ed990d7d7bc498d0a2256ad0eeb3e54b6c3b5f26f",
+            "png": "3452ffd1904d983fe790f6cb8d20d14a6e176ffd53e355fe9b6f914ebd5592fe",
+            "txt": "a3c400d3b67a297efc2e9c16ea538680fb2e501c8a2d7e4208a357d1c42622de",
+            "vt": "437ff0d04db33435ea3a009c12f06ae33bfd6cabf971b6fb16aed175ef0a5ce4",
+            "render.json": "585e544af7c7f1975797cc6ef78e8910eb48233f67024c235eb5da7b8d80f129"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "busy-same-tab-no-restart",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": true,
+          "inactive": false,
+          "expected_offset": 0,
+          "title_observation": {
+            "line": 0,
+            "start": 3,
+            "width": 27,
+            "text": "VIS41 long-title abcdefghij"
+          },
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "242d492d2181166d7506bb0c0cc61a01a596f8fb808b4dab6f8bdcb597ebc486",
+            "png": "3452ffd1904d983fe790f6cb8d20d14a6e176ffd53e355fe9b6f914ebd5592fe",
+            "txt": "a3c400d3b67a297efc2e9c16ea538680fb2e501c8a2d7e4208a357d1c42622de",
+            "vt": "437ff0d04db33435ea3a009c12f06ae33bfd6cabf971b6fb16aed175ef0a5ce4",
+            "render.json": "1f83c65dbff06d7251b7789784357c50e7c28cba3d2061c704dc520d27aba597"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "busy-leave",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": true,
+          "inactive": false,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "867f33098967cfe1344b497749169f14e620ffe1c70ccae6f2bc2fd577cf16b4",
+            "png": "ad4d95ce4365c76501268ba4f50c4e75e090c27fa523420d9b26addd144fa827",
+            "txt": "3a2eebf1602b0a70f13ac8d8d36d7ed2da508a0851d0b1294d268c3e62d34c00",
+            "vt": "82f4181319976685c18d1cfb12ed992ef6f6d9bccd79c6b94e1142e2383ac28b",
+            "render.json": "ed923cb67bee78ca9f213f5804ec03658d0dbe292ba13511034f636feb7ad7c2"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "running-glyph-31",
+          "columns": 120,
+          "rows": 40,
+          "observed_glyph": "1",
+          "glyph_line": 0,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "2bff04d75c42f33b2ab68c925a65f171831da1d172f36c3facdd4bd75c85d94e",
+            "png": "ad4d95ce4365c76501268ba4f50c4e75e090c27fa523420d9b26addd144fa827",
+            "txt": "3a2eebf1602b0a70f13ac8d8d36d7ed2da508a0851d0b1294d268c3e62d34c00",
+            "vt": "82f4181319976685c18d1cfb12ed992ef6f6d9bccd79c6b94e1142e2383ac28b",
+            "render.json": "51566cbac738ea2892c23ddcaa41b2383a137f60222720c6a0a52966a3ace244"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "completed",
+          "columns": 120,
+          "rows": 40,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "a656789e49a6d8d9d9972bbe1f53b46180bf1a96befbe0ad1bb57ee0ca0bab16",
+            "png": "d01eca0e50b1b73059785955de528b185c113d9d5985bc05da51c9b8d8bc4878",
+            "txt": "2f2fd10fbfa679040ce3ed215dbe160806a333279ee6cfbfb714b692c27c9491",
+            "vt": "86b63fe76993e4e6288bb35db634d6a70981c277273c18a30099d5e2d1313c14",
+            "render.json": "41f80945b4a6cfc8564be4190782573b68adbfa9f7c6f29490c086be1002fe1b"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "cancel-running",
+          "columns": 120,
+          "rows": 40,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "db9ea600b15670e36d363c9f996eb77715fdcbe506822d6b183ff5921eb6db0a",
+            "png": "72ee52493475fbb77c5594901fe3d2b87c93cf0b2bb608397a51b3cd7962e3ee",
+            "txt": "093e31f26fff458b6a1749c0abe6164fcb98098ba5cc93ecae7f34047fa5a390",
+            "vt": "e734b50d5117d5f52802f39b5d3e2e059ba1111a47b6e94ed106a21a0f66a4b7",
+            "render.json": "dc486c83624043373a34cfb2a3b3641d062132b63d93240296e9299722153487"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "cancelled",
+          "columns": 120,
+          "rows": 40,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "25116887c3d8d49e340a4cf80b2fef0bb4ac3dd7c42fc8da65d066be9d0cd524",
+            "png": "5791a7c99971d5f833cbb3b4881d862e4d21b450f47c835efbbcaa9705622b77",
+            "txt": "8e28317ae4656fae9e253ad835c3b66d49add3526b32ea671944a4530db34d63",
+            "vt": "a1fb756a43d86537b16f0e79e9c78b341535e0e086a278d3336c75ac23bdf3c6",
+            "render.json": "89c23d044926100f04d639d77bbaeb45293dcc1952dd408bb759a5c7a0cbf2b7"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "resize-0-80x24",
+          "columns": 80,
+          "rows": 24,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "77e486b17f4a65e19153293e59ad7cffe44fdcb4798db7bc0c92e5c15f091384",
+            "png": "26cf11046ebe3ff2a56e800877fd91216b0d16a60e675d89a2403bc4cd285b16",
+            "txt": "9714828e8a609a213312c49611f07bb1da82c8db51e2711f8a96a8518e046c5b",
+            "vt": "76d62efa183cf39c7acb343236339ee08804022936fda28cf001ebe2f6e3e5c7",
+            "render.json": "a8a1f6fe74a2bfec51106261d64bc28c8b6e0cc2cd0b2e392a490a1d15d2f15b"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "resize-1-120x40",
+          "columns": 120,
+          "rows": 40,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "074a49c57be0e17ca47a482ab3d5968bf4d158ca1072b6e7b0e443353df2fbc5",
+            "png": "5791a7c99971d5f833cbb3b4881d862e4d21b450f47c835efbbcaa9705622b77",
+            "txt": "8e28317ae4656fae9e253ad835c3b66d49add3526b32ea671944a4530db34d63",
+            "vt": "0f79d7a69b5103c335dcd90bf742f53ef79810d69deec867bac3064e688fc09c",
+            "render.json": "e17e3ebc7f8f28c182f7f86a4d00afe0de6832458046dadd45239278f1034bee"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "resize-2-160x48",
+          "columns": 160,
+          "rows": 48,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "c904d99c582fff15a1e9bb2dc9e5b262e571fe561d65bc691a30f7addb6df286",
+            "png": "ff5a037a8b09ad3dbba6a2bd4cc8e94eec7c6a062ebfec4bdd4dc1dbeee2ad29",
+            "txt": "c945145966e74ca9931849c59812d226ce61e01bbac7ab46ec1c3752995a7c08",
+            "vt": "c750353be6322ebd6fab97bdbcf0e20c8f22a7bce9c00394dc4d7b7e00958ad1",
+            "render.json": "ab70e8c7e6d8c62f56208f8267434fc800ca4950ac4da04005523674039fe149"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-numbers",
+          "label": "resize-3-120x40",
+          "columns": 120,
+          "rows": 40,
+          "busy_glyphs": [],
+          "files": {
+            "cells.json": "755083c8c41b3dd533249d40ccd0786943167b36f927fe5dab8ab25fea7129ec",
+            "png": "a3c694ace06ea57080cd4f5e03546fca403f4defeab3cbf14e94be889dfe9433",
+            "txt": "8e28317ae4656fae9e253ad835c3b66d49add3526b32ea671944a4530db34d63",
+            "vt": "3c71fa9714a6f9ce50c7b89f7f0dda4edefb776c9f64cc510c705f8339617c0d",
+            "render.json": "6ae66ec5bee95a1660ebafbc6f96009b57fbc75fde603d288d6072b0c228b5d0"
+          }
+        }
+      ]
+    }
+  },
+  "comparisons": [],
+  "failures": [],
+  "method": "Real captured styled cells, PNG and cursor; actual observed title/glyph phases, no global time synchronization, normalization, mask/crop, or tolerance"
+}

@@ -1,0 +1,1435 @@
+{
+  "scope": "T44 VIS41 / VIS39 own-running only",
+  "capture_gate": "BLOCKED_INCOMPLETE_ATTEMPT",
+  "sides": {},
+  "comparisons": [],
+  "failures": [],
+  "method": "Real captured styled cells, PNG and cursor; actual observed title/glyph phases, no global time synchronization, normalization, mask/crop, or tolerance",
+  "diagnostic": {
+    "directory": "/home/opencode/ai/oc/evidence/tui/recovery-v00/tabs-reference20260928-01/upstream-120x40-off-horizontal-status",
+    "sealed": false,
+    "qualification": "Interrupted/diagnostic input is never acceptance evidence",
+    "timeline": {
+      "records": 284,
+      "stages": {
+        "startup": {
+          "first_at_ns": 1227389924176968,
+          "last_at_ns": 1227390396739446,
+          "rows": [
+            {
+              "at_ns": 1227389924176968,
+              "raw_byte_end": 246,
+              "row": "                                                                                                                        ",
+              "glyphs": []
+            }
+          ],
+          "records": 19,
+          "changed_frames": 7
+        },
+        "seed-a": {
+          "first_at_ns": 1227395294786320,
+          "last_at_ns": 1227401050321145,
+          "rows": [
+            {
+              "at_ns": 1227395294786320,
+              "raw_byte_end": 17326,
+              "row": "                                                                                                                        ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227395413102992,
+              "raw_byte_end": 21433,
+              "row": "  ┃                                                                                                                     ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227395447418488,
+              "raw_byte_end": 22948,
+              "row": " ⠋ New session                   +                                                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227395584212374,
+              "raw_byte_end": 23429,
+              "row": "   New session                   +                                                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227395595907669,
+              "raw_byte_end": 23835,
+              "row": " • VIS41 fixture A               +                                                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227395667962254,
+              "raw_byte_end": 23945,
+              "row": "   VIS41 fixture A               +                                                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227401029316006,
+              "raw_byte_end": 30961,
+              "row": "   VIS41 fixture A               + New session                                                                          ",
+              "glyphs": []
+            }
+          ],
+          "records": 17,
+          "changed_frames": 12
+        },
+        "seed-b": {
+          "first_at_ns": 1227402325308866,
+          "last_at_ns": 1227415425979109,
+          "rows": [
+            {
+              "at_ns": 1227402325308866,
+              "raw_byte_end": 33886,
+              "row": "   VIS41 fixture A               + New session                                                                          ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227402403010131,
+              "raw_byte_end": 39035,
+              "row": "   VIS41 fixture A               ⠋ New session                   +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227402482703002,
+              "raw_byte_end": 39505,
+              "row": "   VIS41 fixture A                 New session                   +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227402494441673,
+              "raw_byte_end": 40000,
+              "row": "   VIS41 fixture A               • VIS41 fixture B               +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227402547616218,
+              "raw_byte_end": 40111,
+              "row": "   VIS41 fixture A                 VIS41 fixture B               +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227409101301874,
+              "raw_byte_end": 61337,
+              "row": "   VIS41 fixture A                 Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227411020063164,
+              "raw_byte_end": 61642,
+              "row": "   VIS41 fixture A            ✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227412451218718,
+              "raw_byte_end": 63973,
+              "row": "   VIS41 fixture A                 Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227415425979109,
+              "raw_byte_end": 85163,
+              "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+              "glyphs": []
+            }
+          ],
+          "records": 36,
+          "changed_frames": 27
+        },
+        "long": {
+          "first_at_ns": 1227418605361379,
+          "last_at_ns": 1227423776121058,
+          "rows": [
+            {
+              "at_ns": 1227418605361379,
+              "raw_byte_end": 85496,
+              "row": "   VIS41 long-title abcdefghij✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227419206079173,
+              "raw_byte_end": 85995,
+              "row": "   IS41 long-title abcdefghijk✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227419288314345,
+              "raw_byte_end": 86494,
+              "row": "   S41 long-title abcdefghijkl✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227419369633907,
+              "raw_byte_end": 86993,
+              "row": "   41 long-title abcdefghijklm✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227419448459815,
+              "raw_byte_end": 87492,
+              "row": "   1 long-title abcdefghijklmn✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227419546807050,
+              "raw_byte_end": 87991,
+              "row": "    long-title abcdefghijklmno✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227419624852793,
+              "raw_byte_end": 88490,
+              "row": "   long-title abcdefghijklmnop✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227419708091384,
+              "raw_byte_end": 88989,
+              "row": "   ong-title abcdefghijklmnopq✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227419785409533,
+              "raw_byte_end": 89488,
+              "row": "   ng-title abcdefghijklmnopqr✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227419865590251,
+              "raw_byte_end": 89987,
+              "row": "   g-title abcdefghijklmnopqrs✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227419952109211,
+              "raw_byte_end": 90486,
+              "row": "   -title abcdefghijklmnopqrst✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227420027238794,
+              "raw_byte_end": 90985,
+              "row": "   title abcdefghijklmnopqrstu✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227420109319352,
+              "raw_byte_end": 91484,
+              "row": "   itle abcdefghijklmnopqrstuv✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227420187362903,
+              "raw_byte_end": 91983,
+              "row": "   tle abcdefghijklmnopqrstuvw✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227420269713578,
+              "raw_byte_end": 92482,
+              "row": "   le abcdefghijklmnopqrstuvwx✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227420353324969,
+              "raw_byte_end": 92981,
+              "row": "   e abcdefghijklmnopqrstuvwxy✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227420433376011,
+              "raw_byte_end": 93480,
+              "row": "    abcdefghijklmnopqrstuvwxyz✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227420525939731,
+              "raw_byte_end": 93979,
+              "row": "   abcdefghijklmnopqrstuvwxyz ✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227420608145627,
+              "raw_byte_end": 94478,
+              "row": "   bcdefghijklmnopqrstuvwxyz 0✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227420686385773,
+              "raw_byte_end": 94977,
+              "row": "   cdefghijklmnopqrstuvwxyz 01✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227420770515947,
+              "raw_byte_end": 95476,
+              "row": "   defghijklmnopqrstuvwxyz 012✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227420850708071,
+              "raw_byte_end": 95975,
+              "row": "   efghijklmnopqrstuvwxyz 0123✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227420932712054,
+              "raw_byte_end": 96474,
+              "row": "   fghijklmnopqrstuvwxyz 01234✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227421013471824,
+              "raw_byte_end": 96973,
+              "row": "   ghijklmnopqrstuvwxyz 012345✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227421093585411,
+              "raw_byte_end": 97472,
+              "row": "   hijklmnopqrstuvwxyz 0123456✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227421173761972,
+              "raw_byte_end": 97971,
+              "row": "   ijklmnopqrstuvwxyz 01234567✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227421255050318,
+              "raw_byte_end": 98470,
+              "row": "   jklmnopqrstuvwxyz 012345678✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227421335134310,
+              "raw_byte_end": 98969,
+              "row": "   klmnopqrstuvwxyz 0123456789✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227421416090646,
+              "raw_byte_end": 99468,
+              "row": "   lmnopqrstuvwxyz 0123456789 ✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227421508892633,
+              "raw_byte_end": 99968,
+              "row": "   mnopqrstuvwxyz 0123456789 ·✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227421587742558,
+              "raw_byte_end": 100468,
+              "row": "   nopqrstuvwxyz 0123456789 · ✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227421667802293,
+              "raw_byte_end": 100965,
+              "row": "   opqrstuvwxyz 0123456789 · V✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227421751261476,
+              "raw_byte_end": 101465,
+              "row": "   pqrstuvwxyz 0123456789 · VI✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227421828530411,
+              "raw_byte_end": 102015,
+              "row": "   qrstuvwxyz 0123456789 · VIS✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227421911365485,
+              "raw_byte_end": 102615,
+              "row": "   rstuvwxyz 0123456789 · VIS4✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227421988693358,
+              "raw_byte_end": 103215,
+              "row": "   stuvwxyz 0123456789 · VIS41✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227422068629930,
+              "raw_byte_end": 103815,
+              "row": "   tuvwxyz 0123456789 · VIS41 ✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227422148823426,
+              "raw_byte_end": 104415,
+              "row": "   uvwxyz 0123456789 · VIS41 l✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227422229160580,
+              "raw_byte_end": 105015,
+              "row": "   vwxyz 0123456789 · VIS41 lo✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227422309160486,
+              "raw_byte_end": 105615,
+              "row": "   wxyz 0123456789 · VIS41 lon✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227422393647927,
+              "raw_byte_end": 106215,
+              "row": "   xyz 0123456789 · VIS41 long✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227422473550026,
+              "raw_byte_end": 106815,
+              "row": "   yz 0123456789 · VIS41 long-✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227422556965493,
+              "raw_byte_end": 107415,
+              "row": "   z 0123456789 · VIS41 long-t✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227422639898444,
+              "raw_byte_end": 108015,
+              "row": "    0123456789 · VIS41 long-ti✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227422716721347,
+              "raw_byte_end": 108615,
+              "row": "   0123456789 · VIS41 long-tit✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227422797183579,
+              "raw_byte_end": 109215,
+              "row": "   123456789 · VIS41 long-titl✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227422880084522,
+              "raw_byte_end": 109815,
+              "row": "   23456789 · VIS41 long-title✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227422957263652,
+              "raw_byte_end": 110415,
+              "row": "   3456789 · VIS41 long-title ✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227423037347164,
+              "raw_byte_end": 111015,
+              "row": "   456789 · VIS41 long-title a✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227423118631893,
+              "raw_byte_end": 111615,
+              "row": "   56789 · VIS41 long-title ab✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227423200832732,
+              "raw_byte_end": 112214,
+              "row": "   6789 · VIS41 long-title abc✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227423282155479,
+              "raw_byte_end": 112763,
+              "row": "   789 · VIS41 long-title abcd✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227423364336229,
+              "raw_byte_end": 113263,
+              "row": "   89 · VIS41 long-title abcde✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227423442238937,
+              "raw_byte_end": 113760,
+              "row": "   9 · VIS41 long-title abcdef✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227423534104574,
+              "raw_byte_end": 114260,
+              "row": "    · VIS41 long-title abcdefg✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227423610988701,
+              "raw_byte_end": 114760,
+              "row": "   · VIS41 long-title abcdefgh✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227423696862899,
+              "raw_byte_end": 115259,
+              "row": "    VIS41 long-title abcdefghi✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227423776121058,
+              "raw_byte_end": 115568,
+              "row": "   VIS41 long-title abcdefghij✕    Short                         +                                                      ",
+              "glyphs": []
+            }
+          ],
+          "records": 58,
+          "changed_frames": 57
+        },
+        "long-idle": {
+          "first_at_ns": 1227439575688526,
+          "last_at_ns": 1227442965227539,
+          "rows": [
+            {
+              "at_ns": 1227439575688526,
+              "raw_byte_end": 115857,
+              "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227442965227539,
+              "raw_byte_end": 137399,
+              "row": "   Short-A                         Short                         +                                                      ",
+              "glyphs": []
+            }
+          ],
+          "records": 12,
+          "changed_frames": 10
+        },
+        "short": {
+          "first_at_ns": 1227446147492141,
+          "last_at_ns": 1227446147492141,
+          "rows": [
+            {
+              "at_ns": 1227446147492141,
+              "raw_byte_end": 137487,
+              "row": "   Short-A                    ✕    Short                         +                                                      ",
+              "glyphs": []
+            }
+          ],
+          "records": 1,
+          "changed_frames": 1
+        },
+        "short-idle": {
+          "first_at_ns": 1227454575131844,
+          "last_at_ns": 1227461140333910,
+          "rows": [
+            {
+              "at_ns": 1227454575131844,
+              "raw_byte_end": 137573,
+              "row": "   Short-A                         Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227457815305946,
+              "raw_byte_end": 158575,
+              "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227460006135171,
+              "raw_byte_end": 160180,
+              "row": "   VIS41 long-title abcdefghijkl   Short                      ✕  +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227461140333910,
+              "raw_byte_end": 161291,
+              "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+              "glyphs": []
+            }
+          ],
+          "records": 16,
+          "changed_frames": 13
+        },
+        "inactive": {
+          "first_at_ns": 1227462246232898,
+          "last_at_ns": 1227467392670532,
+          "rows": [
+            {
+              "at_ns": 1227462246232898,
+              "raw_byte_end": 161724,
+              "row": "   VIS41 long-title abcdefghij✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227462855264345,
+              "raw_byte_end": 162187,
+              "row": "   IS41 long-title abcdefghijk✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227462935926690,
+              "raw_byte_end": 162650,
+              "row": "   S41 long-title abcdefghijkl✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227463021256641,
+              "raw_byte_end": 163113,
+              "row": "   41 long-title abcdefghijklm✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227463113908215,
+              "raw_byte_end": 163576,
+              "row": "   1 long-title abcdefghijklmn✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227463181576149,
+              "raw_byte_end": 164039,
+              "row": "    long-title abcdefghijklmno✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227463261719243,
+              "raw_byte_end": 164502,
+              "row": "   long-title abcdefghijklmnop✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227463341884240,
+              "raw_byte_end": 164965,
+              "row": "   ong-title abcdefghijklmnopq✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227463425423706,
+              "raw_byte_end": 165428,
+              "row": "   ng-title abcdefghijklmnopqr✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227463509084775,
+              "raw_byte_end": 165891,
+              "row": "   g-title abcdefghijklmnopqrs✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227463593809216,
+              "raw_byte_end": 166354,
+              "row": "   -title abcdefghijklmnopqrst✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227463673425987,
+              "raw_byte_end": 166817,
+              "row": "   title abcdefghijklmnopqrstu✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227463756566303,
+              "raw_byte_end": 167280,
+              "row": "   itle abcdefghijklmnopqrstuv✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227463836544499,
+              "raw_byte_end": 167743,
+              "row": "   tle abcdefghijklmnopqrstuvw✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227463920095862,
+              "raw_byte_end": 168206,
+              "row": "   le abcdefghijklmnopqrstuvwx✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227463996701571,
+              "raw_byte_end": 168669,
+              "row": "   e abcdefghijklmnopqrstuvwxy✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227464077040611,
+              "raw_byte_end": 169132,
+              "row": "    abcdefghijklmnopqrstuvwxyz✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227464158338171,
+              "raw_byte_end": 169595,
+              "row": "   abcdefghijklmnopqrstuvwxyz ✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227464238386442,
+              "raw_byte_end": 170058,
+              "row": "   bcdefghijklmnopqrstuvwxyz 0✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227464318486050,
+              "raw_byte_end": 170521,
+              "row": "   cdefghijklmnopqrstuvwxyz 01✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227464398754394,
+              "raw_byte_end": 170984,
+              "row": "   defghijklmnopqrstuvwxyz 012✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227464478916405,
+              "raw_byte_end": 171447,
+              "row": "   efghijklmnopqrstuvwxyz 0123✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227464569265362,
+              "raw_byte_end": 171910,
+              "row": "   fghijklmnopqrstuvwxyz 01234✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227464644659238,
+              "raw_byte_end": 172373,
+              "row": "   ghijklmnopqrstuvwxyz 012345✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227464726155878,
+              "raw_byte_end": 172836,
+              "row": "   hijklmnopqrstuvwxyz 0123456✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227464808141636,
+              "raw_byte_end": 173299,
+              "row": "   ijklmnopqrstuvwxyz 01234567✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227464886459803,
+              "raw_byte_end": 173762,
+              "row": "   jklmnopqrstuvwxyz 012345678✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227464968115373,
+              "raw_byte_end": 174225,
+              "row": "   klmnopqrstuvwxyz 0123456789✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227465047838906,
+              "raw_byte_end": 174688,
+              "row": "   lmnopqrstuvwxyz 0123456789 ✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227465132118116,
+              "raw_byte_end": 175152,
+              "row": "   mnopqrstuvwxyz 0123456789 ·✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227465208599276,
+              "raw_byte_end": 175616,
+              "row": "   nopqrstuvwxyz 0123456789 · ✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227465289417817,
+              "raw_byte_end": 176077,
+              "row": "   opqrstuvwxyz 0123456789 · V✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227465369259838,
+              "raw_byte_end": 176538,
+              "row": "   pqrstuvwxyz 0123456789 · VI✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227465449770525,
+              "raw_byte_end": 177048,
+              "row": "   qrstuvwxyz 0123456789 · VIS✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227465536052711,
+              "raw_byte_end": 177604,
+              "row": "   rstuvwxyz 0123456789 · VIS4✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227465613487307,
+              "raw_byte_end": 178160,
+              "row": "   stuvwxyz 0123456789 · VIS41✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227465694754163,
+              "raw_byte_end": 178716,
+              "row": "   tuvwxyz 0123456789 · VIS41 ✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227465782840964,
+              "raw_byte_end": 179272,
+              "row": "   uvwxyz 0123456789 · VIS41 l✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227465855062774,
+              "raw_byte_end": 179828,
+              "row": "   vwxyz 0123456789 · VIS41 lo✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227465935180050,
+              "raw_byte_end": 180384,
+              "row": "   wxyz 0123456789 · VIS41 lon✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227466015212096,
+              "raw_byte_end": 180940,
+              "row": "   xyz 0123456789 · VIS41 long✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227466095401739,
+              "raw_byte_end": 181496,
+              "row": "   yz 0123456789 · VIS41 long-✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227466175441708,
+              "raw_byte_end": 182052,
+              "row": "   z 0123456789 · VIS41 long-t✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227466255519204,
+              "raw_byte_end": 182608,
+              "row": "    0123456789 · VIS41 long-ti✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227466335602617,
+              "raw_byte_end": 183164,
+              "row": "   0123456789 · VIS41 long-tit✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227466415738070,
+              "raw_byte_end": 183720,
+              "row": "   123456789 · VIS41 long-titl✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227466496091570,
+              "raw_byte_end": 184276,
+              "row": "   23456789 · VIS41 long-title✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227466592449834,
+              "raw_byte_end": 184832,
+              "row": "   3456789 · VIS41 long-title ✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227466670649381,
+              "raw_byte_end": 185388,
+              "row": "   456789 · VIS41 long-title a✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227466749758289,
+              "raw_byte_end": 185944,
+              "row": "   56789 · VIS41 long-title ab✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227466829880561,
+              "raw_byte_end": 186499,
+              "row": "   6789 · VIS41 long-title abc✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227466909890405,
+              "raw_byte_end": 187008,
+              "row": "   789 · VIS41 long-title abcd✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227466991076669,
+              "raw_byte_end": 187469,
+              "row": "   89 · VIS41 long-title abcde✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227467072107379,
+              "raw_byte_end": 187930,
+              "row": "   9 · VIS41 long-title abcdef✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227467151249575,
+              "raw_byte_end": 188394,
+              "row": "    · VIS41 long-title abcdefg✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227467231745461,
+              "raw_byte_end": 188858,
+              "row": "   · VIS41 long-title abcdefgh✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227467312014985,
+              "raw_byte_end": 189321,
+              "row": "    VIS41 long-title abcdefghi✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227467392670532,
+              "raw_byte_end": 189610,
+              "row": "   VIS41 long-title abcdefghij✕    Short                         +                                                      ",
+              "glyphs": []
+            }
+          ],
+          "records": 58,
+          "changed_frames": 57
+        },
+        "inactive-idle": {
+          "first_at_ns": 1227482253402590,
+          "last_at_ns": 1227483771237037,
+          "rows": [
+            {
+              "at_ns": 1227482253402590,
+              "raw_byte_end": 189946,
+              "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227483222609652,
+              "raw_byte_end": 191605,
+              "row": "   VIS41 long-title abcdefghij✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227483771237037,
+              "raw_byte_end": 193129,
+              "row": "   IS41 long-title abcdefghijk✕    Short                         +                                                      ",
+              "glyphs": []
+            }
+          ],
+          "records": 5,
+          "changed_frames": 4
+        },
+        "running-complete": {
+          "first_at_ns": 1227483851283868,
+          "last_at_ns": 1227484680129444,
+          "rows": [
+            {
+              "at_ns": 1227483851283868,
+              "raw_byte_end": 193628,
+              "row": "   S41 long-title abcdefghijkl✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227483931897941,
+              "raw_byte_end": 194127,
+              "row": "   41 long-title abcdefghijklm✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227484012508169,
+              "raw_byte_end": 194626,
+              "row": "   1 long-title abcdefghijklmn✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227484091883088,
+              "raw_byte_end": 195125,
+              "row": "    long-title abcdefghijklmno✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227484174589811,
+              "raw_byte_end": 195624,
+              "row": "   long-title abcdefghijklmnop✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227484252627006,
+              "raw_byte_end": 196123,
+              "row": "   ong-title abcdefghijklmnopq✕    Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227484271709363,
+              "raw_byte_end": 196434,
+              "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+              "glyphs": []
+            },
+            {
+              "at_ns": 1227484606095546,
+              "raw_byte_end": 197465,
+              "row": " ⠋ VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            }
+          ],
+          "records": 10,
+          "changed_frames": 10
+        },
+        "busy": {
+          "first_at_ns": 1227488307045931,
+          "last_at_ns": 1227492964200699,
+          "rows": [
+            {
+              "at_ns": 1227488307045931,
+              "raw_byte_end": 198396,
+              "row": " ⠋ VIS41 long-title abcdefghij✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227488909672037,
+              "raw_byte_end": 198895,
+              "row": " ⠋ IS41 long-title abcdefghijk✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227488990370778,
+              "raw_byte_end": 199394,
+              "row": " ⠋ S41 long-title abcdefghijkl✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227489075788194,
+              "raw_byte_end": 199893,
+              "row": " ⠋ 41 long-title abcdefghijklm✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227489157324325,
+              "raw_byte_end": 200392,
+              "row": " ⠋ 1 long-title abcdefghijklmn✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227489241269073,
+              "raw_byte_end": 200891,
+              "row": " ⠋  long-title abcdefghijklmno✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227489325306110,
+              "raw_byte_end": 201390,
+              "row": " ⠋ long-title abcdefghijklmnop✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227489405511459,
+              "raw_byte_end": 201889,
+              "row": " ⠋ ong-title abcdefghijklmnopq✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227489485638990,
+              "raw_byte_end": 202388,
+              "row": " ⠋ ng-title abcdefghijklmnopqr✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227489585689023,
+              "raw_byte_end": 202887,
+              "row": " ⠋ g-title abcdefghijklmnopqrs✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227489654707370,
+              "raw_byte_end": 203386,
+              "row": " ⠋ -title abcdefghijklmnopqrst✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227489734683235,
+              "raw_byte_end": 203885,
+              "row": " ⠋ title abcdefghijklmnopqrstu✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227489817465262,
+              "raw_byte_end": 204384,
+              "row": " ⠋ itle abcdefghijklmnopqrstuv✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227489894978468,
+              "raw_byte_end": 204883,
+              "row": " ⠋ tle abcdefghijklmnopqrstuvw✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227489975029205,
+              "raw_byte_end": 205382,
+              "row": " ⠋ le abcdefghijklmnopqrstuvwx✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227490055378930,
+              "raw_byte_end": 205881,
+              "row": " ⠋ e abcdefghijklmnopqrstuvwxy✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227490135205739,
+              "raw_byte_end": 206380,
+              "row": " ⠋  abcdefghijklmnopqrstuvwxyz✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227490215303245,
+              "raw_byte_end": 206879,
+              "row": " ⠋ abcdefghijklmnopqrstuvwxyz ✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227490295548535,
+              "raw_byte_end": 207378,
+              "row": " ⠋ bcdefghijklmnopqrstuvwxyz 0✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227490375995438,
+              "raw_byte_end": 207877,
+              "row": " ⠋ cdefghijklmnopqrstuvwxyz 01✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227490456802161,
+              "raw_byte_end": 208376,
+              "row": " ⠋ defghijklmnopqrstuvwxyz 012✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227490541972604,
+              "raw_byte_end": 208875,
+              "row": " ⠋ efghijklmnopqrstuvwxyz 0123✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227490617733192,
+              "raw_byte_end": 209374,
+              "row": " ⠋ fghijklmnopqrstuvwxyz 01234✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227490696749351,
+              "raw_byte_end": 209873,
+              "row": " ⠋ ghijklmnopqrstuvwxyz 012345✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227490776944135,
+              "raw_byte_end": 210372,
+              "row": " ⠋ hijklmnopqrstuvwxyz 0123456✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227490859369915,
+              "raw_byte_end": 210871,
+              "row": " ⠋ ijklmnopqrstuvwxyz 01234567✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227490944124342,
+              "raw_byte_end": 211370,
+              "row": " ⠋ jklmnopqrstuvwxyz 012345678✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227491020600106,
+              "raw_byte_end": 211869,
+              "row": " ⠋ klmnopqrstuvwxyz 0123456789✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227491102579085,
+              "raw_byte_end": 212368,
+              "row": " ⠋ lmnopqrstuvwxyz 0123456789 ✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227491181950510,
+              "raw_byte_end": 212868,
+              "row": " ⠋ mnopqrstuvwxyz 0123456789 ·✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227491261554973,
+              "raw_byte_end": 213368,
+              "row": " ⠋ nopqrstuvwxyz 0123456789 · ✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227491342251952,
+              "raw_byte_end": 213865,
+              "row": " ⠋ opqrstuvwxyz 0123456789 · V✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227491423512930,
+              "raw_byte_end": 214365,
+              "row": " ⠋ pqrstuvwxyz 0123456789 · VI✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227491505758720,
+              "raw_byte_end": 214915,
+              "row": " ⠋ qrstuvwxyz 0123456789 · VIS✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227491600100330,
+              "raw_byte_end": 215515,
+              "row": " ⠋ rstuvwxyz 0123456789 · VIS4✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227491667026018,
+              "raw_byte_end": 216115,
+              "row": " ⠋ stuvwxyz 0123456789 · VIS41✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227491746919958,
+              "raw_byte_end": 216715,
+              "row": " ⠋ tuvwxyz 0123456789 · VIS41 ✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227491825072356,
+              "raw_byte_end": 217315,
+              "row": " ⠋ uvwxyz 0123456789 · VIS41 l✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227491905141961,
+              "raw_byte_end": 217915,
+              "row": " ⠋ vwxyz 0123456789 · VIS41 lo✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227491988089217,
+              "raw_byte_end": 218515,
+              "row": " ⠋ wxyz 0123456789 · VIS41 lon✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227492065542062,
+              "raw_byte_end": 219115,
+              "row": " ⠋ xyz 0123456789 · VIS41 long✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227492147550617,
+              "raw_byte_end": 219715,
+              "row": " ⠋ yz 0123456789 · VIS41 long-✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227492226255367,
+              "raw_byte_end": 220315,
+              "row": " ⠋ z 0123456789 · VIS41 long-t✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227492309302794,
+              "raw_byte_end": 220915,
+              "row": " ⠋  0123456789 · VIS41 long-ti✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227492390014905,
+              "raw_byte_end": 221515,
+              "row": " ⠋ 0123456789 · VIS41 long-tit✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227492471689517,
+              "raw_byte_end": 222115,
+              "row": " ⠋ 123456789 · VIS41 long-titl✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227492560364265,
+              "raw_byte_end": 222715,
+              "row": " ⠋ 23456789 · VIS41 long-title✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227492639929100,
+              "raw_byte_end": 223315,
+              "row": " ⠋ 3456789 · VIS41 long-title ✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227492720091313,
+              "raw_byte_end": 223915,
+              "row": " ⠋ 456789 · VIS41 long-title a✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227492800303643,
+              "raw_byte_end": 224515,
+              "row": " ⠋ 56789 · VIS41 long-title ab✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227492880460429,
+              "raw_byte_end": 225114,
+              "row": " ⠋ 6789 · VIS41 long-title abc✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            },
+            {
+              "at_ns": 1227492964200699,
+              "raw_byte_end": 225663,
+              "row": " ⠋ 789 · VIS41 long-title abcd✕    Short                         +                                                      ",
+              "glyphs": [
+                "⠋"
+              ]
+            }
+          ],
+          "records": 52,
+          "changed_frames": 52
+        }
+      },
+      "truncated_last_record": true
+    }
+  }
+}

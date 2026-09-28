@@ -1,0 +1,1387 @@
+{
+  "name": "upstream-120x40-off-horizontal-status",
+  "status": "IN_PROGRESS",
+  "hover": [
+    {
+      "kind": "long",
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "width": 27,
+      "source_cycle_width": 57,
+      "overflow": true,
+      "target": {
+        "x": 5,
+        "y": 1
+      },
+      "busy": false,
+      "inactive": false,
+      "samples": [
+        {
+          "elapsed_ms": 63.42256300000008,
+          "source_elapsed_ms": 15.276741,
+          "source_at_ns": 1229900618830593,
+          "raw_byte_end": 85415,
+          "text": "VIS41 long-title abcdefghij",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 641.1086430000141,
+          "source_elapsed_ms": 614.938865,
+          "source_at_ns": 1229901218492717,
+          "raw_byte_end": 85914,
+          "text": "IS41 long-title abcdefghijk",
+          "observed_source_offsets": [
+            1
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1286.3346729999175,
+          "source_elapsed_ms": 697.552379,
+          "source_at_ns": 1229901301106231,
+          "raw_byte_end": 86413,
+          "text": "S41 long-title abcdefghijkl",
+          "observed_source_offsets": [
+            2
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1851.6636789999902,
+          "source_elapsed_ms": 777.676257,
+          "source_at_ns": 1229901381230109,
+          "raw_byte_end": 86912,
+          "text": "41 long-title abcdefghijklm",
+          "observed_source_offsets": [
+            3
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1877.932748000021,
+          "source_elapsed_ms": 860.564946,
+          "source_at_ns": 1229901464118798,
+          "raw_byte_end": 87411,
+          "text": "1 long-title abcdefghijklmn",
+          "observed_source_offsets": [
+            4
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1902.6162289999193,
+          "source_elapsed_ms": 938.019233,
+          "source_at_ns": 1229901541573085,
+          "raw_byte_end": 87910,
+          "text": " long-title abcdefghijklmno",
+          "observed_source_offsets": [
+            5
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1933.8366909999168,
+          "source_elapsed_ms": 1021.635608,
+          "source_at_ns": 1229901625189460,
+          "raw_byte_end": 88409,
+          "text": "long-title abcdefghijklmnop",
+          "observed_source_offsets": [
+            6
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1960.5478240000084,
+          "source_elapsed_ms": 1101.421386,
+          "source_at_ns": 1229901704975238,
+          "raw_byte_end": 88908,
+          "text": "ong-title abcdefghijklmnopq",
+          "observed_source_offsets": [
+            7
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1986.0601039999165,
+          "source_elapsed_ms": 1181.525574,
+          "source_at_ns": 1229901785079426,
+          "raw_byte_end": 89407,
+          "text": "ng-title abcdefghijklmnopqr",
+          "observed_source_offsets": [
+            8
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2011.3107679999666,
+          "source_elapsed_ms": 1261.539686,
+          "source_at_ns": 1229901865093538,
+          "raw_byte_end": 89906,
+          "text": "g-title abcdefghijklmnopqrs",
+          "observed_source_offsets": [
+            9
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2050.021257999935,
+          "source_elapsed_ms": 1342.204096,
+          "source_at_ns": 1229901945757948,
+          "raw_byte_end": 90405,
+          "text": "-title abcdefghijklmnopqrst",
+          "observed_source_offsets": [
+            10
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2072.7368569999235,
+          "source_elapsed_ms": 1428.571673,
+          "source_at_ns": 1229902032125525,
+          "raw_byte_end": 90904,
+          "text": "title abcdefghijklmnopqrstu",
+          "observed_source_offsets": [
+            11
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2093.9236229999224,
+          "source_elapsed_ms": 1504.575026,
+          "source_at_ns": 1229902108128878,
+          "raw_byte_end": 91403,
+          "text": "itle abcdefghijklmnopqrstuv",
+          "observed_source_offsets": [
+            12
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2122.6112629999407,
+          "source_elapsed_ms": 1582.062974,
+          "source_at_ns": 1229902185616826,
+          "raw_byte_end": 91902,
+          "text": "tle abcdefghijklmnopqrstuvw",
+          "observed_source_offsets": [
+            13
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2153.540004999959,
+          "source_elapsed_ms": 1666.878766,
+          "source_at_ns": 1229902270432618,
+          "raw_byte_end": 92401,
+          "text": "le abcdefghijklmnopqrstuvwx",
+          "observed_source_offsets": [
+            14
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2180.018769999966,
+          "source_elapsed_ms": 1746.122447,
+          "source_at_ns": 1229902349676299,
+          "raw_byte_end": 92900,
+          "text": "e abcdefghijklmnopqrstuvwxy",
+          "observed_source_offsets": [
+            15
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2204.082847999991,
+          "source_elapsed_ms": 1826.579275,
+          "source_at_ns": 1229902430133127,
+          "raw_byte_end": 93399,
+          "text": " abcdefghijklmnopqrstuvwxyz",
+          "observed_source_offsets": [
+            16
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2228.9985999999335,
+          "source_elapsed_ms": 1906.772617,
+          "source_at_ns": 1229902510326469,
+          "raw_byte_end": 93898,
+          "text": "abcdefghijklmnopqrstuvwxyz ",
+          "observed_source_offsets": [
+            17
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2255.6463079999667,
+          "source_elapsed_ms": 1989.20589,
+          "source_at_ns": 1229902592759742,
+          "raw_byte_end": 94397,
+          "text": "bcdefghijklmnopqrstuvwxyz 0",
+          "observed_source_offsets": [
+            18
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2294.8347869999707,
+          "source_elapsed_ms": 2068.543433,
+          "source_at_ns": 1229902672097285,
+          "raw_byte_end": 94896,
+          "text": "cdefghijklmnopqrstuvwxyz 01",
+          "observed_source_offsets": [
+            19
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2321.7114789999323,
+          "source_elapsed_ms": 2146.898697,
+          "source_at_ns": 1229902750452549,
+          "raw_byte_end": 95395,
+          "text": "defghijklmnopqrstuvwxyz 012",
+          "observed_source_offsets": [
+            20
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2350.4081320000114,
+          "source_elapsed_ms": 2227.456469,
+          "source_at_ns": 1229902831010321,
+          "raw_byte_end": 95894,
+          "text": "efghijklmnopqrstuvwxyz 0123",
+          "observed_source_offsets": [
+            21
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2387.1040979999816,
+          "source_elapsed_ms": 2309.902571,
+          "source_at_ns": 1229902913456423,
+          "raw_byte_end": 96393,
+          "text": "fghijklmnopqrstuvwxyz 01234",
+          "observed_source_offsets": [
+            22
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2425.2992209999356,
+          "source_elapsed_ms": 2390.480332,
+          "source_at_ns": 1229902994034184,
+          "raw_byte_end": 96892,
+          "text": "ghijklmnopqrstuvwxyz 012345",
+          "observed_source_offsets": [
+            23
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2508.318587000016,
+          "source_elapsed_ms": 2470.401283,
+          "source_at_ns": 1229903073955135,
+          "raw_byte_end": 97391,
+          "text": "hijklmnopqrstuvwxyz 0123456",
+          "observed_source_offsets": [
+            24
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2591.286284999922,
+          "source_elapsed_ms": 2553.598537,
+          "source_at_ns": 1229903157152389,
+          "raw_byte_end": 97890,
+          "text": "ijklmnopqrstuvwxyz 01234567",
+          "observed_source_offsets": [
+            25
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2667.9608899999876,
+          "source_elapsed_ms": 2633.651327,
+          "source_at_ns": 1229903237205179,
+          "raw_byte_end": 98389,
+          "text": "jklmnopqrstuvwxyz 012345678",
+          "observed_source_offsets": [
+            26
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2755.9253800000297,
+          "source_elapsed_ms": 2713.950778,
+          "source_at_ns": 1229903317504630,
+          "raw_byte_end": 98888,
+          "text": "klmnopqrstuvwxyz 0123456789",
+          "observed_source_offsets": [
+            27
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2844.1645649999846,
+          "source_elapsed_ms": 2796.028156,
+          "source_at_ns": 1229903399582008,
+          "raw_byte_end": 99387,
+          "text": "lmnopqrstuvwxyz 0123456789 ",
+          "observed_source_offsets": [
+            28
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2901.7128939999966,
+          "source_elapsed_ms": 2876.179994,
+          "source_at_ns": 1229903479733846,
+          "raw_byte_end": 99887,
+          "text": "mnopqrstuvwxyz 0123456789 ·",
+          "observed_source_offsets": [
+            29
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2987.7677699999185,
+          "source_elapsed_ms": 2956.640438,
+          "source_at_ns": 1229903560194290,
+          "raw_byte_end": 100387,
+          "text": "nopqrstuvwxyz 0123456789 · ",
+          "observed_source_offsets": [
+            30
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3079.845532999956,
+          "source_elapsed_ms": 3044.301383,
+          "source_at_ns": 1229903647855235,
+          "raw_byte_end": 100884,
+          "text": "opqrstuvwxyz 0123456789 · V",
+          "observed_source_offsets": [
+            31
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3172.3169500000076,
+          "source_elapsed_ms": 3127.505867,
+          "source_at_ns": 1229903731059719,
+          "raw_byte_end": 101384,
+          "text": "pqrstuvwxyz 0123456789 · VI",
+          "observed_source_offsets": [
+            32
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3236.6039739999687,
+          "source_elapsed_ms": 3204.201804,
+          "source_at_ns": 1229903807755656,
+          "raw_byte_end": 101934,
+          "text": "qrstuvwxyz 0123456789 · VIS",
+          "observed_source_offsets": [
+            33
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3322.169753999915,
+          "source_elapsed_ms": 3284.732693,
+          "source_at_ns": 1229903888286545,
+          "raw_byte_end": 102534,
+          "text": "rstuvwxyz 0123456789 · VIS4",
+          "observed_source_offsets": [
+            34
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3400.5434269999387,
+          "source_elapsed_ms": 3364.622147,
+          "source_at_ns": 1229903968175999,
+          "raw_byte_end": 103134,
+          "text": "stuvwxyz 0123456789 · VIS41",
+          "observed_source_offsets": [
+            35
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3482.9787929999875,
+          "source_elapsed_ms": 3444.705153,
+          "source_at_ns": 1229904048259005,
+          "raw_byte_end": 103734,
+          "text": "tuvwxyz 0123456789 · VIS41 ",
+          "observed_source_offsets": [
+            36
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3564.832914999919,
+          "source_elapsed_ms": 3525.011003,
+          "source_at_ns": 1229904128564855,
+          "raw_byte_end": 104334,
+          "text": "uvwxyz 0123456789 · VIS41 l",
+          "observed_source_offsets": [
+            37
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3642.1991999999154,
+          "source_elapsed_ms": 3604.709331,
+          "source_at_ns": 1229904208263183,
+          "raw_byte_end": 104934,
+          "text": "vwxyz 0123456789 · VIS41 lo",
+          "observed_source_offsets": [
+            38
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3728.800950999954,
+          "source_elapsed_ms": 3685.230826,
+          "source_at_ns": 1229904288784678,
+          "raw_byte_end": 105534,
+          "text": "wxyz 0123456789 · VIS41 lon",
+          "observed_source_offsets": [
+            39
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3806.158041000017,
+          "source_elapsed_ms": 3766.347186,
+          "source_at_ns": 1229904369901038,
+          "raw_byte_end": 106134,
+          "text": "xyz 0123456789 · VIS41 long",
+          "observed_source_offsets": [
+            40
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3902.4495589999715,
+          "source_elapsed_ms": 3846.862654,
+          "source_at_ns": 1229904450416506,
+          "raw_byte_end": 106734,
+          "text": "yz 0123456789 · VIS41 long-",
+          "observed_source_offsets": [
+            41
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3956.4668019999517,
+          "source_elapsed_ms": 3925.458609,
+          "source_at_ns": 1229904529012461,
+          "raw_byte_end": 107334,
+          "text": "z 0123456789 · VIS41 long-t",
+          "observed_source_offsets": [
+            42
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4056.0446369999554,
+          "source_elapsed_ms": 4024.962864,
+          "source_at_ns": 1229904628516716,
+          "raw_byte_end": 107934,
+          "text": " 0123456789 · VIS41 long-ti",
+          "observed_source_offsets": [
+            43
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4113.684354999918,
+          "source_elapsed_ms": 4086.397234,
+          "source_at_ns": 1229904689951086,
+          "raw_byte_end": 108534,
+          "text": "0123456789 · VIS41 long-tit",
+          "observed_source_offsets": [
+            44
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4203.113419999951,
+          "source_elapsed_ms": 4166.496675,
+          "source_at_ns": 1229904770050527,
+          "raw_byte_end": 109134,
+          "text": "123456789 · VIS41 long-titl",
+          "observed_source_offsets": [
+            45
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4288.0312749999575,
+          "source_elapsed_ms": 4246.681163,
+          "source_at_ns": 1229904850235015,
+          "raw_byte_end": 109734,
+          "text": "23456789 · VIS41 long-title",
+          "observed_source_offsets": [
+            46
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4364.295561000006,
+          "source_elapsed_ms": 4326.757257,
+          "source_at_ns": 1229904930311109,
+          "raw_byte_end": 110334,
+          "text": "3456789 · VIS41 long-title ",
+          "observed_source_offsets": [
+            47
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4446.16460499994,
+          "source_elapsed_ms": 4407.439165,
+          "source_at_ns": 1229905010993017,
+          "raw_byte_end": 110934,
+          "text": "456789 · VIS41 long-title a",
+          "observed_source_offsets": [
+            48
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4522.854060999933,
+          "source_elapsed_ms": 4487.316409,
+          "source_at_ns": 1229905090870261,
+          "raw_byte_end": 111534,
+          "text": "56789 · VIS41 long-title ab",
+          "observed_source_offsets": [
+            49
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4599.514804999926,
+          "source_elapsed_ms": 4567.326506,
+          "source_at_ns": 1229905170880358,
+          "raw_byte_end": 112133,
+          "text": "6789 · VIS41 long-title abc",
+          "observed_source_offsets": [
+            50
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4683.0433669999475,
+          "source_elapsed_ms": 4647.299385,
+          "source_at_ns": 1229905250853237,
+          "raw_byte_end": 112682,
+          "text": "789 · VIS41 long-title abcd",
+          "observed_source_offsets": [
+            51
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4773.290173999965,
+          "source_elapsed_ms": 4727.446037,
+          "source_at_ns": 1229905330999889,
+          "raw_byte_end": 113182,
+          "text": "89 · VIS41 long-title abcde",
+          "observed_source_offsets": [
+            52
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4845.048497000011,
+          "source_elapsed_ms": 4807.602333,
+          "source_at_ns": 1229905411156185,
+          "raw_byte_end": 113679,
+          "text": "9 · VIS41 long-title abcdef",
+          "observed_source_offsets": [
+            53
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4934.526766999974,
+          "source_elapsed_ms": 4892.641289,
+          "source_at_ns": 1229905496195141,
+          "raw_byte_end": 114179,
+          "text": " · VIS41 long-title abcdefg",
+          "observed_source_offsets": [
+            54
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 5592.016561999917,
+          "source_elapsed_ms": 4970.356179,
+          "source_at_ns": 1229905573910031,
+          "raw_byte_end": 114679,
+          "text": "· VIS41 long-title abcdefgh",
+          "observed_source_offsets": [
+            55
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 5614.681594999973,
+          "source_elapsed_ms": 5066.716661,
+          "source_at_ns": 1229905670270513,
+          "raw_byte_end": 115178,
+          "text": " VIS41 long-title abcdefghi",
+          "observed_source_offsets": [
+            56
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 5641.8822849999415,
+          "source_elapsed_ms": 5146.193633,
+          "source_at_ns": 1229905749747485,
+          "raw_byte_end": 115487,
+          "text": "VIS41 long-title abcdefghij",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ],
+      "captures": [
+        {
+          "offset": 1,
+          "elapsed_ms": 641.1086430000141,
+          "source_elapsed_ms": 614.938865
+        },
+        {
+          "offset": 2,
+          "elapsed_ms": 1286.3346729999175,
+          "source_elapsed_ms": 697.552379
+        },
+        {
+          "offset": 54,
+          "elapsed_ms": 4934.526766999974,
+          "source_elapsed_ms": 4892.641289
+        }
+      ],
+      "first_changed_ms": 641.1086430000141,
+      "changed": true,
+      "returned_to_entered_text": true,
+      "exactly_one_pointer_input": true,
+      "owner_rows_unchanged": true,
+      "requests_unchanged": true,
+      "project_unchanged": true,
+      "idle": "long-idle",
+      "checks_ok": true
+    }
+  ],
+  "idle": [
+    {
+      "label": "long-idle",
+      "start": {
+        "at_ns": 1229907331059390,
+        "kind": "process_sample",
+        "request_id": "long-idle-start",
+        "pid": 1769653,
+        "cpu_ticks": 228,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1769653,
+            "voluntary": 472,
+            "involuntary": 1515
+          },
+          {
+            "tid": 1769654,
+            "voluntary": 764,
+            "involuntary": 425
+          },
+          {
+            "tid": 1769655,
+            "voluntary": 712,
+            "involuntary": 23
+          },
+          {
+            "tid": 1769656,
+            "voluntary": 156,
+            "involuntary": 50
+          },
+          {
+            "tid": 1769657,
+            "voluntary": 491,
+            "involuntary": 183
+          },
+          {
+            "tid": 1769658,
+            "voluntary": 313,
+            "involuntary": 267
+          },
+          {
+            "tid": 1769659,
+            "voluntary": 123,
+            "involuntary": 12
+          },
+          {
+            "tid": 1769660,
+            "voluntary": 129,
+            "involuntary": 13
+          },
+          {
+            "tid": 1769661,
+            "voluntary": 118,
+            "involuntary": 8
+          },
+          {
+            "tid": 1769695,
+            "voluntary": 135,
+            "involuntary": 20
+          },
+          {
+            "tid": 1769696,
+            "voluntary": 106,
+            "involuntary": 13
+          },
+          {
+            "tid": 1769698,
+            "voluntary": 23,
+            "involuntary": 0
+          },
+          {
+            "tid": 1769699,
+            "voluntary": 247,
+            "involuntary": 182
+          },
+          {
+            "tid": 1769700,
+            "voluntary": 270,
+            "involuntary": 161
+          },
+          {
+            "tid": 1769701,
+            "voluntary": 257,
+            "involuntary": 200
+          },
+          {
+            "tid": 1769702,
+            "voluntary": 263,
+            "involuntary": 158
+          },
+          {
+            "tid": 1769703,
+            "voluntary": 263,
+            "involuntary": 193
+          },
+          {
+            "tid": 1769715,
+            "voluntary": 105,
+            "involuntary": 121
+          },
+          {
+            "tid": 1769719,
+            "voluntary": 10,
+            "involuntary": 41
+          },
+          {
+            "tid": 1769720,
+            "voluntary": 18,
+            "involuntary": 18
+          },
+          {
+            "tid": 1769721,
+            "voluntary": 13,
+            "involuntary": 7
+          }
+        ],
+        "voluntary_context_switches": 4988,
+        "involuntary_context_switches": 3610
+      },
+      "end": {
+        "at_ns": 1229908849679172,
+        "kind": "process_sample",
+        "request_id": "long-idle-end",
+        "pid": 1769653,
+        "cpu_ticks": 235,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1769653,
+            "voluntary": 501,
+            "involuntary": 1531
+          },
+          {
+            "tid": 1769654,
+            "voluntary": 765,
+            "involuntary": 425
+          },
+          {
+            "tid": 1769655,
+            "voluntary": 736,
+            "involuntary": 23
+          },
+          {
+            "tid": 1769656,
+            "voluntary": 157,
+            "involuntary": 50
+          },
+          {
+            "tid": 1769657,
+            "voluntary": 491,
+            "involuntary": 183
+          },
+          {
+            "tid": 1769658,
+            "voluntary": 313,
+            "involuntary": 267
+          },
+          {
+            "tid": 1769659,
+            "voluntary": 126,
+            "involuntary": 12
+          },
+          {
+            "tid": 1769660,
+            "voluntary": 131,
+            "involuntary": 13
+          },
+          {
+            "tid": 1769661,
+            "voluntary": 122,
+            "involuntary": 8
+          },
+          {
+            "tid": 1769695,
+            "voluntary": 135,
+            "involuntary": 20
+          },
+          {
+            "tid": 1769696,
+            "voluntary": 110,
+            "involuntary": 14
+          },
+          {
+            "tid": 1769698,
+            "voluntary": 23,
+            "involuntary": 0
+          },
+          {
+            "tid": 1769699,
+            "voluntary": 285,
+            "involuntary": 286
+          },
+          {
+            "tid": 1769700,
+            "voluntary": 306,
+            "involuntary": 185
+          },
+          {
+            "tid": 1769701,
+            "voluntary": 308,
+            "involuntary": 217
+          },
+          {
+            "tid": 1769702,
+            "voluntary": 307,
+            "involuntary": 187
+          },
+          {
+            "tid": 1769703,
+            "voluntary": 299,
+            "involuntary": 322
+          },
+          {
+            "tid": 1769715,
+            "voluntary": 114,
+            "involuntary": 123
+          }
+        ],
+        "voluntary_context_switches": 5229,
+        "involuntary_context_switches": 3866
+      },
+      "duration_ms": 1518.619782,
+      "cpu_ticks": 7,
+      "cpu_ms": 70,
+      "cpu_percent": 4.609448713213193,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": false,
+      "voluntary_context_switches": 241,
+      "involuntary_context_switches": 256,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    }
+  ],
+  "checks": [
+    {
+      "label": "root-b-short",
+      "requested_title": "Short",
+      "owner_rows": [
+        {
+          "id": "ses_f1a9cc01affebqJftke1YBQbBl",
+          "project_id": "796b94c3c1fe746b3ca69bd645f132061124b7b5",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "silent-planet",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-05-upstream-120x40-off-horizontal-status/project",
+          "path": "",
+          "title": "VIS41 fixture A",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790554882050,
+          "time_updated": 1790554882245,
+          "time_idle": 1790554882278,
+          "time_viewed": 1790554882278,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        },
+        {
+          "id": "ses_f1a9cb667ffeUga0C0q2SSLuJ3",
+          "project_id": "796b94c3c1fe746b3ca69bd645f132061124b7b5",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "misty-mountain",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-05-upstream-120x40-off-horizontal-status/project",
+          "path": "",
+          "title": "Short",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790554884516,
+          "time_updated": 1790554887421,
+          "time_idle": 1790554884627,
+          "time_viewed": 1790554884627,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        }
+      ],
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      }
+    },
+    {
+      "label": "long",
+      "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "owner_rows": [
+        {
+          "id": "ses_f1a9cc01affebqJftke1YBQbBl",
+          "project_id": "796b94c3c1fe746b3ca69bd645f132061124b7b5",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "silent-planet",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-05-upstream-120x40-off-horizontal-status/project",
+          "path": "",
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790554882050,
+          "time_updated": 1790554889395,
+          "time_idle": 1790554882278,
+          "time_viewed": 1790554882278,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        },
+        {
+          "id": "ses_f1a9cb667ffeUga0C0q2SSLuJ3",
+          "project_id": "796b94c3c1fe746b3ca69bd645f132061124b7b5",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "misty-mountain",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-05-upstream-120x40-off-horizontal-status/project",
+          "path": "",
+          "title": "Short",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790554884516,
+          "time_updated": 1790554887421,
+          "time_idle": 1790554884627,
+          "time_viewed": 1790554884627,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        }
+      ],
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      }
+    }
+  ],
+  "counts": [],
+  "observed_phase_matching": "Source-title text and actual glyph observed independently, never elapsed global clock",
+  "root_b": "ses_f1a9cb667ffeUga0C0q2SSLuJ3",
+  "root_a": "ses_f1a9cc01affebqJftke1YBQbBl"
+}

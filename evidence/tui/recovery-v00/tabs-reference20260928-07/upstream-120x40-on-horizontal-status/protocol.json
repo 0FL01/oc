@@ -1,0 +1,2964 @@
+[
+  {
+    "at_ns": 1230374790257297,
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+    "env_names": [
+      "COLORTERM",
+      "HOME",
+      "LANG",
+      "LC_ALL",
+      "OC_TEST_ALLOW_LOOPBACK",
+      "OPENCODE_CONFIG_CONTENT",
+      "OPENCODE_CONFIG_PROJECT_DISABLE",
+      "OPENCODE_DISABLE_AUTOUPDATE",
+      "OPENCODE_DISABLE_FILEWATCHER",
+      "OPENCODE_DISABLE_MODELS_FETCH",
+      "OPENCODE_TEST_HOME",
+      "PATH",
+      "SHELL",
+      "TERM",
+      "TZ",
+      "XDG_CACHE_HOME",
+      "XDG_CONFIG_HOME",
+      "XDG_DATA_HOME",
+      "XDG_STATE_HOME"
+    ],
+    "inherited_environment": false,
+    "version": "opencode v2.0.12",
+    "version_exit": 0,
+    "binary_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "config": {
+      "model": "fixture/fixture-model-1",
+      "plugins": [
+        "-opencode.models.dev"
+      ],
+      "share": "disabled",
+      "update": "disable",
+      "snapshots": false,
+      "compaction": {
+        "auto": false
+      },
+      "providers": {
+        "fixture": {
+          "name": "Fixture",
+          "package": "@opencode/ai/providers/openai/responses",
+          "settings": {
+            "baseURL": "http://127.0.0.1:40301/v1",
+            "apiKey": "fixture-not-secret"
+          },
+          "models": {
+            "fixture-model-1": {
+              "name": "VIS41 Fixture",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              }
+            }
+          }
+        }
+      },
+      "permissions": [
+        {
+          "action": "*",
+          "resource": "*",
+          "effect": "deny"
+        }
+      ]
+    },
+    "cli_config": {
+      "theme": {
+        "name": "opencode",
+        "mode": "dark"
+      },
+      "animations": true,
+      "session": {
+        "sidebar": "hide",
+        "tps": false
+      },
+      "tabs": {
+        "layout": "horizontal",
+        "indicators": "status"
+      },
+      "debug": {
+        "devtools": false
+      },
+      "attention": {
+        "notifications": false,
+        "sound": false
+      },
+      "cursor": {
+        "style": "block",
+        "blinking": false
+      }
+    },
+    "history_ingress": false,
+    "authenticated_api_calls": 0
+  },
+  {
+    "at_ns": 1230374793551236,
+    "kind": "process_started",
+    "pid": 1776062
+  },
+  {
+    "at_ns": 1230375368690709,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G10xMDtyZ2I6ZWVlZS9lZWVlL2VlZWUbXA=="
+  },
+  {
+    "at_ns": 1230375368777559,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G10xMTtyZ2I6MGEwYS8wYTBhLzBhMGEbXA=="
+  },
+  {
+    "at_ns": 1230375368810208,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1sxOzFS"
+  },
+  {
+    "at_ns": 1230375368837089,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1s/MTAxNjsyJHk="
+  },
+  {
+    "at_ns": 1230375372573905,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1s/MjAyNzswJHk="
+  },
+  {
+    "at_ns": 1230375372633415,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1s/MjAzMTswJHk="
+  },
+  {
+    "at_ns": 1230375372660146,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1s/MTAwNDsyJHk="
+  },
+  {
+    "at_ns": 1230375372682929,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1s/MjAwNDsyJHk="
+  },
+  {
+    "at_ns": 1230375372727156,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1s/MjAyNjsyJHk="
+  },
+  {
+    "at_ns": 1230375372749419,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1s/MTsyYw=="
+  },
+  {
+    "at_ns": 1230375374082167,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1sxOzFS"
+  },
+  {
+    "at_ns": 1230375375213510,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1sxOzFS"
+  },
+  {
+    "at_ns": 1230375467794306,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ns": 1230375467854507,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ns": 1230375467874757,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ns": 1230375467891232,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ns": 1230375478236007,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ns": 1230375478294265,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ns": 1230376370140652,
+    "kind": "input_written",
+    "label": "seed_prompt",
+    "base64": "G1syMDB+VklTNDEgc2VlZC1hOiBubyB0b29scyBvciBmaWxlc3lzdGVtIGVmZmVjdHMuG1syMDF+"
+  },
+  {
+    "at_ns": 1230376370234964,
+    "kind": "input_written",
+    "label": "seed_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1230376593877294,
+    "kind": "provider",
+    "index": 0,
+    "operation": "title",
+    "case": "seed-a",
+    "valid": true,
+    "body_sha256": "6b571288eb1f37d52481a8eb44149081caa2fec09799810536c157baaa0e7713",
+    "input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          }
+        ]
+      }
+    ],
+    "tool_names": []
+  },
+  {
+    "at_ns": 1230376594282674,
+    "kind": "provider_completed",
+    "case": "seed-a",
+    "index": 0,
+    "operation": "title"
+  },
+  {
+    "at_ns": 1230376605306751,
+    "kind": "provider",
+    "index": 1,
+    "operation": "main",
+    "case": "seed-a",
+    "valid": true,
+    "body_sha256": "17220101e9aede1df0976e5091e6b4d7c4c53141136e872460da28dd5d45a1ad",
+    "input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          }
+        ]
+      }
+    ],
+    "tool_names": []
+  },
+  {
+    "at_ns": 1230376610018975,
+    "kind": "provider_completed",
+    "case": "seed-a",
+    "index": 1,
+    "operation": "main"
+  },
+  {
+    "at_ns": 1230378512069687,
+    "kind": "input_written",
+    "label": "new_root_type",
+    "base64": "L25ldw=="
+  },
+  {
+    "at_ns": 1230378605263817,
+    "kind": "input_written",
+    "label": "new_root_enter",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1230378765419653,
+    "kind": "input_written",
+    "label": "seed_prompt",
+    "base64": "G1syMDB+VklTNDEgc2VlZC1iOiBubyB0b29scyBvciBmaWxlc3lzdGVtIGVmZmVjdHMuG1syMDF+"
+  },
+  {
+    "at_ns": 1230378765483468,
+    "kind": "input_written",
+    "label": "seed_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1230378944415373,
+    "kind": "provider",
+    "index": 2,
+    "operation": "title",
+    "case": "seed-b",
+    "valid": true,
+    "body_sha256": "8a81ada6937a8dd3f145f8dc11784fc29c3177907787bcd72603d4f7c08f87f4",
+    "input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          }
+        ]
+      }
+    ],
+    "tool_names": []
+  },
+  {
+    "at_ns": 1230378944679651,
+    "kind": "provider_completed",
+    "case": "seed-b",
+    "index": 2,
+    "operation": "title"
+  },
+  {
+    "at_ns": 1230378959009937,
+    "kind": "provider",
+    "index": 3,
+    "operation": "main",
+    "case": "seed-b",
+    "valid": true,
+    "body_sha256": "609d4fb0a4260cd38a87ac617e48509bffc757b0a0135b05a8cabc0293e4a8f9",
+    "input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          }
+        ]
+      }
+    ],
+    "tool_names": []
+  },
+  {
+    "at_ns": 1230378959614156,
+    "kind": "provider_completed",
+    "case": "seed-b",
+    "index": 3,
+    "operation": "main"
+  },
+  {
+    "at_ns": 1230380678408602,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1230380679263810,
+    "kind": "input_written",
+    "label": "rename_ctrl_r",
+    "base64": "Eg=="
+  },
+  {
+    "at_ns": 1230380755481802,
+    "kind": "input_written",
+    "label": "rename_home",
+    "base64": "G1tI"
+  },
+  {
+    "at_ns": 1230380836142201,
+    "kind": "input_written",
+    "label": "rename_shift_end",
+    "base64": "G1sxOzJG"
+  },
+  {
+    "at_ns": 1230380918059744,
+    "kind": "input_written",
+    "label": "rename_title_paste",
+    "base64": "G1syMDB+U2hvcnQbWzIwMX4="
+  },
+  {
+    "at_ns": 1230381634989933,
+    "kind": "input_written",
+    "label": "rename_commit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1230382204960935,
+    "kind": "owner_snapshot",
+    "request_id": "root-b-short-rename-owner",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_v2",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "curious-otter",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "VIS41 fixture A",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555366208,
+            "time_updated": 1790555366414,
+            "time_idle": 1790555366438,
+            "time_viewed": 1790555366438,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          },
+          {
+            "id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "shiny-pixel",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "Short",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555368601,
+            "time_updated": 1790555371427,
+            "time_idle": 1790555368791,
+            "time_viewed": 1790555368791,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_message",
+        "count": 6,
+        "rows": [
+          {
+            "id": "msg_0e56aa32d001rGWgZvNhSFJXZ5",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555366361,
+            "time_updated": 1790555366362,
+            "data": "{\"time\":{\"created\":1790555366361},\"text\":\"VIS41 seed-a: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aa3ef001JdWA33TY3V6ot3",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555366388,
+            "time_updated": 1790555366436,
+            "data": "{\"time\":{\"created\":1790555366388,\"streamed\":1790555366433,\"completed\":1790555366435},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-a\",\"state\":{\"itemId\":\"msg_vis41_1\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_1\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aa4260011QU0dQ3OPXp4NN",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555366438,
+            "time_updated": 1790555366439,
+            "data": "{\"time\":{\"created\":1790555366438},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e56aac8b001HA7mUQe3KACH7h",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555368712,
+            "time_updated": 1790555368713,
+            "data": "{\"time\":{\"created\":1790555368712},\"text\":\"VIS41 seed-b: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aad1f001xIidAoW115MMqO",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555368743,
+            "time_updated": 1790555368788,
+            "data": "{\"time\":{\"created\":1790555368743,\"streamed\":1790555368785,\"completed\":1790555368787},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-b\",\"state\":{\"itemId\":\"msg_vis41_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_3\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aad56001udamMtWInLmMla",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555368791,
+            "time_updated": 1790555368791,
+            "data": "{\"time\":{\"created\":1790555368791},\"outcome\":\"succeeded\"}"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+                  "title": "VIS41 fixture A"
+                },
+                {
+                  "sessionID": "ses_f1a95537affe3XbBYibZluwaNi",
+                  "title": "Short"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1230382223679477,
+    "kind": "input_written",
+    "label": "tab_select_down",
+    "base64": "G1s8MDs1OzFN"
+  },
+  {
+    "at_ns": 1230382223741479,
+    "kind": "input_written",
+    "label": "tab_select_up",
+    "base64": "G1s8MDs1OzFt"
+  },
+  {
+    "at_ns": 1230382336641959,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1230382836831770,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1230382836952823,
+    "kind": "input_written",
+    "label": "rename_ctrl_r",
+    "base64": "Eg=="
+  },
+  {
+    "at_ns": 1230382928517609,
+    "kind": "input_written",
+    "label": "rename_home",
+    "base64": "G1tI"
+  },
+  {
+    "at_ns": 1230383008951508,
+    "kind": "input_written",
+    "label": "rename_shift_end",
+    "base64": "G1sxOzJG"
+  },
+  {
+    "at_ns": 1230383088707216,
+    "kind": "input_written",
+    "label": "rename_title_paste",
+    "base64": "G1syMDB+VklTNDEgbG9uZy10aXRsZSBhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5eiAwMTIzNDU2Nzg5G1syMDF+"
+  },
+  {
+    "at_ns": 1230383728042842,
+    "kind": "input_written",
+    "label": "rename_commit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1230384274557037,
+    "kind": "owner_snapshot",
+    "request_id": "long-rename-owner",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_v2",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "curious-otter",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555366208,
+            "time_updated": 1790555373519,
+            "time_idle": 1790555366438,
+            "time_viewed": 1790555366438,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          },
+          {
+            "id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "shiny-pixel",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "Short",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555368601,
+            "time_updated": 1790555371427,
+            "time_idle": 1790555368791,
+            "time_viewed": 1790555368791,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_message",
+        "count": 6,
+        "rows": [
+          {
+            "id": "msg_0e56aa32d001rGWgZvNhSFJXZ5",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555366361,
+            "time_updated": 1790555366362,
+            "data": "{\"time\":{\"created\":1790555366361},\"text\":\"VIS41 seed-a: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aa3ef001JdWA33TY3V6ot3",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555366388,
+            "time_updated": 1790555366436,
+            "data": "{\"time\":{\"created\":1790555366388,\"streamed\":1790555366433,\"completed\":1790555366435},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-a\",\"state\":{\"itemId\":\"msg_vis41_1\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_1\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aa4260011QU0dQ3OPXp4NN",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555366438,
+            "time_updated": 1790555366439,
+            "data": "{\"time\":{\"created\":1790555366438},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e56aac8b001HA7mUQe3KACH7h",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555368712,
+            "time_updated": 1790555368713,
+            "data": "{\"time\":{\"created\":1790555368712},\"text\":\"VIS41 seed-b: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aad1f001xIidAoW115MMqO",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555368743,
+            "time_updated": 1790555368788,
+            "data": "{\"time\":{\"created\":1790555368743,\"streamed\":1790555368785,\"completed\":1790555368787},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-b\",\"state\":{\"itemId\":\"msg_vis41_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_3\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aad56001udamMtWInLmMla",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555368791,
+            "time_updated": 1790555368791,
+            "data": "{\"time\":{\"created\":1790555368791},\"outcome\":\"succeeded\"}"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+                  "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789"
+                },
+                {
+                  "sessionID": "ses_f1a95537affe3XbBYibZluwaNi",
+                  "title": "Short"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1230384878112021,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1230384978833855,
+    "kind": "owner_snapshot",
+    "request_id": "long-before",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_v2",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "curious-otter",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555366208,
+            "time_updated": 1790555373519,
+            "time_idle": 1790555366438,
+            "time_viewed": 1790555366438,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          },
+          {
+            "id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "shiny-pixel",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "Short",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555368601,
+            "time_updated": 1790555371427,
+            "time_idle": 1790555368791,
+            "time_viewed": 1790555368791,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_message",
+        "count": 6,
+        "rows": [
+          {
+            "id": "msg_0e56aa32d001rGWgZvNhSFJXZ5",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555366361,
+            "time_updated": 1790555366362,
+            "data": "{\"time\":{\"created\":1790555366361},\"text\":\"VIS41 seed-a: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aa3ef001JdWA33TY3V6ot3",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555366388,
+            "time_updated": 1790555366436,
+            "data": "{\"time\":{\"created\":1790555366388,\"streamed\":1790555366433,\"completed\":1790555366435},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-a\",\"state\":{\"itemId\":\"msg_vis41_1\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_1\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aa4260011QU0dQ3OPXp4NN",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555366438,
+            "time_updated": 1790555366439,
+            "data": "{\"time\":{\"created\":1790555366438},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e56aac8b001HA7mUQe3KACH7h",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555368712,
+            "time_updated": 1790555368713,
+            "data": "{\"time\":{\"created\":1790555368712},\"text\":\"VIS41 seed-b: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aad1f001xIidAoW115MMqO",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555368743,
+            "time_updated": 1790555368788,
+            "data": "{\"time\":{\"created\":1790555368743,\"streamed\":1790555368785,\"completed\":1790555368787},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-b\",\"state\":{\"itemId\":\"msg_vis41_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_3\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aad56001udamMtWInLmMla",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555368791,
+            "time_updated": 1790555368791,
+            "data": "{\"time\":{\"created\":1790555368791},\"outcome\":\"succeeded\"}"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+                  "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789"
+                },
+                {
+                  "sessionID": "ses_f1a95537affe3XbBYibZluwaNi",
+                  "title": "Short"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1230385084534926,
+    "kind": "input_written",
+    "label": "long-enter",
+    "base64": "G1s8MzU7NTsxTQ=="
+  },
+  {
+    "at_ns": 1230391714828044,
+    "kind": "process_sample",
+    "request_id": "long-idle-start",
+    "pid": 1776062,
+    "cpu_ticks": 250,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1776062,
+        "voluntary": 678,
+        "involuntary": 1486
+      },
+      {
+        "tid": 1776063,
+        "voluntary": 727,
+        "involuntary": 461
+      },
+      {
+        "tid": 1776064,
+        "voluntary": 942,
+        "involuntary": 66
+      },
+      {
+        "tid": 1776065,
+        "voluntary": 156,
+        "involuntary": 16
+      },
+      {
+        "tid": 1776066,
+        "voluntary": 459,
+        "involuntary": 365
+      },
+      {
+        "tid": 1776067,
+        "voluntary": 299,
+        "involuntary": 177
+      },
+      {
+        "tid": 1776068,
+        "voluntary": 156,
+        "involuntary": 25
+      },
+      {
+        "tid": 1776069,
+        "voluntary": 154,
+        "involuntary": 13
+      },
+      {
+        "tid": 1776070,
+        "voluntary": 161,
+        "involuntary": 4
+      },
+      {
+        "tid": 1776086,
+        "voluntary": 116,
+        "involuntary": 17
+      },
+      {
+        "tid": 1776088,
+        "voluntary": 21,
+        "involuntary": 3
+      },
+      {
+        "tid": 1776089,
+        "voluntary": 250,
+        "involuntary": 210
+      },
+      {
+        "tid": 1776090,
+        "voluntary": 270,
+        "involuntary": 213
+      },
+      {
+        "tid": 1776091,
+        "voluntary": 270,
+        "involuntary": 158
+      },
+      {
+        "tid": 1776092,
+        "voluntary": 251,
+        "involuntary": 145
+      },
+      {
+        "tid": 1776093,
+        "voluntary": 275,
+        "involuntary": 149
+      },
+      {
+        "tid": 1776143,
+        "voluntary": 96,
+        "involuntary": 117
+      },
+      {
+        "tid": 1776146,
+        "voluntary": 9,
+        "involuntary": 23
+      },
+      {
+        "tid": 1776147,
+        "voluntary": 17,
+        "involuntary": 20
+      },
+      {
+        "tid": 1776148,
+        "voluntary": 14,
+        "involuntary": 3
+      }
+    ],
+    "voluntary_context_switches": 5321,
+    "involuntary_context_switches": 3671
+  },
+  {
+    "at_ns": 1230393234588282,
+    "kind": "process_sample",
+    "request_id": "long-idle-end",
+    "pid": 1776062,
+    "cpu_ticks": 257,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1776062,
+        "voluntary": 703,
+        "involuntary": 1526
+      },
+      {
+        "tid": 1776063,
+        "voluntary": 728,
+        "involuntary": 461
+      },
+      {
+        "tid": 1776064,
+        "voluntary": 966,
+        "involuntary": 72
+      },
+      {
+        "tid": 1776065,
+        "voluntary": 156,
+        "involuntary": 16
+      },
+      {
+        "tid": 1776066,
+        "voluntary": 459,
+        "involuntary": 365
+      },
+      {
+        "tid": 1776067,
+        "voluntary": 299,
+        "involuntary": 177
+      },
+      {
+        "tid": 1776068,
+        "voluntary": 160,
+        "involuntary": 25
+      },
+      {
+        "tid": 1776069,
+        "voluntary": 158,
+        "involuntary": 13
+      },
+      {
+        "tid": 1776070,
+        "voluntary": 166,
+        "involuntary": 4
+      },
+      {
+        "tid": 1776086,
+        "voluntary": 116,
+        "involuntary": 17
+      },
+      {
+        "tid": 1776088,
+        "voluntary": 21,
+        "involuntary": 3
+      },
+      {
+        "tid": 1776089,
+        "voluntary": 282,
+        "involuntary": 242
+      },
+      {
+        "tid": 1776090,
+        "voluntary": 294,
+        "involuntary": 244
+      },
+      {
+        "tid": 1776091,
+        "voluntary": 296,
+        "involuntary": 185
+      },
+      {
+        "tid": 1776092,
+        "voluntary": 271,
+        "involuntary": 179
+      },
+      {
+        "tid": 1776093,
+        "voluntary": 299,
+        "involuntary": 183
+      },
+      {
+        "tid": 1776143,
+        "voluntary": 103,
+        "involuntary": 122
+      }
+    ],
+    "voluntary_context_switches": 5477,
+    "involuntary_context_switches": 3834
+  },
+  {
+    "at_ns": 1230393537927109,
+    "kind": "owner_snapshot",
+    "request_id": "long-after",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_v2",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "curious-otter",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555366208,
+            "time_updated": 1790555373519,
+            "time_idle": 1790555366438,
+            "time_viewed": 1790555366438,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          },
+          {
+            "id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "shiny-pixel",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "Short",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555368601,
+            "time_updated": 1790555371427,
+            "time_idle": 1790555368791,
+            "time_viewed": 1790555368791,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_message",
+        "count": 6,
+        "rows": [
+          {
+            "id": "msg_0e56aa32d001rGWgZvNhSFJXZ5",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555366361,
+            "time_updated": 1790555366362,
+            "data": "{\"time\":{\"created\":1790555366361},\"text\":\"VIS41 seed-a: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aa3ef001JdWA33TY3V6ot3",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555366388,
+            "time_updated": 1790555366436,
+            "data": "{\"time\":{\"created\":1790555366388,\"streamed\":1790555366433,\"completed\":1790555366435},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-a\",\"state\":{\"itemId\":\"msg_vis41_1\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_1\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aa4260011QU0dQ3OPXp4NN",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555366438,
+            "time_updated": 1790555366439,
+            "data": "{\"time\":{\"created\":1790555366438},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e56aac8b001HA7mUQe3KACH7h",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555368712,
+            "time_updated": 1790555368713,
+            "data": "{\"time\":{\"created\":1790555368712},\"text\":\"VIS41 seed-b: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aad1f001xIidAoW115MMqO",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555368743,
+            "time_updated": 1790555368788,
+            "data": "{\"time\":{\"created\":1790555368743,\"streamed\":1790555368785,\"completed\":1790555368787},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-b\",\"state\":{\"itemId\":\"msg_vis41_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_3\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aad56001udamMtWInLmMla",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555368791,
+            "time_updated": 1790555368791,
+            "data": "{\"time\":{\"created\":1790555368791},\"outcome\":\"succeeded\"}"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+                  "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789"
+                },
+                {
+                  "sessionID": "ses_f1a95537affe3XbBYibZluwaNi",
+                  "title": "Short"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1230393556511340,
+    "kind": "input_written",
+    "label": "long-same-tab-motion",
+    "base64": "G1s8MzU7NjsxTQ=="
+  },
+  {
+    "at_ns": 1230395217243271,
+    "kind": "input_written",
+    "label": "long-nested-close-motion",
+    "base64": "G1s8MzU7MzE7MU0="
+  },
+  {
+    "at_ns": 1230396066177502,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1230396815683668,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1230396815752140,
+    "kind": "input_written",
+    "label": "rename_ctrl_r",
+    "base64": "Eg=="
+  },
+  {
+    "at_ns": 1230396908124174,
+    "kind": "input_written",
+    "label": "rename_home",
+    "base64": "G1tI"
+  },
+  {
+    "at_ns": 1230396987608272,
+    "kind": "input_written",
+    "label": "rename_shift_end",
+    "base64": "G1sxOzJG"
+  },
+  {
+    "at_ns": 1230397076956202,
+    "kind": "input_written",
+    "label": "rename_title_paste",
+    "base64": "G1syMDB+VklTNDEgbG9uZy10aXRsZSBhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5eiAwMTIzNDU2Nzg5G1syMDF+"
+  },
+  {
+    "at_ns": 1230397730545828,
+    "kind": "input_written",
+    "label": "rename_commit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1230398276389896,
+    "kind": "owner_snapshot",
+    "request_id": "inactive-long-rename-owner",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_v2",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "curious-otter",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555366208,
+            "time_updated": 1790555387523,
+            "time_idle": 1790555366438,
+            "time_viewed": 1790555366438,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          },
+          {
+            "id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "shiny-pixel",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "Short",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555368601,
+            "time_updated": 1790555371427,
+            "time_idle": 1790555368791,
+            "time_viewed": 1790555368791,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_message",
+        "count": 6,
+        "rows": [
+          {
+            "id": "msg_0e56aa32d001rGWgZvNhSFJXZ5",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555366361,
+            "time_updated": 1790555366362,
+            "data": "{\"time\":{\"created\":1790555366361},\"text\":\"VIS41 seed-a: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aa3ef001JdWA33TY3V6ot3",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555366388,
+            "time_updated": 1790555366436,
+            "data": "{\"time\":{\"created\":1790555366388,\"streamed\":1790555366433,\"completed\":1790555366435},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-a\",\"state\":{\"itemId\":\"msg_vis41_1\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_1\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aa4260011QU0dQ3OPXp4NN",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555366438,
+            "time_updated": 1790555366439,
+            "data": "{\"time\":{\"created\":1790555366438},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e56aac8b001HA7mUQe3KACH7h",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555368712,
+            "time_updated": 1790555368713,
+            "data": "{\"time\":{\"created\":1790555368712},\"text\":\"VIS41 seed-b: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aad1f001xIidAoW115MMqO",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555368743,
+            "time_updated": 1790555368788,
+            "data": "{\"time\":{\"created\":1790555368743,\"streamed\":1790555368785,\"completed\":1790555368787},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-b\",\"state\":{\"itemId\":\"msg_vis41_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_3\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aad56001udamMtWInLmMla",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555368791,
+            "time_updated": 1790555368791,
+            "data": "{\"time\":{\"created\":1790555368791},\"outcome\":\"succeeded\"}"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+                  "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789"
+                },
+                {
+                  "sessionID": "ses_f1a95537affe3XbBYibZluwaNi",
+                  "title": "Short"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1230398295096529,
+    "kind": "input_written",
+    "label": "tab_select_down",
+    "base64": "G1s8MDszNzsxTQ=="
+  },
+  {
+    "at_ns": 1230398295166816,
+    "kind": "input_written",
+    "label": "tab_select_up",
+    "base64": "G1s8MDszNzsxbQ=="
+  },
+  {
+    "at_ns": 1230398403702233,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1230398903563120,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1230399005983691,
+    "kind": "owner_snapshot",
+    "request_id": "inactive-before",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_v2",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "curious-otter",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555366208,
+            "time_updated": 1790555387523,
+            "time_idle": 1790555366438,
+            "time_viewed": 1790555366438,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          },
+          {
+            "id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "shiny-pixel",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "Short",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555368601,
+            "time_updated": 1790555371427,
+            "time_idle": 1790555368791,
+            "time_viewed": 1790555368791,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_message",
+        "count": 6,
+        "rows": [
+          {
+            "id": "msg_0e56aa32d001rGWgZvNhSFJXZ5",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555366361,
+            "time_updated": 1790555366362,
+            "data": "{\"time\":{\"created\":1790555366361},\"text\":\"VIS41 seed-a: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aa3ef001JdWA33TY3V6ot3",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555366388,
+            "time_updated": 1790555366436,
+            "data": "{\"time\":{\"created\":1790555366388,\"streamed\":1790555366433,\"completed\":1790555366435},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-a\",\"state\":{\"itemId\":\"msg_vis41_1\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_1\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aa4260011QU0dQ3OPXp4NN",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555366438,
+            "time_updated": 1790555366439,
+            "data": "{\"time\":{\"created\":1790555366438},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e56aac8b001HA7mUQe3KACH7h",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555368712,
+            "time_updated": 1790555368713,
+            "data": "{\"time\":{\"created\":1790555368712},\"text\":\"VIS41 seed-b: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aad1f001xIidAoW115MMqO",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555368743,
+            "time_updated": 1790555368788,
+            "data": "{\"time\":{\"created\":1790555368743,\"streamed\":1790555368785,\"completed\":1790555368787},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-b\",\"state\":{\"itemId\":\"msg_vis41_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_3\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aad56001udamMtWInLmMla",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555368791,
+            "time_updated": 1790555368791,
+            "data": "{\"time\":{\"created\":1790555368791},\"outcome\":\"succeeded\"}"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+                  "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789"
+                },
+                {
+                  "sessionID": "ses_f1a95537affe3XbBYibZluwaNi",
+                  "title": "Short"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1230399093383838,
+    "kind": "input_written",
+    "label": "inactive-enter",
+    "base64": "G1s8MzU7NTsxTQ=="
+  },
+  {
+    "at_ns": 1230405730049507,
+    "kind": "process_sample",
+    "request_id": "inactive-idle-start",
+    "pid": 1776062,
+    "cpu_ticks": 300,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1776062,
+        "voluntary": 1006,
+        "involuntary": 1995
+      },
+      {
+        "tid": 1776063,
+        "voluntary": 801,
+        "involuntary": 524
+      },
+      {
+        "tid": 1776064,
+        "voluntary": 1321,
+        "involuntary": 81
+      },
+      {
+        "tid": 1776065,
+        "voluntary": 168,
+        "involuntary": 21
+      },
+      {
+        "tid": 1776066,
+        "voluntary": 497,
+        "involuntary": 379
+      },
+      {
+        "tid": 1776067,
+        "voluntary": 315,
+        "involuntary": 177
+      },
+      {
+        "tid": 1776068,
+        "voluntary": 202,
+        "involuntary": 25
+      },
+      {
+        "tid": 1776069,
+        "voluntary": 194,
+        "involuntary": 17
+      },
+      {
+        "tid": 1776070,
+        "voluntary": 206,
+        "involuntary": 5
+      },
+      {
+        "tid": 1776086,
+        "voluntary": 127,
+        "involuntary": 17
+      },
+      {
+        "tid": 1776088,
+        "voluntary": 21,
+        "involuntary": 3
+      },
+      {
+        "tid": 1776089,
+        "voluntary": 436,
+        "involuntary": 379
+      },
+      {
+        "tid": 1776090,
+        "voluntary": 432,
+        "involuntary": 322
+      },
+      {
+        "tid": 1776091,
+        "voluntary": 423,
+        "involuntary": 262
+      },
+      {
+        "tid": 1776092,
+        "voluntary": 413,
+        "involuntary": 301
+      },
+      {
+        "tid": 1776093,
+        "voluntary": 438,
+        "involuntary": 269
+      },
+      {
+        "tid": 1776143,
+        "voluntary": 150,
+        "involuntary": 198
+      },
+      {
+        "tid": 1776413,
+        "voluntary": 2,
+        "involuntary": 0
+      },
+      {
+        "tid": 1776414,
+        "voluntary": 1,
+        "involuntary": 0
+      },
+      {
+        "tid": 1776415,
+        "voluntary": 1,
+        "involuntary": 0
+      },
+      {
+        "tid": 1776416,
+        "voluntary": 1,
+        "involuntary": 0
+      }
+    ],
+    "voluntary_context_switches": 7155,
+    "involuntary_context_switches": 4975
+  },
+  {
+    "at_ns": 1230407252501820,
+    "kind": "process_sample",
+    "request_id": "inactive-idle-end",
+    "pid": 1776062,
+    "cpu_ticks": 302,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1776062,
+        "voluntary": 1031,
+        "involuntary": 2015
+      },
+      {
+        "tid": 1776063,
+        "voluntary": 803,
+        "involuntary": 524
+      },
+      {
+        "tid": 1776064,
+        "voluntary": 1335,
+        "involuntary": 85
+      },
+      {
+        "tid": 1776065,
+        "voluntary": 168,
+        "involuntary": 21
+      },
+      {
+        "tid": 1776066,
+        "voluntary": 498,
+        "involuntary": 380
+      },
+      {
+        "tid": 1776067,
+        "voluntary": 316,
+        "involuntary": 178
+      },
+      {
+        "tid": 1776068,
+        "voluntary": 207,
+        "involuntary": 25
+      },
+      {
+        "tid": 1776069,
+        "voluntary": 200,
+        "involuntary": 17
+      },
+      {
+        "tid": 1776070,
+        "voluntary": 211,
+        "involuntary": 6
+      },
+      {
+        "tid": 1776086,
+        "voluntary": 127,
+        "involuntary": 17
+      },
+      {
+        "tid": 1776088,
+        "voluntary": 21,
+        "involuntary": 3
+      },
+      {
+        "tid": 1776089,
+        "voluntary": 462,
+        "involuntary": 398
+      },
+      {
+        "tid": 1776090,
+        "voluntary": 456,
+        "involuntary": 340
+      },
+      {
+        "tid": 1776091,
+        "voluntary": 452,
+        "involuntary": 280
+      },
+      {
+        "tid": 1776092,
+        "voluntary": 441,
+        "involuntary": 318
+      },
+      {
+        "tid": 1776093,
+        "voluntary": 464,
+        "involuntary": 270
+      },
+      {
+        "tid": 1776143,
+        "voluntary": 159,
+        "involuntary": 212
+      },
+      {
+        "tid": 1776413,
+        "voluntary": 2,
+        "involuntary": 0
+      },
+      {
+        "tid": 1776414,
+        "voluntary": 1,
+        "involuntary": 0
+      },
+      {
+        "tid": 1776415,
+        "voluntary": 1,
+        "involuntary": 0
+      },
+      {
+        "tid": 1776416,
+        "voluntary": 1,
+        "involuntary": 0
+      }
+    ],
+    "voluntary_context_switches": 7356,
+    "involuntary_context_switches": 5089
+  },
+  {
+    "at_ns": 1230407543575604,
+    "kind": "owner_snapshot",
+    "request_id": "inactive-after",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_v2",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "curious-otter",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555366208,
+            "time_updated": 1790555387523,
+            "time_idle": 1790555366438,
+            "time_viewed": 1790555366438,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          },
+          {
+            "id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "shiny-pixel",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "Short",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555368601,
+            "time_updated": 1790555371427,
+            "time_idle": 1790555368791,
+            "time_viewed": 1790555368791,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_message",
+        "count": 6,
+        "rows": [
+          {
+            "id": "msg_0e56aa32d001rGWgZvNhSFJXZ5",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555366361,
+            "time_updated": 1790555366362,
+            "data": "{\"time\":{\"created\":1790555366361},\"text\":\"VIS41 seed-a: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aa3ef001JdWA33TY3V6ot3",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555366388,
+            "time_updated": 1790555366436,
+            "data": "{\"time\":{\"created\":1790555366388,\"streamed\":1790555366433,\"completed\":1790555366435},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-a\",\"state\":{\"itemId\":\"msg_vis41_1\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_1\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aa4260011QU0dQ3OPXp4NN",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555366438,
+            "time_updated": 1790555366439,
+            "data": "{\"time\":{\"created\":1790555366438},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e56aac8b001HA7mUQe3KACH7h",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555368712,
+            "time_updated": 1790555368713,
+            "data": "{\"time\":{\"created\":1790555368712},\"text\":\"VIS41 seed-b: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aad1f001xIidAoW115MMqO",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555368743,
+            "time_updated": 1790555368788,
+            "data": "{\"time\":{\"created\":1790555368743,\"streamed\":1790555368785,\"completed\":1790555368787},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-b\",\"state\":{\"itemId\":\"msg_vis41_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_3\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aad56001udamMtWInLmMla",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555368791,
+            "time_updated": 1790555368791,
+            "data": "{\"time\":{\"created\":1790555368791},\"outcome\":\"succeeded\"}"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+                  "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789"
+                },
+                {
+                  "sessionID": "ses_f1a95537affe3XbBYibZluwaNi",
+                  "title": "Short"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1230407562637201,
+    "kind": "input_written",
+    "label": "inactive-same-tab-motion",
+    "base64": "G1s8MzU7NjsxTQ=="
+  },
+  {
+    "at_ns": 1230409222618405,
+    "kind": "input_written",
+    "label": "inactive-nested-close-motion",
+    "base64": "G1s8MzU7MzE7MU0="
+  },
+  {
+    "at_ns": 1230410059803377,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1230410773984059,
+    "kind": "input_written",
+    "label": "tab_select_down",
+    "base64": "G1s8MDs1OzFN"
+  },
+  {
+    "at_ns": 1230410774077539,
+    "kind": "input_written",
+    "label": "tab_select_up",
+    "base64": "G1s8MDs1OzFt"
+  },
+  {
+    "at_ns": 1230410996562126,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1230411297104945,
+    "kind": "input_written",
+    "label": "running_prompt",
+    "base64": "G1syMDB+VklTNDEgY29tcGxldGU6IG5vIHRvb2xzIG9yIGZpbGVzeXN0ZW0gZWZmZWN0cy4bWzIwMX4="
+  },
+  {
+    "at_ns": 1230411297185947,
+    "kind": "input_written",
+    "label": "running_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1230411376836216,
+    "kind": "provider",
+    "index": 4,
+    "operation": "main",
+    "case": "complete",
+    "valid": true,
+    "body_sha256": "9fed134812e61465d033cc11bed643469e691aef00cb0e9f59db55cbee12514f",
+    "input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          }
+        ]
+      },
+      {
+        "type": "message",
+        "id": "msg_vis41_1",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "VIS41-DONE seed-a"
+          }
+        ],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 complete: no tools or filesystem effects."
+          }
+        ]
+      }
+    ],
+    "tool_names": []
+  },
+  {
+    "at_ns": 1230411377014735,
+    "kind": "provider_held",
+    "case": "complete",
+    "index": 4,
+    "timeout_seconds": 60
+  },
+  {
+    "at_ns": 1230412027757845,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1230412136430891,
+    "kind": "owner_snapshot",
+    "request_id": "busy-before",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_v2",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "curious-otter",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555366208,
+            "time_updated": 1790555401138,
+            "time_idle": 1790555366438,
+            "time_viewed": 1790555366438,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": 1790555401143,
+            "resume_attempts": 0
+          },
+          {
+            "id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "shiny-pixel",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "Short",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555368601,
+            "time_updated": 1790555371427,
+            "time_idle": 1790555368791,
+            "time_viewed": 1790555368791,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_message",
+        "count": 7,
+        "rows": [
+          {
+            "id": "msg_0e56aa32d001rGWgZvNhSFJXZ5",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555366361,
+            "time_updated": 1790555366362,
+            "data": "{\"time\":{\"created\":1790555366361},\"text\":\"VIS41 seed-a: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aa3ef001JdWA33TY3V6ot3",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555366388,
+            "time_updated": 1790555366436,
+            "data": "{\"time\":{\"created\":1790555366388,\"streamed\":1790555366433,\"completed\":1790555366435},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-a\",\"state\":{\"itemId\":\"msg_vis41_1\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_1\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aa4260011QU0dQ3OPXp4NN",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555366438,
+            "time_updated": 1790555366439,
+            "data": "{\"time\":{\"created\":1790555366438},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e56aac8b001HA7mUQe3KACH7h",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555368712,
+            "time_updated": 1790555368713,
+            "data": "{\"time\":{\"created\":1790555368712},\"text\":\"VIS41 seed-b: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aad1f001xIidAoW115MMqO",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555368743,
+            "time_updated": 1790555368788,
+            "data": "{\"time\":{\"created\":1790555368743,\"streamed\":1790555368785,\"completed\":1790555368787},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-b\",\"state\":{\"itemId\":\"msg_vis41_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_3\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aad56001udamMtWInLmMla",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555368791,
+            "time_updated": 1790555368791,
+            "data": "{\"time\":{\"created\":1790555368791},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e56b2b9f001ZOOS2Es5XKCjAW",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "user",
+            "seq": 18,
+            "time_created": 1790555401149,
+            "time_updated": 1790555401150,
+            "data": "{\"time\":{\"created\":1790555401149},\"text\":\"VIS41 complete: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+                  "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789"
+                },
+                {
+                  "sessionID": "ses_f1a95537affe3XbBYibZluwaNi",
+                  "title": "Short"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "project_files": {},
+    "requests": 5,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1230412247801989,
+    "kind": "input_written",
+    "label": "busy-enter",
+    "base64": "G1s8MzU7NTsxTQ=="
+  },
+  {
+    "at_ns": 1230435138670642,
+    "kind": "process_sample",
+    "request_id": "busy-idle-start",
+    "pid": 1776062,
+    "cpu_ticks": 513,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1776062,
+        "voluntary": 4096,
+        "involuntary": 9612
+      },
+      {
+        "tid": 1776063,
+        "voluntary": 977,
+        "involuntary": 1405
+      },
+      {
+        "tid": 1776064,
+        "voluntary": 4619,
+        "involuntary": 435
+      },
+      {
+        "tid": 1776065,
+        "voluntary": 200,
+        "involuntary": 32
+      },
+      {
+        "tid": 1776068,
+        "voluntary": 289,
+        "involuntary": 39
+      },
+      {
+        "tid": 1776069,
+        "voluntary": 291,
+        "involuntary": 22
+      },
+      {
+        "tid": 1776070,
+        "voluntary": 299,
+        "involuntary": 23
+      },
+      {
+        "tid": 1776086,
+        "voluntary": 146,
+        "involuntary": 21
+      },
+      {
+        "tid": 1776088,
+        "voluntary": 22,
+        "involuntary": 3
+      },
+      {
+        "tid": 1776089,
+        "voluntary": 780,
+        "involuntary": 857
+      },
+      {
+        "tid": 1776090,
+        "voluntary": 802,
+        "involuntary": 627
+      },
+      {
+        "tid": 1776091,
+        "voluntary": 765,
+        "involuntary": 538
+      },
+      {
+        "tid": 1776092,
+        "voluntary": 750,
+        "involuntary": 735
+      },
+      {
+        "tid": 1776093,
+        "voluntary": 782,
+        "involuntary": 610
+      },
+      {
+        "tid": 1776143,
+        "voluntary": 256,
+        "involuntary": 336
+      }
+    ],
+    "voluntary_context_switches": 15074,
+    "involuntary_context_switches": 15295
+  },
+  {
+    "at_ns": 1230435661550557,
+    "kind": "process_sample",
+    "request_id": "busy-idle-end",
+    "pid": 1776062,
+    "cpu_ticks": 520,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1776062,
+        "voluntary": 4159,
+        "involuntary": 9653
+      },
+      {
+        "tid": 1776063,
+        "voluntary": 978,
+        "involuntary": 1433
+      },
+      {
+        "tid": 1776064,
+        "voluntary": 4689,
+        "involuntary": 438
+      },
+      {
+        "tid": 1776065,
+        "voluntary": 200,
+        "involuntary": 32
+      },
+      {
+        "tid": 1776068,
+        "voluntary": 291,
+        "involuntary": 39
+      },
+      {
+        "tid": 1776069,
+        "voluntary": 292,
+        "involuntary": 22
+      },
+      {
+        "tid": 1776070,
+        "voluntary": 300,
+        "involuntary": 23
+      },
+      {
+        "tid": 1776086,
+        "voluntary": 148,
+        "involuntary": 22
+      },
+      {
+        "tid": 1776088,
+        "voluntary": 22,
+        "involuntary": 3
+      },
+      {
+        "tid": 1776089,
+        "voluntary": 780,
+        "involuntary": 857
+      },
+      {
+        "tid": 1776090,
+        "voluntary": 802,
+        "involuntary": 627
+      },
+      {
+        "tid": 1776091,
+        "voluntary": 765,
+        "involuntary": 538
+      },
+      {
+        "tid": 1776092,
+        "voluntary": 750,
+        "involuntary": 735
+      },
+      {
+        "tid": 1776093,
+        "voluntary": 782,
+        "involuntary": 610
+      },
+      {
+        "tid": 1776143,
+        "voluntary": 256,
+        "involuntary": 336
+      }
+    ],
+    "voluntary_context_switches": 15214,
+    "involuntary_context_switches": 15368
+  },
+  {
+    "at_ns": 1230435918155504,
+    "kind": "owner_snapshot",
+    "request_id": "busy-after",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_v2",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "curious-otter",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555366208,
+            "time_updated": 1790555401138,
+            "time_idle": 1790555366438,
+            "time_viewed": 1790555366438,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": 1790555401143,
+            "resume_attempts": 0
+          },
+          {
+            "id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "project_id": "148d82f59650a677c7bf9c8e4132fc9ea19a6263",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "shiny-pixel",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project",
+            "path": "",
+            "title": "Short",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790555368601,
+            "time_updated": 1790555371427,
+            "time_idle": 1790555368791,
+            "time_viewed": 1790555368791,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_message",
+        "count": 7,
+        "rows": [
+          {
+            "id": "msg_0e56aa32d001rGWgZvNhSFJXZ5",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555366361,
+            "time_updated": 1790555366362,
+            "data": "{\"time\":{\"created\":1790555366361},\"text\":\"VIS41 seed-a: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aa3ef001JdWA33TY3V6ot3",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555366388,
+            "time_updated": 1790555366436,
+            "data": "{\"time\":{\"created\":1790555366388,\"streamed\":1790555366433,\"completed\":1790555366435},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-a\",\"state\":{\"itemId\":\"msg_vis41_1\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_1\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aa4260011QU0dQ3OPXp4NN",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555366438,
+            "time_updated": 1790555366439,
+            "data": "{\"time\":{\"created\":1790555366438},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e56aac8b001HA7mUQe3KACH7h",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790555368712,
+            "time_updated": 1790555368713,
+            "data": "{\"time\":{\"created\":1790555368712},\"text\":\"VIS41 seed-b: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e56aad1f001xIidAoW115MMqO",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790555368743,
+            "time_updated": 1790555368788,
+            "data": "{\"time\":{\"created\":1790555368743,\"streamed\":1790555368785,\"completed\":1790555368787},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-b\",\"state\":{\"itemId\":\"msg_vis41_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_3\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e56aad56001udamMtWInLmMla",
+            "session_id": "ses_f1a95537affe3XbBYibZluwaNi",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790555368791,
+            "time_updated": 1790555368791,
+            "data": "{\"time\":{\"created\":1790555368791},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e56b2b9f001ZOOS2Es5XKCjAW",
+            "session_id": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+            "type": "user",
+            "seq": 18,
+            "time_created": 1790555401149,
+            "time_updated": 1790555401150,
+            "data": "{\"time\":{\"created\":1790555401149},\"text\":\"VIS41 complete: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-07-upstream-120x40-on-horizontal-status/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_f1a955cd4ffe4Xwac2gEimhFWO",
+                  "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789"
+                },
+                {
+                  "sessionID": "ses_f1a95537affe3XbBYibZluwaNi",
+                  "title": "Short"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "project_files": {},
+    "requests": 5,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1230435936188926,
+    "kind": "input_written",
+    "label": "busy-same-tab-motion",
+    "base64": "G1s8MzU7NjsxTQ=="
+  },
+  {
+    "at_ns": 1230437601973269,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1230439265888988,
+    "kind": "provider_completed",
+    "case": "complete",
+    "index": 4,
+    "operation": "main"
+  },
+  {
+    "at_ns": 1230439919349122,
+    "kind": "exit",
+    "code": 130,
+    "termination": "forced",
+    "provider_requests": 5,
+    "provider_completed": 5
+  }
+]

@@ -67,6 +67,7 @@ enum Evict {
 #[derive(Debug, Clone, Default)]
 pub struct HistoryWindow {
     rows: Vec<HistoryRow>,
+    revision: u64,
     total: usize,
     has_older: bool,
     has_newer: bool,
@@ -80,6 +81,7 @@ impl HistoryWindow {
 
     /// Newest page becomes the whole window.
     pub fn reset(&mut self, page: &HistoryPage) {
+        self.revision = self.revision.wrapping_add(1);
         self.rows = page.rows.iter().flat_map(rows_from_page).collect();
         self.total = page.total;
         self.has_older = page.has_older;
@@ -93,6 +95,7 @@ impl HistoryWindow {
     /// older pages. A disjoint newest page must not fabricate a contiguous gap:
     /// keep the reader's window and let normal newer paging reach the tail.
     pub(crate) fn refresh_completed(&mut self, page: &HistoryPage, detached: bool) {
+        self.revision = self.revision.wrapping_add(1);
         let first = page.rows.first().map(|row| row.seq);
         let overlaps = page.rows.iter().any(|message| {
             self.rows
@@ -129,6 +132,7 @@ impl HistoryWindow {
     /// Add an older page at the front; returns rows added. Evicts newest
     /// rows while over a cap and flags `has_newer` when it does.
     pub fn prepend_older(&mut self, page: &HistoryPage) -> usize {
+        self.revision = self.revision.wrapping_add(1);
         let mut combined: Vec<HistoryRow> = page.rows.iter().flat_map(rows_from_page).collect();
         let added = combined.len();
         combined.append(&mut self.rows);
@@ -144,6 +148,7 @@ impl HistoryWindow {
     /// Add a newer page at the back; returns rows added. Evicts oldest rows
     /// while over a cap and flags `has_older` when it does.
     pub fn append_newer(&mut self, page: &HistoryPage) -> usize {
+        self.revision = self.revision.wrapping_add(1);
         let before = self.rows.len();
         self.rows.extend(page.rows.iter().flat_map(rows_from_page));
         let added = self.rows.len() - before;
@@ -160,6 +165,11 @@ impl HistoryWindow {
         &self.rows
     }
 
+    /// Content/identity generation, without rescanning or copying row payloads.
+    pub(crate) fn revision(&self) -> u64 {
+        self.revision
+    }
+
     pub(crate) fn apply_dcp_summary(
         &mut self,
         op: &str,
@@ -174,6 +184,9 @@ impl HistoryWindow {
             };
             view.apply_summary(page.clone())
         });
+        if changed {
+            self.revision = self.revision.wrapping_add(1);
+        }
         if changed && self.enforce(Evict::Oldest) {
             self.has_older = true;
         }
@@ -235,6 +248,7 @@ impl HistoryWindow {
         agent: Option<String>,
         agent_color_index: Option<usize>,
     ) {
+        self.revision = self.revision.wrapping_add(1);
         self.rows.push(HistoryRow {
             message_id: None,
             seq: i64::MAX,
@@ -256,6 +270,7 @@ impl HistoryWindow {
     /// Append one fully rendered row (live assistant message with reasoning
     /// and footer metadata); replayed rows use the same safe presentation data.
     pub(crate) fn push_row(&mut self, row: HistoryRow) {
+        self.revision = self.revision.wrapping_add(1);
         self.rows.push(row);
         self.has_newer = false;
         if self.enforce(Evict::Oldest) {
@@ -270,6 +285,7 @@ impl HistoryWindow {
             .iter()
             .rposition(|row| row.seq == i64::MAX && row.role == "user")
         {
+            self.revision = self.revision.wrapping_add(1);
             self.rows.insert(
                 index,
                 HistoryRow {

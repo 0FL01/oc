@@ -1,0 +1,100 @@
+{
+  "scope": "T44 VIS41 / VIS39 own-running only",
+  "capture_gate": "PENDING_NATIVE_PAIRED_CAPTURE",
+  "native_idle_counter_gate": "PENDING_FRESH_NATIVE_ACTUAL_IDLE_COUNTERS",
+  "sides": {},
+  "comparisons": [],
+  "failures": [],
+  "failed_attempt_history": [],
+  "method": "Real captured styled cells, PNG and cursor; actual observed title/glyph phases, no global time synchronization, normalization, mask/crop, or tolerance. Comma-separated roots are ordered explicitly; the last sealed attempt of each profile is current and all previous results remain reported.",
+  "inventory": [
+    {
+      "root": "/home/opencode/ai/oc/scripts/tui_capture/tabs_oracle.ts",
+      "files": {
+        "tabs_oracle.ts": {
+          "sha256": "339d5dd21d66622123d8a1d216dae9207a274e1a44b888f2cceb81f7cbbc27dc",
+          "bytes": 10838
+        }
+      },
+      "total_bytes": 10838,
+      "qualification": "Byte inventory seal includes interrupted and rejected attempts; existence/integrity never implies valid capture or parity"
+    },
+    {
+      "root": "/home/opencode/ai/oc/scripts/tui_capture/tabs_bridge.py",
+      "files": {
+        "tabs_bridge.py": {
+          "sha256": "6c2d88a7b15e774ed7212dacb7ca7fb9fcbe628ce2cc49f2f483538457ac8b6c",
+          "bytes": 16292
+        }
+      },
+      "total_bytes": 16292,
+      "qualification": "Byte inventory seal includes interrupted and rejected attempts; existence/integrity never implies valid capture or parity"
+    },
+    {
+      "root": "/home/opencode/ai/oc/scripts/tui_capture/tabs_capture.mjs",
+      "files": {
+        "tabs_capture.mjs": {
+          "sha256": "3f21445bff139a2ec7dd4b294abd3df3b6f45718b7a65429762793706e2e4f65",
+          "bytes": 38138
+        }
+      },
+      "total_bytes": 38138,
+      "qualification": "Byte inventory seal includes interrupted and rejected attempts; existence/integrity never implies valid capture or parity"
+    },
+    {
+      "root": "/home/opencode/ai/oc/scripts/tui_capture/tabs_check.mjs",
+      "files": {
+        "tabs_check.mjs": {
+          "sha256": "2e03319f17c3ac2f5f2cae7b4e510aab9dbcca0017f52071ffc452988a353003",
+          "bytes": 14007
+        }
+      },
+      "total_bytes": 14007,
+      "qualification": "Byte inventory seal includes interrupted and rejected attempts; existence/integrity never implies valid capture or parity"
+    },
+    {
+      "root": "/home/opencode/ai/oc/evidence/tui/recovery-v00/tabs-report20260928-01.md",
+      "files": {
+        "tabs-report20260928-01.md": {
+          "sha256": "a59810b53f09f7d00a118981e34836fdc6bca4cdd78f999cd66ed6a1d027f5ca",
+          "bytes": 15089
+        }
+      },
+      "total_bytes": 15089,
+      "qualification": "Byte inventory seal includes interrupted and rejected attempts; existence/integrity never implies valid capture or parity"
+    },
+    {
+      "root": "/home/opencode/ai/oc/evidence/tui/recovery-v00/tabs-check20260928-final2.json",
+      "files": {
+        "tabs-check20260928-final2.json": {
+          "sha256": "af399a2b0032145e392eb209acd22a93f431f981f0a8f3d3539e785ee9a70b64",
+          "bytes": 1271601
+        }
+      },
+      "total_bytes": 1271601,
+      "qualification": "Byte inventory seal includes interrupted and rejected attempts; existence/integrity never implies valid capture or parity"
+    },
+    {
+      "root": "/home/opencode/ai/oc/evidence/tui/recovery-v00/tabs-check20260928-10.json",
+      "files": {
+        "tabs-check20260928-10.json": {
+          "sha256": "92860e6b9e2a041a58fcfa13eee885568ecdfa55f63e9755d6a372221721ecd0",
+          "bytes": 98306
+        }
+      },
+      "total_bytes": 98306,
+      "qualification": "Byte inventory seal includes interrupted and rejected attempts; existence/integrity never implies valid capture or parity"
+    },
+    {
+      "root": "/home/opencode/ai/oc/evidence/tui/recovery-v00/tabs-inventory20260928-01.json",
+      "files": {
+        "tabs-inventory20260928-01.json": {
+          "sha256": "82358f5ffe0df2a9f2a59081011ca23f48eeb5ccf5f5fae62082c10b737501c6",
+          "bytes": 1248128
+        }
+      },
+      "total_bytes": 1248128,
+      "qualification": "Byte inventory seal includes interrupted and rejected attempts; existence/integrity never implies valid capture or parity"
+    }
+  ]
+}

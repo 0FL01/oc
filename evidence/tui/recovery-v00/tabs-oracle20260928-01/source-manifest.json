@@ -1,0 +1,103 @@
+{
+  "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "sources": [
+    {
+      "id": "U46",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/context/session-tabs.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "114–173 child-to-root tabs, family busy/permission-before-question attention and root unread",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/session-tabs.tsx#L114-L173",
+      "purpose": "Family status and actual parent continuation/idle signal, not one unread flag per child completion"
+    },
+    {
+      "id": "U47",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/session-tabs.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "58–63 frames/cadence; 124–226 attention/indicator/fallback/fade/ignition; 746–811 glow/tints; config/index.tsx:174–189 exposed tabs options",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/session-tabs.tsx#L124-L226",
+      "purpose": "Status/numbers indicators, distinct animation-off fallbacks and source state/color transitions; no invented spinner settings"
+    },
+    {
+      "id": "U48",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/tab-pulse.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "32–124 running/completion/edgeflash/glow timing, easing and blending; 243–417 branch/state/deadline lifecycle",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/tab-pulse.tsx#L32-L124",
+      "purpose": "Actual temporal/color tab parity with animations on/off; static glow without permanent idle wakeups (VIS31)"
+    },
+    {
+      "id": "U49",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/theme/assets/v2/opencode.json",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "base semantic text/background/action/feedback roles and dark/light overrides/hue scales; not legacy theme asset",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/theme/assets/v2/opencode.json",
+      "purpose": "Resolved palette, warning override versus tab accent, profile/action colors and representative custom/light qualification"
+    },
+    {
+      "id": "U56",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/session-tabs.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "75–79 fade/delay/cadence; 229–235 fadeTitleColor; 276–367 createMarquee/createTabMarquee one-cycle/deferred-leave/off-mode; 549–554,594–595 vertical reset; 725–750,840–868 vertical widths/fades/compact Infinity; 1343–1346,1564–1605,1628–1657 horizontal width/title/hover reconciliation",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/session-tabs.tsx#L276-L367",
+      "purpose": "VIS41 real hover overflow, delay600/steps80/one-cycle and styled geometry; animations:false only changes fade tween, not title stepping; distinct from rename shimmer and VIS39 spinner"
+    },
+    {
+      "id": "U57",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/util/marquee.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "4–50 GAP, marqueeCycleWidth/Overflows/TextParts: cell-width cursor, grapheme-safe clipping and generated separator identity",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/util/marquee.ts#L4-L50",
+      "purpose": "Exact-fit versus overflow, one spaced-dot cycle and Unicode slicing without splitting a wide glyph or dimming a dot already in the title"
+    },
+    {
+      "id": "U58",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/test/component/session-tabs-marquee.test.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "7–67 controller fake-clock scenarios: hovered width, delay600, one-cycle active identity retained, short-next/leave/rail-reset; animations callback false",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/test/component/session-tabs-marquee.test.ts#L7-L67",
+      "purpose": "Source behavioral oracle for timer/reset/off-mode interpretation, not executed native or paired-render qualification"
+    },
+    {
+      "id": "U59",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/test/util/marquee.test.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "5–44 short/exact-fit, offsets/spaced-dot loop, generated-dot versus title-dot and wide-grapheme examples",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/test/util/marquee.test.ts#L5-L44",
+      "purpose": "Reuse pinned text fixtures for the nearest Rust regression, not a second implementation or screenshot-derived expected"
+    }
+  ],
+  "source_sha256": {
+    "packages/tui/src/context/session-tabs.tsx": "441c44d9915c94e775a394a3776d9dd4681fb4997cd806b702f63341dc86367e",
+    "packages/tui/src/component/session-tabs.tsx": "772757ded7ea25c249f033192788140f159da479363714d38d7d16c851295722",
+    "packages/tui/src/component/tab-pulse.tsx": "0385714a9694e23244a4d72bf8047f3b283ae1827debf5917aedb73702a6d0c8",
+    "packages/tui/src/theme/assets/v2/opencode.json": "f25bc5ae9187524f1997cccadeb9f724b2fac2fe7cc4a250bdadb24311e6b367",
+    "packages/tui/src/util/marquee.ts": "30a8a0c9427c032d179c2bc1bf61c3d055089a328a2ea3fa9f28db9351033fa3",
+    "packages/tui/test/component/session-tabs-marquee.test.ts": "767dc8f9a08951dd2339ea7e06fd07e173d467c9be41a945b54430bd6cc315ee",
+    "packages/tui/test/util/marquee.test.ts": "49d5c1f26a9ce73775deacafa402384b3f5d5f234921516b18cd782cfc7d4ec7",
+    "packages/tui/src/util/locale.ts": "53e4c06f10b14dbad2cfd4d109049efd4dd4704315f5ddc3f1ca39cc94555194",
+    "packages/tui/src/util/string-width.bun.ts": "09e45ecb3f3e3e4b87439eb939b148d92ba971007c0a760707dcb0736133d622",
+    "packages/tui/src/context/session-tabs-model.ts": "b884d8a10a060451773576609c7ba9d4245773bc5ee119b3c45de7eba931deeb",
+    "packages/tui/src/component/spinner-frames.ts": "1d36cfed1ea60a9dc61de4feda801f9760e142cc3dd4821301949df52858da6e",
+    "packages/tui/src/ui/layout.ts": "fd88de7ad55f0fe1d36f2573b4b235fc1b2d959145d0ef5e3b63896ec8c95314",
+    "LICENSE": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b"
+  },
+  "executable_sha256": {
+    "string-width.ts": "09e45ecb3f3e3e4b87439eb939b148d92ba971007c0a760707dcb0736133d622",
+    "locale.ts": "53e4c06f10b14dbad2cfd4d109049efd4dd4704315f5ddc3f1ca39cc94555194",
+    "marquee.ts": "30a8a0c9427c032d179c2bc1bf61c3d055089a328a2ea3fa9f28db9351033fa3",
+    "session-tabs-model.ts": "b884d8a10a060451773576609c7ba9d4245773bc5ee119b3c45de7eba931deeb",
+    "controllers.ts": "289e3b48318ecf05eccad540246a6fefb6d08a7b3851e86bc1132f710242a072",
+    "host.ts": "07eb8a44400b7f746998f78c1eae0d35f072ab41888fac0e822983133249da27"
+  },
+  "controller_body_sha256": "ae987d7c040543946b9561aa10be3f043b6f0afed29fbf2f9e19a81b745983d4",
+  "controller_body_changed": false,
+  "host": "Deterministic signals/cleanup/timers, off-mode jump only; no renderer or enabled tween substitution claim"
+}

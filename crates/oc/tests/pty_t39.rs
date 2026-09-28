@@ -803,7 +803,11 @@ fn vis31_high_rate_input_during_provider_burst() {
             latencies[31]
         );
         pty.send(b"\x03");
-        std::thread::sleep(Duration::from_millis(250));
+        // U48 now renders a real finite completion pulse after the running
+        // indicator releases: 500 ms release + 1,200 ms completion. That is
+        // active animation, not settled idle. Keep the idle byte/CPU gate
+        // unchanged, but start it after those source-defined clocks drain.
+        std::thread::sleep(Duration::from_millis(500 + 1_200));
         let bytes = pty.snapshot().len();
         let cpu = process_cpu_ticks(pty.child.id());
         std::thread::sleep(Duration::from_secs(1));
@@ -1614,6 +1618,254 @@ fn vis28_real_pty_scanner_cycles_then_esc_cancels_and_static_fallback_completes(
             ("user".into(), "vis28 held stream".into()),
             ("assistant".into(), "answer:vis28 completed".into())
         ]
+    );
+}
+
+/// Own-running deck presentation under a held real Responses request: hover
+/// cannot close/submit, off mode still scrolls once, and completion leaves no
+/// tab clock writing to an otherwise idle terminal.
+#[test]
+fn vis39_vis41_real_pty_held_tab_spinner_and_one_cycle_marquee() {
+    const LONG_TITLE: &str = "abcdefghijklmnopqrstuvwxyz123456789ABCDEFGHIJKLMNO";
+    const DOTS: [char; 10] = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+    let header = |pty: &PtySession| {
+        render_screen(&pty.snapshot())
+            .cells
+            .first()
+            .map(|row| row.iter().take(32).copied().collect::<Vec<_>>())
+            .unwrap_or_default()
+    };
+    for animations in [true, false] {
+        let fixture = Fixture::new();
+        std::fs::write(
+            fixture.root.path().join("project/opencode.json"),
+            serde_json::json!({"animations": animations}).to_string(),
+        )
+        .unwrap();
+        let session = if animations {
+            "vis41-animated"
+        } else {
+            "vis41-static"
+        };
+        let metrics_path = fixture.root.path().join("tab-scheduling.json");
+        let mut pty = PtySession::spawn(fixture.clone(), session, Some(&metrics_path));
+        pty.wait_visible(READY, DEADLINE);
+        pty.send(format!("/rename {LONG_TITLE}\r").as_bytes());
+        let began = Instant::now();
+        while !header(&pty)
+            .iter()
+            .collect::<String>()
+            .contains("abcdefghijklmnop")
+        {
+            assert!(
+                began.elapsed() < DEADLINE,
+                "manual title did not reach the real tab"
+            );
+            std::thread::sleep(POLL);
+        }
+        assert!(
+            fixture.requests.lock().unwrap().is_empty(),
+            "native rename has no provider effect"
+        );
+        submit(&mut pty, "vis28 held stream");
+        assert_eq!(
+            last_user_text(&fixture.wait_requests(1)[0]).as_deref(),
+            Some("vis28 held stream")
+        );
+        wait_screen_row(&pty, "esc interrupt", DEADLINE);
+        vis27_mouse(&mut pty, 35, 4, 1, 'M'); // SGR is one-based
+        let began = Instant::now();
+        let mut frames = std::collections::BTreeSet::new();
+        let mut scrolled = false;
+        // U56 capture: title width50 + gap3, first step600, return at4760,
+        // leading tween settled at5010. Reader/scheduler jitter gets a margin.
+        while began.elapsed() < Duration::from_millis(5500) {
+            let row = header(&pty);
+            if let Some(&frame) = row.get(1) {
+                assert!(
+                    DOTS.contains(&frame),
+                    "held tab status is not running: {row:?}"
+                );
+                frames.insert(frame);
+            }
+            assert!(
+                !row.contains(&'✕'),
+                "busy hover painted an ineligible close"
+            );
+            scrolled |= row.get(3).is_some_and(|&ch| ch != 'a');
+            // Same-tab motion never restarts the captured 600/80 clock.
+            if began.elapsed() < Duration::from_secs(1) {
+                vis27_mouse(&mut pty, 35, 5, 1, 'M');
+            }
+            std::thread::sleep(POLL);
+        }
+        assert!(scrolled, "animation setting cannot disable hover marquee");
+        assert_eq!(
+            header(&pty).get(3),
+            Some(&'a'),
+            "one cycle returns to offset zero"
+        );
+        if animations {
+            assert!(frames.len() >= 5, "no observable dots cycle: {frames:?}");
+        } else {
+            assert_eq!(frames, ['⠋'].into_iter().collect());
+        }
+        assert!(!fixture.vis28_continue.load(Ordering::Relaxed));
+        assert_eq!(
+            fixture.requests.lock().unwrap().len(),
+            1,
+            "hover never selects/submits/title-refreshes"
+        );
+        fixture.vis28_continue.store(true, Ordering::Relaxed);
+        wait_screen_row(&pty, "answer:vis28 completed", DEADLINE);
+        vis28_wait_gone(&pty);
+        let after_completion = pty.snapshot().len();
+        std::thread::sleep(Duration::from_millis(250));
+        if animations {
+            assert!(
+                pty.snapshot().len() > after_completion,
+                "own-running release/edge flash must continue after the real terminal receipt"
+            );
+        }
+        // The current root is viewed, so no synthetic unread/completion pulse:
+        // source run release500, whitecap700 and edge flash800 all settle.
+        std::thread::sleep(Duration::from_millis(650));
+        let mut idle_windows = vec![("completed", tab_idle_window(&pty))];
+        vis27_mouse(&mut pty, 35, 70, 3, 'M');
+        std::thread::sleep(Duration::from_millis(50));
+        vis27_mouse(&mut pty, 35, 4, 1, 'M');
+        let entered = Instant::now();
+        while header(&pty).get(3) == Some(&'a') {
+            assert!(
+                entered.elapsed() < DEADLINE,
+                "re-entry must start a new source hover cycle"
+            );
+            std::thread::sleep(POLL);
+        }
+        vis27_mouse(&mut pty, 35, 70, 3, 'M');
+        let left = Instant::now();
+        while header(&pty).get(3) != Some(&'a') {
+            assert!(
+                left.elapsed() < DEADLINE,
+                "hover leave did not reset the marquee"
+            );
+            std::thread::sleep(POLL);
+        }
+        idle_windows.push(("hover-leave", tab_idle_window(&pty)));
+        vis27_mouse(&mut pty, 35, 4, 1, 'M');
+        pty.send(b"\x10");
+        wait_screen_row(&pty, "Commands", DEADLINE);
+        idle_windows.push(("modal", tab_idle_window(&pty)));
+        pty.send(b"\x1b");
+        std::thread::sleep(Duration::from_millis(100));
+        idle_windows.push(("modal-close", tab_idle_window(&pty)));
+        assert_eq!(fixture.requests.lock().unwrap().len(), 1);
+        pty.send(b"\x03");
+        let (status, output) = pty.wait_exit(DEADLINE);
+        assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+        let metrics: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(metrics_path).unwrap()).unwrap();
+        assert_tab_idle_metrics(&metrics, &idle_windows);
+        assert_eq!(
+            persisted(pty.data_dir(), session),
+            [
+                ("user".into(), "vis28 held stream".into()),
+                ("assistant".into(), "answer:vis28 completed".into()),
+            ]
+        );
+    }
+}
+
+fn tab_monotonic_ns() -> u128 {
+    let mut time = libc::timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    // SAFETY: the output timespec is valid; this only reads the host monotonic clock.
+    let result = unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut time) };
+    assert_eq!(result, 0);
+    time.tv_sec as u128 * 1_000_000_000 + time.tv_nsec as u128
+}
+
+fn tab_idle_window(pty: &PtySession) -> (u128, u128) {
+    std::thread::sleep(Duration::from_millis(100));
+    let start = tab_monotonic_ns();
+    let bytes = pty.snapshot().len();
+    let cpu = process_cpu_ticks(pty.child.id());
+    // Covers the marquee's 600 ms delayed start as well as multiple source frame periods.
+    std::thread::sleep(Duration::from_millis(750));
+    let end = tab_monotonic_ns();
+    assert_eq!(
+        pty.snapshot().len(),
+        bytes,
+        "idle tab scope retained terminal writes"
+    );
+    assert!(
+        process_cpu_ticks(pty.child.id()) - cpu <= 1,
+        "idle tab scope consumed CPU"
+    );
+    (start, end)
+}
+
+fn assert_tab_idle_metrics(metrics: &serde_json::Value, windows: &[(&str, (u128, u128))]) {
+    for (field, count) in [
+        ("frame_monotonic_ns", "frame_count"),
+        ("wake_monotonic_ns", "wakeups"),
+    ] {
+        let samples = metrics[field].as_array().unwrap();
+        assert_eq!(
+            samples.len() as u64,
+            metrics[count].as_u64().unwrap(),
+            "bounded probe must cover the whole test window"
+        );
+        let epoch = metrics["monotonic_epoch_ns"].as_u64().unwrap();
+        assert!(samples.iter().all(|at| at.as_u64().unwrap() >= epoch));
+        for (label, (start, end)) in windows {
+            assert!(
+                !samples
+                    .iter()
+                    .any(|at| (*start..=*end).contains(&u128::from(at.as_u64().unwrap()))),
+                "{label}: idle {field} continued inside the real monotonic window"
+            );
+        }
+    }
+}
+
+#[test]
+fn vis39_vis41_real_pty_cancel_disposes_tab_and_marquee_deadlines() {
+    let fixture = Fixture::new();
+    let session = "vis39-cancel-clock";
+    let metrics_path = fixture.root.path().join("cancel-tab-scheduling.json");
+    let mut pty = PtySession::spawn(fixture.clone(), session, Some(&metrics_path));
+    pty.wait_visible(READY, DEADLINE);
+    pty.send(b"/rename abcdefghijklmnopqrstuvwxyz123456789ABCDEFGHIJKLMNO\r");
+    wait_screen_row(&pty, "abcdefghijklmnop", DEADLINE);
+    submit(&mut pty, "vis28 held stream");
+    fixture.wait_requests(1);
+    wait_screen_row(&pty, "esc interrupt", DEADLINE);
+    vis27_mouse(&mut pty, 35, 4, 1, 'M');
+    std::thread::sleep(Duration::from_millis(650));
+    pty.send(b"\x1b");
+    wait_screen_row(&pty, "esc again to interrupt", DEADLINE);
+    pty.send(b"\x1b");
+    vis28_wait_gone(&pty);
+    vis27_mouse(&mut pty, 35, 70, 3, 'M');
+    std::thread::sleep(Duration::from_millis(900));
+    let idle = tab_idle_window(&pty);
+    assert!(
+        !fixture.vis28_continue.load(Ordering::Relaxed),
+        "cancel must not release the held provider barrier"
+    );
+    assert_eq!(fixture.requests.lock().unwrap().len(), 1);
+    pty.send(b"\x03");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+    let metrics: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(metrics_path).unwrap()).unwrap();
+    assert_tab_idle_metrics(&metrics, &[("cancel-and-leave", idle)]);
+    assert_eq!(
+        persisted(pty.data_dir(), session),
+        [("user".into(), "vis28 held stream".into())]
     );
 }
 

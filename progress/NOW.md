@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-27T23:25:39+00:00
+State updated: 2026-09-28T05:41:10+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -13,13 +13,13 @@ Evidence target: evidence/T44/report.md
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-VIS38 real DCP snapshots/cards/accounting delivered; T44 ACTIVE, no parity PASS.
+VIS39 own-running/VIS41 stable-ID tab clocks and one-cycle hover marquee delivered. T44 ACTIVE; no whole-frame parity PASS.
 ## Checks
-Serial gate PASS: tool_0e51bf7ae001L43hkvwsvd4nD9. Actual native05/reference05 checks PASS; full frames DIFFERENT. See dcp-report20260928-02.md.
+Final serial workspace gate PASS: tool_0e67c9a2c001P1ihDPFAbGW4Xe. Paired report tabs-report20260928-03.md:18 fixtures,162 zero-draw/wake idle windows,18 exact full frames; remaining full frames differ.
 ## Risks
-Fallback estimates, unmasked geometry/time gaps; .opencode untouched.
+Busy plus, cursor/rename, independent phases, compact route and T45/T50 facts remain open. .opencode untouched. Test-only idle window starts after finite U48 clocks; original one-second gate preserved.
 ## Next
-VIS38 display-state correction; independent T44 subagent/question/MCP/tab slices.
+Remaining approved subagent/question/MCP projection and full-frame display-state qualification.
 
 
 Ready (до 5): T45, T46, T47, T50, T51

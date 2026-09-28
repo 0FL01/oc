@@ -103,3 +103,5 @@ recovery-v00/prompt-paste*/**/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/prompt-paste*/**/*.vt binary
 recovery-v00/dcp*/**/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/dcp*/**/*.vt binary
+recovery-v00/tabs-*/**/*.txt whitespace=-blank-at-eol,-blank-at-eof
+recovery-v00/tabs-*/**/*.vt binary

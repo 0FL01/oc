@@ -103,12 +103,28 @@ struct FrameMetrics {
     live_peak: LiveViewMetrics,
     started: Option<Instant>,
     frame_samples: Vec<(u128, u128)>,
+    monotonic_epoch_ns: Option<u128>,
+    frame_monotonic_ns: Vec<u128>,
+    wake_monotonic_ns: Vec<u128>,
     wakeups: u64,
     input_events: u64,
     worker_events: u64,
     changed_frames: u64,
     previous: Option<ratatui::buffer::Buffer>,
     writes: WriteMetrics,
+}
+
+/// Opt-in PTY metrics share Linux's real monotonic epoch across processes.
+/// This observes the scheduler; it never drives or synchronizes animation.
+fn monotonic_ns() -> u128 {
+    let mut time = libc::timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    // SAFETY: clock_gettime writes exactly one valid timespec; MONOTONIC has no external effect.
+    let result = unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut time) };
+    assert_eq!(result, 0, "monotonic clock unavailable");
+    time.tv_sec as u128 * 1_000_000_000 + time.tv_nsec as u128
 }
 
 impl FrameMetrics {
@@ -528,8 +544,22 @@ impl LoopState {
                 };
                 TabPresentation {
                     title: view.session_title.clone(),
+                    detail: view.chrome.location.as_deref().and_then(|location| {
+                        std::path::Path::new(location)
+                            .file_name()
+                            .map(|name| name.to_string_lossy().into_owned())
+                    }),
                     home: false,
                     busy: view.is_busy(),
+                    attention: state
+                        .tab_attention
+                        .contains(&index)
+                        .then_some(oc_tui::app::TabAttention::Permission),
+                    ..TabPresentation::new(
+                        view.attached_session()
+                            .expect("real tab has session")
+                            .clone(),
+                    )
                 }
             })
             .collect();
@@ -545,6 +575,15 @@ impl LoopState {
     }
 
     fn activate(&mut self, state: &mut TuiState, index: usize) -> Result<(), String> {
+        self.activate_with_hover(state, index, false)
+    }
+
+    fn activate_with_hover(
+        &mut self,
+        state: &mut TuiState,
+        index: usize,
+        preserve_pointer: bool,
+    ) -> Result<(), String> {
         if state.is_busy() {
             return Err("turn active; session switch refused".into());
         }
@@ -555,10 +594,14 @@ impl LoopState {
             state.close_panel();
             return Ok(());
         }
+        if !preserve_pointer {
+            state.clear_mouse_position();
+        }
         state.close_panel();
         let mut next = self.tabs[index].take().expect("parked tab");
         next.approval_roots.clone_from(&state.approval_roots);
         next.sync_clipboard_mode_from(state);
+        next.take_tab_clocks_from(state);
         let previous = std::mem::replace(state, next);
         state.invalidate_file_suggestions();
         if let Some(old) = self.active_tab {
@@ -577,6 +620,7 @@ impl LoopState {
     fn open_home(&mut self, state: &mut TuiState, mut next: TuiState) {
         next.approval_roots.clone_from(&state.approval_roots);
         state.close_panel();
+        next.take_tab_clocks_from(state);
         let previous = std::mem::replace(state, next);
         if let Some(old) = self.active_tab.take() {
             self.tabs[old] = Some(previous);
@@ -596,6 +640,7 @@ impl LoopState {
         home.approval_roots.clone_from(&state.approval_roots);
         state.close_panel();
         home.sync_clipboard_mode_from(state);
+        home.take_tab_clocks_from(state);
         let old = self.active_tab.take().expect("Home parked from a tab");
         self.tabs[old] = Some(std::mem::replace(state, home));
         state.invalidate_file_suggestions();
@@ -786,6 +831,7 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
             let mut next = TuiState::new(app.clone(), snapshot.session.clone());
             next.restore_prompt(snapshot.prompt);
             state.close_panel();
+            next.take_tab_clocks_from(state);
             if let Some(old) = deck.active_tab.take() {
                 deck.tabs[old] = Some(std::mem::replace(state, next));
                 deck.tab_cards_before[old] = deck.cards_before;
@@ -969,17 +1015,21 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         dirty |= job_lanes != loop_state.job_lanes();
         dirty |= state.tick_scanner(Instant::now());
         if dirty && Instant::now() >= paint_at {
-            let draw_start = frame_metrics.as_ref().map(|_| Instant::now());
+            let draw_start = frame_metrics
+                .as_ref()
+                .map(|_| (Instant::now(), monotonic_ns()));
             let painted = terminal
                 .draw(|frame| render_frame(frame, &state))
                 .map_err(|e| format!("draw: {e}"))?;
-            if let (Some(metrics), Some(start)) = (&mut frame_metrics, draw_start) {
+            if let (Some(metrics), Some((start, monotonic))) = (&mut frame_metrics, draw_start) {
                 let elapsed = start.elapsed().as_nanos();
                 metrics.count += 1;
                 metrics.sum_ns += elapsed;
                 metrics.max_ns = metrics.max_ns.max(elapsed);
                 let origin = *metrics.started.get_or_insert(start);
+                metrics.monotonic_epoch_ns.get_or_insert(monotonic);
                 if metrics.frame_samples.len() < 4096 {
+                    metrics.frame_monotonic_ns.push(monotonic);
                     metrics
                         .frame_samples
                         .push((start.duration_since(origin).as_nanos(), elapsed));
@@ -1150,6 +1200,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         }
         if let Some(metrics) = &mut frame_metrics {
             metrics.wakeups += 1;
+            if metrics.wake_monotonic_ns.len() < 4096 {
+                metrics.wake_monotonic_ns.push(monotonic_ns());
+            }
         }
     }
     if let Some((session, job)) = loop_state.title_job.take() {
@@ -1605,6 +1658,10 @@ async fn handle_event_ticks(
     cev: CEvent,
     wheel_ticks: usize,
 ) -> Result<(), String> {
+    if let CEvent::Resize(width, height) = cev {
+        state.resize_mouse_position(ratatui::layout::Rect::new(0, 0, width, height));
+        return Ok(());
+    }
     let event = match cev {
         crossterm::event::Event::Key(key) => state.terminal_key(key).map(UiEvent::Key),
         other => map_event(other),
@@ -1619,7 +1676,7 @@ async fn handle_event_ticks(
             Some(UiEvent::Key(KeyAction::Enter)) if state.input().trim() == "/quit" => {
                 state.handle_key(KeyAction::Quit).await;
             }
-            Some(UiEvent::Resize) => state.clear_mouse_position(),
+            Some(UiEvent::Resize) => {}
             _ => {}
         }
         return Ok(());
@@ -1668,6 +1725,7 @@ async fn handle_event_ticks(
                     mouse.kind,
                     MouseEventKind::ScrollUp | MouseEventKind::ScrollDown
                 )
+                && !state.tab_wheel_hit(area, mouse.column, mouse.row)
             {
                 // A wheel event also moves the pointer. Keep transcript
                 // scrolling, but invalidate a held tab when it leaves the strip.
@@ -1696,7 +1754,7 @@ async fn handle_event_ticks(
                 }
             }
         }
-        Some(UiEvent::Resize) => state.clear_mouse_position(),
+        Some(UiEvent::Resize) => {}
         None => {}
     }
     Ok(())
@@ -1714,8 +1772,8 @@ fn report_copy_request_with(state: &mut TuiState, copy: impl FnOnce(&str) -> Res
     }
 }
 
-/// A tab view replacement loses the old view's hover. Re-hit-test only the
-/// last real mouse release, and only after the application accepts the action.
+/// Carry a validated real pointer through admitted activation, then reconcile
+/// its stable tab identity with the replacement view's actual layout.
 async fn apply_mouse_outcome(
     app: &CoreApp,
     state: &mut TuiState,
@@ -1738,7 +1796,7 @@ async fn apply_mouse_outcome(
         intent,
         PanelIntent::ActivateTab { .. } | PanelIntent::NewSession
     );
-    match apply_intent_with_origin(app, state, loop_state, intent, false).await {
+    match apply_intent_with_origin(app, state, loop_state, intent, false, pointer.is_some()).await {
         Ok(()) => {
             loop_state.sync_tabs(state);
             if let Some(snapshot) = close {
@@ -1774,7 +1832,7 @@ async fn apply_outcome(
         .flatten();
     // Scrolling intents never consume typed input; commands do.
     let consumes = matches!(intent, PanelIntent::SwitchLocation { .. });
-    match apply_intent_with_origin(app, state, loop_state, intent, typed_new).await {
+    match apply_intent_with_origin(app, state, loop_state, intent, typed_new, false).await {
         Ok(()) => {
             if consumes {
                 state.accept_intent();
@@ -1795,7 +1853,7 @@ async fn apply_intent(
     loop_state: &mut LoopState,
     intent: PanelIntent,
 ) -> Result<(), String> {
-    apply_intent_with_origin(app, state, loop_state, intent, false).await
+    apply_intent_with_origin(app, state, loop_state, intent, false, false).await
 }
 
 async fn apply_intent_with_origin(
@@ -1804,6 +1862,7 @@ async fn apply_intent_with_origin(
     loop_state: &mut LoopState,
     intent: PanelIntent,
     typed_new: bool,
+    preserve_pointer: bool,
 ) -> Result<(), String> {
     if loop_state.conversation_job.is_some() {
         return Err("conversation operation pending".into());
@@ -2216,7 +2275,11 @@ async fn apply_intent_with_origin(
         }
         PanelIntent::ActivateTab { index } => {
             let before = loop_state.snapshot(state);
-            loop_state.activate(state, index)?;
+            if preserve_pointer {
+                loop_state.activate_with_hover(state, index, true)?;
+            } else {
+                loop_state.activate(state, index)?;
+            }
             refresh_dcp_summaries(app, state).await;
             // Parked prompt/editor state survives routing, but pending ownership
             // must be recovered before its first visible frame after activation.
@@ -2417,6 +2480,7 @@ async fn apply_intent_with_origin(
             next.apply_catalog(receipt.catalog);
             refresh_compactions(app, &mut next).await;
             state.close_panel();
+            next.take_tab_clocks_from(state);
             if let Some(old) = loop_state.active_tab.take() {
                 loop_state.tabs[old] = Some(std::mem::replace(state, next));
                 loop_state.tab_cards_before[old] = loop_state.cards_before;
@@ -3164,6 +3228,9 @@ fn write_metrics(state: &TuiState, deck: &LoopState, frames: Option<&FrameMetric
         "terminal_write_sum_ns": frames.map_or(0, |frames| frames.writes.sum_ns),
         "terminal_write_max_ns": frames.map_or(0, |frames| frames.writes.max_ns),
         "frame_samples_ns": frames.map(|frames| &frames.frame_samples),
+        "monotonic_epoch_ns": frames.and_then(|frames| frames.monotonic_epoch_ns),
+        "frame_monotonic_ns": frames.map(|frames| &frames.frame_monotonic_ns),
+        "wake_monotonic_ns": frames.map(|frames| &frames.wake_monotonic_ns),
         "worker_event_queue_peak": frames.map_or(0, |frames| frames.worker_event_queue_peak),
         "worker_event_queue_lagged": frames.map_or(0, |frames| frames.worker_event_queue_lagged),
         "live_text_bytes_current": frames.map_or(0, |frames| frames.live_current.text_bytes),
@@ -5565,6 +5632,139 @@ mod tests {
         deck.tab_cards_before.push(None);
         deck.cards_before = None;
         deck.sync_tabs(state);
+    }
+
+    #[tokio::test]
+    async fn vis39_retained_view_activation_moves_mounted_tab_clocks_and_keeps_busy_guard() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut running = TuiState::new(app.clone(), SessionId::new("running").unwrap());
+        running.apply_catalog(catalog());
+        running.chrome.location = Some("/owner/actual-project".into());
+        running.handle_paste("held");
+        running.handle_key(KeyAction::Enter).await;
+        assert!(running.is_busy());
+        let request = inbox.try_recv().expect("one pending typed submission");
+        assert!(matches!(&request, InboxMsg::Submit { .. }));
+        let mut state = TuiState::new(app.clone(), SessionId::new("current").unwrap());
+        state.apply_catalog(catalog());
+        state.chrome.location = Some("/owner/actual-project".into());
+        let mut deck = LoopState {
+            tabs: vec![Some(running), None],
+            tab_cards_before: vec![None, None],
+            active_tab: Some(1),
+            ..Default::default()
+        };
+        deck.sync_tabs(&mut state);
+        assert_eq!(
+            state.tab_presentation().0[0].detail.as_deref(),
+            Some("actual-project")
+        );
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
+        terminal.draw(|frame| render_frame(frame, &state)).unwrap();
+        let at = state.next_ui_deadline().unwrap() + Duration::from_millis(500);
+        state.tick_ui(at);
+        terminal.draw(|frame| render_frame(frame, &state)).unwrap();
+        let before = terminal.backend().buffer()[(1, 0)].clone();
+        assert_eq!(before.symbol(), "⠦");
+        deck.activate(&mut state, 0).unwrap();
+        terminal.draw(|frame| render_frame(frame, &state)).unwrap();
+        let after = &terminal.backend().buffer()[(1, 0)];
+        assert_eq!(
+            after.symbol(),
+            before.symbol(),
+            "same visible session keeps its mounted dots phase"
+        );
+        assert_eq!(
+            after.fg, before.fg,
+            "same visible session keeps its sweep whitecap phase"
+        );
+        assert_eq!(
+            deck.tabs[1].as_ref().unwrap().next_ui_deadline(),
+            None,
+            "parked view holds no second deck clock"
+        );
+        assert_eq!(
+            deck.activate(&mut state, 1),
+            Err("turn active; session switch refused".into())
+        );
+        assert!(inbox.try_recv().is_err(), "clock transfer cannot resubmit");
+    }
+
+    #[tokio::test]
+    async fn vis41_real_mouse_activation_preserves_running_and_completed_marquee_deadlines() {
+        const TITLE: &str = "abcdefghijklmnopqrstuvwxyz123456789ABCDEFGHIJKLMNO";
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let mut state = TuiState::new(app.clone(), SessionId::new("first").unwrap());
+        state.chrome.animations = Some(false);
+        state.chrome.location = Some("/owner/real-project".into());
+        let mut other = TuiState::new(app.clone(), SessionId::new("second").unwrap());
+        other.chrome = state.chrome.clone();
+        other.session_title = Some(TITLE.into());
+        let mut deck = LoopState {
+            tabs: vec![None, Some(other)],
+            tab_cards_before: vec![None, None],
+            active_tab: Some(0),
+            ..Default::default()
+        };
+        deck.sync_tabs(&mut state);
+        let area = ratatui::layout::Rect::new(0, 0, 120, 40);
+        let x = oc_tui::shell::tab_strip(&state, area).unwrap().tabs[1]
+            .rect
+            .x
+            + 3;
+        let moved = crossterm::event::MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: x,
+            row: 0,
+            modifiers: KeyModifiers::NONE,
+        };
+        state.handle_mouse(moved, area);
+        let first = state.next_ui_deadline().unwrap();
+        state.tick_ui(first + Duration::from_millis(80));
+        let deadline = state.next_ui_deadline();
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
+        terminal.draw(|frame| render_frame(frame, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer()[(x, 0)].symbol(), "c");
+        for kind in [
+            MouseEventKind::Down(crossterm::event::MouseButton::Left),
+            MouseEventKind::Up(crossterm::event::MouseButton::Left),
+        ] {
+            let outcome = state.handle_mouse(crossterm::event::MouseEvent { kind, ..moved }, area);
+            apply_mouse_outcome(&app, &mut state, &mut deck, outcome, area, x, 0).await;
+        }
+        assert_eq!(deck.active_tab, Some(1));
+        assert_eq!(state.next_ui_deadline(), deadline);
+        terminal.draw(|frame| render_frame(frame, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer()[(x, 0)].symbol(), "c");
+        assert_eq!(
+            state.tab_presentation().0[1].detail.as_deref(),
+            Some("real-project")
+        );
+
+        state.tick_ui(first + Duration::from_secs(6));
+        assert_eq!(state.next_ui_deadline(), None);
+        for kind in [
+            MouseEventKind::Down(crossterm::event::MouseButton::Left),
+            MouseEventKind::Up(crossterm::event::MouseButton::Left),
+        ] {
+            let outcome = state.handle_mouse(crossterm::event::MouseEvent { kind, ..moved }, area);
+            apply_mouse_outcome(&app, &mut state, &mut deck, outcome, area, x, 0).await;
+        }
+        assert_eq!(
+            state.next_ui_deadline(),
+            None,
+            "clicking the same completed cycle cannot restart it"
+        );
+        handle_event(&app, &mut state, &mut deck, CEvent::Resize(120, 48))
+            .await
+            .unwrap();
+        assert_eq!(state.next_ui_deadline(), None);
+        assert!(
+            inbox.try_recv().is_err(),
+            "mouse/resize cannot enqueue provider work"
+        );
     }
 
     #[test]

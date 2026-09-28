@@ -235,9 +235,639 @@ pub enum PanelIntent {
 /// Bounded, application-supplied presentation for one retained real tab.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TabPresentation {
+    pub session: SessionId,
     pub title: Option<String>,
+    /// Source project-name fallback from the tab's actual canonical Location.
+    pub detail: Option<String>,
     pub home: bool,
     pub busy: bool,
+    pub attention: Option<TabAttention>,
+    /// U47 `sessionTabComplete`: actual unread activity while idle, not merely
+    /// a successful turn receipt. The current owner has no unread projection.
+    pub complete: bool,
+    /// U46 user enqueue pulse for a retained, noncurrent root. Zero until the
+    /// owner supplies that fact; local submission attempts are not this signal.
+    pub prompt_pulse: u64,
+}
+
+impl TabPresentation {
+    pub fn new(session: SessionId) -> Self {
+        Self {
+            session,
+            title: None,
+            detail: None,
+            home: false,
+            busy: false,
+            attention: None,
+            complete: false,
+            prompt_pulse: 0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TabAttention {
+    Permission,
+    Question,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum TabIdentity {
+    Session(SessionId),
+    Home,
+}
+
+pub(crate) const TAB_SPINNER_FRAMES: [&str; 10] =
+    ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+const TAB_STEP: Duration = Duration::from_millis(80);
+const TAB_MARQUEE_DELAY: Duration = Duration::from_millis(600);
+const TAB_FADE: Duration = Duration::from_millis(250);
+const TAB_FADE_FRAME: Duration = Duration::from_nanos(16_666_667);
+const TAB_RUN_ATTACK: Duration = Duration::from_millis(450);
+const TAB_RUN_RELEASE: Duration = Duration::from_millis(500);
+const TAB_GLOW_ATTACK: Duration = Duration::from_millis(600);
+const TAB_GLOW_RELEASE: Duration = Duration::from_millis(900);
+const TAB_COMPLETION: Duration = Duration::from_millis(1200);
+const TAB_FLASH: Duration = Duration::from_millis(800);
+
+pub(crate) fn tab_smootherstep(value: f32) -> f32 {
+    value * value * value * (value * (value * 6.0 - 15.0) + 10.0)
+}
+
+fn tab_attack_decay(progress: f32, attack: f32, peak: f32, rest: f32) -> f32 {
+    if progress < attack {
+        peak * tab_smootherstep((progress / attack).clamp(0.0, 1.0))
+    } else {
+        peak - (peak - rest)
+            * tab_smootherstep(((progress - attack) / (1.0 - attack)).clamp(0.0, 1.0))
+    }
+}
+
+pub(crate) fn tab_glow_intensity(index: f32, tail: f32) -> f32 {
+    tab_smootherstep((1.0 - (index - 1.0).max(0.0) / tail).clamp(0.0, 1.0))
+}
+
+/// U48's two gated voices, kept inside the existing visible-deck clock state.
+/// Sustain is motionless; release captures the current (possibly attacking)
+/// amplitude, so a short run/permission wait does not flash at full strength.
+#[derive(Clone, Copy)]
+enum TabGate {
+    Idle,
+    Attack(Duration),
+    Sustain,
+    Release(Duration, f32),
+}
+
+impl TabGate {
+    fn level(self, glow: bool) -> f32 {
+        match self {
+            Self::Idle => 0.0,
+            Self::Sustain => 1.0,
+            Self::Attack(clock) if glow => tab_attack_decay(
+                clock.as_secs_f32() / TAB_GLOW_ATTACK.as_secs_f32(),
+                0.3,
+                1.5,
+                1.0,
+            ),
+            Self::Attack(clock) => {
+                tab_smootherstep(clock.as_secs_f32() / TAB_RUN_ATTACK.as_secs_f32())
+            }
+            Self::Release(clock, scale) => {
+                // The resting glow drains in 200 ms while its spatial swell
+                // continues for the whole 900 ms release.
+                let duration = if glow {
+                    0.2
+                } else {
+                    TAB_RUN_RELEASE.as_secs_f32()
+                };
+                scale * (1.0 - tab_smootherstep((clock.as_secs_f32() / duration).min(1.0)))
+            }
+        }
+    }
+
+    fn release(&mut self, glow: bool) {
+        if !matches!(self, Self::Idle) {
+            *self = Self::Release(Duration::ZERO, self.level(glow));
+        }
+    }
+
+    fn advance(&mut self, delta: Duration, glow: bool) {
+        match self {
+            Self::Attack(clock) => {
+                *clock += delta;
+                if *clock
+                    >= if glow {
+                        TAB_GLOW_ATTACK
+                    } else {
+                        TAB_RUN_ATTACK
+                    }
+                {
+                    *self = Self::Sustain;
+                }
+            }
+            Self::Release(clock, _) => {
+                *clock += delta;
+                if *clock
+                    >= if glow {
+                        TAB_GLOW_RELEASE
+                    } else {
+                        TAB_RUN_RELEASE
+                    }
+                {
+                    *self = Self::Idle;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn remaining(self, glow: bool) -> Option<Duration> {
+        match self {
+            Self::Attack(clock) => Some(
+                (if glow {
+                    TAB_GLOW_ATTACK
+                } else {
+                    TAB_RUN_ATTACK
+                }) - clock,
+            ),
+            Self::Release(clock, _) => Some(
+                (if glow {
+                    TAB_GLOW_RELEASE
+                } else {
+                    TAB_RUN_RELEASE
+                }) - clock,
+            ),
+            _ => None,
+        }
+    }
+}
+
+/// U47 component-local smoothstep tint, not an independently running timer.
+struct TabTint {
+    level: f32,
+    from: f32,
+    target: f32,
+    clock: Option<Duration>,
+    duration: Duration,
+}
+
+impl TabTint {
+    fn new(level: f32, milliseconds: u64) -> Self {
+        Self {
+            level,
+            from: level,
+            target: level,
+            clock: None,
+            duration: Duration::from_millis(milliseconds),
+        }
+    }
+
+    fn target(&mut self, target: f32, enabled: bool) {
+        if target == self.target {
+            if !enabled {
+                self.settle();
+            }
+            return;
+        }
+        self.from = self.level;
+        self.target = target;
+        self.clock = (enabled && self.level != target).then_some(Duration::ZERO);
+        if !enabled {
+            self.level = target;
+        }
+    }
+
+    fn settle(&mut self) {
+        self.level = self.target;
+        self.clock = None;
+    }
+
+    fn ignite(&mut self, enabled: bool) {
+        self.level = if enabled { 0.85 } else { 0.0 };
+        self.from = self.level;
+        self.target = 0.0;
+        self.clock = enabled.then_some(Duration::ZERO);
+    }
+
+    fn advance(&mut self, delta: Duration) {
+        let Some(clock) = &mut self.clock else { return };
+        *clock += delta;
+        let p = (clock.as_secs_f32() / self.duration.as_secs_f32()).min(1.0);
+        self.level = self.from + (self.target - self.from) * p * p * (3.0 - 2.0 * p);
+        if *clock >= self.duration {
+            self.settle();
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub(crate) struct TabPulseFrame {
+    pub animations: bool,
+    pub complete: bool,
+    pub glows: bool,
+    pub running: f32,
+    pub sweep_clock: f32,
+    pub completion: f32,
+    pub flash: f32,
+    pub glow: f32,
+    pub release: Option<f32>,
+    pub swell: f32,
+    pub whitecap: f32,
+    pub dim: f32,
+    pub title_glow: f32,
+    pub number_glow: f32,
+}
+
+impl TabPulseFrame {
+    pub(crate) fn sweep(self, index: f32, width: u16) -> f32 {
+        if self.running == 0.0 {
+            return 0.0;
+        }
+        let coast = |p: f32| {
+            if p < 0.2 {
+                p * p / 0.32
+            } else if p > 0.8 {
+                1.0 - (1.0 - p) * (1.0 - p) / 0.32
+            } else {
+                (p - 0.1) / 0.8
+            }
+        };
+        let cycles = self.sweep_clock / 2.8;
+        let front = |p: f32| -4.0 + coast(p) * (f32::from(width) + 21.0);
+        let intensity = |front: f32| {
+            let distance = front - index;
+            tab_smootherstep(
+                if distance < 0.0 {
+                    1.0 + distance / 4.0
+                } else {
+                    1.0 - distance / 18.0
+                }
+                .clamp(0.0, 1.0),
+            )
+        };
+        intensity(front(cycles.fract())).max(intensity(front(if cycles < 0.5 {
+            0.0
+        } else {
+            (cycles + 0.5).fract()
+        }))) * self.running
+    }
+
+    pub(crate) fn glow_at(self, index: f32, width: u16, maximum_tail: f32) -> f32 {
+        let tail = maximum_tail.min(f32::from(width.saturating_sub(2).max(1)));
+        let resting = tab_glow_intensity(index, tail) * self.glow;
+        let diffusing = self.release.map_or(0.0, |p| {
+            tab_glow_intensity(index, tail + tab_smootherstep(p) * f32::from(width)) * self.swell
+        });
+        0.16 * resting.max(diffusing)
+    }
+}
+
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+struct TabPulseTarget {
+    animations: bool,
+    runs: bool,
+    complete: bool,
+    glows: bool,
+    prompt: u64,
+    dimmed: bool,
+    vertical: bool,
+    compact: bool,
+    numbers: bool,
+}
+
+impl TabPulseTarget {
+    fn enabled(self) -> bool {
+        self.animations && !self.compact
+    }
+}
+
+struct TabPulse {
+    target: TabPulseTarget,
+    completion_pending: bool,
+    run: TabGate,
+    attention: TabGate,
+    sweep_clock: Duration,
+    completion: Option<Duration>,
+    flash: Option<Duration>,
+    flash_scale: f32,
+    whitecap: TabTint,
+    dim: TabTint,
+    title: TabTint,
+    number: TabTint,
+    last: Instant,
+}
+
+impl TabPulse {
+    fn new(target: TabPulseTarget, now: Instant) -> Self {
+        let mut result = Self {
+            target,
+            completion_pending: false,
+            run: if target.enabled() && target.runs {
+                TabGate::Attack(Duration::ZERO)
+            } else {
+                TabGate::Idle
+            },
+            // Source mount keeps an existing glow at sustain, without ignition.
+            attention: if target.glows {
+                TabGate::Sustain
+            } else {
+                TabGate::Idle
+            },
+            sweep_clock: Duration::ZERO,
+            completion: None,
+            flash: None,
+            flash_scale: 1.0,
+            whitecap: TabTint::new(0.0, 700),
+            dim: TabTint::new(if target.dimmed { 0.7 } else { 1.0 }, 200),
+            title: TabTint::new(0.0, 400),
+            number: TabTint::new(0.0, 400),
+            last: now,
+        };
+        result.tint_targets();
+        result
+    }
+
+    fn sync(&mut self, target: TabPulseTarget, now: Instant) {
+        if self.target == target {
+            return;
+        }
+        self.tick(now);
+        self.last = now;
+        let previous = self.target;
+        let enabled = target.enabled();
+        self.target = target;
+        if previous.enabled() != enabled {
+            if !enabled {
+                self.run = TabGate::Idle;
+                self.attention = if target.glows {
+                    TabGate::Sustain
+                } else {
+                    TabGate::Idle
+                };
+                self.completion = None;
+                self.flash = None;
+                self.completion_pending = false;
+                self.whitecap.settle();
+                self.dim.settle();
+                self.title.settle();
+                self.number.settle();
+            } else if previous.runs {
+                // Re-enable attacks from the retained sweep position.
+                self.run = TabGate::Attack(Duration::ZERO);
+            }
+        }
+        if previous.runs != target.runs {
+            self.whitecap.ignite(target.animations);
+            if enabled {
+                if target.runs {
+                    self.sweep_clock = Duration::ZERO;
+                    self.run = TabGate::Attack(Duration::ZERO);
+                    self.completion = None;
+                    self.completion_pending = false;
+                } else {
+                    self.run.release(false);
+                    self.completion_pending = true;
+                }
+                // start(), not restart(): fast toggles retain the edge flash.
+                if self.flash.is_none() {
+                    self.flash = Some(Duration::ZERO);
+                    self.flash_scale = 1.0;
+                }
+            }
+        }
+        if previous.prompt != target.prompt {
+            self.whitecap.ignite(target.animations);
+            if enabled {
+                self.flash = Some(Duration::ZERO);
+                self.flash_scale = 2.0;
+            }
+        }
+        if previous.complete != target.complete {
+            if !target.complete {
+                self.completion = None;
+                self.completion_pending = false;
+            } else if self.completion_pending {
+                self.completion_pending = false;
+                if enabled {
+                    self.completion.get_or_insert(Duration::ZERO);
+                }
+            }
+        }
+        if previous.glows != target.glows {
+            if !enabled {
+                self.attention = if target.glows {
+                    TabGate::Sustain
+                } else {
+                    TabGate::Idle
+                };
+            } else if target.glows {
+                self.attention = TabGate::Attack(Duration::ZERO);
+            } else {
+                self.attention.release(true);
+            }
+        }
+        if !target.animations {
+            self.whitecap.settle();
+        }
+        self.tint_targets();
+    }
+
+    fn tint_targets(&mut self) {
+        let target = self.target;
+        self.dim
+            .target(if target.dimmed { 0.7 } else { 1.0 }, target.enabled());
+        self.title.target(
+            if target.vertical && !target.compact && target.glows {
+                1.0
+            } else {
+                0.0
+            },
+            target.animations,
+        );
+        self.number.target(
+            if target.vertical && (target.glows || target.complete) {
+                1.0
+            } else {
+                0.0
+            },
+            target.animations,
+        );
+    }
+
+    fn frame(&self) -> TabPulseFrame {
+        let release = match self.attention {
+            TabGate::Release(clock, _) => Some(clock.as_secs_f32() / 0.9),
+            _ => None,
+        };
+        let scale = match self.attention {
+            TabGate::Release(_, scale) => scale.max(1.0),
+            _ => 0.0,
+        };
+        TabPulseFrame {
+            animations: self.target.animations,
+            complete: self.target.complete,
+            glows: self.target.glows,
+            running: self.run.level(false),
+            sweep_clock: self.sweep_clock.as_secs_f32(),
+            completion: self.completion.map_or(0.0, |clock| {
+                0.18 * tab_attack_decay(clock.as_secs_f32() / 1.2, 0.12, 1.0, 0.0)
+            }),
+            flash: self.flash.map_or(0.0, |clock| {
+                0.1 * self.flash_scale * tab_attack_decay(clock.as_secs_f32() / 0.8, 0.1, 1.0, 0.0)
+            }),
+            glow: self.attention.level(true),
+            release,
+            swell: release.map_or(0.0, |p| tab_attack_decay(p, 0.12, 1.25, 0.0) * scale),
+            whitecap: self.whitecap.level,
+            dim: self.dim.level,
+            title_glow: self.title.level,
+            number_glow: self.number.level,
+        }
+    }
+
+    fn deadline(&self) -> Option<Instant> {
+        if !self.target.animations {
+            return None;
+        }
+        let remaining = [
+            self.run.remaining(false),
+            self.attention.remaining(true),
+            self.completion.map(|clock| TAB_COMPLETION - clock),
+            self.flash.map(|clock| TAB_FLASH - clock),
+            self.whitecap
+                .clock
+                .filter(|_| !self.target.compact || self.target.numbers)
+                .map(|clock| self.whitecap.duration - clock),
+            self.dim.clock.map(|clock| self.dim.duration - clock),
+            self.title.clock.map(|clock| self.title.duration - clock),
+            self.number
+                .clock
+                .filter(|_| !self.target.compact || self.target.numbers)
+                .map(|clock| self.number.duration - clock),
+        ]
+        .into_iter()
+        .flatten()
+        .min();
+        ((self.target.enabled() && self.target.runs) || remaining.is_some())
+            .then(|| self.last + remaining.unwrap_or(TAB_FADE_FRAME).min(TAB_FADE_FRAME))
+    }
+
+    fn tick(&mut self, now: Instant) -> bool {
+        let before = self.frame();
+        let delta = now.saturating_duration_since(self.last);
+        self.last = self.last.max(now);
+        if !self.target.animations {
+            return false;
+        }
+        if !matches!(self.run, TabGate::Idle) {
+            self.sweep_clock += delta;
+        }
+        self.run.advance(delta, false);
+        self.attention.advance(delta, true);
+        for (clock, duration) in [
+            (&mut self.completion, TAB_COMPLETION),
+            (&mut self.flash, TAB_FLASH),
+        ] {
+            if let Some(elapsed) = clock {
+                *elapsed += delta;
+                if *elapsed >= duration {
+                    *clock = None;
+                }
+            }
+        }
+        self.whitecap.advance(delta);
+        self.dim.advance(delta);
+        self.title.advance(delta);
+        self.number.advance(delta);
+        if self.completion_pending {
+            if self.target.complete {
+                self.completion_pending = false;
+                self.completion.get_or_insert(Duration::ZERO);
+            } else if !matches!(self.run, TabGate::Release(..)) {
+                self.completion_pending = false;
+            }
+        }
+        before != self.frame()
+    }
+}
+
+struct TabMotion {
+    id: TabIdentity,
+    at: Option<Instant>,
+    frame: usize,
+    pulse: TabPulse,
+}
+
+/// U56: one hovered identity retains a completed cycle until leave. The cycle
+/// width is captured at enter; title metadata remains live in the renderer.
+struct TabMarquee {
+    id: TabIdentity,
+    first: Instant,
+    cycle: usize,
+    offset: usize,
+    done: bool,
+    leading: f32,
+    fade_at: Option<Instant>,
+}
+
+impl TabMarquee {
+    fn end(&self) -> Instant {
+        self.first + TAB_STEP * self.cycle.saturating_sub(1) as u32
+    }
+
+    fn deadline(&self) -> Option<Instant> {
+        let step = (!self.done).then(|| self.first + TAB_STEP * self.offset as u32);
+        let fade = self.fade_at.map(|at| {
+            (at + TAB_FADE_FRAME).min(if self.done { self.end() } else { self.first } + TAB_FADE)
+        });
+        [step, fade].into_iter().flatten().min()
+    }
+
+    fn tick(&mut self, now: Instant, animations: bool) -> bool {
+        if now < self.first {
+            return false;
+        }
+        let previous = (self.offset, self.leading);
+        let end = self.end();
+        self.done = now >= end;
+        self.offset = if self.done {
+            0
+        } else {
+            1 + (now.duration_since(self.first).as_millis() / 80) as usize
+        };
+        let elapsed = now.saturating_duration_since(if self.done { end } else { self.first });
+        let progress = (elapsed.as_secs_f32() / TAB_FADE.as_secs_f32()).min(1.0);
+        // ui/animation.ts tween defaults to smoothstep, not smootherstep.
+        let eased = progress * progress * (3.0 - 2.0 * progress);
+        self.leading = if !animations {
+            if self.done { 0.0 } else { 1.0 }
+        } else if self.done {
+            1.0 - eased
+        } else {
+            eased
+        };
+        self.fade_at = (animations && progress < 1.0).then_some(now);
+        previous != (self.offset, self.leading)
+    }
+}
+
+#[derive(Default)]
+struct TabView {
+    area: Option<Rect>,
+    vertical: bool,
+    compact: bool,
+    hovered: Option<TabIdentity>,
+    leave: Option<Instant>,
+    marquee: Option<TabMarquee>,
+    motions: Vec<TabMotion>,
+}
+
+impl TabView {
+    fn reset_hover(&mut self) {
+        self.hovered = None;
+        self.leave = None;
+        self.marquee = None;
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -473,7 +1103,7 @@ pub(crate) const HOME_EXAMPLES: [&str; 3] = [
     "Fix broken tests",
 ];
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 struct TranscriptViewport {
     width: u16,
     terminal_width: u16,
@@ -481,6 +1111,27 @@ struct TranscriptViewport {
     total: usize,
     requested_scroll: usize,
     displayed_scroll: usize,
+}
+
+/// One warm screen, never another retained-history/archive cache. Selection
+/// highlighting is applied after this projection on every paint.
+struct VisibleTranscriptProjection {
+    revision: u64,
+    window_revision: u64,
+    viewport: Option<TranscriptViewport>,
+    live_lengths: (usize, usize),
+    dimensions: (u16, u16, u16),
+    requested_scroll: usize,
+    chrome: oc_core::queries::TuiChrome,
+    theme: crate::theme::ThemeMode,
+    thinking: bool,
+    reasoning: BTreeSet<crate::messages::ReasoningIdentity>,
+    exploration: BTreeSet<String>,
+    compaction_frame: usize,
+    lines: Vec<Line>,
+    total: usize,
+    scroll: usize,
+    targets: Vec<Option<crate::messages::UserMessageTarget>>,
 }
 
 /// Only actual visible chip cells from the latest prompt paint are actionable.
@@ -567,7 +1218,8 @@ pub struct TuiState {
     /// Press origin prevents drag-release across the backdrop from dismissing a dialog.
     mouse_down: Option<crate::dialog::DialogHit>,
     tab_down: Option<TabPress>,
-    hovered_tab: std::cell::Cell<Option<(usize, Rect)>>,
+    tab_view: std::cell::RefCell<TabView>,
+    pub(crate) tab_scroll: std::cell::Cell<usize>,
     last_mouse: Option<(u16, u16, Rect)>,
     pub(crate) close_hold: Option<TabCloseHold>,
     tabs: Vec<TabPresentation>,
@@ -606,6 +1258,12 @@ pub struct TuiState {
     regenerate_pending: Option<u64>,
     window: HistoryWindow,
     markdown_cache: std::cell::RefCell<crate::messages::MarkdownCache>,
+    transcript_revision: u64,
+    visible_projection: std::cell::RefCell<Option<VisibleTranscriptProjection>>,
+    #[cfg(test)]
+    transcript_row_copies: std::cell::Cell<usize>,
+    #[cfg(test)]
+    visible_projection_builds: std::cell::Cell<usize>,
     live_text: String,
     /// Reasoning text streamed for the active turn (never persisted).
     live_reasoning: String,
@@ -747,7 +1405,8 @@ impl TuiState {
             select: Default::default(),
             mouse_down: None,
             tab_down: None,
-            hovered_tab: std::cell::Cell::new(None),
+            tab_view: Default::default(),
+            tab_scroll: std::cell::Cell::new(0),
             last_mouse: None,
             close_hold: None,
             tabs: Vec::new(),
@@ -774,6 +1433,12 @@ impl TuiState {
             regenerate_pending: None,
             window: HistoryWindow::new(),
             markdown_cache: std::cell::RefCell::new(Default::default()),
+            transcript_revision: 0,
+            visible_projection: Default::default(),
+            #[cfg(test)]
+            transcript_row_copies: Default::default(),
+            #[cfg(test)]
+            visible_projection_builds: Default::default(),
             live_text: String::new(),
             live_reasoning: String::new(),
             thinking_expanded: false,
@@ -864,8 +1529,35 @@ impl TuiState {
     /// Refresh the retained deck. The binary owns route selection and the add
     /// action; Home itself becomes a synthetic final slot only in the renderer.
     pub fn set_tab_strip(&mut self, tabs: Vec<TabPresentation>, active: usize, can_add: bool) {
+        self.set_tab_strip_at(tabs, active, can_add, Instant::now());
+    }
+
+    /// A same-Location view replacement does not unmount the visible deck.
+    /// Move its bounded component clocks; parked transcript views own no copy.
+    /// The caller has already admitted the route. Keep an actual same-Location
+    /// pointer; reconciliation validates its stable ID against the new layout.
+    pub fn take_tab_clocks_from(&mut self, previous: &mut Self) {
+        let view = self.tab_view.get_mut();
+        *view = std::mem::take(previous.tab_view.get_mut());
+        if self.chrome.location == previous.chrome.location {
+            self.last_mouse = previous.last_mouse.take();
+        } else {
+            *view = TabView::default();
+            self.last_mouse = None;
+        }
+        self.tab_scroll.set(previous.tab_scroll.get());
+    }
+
+    fn set_tab_strip_at(
+        &mut self,
+        tabs: Vec<TabPresentation>,
+        active: usize,
+        can_add: bool,
+        now: Instant,
+    ) {
         if self.active_tab != active.min(tabs.len().saturating_sub(1)) {
             self.clear_transcript_selection();
+            self.tab_scroll.set(active);
         }
         self.tab_down = None;
         let count = tabs.len().min(16);
@@ -873,39 +1565,56 @@ impl TuiState {
             || self.active_tab != active.min(count.saturating_sub(1))
             || self.can_add_tab != (can_add && count > 0)
         {
-            self.hovered_tab.set(None);
             self.close_hold = None;
         }
         self.tabs = tabs.into_iter().take(16).collect();
         self.active_tab = active.min(self.tabs.len().saturating_sub(1));
         self.can_add_tab = can_add && !self.tabs.is_empty();
+        let area = self.tab_view.borrow().area;
+        if let Some(area) = area {
+            self.prepare_tabs(area, now);
+        }
     }
 
-    /// Clear the recorded SGR coordinate when a resize invalidates its frame.
+    /// Clear a mouse surface when it is hidden or no longer admitted.
     pub fn clear_mouse_position(&mut self) {
         self.painted_prompt.borrow_mut().take();
         self.clear_transcript_selection();
         self.last_mouse = None;
         self.toast_down = false;
         self.set_toast_hover(false, Instant::now());
-        self.hovered_tab.set(None);
+        self.tab_view.get_mut().reset_hover();
         self.close_hold = None;
         self.tab_down = None;
         self.reasoning_down = None;
     }
 
+    /// Resize invalidates press targets, not a still-visible source marquee.
+    /// Re-hit-test the same physical pointer against the admitted new layout.
+    pub fn resize_mouse_position(&mut self, area: Rect) {
+        self.painted_prompt.borrow_mut().take();
+        self.clear_transcript_selection();
+        self.toast_down = false;
+        self.set_toast_hover(false, Instant::now());
+        self.close_hold = None;
+        self.tab_down = None;
+        self.reasoning_down = None;
+        self.last_mouse = self.last_mouse.and_then(|(x, y, _)| {
+            let index = crate::shell::tab_strip(self, area)?.hit_test(x, y)?;
+            let id = self.tab_identity(index)?;
+            (self.tab_view.borrow().hovered.as_ref() == Some(&id)).then_some((x, y, area))
+        });
+        self.prepare_tabs(area, Instant::now());
+    }
+
     /// Recover hover after a successful mouse tab activation (never on keys).
     pub fn restore_mouse_hover(&mut self, pointer: (u16, u16, Rect)) {
         let (x, y, area) = pointer;
-        if self.panel != TuiPanel::None || self.is_busy() {
+        if self.panel != TuiPanel::None {
             return;
         }
         self.last_mouse = Some(pointer);
-        self.hovered_tab.set(
-            crate::shell::tab_strip(self, area)
-                .and_then(|strip| strip.hit_test(x, y))
-                .map(|index| (index, area)),
-        );
+        self.enter_tab_at(area, x, y, Instant::now());
     }
 
     /// A keyboard close can replace the view that received the last real mouse
@@ -921,14 +1630,15 @@ impl TuiState {
             .is_some_and(|add| add.width == 3 && add.contains((x, y).into()))
         {
             self.last_mouse = Some(pointer);
-            self.hovered_tab.set(None);
+            self.tab_view.get_mut().reset_hover();
         }
     }
 
     pub(crate) fn tab_add_hovered(&self, area: Rect, add: Rect) -> bool {
         self.panel == TuiPanel::None
             && !self.is_busy()
-            && add.width == 3
+            && (crate::layout::vertical_tabs_width(area.width, self.chrome.vertical_tabs_width) > 0
+                || add.width == 3)
             && self.last_mouse.is_some_and(|(x, y, pointer_area)| {
                 pointer_area == area && add.contains((x, y).into())
             })
@@ -1039,12 +1749,17 @@ impl TuiState {
     /// workspace commands) belongs to the previous Location: the next panel
     /// open must reload from the new generation instead of showing it.
     pub fn reset_workspace(&mut self) {
+        self.invalidate_transcript();
         self.close_panel();
         self.editor.forget_accepted_mentions();
         self.slash_selected = 0;
         self.slash_dismissed = None;
         self.clear_mentions();
         self.tabs.clear();
+        *self.tab_view.get_mut() = TabView::default();
+        self.tab_scroll.set(0);
+        self.tab_attention.clear();
+        self.clear_mouse_position();
         self.active_tab = 0;
         self.can_add_tab = false;
         self.exploration_expanded.clear();
@@ -1082,6 +1797,9 @@ impl TuiState {
     }
 
     pub fn set_session(&mut self, session: SessionId) {
+        self.invalidate_transcript();
+        *self.tab_view.get_mut() = TabView::default();
+        self.clear_mouse_position();
         self.compactions.clear();
         self.compaction_turn_messages.clear();
         self.compaction_at = None;
@@ -1184,6 +1902,7 @@ impl TuiState {
             self.interrupt_armed_until,
             self.next_scroll_animation_deadline(),
             self.leader_deadline(),
+            self.next_tab_deadline(),
         ]
         .into_iter()
         .flatten()
@@ -1202,11 +1921,12 @@ impl TuiState {
         let scanner = self.tick_scanner(now);
         let wheel = self.tick_scroll_animation(now);
         let compaction = self.tick_compaction(now);
+        let tabs = self.tick_tabs(now);
         let leader = self.leader_deadline().is_some_and(|until| now >= until);
         if leader {
             self.leader = None;
         }
-        expired || scanner || wheel || compaction || leader
+        expired || scanner || wheel || compaction || leader || tabs
     }
 
     fn leader_deadline(&self) -> Option<Instant> {
@@ -1742,7 +2462,7 @@ impl TuiState {
 
     fn open_variants(&mut self) {
         self.panel = TuiPanel::Variant;
-        self.hovered_tab.set(None);
+        self.tab_view.get_mut().reset_hover();
         self.close_hold = None;
         self.last_mouse = None;
         // A press belongs to the dialog where it began, not the replacement.
@@ -2163,6 +2883,7 @@ impl TuiState {
         &mut self,
         snapshots: Vec<oc_core::compaction::CompactionSnapshot>,
     ) {
+        self.invalidate_transcript();
         self.compactions = snapshots
             .into_iter()
             // The owner's bounded journal query returns newest-first.
@@ -2195,6 +2916,7 @@ impl TuiState {
         if self.compactions.len() > 100 {
             self.compactions.remove(0);
         }
+        self.invalidate_transcript();
         self.sync_compaction_clock();
     }
 
@@ -2272,6 +2994,7 @@ impl TuiState {
 
     /// Newest page becomes the whole window; scroll pins to the newest row.
     pub fn attach_page(&mut self, page: &HistoryPage) {
+        self.invalidate_transcript();
         self.remember_compaction_turns(page);
         self.completion_anchor.get_mut().take();
         self.reverted = page.reverted.clone();
@@ -2316,6 +3039,7 @@ impl TuiState {
         self.session_title = page.title.clone();
         self.clear_transcript_selection();
         self.window.refresh_completed(page, self.scroll > 0);
+        self.invalidate_transcript();
         self.completion_anchor.get_mut().take();
         let rows = self.transcript_rows();
         self.reasoning_expanded = old_rows
@@ -2408,6 +3132,7 @@ impl TuiState {
 
     /// Add an older page at the front of the window.
     pub fn prepend_page(&mut self, page: &HistoryPage) {
+        self.invalidate_transcript();
         self.remember_compaction_turns(page);
         self.completion_anchor.get_mut().take();
         self.reverted = page.reverted.clone();
@@ -2420,6 +3145,7 @@ impl TuiState {
 
     /// Add a newer page at the back of the window.
     pub fn append_page(&mut self, page: &HistoryPage) {
+        self.invalidate_transcript();
         self.remember_compaction_turns(page);
         self.reverted = page.reverted.clone();
         self.clear_transcript_selection();
@@ -2444,6 +3170,7 @@ impl TuiState {
 
     /// Close any open panel (chat view).
     pub fn close_panel(&mut self) {
+        let was_open = self.panel != TuiPanel::None;
         self.wheel_motion = None;
         self.clear_transcript_selection();
         self.panel = TuiPanel::None;
@@ -2457,9 +3184,11 @@ impl TuiState {
         self.card_seen.set(0);
         self.mouse_down = None;
         self.tab_down = None;
-        self.hovered_tab.set(None);
+        if was_open {
+            self.tab_view.get_mut().reset_hover();
+            self.last_mouse = None;
+        }
         self.close_hold = None;
-        self.last_mouse = None;
         self.exploration_down = None;
         self.reasoning_down = None;
         self.select.reset();
@@ -2469,6 +3198,36 @@ impl TuiState {
     /// replaced (Model → Variant) the former owner is destroyed, and closing
     /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
+        if self.panel == TuiPanel::None {
+            self.prepare_tabs(area, Instant::now());
+            if matches!(
+                event.kind,
+                MouseEventKind::ScrollUp | MouseEventKind::ScrollDown
+            ) && self.tab_wheel_hit(area, event.column, event.row)
+            {
+                self.tab_scroll
+                    .set(if event.kind == MouseEventKind::ScrollUp {
+                        self.tab_scroll.get().saturating_sub(1)
+                    } else {
+                        self.tab_scroll
+                            .get()
+                            .saturating_add(1)
+                            .min(self.tabs.len().saturating_sub(1))
+                    });
+                self.last_mouse = Some((event.column, event.row, area));
+                self.tab_down = None;
+                self.prepare_tabs(area, Instant::now());
+                return KeyOutcome::default();
+            }
+            if crate::shell::tab_strip(self, area)
+                .and_then(|strip| strip.hit_test(event.column, event.row))
+                .is_none()
+            {
+                let view = self.tab_view.get_mut();
+                view.hovered = None;
+                view.leave = Some(Instant::now());
+            }
+        }
         if self.approvals.active().is_some() {
             if !crate::shell::tab_region(self, area).contains((event.column, event.row).into()) {
                 self.tab_down = None;
@@ -2611,11 +3370,7 @@ impl TuiState {
             }
             match event.kind {
                 MouseEventKind::Moved => {
-                    self.hovered_tab.set(
-                        crate::shell::tab_strip(self, area)
-                            .and_then(|strip| strip.hit_test(event.column, event.row))
-                            .map(|index| (index, area)),
-                    );
+                    self.enter_tab_at(area, event.column, event.row, Instant::now());
                     self.exploration_down = None;
                     self.reasoning_down = None;
                 }
@@ -2825,7 +3580,7 @@ impl TuiState {
                     self.reasoning_down = None;
                     self.tab_down = None;
                     if matches!(event.kind, MouseEventKind::Drag(_)) {
-                        self.hovered_tab.set(None);
+                        self.tab_view.get_mut().reset_hover();
                     }
                 }
                 _ => {}
@@ -2836,7 +3591,7 @@ impl TuiState {
         self.exploration_down = None;
         self.reasoning_down = None;
         self.tab_down = None;
-        self.hovered_tab.set(None);
+        self.tab_view.get_mut().reset_hover();
         self.close_hold = None;
         if self.panel == TuiPanel::Rename {
             let rect = crate::dialog::rename_geometry(area);
@@ -3557,7 +4312,7 @@ impl TuiState {
         let strip = crate::shell::tab_strip(self, area)?;
         if strip
             .add
-            .is_some_and(|rect| rect.width == 3 && rect.contains((x, y).into()))
+            .is_some_and(|rect| (strip.vertical || rect.width == 3) && rect.contains((x, y).into()))
         {
             return Some(TabPress::Add);
         }
@@ -3566,6 +4321,7 @@ impl TuiState {
             .tabs
             .iter()
             .find(|tab| tab.index == index)
+            .filter(|tab| tab.rect.y == y)
             .and_then(|tab| self.tab_close_cell(area, tab.index, tab.rect))
             == Some(x)
         {
@@ -3576,29 +4332,321 @@ impl TuiState {
         (index < self.tabs.len()).then_some(TabPress::Tab(index))
     }
 
-    /// Hover is tied to the frame geometry that actually received a motion event.
+    fn tab_identity(&self, index: usize) -> Option<TabIdentity> {
+        if let Some(tab) = self.tabs.get(index) {
+            Some(TabIdentity::Session(tab.session.clone()))
+        } else if self.home && !self.tabs.is_empty() && index == self.tabs.len() {
+            Some(TabIdentity::Home)
+        } else if self.tabs.is_empty() && index == 0 {
+            self.session.clone().map(TabIdentity::Session)
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn tab_title(&self, index: usize) -> &str {
+        if self.home && index == self.tabs.len() {
+            crate::shell::NEW_SESSION_TAB_TITLE
+        } else {
+            self.tabs
+                .get(index)
+                .and_then(|tab| tab.title.as_deref())
+                .or_else(|| {
+                    self.tabs
+                        .is_empty()
+                        .then_some(self.session_title.as_deref())
+                        .flatten()
+                })
+                .unwrap_or(crate::shell::UNTITLED_SESSION)
+        }
+    }
+
+    pub(crate) fn tab_attention_for(&self, index: usize) -> Option<TabAttention> {
+        let attention = self.tabs.get(index).and_then(|tab| tab.attention);
+        if self.tab_attention.contains(&index) || attention == Some(TabAttention::Permission) {
+            Some(TabAttention::Permission)
+        } else {
+            attention
+        }
+    }
+
+    pub(crate) fn tab_busy(&self, index: usize) -> bool {
+        self.tabs
+            .get(index)
+            .map_or_else(|| self.is_busy() && !self.home, |tab| tab.busy)
+    }
+
+    pub(crate) fn tab_number_width(&self) -> usize {
+        (self.tabs.len() + usize::from(self.home))
+            .to_string()
+            .len()
+            .max(2)
+    }
+
+    /// Reconcile mounts against the actual painted deck, never the archive.
+    /// Source U56 resets when the active tab disappears or compactness changes;
+    /// title/status/width changes alone do not re-enter an unchanged identity.
+    pub(crate) fn prepare_tabs(&self, area: Rect, now: Instant) {
+        let strip = crate::shell::tab_strip(self, area);
+        if let Some(strip) = strip.as_ref().filter(|strip| strip.vertical) {
+            self.tab_scroll.set(strip.start);
+        }
+        let mut view = self.tab_view.borrow_mut();
+        let vertical = strip.as_ref().is_some_and(|strip| strip.vertical);
+        let compact = strip.as_ref().is_some_and(|strip| strip.compact);
+        if view.vertical != vertical || view.compact != compact {
+            // The source Switch/Show mounts new indicator/pulse components.
+            view.motions.clear();
+        }
+        if view.vertical != vertical || view.compact != compact || self.panel != TuiPanel::None {
+            view.reset_hover();
+        }
+        view.area = Some(area);
+        view.vertical = vertical;
+        view.compact = compact;
+        let visible: Vec<_> = strip
+            .iter()
+            .flat_map(|strip| &strip.tabs)
+            .filter(|tab| tab.rect.width > 0 && tab.rect.height > 0)
+            .filter_map(|tab| self.tab_identity(tab.index).map(|id| (id, tab.index)))
+            .collect();
+        if view
+            .hovered
+            .as_ref()
+            .is_some_and(|id| !visible.iter().any(|(visible, _)| visible == id))
+            || view
+                .marquee
+                .as_ref()
+                .is_some_and(|marquee| !visible.iter().any(|(id, _)| id == &marquee.id))
+        {
+            view.reset_hover();
+        }
+        if let Some(id) = view.hovered.as_ref()
+            && !self.last_mouse.is_some_and(|(x, y, _)| {
+                strip
+                    .as_ref()
+                    .and_then(|strip| strip.hit_test(x, y))
+                    .and_then(|index| self.tab_identity(index))
+                    .as_ref()
+                    == Some(id)
+            })
+        {
+            view.reset_hover();
+        }
+        view.motions
+            .retain(|spinner| visible.iter().any(|(id, _)| id == &spinner.id));
+        for (id, index) in visible {
+            let busy = self.tab_busy(index);
+            let attention = self.tab_attention_for(index).is_some();
+            let selected = if self.home {
+                id == TabIdentity::Home
+            } else {
+                index == self.active_tab
+            };
+            let complete = self.tabs.get(index).is_some_and(|tab| tab.complete) && !busy;
+            let glow = attention || (complete && !selected);
+            let prompt = self.tabs.get(index).map_or(0, |tab| tab.prompt_pulse);
+            let animations = self.chrome.animations != Some(false);
+            let running = busy && !attention;
+            let spinner_running = running
+                && animations
+                && self.chrome.tab_indicators == oc_core::queries::TabIndicators::Status;
+            let target = TabPulseTarget {
+                animations,
+                runs: running,
+                complete,
+                glows: glow,
+                prompt,
+                dimmed: selected && attention,
+                vertical,
+                compact,
+                numbers: self.chrome.tab_indicators == oc_core::queries::TabIndicators::Numbers,
+            };
+            let spinner =
+                if let Some(position) = view.motions.iter().position(|motion| motion.id == id) {
+                    &mut view.motions[position]
+                } else {
+                    view.motions.push(TabMotion {
+                        id,
+                        at: None,
+                        frame: 0,
+                        pulse: TabPulse::new(target, now),
+                    });
+                    view.motions.last_mut().expect("inserted tab motion")
+                };
+            spinner.pulse.sync(target, now);
+            if spinner_running {
+                spinner.at.get_or_insert(now);
+            } else {
+                spinner.at = None;
+                spinner.frame = 0;
+            }
+        }
+    }
+
+    fn enter_tab_at(&mut self, area: Rect, x: u16, y: u16, now: Instant) {
+        self.prepare_tabs(area, now);
+        let Some(strip) = crate::shell::tab_strip(self, area) else {
+            return;
+        };
+        let Some(tab) = strip
+            .tabs
+            .iter()
+            .find(|tab| tab.rect.contains((x, y).into()))
+        else {
+            // U56's zero-delay leave lets a nested close-control enter cancel it.
+            let view = self.tab_view.get_mut();
+            view.hovered = None;
+            view.leave = Some(now);
+            return;
+        };
+        let Some(id) = self.tab_identity(tab.index) else {
+            return;
+        };
+        let width = crate::layout::tab_title_width(
+            tab.rect.width,
+            self.tab_number_width(),
+            strip.vertical,
+            strip.compact,
+            true,
+        );
+        let title = self.tab_title(tab.index);
+        let overflow =
+            width.is_some_and(|width| unicode_width::UnicodeWidthStr::width(title) > width);
+        let cycle = unicode_width::UnicodeWidthStr::width(title) + 3;
+        let view = self.tab_view.get_mut();
+        view.leave = None;
+        view.hovered = Some(id.clone());
+        if !overflow {
+            view.marquee = None;
+            return;
+        }
+        if view
+            .marquee
+            .as_ref()
+            .is_some_and(|marquee| marquee.id == id)
+        {
+            return;
+        }
+        view.marquee = Some(TabMarquee {
+            id,
+            first: now + TAB_MARQUEE_DELAY,
+            cycle,
+            offset: 0,
+            done: false,
+            leading: 0.0,
+            fade_at: None,
+        });
+    }
+
     pub(crate) fn hovered_tab(&self, area: Rect) -> Option<usize> {
         if self.panel != TuiPanel::None {
             return None;
         }
-        match self.hovered_tab.get() {
-            Some((index, painted))
-                if painted == area
-                    && self.last_mouse.is_some_and(|(x, y, pointer_area)| {
-                        pointer_area == area
-                            && crate::shell::tab_strip(self, area)
-                                .and_then(|strip| strip.hit_test(x, y))
-                                == Some(index)
-                    }) =>
-            {
-                Some(index)
-            }
-            Some(_) => {
-                self.hovered_tab.set(None);
-                None
-            }
-            None => None,
+        let (x, y, _) = self.last_mouse?;
+        let Some(index) =
+            crate::shell::tab_strip(self, area).and_then(|strip| strip.hit_test(x, y))
+        else {
+            self.tab_view.borrow_mut().reset_hover();
+            return None;
+        };
+        let id = self.tab_identity(index)?;
+        (self.tab_view.borrow().hovered.as_ref() == Some(&id)).then_some(index)
+    }
+
+    pub fn tab_wheel_hit(&self, area: Rect, x: u16, y: u16) -> bool {
+        crate::layout::vertical_tabs_width(area.width, self.chrome.vertical_tabs_width) > 0
+            && crate::shell::tab_region(self, area).contains((x, y).into())
+    }
+
+    pub(crate) fn tab_animation(&self, index: usize) -> (usize, f32, usize) {
+        let Some(id) = self.tab_identity(index) else {
+            return (0, 0.0, 0);
+        };
+        let view = self.tab_view.borrow();
+        let frame = view
+            .motions
+            .iter()
+            .find(|spinner| spinner.id == id)
+            .map_or(0, |spinner| spinner.frame);
+        view.marquee
+            .as_ref()
+            .filter(|marquee| marquee.id == id)
+            .map_or((0, 0.0, frame), |marquee| {
+                (marquee.offset, marquee.leading, frame)
+            })
+    }
+
+    pub(crate) fn tab_pulse(&self, index: usize) -> TabPulseFrame {
+        let Some(id) = self.tab_identity(index) else {
+            return TabPulseFrame::default();
+        };
+        self.tab_view
+            .borrow()
+            .motions
+            .iter()
+            .find(|spinner| spinner.id == id)
+            .map_or_else(TabPulseFrame::default, |spinner| spinner.pulse.frame())
+    }
+
+    fn next_tab_deadline(&self) -> Option<Instant> {
+        let view = self.tab_view.borrow();
+        let spinner = (self.chrome.animations != Some(false)
+            && self.chrome.tab_indicators == oc_core::queries::TabIndicators::Status)
+            .then(|| {
+                view.motions
+                    .iter()
+                    .filter_map(|spinner| spinner.at.map(|at| at + TAB_STEP))
+                    .min()
+            })
+            .flatten();
+        [
+            spinner,
+            view.motions
+                .iter()
+                .filter_map(|spinner| spinner.pulse.deadline())
+                .min(),
+            view.leave,
+            view.marquee.as_ref().and_then(TabMarquee::deadline),
+        ]
+        .into_iter()
+        .flatten()
+        .min()
+    }
+
+    fn tick_tabs(&mut self, now: Instant) -> bool {
+        let area = self.tab_view.borrow().area;
+        if let Some(area) = area {
+            self.prepare_tabs(area, now);
         }
+        let view = self.tab_view.get_mut();
+        let mut changed = false;
+        if view.leave.is_some_and(|at| now >= at) {
+            changed = view.hovered.is_some() || view.marquee.is_some();
+            view.reset_hover();
+        }
+        for spinner in &mut view.motions {
+            changed |= spinner.pulse.tick(now);
+            let Some(at) = spinner.at else {
+                continue;
+            };
+            let steps = now.saturating_duration_since(at).as_millis() / 80;
+            if steps == 0 {
+                continue;
+            }
+            let frame = (spinner.frame + (steps % 10) as usize) % 10;
+            changed |= frame != spinner.frame;
+            spinner.frame = frame;
+            spinner.at = Some(
+                now - Duration::from_nanos(
+                    (now.saturating_duration_since(at).as_nanos() % TAB_STEP.as_nanos()) as u64,
+                ),
+            );
+        }
+        if let Some(marquee) = &mut view.marquee {
+            changed |= marquee.tick(now, self.chrome.animations != Some(false));
+        }
+        changed
     }
 
     /// Same eligibility and cell for the painted overlay and mouse action.
@@ -3607,6 +4655,10 @@ impl TuiState {
             && (index < self.tabs.len() || (self.home && index == self.tabs.len()))
             && self.hovered_tab(area) == Some(index)
             && !self.is_busy()
+            && self.panel == TuiPanel::None
+            && !(crate::layout::vertical_tabs_width(area.width, self.chrome.vertical_tabs_width)
+                > 0
+                && rect.width < crate::layout::SESSION_TABS_COMPACT_BREAKPOINT)
             && !self.tabs.get(index).is_some_and(|tab| tab.busy))
         .then(|| crate::layout::tab_close_cell(rect))
         .flatten()
@@ -3740,6 +4792,15 @@ impl TuiState {
     pub fn retained_bytes(&self) -> usize {
         self.window.retained_bytes()
             + self.markdown_cache.borrow().retained_bytes()
+            + self.visible_projection.borrow().as_ref().map_or(0, |view| {
+                view.lines
+                    .iter()
+                    .flat_map(Line::spans)
+                    .map(|span| std::mem::size_of::<crate::styled::Span>() + span.content().len())
+                    .sum::<usize>()
+                    + view.targets.len()
+                        * std::mem::size_of::<Option<crate::messages::UserMessageTarget>>()
+            })
             + self.live_text.len()
             + self.live_reasoning.len()
             + self
@@ -3812,6 +4873,9 @@ impl TuiState {
     /// (frozen text/reasoning segments and tool cards) and the open live
     /// answer (reasoning block and streaming text) while a turn is active.
     pub fn transcript_rows(&self) -> Vec<HistoryRow> {
+        #[cfg(test)]
+        self.transcript_row_copies
+            .set(self.transcript_row_copies.get() + self.window.len());
         let mut rows = self.window.rows().to_vec();
         for (ordinal, part) in self.live_parts.iter().enumerate() {
             if matches!(part, LivePart::Vacant) {
@@ -4051,6 +5115,31 @@ impl TuiState {
         usize,
         Vec<Option<crate::messages::UserMessageTarget>>,
     ) {
+        let theme = Theme::dark();
+        if let Some(view) = self.visible_projection.borrow().as_ref().filter(|view| {
+            view.revision == self.transcript_revision
+                && view.window_revision == self.window.revision()
+                && view.viewport == self.viewport.get()
+                && view.live_lengths == (self.live_text.len(), self.live_reasoning.len())
+                && view.dimensions == (width, terminal_width, height)
+                && view.requested_scroll == self.scroll
+                && view.chrome == self.chrome
+                && view.theme == theme.mode()
+                && view.thinking == self.thinking_expanded
+                && view.reasoning == self.reasoning_expanded
+                && view.exploration == self.exploration_expanded
+                && view.compaction_frame == self.compaction_frame
+        }) {
+            return (
+                view.lines.clone(),
+                view.total,
+                view.scroll,
+                view.targets.clone(),
+            );
+        }
+        #[cfg(test)]
+        self.visible_projection_builds
+            .set(self.visible_projection_builds.get() + 1);
         let rows = self.transcript_rows();
         let live_row = (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| {
             rows.len() - 1 - usize::from(self.active_turn.is_some() && self.live_preview_truncated)
@@ -4137,12 +5226,38 @@ impl TuiState {
         } else {
             scroll
         };
-        (
-            lines,
+        let scroll = scroll.min(total.saturating_sub(height as usize));
+        *self.visible_projection.borrow_mut() = Some(VisibleTranscriptProjection {
+            revision: self.transcript_revision,
+            window_revision: self.window.revision(),
+            viewport: Some(TranscriptViewport {
+                width,
+                terminal_width,
+                height,
+                total,
+                requested_scroll: self.scroll,
+                displayed_scroll: scroll,
+            }),
+            live_lengths: (self.live_text.len(), self.live_reasoning.len()),
+            dimensions: (width, terminal_width, height),
+            requested_scroll: self.scroll,
+            chrome: self.chrome.clone(),
+            theme: theme.mode(),
+            thinking: self.thinking_expanded,
+            reasoning: self.reasoning_expanded.clone(),
+            exploration: self.exploration_expanded.clone(),
+            compaction_frame: self.compaction_frame,
+            lines: lines.clone(),
             total,
-            scroll.min(total.saturating_sub(height as usize)),
-            targets,
-        )
+            scroll,
+            targets: targets.clone(),
+        });
+        (lines, total, scroll, targets)
+    }
+
+    fn invalidate_transcript(&mut self) {
+        self.transcript_revision = self.transcript_revision.wrapping_add(1);
+        self.visible_projection.get_mut().take();
     }
 
     /// Categorical agent color (`context/local.tsx:75-133`): the agent's index
@@ -4167,6 +5282,7 @@ impl TuiState {
 
     /// Apply a catalog snapshot: picker, agents and the effective selection.
     pub fn apply_catalog(&mut self, snapshot: CatalogSnapshot) {
+        self.invalidate_transcript();
         if self.chrome.conversation_shortcuts.leader
             != snapshot.chrome.conversation_shortcuts.leader
             || self.chrome.leader_timeout_ms() != snapshot.chrome.leader_timeout_ms()
@@ -4509,6 +5625,7 @@ impl TuiState {
         if self.session.as_ref() != Some(session) {
             return;
         }
+        self.invalidate_transcript();
         if self.window.apply_dcp_summary(op, page.clone()) {
             return;
         }
@@ -4657,6 +5774,7 @@ impl TuiState {
 
     /// The accepted compress turn starts streaming: status, turn, DCP panel.
     pub fn begin_compress_turn(&mut self, turn: WorkerTurnId) {
+        self.invalidate_transcript();
         self.reset_scanner();
         self.live_preview_truncated = false;
         self.live_part_states.clear();
@@ -5606,6 +6724,7 @@ impl TuiState {
         }
         match result {
             Ok(turn) => {
+                self.invalidate_transcript();
                 if pending.fresh {
                     self.session = Some(pending.session);
                 }
@@ -5735,7 +6854,7 @@ impl TuiState {
         self.select.reset();
         self.mouse_down = None;
         self.tab_down = None;
-        self.hovered_tab.set(None);
+        self.tab_view.get_mut().reset_hover();
         self.close_hold = None;
         self.last_mouse = None;
         self.leader = None;
@@ -6379,6 +7498,7 @@ impl TuiState {
         }
         self.window
             .insert_before_live_user(crate::history::model_switch_text(notice));
+        self.invalidate_transcript();
     }
 
     /// Apply a worker text delta to the live line (turn-scoped: deltas for
@@ -6393,6 +7513,7 @@ impl TuiState {
         if self.live_text.len() < WINDOW_BYTES {
             let room = WINDOW_BYTES - self.live_text.len();
             self.live_text.push_str(crate::truncate_utf8(delta, room));
+            self.invalidate_transcript();
         }
     }
 
@@ -6413,6 +7534,7 @@ impl TuiState {
             let room = WINDOW_BYTES - self.live_reasoning.len();
             self.live_reasoning
                 .push_str(crate::truncate_utf8(delta, room));
+            self.invalidate_transcript();
         }
     }
 
@@ -6438,6 +7560,7 @@ impl TuiState {
             return;
         }
         self.live_part_states = projection.part_states.clone();
+        self.invalidate_transcript();
         self.live_preview_truncated |= projection.truncated;
         self.live_agent_color_index = projection.agent_color_index;
         self.live_terminal_status = Some(projection.status.clone());
@@ -6473,6 +7596,7 @@ impl TuiState {
         if Some(turn) != self.active_turn.as_ref() {
             return;
         }
+        self.invalidate_transcript();
         let meta = self.finish_meta(false, duration_ms);
         self.reset_scanner();
         if !self.live_reasoning.is_empty() && self.reasoning_finished.is_none() {
@@ -6516,6 +7640,7 @@ impl TuiState {
         if Some(turn) != self.active_turn.as_ref() {
             return;
         }
+        self.invalidate_transcript();
         let meta = self.finish_meta(true, duration_ms);
         self.reset_scanner();
         let reasoning = self.take_reasoning();
@@ -6555,6 +7680,7 @@ impl TuiState {
         if Some(turn) != self.active_turn.as_ref() {
             return;
         }
+        self.invalidate_transcript();
         let mut meta = self.finish_meta(false, 0);
         self.reset_scanner();
         if meta.status.is_none() {
@@ -6711,6 +7837,14 @@ impl TuiState {
     /// Apply disposable provider snapshots. Raw fragments never enter the
     /// argument parser, diff renderer, durable projection or tool executor.
     pub fn project_pending_approvals(&mut self, requests: &[oc_core::approval::ApprovalRequest]) {
+        if requests.is_empty()
+            && !self.live_parts.iter().any(|part| {
+                matches!(part,
+            LivePart::Tool { card, .. } if card.state == "permission_pending")
+            })
+        {
+            return;
+        }
         use oc_core::approval::ApprovalPreview;
         let eligible: Vec<_> = requests
             .iter()
@@ -7114,6 +8248,7 @@ impl TuiState {
     /// Evict oldest live parts while the count or byte cap is exceeded; the
     /// parts are transient (a reload restores committed history).
     fn enforce_parts(&mut self) {
+        self.invalidate_transcript();
         while self.live_parts.len() > LIVE_PARTS_MAX
             || self
                 .live_parts
@@ -7247,13 +8382,14 @@ impl TuiState {
 
     /// Latest measured context, never DCP's estimate or a renderer constant.
     pub fn context_usage(&self) -> Option<(u64, Option<u64>)> {
-        let rows = self.transcript_rows();
         let usage = self
             .turn_usage
             .as_ref()
             .map(|u| (u.input_tokens, u.output_tokens))
             .or_else(|| {
-                rows.iter().rev().find_map(|r| {
+                // Live usage is handled above; frozen/live/compaction rows
+                // have no footer measurement. Borrow the retained durable tail.
+                self.window.rows().iter().rev().find_map(|r| {
                     let m = r.meta.as_ref()?;
                     m.context_usage
                         .or_else(|| Some((m.input_tokens?, m.output_tokens?)))
@@ -7638,8 +8774,8 @@ pub enum PumpOutcome {
 mod tests {
     use super::{
         HOME_EXAMPLES, KeyOutcome, LIVE_PARTS_MAX, MAX_INPUT_BYTES, MAX_SESSION_TITLE_BYTES,
-        NoteVariant, PanelIntent, PumpOutcome, ScriptDriver, TabCloseHold, TabPresentation,
-        TuiPanel, TuiState, TuiStatus, VIEWPORT_LINES,
+        NoteVariant, PanelIntent, PumpOutcome, ScriptDriver, TAB_MARQUEE_DELAY, TAB_STEP,
+        TabCloseHold, TabPresentation, TuiPanel, TuiState, TuiStatus, VIEWPORT_LINES,
     };
     use crate::events::KeyAction;
     use crate::history::{WINDOW_BYTES, WINDOW_ROWS};
@@ -8668,6 +9804,7 @@ mod tests {
                 title: state.session_title.clone(),
                 home: false,
                 busy: false,
+                ..TabPresentation::new(sid("rename-shortcut"))
             }],
             0,
             true,
@@ -8793,6 +9930,7 @@ mod tests {
                 title: None,
                 home: false,
                 busy: true,
+                ..TabPresentation::new(sid("busy"))
             }],
             0,
             false,
@@ -9002,6 +10140,7 @@ mod tests {
                 title: None,
                 home: false,
                 busy: false,
+                ..TabPresentation::new(sid("rename-direct"))
             }],
             0,
             true,
@@ -9066,11 +10205,13 @@ mod tests {
                 title: Some("Old".into()),
                 home: false,
                 busy: false,
+                ..TabPresentation::new(sid("old"))
             },
             TabPresentation {
                 title: Some("Current".into()),
                 home: false,
                 busy: false,
+                ..TabPresentation::new(sid("current"))
             },
         ];
         state.set_tab_strip(tabs.clone(), 1, true);
@@ -9091,6 +10232,648 @@ mod tests {
         assert_eq!(state.panel(), &TuiPanel::None);
     }
 
+    fn tab_pointer_at(state: &mut TuiState, area: Rect, index: usize, now: Instant) {
+        let rect = crate::shell::tab_strip(state, area)
+            .unwrap()
+            .tabs
+            .iter()
+            .find(|tab| tab.index == index)
+            .unwrap()
+            .rect;
+        state.last_mouse = Some((rect.x + 3, rect.y, area));
+        state.enter_tab_at(area, rect.x + 3, rect.y, now);
+    }
+
+    #[tokio::test]
+    async fn vis39_tab_only_ticks_reuse_one_warm_viewport_without_copying_retained_rows() {
+        use ratatui::{Terminal, backend::TestBackend};
+        let mut state = fresh_state("tab-projection-cost").await;
+        let body = "durable offscreen text line\n".repeat(240);
+        let mut messages: Vec<_> = (1..=32)
+            .map(|seq| msg(seq, Role::Assistant, &body))
+            .collect();
+        let mut last = msg(33, Role::Assistant, "visible durable tail");
+        last.turn = Some(oc_core::queries::HistoryTurn {
+            model_label: "measured".into(),
+            usage: Some((100, 50)),
+            streamed_ms: Some(1000),
+            ..Default::default()
+        });
+        messages.push(last);
+        state.attach_page(&page(messages, 33, false, false));
+        assert!(state.window.retained_bytes() > 150_000);
+        let tabs = vec![
+            TabPresentation::new(sid("current")),
+            TabPresentation {
+                busy: true,
+                ..TabPresentation::new(sid("running-other"))
+            },
+        ];
+        state.set_tab_strip(tabs, 0, false);
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        let copies = state.transcript_row_copies.get();
+        let builds = state.visible_projection_builds.get();
+        let retained = state.visible_projection.borrow();
+        let view = retained.as_ref().unwrap();
+        assert!(view.total > 1000 && view.lines.len() <= 24);
+        assert!(
+            view.lines
+                .iter()
+                .any(|line| line.plain_text().contains("50.0 tok/s"))
+        );
+        let expected = view.lines.clone();
+        drop(retained);
+        let at = Instant::now();
+        for frame in 1..=60 {
+            assert!(state.tick_tabs(at + Duration::from_millis(frame * 80)));
+            terminal
+                .draw(|frame| crate::shell::render(frame, &state))
+                .unwrap();
+        }
+        assert_eq!(
+            state.transcript_row_copies.get(),
+            copies,
+            "tab clocks cannot deep-copy offscreen durable rows"
+        );
+        assert_eq!(
+            state.visible_projection_builds.get(),
+            builds,
+            "tab clocks cannot re-index an unchanged viewport"
+        );
+        assert_eq!(
+            state.visible_projection.borrow().as_ref().unwrap().lines,
+            expected
+        );
+
+        state.chrome.session_tps = Some(false);
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        assert!(
+            !state
+                .visible_projection
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .lines
+                .iter()
+                .any(|line| line.plain_text().contains("tok/s"))
+        );
+        assert_eq!(state.visible_projection_builds.get(), builds + 1);
+        let turn = WorkerTurnId("new-content".into());
+        state.begin_compress_turn(turn.clone());
+        state.apply_delta(&turn, "fresh live text");
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        assert!(
+            state
+                .visible_projection
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .lines
+                .iter()
+                .any(|line| line.plain_text().contains("fresh live text"))
+        );
+        terminal.resize(Rect::new(0, 0, 120, 40)).unwrap();
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        assert!(
+            state
+                .visible_projection
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .lines
+                .len()
+                <= 40
+        );
+    }
+
+    #[tokio::test]
+    async fn vis41_activation_and_height_resize_preserve_same_id_including_completed_cycle() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut previous = TuiState::new(app.clone(), sid("first"));
+        previous.chrome.animations = Some(false);
+        previous.chrome.location = Some("/real-project".into());
+        let tabs: Vec<_> = ["first", "second"]
+            .into_iter()
+            .map(|name| TabPresentation {
+                title: Some("opencode native long session title".into()),
+                ..TabPresentation::new(sid(name))
+            })
+            .collect();
+        let at = Instant::now();
+        let area = Rect::new(0, 0, 80, 24);
+        previous.set_tab_strip_at(tabs.clone(), 0, false, at);
+        tab_pointer_at(&mut previous, area, 1, at);
+        previous.tick_tabs(at + Duration::from_millis(680));
+        let sample = previous.tab_animation(1);
+        assert_eq!(sample.0, 2);
+        let deadline = previous.next_tab_deadline();
+        previous.close_panel(); // no modal was mounted, hence no source leave
+        assert_eq!(previous.tab_animation(1), sample);
+        let pointer = previous.mouse_position().unwrap();
+        let mut next = TuiState::new(app, sid("second"));
+        next.chrome = previous.chrome.clone();
+        next.take_tab_clocks_from(&mut previous);
+        next.set_tab_strip_at(tabs, 1, false, at + Duration::from_millis(700));
+        next.restore_mouse_hover(pointer);
+        assert_eq!(next.tab_animation(1), sample);
+        assert_eq!(next.next_tab_deadline(), deadline);
+        assert_eq!(previous.next_tab_deadline(), None);
+        let taller = Rect::new(0, 0, 80, 40);
+        next.resize_mouse_position(taller);
+        assert_eq!(next.hovered_tab(taller), Some(1));
+        assert_eq!(next.tab_animation(1), sample);
+        assert_eq!(next.next_tab_deadline(), deadline);
+        next.tick_tabs(at + Duration::from_secs(5));
+        assert_eq!(next.tab_animation(1).0, 0);
+        assert!(next.tab_view.borrow().marquee.as_ref().unwrap().done);
+        assert_eq!(next.next_tab_deadline(), None);
+        next.close_panel();
+        next.restore_mouse_hover(next.mouse_position().unwrap());
+        next.resize_mouse_position(area);
+        assert!(next.tab_view.borrow().marquee.as_ref().unwrap().done);
+        assert_eq!(
+            next.next_tab_deadline(),
+            None,
+            "same-ID activation/height resize cannot start a second cycle"
+        );
+
+        // A real visibility/layout change removes the hovered root, cancelling all marquee clocks.
+        next.set_tab_strip_at(
+            (0..10)
+                .map(|index| TabPresentation {
+                    title: Some("a long retained tab title".into()),
+                    ..TabPresentation::new(sid(&format!("root-{index}")))
+                })
+                .collect(),
+            0,
+            false,
+            at + Duration::from_secs(6),
+        );
+        tab_pointer_at(&mut next, area, 1, at + Duration::from_secs(6));
+        let narrow = Rect::new(0, 0, 8, 24);
+        assert!(
+            !crate::shell::tab_strip(&next, narrow)
+                .unwrap()
+                .tabs
+                .iter()
+                .any(|tab| tab.index == 1)
+        );
+        next.resize_mouse_position(narrow);
+        assert!(next.tab_view.borrow().marquee.is_none());
+        assert_eq!(next.next_tab_deadline(), None);
+        assert!(inbox.try_recv().is_err());
+    }
+
+    #[tokio::test]
+    async fn vis39_tab_spinner_mount_clocks_survive_updates_and_attention_supersedes_running() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("first"));
+        let area = Rect::new(0, 0, 80, 24);
+        let now = Instant::now();
+        let mut first = TabPresentation::new(sid("first"));
+        first.title = Some("same title".into());
+        first.busy = true;
+        let mut second = TabPresentation::new(sid("second"));
+        second.title = first.title.clone();
+        state.set_tab_strip_at(vec![first.clone(), second.clone()], 0, false, now);
+        state.prepare_tabs(area, now);
+        assert_eq!(state.next_ui_deadline(), Some(now + super::TAB_FADE_FRAME));
+        second.busy = true;
+        state.set_tab_strip_at(
+            vec![first.clone(), second.clone()],
+            0,
+            false,
+            now + Duration::from_millis(30),
+        );
+        assert!(state.tick_ui(now + TAB_STEP + Duration::from_micros(500)));
+        assert_eq!((state.tab_animation(0).2, state.tab_animation(1).2), (1, 0));
+        // Reordering equal titles uses session IDs; neither mounted phase resets.
+        state.set_tab_strip_at(
+            vec![second.clone(), first.clone()],
+            1,
+            false,
+            now + Duration::from_millis(90),
+        );
+        assert!(state.tick_ui(now + Duration::from_millis(110)));
+        assert_eq!((state.tab_animation(0).2, state.tab_animation(1).2), (1, 1));
+        assert_eq!(
+            state
+                .tab_view
+                .borrow()
+                .motions
+                .iter()
+                .find(|motion| motion.id == super::TabIdentity::Session(sid("first")))
+                .unwrap()
+                .at
+                .map(|at| at + TAB_STEP),
+            Some(now + TAB_STEP * 2),
+            "late fractional ticks cannot drift the mount clock"
+        );
+        for frame in 2..10 {
+            state.tick_ui(now + TAB_STEP * frame);
+            assert_eq!(state.tab_animation(1).2, frame as usize);
+        }
+        first.attention = Some(super::TabAttention::Question);
+        second.busy = false;
+        state.tab_attention.insert(1); // real permission-root projection wins question
+        state.set_tab_strip_at(
+            vec![second, first.clone()],
+            1,
+            false,
+            now + Duration::from_secs(1),
+        );
+        assert_eq!(
+            state.tab_attention_for(1),
+            Some(super::TabAttention::Permission)
+        );
+        assert!(
+            state.next_ui_deadline().is_some(),
+            "release/ignition are finite visible phases"
+        );
+        state.tick_ui(now + Duration::from_millis(1900));
+        assert_eq!(
+            state.next_ui_deadline(),
+            None,
+            "static attention does not poll"
+        );
+        state.tab_attention.clear();
+        assert_eq!(
+            state.tab_attention_for(1),
+            Some(super::TabAttention::Question)
+        );
+        first.attention = None;
+        state.chrome.animations = Some(false);
+        state.set_tab_strip_at(vec![first.clone()], 0, false, now + Duration::from_secs(2));
+        assert_eq!(state.tab_animation(0).2, 0);
+        assert_eq!(state.next_ui_deadline(), None);
+        state.chrome.animations = Some(true);
+        state.chrome.tab_indicators = oc_core::queries::TabIndicators::Numbers;
+        state.prepare_tabs(area, now + Duration::from_secs(3));
+        assert!(
+            state.next_ui_deadline().is_some(),
+            "numbers hide the spinner, not the running sweep"
+        );
+        assert!(
+            state
+                .tab_view
+                .borrow()
+                .motions
+                .iter()
+                .all(|motion| motion.at.is_none())
+        );
+        assert!(
+            inbox.try_recv().is_err(),
+            "presentation never submits or selects"
+        );
+    }
+
+    #[test]
+    fn vis39_u48_running_release_completion_and_flash_use_source_clocks() {
+        use super::{TabPulse, TabPulseTarget};
+        let at = Instant::now();
+        let mut target = TabPulseTarget {
+            animations: true,
+            ..Default::default()
+        };
+        let mut pulse = TabPulse::new(target, at);
+        assert_eq!(pulse.deadline(), None);
+        target.runs = true;
+        pulse.sync(target, at);
+        assert_eq!(pulse.frame().whitecap, 0.85);
+        pulse.tick(at + Duration::from_millis(80));
+        assert!((pulse.frame().flash - 0.1).abs() < 0.00001);
+        pulse.tick(at + Duration::from_millis(225));
+        assert!((pulse.frame().running - 0.5).abs() < 0.00001);
+        pulse.tick(at + Duration::from_millis(350));
+        assert!((pulse.frame().whitecap - 0.425).abs() < 0.00001);
+        pulse.tick(at + Duration::from_millis(450));
+        assert_eq!(pulse.frame().running, 1.0);
+        pulse.tick(at + Duration::from_millis(1400));
+        let halfway = pulse.frame();
+        assert_eq!(halfway.sweep_clock, 1.4);
+        // The second front only enters after the first half-cycle. Both travel
+        // with coast(), not linear interpolation or a globally shared phase.
+        assert!((halfway.sweep(22.5, 32) - 1.0).abs() < 0.00001);
+        assert_eq!(halfway.sweep(0.0, 32), 0.0);
+        pulse.tick(at + Duration::from_millis(2100));
+        assert!(
+            pulse.frame().sweep(1.0, 32) > 0.0,
+            "the half-cycle-offset second front is present"
+        );
+
+        let off = at + Duration::from_millis(2100);
+        target.runs = false;
+        pulse.sync(target, off);
+        pulse.tick(off + Duration::from_millis(250));
+        assert!((pulse.frame().running - 0.5).abs() < 0.00001);
+        assert!(
+            (pulse.frame().sweep_clock - 2.35).abs() < 0.00001,
+            "sweep coasts through release"
+        );
+        assert_eq!(
+            pulse.frame().completion,
+            0.0,
+            "idle/cancel is not unread activity"
+        );
+        target.complete = true; // Actual U47 source input, distinct from idle.
+        let completed = off + Duration::from_millis(250);
+        pulse.sync(target, completed);
+        for (milliseconds, expected) in [(72, 0.09), (144, 0.18), (672, 0.09), (1200, 0.0)] {
+            pulse.tick(completed + Duration::from_millis(milliseconds));
+            assert!(
+                (pulse.frame().completion - expected).abs() < 0.00001,
+                "{milliseconds}"
+            );
+        }
+        assert_eq!(pulse.deadline(), None);
+        assert!(!pulse.tick(completed + Duration::from_secs(60)));
+
+        // No delayed activity flash once the release window has ended.
+        target.complete = false;
+        target.runs = true;
+        pulse.sync(target, completed + Duration::from_secs(61));
+        target.runs = false;
+        pulse.sync(target, completed + Duration::from_secs(62));
+        pulse.tick(completed + Duration::from_secs(63));
+        target.complete = true;
+        pulse.sync(target, completed + Duration::from_secs(64));
+        assert_eq!(pulse.frame().completion, 0.0);
+        assert_eq!(pulse.deadline(), None);
+    }
+
+    #[test]
+    fn vis39_u48_glow_ignition_diffusion_and_off_mode_settle() {
+        use super::{TabPulse, TabPulseTarget};
+        let at = Instant::now();
+        let mut target = TabPulseTarget {
+            animations: true,
+            vertical: true,
+            ..Default::default()
+        };
+        let mut pulse = TabPulse::new(target, at);
+        target.glows = true;
+        target.dimmed = true;
+        pulse.sync(target, at);
+        pulse.tick(at + Duration::from_millis(100));
+        assert!((pulse.frame().dim - 0.85).abs() < 0.00001);
+        pulse.tick(at + Duration::from_millis(180));
+        assert_eq!(pulse.frame().glow, 1.5);
+        target.glows = false;
+        target.dimmed = false;
+        let released = at + Duration::from_millis(180);
+        pulse.sync(target, released);
+        pulse.tick(released + Duration::from_millis(100));
+        assert!(
+            (pulse.frame().glow - 0.75).abs() < 0.00001,
+            "release captures ignition's 1.5 level"
+        );
+        pulse.tick(released + Duration::from_millis(108));
+        assert!((pulse.frame().swell - 1.875).abs() < 0.00001);
+        pulse.tick(released + Duration::from_millis(200));
+        assert_eq!(pulse.frame().glow, 0.0, "resting residue drains in 200 ms");
+        pulse.tick(released + Duration::from_millis(450));
+        assert!(
+            pulse.frame().glow_at(13.0, 32, 12.0) > 0.0,
+            "release diffuses beyond the resting tail"
+        );
+        pulse.tick(released + Duration::from_millis(900));
+        assert_eq!(pulse.deadline(), None);
+        assert_eq!(pulse.frame().release, None);
+        assert_eq!(pulse.frame().title_glow, 0.0);
+        assert_eq!(pulse.frame().number_glow, 0.0);
+        assert!(!pulse.tick(released + Duration::from_secs(60)));
+
+        target.glows = true;
+        pulse.sync(target, released + Duration::from_secs(61));
+        pulse.tick(released + Duration::from_millis(61600));
+        assert_eq!(pulse.frame().glow, 1.0);
+        assert_eq!(pulse.deadline(), None, "sustain is motionless");
+        target.animations = false;
+        target.runs = true;
+        pulse.sync(target, released + Duration::from_secs(62));
+        assert_eq!(pulse.frame().running, 0.0);
+        assert_eq!(pulse.frame().glow, 1.0);
+        assert_eq!(pulse.frame().whitecap, 0.0);
+        assert_eq!(pulse.deadline(), None);
+        target.glows = false;
+        pulse.sync(target, released + Duration::from_secs(63));
+        assert_eq!(pulse.frame().glow, 0.0);
+        assert_eq!(pulse.frame().release, None);
+    }
+
+    #[test]
+    fn vis39_u48_retrigger_keeps_flash_and_reenable_keeps_sweep_position() {
+        use super::{TabPulse, TabPulseTarget};
+        let at = Instant::now();
+        let mut target = TabPulseTarget {
+            animations: true,
+            ..Default::default()
+        };
+        let mut pulse = TabPulse::new(target, at);
+        target.runs = true;
+        pulse.sync(target, at);
+        pulse.tick(at + Duration::from_millis(100));
+        let release_level = pulse.frame().running;
+        target.runs = false;
+        pulse.sync(target, at + Duration::from_millis(100));
+        assert_eq!(
+            pulse.flash,
+            Some(Duration::from_millis(100)),
+            "edge start does not restart"
+        );
+        pulse.tick(at + Duration::from_millis(350));
+        assert!((pulse.frame().running - release_level * 0.5).abs() < 0.00001);
+        target.prompt = 1;
+        pulse.sync(target, at + Duration::from_millis(350));
+        pulse.tick(at + Duration::from_millis(430));
+        assert!(
+            (pulse.frame().flash - 0.2).abs() < 0.00001,
+            "prompt restarts at double scale"
+        );
+        target.runs = true;
+        pulse.sync(target, at + Duration::from_millis(430));
+        assert_eq!(pulse.frame().sweep_clock, 0.0, "note-on resets the sweep");
+        assert_eq!(pulse.flash, Some(Duration::from_millis(80)));
+        pulse.tick(at + Duration::from_millis(930));
+        let position = pulse.frame().sweep_clock;
+        target.animations = false;
+        pulse.sync(target, at + Duration::from_millis(930));
+        assert_eq!(pulse.deadline(), None);
+        target.animations = true;
+        pulse.sync(target, at + Duration::from_millis(2000));
+        assert_eq!(pulse.frame().sweep_clock, position);
+        pulse.tick(at + Duration::from_millis(2225));
+        assert!((pulse.frame().running - 0.5).abs() < 0.00001);
+        assert!((pulse.frame().sweep_clock - position - 0.225).abs() < 0.00001);
+    }
+
+    #[tokio::test]
+    async fn vis39_visible_deck_disposes_hidden_phases_without_fabricating_completion() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("current"));
+        let at = Instant::now();
+        let area = Rect::new(0, 0, 80, 24);
+        let mut running = TabPresentation::new(sid("running"));
+        running.busy = true;
+        let current = TabPresentation::new(sid("current"));
+        state.set_tab_strip_at(vec![running.clone(), current.clone()], 1, false, at);
+        state.prepare_tabs(area, at);
+        state.tick_ui(at + Duration::from_millis(450));
+        assert_eq!(state.tab_pulse(0).running, 1.0);
+        state.prepare_tabs(Rect::new(0, 0, 8, 24), at + Duration::from_millis(500));
+        assert_eq!(state.tab_view.borrow().motions.len(), 1);
+        assert_eq!(state.next_ui_deadline(), None, "hidden tabs own no clocks");
+        let remounted = at + Duration::from_secs(1);
+        state.prepare_tabs(area, remounted);
+        assert_eq!(state.tab_animation(0).2, 0);
+        assert_eq!(state.tab_pulse(0).running, 0.0);
+        assert_eq!(
+            state.tab_pulse(0).flash,
+            0.0,
+            "mount does not ignite an edge flash"
+        );
+        running.complete = true;
+        running.attention = Some(super::TabAttention::Permission);
+        state.set_tab_strip_at(vec![running.clone(), current.clone()], 1, false, remounted);
+        assert!(!state.tab_pulse(0).complete);
+        assert_eq!(state.tab_pulse(0).completion, 0.0);
+        state.tick_ui(remounted + Duration::from_millis(900));
+        assert_eq!(state.next_ui_deadline(), None);
+        running.busy = false;
+        state.set_tab_strip_at(
+            vec![running, current],
+            1,
+            false,
+            remounted + Duration::from_secs(1),
+        );
+        assert!(
+            state.tab_pulse(0).complete,
+            "the actual activity input remains independent of attention"
+        );
+        assert_eq!(
+            state.tab_pulse(0).completion,
+            0.0,
+            "an expired release cannot manufacture a delayed completion pulse"
+        );
+        assert_eq!(
+            state.tab_attention_for(0),
+            Some(super::TabAttention::Permission)
+        );
+        state.reset_workspace();
+        assert!(state.tab_view.borrow().motions.is_empty());
+        assert_eq!(state.next_ui_deadline(), None);
+        assert!(
+            inbox.try_recv().is_err(),
+            "all phases are presentation-only"
+        );
+    }
+
+    #[tokio::test]
+    async fn vis41_one_cycle_off_mode_repeated_pointer_and_source_metadata_rules() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("first"));
+        state.chrome.animations = Some(false);
+        let area = Rect::new(0, 0, 11, 24); // resting width8, hover width6
+        let now = Instant::now();
+        let mut tab = TabPresentation::new(sid("first"));
+        tab.title = Some("opencode".into());
+        state.set_tab_strip_at(vec![tab.clone()], 0, false, now);
+        tab_pointer_at(&mut state, area, 0, now);
+        assert_eq!(state.next_ui_deadline(), Some(now + TAB_MARQUEE_DELAY));
+        tab_pointer_at(&mut state, area, 0, now + Duration::from_millis(500));
+        assert!(!state.tick_ui(now + Duration::from_millis(599)));
+        assert!(state.tick_ui(now + TAB_MARQUEE_DELAY));
+        assert_eq!(state.tab_animation(0), (1, 1.0, 0));
+        // U56 captures cycle width on enter. Current title and geometry stay live
+        // without restarting the clock during owner updates or paints.
+        tab.title = Some("a different long title".into());
+        state.set_tab_strip_at(vec![tab], 0, false, now + Duration::from_millis(640));
+        state.prepare_tabs(area, now + Duration::from_millis(650));
+        assert_eq!(
+            state.next_ui_deadline(),
+            Some(now + Duration::from_millis(680))
+        );
+        assert!(state.tick_ui(now + Duration::from_millis(680)));
+        assert_eq!(state.tab_animation(0).0, 2);
+        assert!(state.tick_ui(now + Duration::from_millis(1400)));
+        assert_eq!(state.tab_animation(0), (0, 0.0, 0));
+        tab_pointer_at(&mut state, area, 0, now + Duration::from_secs(3));
+        assert_eq!(
+            state.next_ui_deadline(),
+            None,
+            "completed hover cannot re-enter"
+        );
+        assert!(!state.tick_ui(now + Duration::from_secs(60)));
+        let mut short = TabPresentation::new(sid("second"));
+        short.title = Some("short".into());
+        state.set_tab_strip_at(vec![short], 0, false, now + Duration::from_secs(61));
+        assert_eq!(
+            state.hovered_tab(area),
+            None,
+            "identity replacement cannot inherit hover"
+        );
+        tab_pointer_at(&mut state, area, 0, now + Duration::from_secs(62));
+        assert!(state.tab_view.borrow().marquee.is_none());
+        assert!(inbox.try_recv().is_err());
+    }
+
+    #[tokio::test]
+    async fn vis41_leading_smoothstep_and_deferred_leave_settle_without_periodic_wakes() {
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("first"));
+        let area = Rect::new(0, 0, 11, 24);
+        let now = Instant::now();
+        let mut tab = TabPresentation::new(sid("first"));
+        tab.title = Some("opencode".into());
+        state.set_tab_strip_at(vec![tab.clone()], 0, false, now);
+        tab_pointer_at(&mut state, area, 0, now);
+        for (ms, leading) in [
+            (600, 0.0),
+            (725, 0.5),
+            (850, 1.0),
+            (1400, 1.0),
+            (1525, 0.5),
+            (1650, 0.0),
+        ] {
+            state.tick_ui(now + Duration::from_millis(ms));
+            assert!((state.tab_animation(0).1 - leading).abs() < 0.0001, "{ms}");
+        }
+        assert_eq!(state.next_ui_deadline(), None);
+        state.enter_tab_at(area, 10, 1, now + Duration::from_secs(2));
+        // A close-cell/nested control enter in the same event burst cancels leave.
+        tab_pointer_at(&mut state, area, 0, now + Duration::from_secs(2));
+        assert_eq!(state.next_ui_deadline(), None);
+        state.enter_tab_at(area, 10, 1, now + Duration::from_secs(3));
+        assert!(state.tick_ui(now + Duration::from_secs(3)));
+        assert!(state.tab_view.borrow().marquee.is_none());
+        tab_pointer_at(&mut state, area, 0, now + Duration::from_secs(4));
+        assert_eq!(
+            state.next_ui_deadline(),
+            Some(now + Duration::from_millis(4600))
+        );
+        state.run_command(crate::commands::CommandAction::OpenCommands);
+        assert_eq!(state.next_ui_deadline(), None);
+        state.close_panel();
+        tab_pointer_at(&mut state, area, 0, now + Duration::from_secs(5));
+        let mut hidden = TabPresentation::new(sid("other"));
+        hidden.title = tab.title.clone();
+        state.set_tab_strip_at(vec![tab, hidden], 1, false, now + Duration::from_secs(5));
+        state.prepare_tabs(Rect::new(0, 0, 8, 24), now + Duration::from_secs(5));
+        assert!(state.tab_view.borrow().marquee.is_none());
+        state.reset_workspace();
+        assert_eq!(state.next_ui_deadline(), None);
+        assert!(state.tab_view.borrow().motions.is_empty());
+    }
+
     #[tokio::test]
     async fn close_tab_palette_selection_preserves_modal_and_draft_until_owner_accepts() {
         let mut state = fresh_state("close-palette").await;
@@ -9099,6 +10882,7 @@ mod tests {
                 title: Some("Only tab".into()),
                 home: false,
                 busy: false,
+                ..TabPresentation::new(sid("only"))
             }],
             0,
             true,
@@ -9147,6 +10931,7 @@ mod tests {
                 title: Some("Old".into()),
                 home: false,
                 busy: false,
+                ..TabPresentation::new(sid("old"))
             }],
             0,
             false,
@@ -9171,6 +10956,7 @@ mod tests {
                 title: Some("Last".into()),
                 home: false,
                 busy: false,
+                ..TabPresentation::new(sid("last"))
             }],
             0,
             false,
@@ -9186,6 +10972,7 @@ mod tests {
                 title: Some("Busy tab".into()),
                 home: false,
                 busy: true,
+                ..TabPresentation::new(sid("busy"))
             }],
             0,
             false,
@@ -9200,6 +10987,7 @@ mod tests {
                 title: Some("Last".into()),
                 home: false,
                 busy: false,
+                ..TabPresentation::new(sid("last"))
             }],
             0,
             false,
@@ -9257,6 +11045,7 @@ mod tests {
                     title: Some(format!("Tab {i}")),
                     home: false,
                     busy: i == 3,
+                    ..TabPresentation::new(sid(&format!("tab-{i}")))
                 })
                 .collect(),
             10,
@@ -9383,6 +11172,7 @@ mod tests {
                 title: Some("Busy".into()),
                 home: false,
                 busy: true,
+                ..TabPresentation::new(sid("busy"))
             }],
             0,
             true,
@@ -9405,6 +11195,7 @@ mod tests {
                 title: None,
                 home: false,
                 busy: false,
+                ..TabPresentation::new(sid("idle"))
             }],
             0,
             false,
@@ -9423,6 +11214,7 @@ mod tests {
                 title: Some("Long real tab title".into()),
                 home: false,
                 busy: false,
+                ..TabPresentation::new(sid("long"))
             }],
             0,
             false,
@@ -9560,6 +11352,7 @@ mod tests {
             title: Some("survivor".into()),
             home: false,
             busy: false,
+            ..TabPresentation::new(sid("survivor"))
         };
         state.set_tab_strip(vec![real.clone()], 0, false);
         let area = Rect::new(0, 0, 120, 40);
@@ -9650,6 +11443,7 @@ mod tests {
                 title: Some("Busy".into()),
                 home: false,
                 busy: true,
+                ..TabPresentation::new(sid("busy"))
             }],
             0,
             false,
@@ -9670,6 +11464,7 @@ mod tests {
                 title: None,
                 home: false,
                 busy: false,
+                ..TabPresentation::new(sid("idle"))
             }],
             0,
             false,
@@ -12463,8 +14258,16 @@ mod tests {
         assert_eq!(normal_work, 1, "one indexed viewport traversal per draw");
         assert_eq!(normal_color, faded);
         state.handle_mouse(selection_mouse(MouseEventKind::Moved, x, y), frame);
-        assert_eq!(draw(&state), (normal_work, bright), "clipped hover");
-        assert_eq!(draw(&state), (normal_work, bright), "stationary hover");
+        assert_eq!(
+            draw(&state),
+            (0, bright),
+            "clipped hover reuses the warm viewport"
+        );
+        assert_eq!(
+            draw(&state),
+            (0, bright),
+            "stationary hover reuses the warm viewport"
+        );
         state.live_text = "streaming frame".into();
         assert_eq!(
             draw(&state),
@@ -12478,7 +14281,11 @@ mod tests {
             selection_mouse(MouseEventKind::Moved, rect.x + 10, y),
             frame,
         );
-        assert_eq!(draw(&state), (normal_work, bright), "last visible cell");
+        assert_eq!(
+            draw(&state),
+            (0, bright),
+            "last visible cell reuses the warm viewport"
+        );
     }
 
     #[tokio::test]

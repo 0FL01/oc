@@ -1,0 +1,3405 @@
+{
+  "scope": "T44 VIS41 / VIS39 own-running only",
+  "capture_gate": "PENDING_NATIVE_PAIRED_CAPTURE",
+  "sides": {
+    "reference": {
+      "directory": "/home/opencode/ai/oc/evidence/tui/recovery-v00/tabs-reference20260928-02",
+      "lock_sha256": "5e0afd0a5894f196c761a4a4a739accef655f0e33d4106ef75a3e413fc27fc13",
+      "binaries": [
+        {
+          "origin": "upstream",
+          "binary": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+          "hash": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+          "commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+        }
+      ],
+      "attempts": [
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "status": "PASS_BOUNDED_OWNER_AND_OBSERVATIONS",
+          "functional": true,
+          "temporal": false,
+          "settled": true,
+          "spinner": true,
+          "observed_spinner_glyphs": [
+            "⠋"
+          ],
+          "captures": 28,
+          "hover": [
+            {
+              "kind": "long",
+              "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+              "width": 27,
+              "source_cycle_width": 57,
+              "overflow": true,
+              "target": {
+                "x": 5,
+                "y": 1
+              },
+              "busy": false,
+              "inactive": false,
+              "captures": [],
+              "first_changed_ms": 3536.7593540000016,
+              "changed": true,
+              "returned_to_entered_text": true,
+              "exactly_one_pointer_input": true,
+              "owner_rows_unchanged": true,
+              "requests_unchanged": true,
+              "project_unchanged": true,
+              "idle": "long-idle",
+              "checks_ok": true,
+              "samples": 2
+            },
+            {
+              "kind": "inactive",
+              "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+              "width": 27,
+              "source_cycle_width": 57,
+              "overflow": true,
+              "target": {
+                "x": 5,
+                "y": 1
+              },
+              "busy": false,
+              "inactive": true,
+              "captures": [],
+              "first_changed_ms": 3344.1998310000054,
+              "changed": true,
+              "returned_to_entered_text": true,
+              "exactly_one_pointer_input": true,
+              "owner_rows_unchanged": true,
+              "requests_unchanged": true,
+              "project_unchanged": true,
+              "idle": "inactive-idle",
+              "checks_ok": true,
+              "samples": 2
+            },
+            {
+              "kind": "busy",
+              "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+              "width": 27,
+              "source_cycle_width": 57,
+              "overflow": true,
+              "target": {
+                "x": 5,
+                "y": 1
+              },
+              "busy": true,
+              "inactive": false,
+              "captures": [],
+              "first_changed_ms": 2377.441332000002,
+              "changed": true,
+              "returned_to_entered_text": true,
+              "exactly_one_pointer_input": true,
+              "owner_rows_unchanged": true,
+              "requests_unchanged": true,
+              "project_unchanged": true,
+              "idle": "busy-idle",
+              "checks_ok": true,
+              "samples": 3
+            }
+          ],
+          "idle": [
+            {
+              "label": "long-idle",
+              "start": {
+                "at_ns": 1227770831135486,
+                "kind": "process_sample",
+                "request_id": "long-idle-start",
+                "pid": 1734679,
+                "cpu_ticks": 249,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1734679,
+                    "voluntary": 798,
+                    "involuntary": 1437
+                  },
+                  {
+                    "tid": 1734681,
+                    "voluntary": 1021,
+                    "involuntary": 87
+                  },
+                  {
+                    "tid": 1734682,
+                    "voluntary": 156,
+                    "involuntary": 43
+                  },
+                  {
+                    "tid": 1734685,
+                    "voluntary": 199,
+                    "involuntary": 28
+                  },
+                  {
+                    "tid": 1734686,
+                    "voluntary": 193,
+                    "involuntary": 21
+                  },
+                  {
+                    "tid": 1734720,
+                    "voluntary": 130,
+                    "involuntary": 17
+                  },
+                  {
+                    "tid": 1734721,
+                    "voluntary": 174,
+                    "involuntary": 22
+                  },
+                  {
+                    "tid": 1734723,
+                    "voluntary": 16,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1734724,
+                    "voluntary": 167,
+                    "involuntary": 18
+                  },
+                  {
+                    "tid": 1734725,
+                    "voluntary": 568,
+                    "involuntary": 362
+                  },
+                  {
+                    "tid": 1734726,
+                    "voluntary": 561,
+                    "involuntary": 419
+                  },
+                  {
+                    "tid": 1734727,
+                    "voluntary": 549,
+                    "involuntary": 473
+                  },
+                  {
+                    "tid": 1734728,
+                    "voluntary": 574,
+                    "involuntary": 360
+                  },
+                  {
+                    "tid": 1734729,
+                    "voluntary": 568,
+                    "involuntary": 403
+                  },
+                  {
+                    "tid": 1734775,
+                    "voluntary": 207,
+                    "involuntary": 253
+                  }
+                ],
+                "voluntary_context_switches": 5881,
+                "involuntary_context_switches": 3945
+              },
+              "end": {
+                "at_ns": 1227772620745300,
+                "kind": "process_sample",
+                "request_id": "long-idle-end",
+                "pid": 1734679,
+                "cpu_ticks": 251,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1734679,
+                    "voluntary": 820,
+                    "involuntary": 1461
+                  },
+                  {
+                    "tid": 1734681,
+                    "voluntary": 1038,
+                    "involuntary": 87
+                  },
+                  {
+                    "tid": 1734682,
+                    "voluntary": 156,
+                    "involuntary": 43
+                  },
+                  {
+                    "tid": 1734685,
+                    "voluntary": 204,
+                    "involuntary": 29
+                  },
+                  {
+                    "tid": 1734686,
+                    "voluntary": 200,
+                    "involuntary": 21
+                  },
+                  {
+                    "tid": 1734720,
+                    "voluntary": 130,
+                    "involuntary": 17
+                  },
+                  {
+                    "tid": 1734721,
+                    "voluntary": 179,
+                    "involuntary": 22
+                  },
+                  {
+                    "tid": 1734723,
+                    "voluntary": 16,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1734724,
+                    "voluntary": 173,
+                    "involuntary": 19
+                  },
+                  {
+                    "tid": 1734725,
+                    "voluntary": 585,
+                    "involuntary": 369
+                  },
+                  {
+                    "tid": 1734726,
+                    "voluntary": 574,
+                    "involuntary": 423
+                  },
+                  {
+                    "tid": 1734727,
+                    "voluntary": 566,
+                    "involuntary": 482
+                  },
+                  {
+                    "tid": 1734728,
+                    "voluntary": 597,
+                    "involuntary": 370
+                  },
+                  {
+                    "tid": 1734729,
+                    "voluntary": 587,
+                    "involuntary": 413
+                  },
+                  {
+                    "tid": 1734775,
+                    "voluntary": 210,
+                    "involuntary": 260
+                  },
+                  {
+                    "tid": 1735695,
+                    "voluntary": 1,
+                    "involuntary": 0
+                  }
+                ],
+                "voluntary_context_switches": 6036,
+                "involuntary_context_switches": 4018
+              },
+              "duration_ms": 1789.609814,
+              "cpu_ticks": 2,
+              "cpu_ms": 20,
+              "cpu_percent": 1.11756204305214,
+              "terminal_chunks": 0,
+              "terminal_bytes": 0,
+              "no_input": true,
+              "styled_grid_and_cursor_equal": true,
+              "same_threads": false,
+              "voluntary_context_switches": 155,
+              "involuntary_context_switches": 73,
+              "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+            },
+            {
+              "label": "inactive-idle",
+              "start": {
+                "at_ns": 1227798150071420,
+                "kind": "process_sample",
+                "request_id": "inactive-idle-start",
+                "pid": 1734679,
+                "cpu_ticks": 295,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1734679,
+                    "voluntary": 1154,
+                    "involuntary": 1810
+                  },
+                  {
+                    "tid": 1734681,
+                    "voluntary": 1362,
+                    "involuntary": 112
+                  },
+                  {
+                    "tid": 1734682,
+                    "voluntary": 165,
+                    "involuntary": 43
+                  },
+                  {
+                    "tid": 1734685,
+                    "voluntary": 260,
+                    "involuntary": 34
+                  },
+                  {
+                    "tid": 1734686,
+                    "voluntary": 256,
+                    "involuntary": 22
+                  },
+                  {
+                    "tid": 1734720,
+                    "voluntary": 146,
+                    "involuntary": 19
+                  },
+                  {
+                    "tid": 1734721,
+                    "voluntary": 236,
+                    "involuntary": 24
+                  },
+                  {
+                    "tid": 1734723,
+                    "voluntary": 16,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1734724,
+                    "voluntary": 232,
+                    "involuntary": 23
+                  },
+                  {
+                    "tid": 1734725,
+                    "voluntary": 767,
+                    "involuntary": 488
+                  },
+                  {
+                    "tid": 1734726,
+                    "voluntary": 768,
+                    "involuntary": 530
+                  },
+                  {
+                    "tid": 1734727,
+                    "voluntary": 765,
+                    "involuntary": 642
+                  },
+                  {
+                    "tid": 1734728,
+                    "voluntary": 797,
+                    "involuntary": 492
+                  },
+                  {
+                    "tid": 1734729,
+                    "voluntary": 771,
+                    "involuntary": 524
+                  },
+                  {
+                    "tid": 1734775,
+                    "voluntary": 232,
+                    "involuntary": 295
+                  },
+                  {
+                    "tid": 1735695,
+                    "voluntary": 79,
+                    "involuntary": 50
+                  }
+                ],
+                "voluntary_context_switches": 8006,
+                "involuntary_context_switches": 5110
+              },
+              "end": {
+                "at_ns": 1227799906533837,
+                "kind": "process_sample",
+                "request_id": "inactive-idle-end",
+                "pid": 1734679,
+                "cpu_ticks": 295,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1734679,
+                    "voluntary": 1172,
+                    "involuntary": 1823
+                  },
+                  {
+                    "tid": 1734681,
+                    "voluntary": 1372,
+                    "involuntary": 112
+                  },
+                  {
+                    "tid": 1734682,
+                    "voluntary": 165,
+                    "involuntary": 43
+                  },
+                  {
+                    "tid": 1734685,
+                    "voluntary": 263,
+                    "involuntary": 34
+                  },
+                  {
+                    "tid": 1734686,
+                    "voluntary": 260,
+                    "involuntary": 22
+                  },
+                  {
+                    "tid": 1734720,
+                    "voluntary": 147,
+                    "involuntary": 19
+                  },
+                  {
+                    "tid": 1734721,
+                    "voluntary": 239,
+                    "involuntary": 24
+                  },
+                  {
+                    "tid": 1734723,
+                    "voluntary": 16,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1734724,
+                    "voluntary": 237,
+                    "involuntary": 23
+                  },
+                  {
+                    "tid": 1734725,
+                    "voluntary": 780,
+                    "involuntary": 504
+                  },
+                  {
+                    "tid": 1734726,
+                    "voluntary": 780,
+                    "involuntary": 543
+                  },
+                  {
+                    "tid": 1734727,
+                    "voluntary": 777,
+                    "involuntary": 658
+                  },
+                  {
+                    "tid": 1734728,
+                    "voluntary": 811,
+                    "involuntary": 492
+                  },
+                  {
+                    "tid": 1734729,
+                    "voluntary": 786,
+                    "involuntary": 536
+                  },
+                  {
+                    "tid": 1734775,
+                    "voluntary": 232,
+                    "involuntary": 295
+                  },
+                  {
+                    "tid": 1735695,
+                    "voluntary": 79,
+                    "involuntary": 50
+                  }
+                ],
+                "voluntary_context_switches": 8116,
+                "involuntary_context_switches": 5180
+              },
+              "duration_ms": 1756.462417,
+              "cpu_ticks": 0,
+              "cpu_ms": 0,
+              "cpu_percent": 0,
+              "terminal_chunks": 0,
+              "terminal_bytes": 0,
+              "no_input": true,
+              "styled_grid_and_cursor_equal": true,
+              "same_threads": true,
+              "voluntary_context_switches": 110,
+              "involuntary_context_switches": 70,
+              "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+            },
+            {
+              "label": "busy-idle",
+              "start": {
+                "at_ns": 1227824323795224,
+                "kind": "process_sample",
+                "request_id": "busy-idle-start",
+                "pid": 1734679,
+                "cpu_ticks": 352,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1734679,
+                    "voluntary": 1579,
+                    "involuntary": 2215
+                  },
+                  {
+                    "tid": 1734681,
+                    "voluntary": 1757,
+                    "involuntary": 148
+                  },
+                  {
+                    "tid": 1734682,
+                    "voluntary": 194,
+                    "involuntary": 45
+                  },
+                  {
+                    "tid": 1734685,
+                    "voluntary": 319,
+                    "involuntary": 38
+                  },
+                  {
+                    "tid": 1734686,
+                    "voluntary": 320,
+                    "involuntary": 24
+                  },
+                  {
+                    "tid": 1734720,
+                    "voluntary": 165,
+                    "involuntary": 19
+                  },
+                  {
+                    "tid": 1734721,
+                    "voluntary": 292,
+                    "involuntary": 29
+                  },
+                  {
+                    "tid": 1734723,
+                    "voluntary": 17,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1734724,
+                    "voluntary": 291,
+                    "involuntary": 32
+                  },
+                  {
+                    "tid": 1734725,
+                    "voluntary": 1035,
+                    "involuntary": 687
+                  },
+                  {
+                    "tid": 1734726,
+                    "voluntary": 1016,
+                    "involuntary": 724
+                  },
+                  {
+                    "tid": 1734727,
+                    "voluntary": 996,
+                    "involuntary": 883
+                  },
+                  {
+                    "tid": 1734728,
+                    "voluntary": 1047,
+                    "involuntary": 659
+                  },
+                  {
+                    "tid": 1734729,
+                    "voluntary": 1034,
+                    "involuntary": 680
+                  },
+                  {
+                    "tid": 1734775,
+                    "voluntary": 327,
+                    "involuntary": 410
+                  },
+                  {
+                    "tid": 1735695,
+                    "voluntary": 154,
+                    "involuntary": 108
+                  },
+                  {
+                    "tid": 1736180,
+                    "voluntary": 41,
+                    "involuntary": 20
+                  },
+                  {
+                    "tid": 1736442,
+                    "voluntary": 1,
+                    "involuntary": 0
+                  }
+                ],
+                "voluntary_context_switches": 10585,
+                "involuntary_context_switches": 6723
+              },
+              "end": {
+                "at_ns": 1227825028253187,
+                "kind": "process_sample",
+                "request_id": "busy-idle-end",
+                "pid": 1734679,
+                "cpu_ticks": 352,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1734679,
+                    "voluntary": 1586,
+                    "involuntary": 2215
+                  },
+                  {
+                    "tid": 1734681,
+                    "voluntary": 1763,
+                    "involuntary": 148
+                  },
+                  {
+                    "tid": 1734682,
+                    "voluntary": 194,
+                    "involuntary": 45
+                  },
+                  {
+                    "tid": 1734685,
+                    "voluntary": 321,
+                    "involuntary": 38
+                  },
+                  {
+                    "tid": 1734686,
+                    "voluntary": 321,
+                    "involuntary": 24
+                  },
+                  {
+                    "tid": 1734720,
+                    "voluntary": 165,
+                    "involuntary": 19
+                  },
+                  {
+                    "tid": 1734721,
+                    "voluntary": 292,
+                    "involuntary": 29
+                  },
+                  {
+                    "tid": 1734723,
+                    "voluntary": 17,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1734724,
+                    "voluntary": 291,
+                    "involuntary": 32
+                  },
+                  {
+                    "tid": 1734725,
+                    "voluntary": 1051,
+                    "involuntary": 704
+                  },
+                  {
+                    "tid": 1734726,
+                    "voluntary": 1026,
+                    "involuntary": 724
+                  },
+                  {
+                    "tid": 1734727,
+                    "voluntary": 1009,
+                    "involuntary": 898
+                  },
+                  {
+                    "tid": 1734728,
+                    "voluntary": 1056,
+                    "involuntary": 681
+                  },
+                  {
+                    "tid": 1734729,
+                    "voluntary": 1045,
+                    "involuntary": 695
+                  },
+                  {
+                    "tid": 1734775,
+                    "voluntary": 331,
+                    "involuntary": 422
+                  },
+                  {
+                    "tid": 1735695,
+                    "voluntary": 154,
+                    "involuntary": 108
+                  },
+                  {
+                    "tid": 1736180,
+                    "voluntary": 41,
+                    "involuntary": 20
+                  },
+                  {
+                    "tid": 1736442,
+                    "voluntary": 1,
+                    "involuntary": 0
+                  }
+                ],
+                "voluntary_context_switches": 10664,
+                "involuntary_context_switches": 6804
+              },
+              "duration_ms": 704.457963,
+              "cpu_ticks": 0,
+              "cpu_ms": 0,
+              "cpu_percent": 0,
+              "terminal_chunks": 0,
+              "terminal_bytes": 0,
+              "no_input": true,
+              "styled_grid_and_cursor_equal": true,
+              "same_threads": true,
+              "voluntary_context_switches": 79,
+              "involuntary_context_switches": 81,
+              "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+            },
+            {
+              "label": "completed-idle",
+              "start": {
+                "at_ns": 1227833863448004,
+                "kind": "process_sample",
+                "request_id": "completed-idle-start",
+                "pid": 1734679,
+                "cpu_ticks": 369,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1734679,
+                    "voluntary": 1704,
+                    "involuntary": 2308
+                  },
+                  {
+                    "tid": 1734681,
+                    "voluntary": 1875,
+                    "involuntary": 158
+                  },
+                  {
+                    "tid": 1734682,
+                    "voluntary": 198,
+                    "involuntary": 45
+                  },
+                  {
+                    "tid": 1734685,
+                    "voluntary": 340,
+                    "involuntary": 41
+                  },
+                  {
+                    "tid": 1734686,
+                    "voluntary": 344,
+                    "involuntary": 25
+                  },
+                  {
+                    "tid": 1734720,
+                    "voluntary": 180,
+                    "involuntary": 19
+                  },
+                  {
+                    "tid": 1734721,
+                    "voluntary": 313,
+                    "involuntary": 29
+                  },
+                  {
+                    "tid": 1734723,
+                    "voluntary": 17,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1734724,
+                    "voluntary": 310,
+                    "involuntary": 33
+                  },
+                  {
+                    "tid": 1734725,
+                    "voluntary": 1142,
+                    "involuntary": 779
+                  },
+                  {
+                    "tid": 1734726,
+                    "voluntary": 1122,
+                    "involuntary": 800
+                  },
+                  {
+                    "tid": 1734727,
+                    "voluntary": 1097,
+                    "involuntary": 942
+                  },
+                  {
+                    "tid": 1734728,
+                    "voluntary": 1153,
+                    "involuntary": 750
+                  },
+                  {
+                    "tid": 1734729,
+                    "voluntary": 1120,
+                    "involuntary": 769
+                  },
+                  {
+                    "tid": 1734775,
+                    "voluntary": 368,
+                    "involuntary": 481
+                  },
+                  {
+                    "tid": 1735695,
+                    "voluntary": 182,
+                    "involuntary": 117
+                  },
+                  {
+                    "tid": 1736180,
+                    "voluntary": 70,
+                    "involuntary": 25
+                  },
+                  {
+                    "tid": 1736442,
+                    "voluntary": 12,
+                    "involuntary": 3
+                  }
+                ],
+                "voluntary_context_switches": 11547,
+                "involuntary_context_switches": 7326
+              },
+              "end": {
+                "at_ns": 1227835585728411,
+                "kind": "process_sample",
+                "request_id": "completed-idle-end",
+                "pid": 1734679,
+                "cpu_ticks": 370,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1734679,
+                    "voluntary": 1720,
+                    "involuntary": 2321
+                  },
+                  {
+                    "tid": 1734681,
+                    "voluntary": 1889,
+                    "involuntary": 158
+                  },
+                  {
+                    "tid": 1734682,
+                    "voluntary": 198,
+                    "involuntary": 45
+                  },
+                  {
+                    "tid": 1734685,
+                    "voluntary": 344,
+                    "involuntary": 41
+                  },
+                  {
+                    "tid": 1734686,
+                    "voluntary": 348,
+                    "involuntary": 25
+                  },
+                  {
+                    "tid": 1734720,
+                    "voluntary": 181,
+                    "involuntary": 19
+                  },
+                  {
+                    "tid": 1734721,
+                    "voluntary": 317,
+                    "involuntary": 30
+                  },
+                  {
+                    "tid": 1734723,
+                    "voluntary": 17,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1734724,
+                    "voluntary": 315,
+                    "involuntary": 33
+                  },
+                  {
+                    "tid": 1734725,
+                    "voluntary": 1154,
+                    "involuntary": 790
+                  },
+                  {
+                    "tid": 1734726,
+                    "voluntary": 1140,
+                    "involuntary": 801
+                  },
+                  {
+                    "tid": 1734727,
+                    "voluntary": 1109,
+                    "involuntary": 952
+                  },
+                  {
+                    "tid": 1734728,
+                    "voluntary": 1169,
+                    "involuntary": 759
+                  },
+                  {
+                    "tid": 1734729,
+                    "voluntary": 1144,
+                    "involuntary": 779
+                  },
+                  {
+                    "tid": 1734775,
+                    "voluntary": 379,
+                    "involuntary": 495
+                  },
+                  {
+                    "tid": 1735695,
+                    "voluntary": 182,
+                    "involuntary": 117
+                  },
+                  {
+                    "tid": 1736180,
+                    "voluntary": 70,
+                    "involuntary": 25
+                  },
+                  {
+                    "tid": 1736442,
+                    "voluntary": 12,
+                    "involuntary": 3
+                  }
+                ],
+                "voluntary_context_switches": 11688,
+                "involuntary_context_switches": 7395
+              },
+              "duration_ms": 1722.280407,
+              "cpu_ticks": 1,
+              "cpu_ms": 10,
+              "cpu_percent": 0.5806255450248526,
+              "terminal_chunks": 0,
+              "terminal_bytes": 0,
+              "no_input": true,
+              "styled_grid_and_cursor_equal": true,
+              "same_threads": true,
+              "voluntary_context_switches": 141,
+              "involuntary_context_switches": 69,
+              "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+            },
+            {
+              "label": "cancelled-idle",
+              "start": {
+                "at_ns": 1227842209192202,
+                "kind": "process_sample",
+                "request_id": "cancelled-idle-start",
+                "pid": 1734679,
+                "cpu_ticks": 390,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1734679,
+                    "voluntary": 1807,
+                    "involuntary": 2530
+                  },
+                  {
+                    "tid": 1734681,
+                    "voluntary": 1998,
+                    "involuntary": 171
+                  },
+                  {
+                    "tid": 1734682,
+                    "voluntary": 215,
+                    "involuntary": 45
+                  },
+                  {
+                    "tid": 1734685,
+                    "voluntary": 361,
+                    "involuntary": 44
+                  },
+                  {
+                    "tid": 1734686,
+                    "voluntary": 367,
+                    "involuntary": 25
+                  },
+                  {
+                    "tid": 1734720,
+                    "voluntary": 203,
+                    "involuntary": 45
+                  },
+                  {
+                    "tid": 1734721,
+                    "voluntary": 335,
+                    "involuntary": 33
+                  },
+                  {
+                    "tid": 1734723,
+                    "voluntary": 18,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1734724,
+                    "voluntary": 334,
+                    "involuntary": 34
+                  },
+                  {
+                    "tid": 1734725,
+                    "voluntary": 1228,
+                    "involuntary": 910
+                  },
+                  {
+                    "tid": 1734726,
+                    "voluntary": 1212,
+                    "involuntary": 862
+                  },
+                  {
+                    "tid": 1734727,
+                    "voluntary": 1173,
+                    "involuntary": 995
+                  },
+                  {
+                    "tid": 1734728,
+                    "voluntary": 1233,
+                    "involuntary": 862
+                  },
+                  {
+                    "tid": 1734729,
+                    "voluntary": 1222,
+                    "involuntary": 842
+                  },
+                  {
+                    "tid": 1734775,
+                    "voluntary": 415,
+                    "involuntary": 583
+                  },
+                  {
+                    "tid": 1735695,
+                    "voluntary": 229,
+                    "involuntary": 121
+                  },
+                  {
+                    "tid": 1736180,
+                    "voluntary": 84,
+                    "involuntary": 81
+                  },
+                  {
+                    "tid": 1736442,
+                    "voluntary": 21,
+                    "involuntary": 11
+                  }
+                ],
+                "voluntary_context_switches": 12455,
+                "involuntary_context_switches": 8196
+              },
+              "end": {
+                "at_ns": 1227843959874084,
+                "kind": "process_sample",
+                "request_id": "cancelled-idle-end",
+                "pid": 1734679,
+                "cpu_ticks": 392,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1734679,
+                    "voluntary": 1826,
+                    "involuntary": 2650
+                  },
+                  {
+                    "tid": 1734681,
+                    "voluntary": 2019,
+                    "involuntary": 178
+                  },
+                  {
+                    "tid": 1734682,
+                    "voluntary": 215,
+                    "involuntary": 45
+                  },
+                  {
+                    "tid": 1734685,
+                    "voluntary": 363,
+                    "involuntary": 45
+                  },
+                  {
+                    "tid": 1734686,
+                    "voluntary": 370,
+                    "involuntary": 25
+                  },
+                  {
+                    "tid": 1734720,
+                    "voluntary": 206,
+                    "involuntary": 46
+                  },
+                  {
+                    "tid": 1734721,
+                    "voluntary": 338,
+                    "involuntary": 33
+                  },
+                  {
+                    "tid": 1734723,
+                    "voluntary": 18,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1734724,
+                    "voluntary": 338,
+                    "involuntary": 34
+                  },
+                  {
+                    "tid": 1734725,
+                    "voluntary": 1242,
+                    "involuntary": 920
+                  },
+                  {
+                    "tid": 1734726,
+                    "voluntary": 1228,
+                    "involuntary": 876
+                  },
+                  {
+                    "tid": 1734727,
+                    "voluntary": 1191,
+                    "involuntary": 1002
+                  },
+                  {
+                    "tid": 1734728,
+                    "voluntary": 1254,
+                    "involuntary": 870
+                  },
+                  {
+                    "tid": 1734729,
+                    "voluntary": 1238,
+                    "involuntary": 886
+                  },
+                  {
+                    "tid": 1734775,
+                    "voluntary": 421,
+                    "involuntary": 583
+                  },
+                  {
+                    "tid": 1735695,
+                    "voluntary": 229,
+                    "involuntary": 121
+                  },
+                  {
+                    "tid": 1736180,
+                    "voluntary": 84,
+                    "involuntary": 81
+                  },
+                  {
+                    "tid": 1736442,
+                    "voluntary": 21,
+                    "involuntary": 11
+                  }
+                ],
+                "voluntary_context_switches": 12601,
+                "involuntary_context_switches": 8408
+              },
+              "duration_ms": 1750.681882,
+              "cpu_ticks": 2,
+              "cpu_ms": 20,
+              "cpu_percent": 1.1424120056095948,
+              "terminal_chunks": 0,
+              "terminal_bytes": 0,
+              "no_input": true,
+              "styled_grid_and_cursor_equal": true,
+              "same_threads": true,
+              "voluntary_context_switches": 146,
+              "involuntary_context_switches": 212,
+              "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+            },
+            {
+              "label": "final-settled-idle",
+              "start": {
+                "at_ns": 1227852081610387,
+                "kind": "process_sample",
+                "request_id": "final-settled-idle-start",
+                "pid": 1734679,
+                "cpu_ticks": 407,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1734679,
+                    "voluntary": 1939,
+                    "involuntary": 2824
+                  },
+                  {
+                    "tid": 1734681,
+                    "voluntary": 2123,
+                    "involuntary": 192
+                  },
+                  {
+                    "tid": 1734682,
+                    "voluntary": 217,
+                    "involuntary": 45
+                  },
+                  {
+                    "tid": 1734685,
+                    "voluntary": 381,
+                    "involuntary": 47
+                  },
+                  {
+                    "tid": 1734686,
+                    "voluntary": 388,
+                    "involuntary": 25
+                  },
+                  {
+                    "tid": 1734720,
+                    "voluntary": 208,
+                    "involuntary": 46
+                  },
+                  {
+                    "tid": 1734721,
+                    "voluntary": 354,
+                    "involuntary": 38
+                  },
+                  {
+                    "tid": 1734723,
+                    "voluntary": 18,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1734724,
+                    "voluntary": 354,
+                    "involuntary": 38
+                  },
+                  {
+                    "tid": 1734725,
+                    "voluntary": 1334,
+                    "involuntary": 972
+                  },
+                  {
+                    "tid": 1734726,
+                    "voluntary": 1319,
+                    "involuntary": 945
+                  },
+                  {
+                    "tid": 1734727,
+                    "voluntary": 1291,
+                    "involuntary": 1071
+                  },
+                  {
+                    "tid": 1734728,
+                    "voluntary": 1351,
+                    "involuntary": 902
+                  },
+                  {
+                    "tid": 1734729,
+                    "voluntary": 1326,
+                    "involuntary": 953
+                  },
+                  {
+                    "tid": 1734775,
+                    "voluntary": 461,
+                    "involuntary": 621
+                  },
+                  {
+                    "tid": 1735695,
+                    "voluntary": 243,
+                    "involuntary": 124
+                  },
+                  {
+                    "tid": 1736180,
+                    "voluntary": 91,
+                    "involuntary": 81
+                  },
+                  {
+                    "tid": 1736442,
+                    "voluntary": 25,
+                    "involuntary": 12
+                  }
+                ],
+                "voluntary_context_switches": 13423,
+                "involuntary_context_switches": 8938
+              },
+              "end": {
+                "at_ns": 1227853811300469,
+                "kind": "process_sample",
+                "request_id": "final-settled-idle-end",
+                "pid": 1734679,
+                "cpu_ticks": 408,
+                "clock_ticks_per_second": 100,
+                "threads": [
+                  {
+                    "tid": 1734679,
+                    "voluntary": 1960,
+                    "involuntary": 2828
+                  },
+                  {
+                    "tid": 1734681,
+                    "voluntary": 2136,
+                    "involuntary": 194
+                  },
+                  {
+                    "tid": 1734682,
+                    "voluntary": 217,
+                    "involuntary": 45
+                  },
+                  {
+                    "tid": 1734685,
+                    "voluntary": 385,
+                    "involuntary": 49
+                  },
+                  {
+                    "tid": 1734686,
+                    "voluntary": 392,
+                    "involuntary": 25
+                  },
+                  {
+                    "tid": 1734720,
+                    "voluntary": 208,
+                    "involuntary": 46
+                  },
+                  {
+                    "tid": 1734721,
+                    "voluntary": 358,
+                    "involuntary": 41
+                  },
+                  {
+                    "tid": 1734723,
+                    "voluntary": 18,
+                    "involuntary": 2
+                  },
+                  {
+                    "tid": 1734724,
+                    "voluntary": 357,
+                    "involuntary": 38
+                  },
+                  {
+                    "tid": 1734725,
+                    "voluntary": 1348,
+                    "involuntary": 980
+                  },
+                  {
+                    "tid": 1734726,
+                    "voluntary": 1335,
+                    "involuntary": 953
+                  },
+                  {
+                    "tid": 1734727,
+                    "voluntary": 1307,
+                    "involuntary": 1081
+                  },
+                  {
+                    "tid": 1734728,
+                    "voluntary": 1360,
+                    "involuntary": 902
+                  },
+                  {
+                    "tid": 1734729,
+                    "voluntary": 1344,
+                    "involuntary": 965
+                  },
+                  {
+                    "tid": 1734775,
+                    "voluntary": 469,
+                    "involuntary": 622
+                  },
+                  {
+                    "tid": 1735695,
+                    "voluntary": 243,
+                    "involuntary": 124
+                  },
+                  {
+                    "tid": 1736180,
+                    "voluntary": 91,
+                    "involuntary": 81
+                  },
+                  {
+                    "tid": 1736442,
+                    "voluntary": 25,
+                    "involuntary": 12
+                  }
+                ],
+                "voluntary_context_switches": 13553,
+                "involuntary_context_switches": 8988
+              },
+              "duration_ms": 1729.690082,
+              "cpu_ticks": 1,
+              "cpu_ms": 10,
+              "cpu_percent": 0.5781382517056023,
+              "terminal_chunks": 0,
+              "terminal_bytes": 0,
+              "no_input": true,
+              "styled_grid_and_cursor_equal": true,
+              "same_threads": true,
+              "voluntary_context_switches": 130,
+              "involuntary_context_switches": 50,
+              "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+            }
+          ],
+          "timeline": {
+            "records": 325,
+            "stages": {
+              "startup": {
+                "first_at_ns": 1227722832149841,
+                "last_at_ns": 1227723281030838,
+                "rows": [
+                  {
+                    "at_ns": 1227722832149841,
+                    "raw_byte_end": 317,
+                    "row": "                                                                                                                        ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 19,
+                "changed_frames": 7
+              },
+              "seed-a": {
+                "first_at_ns": 1227728352699112,
+                "last_at_ns": 1227734242220682,
+                "rows": [
+                  {
+                    "at_ns": 1227728352699112,
+                    "raw_byte_end": 17366,
+                    "row": "                                                                                                                        ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227728429968211,
+                    "raw_byte_end": 21473,
+                    "row": "  ┃                                                                                                                     ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227728437026416,
+                    "raw_byte_end": 22413,
+                    "row": "                                                                                                                        ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227728479946133,
+                    "raw_byte_end": 23328,
+                    "row": " ⠋ New session                   +                                                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227728611224911,
+                    "raw_byte_end": 23784,
+                    "row": "   New session                   +                                                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227728652113609,
+                    "raw_byte_end": 24261,
+                    "row": " • VIS41 fixture A               +                                                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227728674687654,
+                    "raw_byte_end": 24371,
+                    "row": "   VIS41 fixture A               +                                                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227734231960254,
+                    "raw_byte_end": 29340,
+                    "row": "   VIS41 fixture A               + New session                                                                          ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 20,
+                "changed_frames": 15
+              },
+              "seed-b": {
+                "first_at_ns": 1227736092324686,
+                "last_at_ns": 1227750995630364,
+                "rows": [
+                  {
+                    "at_ns": 1227736092324686,
+                    "raw_byte_end": 34312,
+                    "row": "   VIS41 fixture A               + New session                                                                          ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227736189402035,
+                    "raw_byte_end": 39474,
+                    "row": "   VIS41 fixture A               ⠋ New session                   +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227736266138781,
+                    "raw_byte_end": 40188,
+                    "row": "   VIS41 fixture A               ⠋ VIS41 fixture B               +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227736313618403,
+                    "raw_byte_end": 40708,
+                    "row": "   VIS41 fixture A               • VIS41 fixture B               +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227736345418437,
+                    "raw_byte_end": 41153,
+                    "row": "   VIS41 fixture A                 VIS41 fixture B               +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227743941630255,
+                    "raw_byte_end": 62379,
+                    "row": "   VIS41 fixture A                 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227746673449337,
+                    "raw_byte_end": 63865,
+                    "row": "   VIS41 fixture A            ✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227747820985493,
+                    "raw_byte_end": 64976,
+                    "row": "   VIS41 fixture A                 Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227750995630364,
+                    "raw_byte_end": 86166,
+                    "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 44,
+                "changed_frames": 34
+              },
+              "long": {
+                "first_at_ns": 1227754185314251,
+                "last_at_ns": 1227759328050671,
+                "rows": [
+                  {
+                    "at_ns": 1227754185314251,
+                    "raw_byte_end": 86499,
+                    "row": "   VIS41 long-title abcdefghij✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227754792472950,
+                    "raw_byte_end": 86998,
+                    "row": "   IS41 long-title abcdefghijk✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227754871212974,
+                    "raw_byte_end": 87497,
+                    "row": "   S41 long-title abcdefghijkl✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227754950203043,
+                    "raw_byte_end": 87996,
+                    "row": "   41 long-title abcdefghijklm✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227755035112104,
+                    "raw_byte_end": 88495,
+                    "row": "   1 long-title abcdefghijklmn✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227755112091437,
+                    "raw_byte_end": 88994,
+                    "row": "    long-title abcdefghijklmno✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227755192611380,
+                    "raw_byte_end": 89493,
+                    "row": "   long-title abcdefghijklmnop✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227755275531516,
+                    "raw_byte_end": 89992,
+                    "row": "   ong-title abcdefghijklmnopq✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227755352980736,
+                    "raw_byte_end": 90491,
+                    "row": "   ng-title abcdefghijklmnopqr✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227755433431676,
+                    "raw_byte_end": 90990,
+                    "row": "   g-title abcdefghijklmnopqrs✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227755524094399,
+                    "raw_byte_end": 91489,
+                    "row": "   -title abcdefghijklmnopqrst✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227755601985975,
+                    "raw_byte_end": 91988,
+                    "row": "   title abcdefghijklmnopqrstu✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227755680979379,
+                    "raw_byte_end": 92487,
+                    "row": "   itle abcdefghijklmnopqrstuv✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227755765724374,
+                    "raw_byte_end": 92986,
+                    "row": "   tle abcdefghijklmnopqrstuvw✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227755848359802,
+                    "raw_byte_end": 93485,
+                    "row": "   le abcdefghijklmnopqrstuvwx✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227755928761046,
+                    "raw_byte_end": 93984,
+                    "row": "   e abcdefghijklmnopqrstuvwxy✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227756008786585,
+                    "raw_byte_end": 94483,
+                    "row": "    abcdefghijklmnopqrstuvwxyz✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227756090600035,
+                    "raw_byte_end": 94982,
+                    "row": "   abcdefghijklmnopqrstuvwxyz ✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227756169036081,
+                    "raw_byte_end": 95481,
+                    "row": "   bcdefghijklmnopqrstuvwxyz 0✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227756249125926,
+                    "raw_byte_end": 95980,
+                    "row": "   cdefghijklmnopqrstuvwxyz 01✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227756329608092,
+                    "raw_byte_end": 96479,
+                    "row": "   defghijklmnopqrstuvwxyz 012✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227756409808776,
+                    "raw_byte_end": 96978,
+                    "row": "   efghijklmnopqrstuvwxyz 0123✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227756499362389,
+                    "raw_byte_end": 97477,
+                    "row": "   fghijklmnopqrstuvwxyz 01234✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227756576796786,
+                    "raw_byte_end": 97976,
+                    "row": "   ghijklmnopqrstuvwxyz 012345✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227756656986081,
+                    "raw_byte_end": 98475,
+                    "row": "   hijklmnopqrstuvwxyz 0123456✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227756737959067,
+                    "raw_byte_end": 98974,
+                    "row": "   ijklmnopqrstuvwxyz 01234567✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227756817629561,
+                    "raw_byte_end": 99473,
+                    "row": "   jklmnopqrstuvwxyz 012345678✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227756900153961,
+                    "raw_byte_end": 99972,
+                    "row": "   klmnopqrstuvwxyz 0123456789✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227756977384142,
+                    "raw_byte_end": 100471,
+                    "row": "   lmnopqrstuvwxyz 0123456789 ✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227757058223446,
+                    "raw_byte_end": 100971,
+                    "row": "   mnopqrstuvwxyz 0123456789 ·✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227757138360312,
+                    "raw_byte_end": 101471,
+                    "row": "   nopqrstuvwxyz 0123456789 · ✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227757220186833,
+                    "raw_byte_end": 101968,
+                    "row": "   opqrstuvwxyz 0123456789 · V✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227757301146007,
+                    "raw_byte_end": 102468,
+                    "row": "   pqrstuvwxyz 0123456789 · VI✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227757381376384,
+                    "raw_byte_end": 103018,
+                    "row": "   qrstuvwxyz 0123456789 · VIS✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227757480131670,
+                    "raw_byte_end": 103618,
+                    "row": "   rstuvwxyz 0123456789 · VIS4✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227757544908543,
+                    "raw_byte_end": 104218,
+                    "row": "   stuvwxyz 0123456789 · VIS41✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227757627458392,
+                    "raw_byte_end": 104818,
+                    "row": "   tuvwxyz 0123456789 · VIS41 ✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227757709286905,
+                    "raw_byte_end": 105418,
+                    "row": "   uvwxyz 0123456789 · VIS41 l✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227757790154911,
+                    "raw_byte_end": 106018,
+                    "row": "   vwxyz 0123456789 · VIS41 lo✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227757872249946,
+                    "raw_byte_end": 106618,
+                    "row": "   wxyz 0123456789 · VIS41 lon✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227757952482135,
+                    "raw_byte_end": 107218,
+                    "row": "   xyz 0123456789 · VIS41 long✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227758033460139,
+                    "raw_byte_end": 107818,
+                    "row": "   yz 0123456789 · VIS41 long-✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227758116889452,
+                    "raw_byte_end": 108418,
+                    "row": "   z 0123456789 · VIS41 long-t✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227758194370410,
+                    "raw_byte_end": 109018,
+                    "row": "    0123456789 · VIS41 long-ti✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227758273777939,
+                    "raw_byte_end": 109618,
+                    "row": "   0123456789 · VIS41 long-tit✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227758357380723,
+                    "raw_byte_end": 110218,
+                    "row": "   123456789 · VIS41 long-titl✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227758437675166,
+                    "raw_byte_end": 110818,
+                    "row": "   23456789 · VIS41 long-title✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227758525000125,
+                    "raw_byte_end": 111418,
+                    "row": "   3456789 · VIS41 long-title ✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227758605767420,
+                    "raw_byte_end": 112018,
+                    "row": "   456789 · VIS41 long-title a✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227758685777034,
+                    "raw_byte_end": 112618,
+                    "row": "   56789 · VIS41 long-title ab✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227758765925158,
+                    "raw_byte_end": 113217,
+                    "row": "   6789 · VIS41 long-title abc✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227758845997397,
+                    "raw_byte_end": 113766,
+                    "row": "   789 · VIS41 long-title abcd✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227758926223388,
+                    "raw_byte_end": 114266,
+                    "row": "   89 · VIS41 long-title abcde✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227759007511287,
+                    "raw_byte_end": 114763,
+                    "row": "   9 · VIS41 long-title abcdef✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227759087463095,
+                    "raw_byte_end": 115263,
+                    "row": "    · VIS41 long-title abcdefg✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227759167521914,
+                    "raw_byte_end": 115763,
+                    "row": "   · VIS41 long-title abcdefgh✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227759247702336,
+                    "raw_byte_end": 116262,
+                    "row": "    VIS41 long-title abcdefghi✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227759328050671,
+                    "raw_byte_end": 116571,
+                    "row": "   VIS41 long-title abcdefghij✕    Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 58,
+                "changed_frames": 57
+              },
+              "long-idle": {
+                "first_at_ns": 1227775637879477,
+                "last_at_ns": 1227781914377230,
+                "rows": [
+                  {
+                    "at_ns": 1227775637879477,
+                    "raw_byte_end": 116860,
+                    "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227780622940717,
+                    "raw_byte_end": 138482,
+                    "row": "   VIS41 long-title abcdefghijkl   Short                      ✕  +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227781914377230,
+                    "raw_byte_end": 140930,
+                    "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 16,
+                "changed_frames": 13
+              },
+              "inactive": {
+                "first_at_ns": 1227782980274113,
+                "last_at_ns": 1227788129667249,
+                "rows": [
+                  {
+                    "at_ns": 1227782980274113,
+                    "raw_byte_end": 141363,
+                    "row": "   VIS41 long-title abcdefghij✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227783590907109,
+                    "raw_byte_end": 141826,
+                    "row": "   IS41 long-title abcdefghijk✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227783671264368,
+                    "raw_byte_end": 142289,
+                    "row": "   S41 long-title abcdefghijkl✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227783752664407,
+                    "raw_byte_end": 142752,
+                    "row": "   41 long-title abcdefghijklm✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227783831792886,
+                    "raw_byte_end": 143215,
+                    "row": "   1 long-title abcdefghijklmn✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227783912561244,
+                    "raw_byte_end": 143678,
+                    "row": "    long-title abcdefghijklmno✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227783991971737,
+                    "raw_byte_end": 144141,
+                    "row": "   long-title abcdefghijklmnop✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227784072056005,
+                    "raw_byte_end": 144604,
+                    "row": "   ong-title abcdefghijklmnopq✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227784152166232,
+                    "raw_byte_end": 145067,
+                    "row": "   ng-title abcdefghijklmnopqr✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227784234183159,
+                    "raw_byte_end": 145530,
+                    "row": "   g-title abcdefghijklmnopqrs✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227784317195276,
+                    "raw_byte_end": 145993,
+                    "row": "   -title abcdefghijklmnopqrst✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227784397171771,
+                    "raw_byte_end": 146456,
+                    "row": "   title abcdefghijklmnopqrstu✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227784479894031,
+                    "raw_byte_end": 146919,
+                    "row": "   itle abcdefghijklmnopqrstuv✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227784559721362,
+                    "raw_byte_end": 147382,
+                    "row": "   tle abcdefghijklmnopqrstuvw✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227784639680332,
+                    "raw_byte_end": 147845,
+                    "row": "   le abcdefghijklmnopqrstuvwx✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227784719708294,
+                    "raw_byte_end": 148308,
+                    "row": "   e abcdefghijklmnopqrstuvwxy✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227784800081647,
+                    "raw_byte_end": 148771,
+                    "row": "    abcdefghijklmnopqrstuvwxyz✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227784888106491,
+                    "raw_byte_end": 149234,
+                    "row": "   abcdefghijklmnopqrstuvwxyz ✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227784963639076,
+                    "raw_byte_end": 149697,
+                    "row": "   bcdefghijklmnopqrstuvwxyz 0✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227785045066526,
+                    "raw_byte_end": 150160,
+                    "row": "   cdefghijklmnopqrstuvwxyz 01✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227785125112196,
+                    "raw_byte_end": 150623,
+                    "row": "   defghijklmnopqrstuvwxyz 012✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227785205331677,
+                    "raw_byte_end": 151086,
+                    "row": "   efghijklmnopqrstuvwxyz 0123✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227785286374649,
+                    "raw_byte_end": 151549,
+                    "row": "   fghijklmnopqrstuvwxyz 01234✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227785366077242,
+                    "raw_byte_end": 152012,
+                    "row": "   ghijklmnopqrstuvwxyz 012345✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227785446707823,
+                    "raw_byte_end": 152475,
+                    "row": "   hijklmnopqrstuvwxyz 0123456✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227785531191154,
+                    "raw_byte_end": 152938,
+                    "row": "   ijklmnopqrstuvwxyz 01234567✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227785607351104,
+                    "raw_byte_end": 153401,
+                    "row": "   jklmnopqrstuvwxyz 012345678✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227785688089377,
+                    "raw_byte_end": 153864,
+                    "row": "   klmnopqrstuvwxyz 0123456789✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227785767831248,
+                    "raw_byte_end": 154327,
+                    "row": "   lmnopqrstuvwxyz 0123456789 ✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227785847614964,
+                    "raw_byte_end": 154791,
+                    "row": "   mnopqrstuvwxyz 0123456789 ·✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227785928115710,
+                    "raw_byte_end": 155255,
+                    "row": "   nopqrstuvwxyz 0123456789 · ✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227786009448187,
+                    "raw_byte_end": 155716,
+                    "row": "   opqrstuvwxyz 0123456789 · V✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227786092105929,
+                    "raw_byte_end": 156177,
+                    "row": "   pqrstuvwxyz 0123456789 · VI✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227786172118770,
+                    "raw_byte_end": 156687,
+                    "row": "   qrstuvwxyz 0123456789 · VIS✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227786250022775,
+                    "raw_byte_end": 157243,
+                    "row": "   rstuvwxyz 0123456789 · VIS4✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227786331281842,
+                    "raw_byte_end": 157799,
+                    "row": "   stuvwxyz 0123456789 · VIS41✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227786413760064,
+                    "raw_byte_end": 158355,
+                    "row": "   tuvwxyz 0123456789 · VIS41 ✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227786508357231,
+                    "raw_byte_end": 158911,
+                    "row": "   uvwxyz 0123456789 · VIS41 l✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227786588055739,
+                    "raw_byte_end": 159467,
+                    "row": "   vwxyz 0123456789 · VIS41 lo✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227786672091567,
+                    "raw_byte_end": 160023,
+                    "row": "   wxyz 0123456789 · VIS41 lon✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227786748556585,
+                    "raw_byte_end": 160579,
+                    "row": "   xyz 0123456789 · VIS41 long✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227786829364543,
+                    "raw_byte_end": 161135,
+                    "row": "   yz 0123456789 · VIS41 long-✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227786911551036,
+                    "raw_byte_end": 161691,
+                    "row": "   z 0123456789 · VIS41 long-t✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227786991480181,
+                    "raw_byte_end": 162247,
+                    "row": "    0123456789 · VIS41 long-ti✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227787073002003,
+                    "raw_byte_end": 162803,
+                    "row": "   0123456789 · VIS41 long-tit✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227787153362346,
+                    "raw_byte_end": 163359,
+                    "row": "   123456789 · VIS41 long-titl✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227787233582439,
+                    "raw_byte_end": 163915,
+                    "row": "   23456789 · VIS41 long-title✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227787317723686,
+                    "raw_byte_end": 164471,
+                    "row": "   3456789 · VIS41 long-title ✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227787397808334,
+                    "raw_byte_end": 165027,
+                    "row": "   456789 · VIS41 long-title a✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227787483676319,
+                    "raw_byte_end": 165583,
+                    "row": "   56789 · VIS41 long-title ab✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227787563692735,
+                    "raw_byte_end": 166138,
+                    "row": "   6789 · VIS41 long-title abc✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227787643520066,
+                    "raw_byte_end": 166647,
+                    "row": "   789 · VIS41 long-title abcd✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227787729072847,
+                    "raw_byte_end": 167108,
+                    "row": "   89 · VIS41 long-title abcde✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227787804981158,
+                    "raw_byte_end": 167569,
+                    "row": "   9 · VIS41 long-title abcdef✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227787888169890,
+                    "raw_byte_end": 168033,
+                    "row": "    · VIS41 long-title abcdefg✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227787966370724,
+                    "raw_byte_end": 168497,
+                    "row": "   · VIS41 long-title abcdefgh✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227788049773907,
+                    "raw_byte_end": 168960,
+                    "row": "    VIS41 long-title abcdefghi✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227788129667249,
+                    "raw_byte_end": 169249,
+                    "row": "   VIS41 long-title abcdefghij✕    Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 58,
+                "changed_frames": 57
+              },
+              "inactive-idle": {
+                "first_at_ns": 1227802859849662,
+                "last_at_ns": 1227804413924625,
+                "rows": [
+                  {
+                    "at_ns": 1227802859849662,
+                    "raw_byte_end": 169585,
+                    "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227803855416099,
+                    "raw_byte_end": 171244,
+                    "row": "   VIS41 long-title abcdefghij✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227804413924625,
+                    "raw_byte_end": 172768,
+                    "row": "   IS41 long-title abcdefghijk✕    Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 5,
+                "changed_frames": 4
+              },
+              "running-complete": {
+                "first_at_ns": 1227804494945053,
+                "last_at_ns": 1227805354826813,
+                "rows": [
+                  {
+                    "at_ns": 1227804494945053,
+                    "raw_byte_end": 173267,
+                    "row": "   S41 long-title abcdefghijkl✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227804580097993,
+                    "raw_byte_end": 173766,
+                    "row": "   41 long-title abcdefghijklm✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227804657519272,
+                    "raw_byte_end": 174265,
+                    "row": "   1 long-title abcdefghijklmn✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227804737509760,
+                    "raw_byte_end": 174764,
+                    "row": "    long-title abcdefghijklmno✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227804821175811,
+                    "raw_byte_end": 175263,
+                    "row": "   long-title abcdefghijklmnop✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227804899488632,
+                    "raw_byte_end": 175762,
+                    "row": "   ong-title abcdefghijklmnopq✕    Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227804916502917,
+                    "raw_byte_end": 176073,
+                    "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227805244404531,
+                    "raw_byte_end": 177104,
+                    "row": " ⠋ VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  }
+                ],
+                "records": 10,
+                "changed_frames": 10
+              },
+              "busy": {
+                "first_at_ns": 1227808974781125,
+                "last_at_ns": 1227814113274428,
+                "rows": [
+                  {
+                    "at_ns": 1227808974781125,
+                    "raw_byte_end": 178035,
+                    "row": " ⠋ VIS41 long-title abcdefghij✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227809575036343,
+                    "raw_byte_end": 178534,
+                    "row": " ⠋ IS41 long-title abcdefghijk✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227809655699814,
+                    "raw_byte_end": 179033,
+                    "row": " ⠋ S41 long-title abcdefghijkl✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227809736093978,
+                    "raw_byte_end": 179532,
+                    "row": " ⠋ 41 long-title abcdefghijklm✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227809816114662,
+                    "raw_byte_end": 180031,
+                    "row": " ⠋ 1 long-title abcdefghijklmn✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227809896322006,
+                    "raw_byte_end": 180530,
+                    "row": " ⠋  long-title abcdefghijklmno✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227809975884950,
+                    "raw_byte_end": 181029,
+                    "row": " ⠋ long-title abcdefghijklmnop✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227810056056279,
+                    "raw_byte_end": 181528,
+                    "row": " ⠋ ong-title abcdefghijklmnopq✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227810136130473,
+                    "raw_byte_end": 182027,
+                    "row": " ⠋ ng-title abcdefghijklmnopqr✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227810217415930,
+                    "raw_byte_end": 182526,
+                    "row": " ⠋ g-title abcdefghijklmnopqrs✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227810296404960,
+                    "raw_byte_end": 183025,
+                    "row": " ⠋ -title abcdefghijklmnopqrst✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227810376884133,
+                    "raw_byte_end": 183524,
+                    "row": " ⠋ title abcdefghijklmnopqrstu✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227810460246006,
+                    "raw_byte_end": 184023,
+                    "row": " ⠋ itle abcdefghijklmnopqrstuv✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227810537685283,
+                    "raw_byte_end": 184522,
+                    "row": " ⠋ tle abcdefghijklmnopqrstuvw✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227810618119699,
+                    "raw_byte_end": 185021,
+                    "row": " ⠋ le abcdefghijklmnopqrstuvwx✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227810696964222,
+                    "raw_byte_end": 185520,
+                    "row": " ⠋ e abcdefghijklmnopqrstuvwxy✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227810781043695,
+                    "raw_byte_end": 186019,
+                    "row": " ⠋  abcdefghijklmnopqrstuvwxyz✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227810859030426,
+                    "raw_byte_end": 186518,
+                    "row": " ⠋ abcdefghijklmnopqrstuvwxyz ✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227810937398501,
+                    "raw_byte_end": 187017,
+                    "row": " ⠋ bcdefghijklmnopqrstuvwxyz 0✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227811021410123,
+                    "raw_byte_end": 187516,
+                    "row": " ⠋ cdefghijklmnopqrstuvwxyz 01✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227811101398166,
+                    "raw_byte_end": 188015,
+                    "row": " ⠋ defghijklmnopqrstuvwxyz 012✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227811185993106,
+                    "raw_byte_end": 188514,
+                    "row": " ⠋ efghijklmnopqrstuvwxyz 0123✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227811265397892,
+                    "raw_byte_end": 189013,
+                    "row": " ⠋ fghijklmnopqrstuvwxyz 01234✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227811345655451,
+                    "raw_byte_end": 189512,
+                    "row": " ⠋ ghijklmnopqrstuvwxyz 012345✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227811428088165,
+                    "raw_byte_end": 190011,
+                    "row": " ⠋ hijklmnopqrstuvwxyz 0123456✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227811526418053,
+                    "raw_byte_end": 190510,
+                    "row": " ⠋ ijklmnopqrstuvwxyz 01234567✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227811606201248,
+                    "raw_byte_end": 191009,
+                    "row": " ⠋ jklmnopqrstuvwxyz 012345678✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227811686360160,
+                    "raw_byte_end": 191508,
+                    "row": " ⠋ klmnopqrstuvwxyz 0123456789✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227811766559202,
+                    "raw_byte_end": 192007,
+                    "row": " ⠋ lmnopqrstuvwxyz 0123456789 ✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227811846541446,
+                    "raw_byte_end": 192507,
+                    "row": " ⠋ mnopqrstuvwxyz 0123456789 ·✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227811929521575,
+                    "raw_byte_end": 193007,
+                    "row": " ⠋ nopqrstuvwxyz 0123456789 · ✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227812009538713,
+                    "raw_byte_end": 193504,
+                    "row": " ⠋ opqrstuvwxyz 0123456789 · V✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227812092766734,
+                    "raw_byte_end": 194004,
+                    "row": " ⠋ pqrstuvwxyz 0123456789 · VI✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227812172848870,
+                    "raw_byte_end": 194554,
+                    "row": " ⠋ qrstuvwxyz 0123456789 · VIS✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227812254384904,
+                    "raw_byte_end": 195154,
+                    "row": " ⠋ rstuvwxyz 0123456789 · VIS4✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227812335441137,
+                    "raw_byte_end": 195754,
+                    "row": " ⠋ stuvwxyz 0123456789 · VIS41✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227812414881205,
+                    "raw_byte_end": 196354,
+                    "row": " ⠋ tuvwxyz 0123456789 · VIS41 ✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227812501768787,
+                    "raw_byte_end": 196954,
+                    "row": " ⠋ uvwxyz 0123456789 · VIS41 l✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227812584097346,
+                    "raw_byte_end": 197554,
+                    "row": " ⠋ vwxyz 0123456789 · VIS41 lo✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227812662435385,
+                    "raw_byte_end": 198154,
+                    "row": " ⠋ wxyz 0123456789 · VIS41 lon✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227812744243157,
+                    "raw_byte_end": 198754,
+                    "row": " ⠋ xyz 0123456789 · VIS41 long✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227812827779695,
+                    "raw_byte_end": 199354,
+                    "row": " ⠋ yz 0123456789 · VIS41 long-✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227812905624761,
+                    "raw_byte_end": 199954,
+                    "row": " ⠋ z 0123456789 · VIS41 long-t✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227812985647398,
+                    "raw_byte_end": 200554,
+                    "row": " ⠋  0123456789 · VIS41 long-ti✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227813068596340,
+                    "raw_byte_end": 201154,
+                    "row": " ⠋ 0123456789 · VIS41 long-tit✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227813145833642,
+                    "raw_byte_end": 201754,
+                    "row": " ⠋ 123456789 · VIS41 long-titl✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227813226993480,
+                    "raw_byte_end": 202354,
+                    "row": " ⠋ 23456789 · VIS41 long-title✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227813310705030,
+                    "raw_byte_end": 202954,
+                    "row": " ⠋ 3456789 · VIS41 long-title ✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227813390343227,
+                    "raw_byte_end": 203554,
+                    "row": " ⠋ 456789 · VIS41 long-title a✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227813470094104,
+                    "raw_byte_end": 204154,
+                    "row": " ⠋ 56789 · VIS41 long-title ab✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227813550450883,
+                    "raw_byte_end": 204753,
+                    "row": " ⠋ 6789 · VIS41 long-title abc✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227813631969111,
+                    "raw_byte_end": 205302,
+                    "row": " ⠋ 789 · VIS41 long-title abcd✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227813714655668,
+                    "raw_byte_end": 205802,
+                    "row": " ⠋ 89 · VIS41 long-title abcde✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227813793301280,
+                    "raw_byte_end": 206299,
+                    "row": " ⠋ 9 · VIS41 long-title abcdef✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227813872922022,
+                    "raw_byte_end": 206799,
+                    "row": " ⠋  · VIS41 long-title abcdefg✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227813955442969,
+                    "raw_byte_end": 207299,
+                    "row": " ⠋ · VIS41 long-title abcdefgh✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227814033117068,
+                    "raw_byte_end": 207798,
+                    "row": " ⠋  VIS41 long-title abcdefghi✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227814113274428,
+                    "raw_byte_end": 208107,
+                    "row": " ⠋ VIS41 long-title abcdefghij✕    Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  }
+                ],
+                "records": 58,
+                "changed_frames": 57
+              },
+              "busy-idle": {
+                "first_at_ns": 1227827966643156,
+                "last_at_ns": 1227829894209145,
+                "rows": [
+                  {
+                    "at_ns": 1227827966643156,
+                    "raw_byte_end": 208396,
+                    "row": " ⠋ VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227829836095272,
+                    "raw_byte_end": 208789,
+                    "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227829868734982,
+                    "raw_byte_end": 208995,
+                    "row": " • VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227829894209145,
+                    "raw_byte_end": 209130,
+                    "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 6,
+                "changed_frames": 4
+              },
+              "running-cancel": {
+                "first_at_ns": 1227836263799908,
+                "last_at_ns": 1227837903145075,
+                "rows": [
+                  {
+                    "at_ns": 1227836263799908,
+                    "raw_byte_end": 209261,
+                    "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227836288151431,
+                    "raw_byte_end": 210157,
+                    "row": " ⠋ VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": [
+                      "⠋"
+                    ]
+                  },
+                  {
+                    "at_ns": 1227837875538694,
+                    "raw_byte_end": 211479,
+                    "row": " • VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227837903145075,
+                    "raw_byte_end": 211614,
+                    "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 9,
+                "changed_frames": 6
+              },
+              "resize-0-80x24": {
+                "first_at_ns": 1227844811540697,
+                "last_at_ns": 1227844827854488,
+                "rows": [
+                  {
+                    "at_ns": 1227844811540697,
+                    "raw_byte_end": 213662,
+                    "row": "   VIS41 long-title abcdefghijkl   Short                         +              ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 5,
+                "changed_frames": 5
+              },
+              "resize-1-120x40": {
+                "first_at_ns": 1227845717478257,
+                "last_at_ns": 1227845732858833,
+                "rows": [
+                  {
+                    "at_ns": 1227845717478257,
+                    "raw_byte_end": 222299,
+                    "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 4,
+                "changed_frames": 4
+              },
+              "resize-2-160x48": {
+                "first_at_ns": 1227847544429196,
+                "last_at_ns": 1227847556676215,
+                "rows": [
+                  {
+                    "at_ns": 1227847544429196,
+                    "raw_byte_end": 241386,
+                    "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                                                              ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 3,
+                "changed_frames": 3
+              },
+              "resize-3-120x40": {
+                "first_at_ns": 1227849950165058,
+                "last_at_ns": 1227849968605871,
+                "rows": [
+                  {
+                    "at_ns": 1227849950165058,
+                    "raw_byte_end": 245424,
+                    "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 5,
+                "changed_frames": 5
+              },
+              "final-settled-idle": {
+                "first_at_ns": 1227854300626879,
+                "last_at_ns": 1227854417914860,
+                "rows": [
+                  {
+                    "at_ns": 1227854300626879,
+                    "raw_byte_end": 254279,
+                    "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                      ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227854379095676,
+                    "raw_byte_end": 254433,
+                    "row": "                                                                                                                        ",
+                    "glyphs": []
+                  },
+                  {
+                    "at_ns": 1227854417914860,
+                    "raw_byte_end": 255926,
+                    "row": "                                   ▄                                                                                    ",
+                    "glyphs": []
+                  }
+                ],
+                "records": 5,
+                "changed_frames": 3
+              }
+            }
+          }
+        }
+      ],
+      "captures": [
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "home",
+          "columns": 120,
+          "rows": 40,
+          "files": {
+            "cells.json": "ca043abeff0efc35a1a6203ecbdf87029b8e47adaee8dec5a74c82a87163a6d2",
+            "png": "5f9f9a56e8884de94cb5583fbcaeae320d1016094d541ee1294223d21c61e2fd",
+            "txt": "7780c89f4147da96f168d619ab104c01294fc0a10f5f06315a7850534cfde9a8",
+            "vt": "12dee2f8769548b22e9ac47c3fea8854aeed2c9ac06ff7f0106354c57c1dd308",
+            "render.json": "fea3435bcfe936ae63da4e02676d6282a7151daee4b9500de3685d2c0af0a088"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "seed-a-completed",
+          "columns": 120,
+          "rows": 40,
+          "files": {
+            "cells.json": "d8563b2a8563077e2b928ae729fb65edbe3363c01fbbc9dbb0d66ce982efa611",
+            "png": "ada663aeacd79691b56bbd8445ebafe184522e6761dc541efdca203f875f6f99",
+            "txt": "dd5a7836222c348189aeca17c2e577fd897bfb5a0efa6dfe83879d33eb408606",
+            "vt": "abcd702857fb5751c3e39862c9a5df42c7ce7e4f1496acb9084e02ce1e27daf9",
+            "render.json": "6964d451a4512a8680a70bebf8141ac79e829951d466231ca6fe10367c4f6fb9"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "seed-b-completed",
+          "columns": 120,
+          "rows": 40,
+          "files": {
+            "cells.json": "89116a3a17d119a8320433e7448d41d4c36c73a4cc96bf8c2435724b6a5994e2",
+            "png": "721817fe120e0d2824e0cbb0081ffa188231818535ab0430d0ad5ef268212815",
+            "txt": "fdf90a7c0d058d9338d91a59193aabe991dce9c8409b7dea4d77fb432eae19ff",
+            "vt": "8a1c4c317ec00a159db40c3475613c0baaf5734fefadadca51ac79cd5e984df8",
+            "render.json": "52a7deeb156e59effd54f8502af87b04b0186999b7ac29f7163cdf8b3426a446"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "root-b-short-rename-input",
+          "columns": 120,
+          "rows": 40,
+          "requested_title": "Short",
+          "files": {
+            "cells.json": "1280fca18467e8c7e340293dd09a3839b98a6479f5dca42087baa95cf6d347cd",
+            "png": "aa27988afe03ecd5bae0c6ec17ee4575aa0fab06c473f5d7f49b5aed02e40062",
+            "txt": "69e2121159f7f52280be221036e68ab5f9c84cb9e47474b1abbd604534260285",
+            "vt": "717d6cac366ea92d68d091b24086d7ecc09aa637af4710eb28889de295e66d6c",
+            "render.json": "ae1d8115ed1ac5262c425c40fce3abb50fc3c81ff9355f0beb4ff097952645e2"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "long-rename-input",
+          "columns": 120,
+          "rows": 40,
+          "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "files": {
+            "cells.json": "960847a71d1fac8e3f35e780668841e0651b630bd7597f8f5c9182277d728702",
+            "png": "fdbd6cb27a6bfc0a81858c237ce8f5d71988b4b791d4f052a8d3f683ee722833",
+            "txt": "6a9c9f76bd43949755a360f8ae84a745a35eca0b6b86a63b5ef485abafde79c0",
+            "vt": "338364cfc66c31daf2e884f9cf00a588d167901a5d60516dd82f95963cb416a9",
+            "render.json": "0ae76c708ed215600d6a05362c8a993d5dd10006ac5394de65f3ef221d046dfc"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "long-rest",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "files": {
+            "cells.json": "72036f5e0dfa80c47535d5e8c86c0de65fb4a7a3f9353e09637d552e698b15da",
+            "png": "3bc4806183bde484f3b308058c75ea366effb3fbcea41336ce9fd67437cb506d",
+            "txt": "ac208d98df9113d36b399670b695f45af9143faf056d0877200e23d348024565",
+            "vt": "35d6bc4af2392ad87d3f046a09064a1519f95948aa4e9d4dc1570de6b2360199",
+            "render.json": "423ea7dca3196e6cafd8465a5a6e9ef998d0b3879f5b16f471fb83db82cd2010"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "long-enter",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": false,
+          "expected_offset": 0,
+          "files": {
+            "cells.json": "2883a67db4fbcaa76634aa15750d9f8abb2fe89766da19ff96d2504db653011d",
+            "png": "86797ba4ba417db9997c3e9d70c8196b47d7a814e038b236fde0d2ab36caf62c",
+            "txt": "245c78f4bb4c542da514e451e87c3c712a6d2b9166e7a54764e32baa2e37aeca",
+            "vt": "6d709f891da9c398270debc6bf68a2e08ad3ef69dfbe4d243109e4bac9b5b30d",
+            "render.json": "f2d5a682187efc587b826bc4047622c95f62e93aafce5b7d3f8e0c9d5278bce1"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "long-settled",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": false,
+          "expected_offset": 0,
+          "files": {
+            "cells.json": "b284e5a9e2311deafa7ae7f8486064f6d0cf275ec4040eeb110615013aeb9ec7",
+            "png": "86797ba4ba417db9997c3e9d70c8196b47d7a814e038b236fde0d2ab36caf62c",
+            "txt": "245c78f4bb4c542da514e451e87c3c712a6d2b9166e7a54764e32baa2e37aeca",
+            "vt": "7bf14884e7bdf2cf48649c411b743e5a1af02043a3b0cbd88fab2d7131a20b4a",
+            "render.json": "1e2b20b428a086b5f58a67adecdab6307ca358601bd5fbaead8de8b76b872ca9"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "long-same-tab-no-restart",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": false,
+          "expected_offset": 0,
+          "files": {
+            "cells.json": "8f3922f7c3312689f38c0580ebfc5e029311dac1e349683f443fe1b02eae06e8",
+            "png": "86797ba4ba417db9997c3e9d70c8196b47d7a814e038b236fde0d2ab36caf62c",
+            "txt": "245c78f4bb4c542da514e451e87c3c712a6d2b9166e7a54764e32baa2e37aeca",
+            "vt": "7bf14884e7bdf2cf48649c411b743e5a1af02043a3b0cbd88fab2d7131a20b4a",
+            "render.json": "6f58150c84797c5de0c5f6b8a393fc9c9b50f5afd18ac5621f7c84295354be5a"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "long-leave",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": false,
+          "files": {
+            "cells.json": "204f32b741fda0b091f7f224a0f4271149eef9b049e4b879e75ceb4bcfd7dc45",
+            "png": "3bc4806183bde484f3b308058c75ea366effb3fbcea41336ce9fd67437cb506d",
+            "txt": "ac208d98df9113d36b399670b695f45af9143faf056d0877200e23d348024565",
+            "vt": "03593c3731cbb528e269af8401d8770ee233d9022f2dc8617d5f02d6ecaba62c",
+            "render.json": "af090314908e585f16d3242bdf6b646683c5f4279b2e8778806d3bd2e0cbe984"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "inactive-long-rename-input",
+          "columns": 120,
+          "rows": 40,
+          "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "files": {
+            "cells.json": "5fc8a01638b0419a8cd0a1bfe5ebac16e233df8ee1b2b29c09be91a0ff32f117",
+            "png": "aff4c7c3e7b9ac0cd812bc0def1d6751f9c4554fe071b2457e4eda64150a8b4d",
+            "txt": "da577feb50eb7d863b4c6a1c9f226c6011934ac16d645fae9a6277be92691a43",
+            "vt": "225e991dd8b77634c21c8bd7d592cb41534dfcb70f97c16253e38b08f2766d59",
+            "render.json": "b430b5a874a5233d4d6777326f78b344fb5cbea97eb149c8bae2319803e85bd1"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "inactive-enter",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": true,
+          "expected_offset": 0,
+          "files": {
+            "cells.json": "230eb835ea726f5c470967a1616a6d039d21b50ce0d527c489a55eebdd62bbe3",
+            "png": "6b6d5a3d3ecdf96355d4f293e23dc71ad7de06f886e913ec801f2ee368ef7cc7",
+            "txt": "841bf12bcbc71377061c627b35af574440c7526c9ce702fb0f2e497d59eed373",
+            "vt": "3aa428f27a8b5a5bed3ae66f011516e3229972238ceb132182f2300cc19b90c1",
+            "render.json": "b8e15a170f3e46328db4d35b5d642224779f76105c41d653acd3ad53f20e0fcf"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "inactive-settled",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": true,
+          "expected_offset": 0,
+          "files": {
+            "cells.json": "ee563165e31b36c0a92f9e178a57820910cdc88c252d3c4fe707e15430c0a188",
+            "png": "6b6d5a3d3ecdf96355d4f293e23dc71ad7de06f886e913ec801f2ee368ef7cc7",
+            "txt": "841bf12bcbc71377061c627b35af574440c7526c9ce702fb0f2e497d59eed373",
+            "vt": "87f470884028421e88ac54c15123692f9b421d55182df2eb4fc1a67738dba1ce",
+            "render.json": "45052b6fe2d601182ce6183b75c8e86e280d5cc88cc17eb9f7525ee22665ee4d"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "inactive-same-tab-no-restart",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": true,
+          "expected_offset": 0,
+          "files": {
+            "cells.json": "8b8d16e3c71464542a1177afa68cf77e0c251955a8e6e2813dc971515e983340",
+            "png": "6b6d5a3d3ecdf96355d4f293e23dc71ad7de06f886e913ec801f2ee368ef7cc7",
+            "txt": "841bf12bcbc71377061c627b35af574440c7526c9ce702fb0f2e497d59eed373",
+            "vt": "87f470884028421e88ac54c15123692f9b421d55182df2eb4fc1a67738dba1ce",
+            "render.json": "99fb656a18ae3e7bf1f6d95865f0714fecce7b0759dc08c5062dac2e019ebcad"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "inactive-leave",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": false,
+          "inactive": true,
+          "files": {
+            "cells.json": "c5cf3e571c1c044eb8b64b46e54f477359ce72d7cb58d4ef2b6c2a206211e8ea",
+            "png": "fe007a1543f9b7fa7df7d75928b669fbb85ec611fa5986974bf09b121f04f588",
+            "txt": "a1d0698110a2017b34f2bce8cc525beb685ec97b4d09e05704cc6a002e9eef06",
+            "vt": "e884977426d0ec907fb032ee6a248fd90e21bb9a91189147a7e07f97ceaf7dc9",
+            "render.json": "a14ffeb25dbe0d050a12e5dc4d5eecb50f908872b09897dc3e294f554db676e9"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "running-before-hover",
+          "columns": 120,
+          "rows": 40,
+          "files": {
+            "cells.json": "c686b31a456206e52106791152161efa8997a8e15640c89c13251ea11131b2d6",
+            "png": "188b8b02f4bd8fb8d138d239e458379bf2ded3297d456bd49d63c20bd5bf0512",
+            "txt": "9917335529e4bbb71c1abb0d0d2ed372b8cd96f2b2b68caff188ed5d78e86633",
+            "vt": "524c9947fee2444f67fe051442e50c7d5ef5ef58b75704b62b9adda082731b50",
+            "render.json": "cad7826d98c8de077d373e9ad80d1fd78ff60c748e71c3e7c594d117659b120b"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "busy-enter",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": true,
+          "inactive": false,
+          "expected_offset": 0,
+          "files": {
+            "cells.json": "2f98c02f80d9392f995313797570f0b2c9176e8c90b43d707fcd0b99616babe3",
+            "png": "8597ef425534b465b749a1e01cb7966bc7adbe404e859e17a702250084fbefff",
+            "txt": "7895c87714cf796964b1d2847cb31f8a790b7f9902da35d3f1595965e89edbca",
+            "vt": "a705913de95c8f18394b97923b3cab6201c4aff53588f6e81ae1936ea4e73643",
+            "render.json": "ea92b6d8104e34a181019bde02b5a60f715cd5cd945aa8fd4380eb71d7825920"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "busy-settled",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": true,
+          "inactive": false,
+          "expected_offset": 0,
+          "files": {
+            "cells.json": "825edc850e9461f8d9914c1fb56d6602b14f945bab8c8c363733dff0eee47cbf",
+            "png": "8597ef425534b465b749a1e01cb7966bc7adbe404e859e17a702250084fbefff",
+            "txt": "7895c87714cf796964b1d2847cb31f8a790b7f9902da35d3f1595965e89edbca",
+            "vt": "38f5dfcc516008470d8774620d0a46c245a3f2bbbe1504500dd141ccf791a691",
+            "render.json": "6f428df34a62c4f25c54a04f3a3cd44d3b554bf8479cae08c8f3c9762f56e951"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "busy-same-tab-no-restart",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": true,
+          "inactive": false,
+          "expected_offset": 0,
+          "files": {
+            "cells.json": "983b3ebfbd7e3cd68d6c6260efd7a96f0191b2f9a99d948af4569bb54d2d138c",
+            "png": "8597ef425534b465b749a1e01cb7966bc7adbe404e859e17a702250084fbefff",
+            "txt": "7895c87714cf796964b1d2847cb31f8a790b7f9902da35d3f1595965e89edbca",
+            "vt": "38f5dfcc516008470d8774620d0a46c245a3f2bbbe1504500dd141ccf791a691",
+            "render.json": "9dd8d579d3bc51bc05f50ea0daebfff20b53d3e570438bae8cd15f6dc48530bb"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "busy-leave",
+          "columns": 120,
+          "rows": 40,
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "hover_width": 27,
+          "busy": true,
+          "inactive": false,
+          "files": {
+            "cells.json": "4a97856531f5d52724ebfe2acc422cd75958ca12653b08f5e324dc6818d4df79",
+            "png": "188b8b02f4bd8fb8d138d239e458379bf2ded3297d456bd49d63c20bd5bf0512",
+            "txt": "9917335529e4bbb71c1abb0d0d2ed372b8cd96f2b2b68caff188ed5d78e86633",
+            "vt": "20dfc332f1df3dc1b5fdf3bdb6b57ae7ef590de593ad7cb78f25d59345f84b74",
+            "render.json": "c52e9f0a3525e6e52371baeeadd3888db8aee7793fd39de17354c39f732583a7"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "running-glyph-280b",
+          "columns": 120,
+          "rows": 40,
+          "observed_glyph": "⠋",
+          "files": {
+            "cells.json": "67c66f64125ca2a85e873c5232d549f968032f0e6f6b82ae58d7898325a98a86",
+            "png": "188b8b02f4bd8fb8d138d239e458379bf2ded3297d456bd49d63c20bd5bf0512",
+            "txt": "9917335529e4bbb71c1abb0d0d2ed372b8cd96f2b2b68caff188ed5d78e86633",
+            "vt": "20dfc332f1df3dc1b5fdf3bdb6b57ae7ef590de593ad7cb78f25d59345f84b74",
+            "render.json": "45ffb1abc52217ba82de9e1aa34caa55d6244e287be1b5b787768c00954684b8"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "completed",
+          "columns": 120,
+          "rows": 40,
+          "files": {
+            "cells.json": "e90608b3bbf248785592553f9a32d4ac2809b384efc6f6a7c35e9911f3699cc0",
+            "png": "3f67f3d1ae4f9612b8ad578be06663bcd4af5c92b6271278daa129dbd5f499dc",
+            "txt": "7c0906b6e55bcae67422330ed9432e34dfdfe12be4572467ba41d64d9609f9b2",
+            "vt": "641a1ef88cdd9994d5b03265d7f3896413864a5cb112ae23129b07b4cb982c7e",
+            "render.json": "03f2962135cfef3dc9c5e012bc04e7096fbc9b550d068eb181362000c55ead21"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "cancel-running",
+          "columns": 120,
+          "rows": 40,
+          "files": {
+            "cells.json": "97e6159040e0e8d9d6c16ed2bc58480eab4df16b04f3a97d273d687b473e8124",
+            "png": "fcdb29f6b9b9953382ca305021e9e61abacae8a4c5ca7b438f4f351d549f170a",
+            "txt": "305ee1bf313f9ded920097c0470a82961032f364857d6577455834faf1fb0efe",
+            "vt": "9023f73a50fea51c42deb1c8fd3db3d9e700975f5fcfe364d30a49cdec3e3a29",
+            "render.json": "eb1652bb8b0542a5c12837cd9c91ef92b0b9ab3753b29a2fa81317bcc6247edf"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "cancelled",
+          "columns": 120,
+          "rows": 40,
+          "files": {
+            "cells.json": "076822e5ed8f8d2873aad572f724159c1e75ada99bbc5936db2e327608181447",
+            "png": "ae31926fc2f9e5af381f5d44e10ba460a8fc07b49e7ba1e6998a755be27a839f",
+            "txt": "58f5a6670ab8f82ae88d371dc92c2fc9e6c85adec155e741a9b7412d69c3c4c7",
+            "vt": "a236e09fdb065d34efb0312bf7f2b9774855feefa4ab99d7dd74dbde40a54314",
+            "render.json": "f78d5ffae3944c1eb6c1c0da493e05e49d347c6dbd71fcc11115a36158164d0f"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "resize-0-80x24",
+          "columns": 80,
+          "rows": 24,
+          "files": {
+            "cells.json": "a24c7c74a03148860da4145daeefcdcf160865452e2f5363db2753f1630dd550",
+            "png": "4f0c1bf7898887ac54cee70f13306b87ecce59af8dee8111263c92c154587cfe",
+            "txt": "31e139898fb18c1623567a34e779a632bd1a07119eeb31fff2f6532fbecc0415",
+            "vt": "7b1ad75ff1dd969a74ef7c6d928807452404af7bb23e113c7df664b6e972f1de",
+            "render.json": "b1855129aa94dca7640ead52e877915aa9863e769ccaa528e43a653d79725b95"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "resize-1-120x40",
+          "columns": 120,
+          "rows": 40,
+          "files": {
+            "cells.json": "1810fd20b11cedbb30c1c2fde07f16b8267acb202e20f0e725255022c6e0f360",
+            "png": "ae31926fc2f9e5af381f5d44e10ba460a8fc07b49e7ba1e6998a755be27a839f",
+            "txt": "58f5a6670ab8f82ae88d371dc92c2fc9e6c85adec155e741a9b7412d69c3c4c7",
+            "vt": "f06272bf77dacbf47d8fc7647433c9f313ad86e0a9781cc44cbcf08b2d39e98e",
+            "render.json": "ef4df1bc7cc63a2d7e9f0b740a2ae406ad3982a5e4f0d7ccc3cbe8032b119092"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "resize-2-160x48",
+          "columns": 160,
+          "rows": 48,
+          "files": {
+            "cells.json": "72da445bbccdd5fc2e2fda708dc9236563c73ce9831f17802d0d7b37d9a50855",
+            "png": "7a0b495046fcc875bc5e065baa0f372f4dae1f4be75af62287e2b8efb2572a44",
+            "txt": "1d278bed5cfebea8f0ac15fa54a272782dfa7ee464e3aa512dbb5e79a79e130d",
+            "vt": "e61a64e97ab209fcb60af28b93f7142850046f0ac4151118645ffeb54110ac0c",
+            "render.json": "45071eaafbe6c3a5446ae0ffdd90fe1f58ce1190149aff5a539edaf22318eab3"
+          }
+        },
+        {
+          "name": "upstream-120x40-off-horizontal-status",
+          "label": "resize-3-120x40",
+          "columns": 120,
+          "rows": 40,
+          "files": {
+            "cells.json": "e357e048841521b4fe5f8c33f8ed3dcc9d09ff374d113a752270ce6909281dac",
+            "png": "b62b922ffe9a81ab42ec59b60abdc8b7f4c706720202aa7c74eb325a319bb256",
+            "txt": "58f5a6670ab8f82ae88d371dc92c2fc9e6c85adec155e741a9b7412d69c3c4c7",
+            "vt": "7bec341f103063d9e687dfda92d47a8441801d127586842449b6f61b0c0e7daa",
+            "render.json": "78257e534359822ebe3d489c2a40658e147deacec41ca3b22f6d81a29b2ccf2a"
+          }
+        }
+      ]
+    }
+  },
+  "comparisons": [],
+  "failures": [
+    {
+      "side": "reference",
+      "name": "upstream-120x40-off-horizontal-status",
+      "functional": true,
+      "temporal": false,
+      "settled": true,
+      "spinner": true
+    }
+  ],
+  "method": "Real captured styled cells, PNG and cursor; actual observed title/glyph phases, no global time synchronization, normalization, mask/crop, or tolerance"
+}

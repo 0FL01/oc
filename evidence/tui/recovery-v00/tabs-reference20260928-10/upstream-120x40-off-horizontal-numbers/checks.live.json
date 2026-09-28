@@ -1,0 +1,4356 @@
+{
+  "name": "upstream-120x40-off-horizontal-numbers",
+  "status": "IN_PROGRESS",
+  "hover": [
+    {
+      "kind": "long",
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "width": 27,
+      "source_cycle_width": 57,
+      "overflow": true,
+      "target": {
+        "x": 5,
+        "y": 1
+      },
+      "busy": false,
+      "inactive": false,
+      "samples": [
+        {
+          "elapsed_ms": 34.299143000000186,
+          "source_elapsed_ms": 3.519318,
+          "source_at_ns": 1231608710952645,
+          "raw_byte_end": 86191,
+          "text": "VIS41 long-title abcdefghij",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 654.1780309999995,
+          "source_elapsed_ms": 610.705296,
+          "source_at_ns": 1231609318138623,
+          "raw_byte_end": 86690,
+          "text": "IS41 long-title abcdefghijk",
+          "observed_source_offsets": [
+            1
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1235.886398999999,
+          "source_elapsed_ms": 692.351816,
+          "source_at_ns": 1231609399785143,
+          "raw_byte_end": 87189,
+          "text": "S41 long-title abcdefghijkl",
+          "observed_source_offsets": [
+            2
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1910.6941499999994,
+          "source_elapsed_ms": 1850.136942,
+          "source_at_ns": 1231610557570269,
+          "raw_byte_end": 94175,
+          "text": " abcdefghijklmnopqrstuvwxyz",
+          "observed_source_offsets": [
+            16
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1963.6694310000003,
+          "source_elapsed_ms": 1930.412657,
+          "source_at_ns": 1231610637845984,
+          "raw_byte_end": 94674,
+          "text": "abcdefghijklmnopqrstuvwxyz ",
+          "observed_source_offsets": [
+            17
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2042.7029669999993,
+          "source_elapsed_ms": 2013.347988,
+          "source_at_ns": 1231610720781315,
+          "raw_byte_end": 95173,
+          "text": "bcdefghijklmnopqrstuvwxyz 0",
+          "observed_source_offsets": [
+            18
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2129.642024999999,
+          "source_elapsed_ms": 2093.366997,
+          "source_at_ns": 1231610800800324,
+          "raw_byte_end": 95672,
+          "text": "cdefghijklmnopqrstuvwxyz 01",
+          "observed_source_offsets": [
+            19
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2202.875356999999,
+          "source_elapsed_ms": 2173.205203,
+          "source_at_ns": 1231610880638530,
+          "raw_byte_end": 96171,
+          "text": "defghijklmnopqrstuvwxyz 012",
+          "observed_source_offsets": [
+            20
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2280.1523769999985,
+          "source_elapsed_ms": 2257.981765,
+          "source_at_ns": 1231610965415092,
+          "raw_byte_end": 96670,
+          "text": "efghijklmnopqrstuvwxyz 0123",
+          "observed_source_offsets": [
+            21
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2363.8639270000003,
+          "source_elapsed_ms": 2336.757252,
+          "source_at_ns": 1231611044190579,
+          "raw_byte_end": 97169,
+          "text": "fghijklmnopqrstuvwxyz 01234",
+          "observed_source_offsets": [
+            22
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2450.3764219999994,
+          "source_elapsed_ms": 2416.931705,
+          "source_at_ns": 1231611124365032,
+          "raw_byte_end": 97668,
+          "text": "ghijklmnopqrstuvwxyz 012345",
+          "observed_source_offsets": [
+            23
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2525.3713259999986,
+          "source_elapsed_ms": 2497.022623,
+          "source_at_ns": 1231611204455950,
+          "raw_byte_end": 98167,
+          "text": "hijklmnopqrstuvwxyz 0123456",
+          "observed_source_offsets": [
+            24
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2617.848141999999,
+          "source_elapsed_ms": 2589.968445,
+          "source_at_ns": 1231611297401772,
+          "raw_byte_end": 98666,
+          "text": "ijklmnopqrstuvwxyz 01234567",
+          "observed_source_offsets": [
+            25
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2685.0225929999997,
+          "source_elapsed_ms": 2660.957918,
+          "source_at_ns": 1231611368391245,
+          "raw_byte_end": 99165,
+          "text": "jklmnopqrstuvwxyz 012345678",
+          "observed_source_offsets": [
+            26
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2780.4491689999995,
+          "source_elapsed_ms": 2740.91876,
+          "source_at_ns": 1231611448352087,
+          "raw_byte_end": 99664,
+          "text": "klmnopqrstuvwxyz 0123456789",
+          "observed_source_offsets": [
+            27
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2861.299169,
+          "source_elapsed_ms": 2822.225277,
+          "source_at_ns": 1231611529658604,
+          "raw_byte_end": 100163,
+          "text": "lmnopqrstuvwxyz 0123456789 ",
+          "observed_source_offsets": [
+            28
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2933.6851659999993,
+          "source_elapsed_ms": 2902.847124,
+          "source_at_ns": 1231611610280451,
+          "raw_byte_end": 100663,
+          "text": "mnopqrstuvwxyz 0123456789 ·",
+          "observed_source_offsets": [
+            29
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3016.180934,
+          "source_elapsed_ms": 2983.002949,
+          "source_at_ns": 1231611690436276,
+          "raw_byte_end": 101163,
+          "text": "nopqrstuvwxyz 0123456789 · ",
+          "observed_source_offsets": [
+            30
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3095.2729369999997,
+          "source_elapsed_ms": 3065.926892,
+          "source_at_ns": 1231611773360219,
+          "raw_byte_end": 101660,
+          "text": "opqrstuvwxyz 0123456789 · V",
+          "observed_source_offsets": [
+            31
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3172.444039,
+          "source_elapsed_ms": 3145.876256,
+          "source_at_ns": 1231611853309583,
+          "raw_byte_end": 102160,
+          "text": "pqrstuvwxyz 0123456789 · VI",
+          "observed_source_offsets": [
+            32
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3264.8303989999986,
+          "source_elapsed_ms": 3226.240756,
+          "source_at_ns": 1231611933674083,
+          "raw_byte_end": 102710,
+          "text": "qrstuvwxyz 0123456789 · VIS",
+          "observed_source_offsets": [
+            33
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3344.1774349999996,
+          "source_elapsed_ms": 3307.069815,
+          "source_at_ns": 1231612014503142,
+          "raw_byte_end": 103310,
+          "text": "rstuvwxyz 0123456789 · VIS4",
+          "observed_source_offsets": [
+            34
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3423.8298919999997,
+          "source_elapsed_ms": 3390.190212,
+          "source_at_ns": 1231612097623539,
+          "raw_byte_end": 103910,
+          "text": "stuvwxyz 0123456789 · VIS41",
+          "observed_source_offsets": [
+            35
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3505.8170759999994,
+          "source_elapsed_ms": 3472.654764,
+          "source_at_ns": 1231612180088091,
+          "raw_byte_end": 104510,
+          "text": "tuvwxyz 0123456789 · VIS41 ",
+          "observed_source_offsets": [
+            36
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3586.9122150000003,
+          "source_elapsed_ms": 3557.617837,
+          "source_at_ns": 1231612265051164,
+          "raw_byte_end": 105110,
+          "text": "uvwxyz 0123456789 · VIS41 l",
+          "observed_source_offsets": [
+            37
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3663.695441,
+          "source_elapsed_ms": 3637.419869,
+          "source_at_ns": 1231612344853196,
+          "raw_byte_end": 105710,
+          "text": "vwxyz 0123456789 · VIS41 lo",
+          "observed_source_offsets": [
+            38
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3754.12155,
+          "source_elapsed_ms": 3717.438107,
+          "source_at_ns": 1231612424871434,
+          "raw_byte_end": 106310,
+          "text": "wxyz 0123456789 · VIS41 lon",
+          "observed_source_offsets": [
+            39
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3825.9731620000002,
+          "source_elapsed_ms": 3797.449745,
+          "source_at_ns": 1231612504883072,
+          "raw_byte_end": 106910,
+          "text": "xyz 0123456789 · VIS41 long",
+          "observed_source_offsets": [
+            40
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3917.957327,
+          "source_elapsed_ms": 3880.941883,
+          "source_at_ns": 1231612588375210,
+          "raw_byte_end": 107510,
+          "text": "yz 0123456789 · VIS41 long-",
+          "observed_source_offsets": [
+            41
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3989.5782409999993,
+          "source_elapsed_ms": 3960.671125,
+          "source_at_ns": 1231612668104452,
+          "raw_byte_end": 108110,
+          "text": "z 0123456789 · VIS41 long-t",
+          "observed_source_offsets": [
+            42
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4073.2832179999987,
+          "source_elapsed_ms": 4040.656444,
+          "source_at_ns": 1231612748089771,
+          "raw_byte_end": 108710,
+          "text": " 0123456789 · VIS41 long-ti",
+          "observed_source_offsets": [
+            43
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4155.463322,
+          "source_elapsed_ms": 4124.241091,
+          "source_at_ns": 1231612831674418,
+          "raw_byte_end": 109310,
+          "text": "0123456789 · VIS41 long-tit",
+          "observed_source_offsets": [
+            44
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4230.122361,
+          "source_elapsed_ms": 4201.130168,
+          "source_at_ns": 1231612908563495,
+          "raw_byte_end": 109910,
+          "text": "123456789 · VIS41 long-titl",
+          "observed_source_offsets": [
+            45
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4311.640637999999,
+          "source_elapsed_ms": 4281.205932,
+          "source_at_ns": 1231612988639259,
+          "raw_byte_end": 110510,
+          "text": "23456789 · VIS41 long-title",
+          "observed_source_offsets": [
+            46
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4404.669764,
+          "source_elapsed_ms": 4363.934311,
+          "source_at_ns": 1231613071367638,
+          "raw_byte_end": 111110,
+          "text": "3456789 · VIS41 long-title ",
+          "observed_source_offsets": [
+            47
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4474.442536999999,
+          "source_elapsed_ms": 4442.936959,
+          "source_at_ns": 1231613150370286,
+          "raw_byte_end": 111710,
+          "text": "456789 · VIS41 long-title a",
+          "observed_source_offsets": [
+            48
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4551.823655,
+          "source_elapsed_ms": 4522.550328,
+          "source_at_ns": 1231613229983655,
+          "raw_byte_end": 112310,
+          "text": "56789 · VIS41 long-title ab",
+          "observed_source_offsets": [
+            49
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4651.741973999999,
+          "source_elapsed_ms": 4617.685296,
+          "source_at_ns": 1231613325118623,
+          "raw_byte_end": 112909,
+          "text": "6789 · VIS41 long-title abc",
+          "observed_source_offsets": [
+            50
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4709.336531000001,
+          "source_elapsed_ms": 4683.227448,
+          "source_at_ns": 1231613390660775,
+          "raw_byte_end": 113458,
+          "text": "789 · VIS41 long-title abcd",
+          "observed_source_offsets": [
+            51
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4803.202437,
+          "source_elapsed_ms": 4763.975164,
+          "source_at_ns": 1231613471408491,
+          "raw_byte_end": 113958,
+          "text": "89 · VIS41 long-title abcde",
+          "observed_source_offsets": [
+            52
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4869.3439819999985,
+          "source_elapsed_ms": 4844.464472,
+          "source_at_ns": 1231613551897799,
+          "raw_byte_end": 114455,
+          "text": "9 · VIS41 long-title abcdef",
+          "observed_source_offsets": [
+            53
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4954.892777999998,
+          "source_elapsed_ms": 4924.415078,
+          "source_at_ns": 1231613631848405,
+          "raw_byte_end": 114955,
+          "text": " · VIS41 long-title abcdefg",
+          "observed_source_offsets": [
+            54
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 5531.177078000001,
+          "source_elapsed_ms": 5165.200351,
+          "source_at_ns": 1231613872633678,
+          "raw_byte_end": 116263,
+          "text": "VIS41 long-title abcdefghij",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ],
+      "captures": [
+        {
+          "offset": 1,
+          "elapsed_ms": 654.1780309999995,
+          "source_elapsed_ms": 610.705296
+        },
+        {
+          "offset": 2,
+          "elapsed_ms": 1235.886398999999,
+          "source_elapsed_ms": 692.351816
+        },
+        {
+          "offset": 54,
+          "elapsed_ms": 4954.892777999998,
+          "source_elapsed_ms": 4924.415078
+        }
+      ],
+      "first_changed_ms": 654.1780309999995,
+      "changed": true,
+      "returned_to_entered_text": true,
+      "exactly_one_pointer_input": true,
+      "owner_rows_unchanged": true,
+      "requests_unchanged": true,
+      "project_unchanged": true,
+      "idle": "long-idle",
+      "checks_ok": true
+    },
+    {
+      "kind": "inactive",
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "width": 27,
+      "source_cycle_width": 57,
+      "overflow": true,
+      "target": {
+        "x": 5,
+        "y": 1
+      },
+      "busy": false,
+      "inactive": true,
+      "samples": [
+        {
+          "elapsed_ms": 32.53650799999741,
+          "source_elapsed_ms": 3.384776,
+          "source_at_ns": 1231622462745488,
+          "raw_byte_end": 141826,
+          "text": "VIS41 long-title abcdefghij",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 627.9275659999985,
+          "source_elapsed_ms": 604.041563,
+          "source_at_ns": 1231623063402275,
+          "raw_byte_end": 142289,
+          "text": "IS41 long-title abcdefghijk",
+          "observed_source_offsets": [
+            1
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1266.2499739999985,
+          "source_elapsed_ms": 685.117423,
+          "source_at_ns": 1231623144478135,
+          "raw_byte_end": 142752,
+          "text": "S41 long-title abcdefghijkl",
+          "observed_source_offsets": [
+            2
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1983.577713999999,
+          "source_elapsed_ms": 1915.638833,
+          "source_at_ns": 1231624374999545,
+          "raw_byte_end": 149697,
+          "text": "abcdefghijklmnopqrstuvwxyz ",
+          "observed_source_offsets": [
+            17
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2018.3272939999988,
+          "source_elapsed_ms": 1995.758664,
+          "source_at_ns": 1231624455119376,
+          "raw_byte_end": 150160,
+          "text": "bcdefghijklmnopqrstuvwxyz 0",
+          "observed_source_offsets": [
+            18
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2105.874778999998,
+          "source_elapsed_ms": 2076.028801,
+          "source_at_ns": 1231624535389513,
+          "raw_byte_end": 150623,
+          "text": "cdefghijklmnopqrstuvwxyz 01",
+          "observed_source_offsets": [
+            19
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2175.9482229999994,
+          "source_elapsed_ms": 2156.407421,
+          "source_at_ns": 1231624615768133,
+          "raw_byte_end": 151086,
+          "text": "defghijklmnopqrstuvwxyz 012",
+          "observed_source_offsets": [
+            20
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2261.206299999998,
+          "source_elapsed_ms": 2236.175282,
+          "source_at_ns": 1231624695535994,
+          "raw_byte_end": 151549,
+          "text": "efghijklmnopqrstuvwxyz 0123",
+          "observed_source_offsets": [
+            21
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2352.302105999999,
+          "source_elapsed_ms": 2318.261244,
+          "source_at_ns": 1231624777621956,
+          "raw_byte_end": 152012,
+          "text": "fghijklmnopqrstuvwxyz 01234",
+          "observed_source_offsets": [
+            22
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2424.281340999998,
+          "source_elapsed_ms": 2398.1388,
+          "source_at_ns": 1231624857499512,
+          "raw_byte_end": 152475,
+          "text": "ghijklmnopqrstuvwxyz 012345",
+          "observed_source_offsets": [
+            23
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2509.077802,
+          "source_elapsed_ms": 2478.276688,
+          "source_at_ns": 1231624937637400,
+          "raw_byte_end": 152938,
+          "text": "hijklmnopqrstuvwxyz 0123456",
+          "observed_source_offsets": [
+            24
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2579.8430089999965,
+          "source_elapsed_ms": 2558.679394,
+          "source_at_ns": 1231625018040106,
+          "raw_byte_end": 153401,
+          "text": "ijklmnopqrstuvwxyz 01234567",
+          "observed_source_offsets": [
+            25
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2662.387268999999,
+          "source_elapsed_ms": 2638.578844,
+          "source_at_ns": 1231625097939556,
+          "raw_byte_end": 153864,
+          "text": "jklmnopqrstuvwxyz 012345678",
+          "observed_source_offsets": [
+            26
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2744.6150449999986,
+          "source_elapsed_ms": 2718.808039,
+          "source_at_ns": 1231625178168751,
+          "raw_byte_end": 154327,
+          "text": "klmnopqrstuvwxyz 0123456789",
+          "observed_source_offsets": [
+            27
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2847.7438479999983,
+          "source_elapsed_ms": 2808.967405,
+          "source_at_ns": 1231625268328117,
+          "raw_byte_end": 154790,
+          "text": "lmnopqrstuvwxyz 0123456789 ",
+          "observed_source_offsets": [
+            28
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2927.2713669999976,
+          "source_elapsed_ms": 2888.577889,
+          "source_at_ns": 1231625347938601,
+          "raw_byte_end": 155254,
+          "text": "mnopqrstuvwxyz 0123456789 ·",
+          "observed_source_offsets": [
+            29
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3002.969781,
+          "source_elapsed_ms": 2968.809018,
+          "source_at_ns": 1231625428169730,
+          "raw_byte_end": 155718,
+          "text": "nopqrstuvwxyz 0123456789 · ",
+          "observed_source_offsets": [
+            30
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3075.806074999997,
+          "source_elapsed_ms": 3048.785773,
+          "source_at_ns": 1231625508146485,
+          "raw_byte_end": 156179,
+          "text": "opqrstuvwxyz 0123456789 · V",
+          "observed_source_offsets": [
+            31
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3168.8246469999976,
+          "source_elapsed_ms": 3128.899945,
+          "source_at_ns": 1231625588260657,
+          "raw_byte_end": 156640,
+          "text": "pqrstuvwxyz 0123456789 · VI",
+          "observed_source_offsets": [
+            32
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3233.916441999998,
+          "source_elapsed_ms": 3208.84294,
+          "source_at_ns": 1231625668203652,
+          "raw_byte_end": 157150,
+          "text": "qrstuvwxyz 0123456789 · VIS",
+          "observed_source_offsets": [
+            33
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3314.165485999998,
+          "source_elapsed_ms": 3289.032826,
+          "source_at_ns": 1231625748393538,
+          "raw_byte_end": 157706,
+          "text": "rstuvwxyz 0123456789 · VIS4",
+          "observed_source_offsets": [
+            34
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3392.229841999997,
+          "source_elapsed_ms": 3369.203803,
+          "source_at_ns": 1231625828564515,
+          "raw_byte_end": 158262,
+          "text": "stuvwxyz 0123456789 · VIS41",
+          "observed_source_offsets": [
+            35
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3480.5276169999997,
+          "source_elapsed_ms": 3449.498989,
+          "source_at_ns": 1231625908859701,
+          "raw_byte_end": 158818,
+          "text": "tuvwxyz 0123456789 · VIS41 ",
+          "observed_source_offsets": [
+            36
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3551.4916219999977,
+          "source_elapsed_ms": 3529.760283,
+          "source_at_ns": 1231625989120995,
+          "raw_byte_end": 159374,
+          "text": "uvwxyz 0123456789 · VIS41 l",
+          "observed_source_offsets": [
+            37
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3636.4324909999996,
+          "source_elapsed_ms": 3615.583772,
+          "source_at_ns": 1231626074944484,
+          "raw_byte_end": 159930,
+          "text": "vwxyz 0123456789 · VIS41 lo",
+          "observed_source_offsets": [
+            38
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3719.0571539999983,
+          "source_elapsed_ms": 3692.046635,
+          "source_at_ns": 1231626151407347,
+          "raw_byte_end": 160486,
+          "text": "wxyz 0123456789 · VIS41 lon",
+          "observed_source_offsets": [
+            39
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3796.3876439999985,
+          "source_elapsed_ms": 3772.372366,
+          "source_at_ns": 1231626231733078,
+          "raw_byte_end": 161042,
+          "text": "xyz 0123456789 · VIS41 long",
+          "observed_source_offsets": [
+            40
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3892.526192999998,
+          "source_elapsed_ms": 3863.768776,
+          "source_at_ns": 1231626323129488,
+          "raw_byte_end": 161598,
+          "text": "yz 0123456789 · VIS41 long-",
+          "observed_source_offsets": [
+            41
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3970.4456119999995,
+          "source_elapsed_ms": 3938.206551,
+          "source_at_ns": 1231626397567263,
+          "raw_byte_end": 162154,
+          "text": "z 0123456789 · VIS41 long-t",
+          "observed_source_offsets": [
+            42
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4043.4400039999964,
+          "source_elapsed_ms": 4016.785812,
+          "source_at_ns": 1231626476146524,
+          "raw_byte_end": 162710,
+          "text": " 0123456789 · VIS41 long-ti",
+          "observed_source_offsets": [
+            43
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4127.6992869999995,
+          "source_elapsed_ms": 4096.933094,
+          "source_at_ns": 1231626556293806,
+          "raw_byte_end": 163266,
+          "text": "0123456789 · VIS41 long-tit",
+          "observed_source_offsets": [
+            44
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4215.935328,
+          "source_elapsed_ms": 4179.854123,
+          "source_at_ns": 1231626639214835,
+          "raw_byte_end": 163822,
+          "text": "123456789 · VIS41 long-titl",
+          "observed_source_offsets": [
+            45
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4281.824572999998,
+          "source_elapsed_ms": 4258.107794,
+          "source_at_ns": 1231626717468506,
+          "raw_byte_end": 164378,
+          "text": "23456789 · VIS41 long-title",
+          "observed_source_offsets": [
+            46
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4382.7800449999995,
+          "source_elapsed_ms": 4338.405884,
+          "source_at_ns": 1231626797766596,
+          "raw_byte_end": 164934,
+          "text": "3456789 · VIS41 long-title ",
+          "observed_source_offsets": [
+            47
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4452.065492999998,
+          "source_elapsed_ms": 4418.6424,
+          "source_at_ns": 1231626878003112,
+          "raw_byte_end": 165490,
+          "text": "456789 · VIS41 long-title a",
+          "observed_source_offsets": [
+            48
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4533.457007999998,
+          "source_elapsed_ms": 4498.58244,
+          "source_at_ns": 1231626957943152,
+          "raw_byte_end": 166046,
+          "text": "56789 · VIS41 long-title ab",
+          "observed_source_offsets": [
+            49
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4609.761003,
+          "source_elapsed_ms": 4580.264693,
+          "source_at_ns": 1231627039625405,
+          "raw_byte_end": 166601,
+          "text": "6789 · VIS41 long-title abc",
+          "observed_source_offsets": [
+            50
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4686.794357999999,
+          "source_elapsed_ms": 4660.589542,
+          "source_at_ns": 1231627119950254,
+          "raw_byte_end": 167110,
+          "text": "789 · VIS41 long-title abcd",
+          "observed_source_offsets": [
+            51
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4764.456597999997,
+          "source_elapsed_ms": 4740.496914,
+          "source_at_ns": 1231627199857626,
+          "raw_byte_end": 167571,
+          "text": "89 · VIS41 long-title abcde",
+          "observed_source_offsets": [
+            52
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4852.017111999998,
+          "source_elapsed_ms": 4824.594614,
+          "source_at_ns": 1231627283955326,
+          "raw_byte_end": 168032,
+          "text": "9 · VIS41 long-title abcdef",
+          "observed_source_offsets": [
+            53
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4925.352588999998,
+          "source_elapsed_ms": 4903.596421,
+          "source_at_ns": 1231627362957133,
+          "raw_byte_end": 168496,
+          "text": " · VIS41 long-title abcdefg",
+          "observed_source_offsets": [
+            54
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 5469.7848719999965,
+          "source_elapsed_ms": 5146.145371,
+          "source_at_ns": 1231627605506083,
+          "raw_byte_end": 169712,
+          "text": "VIS41 long-title abcdefghij",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ],
+      "captures": [
+        {
+          "offset": 1,
+          "elapsed_ms": 627.9275659999985,
+          "source_elapsed_ms": 604.041563
+        },
+        {
+          "offset": 2,
+          "elapsed_ms": 1266.2499739999985,
+          "source_elapsed_ms": 685.117423
+        },
+        {
+          "offset": 54,
+          "elapsed_ms": 4925.352588999998,
+          "source_elapsed_ms": 4903.596421
+        }
+      ],
+      "first_changed_ms": 627.9275659999985,
+      "changed": true,
+      "returned_to_entered_text": true,
+      "exactly_one_pointer_input": true,
+      "owner_rows_unchanged": true,
+      "requests_unchanged": true,
+      "project_unchanged": true,
+      "idle": "inactive-idle",
+      "checks_ok": true
+    },
+    {
+      "kind": "busy",
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "width": 27,
+      "source_cycle_width": 57,
+      "overflow": true,
+      "target": {
+        "x": 5,
+        "y": 1
+      },
+      "busy": true,
+      "inactive": false,
+      "samples": [
+        {
+          "elapsed_ms": 43.13397499999701,
+          "source_elapsed_ms": 5.878991,
+          "source_at_ns": 1231635494107975,
+          "raw_byte_end": 175383,
+          "text": "VIS41 long-title abcdefghij",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 654.7092399999965,
+          "source_elapsed_ms": 605.913842,
+          "source_at_ns": 1231636094142826,
+          "raw_byte_end": 175882,
+          "text": "IS41 long-title abcdefghijk",
+          "observed_source_offsets": [
+            1
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1257.7780589999966,
+          "source_elapsed_ms": 689.077945,
+          "source_at_ns": 1231636177306929,
+          "raw_byte_end": 176381,
+          "text": "S41 long-title abcdefghijkl",
+          "observed_source_offsets": [
+            2
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1815.363805999994,
+          "source_elapsed_ms": 1740.03615,
+          "source_at_ns": 1231637228265134,
+          "raw_byte_end": 182868,
+          "text": "e abcdefghijklmnopqrstuvwxy",
+          "observed_source_offsets": [
+            15
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1849.960235999999,
+          "source_elapsed_ms": 1827.549021,
+          "source_at_ns": 1231637315778005,
+          "raw_byte_end": 183367,
+          "text": " abcdefghijklmnopqrstuvwxyz",
+          "observed_source_offsets": [
+            16
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1935.0081759999957,
+          "source_elapsed_ms": 1905.280267,
+          "source_at_ns": 1231637393509251,
+          "raw_byte_end": 183866,
+          "text": "abcdefghijklmnopqrstuvwxyz ",
+          "observed_source_offsets": [
+            17
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2021.784289999996,
+          "source_elapsed_ms": 1985.260796,
+          "source_at_ns": 1231637473489780,
+          "raw_byte_end": 184365,
+          "text": "bcdefghijklmnopqrstuvwxyz 0",
+          "observed_source_offsets": [
+            18
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2092.0885109999945,
+          "source_elapsed_ms": 2065.565797,
+          "source_at_ns": 1231637553794781,
+          "raw_byte_end": 184864,
+          "text": "cdefghijklmnopqrstuvwxyz 01",
+          "observed_source_offsets": [
+            19
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2185.201294999999,
+          "source_elapsed_ms": 2145.632799,
+          "source_at_ns": 1231637633861783,
+          "raw_byte_end": 185363,
+          "text": "defghijklmnopqrstuvwxyz 012",
+          "observed_source_offsets": [
+            20
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2263.2455399999963,
+          "source_elapsed_ms": 2230.261969,
+          "source_at_ns": 1231637718490953,
+          "raw_byte_end": 185862,
+          "text": "efghijklmnopqrstuvwxyz 0123",
+          "observed_source_offsets": [
+            21
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2335.384825999994,
+          "source_elapsed_ms": 2309.164907,
+          "source_at_ns": 1231637797393891,
+          "raw_byte_end": 186361,
+          "text": "fghijklmnopqrstuvwxyz 01234",
+          "observed_source_offsets": [
+            22
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2418.4165399999983,
+          "source_elapsed_ms": 2388.949893,
+          "source_at_ns": 1231637877178877,
+          "raw_byte_end": 186860,
+          "text": "ghijklmnopqrstuvwxyz 012345",
+          "observed_source_offsets": [
+            23
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2493.0164809999987,
+          "source_elapsed_ms": 2469.075142,
+          "source_at_ns": 1231637957304126,
+          "raw_byte_end": 187359,
+          "text": "hijklmnopqrstuvwxyz 0123456",
+          "observed_source_offsets": [
+            24
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2579.1243669999967,
+          "source_elapsed_ms": 2549.091427,
+          "source_at_ns": 1231638037320411,
+          "raw_byte_end": 187858,
+          "text": "ijklmnopqrstuvwxyz 01234567",
+          "observed_source_offsets": [
+            25
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2668.6223279999977,
+          "source_elapsed_ms": 2630.012605,
+          "source_at_ns": 1231638118241589,
+          "raw_byte_end": 188357,
+          "text": "jklmnopqrstuvwxyz 012345678",
+          "observed_source_offsets": [
+            26
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2748.011056999996,
+          "source_elapsed_ms": 2712.193889,
+          "source_at_ns": 1231638200422873,
+          "raw_byte_end": 188856,
+          "text": "klmnopqrstuvwxyz 0123456789",
+          "observed_source_offsets": [
+            27
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2831.0025009999954,
+          "source_elapsed_ms": 2800.294597,
+          "source_at_ns": 1231638288523581,
+          "raw_byte_end": 189355,
+          "text": "lmnopqrstuvwxyz 0123456789 ",
+          "observed_source_offsets": [
+            28
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2908.8903819999978,
+          "source_elapsed_ms": 2880.09757,
+          "source_at_ns": 1231638368326554,
+          "raw_byte_end": 189855,
+          "text": "mnopqrstuvwxyz 0123456789 ·",
+          "observed_source_offsets": [
+            29
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2985.9975669999985,
+          "source_elapsed_ms": 2961.662807,
+          "source_at_ns": 1231638449891791,
+          "raw_byte_end": 190355,
+          "text": "nopqrstuvwxyz 0123456789 · ",
+          "observed_source_offsets": [
+            30
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3065.7958239999934,
+          "source_elapsed_ms": 3041.032308,
+          "source_at_ns": 1231638529261292,
+          "raw_byte_end": 190852,
+          "text": "opqrstuvwxyz 0123456789 · V",
+          "observed_source_offsets": [
+            31
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3155.8149989999947,
+          "source_elapsed_ms": 3120.706738,
+          "source_at_ns": 1231638608935722,
+          "raw_byte_end": 191352,
+          "text": "pqrstuvwxyz 0123456789 · VI",
+          "observed_source_offsets": [
+            32
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3228.9697529999976,
+          "source_elapsed_ms": 3200.502912,
+          "source_at_ns": 1231638688731896,
+          "raw_byte_end": 191902,
+          "text": "qrstuvwxyz 0123456789 · VIS",
+          "observed_source_offsets": [
+            33
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3313.065770999994,
+          "source_elapsed_ms": 3280.789974,
+          "source_at_ns": 1231638769018958,
+          "raw_byte_end": 192502,
+          "text": "rstuvwxyz 0123456789 · VIS4",
+          "observed_source_offsets": [
+            34
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3396.752701999998,
+          "source_elapsed_ms": 3360.870886,
+          "source_at_ns": 1231638849099870,
+          "raw_byte_end": 193102,
+          "text": "stuvwxyz 0123456789 · VIS41",
+          "observed_source_offsets": [
+            35
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3472.6296539999967,
+          "source_elapsed_ms": 3440.963437,
+          "source_at_ns": 1231638929192421,
+          "raw_byte_end": 193702,
+          "text": "tuvwxyz 0123456789 · VIS41 ",
+          "observed_source_offsets": [
+            36
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3556.5724109999937,
+          "source_elapsed_ms": 3521.256128,
+          "source_at_ns": 1231639009485112,
+          "raw_byte_end": 194302,
+          "text": "uvwxyz 0123456789 · VIS41 l",
+          "observed_source_offsets": [
+            37
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3637.3090199999933,
+          "source_elapsed_ms": 3603.884845,
+          "source_at_ns": 1231639092113829,
+          "raw_byte_end": 194902,
+          "text": "vwxyz 0123456789 · VIS41 lo",
+          "observed_source_offsets": [
+            38
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3715.2942179999955,
+          "source_elapsed_ms": 3681.628629,
+          "source_at_ns": 1231639169857613,
+          "raw_byte_end": 195502,
+          "text": "wxyz 0123456789 · VIS41 lon",
+          "observed_source_offsets": [
+            39
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3796.4159669999935,
+          "source_elapsed_ms": 3761.570883,
+          "source_at_ns": 1231639249799867,
+          "raw_byte_end": 196102,
+          "text": "xyz 0123456789 · VIS41 long",
+          "observed_source_offsets": [
+            40
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3878.252010999997,
+          "source_elapsed_ms": 3847.734092,
+          "source_at_ns": 1231639335963076,
+          "raw_byte_end": 196702,
+          "text": "yz 0123456789 · VIS41 long-",
+          "observed_source_offsets": [
+            41
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3952.2226149999988,
+          "source_elapsed_ms": 3925.184494,
+          "source_at_ns": 1231639413413478,
+          "raw_byte_end": 197302,
+          "text": "z 0123456789 · VIS41 long-t",
+          "observed_source_offsets": [
+            42
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4030.258446999993,
+          "source_elapsed_ms": 4005.24803,
+          "source_at_ns": 1231639493477014,
+          "raw_byte_end": 197902,
+          "text": " 0123456789 · VIS41 long-ti",
+          "observed_source_offsets": [
+            43
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4120.953079999999,
+          "source_elapsed_ms": 4086.730923,
+          "source_at_ns": 1231639574959907,
+          "raw_byte_end": 198502,
+          "text": "0123456789 · VIS41 long-tit",
+          "observed_source_offsets": [
+            44
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4199.382985999997,
+          "source_elapsed_ms": 4166.785074,
+          "source_at_ns": 1231639655014058,
+          "raw_byte_end": 199102,
+          "text": "123456789 · VIS41 long-titl",
+          "observed_source_offsets": [
+            45
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4282.616784999998,
+          "source_elapsed_ms": 4247.865372,
+          "source_at_ns": 1231639736094356,
+          "raw_byte_end": 199702,
+          "text": "23456789 · VIS41 long-title",
+          "observed_source_offsets": [
+            46
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4361.757080999996,
+          "source_elapsed_ms": 4327.0798,
+          "source_at_ns": 1231639815308784,
+          "raw_byte_end": 200302,
+          "text": "3456789 · VIS41 long-title ",
+          "observed_source_offsets": [
+            47
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4437.665120999998,
+          "source_elapsed_ms": 4407.304788,
+          "source_at_ns": 1231639895533772,
+          "raw_byte_end": 200902,
+          "text": "456789 · VIS41 long-title a",
+          "observed_source_offsets": [
+            48
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4509.448108999997,
+          "source_elapsed_ms": 4487.180052,
+          "source_at_ns": 1231639975409036,
+          "raw_byte_end": 201502,
+          "text": "56789 · VIS41 long-title ab",
+          "observed_source_offsets": [
+            49
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4596.259435,
+          "source_elapsed_ms": 4569.152972,
+          "source_at_ns": 1231640057381956,
+          "raw_byte_end": 202101,
+          "text": "6789 · VIS41 long-title abc",
+          "observed_source_offsets": [
+            50
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4673.582935999999,
+          "source_elapsed_ms": 4650.019887,
+          "source_at_ns": 1231640138248871,
+          "raw_byte_end": 202650,
+          "text": "789 · VIS41 long-title abcd",
+          "observed_source_offsets": [
+            51
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4759.489107999994,
+          "source_elapsed_ms": 4731.431152,
+          "source_at_ns": 1231640219660136,
+          "raw_byte_end": 203150,
+          "text": "89 · VIS41 long-title abcde",
+          "observed_source_offsets": [
+            52
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4842.940154999997,
+          "source_elapsed_ms": 4814.443258,
+          "source_at_ns": 1231640302672242,
+          "raw_byte_end": 203647,
+          "text": "9 · VIS41 long-title abcdef",
+          "observed_source_offsets": [
+            53
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4916.571326999998,
+          "source_elapsed_ms": 4894.074383,
+          "source_at_ns": 1231640382303367,
+          "raw_byte_end": 204147,
+          "text": " · VIS41 long-title abcdefg",
+          "observed_source_offsets": [
+            54
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 5507.389067999997,
+          "source_elapsed_ms": 5134.621218,
+          "source_at_ns": 1231640622850202,
+          "raw_byte_end": 205455,
+          "text": "VIS41 long-title abcdefghij",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ],
+      "captures": [
+        {
+          "offset": 1,
+          "elapsed_ms": 654.7092399999965,
+          "source_elapsed_ms": 605.913842
+        },
+        {
+          "offset": 2,
+          "elapsed_ms": 1257.7780589999966,
+          "source_elapsed_ms": 689.077945
+        },
+        {
+          "offset": 54,
+          "elapsed_ms": 4916.571326999998,
+          "source_elapsed_ms": 4894.074383
+        }
+      ],
+      "first_changed_ms": 654.7092399999965,
+      "changed": true,
+      "returned_to_entered_text": true,
+      "exactly_one_pointer_input": true,
+      "owner_rows_unchanged": true,
+      "requests_unchanged": true,
+      "project_unchanged": true,
+      "idle": "busy-idle",
+      "checks_ok": true
+    }
+  ],
+  "idle": [
+    {
+      "label": "long-idle",
+      "start": {
+        "at_ns": 1231615455243653,
+        "kind": "process_sample",
+        "request_id": "long-idle-start",
+        "pid": 1793166,
+        "cpu_ticks": 222,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1793166,
+            "voluntary": 477,
+            "involuntary": 1139
+          },
+          {
+            "tid": 1793167,
+            "voluntary": 666,
+            "involuntary": 295
+          },
+          {
+            "tid": 1793168,
+            "voluntary": 685,
+            "involuntary": 25
+          },
+          {
+            "tid": 1793169,
+            "voluntary": 133,
+            "involuntary": 30
+          },
+          {
+            "tid": 1793170,
+            "voluntary": 437,
+            "involuntary": 171
+          },
+          {
+            "tid": 1793171,
+            "voluntary": 277,
+            "involuntary": 164
+          },
+          {
+            "tid": 1793172,
+            "voluntary": 151,
+            "involuntary": 27
+          },
+          {
+            "tid": 1793173,
+            "voluntary": 159,
+            "involuntary": 16
+          },
+          {
+            "tid": 1793174,
+            "voluntary": 142,
+            "involuntary": 19
+          },
+          {
+            "tid": 1793189,
+            "voluntary": 115,
+            "involuntary": 24
+          },
+          {
+            "tid": 1793209,
+            "voluntary": 24,
+            "involuntary": 2
+          },
+          {
+            "tid": 1793232,
+            "voluntary": 291,
+            "involuntary": 184
+          },
+          {
+            "tid": 1793233,
+            "voluntary": 286,
+            "involuntary": 252
+          },
+          {
+            "tid": 1793234,
+            "voluntary": 306,
+            "involuntary": 180
+          },
+          {
+            "tid": 1793235,
+            "voluntary": 267,
+            "involuntary": 233
+          },
+          {
+            "tid": 1793236,
+            "voluntary": 283,
+            "involuntary": 204
+          },
+          {
+            "tid": 1793253,
+            "voluntary": 93,
+            "involuntary": 164
+          },
+          {
+            "tid": 1793254,
+            "voluntary": 17,
+            "involuntary": 29
+          },
+          {
+            "tid": 1793255,
+            "voluntary": 9,
+            "involuntary": 13
+          },
+          {
+            "tid": 1793256,
+            "voluntary": 14,
+            "involuntary": 3
+          }
+        ],
+        "voluntary_context_switches": 4832,
+        "involuntary_context_switches": 3174
+      },
+      "end": {
+        "at_ns": 1231616976042604,
+        "kind": "process_sample",
+        "request_id": "long-idle-end",
+        "pid": 1793166,
+        "cpu_ticks": 230,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1793166,
+            "voluntary": 494,
+            "involuntary": 1173
+          },
+          {
+            "tid": 1793167,
+            "voluntary": 666,
+            "involuntary": 295
+          },
+          {
+            "tid": 1793168,
+            "voluntary": 703,
+            "involuntary": 29
+          },
+          {
+            "tid": 1793169,
+            "voluntary": 133,
+            "involuntary": 30
+          },
+          {
+            "tid": 1793170,
+            "voluntary": 437,
+            "involuntary": 171
+          },
+          {
+            "tid": 1793171,
+            "voluntary": 277,
+            "involuntary": 164
+          },
+          {
+            "tid": 1793172,
+            "voluntary": 156,
+            "involuntary": 27
+          },
+          {
+            "tid": 1793173,
+            "voluntary": 165,
+            "involuntary": 16
+          },
+          {
+            "tid": 1793174,
+            "voluntary": 147,
+            "involuntary": 19
+          },
+          {
+            "tid": 1793189,
+            "voluntary": 116,
+            "involuntary": 24
+          },
+          {
+            "tid": 1793209,
+            "voluntary": 24,
+            "involuntary": 2
+          },
+          {
+            "tid": 1793232,
+            "voluntary": 306,
+            "involuntary": 200
+          },
+          {
+            "tid": 1793233,
+            "voluntary": 308,
+            "involuntary": 263
+          },
+          {
+            "tid": 1793234,
+            "voluntary": 329,
+            "involuntary": 185
+          },
+          {
+            "tid": 1793235,
+            "voluntary": 284,
+            "involuntary": 251
+          },
+          {
+            "tid": 1793236,
+            "voluntary": 301,
+            "involuntary": 228
+          },
+          {
+            "tid": 1793253,
+            "voluntary": 94,
+            "involuntary": 165
+          }
+        ],
+        "voluntary_context_switches": 4940,
+        "involuntary_context_switches": 3242
+      },
+      "duration_ms": 1520.798951,
+      "cpu_ticks": 8,
+      "cpu_ms": 80,
+      "cpu_percent": 5.260392897259435,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": false,
+      "voluntary_context_switches": 108,
+      "involuntary_context_switches": 68,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "inactive-idle",
+      "start": {
+        "at_ns": 1231629070947534,
+        "kind": "process_sample",
+        "request_id": "inactive-idle-start",
+        "pid": 1793166,
+        "cpu_ticks": 266,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1793166,
+            "voluntary": 720,
+            "involuntary": 1597
+          },
+          {
+            "tid": 1793167,
+            "voluntary": 757,
+            "involuntary": 316
+          },
+          {
+            "tid": 1793168,
+            "voluntary": 973,
+            "involuntary": 56
+          },
+          {
+            "tid": 1793169,
+            "voluntary": 145,
+            "involuntary": 30
+          },
+          {
+            "tid": 1793170,
+            "voluntary": 475,
+            "involuntary": 190
+          },
+          {
+            "tid": 1793171,
+            "voluntary": 296,
+            "involuntary": 169
+          },
+          {
+            "tid": 1793172,
+            "voluntary": 195,
+            "involuntary": 27
+          },
+          {
+            "tid": 1793173,
+            "voluntary": 204,
+            "involuntary": 16
+          },
+          {
+            "tid": 1793174,
+            "voluntary": 187,
+            "involuntary": 20
+          },
+          {
+            "tid": 1793189,
+            "voluntary": 130,
+            "involuntary": 25
+          },
+          {
+            "tid": 1793209,
+            "voluntary": 24,
+            "involuntary": 2
+          },
+          {
+            "tid": 1793232,
+            "voluntary": 418,
+            "involuntary": 291
+          },
+          {
+            "tid": 1793233,
+            "voluntary": 435,
+            "involuntary": 340
+          },
+          {
+            "tid": 1793234,
+            "voluntary": 466,
+            "involuntary": 252
+          },
+          {
+            "tid": 1793235,
+            "voluntary": 388,
+            "involuntary": 325
+          },
+          {
+            "tid": 1793236,
+            "voluntary": 413,
+            "involuntary": 306
+          },
+          {
+            "tid": 1793253,
+            "voluntary": 130,
+            "involuntary": 207
+          },
+          {
+            "tid": 1793530,
+            "voluntary": 1,
+            "involuntary": 1
+          },
+          {
+            "tid": 1793531,
+            "voluntary": 1,
+            "involuntary": 0
+          },
+          {
+            "tid": 1793532,
+            "voluntary": 1,
+            "involuntary": 0
+          },
+          {
+            "tid": 1793533,
+            "voluntary": 1,
+            "involuntary": 0
+          },
+          {
+            "tid": 1793534,
+            "voluntary": 1,
+            "involuntary": 0
+          }
+        ],
+        "voluntary_context_switches": 6361,
+        "involuntary_context_switches": 4170
+      },
+      "end": {
+        "at_ns": 1231630593486816,
+        "kind": "process_sample",
+        "request_id": "inactive-idle-end",
+        "pid": 1793166,
+        "cpu_ticks": 267,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1793166,
+            "voluntary": 739,
+            "involuntary": 1613
+          },
+          {
+            "tid": 1793167,
+            "voluntary": 758,
+            "involuntary": 316
+          },
+          {
+            "tid": 1793168,
+            "voluntary": 991,
+            "involuntary": 57
+          },
+          {
+            "tid": 1793169,
+            "voluntary": 145,
+            "involuntary": 30
+          },
+          {
+            "tid": 1793170,
+            "voluntary": 475,
+            "involuntary": 190
+          },
+          {
+            "tid": 1793171,
+            "voluntary": 296,
+            "involuntary": 169
+          },
+          {
+            "tid": 1793172,
+            "voluntary": 199,
+            "involuntary": 27
+          },
+          {
+            "tid": 1793173,
+            "voluntary": 209,
+            "involuntary": 16
+          },
+          {
+            "tid": 1793174,
+            "voluntary": 191,
+            "involuntary": 20
+          },
+          {
+            "tid": 1793189,
+            "voluntary": 131,
+            "involuntary": 25
+          },
+          {
+            "tid": 1793209,
+            "voluntary": 24,
+            "involuntary": 2
+          },
+          {
+            "tid": 1793232,
+            "voluntary": 435,
+            "involuntary": 302
+          },
+          {
+            "tid": 1793233,
+            "voluntary": 455,
+            "involuntary": 353
+          },
+          {
+            "tid": 1793234,
+            "voluntary": 481,
+            "involuntary": 264
+          },
+          {
+            "tid": 1793235,
+            "voluntary": 401,
+            "involuntary": 339
+          },
+          {
+            "tid": 1793236,
+            "voluntary": 433,
+            "involuntary": 317
+          },
+          {
+            "tid": 1793253,
+            "voluntary": 135,
+            "involuntary": 218
+          },
+          {
+            "tid": 1793530,
+            "voluntary": 1,
+            "involuntary": 1
+          },
+          {
+            "tid": 1793531,
+            "voluntary": 1,
+            "involuntary": 0
+          },
+          {
+            "tid": 1793532,
+            "voluntary": 1,
+            "involuntary": 0
+          },
+          {
+            "tid": 1793533,
+            "voluntary": 1,
+            "involuntary": 0
+          },
+          {
+            "tid": 1793534,
+            "voluntary": 1,
+            "involuntary": 0
+          }
+        ],
+        "voluntary_context_switches": 6503,
+        "involuntary_context_switches": 4259
+      },
+      "duration_ms": 1522.539282,
+      "cpu_ticks": 1,
+      "cpu_ms": 10,
+      "cpu_percent": 0.6567975038952065,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 142,
+      "involuntary_context_switches": 89,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "busy-idle",
+      "start": {
+        "at_ns": 1231642141508568,
+        "kind": "process_sample",
+        "request_id": "busy-idle-start",
+        "pid": 1793166,
+        "cpu_ticks": 317,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1793166,
+            "voluntary": 947,
+            "involuntary": 2006
+          },
+          {
+            "tid": 1793167,
+            "voluntary": 827,
+            "involuntary": 370
+          },
+          {
+            "tid": 1793168,
+            "voluntary": 1253,
+            "involuntary": 82
+          },
+          {
+            "tid": 1793169,
+            "voluntary": 165,
+            "involuntary": 32
+          },
+          {
+            "tid": 1793170,
+            "voluntary": 502,
+            "involuntary": 223
+          },
+          {
+            "tid": 1793171,
+            "voluntary": 323,
+            "involuntary": 172
+          },
+          {
+            "tid": 1793172,
+            "voluntary": 234,
+            "involuntary": 30
+          },
+          {
+            "tid": 1793173,
+            "voluntary": 248,
+            "involuntary": 16
+          },
+          {
+            "tid": 1793174,
+            "voluntary": 227,
+            "involuntary": 22
+          },
+          {
+            "tid": 1793189,
+            "voluntary": 145,
+            "involuntary": 28
+          },
+          {
+            "tid": 1793209,
+            "voluntary": 25,
+            "involuntary": 2
+          },
+          {
+            "tid": 1793232,
+            "voluntary": 539,
+            "involuntary": 350
+          },
+          {
+            "tid": 1793233,
+            "voluntary": 559,
+            "involuntary": 416
+          },
+          {
+            "tid": 1793234,
+            "voluntary": 592,
+            "involuntary": 329
+          },
+          {
+            "tid": 1793235,
+            "voluntary": 506,
+            "involuntary": 462
+          },
+          {
+            "tid": 1793236,
+            "voluntary": 551,
+            "involuntary": 413
+          },
+          {
+            "tid": 1793253,
+            "voluntary": 175,
+            "involuntary": 243
+          },
+          {
+            "tid": 1793688,
+            "voluntary": 3,
+            "involuntary": 1
+          },
+          {
+            "tid": 1793689,
+            "voluntary": 1,
+            "involuntary": 0
+          },
+          {
+            "tid": 1793690,
+            "voluntary": 1,
+            "involuntary": 1
+          },
+          {
+            "tid": 1793691,
+            "voluntary": 1,
+            "involuntary": 1
+          },
+          {
+            "tid": 1793692,
+            "voluntary": 1,
+            "involuntary": 0
+          }
+        ],
+        "voluntary_context_switches": 7825,
+        "involuntary_context_switches": 5199
+      },
+      "end": {
+        "at_ns": 1231642665280184,
+        "kind": "process_sample",
+        "request_id": "busy-idle-end",
+        "pid": 1793166,
+        "cpu_ticks": 318,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1793166,
+            "voluntary": 956,
+            "involuntary": 2006
+          },
+          {
+            "tid": 1793167,
+            "voluntary": 827,
+            "involuntary": 370
+          },
+          {
+            "tid": 1793168,
+            "voluntary": 1259,
+            "involuntary": 82
+          },
+          {
+            "tid": 1793169,
+            "voluntary": 165,
+            "involuntary": 32
+          },
+          {
+            "tid": 1793170,
+            "voluntary": 502,
+            "involuntary": 223
+          },
+          {
+            "tid": 1793171,
+            "voluntary": 323,
+            "involuntary": 172
+          },
+          {
+            "tid": 1793172,
+            "voluntary": 236,
+            "involuntary": 30
+          },
+          {
+            "tid": 1793173,
+            "voluntary": 250,
+            "involuntary": 16
+          },
+          {
+            "tid": 1793174,
+            "voluntary": 228,
+            "involuntary": 22
+          },
+          {
+            "tid": 1793189,
+            "voluntary": 145,
+            "involuntary": 28
+          },
+          {
+            "tid": 1793209,
+            "voluntary": 25,
+            "involuntary": 2
+          },
+          {
+            "tid": 1793232,
+            "voluntary": 549,
+            "involuntary": 351
+          },
+          {
+            "tid": 1793233,
+            "voluntary": 568,
+            "involuntary": 422
+          },
+          {
+            "tid": 1793234,
+            "voluntary": 602,
+            "involuntary": 334
+          },
+          {
+            "tid": 1793235,
+            "voluntary": 517,
+            "involuntary": 468
+          },
+          {
+            "tid": 1793236,
+            "voluntary": 562,
+            "involuntary": 419
+          },
+          {
+            "tid": 1793253,
+            "voluntary": 179,
+            "involuntary": 246
+          },
+          {
+            "tid": 1793688,
+            "voluntary": 3,
+            "involuntary": 1
+          },
+          {
+            "tid": 1793689,
+            "voluntary": 1,
+            "involuntary": 0
+          },
+          {
+            "tid": 1793690,
+            "voluntary": 1,
+            "involuntary": 1
+          },
+          {
+            "tid": 1793691,
+            "voluntary": 1,
+            "involuntary": 1
+          },
+          {
+            "tid": 1793692,
+            "voluntary": 1,
+            "involuntary": 0
+          }
+        ],
+        "voluntary_context_switches": 7900,
+        "involuntary_context_switches": 5226
+      },
+      "duration_ms": 523.771616,
+      "cpu_ticks": 1,
+      "cpu_ms": 10,
+      "cpu_percent": 1.9092290789579556,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 75,
+      "involuntary_context_switches": 27,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "completed-idle",
+      "start": {
+        "at_ns": 1231648610403446,
+        "kind": "process_sample",
+        "request_id": "completed-idle-start",
+        "pid": 1793166,
+        "cpu_ticks": 337,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1793166,
+            "voluntary": 1029,
+            "involuntary": 2127
+          },
+          {
+            "tid": 1793167,
+            "voluntary": 849,
+            "involuntary": 377
+          },
+          {
+            "tid": 1793168,
+            "voluntary": 1350,
+            "involuntary": 88
+          },
+          {
+            "tid": 1793169,
+            "voluntary": 170,
+            "involuntary": 36
+          },
+          {
+            "tid": 1793170,
+            "voluntary": 513,
+            "involuntary": 230
+          },
+          {
+            "tid": 1793172,
+            "voluntary": 255,
+            "involuntary": 31
+          },
+          {
+            "tid": 1793173,
+            "voluntary": 269,
+            "involuntary": 16
+          },
+          {
+            "tid": 1793174,
+            "voluntary": 248,
+            "involuntary": 25
+          },
+          {
+            "tid": 1793189,
+            "voluntary": 158,
+            "involuntary": 30
+          },
+          {
+            "tid": 1793209,
+            "voluntary": 25,
+            "involuntary": 2
+          },
+          {
+            "tid": 1793232,
+            "voluntary": 607,
+            "involuntary": 408
+          },
+          {
+            "tid": 1793233,
+            "voluntary": 628,
+            "involuntary": 473
+          },
+          {
+            "tid": 1793234,
+            "voluntary": 669,
+            "involuntary": 388
+          },
+          {
+            "tid": 1793235,
+            "voluntary": 579,
+            "involuntary": 515
+          },
+          {
+            "tid": 1793236,
+            "voluntary": 633,
+            "involuntary": 472
+          },
+          {
+            "tid": 1793253,
+            "voluntary": 201,
+            "involuntary": 259
+          },
+          {
+            "tid": 1793868,
+            "voluntary": 6,
+            "involuntary": 5
+          }
+        ],
+        "voluntary_context_switches": 8189,
+        "involuntary_context_switches": 5482
+      },
+      "end": {
+        "at_ns": 1231650131470550,
+        "kind": "process_sample",
+        "request_id": "completed-idle-end",
+        "pid": 1793166,
+        "cpu_ticks": 338,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1793166,
+            "voluntary": 1035,
+            "involuntary": 2134
+          },
+          {
+            "tid": 1793167,
+            "voluntary": 849,
+            "involuntary": 377
+          },
+          {
+            "tid": 1793168,
+            "voluntary": 1360,
+            "involuntary": 88
+          },
+          {
+            "tid": 1793169,
+            "voluntary": 170,
+            "involuntary": 36
+          },
+          {
+            "tid": 1793170,
+            "voluntary": 513,
+            "involuntary": 230
+          },
+          {
+            "tid": 1793172,
+            "voluntary": 261,
+            "involuntary": 31
+          },
+          {
+            "tid": 1793173,
+            "voluntary": 273,
+            "involuntary": 16
+          },
+          {
+            "tid": 1793174,
+            "voluntary": 252,
+            "involuntary": 25
+          },
+          {
+            "tid": 1793189,
+            "voluntary": 158,
+            "involuntary": 30
+          },
+          {
+            "tid": 1793209,
+            "voluntary": 25,
+            "involuntary": 2
+          },
+          {
+            "tid": 1793232,
+            "voluntary": 609,
+            "involuntary": 409
+          },
+          {
+            "tid": 1793233,
+            "voluntary": 630,
+            "involuntary": 474
+          },
+          {
+            "tid": 1793234,
+            "voluntary": 671,
+            "involuntary": 390
+          },
+          {
+            "tid": 1793235,
+            "voluntary": 581,
+            "involuntary": 516
+          },
+          {
+            "tid": 1793236,
+            "voluntary": 635,
+            "involuntary": 473
+          },
+          {
+            "tid": 1793253,
+            "voluntary": 202,
+            "involuntary": 261
+          },
+          {
+            "tid": 1793868,
+            "voluntary": 6,
+            "involuntary": 5
+          }
+        ],
+        "voluntary_context_switches": 8230,
+        "involuntary_context_switches": 5497
+      },
+      "duration_ms": 1521.067104,
+      "cpu_ticks": 1,
+      "cpu_ms": 10,
+      "cpu_percent": 0.6574331910605832,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 41,
+      "involuntary_context_switches": 15,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "cancelled-idle",
+      "start": {
+        "at_ns": 1231654133440883,
+        "kind": "process_sample",
+        "request_id": "cancelled-idle-start",
+        "pid": 1793166,
+        "cpu_ticks": 358,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1793166,
+            "voluntary": 1109,
+            "involuntary": 2284
+          },
+          {
+            "tid": 1793167,
+            "voluntary": 888,
+            "involuntary": 393
+          },
+          {
+            "tid": 1793168,
+            "voluntary": 1449,
+            "involuntary": 95
+          },
+          {
+            "tid": 1793169,
+            "voluntary": 193,
+            "involuntary": 45
+          },
+          {
+            "tid": 1793170,
+            "voluntary": 530,
+            "involuntary": 234
+          },
+          {
+            "tid": 1793172,
+            "voluntary": 277,
+            "involuntary": 34
+          },
+          {
+            "tid": 1793173,
+            "voluntary": 289,
+            "involuntary": 16
+          },
+          {
+            "tid": 1793174,
+            "voluntary": 266,
+            "involuntary": 27
+          },
+          {
+            "tid": 1793189,
+            "voluntary": 179,
+            "involuntary": 38
+          },
+          {
+            "tid": 1793209,
+            "voluntary": 26,
+            "involuntary": 2
+          },
+          {
+            "tid": 1793232,
+            "voluntary": 674,
+            "involuntary": 463
+          },
+          {
+            "tid": 1793233,
+            "voluntary": 692,
+            "involuntary": 529
+          },
+          {
+            "tid": 1793234,
+            "voluntary": 716,
+            "involuntary": 421
+          },
+          {
+            "tid": 1793235,
+            "voluntary": 634,
+            "involuntary": 555
+          },
+          {
+            "tid": 1793236,
+            "voluntary": 687,
+            "involuntary": 511
+          },
+          {
+            "tid": 1793253,
+            "voluntary": 219,
+            "involuntary": 276
+          },
+          {
+            "tid": 1793868,
+            "voluntary": 13,
+            "involuntary": 5
+          }
+        ],
+        "voluntary_context_switches": 8841,
+        "involuntary_context_switches": 5928
+      },
+      "end": {
+        "at_ns": 1231655656714168,
+        "kind": "process_sample",
+        "request_id": "cancelled-idle-end",
+        "pid": 1793166,
+        "cpu_ticks": 360,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1793166,
+            "voluntary": 1122,
+            "involuntary": 2307
+          },
+          {
+            "tid": 1793167,
+            "voluntary": 888,
+            "involuntary": 393
+          },
+          {
+            "tid": 1793168,
+            "voluntary": 1465,
+            "involuntary": 98
+          },
+          {
+            "tid": 1793169,
+            "voluntary": 193,
+            "involuntary": 45
+          },
+          {
+            "tid": 1793170,
+            "voluntary": 530,
+            "involuntary": 234
+          },
+          {
+            "tid": 1793172,
+            "voluntary": 282,
+            "involuntary": 34
+          },
+          {
+            "tid": 1793173,
+            "voluntary": 291,
+            "involuntary": 17
+          },
+          {
+            "tid": 1793174,
+            "voluntary": 270,
+            "involuntary": 27
+          },
+          {
+            "tid": 1793189,
+            "voluntary": 179,
+            "involuntary": 38
+          },
+          {
+            "tid": 1793209,
+            "voluntary": 26,
+            "involuntary": 2
+          },
+          {
+            "tid": 1793232,
+            "voluntary": 695,
+            "involuntary": 477
+          },
+          {
+            "tid": 1793233,
+            "voluntary": 713,
+            "involuntary": 539
+          },
+          {
+            "tid": 1793234,
+            "voluntary": 737,
+            "involuntary": 431
+          },
+          {
+            "tid": 1793235,
+            "voluntary": 652,
+            "involuntary": 569
+          },
+          {
+            "tid": 1793236,
+            "voluntary": 711,
+            "involuntary": 520
+          },
+          {
+            "tid": 1793253,
+            "voluntary": 231,
+            "involuntary": 289
+          },
+          {
+            "tid": 1793868,
+            "voluntary": 13,
+            "involuntary": 5
+          }
+        ],
+        "voluntary_context_switches": 8998,
+        "involuntary_context_switches": 6025
+      },
+      "duration_ms": 1523.273285,
+      "cpu_ticks": 2,
+      "cpu_ms": 20,
+      "cpu_percent": 1.3129620401633972,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 157,
+      "involuntary_context_switches": 97,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "final-settled-idle",
+      "start": {
+        "at_ns": 1231660396353016,
+        "kind": "process_sample",
+        "request_id": "final-settled-idle-start",
+        "pid": 1793166,
+        "cpu_ticks": 367,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1793166,
+            "voluntary": 1197,
+            "involuntary": 2357
+          },
+          {
+            "tid": 1793167,
+            "voluntary": 900,
+            "involuntary": 402
+          },
+          {
+            "tid": 1793168,
+            "voluntary": 1542,
+            "involuntary": 101
+          },
+          {
+            "tid": 1793169,
+            "voluntary": 193,
+            "involuntary": 45
+          },
+          {
+            "tid": 1793170,
+            "voluntary": 537,
+            "involuntary": 234
+          },
+          {
+            "tid": 1793172,
+            "voluntary": 301,
+            "involuntary": 34
+          },
+          {
+            "tid": 1793173,
+            "voluntary": 308,
+            "involuntary": 17
+          },
+          {
+            "tid": 1793174,
+            "voluntary": 287,
+            "involuntary": 28
+          },
+          {
+            "tid": 1793189,
+            "voluntary": 184,
+            "involuntary": 38
+          },
+          {
+            "tid": 1793209,
+            "voluntary": 26,
+            "involuntary": 2
+          },
+          {
+            "tid": 1793232,
+            "voluntary": 732,
+            "involuntary": 494
+          },
+          {
+            "tid": 1793233,
+            "voluntary": 748,
+            "involuntary": 557
+          },
+          {
+            "tid": 1793234,
+            "voluntary": 779,
+            "involuntary": 449
+          },
+          {
+            "tid": 1793235,
+            "voluntary": 693,
+            "involuntary": 592
+          },
+          {
+            "tid": 1793236,
+            "voluntary": 750,
+            "involuntary": 540
+          },
+          {
+            "tid": 1793253,
+            "voluntary": 240,
+            "involuntary": 292
+          },
+          {
+            "tid": 1793868,
+            "voluntary": 16,
+            "involuntary": 5
+          }
+        ],
+        "voluntary_context_switches": 9433,
+        "involuntary_context_switches": 6187
+      },
+      "end": {
+        "at_ns": 1231661917647532,
+        "kind": "process_sample",
+        "request_id": "final-settled-idle-end",
+        "pid": 1793166,
+        "cpu_ticks": 373,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1793166,
+            "voluntary": 1216,
+            "involuntary": 2396
+          },
+          {
+            "tid": 1793167,
+            "voluntary": 900,
+            "involuntary": 402
+          },
+          {
+            "tid": 1793168,
+            "voluntary": 1559,
+            "involuntary": 101
+          },
+          {
+            "tid": 1793169,
+            "voluntary": 194,
+            "involuntary": 45
+          },
+          {
+            "tid": 1793170,
+            "voluntary": 537,
+            "involuntary": 234
+          },
+          {
+            "tid": 1793172,
+            "voluntary": 304,
+            "involuntary": 34
+          },
+          {
+            "tid": 1793173,
+            "voluntary": 312,
+            "involuntary": 17
+          },
+          {
+            "tid": 1793174,
+            "voluntary": 291,
+            "involuntary": 28
+          },
+          {
+            "tid": 1793189,
+            "voluntary": 184,
+            "involuntary": 38
+          },
+          {
+            "tid": 1793209,
+            "voluntary": 26,
+            "involuntary": 2
+          },
+          {
+            "tid": 1793232,
+            "voluntary": 756,
+            "involuntary": 547
+          },
+          {
+            "tid": 1793233,
+            "voluntary": 767,
+            "involuntary": 577
+          },
+          {
+            "tid": 1793234,
+            "voluntary": 799,
+            "involuntary": 476
+          },
+          {
+            "tid": 1793235,
+            "voluntary": 708,
+            "involuntary": 597
+          },
+          {
+            "tid": 1793236,
+            "voluntary": 775,
+            "involuntary": 592
+          },
+          {
+            "tid": 1793253,
+            "voluntary": 242,
+            "involuntary": 295
+          },
+          {
+            "tid": 1793868,
+            "voluntary": 16,
+            "involuntary": 5
+          }
+        ],
+        "voluntary_context_switches": 9586,
+        "involuntary_context_switches": 6386
+      },
+      "duration_ms": 1521.294516,
+      "cpu_ticks": 6,
+      "cpu_ms": 60,
+      "cpu_percent": 3.944009484617113,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 153,
+      "involuntary_context_switches": 199,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    }
+  ],
+  "checks": [
+    {
+      "label": "root-b-short",
+      "requested_title": "Short",
+      "owner_rows": [
+        {
+          "id": "ses_f1a82ad7affef3jM1z5XRVHq2m",
+          "project_id": "78185c552ca84b8218c076cb62d3c12bfd325722",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "jolly-star",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-10-upstream-120x40-off-horizontal-numbers/project",
+          "path": "",
+          "title": "VIS41 fixture A",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556590756,
+          "time_updated": 1790556590897,
+          "time_idle": 1790556590916,
+          "time_viewed": 1790556590916,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        },
+        {
+          "id": "ses_f1a82a4d7fferHIaW4wScDwCQl",
+          "project_id": "78185c552ca84b8218c076cb62d3c12bfd325722",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "proud-star",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-10-upstream-120x40-off-horizontal-numbers/project",
+          "path": "",
+          "title": "Short",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556592972,
+          "time_updated": 1790556595698,
+          "time_idle": 1790556593086,
+          "time_viewed": 1790556593086,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        }
+      ],
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      }
+    },
+    {
+      "label": "long",
+      "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "owner_rows": [
+        {
+          "id": "ses_f1a82ad7affef3jM1z5XRVHq2m",
+          "project_id": "78185c552ca84b8218c076cb62d3c12bfd325722",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "jolly-star",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-10-upstream-120x40-off-horizontal-numbers/project",
+          "path": "",
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556590756,
+          "time_updated": 1790556597484,
+          "time_idle": 1790556590916,
+          "time_viewed": 1790556590916,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        },
+        {
+          "id": "ses_f1a82a4d7fferHIaW4wScDwCQl",
+          "project_id": "78185c552ca84b8218c076cb62d3c12bfd325722",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "proud-star",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-10-upstream-120x40-off-horizontal-numbers/project",
+          "path": "",
+          "title": "Short",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556592972,
+          "time_updated": 1790556595698,
+          "time_idle": 1790556593086,
+          "time_viewed": 1790556593086,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        }
+      ],
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      }
+    },
+    {
+      "label": "inactive-long",
+      "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "owner_rows": [
+        {
+          "id": "ses_f1a82ad7affef3jM1z5XRVHq2m",
+          "project_id": "78185c552ca84b8218c076cb62d3c12bfd325722",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "jolly-star",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-10-upstream-120x40-off-horizontal-numbers/project",
+          "path": "",
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556590756,
+          "time_updated": 1790556611224,
+          "time_idle": 1790556590916,
+          "time_viewed": 1790556590916,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        },
+        {
+          "id": "ses_f1a82a4d7fferHIaW4wScDwCQl",
+          "project_id": "78185c552ca84b8218c076cb62d3c12bfd325722",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "proud-star",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-10-upstream-120x40-off-horizontal-numbers/project",
+          "path": "",
+          "title": "Short",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556592972,
+          "time_updated": 1790556595698,
+          "time_idle": 1790556593086,
+          "time_viewed": 1790556593086,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        }
+      ],
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      }
+    }
+  ],
+  "counts": [
+    {
+      "requests": 6,
+      "completed": 5,
+      "invalid": 0
+    }
+  ],
+  "observed_phase_matching": "Source-title text and actual glyph observed independently, never elapsed global clock",
+  "root_b": "ses_f1a82a4d7fferHIaW4wScDwCQl",
+  "root_a": "ses_f1a82ad7affef3jM1z5XRVHq2m",
+  "spinner": {
+    "line": 0,
+    "animations": false,
+    "indicators": "numbers",
+    "observations": [
+      {
+        "at_ns": 1231634656225334,
+        "raw_byte_end": 173603,
+        "row": " 1 VIS41 long-title abcdefghijkl 2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231634692994135,
+        "raw_byte_end": 174499,
+        "row": " 1 VIS41 long-title abcdefghijkl 2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231634751643679,
+        "raw_byte_end": 175050,
+        "row": " 1 VIS41 long-title abcdefghijkl 2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231635494107975,
+        "raw_byte_end": 175383,
+        "row": " 1 VIS41 long-title abcdefghij✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231636094142826,
+        "raw_byte_end": 175882,
+        "row": " 1 IS41 long-title abcdefghijk✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231636177306929,
+        "raw_byte_end": 176381,
+        "row": " 1 S41 long-title abcdefghijkl✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231637228265134,
+        "raw_byte_end": 182868,
+        "row": " 1 e abcdefghijklmnopqrstuvwxy✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231637315778005,
+        "raw_byte_end": 183367,
+        "row": " 1  abcdefghijklmnopqrstuvwxyz✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231637393509251,
+        "raw_byte_end": 183866,
+        "row": " 1 abcdefghijklmnopqrstuvwxyz ✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231637473489780,
+        "raw_byte_end": 184365,
+        "row": " 1 bcdefghijklmnopqrstuvwxyz 0✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231637553794781,
+        "raw_byte_end": 184864,
+        "row": " 1 cdefghijklmnopqrstuvwxyz 01✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231637633861783,
+        "raw_byte_end": 185363,
+        "row": " 1 defghijklmnopqrstuvwxyz 012✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231637718490953,
+        "raw_byte_end": 185862,
+        "row": " 1 efghijklmnopqrstuvwxyz 0123✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231637797393891,
+        "raw_byte_end": 186361,
+        "row": " 1 fghijklmnopqrstuvwxyz 01234✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231637877178877,
+        "raw_byte_end": 186860,
+        "row": " 1 ghijklmnopqrstuvwxyz 012345✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231637957304126,
+        "raw_byte_end": 187359,
+        "row": " 1 hijklmnopqrstuvwxyz 0123456✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231638037320411,
+        "raw_byte_end": 187858,
+        "row": " 1 ijklmnopqrstuvwxyz 01234567✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231638118241589,
+        "raw_byte_end": 188357,
+        "row": " 1 jklmnopqrstuvwxyz 012345678✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231638200422873,
+        "raw_byte_end": 188856,
+        "row": " 1 klmnopqrstuvwxyz 0123456789✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231638288523581,
+        "raw_byte_end": 189355,
+        "row": " 1 lmnopqrstuvwxyz 0123456789 ✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231638368326554,
+        "raw_byte_end": 189855,
+        "row": " 1 mnopqrstuvwxyz 0123456789 ·✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231638449891791,
+        "raw_byte_end": 190355,
+        "row": " 1 nopqrstuvwxyz 0123456789 · ✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231638529261292,
+        "raw_byte_end": 190852,
+        "row": " 1 opqrstuvwxyz 0123456789 · V✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231638608935722,
+        "raw_byte_end": 191352,
+        "row": " 1 pqrstuvwxyz 0123456789 · VI✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231638688731896,
+        "raw_byte_end": 191902,
+        "row": " 1 qrstuvwxyz 0123456789 · VIS✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231638769018958,
+        "raw_byte_end": 192502,
+        "row": " 1 rstuvwxyz 0123456789 · VIS4✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231638849099870,
+        "raw_byte_end": 193102,
+        "row": " 1 stuvwxyz 0123456789 · VIS41✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231638929192421,
+        "raw_byte_end": 193702,
+        "row": " 1 tuvwxyz 0123456789 · VIS41 ✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231639009485112,
+        "raw_byte_end": 194302,
+        "row": " 1 uvwxyz 0123456789 · VIS41 l✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231639092113829,
+        "raw_byte_end": 194902,
+        "row": " 1 vwxyz 0123456789 · VIS41 lo✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231639169857613,
+        "raw_byte_end": 195502,
+        "row": " 1 wxyz 0123456789 · VIS41 lon✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231639249799867,
+        "raw_byte_end": 196102,
+        "row": " 1 xyz 0123456789 · VIS41 long✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231639335963076,
+        "raw_byte_end": 196702,
+        "row": " 1 yz 0123456789 · VIS41 long-✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231639413413478,
+        "raw_byte_end": 197302,
+        "row": " 1 z 0123456789 · VIS41 long-t✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231639493477014,
+        "raw_byte_end": 197902,
+        "row": " 1  0123456789 · VIS41 long-ti✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231639574959907,
+        "raw_byte_end": 198502,
+        "row": " 1 0123456789 · VIS41 long-tit✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231639655014058,
+        "raw_byte_end": 199102,
+        "row": " 1 123456789 · VIS41 long-titl✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231639736094356,
+        "raw_byte_end": 199702,
+        "row": " 1 23456789 · VIS41 long-title✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231639815308784,
+        "raw_byte_end": 200302,
+        "row": " 1 3456789 · VIS41 long-title ✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231639895533772,
+        "raw_byte_end": 200902,
+        "row": " 1 456789 · VIS41 long-title a✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231639975409036,
+        "raw_byte_end": 201502,
+        "row": " 1 56789 · VIS41 long-title ab✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231640057381956,
+        "raw_byte_end": 202101,
+        "row": " 1 6789 · VIS41 long-title abc✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231640138248871,
+        "raw_byte_end": 202650,
+        "row": " 1 789 · VIS41 long-title abcd✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231640219660136,
+        "raw_byte_end": 203150,
+        "row": " 1 89 · VIS41 long-title abcde✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231640302672242,
+        "raw_byte_end": 203647,
+        "row": " 1 9 · VIS41 long-title abcdef✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231640382303367,
+        "raw_byte_end": 204147,
+        "row": " 1  · VIS41 long-title abcdefg✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231640622850202,
+        "raw_byte_end": 205455,
+        "row": " 1 VIS41 long-title abcdefghij✕  2 Short                         +                                                      ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231644599717430,
+        "raw_byte_end": 205744,
+        "row": " 1 VIS41 long-title abcdefghijkl 2 Short                         +                                                      ",
+        "glyphs": []
+      }
+    ]
+  },
+  "final_owner": {
+    "at_ns": 1231655934129353,
+    "kind": "owner_snapshot",
+    "request_id": "cancelled-owner",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-10-upstream-120x40-off-horizontal-numbers/home/data/opencode/opencode.db",
+        "table": "session_v2",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ses_f1a82ad7affef3jM1z5XRVHq2m",
+            "project_id": "78185c552ca84b8218c076cb62d3c12bfd325722",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "jolly-star",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-10-upstream-120x40-off-horizontal-numbers/project",
+            "path": "",
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1536,
+            "tokens_output": 48,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790556590756,
+            "time_updated": 1790556640274,
+            "time_idle": 1790556641263,
+            "time_viewed": 1790556641263,
+            "idle_outcome": "interrupted",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          },
+          {
+            "id": "ses_f1a82a4d7fferHIaW4wScDwCQl",
+            "project_id": "78185c552ca84b8218c076cb62d3c12bfd325722",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "proud-star",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-10-upstream-120x40-off-horizontal-numbers/project",
+            "path": "",
+            "title": "Short",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790556592972,
+            "time_updated": 1790556595698,
+            "time_idle": 1790556593086,
+            "time_viewed": 1790556593086,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-10-upstream-120x40-off-horizontal-numbers/home/data/opencode/opencode.db",
+        "table": "session_message",
+        "count": 12,
+        "rows": [
+          {
+            "id": "msg_0e57d528800132h7G3YKkF6Axo",
+            "session_id": "ses_f1a82ad7affef3jM1z5XRVHq2m",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790556590854,
+            "time_updated": 1790556590856,
+            "data": "{\"time\":{\"created\":1790556590854},\"text\":\"VIS41 seed-a: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e57d53220016PiSxG4kL5pUcY",
+            "session_id": "ses_f1a82ad7affef3jM1z5XRVHq2m",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790556590887,
+            "time_updated": 1790556590913,
+            "data": "{\"time\":{\"created\":1790556590887,\"streamed\":1790556590908,\"completed\":1790556590912},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-a\",\"state\":{\"itemId\":\"msg_vis41_1\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_1\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e57d5344001v7H4ymIaYbNy67",
+            "session_id": "ses_f1a82ad7affef3jM1z5XRVHq2m",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790556590916,
+            "time_updated": 1790556590916,
+            "data": "{\"time\":{\"created\":1790556590916},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e57d5b2b0016k0TeTfCciPsrF",
+            "session_id": "ses_f1a82a4d7fferHIaW4wScDwCQl",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790556593011,
+            "time_updated": 1790556593012,
+            "data": "{\"time\":{\"created\":1790556593011},\"text\":\"VIS41 seed-b: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e57d5b7d001GgyQLOLnxI9k1f",
+            "session_id": "ses_f1a82a4d7fferHIaW4wScDwCQl",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790556593026,
+            "time_updated": 1790556593080,
+            "data": "{\"time\":{\"created\":1790556593026,\"streamed\":1790556593073,\"completed\":1790556593076},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-b\",\"state\":{\"itemId\":\"msg_vis41_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_3\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e57d5bbe001YlkXkgAwl1XefP",
+            "session_id": "ses_f1a82a4d7fferHIaW4wScDwCQl",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790556593086,
+            "time_updated": 1790556593087,
+            "data": "{\"time\":{\"created\":1790556593086},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e57dd6590014lVdKA9GWK8H6m",
+            "session_id": "ses_f1a82ad7affef3jM1z5XRVHq2m",
+            "type": "user",
+            "seq": 18,
+            "time_created": 1790556624495,
+            "time_updated": 1790556624496,
+            "data": "{\"time\":{\"created\":1790556624495},\"text\":\"VIS41 complete: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e57dd679001hRMccX1qRfalOv",
+            "session_id": "ses_f1a82ad7affef3jM1z5XRVHq2m",
+            "type": "assistant",
+            "seq": 19,
+            "time_created": 1790556624509,
+            "time_updated": 1790556635656,
+            "data": "{\"time\":{\"created\":1790556624509,\"streamed\":1790556635653,\"completed\":1790556635655},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE complete\",\"state\":{\"itemId\":\"msg_vis41_4\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_4\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e57e020a001oV9DHPJSCVtM5L",
+            "session_id": "ses_f1a82ad7affef3jM1z5XRVHq2m",
+            "type": "idle",
+            "seq": 24,
+            "time_created": 1790556635658,
+            "time_updated": 1790556635659,
+            "data": "{\"time\":{\"created\":1790556635658},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e57e1403001KP3SomKc93c4J3",
+            "session_id": "ses_f1a82ad7affef3jM1z5XRVHq2m",
+            "type": "user",
+            "seq": 28,
+            "time_created": 1790556640287,
+            "time_updated": 1790556640290,
+            "data": "{\"time\":{\"created\":1790556640287},\"text\":\"VIS41 cancel: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e57e1427001ATQp30X2RsPsZH",
+            "session_id": "ses_f1a82ad7affef3jM1z5XRVHq2m",
+            "type": "assistant",
+            "seq": 29,
+            "time_created": 1790556640300,
+            "time_updated": 1790556641261,
+            "data": "{\"time\":{\"created\":1790556640300,\"completed\":1790556641260},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[],\"finish\":\"error\",\"error\":{\"type\":\"aborted\",\"message\":\"Step interrupted\"}}"
+          },
+          {
+            "id": "msg_0e57e17ef001FKPMz7JPlQyR8d",
+            "session_id": "ses_f1a82ad7affef3jM1z5XRVHq2m",
+            "type": "idle",
+            "seq": 31,
+            "time_created": 1790556641263,
+            "time_updated": 1790556641263,
+            "data": "{\"time\":{\"created\":1790556641263},\"outcome\":\"interrupted\"}"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-10-upstream-120x40-off-horizontal-numbers/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_f1a82ad7affef3jM1z5XRVHq2m",
+                  "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789"
+                },
+                {
+                  "sessionID": "ses_f1a82a4d7fferHIaW4wScDwCQl",
+                  "title": "Short"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "project_files": {},
+    "requests": 6,
+    "completed": 5,
+    "invalid": 0,
+    "readonly_sqlite": true
+  }
+}

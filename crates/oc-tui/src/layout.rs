@@ -96,6 +96,16 @@ pub fn sidebar_auto(width: u16) -> bool {
     width > SIDEBAR_AUTO_WIDTH
 }
 
+/// `ui/layout.ts:8-10`: a configured rail fits only with the preferred 64-cell
+/// content pane. The default 42-cell rail therefore starts at 106 columns.
+pub fn vertical_tabs_width(total: u16, configured: u16) -> u16 {
+    if configured > 0 && total >= configured.saturating_add(SESSION_CONTENT_PREFERRED_WIDTH) {
+        configured
+    } else {
+        0
+    }
+}
+
 /// One active tab takes the whole strip up to the upstream maximum width
 /// (`adaptiveSessionTabLayout` with a single tab, `session-tabs-model.ts:175-220`).
 pub fn single_tab_width(available: u16) -> u16 {
@@ -118,6 +128,8 @@ pub(crate) fn tab_close_cell(rect: Rect) -> Option<u16> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HorizontalTabStrip {
+    pub vertical: bool,
+    pub compact: bool,
     pub start: usize,
     pub before: usize,
     pub after: usize,
@@ -214,6 +226,8 @@ pub fn held_after_close(
         return None;
     }
     Some(HorizontalTabStrip {
+        vertical: false,
+        compact: false,
         start,
         before,
         after,
@@ -337,6 +351,8 @@ pub fn horizontal_tab_strip(
     let after_marker = (after > 0).then(|| take(marker_width(after)));
     let add = can_add.then(|| take(3));
     HorizontalTabStrip {
+        vertical: false,
+        compact: false,
         start,
         before,
         after,
@@ -344,6 +360,74 @@ pub fn horizontal_tab_strip(
         tabs,
         after_marker,
         add,
+    }
+}
+
+/// U56 horizontal reserves two extra hover cells; vertical reserves one.
+/// Compact rails never render a title (the source passes Infinity to enter).
+pub(crate) fn tab_title_width(
+    width: u16,
+    number_width: usize,
+    vertical: bool,
+    compact: bool,
+    hovered: bool,
+) -> Option<usize> {
+    if compact {
+        return None;
+    }
+    Some(
+        (width as usize)
+            .saturating_sub(
+                number_width
+                    + 1
+                    + usize::from(vertical)
+                    + if hovered {
+                        if vertical { 1 } else { 2 }
+                    } else {
+                        0
+                    },
+            )
+            .max(1),
+    )
+}
+
+/// Reachable vertical deck geometry using the already admitted rail width:
+/// paddingTop=1, two-row tab slots with gap=1, or compact one-row/gap=1.
+/// Source scrollbox hides clipped slots rather than drawing horizontal markers.
+pub fn vertical_tab_strip(
+    area: Rect,
+    count: usize,
+    previous_start: usize,
+    can_add: bool,
+) -> HorizontalTabStrip {
+    let compact = area.width < SESSION_TABS_COMPACT_BREAKPOINT;
+    let stride = if compact { 2 } else { 3 };
+    let top = area.y.saturating_add(if compact { 2 } else { 1 });
+    let capacity = area.bottom().saturating_sub(top) / stride;
+    let visible = usize::from(capacity).min(count);
+    let start = previous_start.min(count.saturating_sub(visible));
+    let tabs = (start..start + visible)
+        .map(|index| TabSlot {
+            index,
+            rect: Rect::new(
+                area.x,
+                top + (index - start) as u16 * stride,
+                area.width,
+                if compact { 1 } else { 2 },
+            ),
+        })
+        .collect();
+    let add_y = top + visible as u16 * stride;
+    HorizontalTabStrip {
+        vertical: true,
+        compact,
+        start,
+        before: start,
+        after: count - start - visible,
+        before_marker: None,
+        tabs,
+        after_marker: None,
+        add: (can_add && add_y < area.bottom()).then(|| Rect::new(area.x, add_y, area.width, 1)),
     }
 }
 
@@ -368,6 +452,7 @@ pub fn shell_regions(area: Rect) -> ShellRegions {
 
 pub fn configured_shell_regions(area: Rect, devtools: bool, vertical_tabs: u16) -> ShellRegions {
     let main_height = area.height.saturating_sub(u16::from(devtools));
+    let vertical_tabs = vertical_tabs_width(area.width, vertical_tabs);
     if vertical_tabs > 0 {
         let width = vertical_tabs.min(area.width.saturating_sub(SESSION_CONTENT_MIN_WIDTH));
         return ShellRegions {

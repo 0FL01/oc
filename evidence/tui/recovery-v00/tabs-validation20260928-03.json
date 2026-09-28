@@ -1,0 +1,63 @@
+{
+  "scope": "T44 VIS41 / VIS39 own-running, release 895d476",
+  "HEAD": "8878cf2963ef2816c2af09f5cd818754a97a3165",
+  "captured_and_final_debug_sha256": "895d476534e71b2db42317cabb78f6e0c2c6ccbf778156b6af3cd4b49f74358f",
+  "serial_cargo_lease": true,
+  "code_checks": [
+    {"command": "cargo fmt --all --check", "result": "PASS", "exit_code": 0},
+    {"command": "cargo clippy --locked -p oc-tui -p oc --all-targets -- -D warnings", "result": "PASS", "exit_code": 0},
+    {"command": "cargo test --locked -p oc-tui --lib", "result": "PASS", "passed": 413, "failed": 0, "ignored": 0, "duration_seconds": 10.40},
+    {"command": "cargo test --locked -p oc --test pty_t39 vis39_vis41_", "result": "PASS", "passed": 2, "failed": 0, "ignored": 0, "filtered": 33, "duration_seconds": 23.06},
+    {"command": "cargo build --locked -p oc", "result": "PASS", "exit_code": 0, "build_seconds": 0.46},
+    {"command": "sha256sum /home/opencode/ai/oc/target/debug/oc", "result": "EXACT_RELEASE_SHA_MATCH"},
+    {"command": "node --check scripts/tui_capture/tabs_capture.mjs", "result": "PASS"},
+    {"command": "node --check scripts/tui_capture/tabs_check.mjs", "result": "PASS"},
+    {"command": "python3 -m py_compile scripts/tui_capture/tabs_bridge.py scripts/tui_capture/tabs_audit.py", "result": "PASS"},
+    {"command": "git diff --no-index --check /dev/null <each updated script>", "result": "PASS"}
+  ],
+  "actual_capture_checks": {
+    "native_campaigns": ["tabs-native20260928-05", "tabs-native20260928-06", "tabs-native20260928-07"],
+    "approved_profiles": [[80, 24], [120, 40], [160, 48]],
+    "animation_modes": ["on", "off"],
+    "configured_matrices": ["horizontal/status", "horizontal/numbers", "vertical/status"],
+    "native_attempts": 18,
+    "native_captures": 1284,
+    "bounded_owner_observation_checks": "ALL_PASS",
+    "per_attempt_requests": 6,
+    "per_attempt_completed": 5,
+    "per_attempt_actual_cancelled": 1,
+    "per_attempt_invalid": 0,
+    "native_source_changed_during_capture": false,
+    "real_authenticated_api_calls": 0,
+    "history_ingress_or_sqlite_seeding": false
+  },
+  "actual_idle_checks": {
+    "clock": "EXPORTED_LINUX_CLOCK_MONOTONIC",
+    "frame_and_wake_samples_complete": true,
+    "full_nonbusy_windows": 162,
+    "zero_draw_overlap_and_zero_wake_windows": 162,
+    "process_cpu_ticks_all_zero": true,
+    "quantized_cpu_ticks_are_not_zero_cpu_work_claim": true,
+    "no_input_and_full_styled_grid_cursor_equal_and_zero_pty_bytes": true,
+    "all_main_thread_sleeping_zero_runtime_inner_intervals": 162,
+    "busy_windows_remain_separately_measured": true
+  },
+  "unmasked_comparisons": {
+    "reports": ["tabs-pair-check20260928-06.json", "tabs-pair-check20260928-07.json", "tabs-pair-check20260928-08.json"],
+    "diagnosis": "tabs-diagnosis20260928-06.json",
+    "reference_records": 1280,
+    "matching_observed_title_phase_records": 1280,
+    "matching_observed_tab_glyph_phase_records": 1238,
+    "identical_cursor_records": 1037,
+    "identical_message_rhythm_records": 1280,
+    "exact_whole_frame_equal_records": 18,
+    "different_records": 1220,
+    "different_independent_tab_glyph_phase_records": 42,
+    "capture_gate": "OPEN_DIFFERENCES_OR_MISSING_PHASES",
+    "pixel_parity_claim": false
+  },
+  "historical_preservation": "All original/reference bytes, native a4 captures, report02, and earlier reports remain unchanged. Current 895 release is separate. Compact gap remains historical/incomparable, not current-release PASS.",
+  "writer_rust_edits": false,
+  "writer_commits_or_pushes": false,
+  "authoring_opencode_content_access": false
+}

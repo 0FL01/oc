@@ -1,0 +1,4025 @@
+{
+  "schema_version": 1,
+  "scope": "T44 VIS41 / VIS39 own-running only",
+  "native_capture_gate": "PENDING_PARENT_FRESH_BINARY_RELEASE",
+  "source_HEAD": "8878cf2963ef2816c2af09f5cd818754a97a3165",
+  "native_source_manifest_before": {
+    "Cargo.lock": "8d8718e1966bf60373a514d2a5b4bdfa516c8e11b054d9c09373a28684a4453d",
+    "Cargo.toml": "e5e3d488f5381f9b7452d51981a42096fc370f5e2f074c56c37e525210b9e76a",
+    "crates/oc-adapters/Cargo.toml": "132625b8f7dcda76443c015866d16242bebda894f652bf008d555dbb1aef18b8",
+    "crates/oc-adapters/assets/upstream/PROVENANCE.md": "2f3d5eab575430e352b2244d1a1daf9a5b8c27dea50417141dd666822003d951",
+    "crates/oc-adapters/assets/upstream/v2/review.txt": "727292c08ee718fff8852ec91408a255ce08c716b3d46cc56be3d399589e3479",
+    "crates/oc-adapters/src/admitted_fs.rs": "175c40ea26de4e83610f94f45f20d66d8132cdac6d7e483e5891244e0c98c3b0",
+    "crates/oc-adapters/src/application.rs": "51c9327e56ef8d0eaa52233865afd541f5e95bbd886549fe02808ed8e53f88c6",
+    "crates/oc-adapters/src/application_conversation_tests.rs": "3af08469aa81a990fe391ab15e7d2735c2cdfd94fad103e5927ee3200a40800a",
+    "crates/oc-adapters/src/application_fork_tests.rs": "1c7c5a4a8fa79acd97a1cee79d364285523656df36c0bf780a02f5f4aaccb964",
+    "crates/oc-adapters/src/application_selection.rs": "732bc4e9eccb14ede85ff274e47a6a5f6a7253bfa885c1c4b0960106af87d15f",
+    "crates/oc-adapters/src/application_tab_deck.rs": "1e489e3719c521ea8f3c7cf4844fe93002e8c0b55afda9ddd4a81610868febaf",
+    "crates/oc-adapters/src/approval.rs": "4a4e5127da60f343d4a24b9703758e66c3d1d33ba208c9d65866d2d494d1adbc",
+    "crates/oc-adapters/src/approval_tests.rs": "1d828cce684a83f9d69976fc0a57bd26b6a1dbac5226e1f5f3a9b8f7b1581117",
+    "crates/oc-adapters/src/attachments.rs": "97ca7933c7e33b85d2e20c4ac4a30e9380148a5b35f9250814155458ea17710c",
+    "crates/oc-adapters/src/cli_permissions.rs": "5bb0050bdcf48c7faf4ad9fb342dff6d9a21c0403baa8495efe00f16033280fb",
+    "crates/oc-adapters/src/compaction.rs": "d183b6254234fe33bf5be043f4e5eca4d226712487ceebcd8d5e890d55caa63a",
+    "crates/oc-adapters/src/composition.rs": "a1726ca5e238ea4ceef953484ec831f37a12da52d09c97f8c7405aad0510ab37",
+    "crates/oc-adapters/src/config.rs": "7ec366b6b94d9eecfeabc6cb2bfc6bf224ab7828aec4cd635c9901627be62152",
+    "crates/oc-adapters/src/dcp.rs": "7b29385071ceb806586bad104af61f67d515a5bbb96a7a1c04dc95cf2d700b34",
+    "crates/oc-adapters/src/dcp_auto.rs": "13aa09982bf9da779b42f1563a1e465f5ea341fe90d2e100511659e82c5711dc",
+    "crates/oc-adapters/src/defs.rs": "7b270c6b39b7a2b26224940c26a356b1d99755d533522f5a8688f4755554ef64",
+    "crates/oc-adapters/src/discovery.rs": "fd064f0d0c133f0cde10a354a0532ff84e3cb35700e0c1f1fa0669983b8b1c34",
+    "crates/oc-adapters/src/files.rs": "926bd1f7040368501c8af5bff2f0b7184e8dae84b87f0d4791ce726c10de2b50",
+    "crates/oc-adapters/src/lib.rs": "5b3ca33873b626baa19866274710594e91c453a74d959b55e1841ef7cec0c4e5",
+    "crates/oc-adapters/src/mcp_http_lifecycle.rs": "797bb9a8ff61dd98ddc95ffca10da844321bc0a2fe64c63b1c69ad1b3f9775c3",
+    "crates/oc-adapters/src/mcp_remote.rs": "e1b74c0774b8e4773e560d4b54cbf863735f0b48ffa9089cc26f6eff66687381",
+    "crates/oc-adapters/src/mcp_result.rs": "3f2d0616b60035cfe4f40d7f0b8ad51bdcdc42ba6221cee6e4ebb7207e58c76f",
+    "crates/oc-adapters/src/mcp_stdio.rs": "c62f60390ad433975304eec64f04879fb6025de00ec778cc7e5af628076c6c8b",
+    "crates/oc-adapters/src/models.rs": "5eadb4d5b22852c91aa23a1eb67dd80353b98e4395a674bcccfcc21261b1d858",
+    "crates/oc-adapters/src/patch.rs": "f7b15bb7e06a62cfb4f2613eb38a16cdd852012afc8125a5411741589787bd46",
+    "crates/oc-adapters/src/patch/effects.rs": "397d17a466bf4bc9fb7e3b6c1bf455220a466ba68b96a0b70c413bdcdbf8ffa8",
+    "crates/oc-adapters/src/patch/fs.rs": "843d54a6a62a602fa51cafe2d12b7fb3a778ae7f70b55ea05335e92f6a02c5e1",
+    "crates/oc-adapters/src/permissions.rs": "f8e8cc2fb6b92196bcdd319feaead16e9f24c447052acf8fb9877bd1ac87cffe",
+    "crates/oc-adapters/src/provider.rs": "8e5b17b2e44a17d583b14315b42b387afdfeb9a846de4a23ccee40bcd0efc9d7",
+    "crates/oc-adapters/src/runtime.rs": "b89b9cf1147c1404feedbceb4dacd4c6d5e9118cc0a80b5c33d4f975ab6a7fc5",
+    "crates/oc-adapters/src/runtime/tool_stream.rs": "867c2c1229af912067cdc9cb0dc4a5ffabbe27ea7050841152d94cf0f34173c2",
+    "crates/oc-adapters/src/runtime_compaction.rs": "8bee31d9d10fdd61ca7c7509f209f4e24c2db9c57aeeb49b84ce32497812d604",
+    "crates/oc-adapters/src/runtime_compaction_tests.rs": "9f4c52976d4c7a34c2c688d7c100beae3e7075512be461d97e89fc85dc470ef1",
+    "crates/oc-adapters/src/shell.rs": "c51156847ec11190a8846d67e9279731883e1fb299d4a3d7b1fa9f8528f6cf42",
+    "crates/oc-adapters/src/smoke.rs": "3579c89f6bd4373040bd1f8d2a62c759eed0cb136417263ef56c515efc3b0cce",
+    "crates/oc-adapters/src/storage.rs": "36717e4661bf9de5731d7dec3769477f1878e0bcc4ae398aa0835c68b51ac19c",
+    "crates/oc-adapters/src/storage_checkpoint_dcp_tests.rs": "412be70c514d7a39f44f79ce0f4b3e1efde1660215046827076e33f3dd751201",
+    "crates/oc-adapters/src/storage_compaction.rs": "3572f5a6f641be98fe119e0a7213ddcfbcbb03f9fd198b3fe4abee7ab7662ff9",
+    "crates/oc-adapters/src/storage_conversation.rs": "4bca0942e7132cb124c4e09adc1a4e91c51cc35a10b9d1ad349cf1bb681ac5b3",
+    "crates/oc-adapters/src/storage_conversation_tests.rs": "cb63787a4851d56ae571c8f778b4eb1c9172c12cef1f9fc639877e6f05b1dddc",
+    "crates/oc-adapters/src/storage_dcp_lifecycle_fixture.rs": "e762c4f757bd17c3a5cfdc8240fea3a11083ee803663e68fc2f57b58a8c7a099",
+    "crates/oc-adapters/src/storage_dcp_view.rs": "5cc6b52b66c13327aa29c8bc99527bb730bae618aabc60e19995762594ce44e9",
+    "crates/oc-adapters/src/storage_dcp_view_tests.rs": "6e0cecc920501acb28aa90af4443f47ff975347f0279f968744f5d144bb00906",
+    "crates/oc-adapters/src/storage_fork.rs": "2192959a6721a5dad8b738bc736aca0f75837d4737ed784b7c88585955632aea",
+    "crates/oc-adapters/src/storage_fork_context.rs": "296d94caabd8bd49ee2efb1b58a441fd2a0be348f3373bb3b6b279f7860643ba",
+    "crates/oc-adapters/src/storage_fork_dcp_tests.rs": "56407f43479bc82808d35b0c2e55b4e261ed857a5ffaccd494f6aa2e0846a4f7",
+    "crates/oc-adapters/src/storage_grants.rs": "63b47e740902e37542030c849b9b19e29b2909cabf536d73e64d8f8b34b75805",
+    "crates/oc-adapters/src/tools.rs": "94328eb09f19a3a726b786f69a7bb53a7a1378f6e23b926e9dd57c940b58675b",
+    "crates/oc-adapters/src/trace.rs": "9504dc77dfc5b860e23eb568afa4f2abf481d15ec8c7be6b641f727d4eeb9367",
+    "crates/oc-adapters/src/tui_workspace.rs": "a4cc6c6263899ad242025936c552ff28115607558faafa942554d37e3b7f5e93",
+    "crates/oc-adapters/src/webfetch.rs": "fcd5726b433e18d47be63bf5496597a29a043ebd879e39be0be2a1b30c160fdb",
+    "crates/oc-adapters/tests/blob_audit.rs": "3da8c3d9a164a46496b539529871f68a63414bc16a65eb3b3396cfc19386e4ec",
+    "crates/oc-adapters/tests/context_bounds.rs": "1151224ad9a0ce938f918cfae5675a7c1b52717874cca8095a5a3ea22e52e74a",
+    "crates/oc-adapters/tests/dcp_atomic.rs": "0ab7df37952fb327916b112250a6294536ad10da90339f8ebb3162884b6c7d71",
+    "crates/oc-adapters/tests/e2e_live.rs": "4a9c0d40d6d44f3e851fde61cbbfa26b22fa5907d5601b700f0bf141b679b6ff",
+    "crates/oc-adapters/tests/e2e_offline.rs": "f7aa58e68dc629242872a057750652d998714fa30a9c8e50cbd344b1ba1e6afe",
+    "crates/oc-adapters/tests/fixtures/approval_lifecycle.rs": "6591f7378486f7a0b2b49014511a670a2d62aa37db56df9173eb176ecd51fb43",
+    "crates/oc-adapters/tests/fixtures/compaction_normalization.json": "88370643949a68fce15915573c3e85d5960192f8d8411bb217e702a1faaa4c26",
+    "crates/oc-adapters/tests/mcp_remote.rs": "95de08ef6ce56f8b8049c303b41eb74d7ecbc2b0735ea9cecda9a7354955b44a",
+    "crates/oc-adapters/tests/mcp_stdio.rs": "2b0bea78d3b275964ca4b9adad1e5393dfe7fc7ec2a14f633f6593bd56ab1e39",
+    "crates/oc-adapters/tests/patch_audit.rs": "8464da4f94ce67fae50653f7bfec5ce5f46bc5504033871e9248c58749754a0e",
+    "crates/oc-adapters/tests/patch_effects.rs": "ed08cb4fe8e78761ee557efcbfaec421be44b5c46c0cf2d39a85a9a93b951b09",
+    "crates/oc-adapters/tests/permissions.rs": "2108c8d5e4ca672e38af9bc4b985275f9ae4d95474a0b8062901fbb20eee155a",
+    "crates/oc-adapters/tests/runtime.rs": "6730e7d89d83e92fab9a7c772db74216de48af4ae6895fc767d05cff0ca5780b",
+    "crates/oc-adapters/tests/session_rename.rs": "aebdf1fb3ceafb510b01acc40cda2bb422e2c0c3b2db8d4fc82fad0e075118ac",
+    "crates/oc-adapters/tests/shell_watchdog.rs": "0ac9f4f2e7d2a2112780b5bd5bd8dbdc8a4f261609b7e92351bebd6c6ec9c36b",
+    "crates/oc-adapters/tests/soak.rs": "9962206291f52d5d47ef6d407c7b1c3597b590fc51fac1e63941bf23d0b42a62",
+    "crates/oc-adapters/tests/storage_lock.rs": "8d1bdea426ddbffe2f79d9576f656cf73a9cf63ddd193471f75e813bb1978d12",
+    "crates/oc-adapters/tests/subagent.rs": "b6d772e4145e4fadf8a1017e46d02a8986f0d6f19e9a8f9e511076311140f66f",
+    "crates/oc-adapters/tests/tab_deck.rs": "338d432c5906b4e07eee28f24885d4d792537e5dd1491ba227b0730ef004bba2",
+    "crates/oc-core/Cargo.toml": "0182c888635e1408db27c824eab663a6291beee3f658fe757392675a2d589d74",
+    "crates/oc-core/src/application.rs": "9ed0e19d3bce40e2a36425f37b33ba0eb1a94181e0117cf083e29eaeae71cf40",
+    "crates/oc-core/src/approval.rs": "248e96b46cf635199a61a29191586d41b5bc11087362d8a613925768847c4dc3",
+    "crates/oc-core/src/compaction.rs": "500f4c3d380154274072bb7a0c34ef035e2312cacc39d07bc3f945e88336619f",
+    "crates/oc-core/src/context_plan.rs": "19c07416fa4c631529327c3541f5188bc19097e7738dd172d25fa3a29b4b6dfc",
+    "crates/oc-core/src/core_app.rs": "b1c6b5ec7753d323be10e14a0216b3f922e5bf7e2878bec3944e20d3cd8c25e6",
+    "crates/oc-core/src/dcp_view.rs": "74886e66b64736dc163b21daa35ab5a214a1b7dc61ccff5b291d310b7d11f0c1",
+    "crates/oc-core/src/domain.rs": "f2ceeb587ba7cb754d6e652307961530198d3d53853d28ce164bf5e84874258c",
+    "crates/oc-core/src/lib.rs": "9c7406d69121d49eaba5ce6efc9aea7c49b6364156b7eb90eca4b9060e3c93b3",
+    "crates/oc-core/src/patch.rs": "47a03dfe26fd3de36467c28f437b5396b14342e49c3add5a72551730ecd4e1e6",
+    "crates/oc-core/src/ports.rs": "c9bf84cd9218e2c43553cee96a6f949985cb83dfe00dde4a393adf61a6de43a3",
+    "crates/oc-core/src/queries.rs": "b765ef9dfddc5243e2b49d9e8ee9e1546440c9021d4d6e7bd20e81a867438a63",
+    "crates/oc-core/src/runtime.rs": "3734ea8fce8f0767f4acc671dfd3f72a713a3e4694785be2cc2fdc20e04fb38e",
+    "crates/oc-core/src/session.rs": "f7baff30840eba19e72cc90acaf55d8c236be16d3ca537508e07eaf31e6b603b",
+    "crates/oc-core/src/tool_stream.rs": "9259cdd3cd8dc2469c203699d5141c336c5fde7fd196fe24266dde299efc66d0",
+    "crates/oc-tui/Cargo.toml": "3bb2af6f296222e030586170983a1325e2b99c1e6bda95a160ef90a1ceeb04ba",
+    "crates/oc-tui/assets/fuzzysort-LICENSE": "9401e2d038d10f35d32aa1938e674f96fc32a689ef69a3ab0ae938f9d79365df",
+    "crates/oc-tui/assets/fuzzysort-oracle.json": "5d49daa5c4881ec956439911d371302d5da6d78e37b200d867453a62f6618484",
+    "crates/oc-tui/assets/upstream/PROVENANCE.md": "439736c466d570e348a394d4327f5250eb1a686b435d7603fd23c6ae81ca3137",
+    "crates/oc-tui/assets/upstream/v2/opencode.json": "f25bc5ae9187524f1997cccadeb9f724b2fac2fe7cc4a250bdadb24311e6b367",
+    "crates/oc-tui/src/app.rs": "79b79060c7b2a432d5fa10fc1a6f5022f247dd9f86eb652fbf5b3af9840747b4",
+    "crates/oc-tui/src/approval_view.rs": "8936b7b4d6c55d424de6d1194ea784d54ed4f5ee0a3d334f6e867f47b20df711",
+    "crates/oc-tui/src/autocomplete.rs": "84cb3cdb6ecfea6d53d514c5915fba3ec03df82505138e4e4fd8289f69ea27ad",
+    "crates/oc-tui/src/commands.rs": "31805effe5c52075f531eb863be0e5659b21c2b106a289410261a3232885376e",
+    "crates/oc-tui/src/compaction.rs": "189000dad49b61b292724db463ba6aa1745808a74548cb38668ef406d2a1ce90",
+    "crates/oc-tui/src/dcp_panel.rs": "fe2b7583d852baa92b31baf525c9c296a6e110bd1884517075fd07b63a734043",
+    "crates/oc-tui/src/dcp_view.rs": "40381297fa313ab32ed2492d678d9dc3fa185c2c103a55b3bc0b1d40df3063ba",
+    "crates/oc-tui/src/dialog.rs": "61612ec97be6beb3899d6dd5e8c6223e0f5cc367ce9b826baf4e74c2c0bcb643",
+    "crates/oc-tui/src/editor.rs": "d39c42ce8257997d57bc5bc0943473c557d13c60548ae37329302f7374d75419",
+    "crates/oc-tui/src/events.rs": "eb6ad9a23382f2597da219d51e6f63453f15b0722850f86efa6d9a250d6c8048",
+    "crates/oc-tui/src/fuzzy.rs": "31a520dd92402c5b3303c841ceba538fb0983ae6250d9efbd37792425cfa155f",
+    "crates/oc-tui/src/history.rs": "462feca8bf41855940dfe72297b2fc363f6c6293d84edfa3169e6d90ed164fd8",
+    "crates/oc-tui/src/layout.rs": "513f9496b1a6dc70cdee7086ef6d48694501a639463381e7a2f942fd1017aea0",
+    "crates/oc-tui/src/lib.rs": "67e6d25ead7d8065f2986fbd0917dfadc16e0f95fe0cc8c6e1b980aa50043c42",
+    "crates/oc-tui/src/messages.rs": "333b373f68251232e1718a3ccaac70c3d4222fddc574c08edddd37046911a0d0",
+    "crates/oc-tui/src/patch_view.rs": "ca6b06d226c16e84f7c64faccaa698537e6c4f99156581e2dc7a1590df2110d0",
+    "crates/oc-tui/src/picker.rs": "c72eede20433c8a26faffa0a2643fb64b985d77e13dc158e50bb5a00c691255f",
+    "crates/oc-tui/src/scanner.rs": "1adc90a2bdb6ba42b7b86b6212d554f7d960ff4a2984cb43fa78ee88f4b592e6",
+    "crates/oc-tui/src/shell.rs": "faa67d6e415f49651ec395825c0ce910d65a46333db1d93798635d86765844ae",
+    "crates/oc-tui/src/smoke.rs": "3fd338f0ff7cbbe524e02c6e099c3a3e261a2239adf3e33935ee055012f064a7",
+    "crates/oc-tui/src/styled.rs": "a835fcf5857e5cbb0f12bb47f57d3a73ed18b4f9a2ccacbb2088d0e5899ea77b",
+    "crates/oc-tui/src/terminal.rs": "6adbe148c813c39b4e3b4fc7ed0f10cb3039c2e435d0fe97d3fb6a11d6289006",
+    "crates/oc-tui/src/theme.rs": "d42dd77557cb80c89e445b36073da2e4d01d51f2860998af1f8dc1fe3868cc6e",
+    "crates/oc-tui/src/tools.rs": "fd41cbbc8f6817bec64b480a4e941d382db2020cf384ff8dae9b422770214cff",
+    "crates/oc-tui/src/views.rs": "c169a9e1b90c19de9db4e8df0bb24a0a4a290a66bca711d89722b65b5f9d5bcc",
+    "crates/oc/Cargo.toml": "d06d1a6ae71b91640ec804d38b3fdcb868aa8294d14f0d2454b2c86ea070f140",
+    "crates/oc/src/approval_tests.rs": "b531639aaea0754c01a4abcd9405f090373e31f4da7f33b9a4096e2e6e5a33f7",
+    "crates/oc/src/bootstrap.rs": "f41c928abf3b232636a59f790be163bef4d78ed9f913eb7e4cfc7641f6029b86",
+    "crates/oc/src/cli.rs": "6e8ca52f0f33024d5e8c463bc5cf5b17c9f4ddcfad3e12c032a14fcdf210185f",
+    "crates/oc/src/clipboard.rs": "7152ab1d8fc1767b8d0048d0f8c20fd72b6fb236b978630f2b3af7bb143ca342",
+    "crates/oc/src/headless.rs": "9b9afbf09a867f584382b19b16a51f2f8a5f208b1485cdbd24b802293b76d898",
+    "crates/oc/src/main.rs": "212e5848911111de6c584afe9fbab15c04ab99cf8bdda8285d4005c281d5f222",
+    "crates/oc/src/tui_cmd.rs": "3dea6127d864745ac3c8671c70dc1ffd9e4f8038450d664a5e880597a0cfb747",
+    "crates/oc/tests/application.rs": "faf2d5d56b4de7e2029ddc8b74c9aa43357b73d758c7f1ad4a899a645b9b5718",
+    "crates/oc/tests/approval_binary.rs": "b0b7a4fe873aa7ae267cd8fb52497844ae0a789387ab09a9986679c7d6b69c62",
+    "crates/oc/tests/configured_workspace.rs": "cc2ac71c8e5bb6e84341d9af0a1c073125c404e5f755a98bda405a050804c047",
+    "crates/oc/tests/dcp_runtime.rs": "10a10661b100b4705582403531dff3f7c038e41867238045ef606ee57be47b71",
+    "crates/oc/tests/durability.rs": "ae7d528460b64b80919e873ab1356067654655de6a3772498cd22f09e9ce7590",
+    "crates/oc/tests/golden_binary.rs": "bc2cf88a5f20f658d316224846dd11b813f00fe717665637c173e37fb3277f87",
+    "crates/oc/tests/live_bounded.rs": "5b225b43421d5bbcf397b83fba7a3d55f20ae1752d4286ea62e649b42e17bfb7",
+    "crates/oc/tests/mcp_application.rs": "a080ebe5d522a10196a108dfdec14e785b9990ee5723f292402d6f2d4e3b6669",
+    "crates/oc/tests/memory_bounds.rs": "80f0bc51b5026bf6fe64dc88a72d6a66509502984aa274f1d08a44d8d46c0fd6",
+    "crates/oc/tests/pty.rs": "5ccb72bc231a23f34edf82e6a1b8b55669910e11b137954b8c5b33aaa3e48a93",
+    "crates/oc/tests/pty_t39.rs": "6e9caf7c2af8010d3599b577de12061cf375ed0113e712d736c5bcf61a8ed722",
+    "crates/oc/tests/pty_t42.rs": "d6b0da8cad6a1fdaaa111506eb284f04d71052d5ff56edd60e1990fb766733a7",
+    "crates/oc/tests/recovery_startup.rs": "90a08f425f8e22b4503f11bfa5bb6cf48aa61bfd2d330e127ebe723e6944f7e2",
+    "crates/oc/tests/recovery_v02.rs": "93ce3c0f203921e2c9f6787236322f6394f8a212deda77b1d3be194d2cba5e9e",
+    "crates/oc/tests/recovery_v03.rs": "754dccc76891e7a801cbab883fb734cbd71a102976772e592afc85321d192162",
+    "crates/oc/tests/responses.rs": "fd1b6e84fcb63a6728e9895abd18faa9e5d4456bc6c68253d2e1e2a125b64a73",
+    "crates/oc/tests/support/discovery_startup.py": "d7af7bb5d59161726a60e00f8007fdd64704c219b2c0e4fadf41a7605d77748c",
+    "crates/oc/tests/support/geometry.py": "fd33b20bf6373854309cecd80d5b917e882a27beba320b2ee25e05c470b218bc",
+    "crates/oc/tests/support/startup.py": "0db0ba1979d61cae56c58a3157bba3e961bb6d299c9b151a81adcf8d9f36b69d",
+    "crates/oc/tests/support/terminal.rs": "74ca1a73b2a18baab4c25bb17f7e225ac69246b2970f97eb7733d303bb78db89",
+    "crates/oc/tests/support/title.rs": "649fbc875c894a44cc2ec414659aa7f01f6952d8b9f6fb946ea77399af208937",
+    "crates/oc/tests/t49_live_smoke.rs": "75acbdb157fa4f333b6d4937676311cdc0c447c139a68ce4b93e8849db2f3ca8",
+    "crates/oc/tests/tui_render_alloc.rs": "257967ad8e12ea013ae5d08870ef7a26f420cd20dec59e3a80295e8ffa00366c",
+    "rust-toolchain.toml": "b364b7e44eff5aaa6f8f8357d2536dd284fe5af3c3a64eea4f6d0555d79c2c7a"
+  },
+  "source_oracle": {
+    "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+    "sources": [
+      {
+        "id": "U46",
+        "repository": "anomalyco/opencode",
+        "path": "packages/tui/src/context/session-tabs.tsx",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "locator": "114–173 child-to-root tabs, family busy/permission-before-question attention and root unread",
+        "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/session-tabs.tsx#L114-L173",
+        "purpose": "Family status and actual parent continuation/idle signal, not one unread flag per child completion"
+      },
+      {
+        "id": "U47",
+        "repository": "anomalyco/opencode",
+        "path": "packages/tui/src/component/session-tabs.tsx",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "locator": "58–63 frames/cadence; 124–226 attention/indicator/fallback/fade/ignition; 746–811 glow/tints; config/index.tsx:174–189 exposed tabs options",
+        "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/session-tabs.tsx#L124-L226",
+        "purpose": "Status/numbers indicators, distinct animation-off fallbacks and source state/color transitions; no invented spinner settings"
+      },
+      {
+        "id": "U48",
+        "repository": "anomalyco/opencode",
+        "path": "packages/tui/src/component/tab-pulse.tsx",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "locator": "32–124 running/completion/edgeflash/glow timing, easing and blending; 243–417 branch/state/deadline lifecycle",
+        "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/tab-pulse.tsx#L32-L124",
+        "purpose": "Actual temporal/color tab parity with animations on/off; static glow without permanent idle wakeups (VIS31)"
+      },
+      {
+        "id": "U49",
+        "repository": "anomalyco/opencode",
+        "path": "packages/tui/src/theme/assets/v2/opencode.json",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "locator": "base semantic text/background/action/feedback roles and dark/light overrides/hue scales; not legacy theme asset",
+        "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/theme/assets/v2/opencode.json",
+        "purpose": "Resolved palette, warning override versus tab accent, profile/action colors and representative custom/light qualification"
+      },
+      {
+        "id": "U56",
+        "repository": "anomalyco/opencode",
+        "path": "packages/tui/src/component/session-tabs.tsx",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "locator": "75–79 fade/delay/cadence; 229–235 fadeTitleColor; 276–367 createMarquee/createTabMarquee one-cycle/deferred-leave/off-mode; 549–554,594–595 vertical reset; 725–750,840–868 vertical widths/fades/compact Infinity; 1343–1346,1564–1605,1628–1657 horizontal width/title/hover reconciliation",
+        "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/session-tabs.tsx#L276-L367",
+        "purpose": "VIS41 real hover overflow, delay600/steps80/one-cycle and styled geometry; animations:false only changes fade tween, not title stepping; distinct from rename shimmer and VIS39 spinner"
+      },
+      {
+        "id": "U57",
+        "repository": "anomalyco/opencode",
+        "path": "packages/tui/src/util/marquee.ts",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "locator": "4–50 GAP, marqueeCycleWidth/Overflows/TextParts: cell-width cursor, grapheme-safe clipping and generated separator identity",
+        "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/util/marquee.ts#L4-L50",
+        "purpose": "Exact-fit versus overflow, one spaced-dot cycle and Unicode slicing without splitting a wide glyph or dimming a dot already in the title"
+      },
+      {
+        "id": "U58",
+        "repository": "anomalyco/opencode",
+        "path": "packages/tui/test/component/session-tabs-marquee.test.ts",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "locator": "7–67 controller fake-clock scenarios: hovered width, delay600, one-cycle active identity retained, short-next/leave/rail-reset; animations callback false",
+        "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/test/component/session-tabs-marquee.test.ts#L7-L67",
+        "purpose": "Source behavioral oracle for timer/reset/off-mode interpretation, not executed native or paired-render qualification"
+      },
+      {
+        "id": "U59",
+        "repository": "anomalyco/opencode",
+        "path": "packages/tui/test/util/marquee.test.ts",
+        "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+        "locator": "5–44 short/exact-fit, offsets/spaced-dot loop, generated-dot versus title-dot and wide-grapheme examples",
+        "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/test/util/marquee.test.ts#L5-L44",
+        "purpose": "Reuse pinned text fixtures for the nearest Rust regression, not a second implementation or screenshot-derived expected"
+      }
+    ],
+    "source_sha256": {
+      "packages/tui/src/context/session-tabs.tsx": "441c44d9915c94e775a394a3776d9dd4681fb4997cd806b702f63341dc86367e",
+      "packages/tui/src/component/session-tabs.tsx": "772757ded7ea25c249f033192788140f159da479363714d38d7d16c851295722",
+      "packages/tui/src/component/tab-pulse.tsx": "0385714a9694e23244a4d72bf8047f3b283ae1827debf5917aedb73702a6d0c8",
+      "packages/tui/src/theme/assets/v2/opencode.json": "f25bc5ae9187524f1997cccadeb9f724b2fac2fe7cc4a250bdadb24311e6b367",
+      "packages/tui/src/util/marquee.ts": "30a8a0c9427c032d179c2bc1bf61c3d055089a328a2ea3fa9f28db9351033fa3",
+      "packages/tui/test/component/session-tabs-marquee.test.ts": "767dc8f9a08951dd2339ea7e06fd07e173d467c9be41a945b54430bd6cc315ee",
+      "packages/tui/test/util/marquee.test.ts": "49d5c1f26a9ce73775deacafa402384b3f5d5f234921516b18cd782cfc7d4ec7",
+      "packages/tui/src/util/locale.ts": "53e4c06f10b14dbad2cfd4d109049efd4dd4704315f5ddc3f1ca39cc94555194",
+      "packages/tui/src/util/string-width.bun.ts": "09e45ecb3f3e3e4b87439eb939b148d92ba971007c0a760707dcb0736133d622",
+      "packages/tui/src/context/session-tabs-model.ts": "b884d8a10a060451773576609c7ba9d4245773bc5ee119b3c45de7eba931deeb",
+      "packages/tui/src/component/spinner-frames.ts": "1d36cfed1ea60a9dc61de4feda801f9760e142cc3dd4821301949df52858da6e",
+      "packages/tui/src/ui/layout.ts": "fd88de7ad55f0fe1d36f2573b4b235fc1b2d959145d0ef5e3b63896ec8c95314",
+      "LICENSE": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b"
+    },
+    "executable_sha256": {
+      "string-width.ts": "09e45ecb3f3e3e4b87439eb939b148d92ba971007c0a760707dcb0736133d622",
+      "locale.ts": "53e4c06f10b14dbad2cfd4d109049efd4dd4704315f5ddc3f1ca39cc94555194",
+      "marquee.ts": "30a8a0c9427c032d179c2bc1bf61c3d055089a328a2ea3fa9f28db9351033fa3",
+      "session-tabs-model.ts": "b884d8a10a060451773576609c7ba9d4245773bc5ee119b3c45de7eba931deeb",
+      "controllers.ts": "289e3b48318ecf05eccad540246a6fefb6d08a7b3851e86bc1132f710242a072",
+      "host.ts": "07eb8a44400b7f746998f78c1eae0d35f072ab41888fac0e822983133249da27"
+    },
+    "controller_body_sha256": "ae987d7c040543946b9561aa10be3f043b6f0afed29fbf2f9e19a81b745983d4",
+    "controller_body_changed": false,
+    "host": "Deterministic signals/cleanup/timers, off-mode jump only; no renderer or enabled tween substitution claim"
+  },
+  "source_oracle_path": "/home/opencode/ai/oc/evidence/tui/recovery-v00/tabs-oracle20260928-01",
+  "runner_hashes": {
+    "tabs_capture.mjs": "f4753d7d98f7c3db95f70f5e6f50b00cc87e248bd08b03ee317e5aa25926cc01",
+    "tabs_bridge.py": "344be0f4c9ede09be4e1f262af73ef05aca05804fb652e7adbb72084be0ccf2d",
+    "tabs_oracle.ts": "339d5dd21d66622123d8a1d216dae9207a274e1a44b888f2cceb81f7cbbc27dc",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e"
+  },
+  "binaries": [
+    {
+      "origin": "upstream",
+      "binary": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "hash": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+    }
+  ],
+  "profiles": [
+    [
+      80,
+      24
+    ],
+    [
+      120,
+      40
+    ],
+    [
+      160,
+      48
+    ]
+  ],
+  "animations": [
+    true,
+    false
+  ],
+  "tabs": "horizontal",
+  "indicators": "status",
+  "cases": [
+    "long",
+    "unicode",
+    "short",
+    "exact",
+    "restfit"
+  ],
+  "commands": [
+    "/usr/local/bin/node",
+    "/home/opencode/ai/oc/scripts/tui_capture/tabs_capture.mjs",
+    "--oracle",
+    "/home/opencode/ai/oc/evidence/tui/recovery-v00/tabs-oracle20260928-01",
+    "--reference",
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "--side",
+    "reference",
+    "--output",
+    "/home/opencode/ai/oc/evidence/tui/recovery-v00/tabs-reference20260928-04"
+  ],
+  "attempts": [
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "status": "PASS_BOUNDED_OWNER_AND_OBSERVATIONS",
+      "reason": null,
+      "counts": {
+        "requests": 6,
+        "completed": 5,
+        "invalid": 0
+      },
+      "seal_sha256": "52b1446b4734e351125b6ab6a3cfc0baaa7effecf15552c580b0d67b91fe26dc"
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "status": "PASS_BOUNDED_OWNER_AND_OBSERVATIONS",
+      "reason": null,
+      "counts": {
+        "requests": 6,
+        "completed": 5,
+        "invalid": 0
+      },
+      "seal_sha256": "d47fd3d11c785f4f027075d797b708d8ad12be560f70bf5c7c84973648884636"
+    }
+  ],
+  "captures": [
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "home",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "817871c1ee6abb32633dfafe943aee5d16d9199c1895dff93e2cb6786903de8e",
+        "png": "f2ffcf1c3934fc72a6ef1f4f0d04405a4e8a84e70544fcfb600c5dc507b20701",
+        "txt": "6e5606a0fbfb5062c0e642fb4ab7da4529ccdc494380fc1e4a346ceaa58a576e",
+        "vt": "0604f360a2eaf62fc7bb0057128c96a99c8c836d992a0d04b002d71e72e61a8b",
+        "render.json": "8e50e2d24ef3e54bbd2d0b7d308fbaca00b5e954a0cfe40e4bebf11537e46529"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "seed-a-completed",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "51916e77ce24cd00737364c8942c8c8b80ab15ac2ef1043fe0a77bf92597be53",
+        "png": "3b5738719f5317b0fb5c14ed9a344ae180c72a5047fcb5d09cd3c8c927ceb4cc",
+        "txt": "4c123ec0710d2646e228dea10fea56a639cf88a25d44611add068f0be80e2c0e",
+        "vt": "f39cca7707e7a8ab79e4ec8feaa1db74af1e278ebdebdf9f41161224d2087e34",
+        "render.json": "d890eec95dfbde7039a0c8afe5c0e75ef00b5a4ac05028e312dfc81d37524ca7"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "seed-b-completed",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "7018a2221e4e45e57adbecaaa315f4d304915397cd658f8789652d566c9a08e6",
+        "png": "00e8039f434d3ebcb9b2d22921df932dbe8061ae3de85cf0d7dc462be458f2c9",
+        "txt": "6faf44b9fb65cfc5d3fb25d01c9e2b91a5145292529bb6c1919dfc0ab64014f0",
+        "vt": "d7216e7235e0083f0d3749f848fce74885fb5e440f67a4ba40191860e2f437f5",
+        "render.json": "6836cef19f9ecc199ac5411ba839df50c68b0cc1f6315b9d35c14c77e053d6dc"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "root-b-short-rename-input",
+      "columns": 80,
+      "rows": 24,
+      "requested_title": "Short",
+      "files": {
+        "cells.json": "6ccfb05269371bafcde80b0b12445d4a05f904db1204f1480f269bd7217fabd0",
+        "png": "80affde7ddc74669c58c82183496a003c588bbf447849f3d8f3c736a570cc040",
+        "txt": "abec2112f1f2e218d64a8149bf6628ff5c88d67a184c568254fa8d4bb9eed14b",
+        "vt": "04cd4504821df660c588ae0e8781bc314da6f3085f4ab2aa4fdf8ed8e259240a",
+        "render.json": "aaf86e738aa0c671e1f5fe2e5b1940db35923d6fe0ad064fd6e15c0d3d4e62ae"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "long-rename-input",
+      "columns": 80,
+      "rows": 24,
+      "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "files": {
+        "cells.json": "8b2c8dbbfbd3fdca4ca46330903068fd745d9ff8744c418bd6d2750ca7aaabe8",
+        "png": "ebc1586dfe0ad6215a4eb32a0b26d15c259b70aa93a4a3f6edb819792e9581d6",
+        "txt": "a8b8deb05c347000ca4ef07237f29b79da7b0f8d81b0bb0a5bd5504a8d02f487",
+        "vt": "5c8305095acf707d21acb054e37c36478ab4c80ff97f4e43946e20b3778ed6a8",
+        "render.json": "11ff217e99e8a6b425b5e770edf1d646c71e644ff1f27d1c0ad5224d01589ded"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "long-rest",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "files": {
+        "cells.json": "2116f0016216bdee2f754612a09b31a603cb07ea56ba1cad44edd3472ad7d2db",
+        "png": "4b8fee4714cfd3f6c23bece81d88ae08d775a1ce52ace6c54bacfba202d111b1",
+        "txt": "44710f5a7bfe3365ed1611523bb19ddf71289a2d9a927beab4860919551c5a3a",
+        "vt": "9aff527e8f1b42ec9ee0ab5a6448b8087d2638f39142663d351ec51ebf1fe849",
+        "render.json": "1c8195410883b765abb201b0cda0fe92b3251ab6192e20301be3590b07b7ad46"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "long-enter",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "c75c125f115ddbb429d3547e8b16a46227118cc66f55a4fa4cb711be1a94b55d",
+        "png": "b0f4476ccc5dcb66b81762f7b15cdf13618c247dc98e07242d80a4d22eb0e2a0",
+        "txt": "8abf1dfca60e3d41c8cd030bb5b871456d77b3253e06182242f6122890b54fe2",
+        "vt": "aab5a85247caf1424fabf09ed7b27f0908dd0c2e52339775c399f3fa6910cd0e",
+        "render.json": "6c02bb32f2079a81618070fdec2d2be420b3df21fcf5f8e91d3f7293b0bd17f8"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "long-offset-1",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 1,
+      "source_at_ns": 1228233044619703,
+      "files": {
+        "cells.json": "75abeacd39d42ec87176b49b4a16b6487c06ac33eab4540583141e626834eb75",
+        "png": "5acc0784845d5324220564bb16c42df78570602f862fd2d10094ef225eb11fa3",
+        "txt": "30c435647f7933782368c95f9ef785d8ac56b19028a848fa03ae920c1f2a00e7",
+        "vt": "f0f51a193282eb942878468dd564b405000c2e36011cfffb3de02a55dd0f94a3",
+        "render.json": "0a6305073a850cccf32f5cb9907f7a6576d1c9f37502969cff88e342879fc049"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "long-offset-2",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 2,
+      "source_at_ns": 1228233129573000,
+      "files": {
+        "cells.json": "24a3bb605186f5c9c6890460a5c8f046ebcbf85053aea20cd77017c67c0e4a88",
+        "png": "96904603841aae8b2c2083e73455aa7f19456e50d0c8896e65bc0ab3969f86d2",
+        "txt": "dd0c53e33c164645bbdb80c494a76bf1d7b418cf007e81557442d851a0dae369",
+        "vt": "a27aa3da0a436d0cbbaa5bfa1548a78f7e59ccafe398d6e6f490f7f74bf6b5c5",
+        "render.json": "54876a15df3f07da062542087f3ad18ac76a147bc9471c04536a365c93f63179"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "long-offset-54",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 54,
+      "source_at_ns": 1228237353388810,
+      "files": {
+        "cells.json": "b463d96d4fd974678dd77ba5b1237a7ea7d2b7c6d35d5d56c08481e96ca6af0c",
+        "png": "dc8985173bbf81e8a6a2631e8a196dfed15d386929aeddcab80eb4783ac545b1",
+        "txt": "bbc4718164dc6ee39d756df06b07b7d2a619f68d1568ac4fd45ba8233f417a62",
+        "vt": "7ced80af11f90987e93ddd1c2731f271f33017de44cd5f5d6b9d2ba2b24c7d81",
+        "render.json": "a234502ab9bc4b42bb641886b4360ba0a764f1c821b36fa96ab4d3d1b8e60d9e"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "long-settled",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "c785b120d2e99b0077da187bafec03037f8ee6f2db52c70830d834c7d6ef6f65",
+        "png": "b0f4476ccc5dcb66b81762f7b15cdf13618c247dc98e07242d80a4d22eb0e2a0",
+        "txt": "8abf1dfca60e3d41c8cd030bb5b871456d77b3253e06182242f6122890b54fe2",
+        "vt": "7f095d763bfa8109f43f11d33f243bdb6b6ec1d5a2440a1f5f3e6ab04424ef30",
+        "render.json": "7a484380f58513eca6008bc54efe51916c8be9dadcad0b41b8f755d1771cc754"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "long-same-tab-no-restart",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "e439d02106c4f36a1609bca9fa20ea03edcdd0ff69f2b4c5fd0f85e3cc776882",
+        "png": "b0f4476ccc5dcb66b81762f7b15cdf13618c247dc98e07242d80a4d22eb0e2a0",
+        "txt": "8abf1dfca60e3d41c8cd030bb5b871456d77b3253e06182242f6122890b54fe2",
+        "vt": "7f095d763bfa8109f43f11d33f243bdb6b6ec1d5a2440a1f5f3e6ab04424ef30",
+        "render.json": "69d48bd930eef067fb8079f544a8ce21f38c4994351b4127dca01638e369cd40"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "long-nested-close",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "14ddc3ca89e82a1bba3072b97c0a4dc154c534081badb05a872b82b99070e172",
+        "png": "fff7ac538214509b18e2f735c938d650c48a810426035cad492c51b75d9e406a",
+        "txt": "8abf1dfca60e3d41c8cd030bb5b871456d77b3253e06182242f6122890b54fe2",
+        "vt": "b383c6ac6488b8821013c159dc415dd77c5cd6a8403fd2017178f6616bf4c128",
+        "render.json": "becf1d8b0cb5d78e87f9d7dbf2ae328850363f49c8ccfcb53d18e36b7b1ab282"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "long-leave",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "files": {
+        "cells.json": "d2924f86169330af71bed366b617cd0f836f520d2c4b3696a8d7c03207855ab1",
+        "png": "4b8fee4714cfd3f6c23bece81d88ae08d775a1ce52ace6c54bacfba202d111b1",
+        "txt": "44710f5a7bfe3365ed1611523bb19ddf71289a2d9a927beab4860919551c5a3a",
+        "vt": "e37ff1e1b72aac708e17447ea23cabe140499f11ddd9cc57981fef5cb6d42bc1",
+        "render.json": "080f121a1c86b84e2c794eb6586213be5c68c4c0e1bd3d5c8781610a6163bbea"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "unicode-rename-input",
+      "columns": 80,
+      "rows": 24,
+      "requested_title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "files": {
+        "cells.json": "d50d5dac74529dde95fb62ca6ca0e03141cc81a33adece07a73246834bc9e53c",
+        "png": "d5c20f7406155631b08ba6e88a61bd657b547e0ada35f9bb67d805e74a09627d",
+        "txt": "990f3562bb38b9359f1d8d9b0bc403ada9bc6718376fe77c39985370ae92f827",
+        "vt": "46e92c14ede063b3640f7e4eea1ef87037f46f63d137faaede43e7c13fe89c91",
+        "render.json": "8559c93fa51403f4368d228c8c10ed2397d18470b7a5a37447f78610d2794897"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "unicode-rest",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "files": {
+        "cells.json": "ea5f58465f214382966c5219de55bd9791cf9b2dbfd7c91bfacd96e74c58ddc5",
+        "png": "e609361a886bded999b756256550e9cbea697a2bc731dc4fe02b9503f486630c",
+        "txt": "93d1dccc8e9189d6bfb774f9b7a0fe506dd8c895222aa519496a19c009622a84",
+        "vt": "ec3463c6e981b011b6f9f18ecc34ff96b517cc9291c8b718529c29ffc70944d3",
+        "render.json": "4323e3f351c48177964f261ad8f05171c5f5e9a44aa32efe953683816d80329e"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "unicode-enter",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "57aec9c2a68d0923e677e6b4dd5ce686beba16974fff94e87da1909ef1f1d8dc",
+        "png": "ea6b7581d18d61bc0a4aaae672392f50c48df7f419cb63515343ce1b07615204",
+        "txt": "bce0f7d26738e19180b5632756917366409e314d99759d09038bcdc2613813f8",
+        "vt": "b4ac1848fc4a3a85dfea97d81a3ef3fd8d7316680bb393d3c6781c8beaa68d55",
+        "render.json": "c81c84240f37589c8a08bef9c42e66fcc74cd25d9655c54a5b05a59fa39d22ba"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "unicode-offset-1",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 1,
+      "source_at_ns": 1228245249496278,
+      "files": {
+        "cells.json": "1ec5fd9ff3b5a903a469c50d9dd313adbfa4dae78d6ccb9dec03c6abcd5b7065",
+        "png": "a32283cc5e2c31dec114ac4304d126a0812555dffed249aa60fbb03e8fb38c3c",
+        "txt": "2e04592bdccf44c99c2d6c0ed1c153bcf80b9c612e221ece00fcac316b71d410",
+        "vt": "faa3ecc43cd0033b1c6db76dfa3e7882dbc983e13be7c45ea597787c75391761",
+        "render.json": "83e487a0b839836b7ad93581d15c81fac12bedb118ed9b3c59a53dd108ad8243"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "unicode-offset-2",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 2,
+      "source_at_ns": 1228245333864925,
+      "files": {
+        "cells.json": "2e4d49c19fbb5db7a79e3928e255768bb428c0cfa57f20a2fd45addf79da2628",
+        "png": "a0cb607d707cc98640dc545105bd5e887da6eeb6520246632b08335a291ecf39",
+        "txt": "adb7c64d462b03eaf84ee21fa68badde6248e19ba16beb4b27ff7ce470473409",
+        "vt": "c3ed0a4788902ef74a72c1f75b217859188498138f3b596739febf4035645b7a",
+        "render.json": "5782cb6b86fcd75a2404570fb811cbac6a9cb8046a40865e615f89ee92225c3d"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "unicode-offset-46",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 46,
+      "source_at_ns": 1228248919935018,
+      "files": {
+        "cells.json": "1bd4eb4cffc1afc307ae7b23b53f57f71c65989cfd8392b62afbe8c2aa7da98c",
+        "png": "6871bc054b39b149f17d27ff4d78c1f87e4b3192a69381fde68bec1cfa28e718",
+        "txt": "ec6335d70740143b6db649edde53ada8b1f1a7cc55c6f1bcef8494fc2ac5e361",
+        "vt": "0daded31aeb8a6deead055fff2f8189d5a1ad9ae861d67f7a9735417f8437712",
+        "render.json": "e00b8e9584642cec6bc081fec3430fdfbb5154918b690a8270506d19c26a2d3f"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "unicode-settled",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "00884500f7883c0845bf5072904a5462380895cbb832ac7ec046f372b40a708e",
+        "png": "ea6b7581d18d61bc0a4aaae672392f50c48df7f419cb63515343ce1b07615204",
+        "txt": "bce0f7d26738e19180b5632756917366409e314d99759d09038bcdc2613813f8",
+        "vt": "fd505dc93a4d87f2cae20705cba241e36f9b5cc32efc31f9f7e2162d687f36be",
+        "render.json": "dbd1b68f98afdd0ef7aeb8dc19b72c8a4223747cb2fca443dc1f4b7f07b77570"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "unicode-same-tab-no-restart",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "d6ecd07731a34efd404985fdd1b6d71662202342c97cf161fdba7e57c0d6ec59",
+        "png": "ea6b7581d18d61bc0a4aaae672392f50c48df7f419cb63515343ce1b07615204",
+        "txt": "bce0f7d26738e19180b5632756917366409e314d99759d09038bcdc2613813f8",
+        "vt": "fd505dc93a4d87f2cae20705cba241e36f9b5cc32efc31f9f7e2162d687f36be",
+        "render.json": "b06ecf7bdeec920d04041d8346e2102d6a29188e5050b401958bbff745c0bd7f"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "unicode-nested-close",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "bff3498661e3d15bd737c8292536d86032331e27e3d5f414682d28be01451e9f",
+        "png": "bbf8eec843aa6644ab0d909282213548e574d19cffbbebddddecf7026e8d74bb",
+        "txt": "bce0f7d26738e19180b5632756917366409e314d99759d09038bcdc2613813f8",
+        "vt": "536ad2633f64d3e1926d6b7f219b2dbc525dc631268481a58c894f0627b19ee8",
+        "render.json": "8b77bd2cda588c61d44a61bd749ec796b1200b29772dd6a666eccc6137f50d54"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "unicode-leave",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "files": {
+        "cells.json": "5d5ad66d773b7dc5f551a48e8f054d23c5e11f65fe0c7f7307808bcd873378fa",
+        "png": "e609361a886bded999b756256550e9cbea697a2bc731dc4fe02b9503f486630c",
+        "txt": "93d1dccc8e9189d6bfb774f9b7a0fe506dd8c895222aa519496a19c009622a84",
+        "vt": "7dbaf572f135c84cadafd51a4f7aa407a40f4cbd00d800e6e78891f69f2783ac",
+        "render.json": "558633142d353b8077fcf10878538917ff1eb1819e766b82da4614c2d9e5e3cb"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "short-rename-input",
+      "columns": 80,
+      "rows": 24,
+      "requested_title": "Short-A",
+      "files": {
+        "cells.json": "c8b149afe74fa20b52ba1226ccb7f21f118eeaa7fe22d9a2d2f7a9c59fda86ef",
+        "png": "c3e458a88079fee9f87e731939ec2051a0690f6952217251aca6084e93e6cbe2",
+        "txt": "a836d5abfd6459bff3e6afe52ed9dbf34518ff24d787523b0de6a990e907f13e",
+        "vt": "5099ee53b0cdd00db3fe6b64ba7e89f142c854da701779c2c90a26d4bbd4e69d",
+        "render.json": "20bab3da8911b1fcc14bc01260dbf4a1b71f26c94db62f8e7bf3bf6e0c48ee0b"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "short-rest",
+      "columns": 80,
+      "rows": 24,
+      "title": "Short-A",
+      "hover_width": 27,
+      "files": {
+        "cells.json": "843944babc8fd93442c4ab1b1f4de3f46b82fd3ff63af4d237824bb497bf390f",
+        "png": "ef2528200942a9de0f81d35e579bbba400e6ad1746c0ab7ba90f629006626999",
+        "txt": "64ee393792c94c10c6a2ee9901b2c536b68945a085a546f9546c20f8dffe2beb",
+        "vt": "0d2b6e032797a530832bdf8f6795a75306afc6f07947a6462bfd4494391a5e43",
+        "render.json": "905fac1187751daf7053d69dfd0b785314c161570680d4bdf27a1a6c714b6056"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "short-enter",
+      "columns": 80,
+      "rows": 24,
+      "title": "Short-A",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "edf9ec356c29d810acb364af25f111addd21852b027f4745df44d7c1cb865dc3",
+        "png": "4b3ffa53c38c2ca5c797b8ae2642c794551125624f1cd146ca96c998d1a62524",
+        "txt": "a2f7047c9c97ad7fbe37ce44a920c3474697e2eca1d5e5e9b17e151ad7f0cb4a",
+        "vt": "bf48b6c011ec1a2087858f331de811923a9351c28265ceea04303b42c9cb556e",
+        "render.json": "4fff984480c788b4270dca4d015e6ac69254568b2813f06932c34cb63255d845"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "short-settled",
+      "columns": 80,
+      "rows": 24,
+      "title": "Short-A",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "2a877409e70a66f9d6980d74f19cfeae65469a19970af9a3420c8d558c108521",
+        "png": "4b3ffa53c38c2ca5c797b8ae2642c794551125624f1cd146ca96c998d1a62524",
+        "txt": "a2f7047c9c97ad7fbe37ce44a920c3474697e2eca1d5e5e9b17e151ad7f0cb4a",
+        "vt": "bf48b6c011ec1a2087858f331de811923a9351c28265ceea04303b42c9cb556e",
+        "render.json": "1fe6698a49b31b0fa5c81948b035132d9a7c9bb9968df558f81ff8edb2773f22"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "short-same-tab-no-restart",
+      "columns": 80,
+      "rows": 24,
+      "title": "Short-A",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "39e10f8d421d3c8872a621c96c8d0d20df3f6df2987a7e33197665f08792aa7c",
+        "png": "4b3ffa53c38c2ca5c797b8ae2642c794551125624f1cd146ca96c998d1a62524",
+        "txt": "a2f7047c9c97ad7fbe37ce44a920c3474697e2eca1d5e5e9b17e151ad7f0cb4a",
+        "vt": "bf48b6c011ec1a2087858f331de811923a9351c28265ceea04303b42c9cb556e",
+        "render.json": "b50f76407f453794b0f53013ddcaf813e1444f78449c616c3295a4dfa6be4ac8"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "short-nested-close",
+      "columns": 80,
+      "rows": 24,
+      "title": "Short-A",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "2a31fca0830bf90cb1ef463310e1f7971e1548efcdfd76e0bd6b149a2e328c81",
+        "png": "d11715382b8ad8ec8b66bdf3dd70224ff399e55512ff16617be5734d245fdbaf",
+        "txt": "a2f7047c9c97ad7fbe37ce44a920c3474697e2eca1d5e5e9b17e151ad7f0cb4a",
+        "vt": "42665895eadd94e93026b0e99757ba1e996cbe7850362ca31cb491e4ef105f44",
+        "render.json": "5f1d96263b41f8b1a67b0ef558dd416033750eae4993c1077155dd9b3b723409"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "short-leave",
+      "columns": 80,
+      "rows": 24,
+      "title": "Short-A",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "files": {
+        "cells.json": "111deb0be25dc612aa63474083864b6a04cb386ece641ca1844e5e7c766f0bfa",
+        "png": "ef2528200942a9de0f81d35e579bbba400e6ad1746c0ab7ba90f629006626999",
+        "txt": "64ee393792c94c10c6a2ee9901b2c536b68945a085a546f9546c20f8dffe2beb",
+        "vt": "f8ed3a13d01da040028a8e6bc9100d5c8cb4abeb733ee2ea202ca25eef216b5d",
+        "render.json": "6a41346b8da42b58de7bc75778d7ac2fc7067f6fe78476f3faab0a60c1605df2"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "exact-rename-input",
+      "columns": 80,
+      "rows": 24,
+      "requested_title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "files": {
+        "cells.json": "181b9ed39e74b5167a3a26a58656f65ff5024736526333d92e27e8eb451be4c8",
+        "png": "81a3e68e5ce19f925f33908aff8df845be26e532dd2e2a6e86d888fd6c2dbe05",
+        "txt": "db2c72e1903abffdd16d2ef192224ef444739b7639423d9272c9eb30465801ab",
+        "vt": "4edcf6b59cf097736b12db2c05e86b31a404a8ce0db0e9380c8643383d30ab78",
+        "render.json": "ac2d0e2281534f0103ce9f074c22466b848bd584fadad7d575986373d7d45383"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "exact-rest",
+      "columns": 80,
+      "rows": 24,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "files": {
+        "cells.json": "39e3e987cc18ece05cadbe6969aae9c7c0d7c3c9157a3e508411ecc0311afbff",
+        "png": "c787250338fb8bc430cafa2c594c3100fe75411e9387406de9af95e064ca3afa",
+        "txt": "948b427429c155b957f3bd0b697c46d8cd3a149fbdb8b932022ad89f1dd5c67b",
+        "vt": "05156c8c864885590eb49b674082cf07d1559f8b8bd4505c7c34fdc03ed87f03",
+        "render.json": "fda81e9f59841e623222cd05e58c580b5d2cebf2c1365d438bd73b33a02b1d55"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "exact-enter",
+      "columns": 80,
+      "rows": 24,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "901f9f761fc7755383b3558c24b2a3ec73ee6407a3043ffe0dfd6023c1a7e5d8",
+        "png": "f74cca3380e3ac652ef61431e1df21003edeb74f3a4abdc285e59221f1f556a8",
+        "txt": "1aef5c78b37c5b6c03ff872f9ac60d540247af9375b173b6d5c6d15c83043bc4",
+        "vt": "516d3a9409f1500acf4abf151b5b36ad96cd3049cc9bca74cb0e2305ee8fc474",
+        "render.json": "96e8aa6d69003d1a50cdb4f53e6d78019e0b23e7dc1ad1e6ac67a2fe823d52fd"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "exact-settled",
+      "columns": 80,
+      "rows": 24,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "f0cbcfea9b28069dbb4a78dd934385fd30370d8a5c3d76601a55e2dc0ae8ddf1",
+        "png": "f74cca3380e3ac652ef61431e1df21003edeb74f3a4abdc285e59221f1f556a8",
+        "txt": "1aef5c78b37c5b6c03ff872f9ac60d540247af9375b173b6d5c6d15c83043bc4",
+        "vt": "516d3a9409f1500acf4abf151b5b36ad96cd3049cc9bca74cb0e2305ee8fc474",
+        "render.json": "a661bcd04d27400571eb0f68535d5efe9a9af084298b91b58027fc870041a12a"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "exact-same-tab-no-restart",
+      "columns": 80,
+      "rows": 24,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "401c0b555e184dc78e131425efbe4320de1ab196d580ff3ad4c8133bc44fb780",
+        "png": "f74cca3380e3ac652ef61431e1df21003edeb74f3a4abdc285e59221f1f556a8",
+        "txt": "1aef5c78b37c5b6c03ff872f9ac60d540247af9375b173b6d5c6d15c83043bc4",
+        "vt": "516d3a9409f1500acf4abf151b5b36ad96cd3049cc9bca74cb0e2305ee8fc474",
+        "render.json": "5308827d763c41a76c291f1d0d79a7c71c9d22ae118f0cbe7a702f0d5bf07db2"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "exact-nested-close",
+      "columns": 80,
+      "rows": 24,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "b1484bd1773e40074427706f68493dced48c2ad8c566616374d7b80e62ccba85",
+        "png": "7b8ca818e51de0e8ef31c010bc29e01d1bac5a4ccafdfc4c97187ae9fedbfeeb",
+        "txt": "1aef5c78b37c5b6c03ff872f9ac60d540247af9375b173b6d5c6d15c83043bc4",
+        "vt": "0197225e4180791ae2d293061aaf9234f0a7b1b83b853c6b541543e18515dfb0",
+        "render.json": "98994f63ac169be84180077823e7227f9b94c3fece5c589360d93099763fa812"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "exact-leave",
+      "columns": 80,
+      "rows": 24,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "files": {
+        "cells.json": "4bff12bb44bab7d712374f82b2acae25ba1807f60beb4182423b365fc494190d",
+        "png": "c787250338fb8bc430cafa2c594c3100fe75411e9387406de9af95e064ca3afa",
+        "txt": "948b427429c155b957f3bd0b697c46d8cd3a149fbdb8b932022ad89f1dd5c67b",
+        "vt": "57c9f30135704f4314560c8077caa51bdebea727686791b5bb5c72ec56def1a0",
+        "render.json": "0c19c125e2edb5bb361762b5d211c48e424b5b5f8d4bd092de8fcfc1e2b58607"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "restfit-rename-input",
+      "columns": 80,
+      "rows": 24,
+      "requested_title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "files": {
+        "cells.json": "6d6683d45b8ac42969bfac0a65f4047c397148868ea1f2c17ce3b16507e834e0",
+        "png": "5d3b0259aeb1c6fedf12442f10c27b6f90f6d9bec94850d6234f5cd78cd37472",
+        "txt": "adb48d29efd8a0584bc9dd895f96c069da95c4fbe2e2c50c202bd6c7a9e12c4a",
+        "vt": "344cdf8b516207649266c9dc0f1dc4c0655fe1269ef71beadaa178f79ab4cdb1",
+        "render.json": "eedca4401033ce006ecf1f599e2c3824ac8f570515813f8f189825093344db62"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "restfit-rest",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "files": {
+        "cells.json": "2711deaad55c5ad12db4eac96d52384c533a0d56db9429f29bd087d5081db78f",
+        "png": "bca1cf276c02a42b780f1c391b98a144d08416b7a3ab544a73b5d8a4cfc3fafe",
+        "txt": "d03ff1ba1aeadbd7d91883212d9c16df98221f60a5b957164e6fac950a684dbc",
+        "vt": "1c9f722fc6a31fff64521f5c879c1329b11f69e64bee77a56f6ed34a7258cf3f",
+        "render.json": "3b6c4745f4cba12e32566788ea9bd474950f61e4cf64433f4754ba235073b942"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "restfit-enter",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "abeff4d9568b06bf20ea022ffbbc2332228bede3ffe3182ccb8f867c9b60aadd",
+        "png": "292d938edec94610cc22b3c55d032b3a3db93cb363a2b04ba8760025de10820e",
+        "txt": "dd83eb044477bcc5c76f1684cea6b7b84de83d80e817a6c5328f9ab421931a57",
+        "vt": "3004685ab5a3f3f5f45922e15b221ce48cf4ca4a9afbf14928d29bf20715401a",
+        "render.json": "42f4c22c4ebe3be0be42958d175f3c94742cf4767b848571545e37fea2c953ec"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "restfit-offset-1",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 1,
+      "source_at_ns": 1228272406506388,
+      "files": {
+        "cells.json": "e0c6a374e53682cbce6ffcddf4395cd9f40f6888d48b1ea5203758aa97c6e471",
+        "png": "a6d03e943033696f153f26ab9ebbb3ada2e0dff5896a7ead30c77ff522b42b1a",
+        "txt": "608ffd555c7b2a8d62b17b6ab78617335be63bd33a7427e45bd33e7beac2b973",
+        "vt": "004eee4df692e9dd48cc6c7e99f5a79db7aac94a5ba337181d24eea0ff484636",
+        "render.json": "e5246caa5e159c728a8ca760999a5dc39e3dcd279a33ce8f683721772bf040ed"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "restfit-offset-2",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 2,
+      "source_at_ns": 1228272492740445,
+      "files": {
+        "cells.json": "d88ddf0f1b200053421b0cf2200ce748862b0d342f28b04073d554ca09773a9d",
+        "png": "6a4cffd0b2b43bb1d4755a46f6c8eb6055ed9aee8ea20bac1abd7530d81ae232",
+        "txt": "e43208a589a2efdebd1f93f24dca60e39562007610ac88c5b36ae57659932d8e",
+        "vt": "bce3d3835d67d7f55059a48d42205fedb6c3dd6ff53f31f741d0902dfaf7d840",
+        "render.json": "a87922313e7df2c07d3cff938742600710d67992ee0c8348b0db4bc877b3ca71"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "restfit-offset-28",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 28,
+      "source_at_ns": 1228274613321840,
+      "files": {
+        "cells.json": "12f5c521500c9041642c3758133559c24a2a8c0071a565c917223c06e4e9760f",
+        "png": "60b8ce1303d7a098fbb7ec24d1d37e46bac92a9a3f1765f6058bcbbdccbe2b3d",
+        "txt": "dc8e44da562c738bbdbb03085422af9446db5285ca95a2b24d359fb6cb06e4c5",
+        "vt": "2545fb3f899a7c6a77f32219fa1edf4b6b3ad5b2ef7e9b41991e1dce8dfe8ea1",
+        "render.json": "72cb0eaf492e5d55a3dd73def937bb746e9f298826f808712b22a58b8bdc8217"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "restfit-settled",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "6fd1ffd4d0c371ddf5849e7904ec14f2884c0f1e3e70c453daa4322fbd010c94",
+        "png": "292d938edec94610cc22b3c55d032b3a3db93cb363a2b04ba8760025de10820e",
+        "txt": "dd83eb044477bcc5c76f1684cea6b7b84de83d80e817a6c5328f9ab421931a57",
+        "vt": "314ab8675c046c8e7c433b5d25150e4e62956169b5acad532f03a562792fa752",
+        "render.json": "17575502cd43ada5415d02c8a366b0cb732f57595973c482fe76d7d39dcc31fe"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "restfit-same-tab-no-restart",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "52acb01eaf6bb905758b6c616d0e11cb2de88fd80bf5ee3a9205abaa99a1c501",
+        "png": "292d938edec94610cc22b3c55d032b3a3db93cb363a2b04ba8760025de10820e",
+        "txt": "dd83eb044477bcc5c76f1684cea6b7b84de83d80e817a6c5328f9ab421931a57",
+        "vt": "314ab8675c046c8e7c433b5d25150e4e62956169b5acad532f03a562792fa752",
+        "render.json": "311066c829be5c746d8781fc0bd2c87ad92d390af1db4806cf55b407a6be9f4e"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "restfit-nested-close",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "136708442e3bccff1a35a5bd8846b58541a7251b872fd62c8243f7da895d6c53",
+        "png": "b31169d7ff00dfe2cb1a761a013885e85586fd92514e255cdfd64219668e4ec2",
+        "txt": "dd83eb044477bcc5c76f1684cea6b7b84de83d80e817a6c5328f9ab421931a57",
+        "vt": "39be710249271295aa32f2e75d0b84423e06d6e672427ee3e202e6396b502c9b",
+        "render.json": "d8998cc1c29c496a19db30614640c569c8cc72740bd047232ea8eb9b4b78e668"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "restfit-leave",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "files": {
+        "cells.json": "4ad2678ca5c585549b26faf2a770b4218ba81dc24648fb63931736c2edb25b54",
+        "png": "bca1cf276c02a42b780f1c391b98a144d08416b7a3ab544a73b5d8a4cfc3fafe",
+        "txt": "d03ff1ba1aeadbd7d91883212d9c16df98221f60a5b957164e6fac950a684dbc",
+        "vt": "bdac7498fc36e0dbdb2c3d229c2d89b86095ce625899ed7ab2193eb9c602adfc",
+        "render.json": "486cf9590f78dac49a56d1c131d88cbac2f39c227a8a63aa1c966529dee8ad38"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "inactive-long-rename-input",
+      "columns": 80,
+      "rows": 24,
+      "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "files": {
+        "cells.json": "aac8e7d1732aa51928cb1a44f8a6e3f3714236206781c95852a87f896f408e33",
+        "png": "53375abd121703da3b96fc5a1c02a3149b23d4bdf7dbf903872b107f0ab300e0",
+        "txt": "ac41f8e829290876e6b978e92585c2213062d6635560d057051ebd8180d46ca9",
+        "vt": "8467a2834106fdb8d04e86475597e732c47df015dad22cf19a2d814d7ad3cb2d",
+        "render.json": "74a31638ae16f9d4b822023c81d7b425b84dc7f11945538c25d28408f51585b9"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "inactive-enter",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "4ebeed019c6c52c078f8413ddbbf93d208ac0b2d6b3c0cc65ff6d8cf2693851a",
+        "png": "b6dbb6bcba9a466394a75a2099623462a49d1e7c0ea17e4029975d181639dc8d",
+        "txt": "5b0493b0437d63ef04ff15ea03145b818a9ab69c2d909aad8546327bd74cffe2",
+        "vt": "909ae57516332a51b0632bfa35dd90e07b7910823cd570e38b3666bb3ca1e565",
+        "render.json": "827bb4838327e5df31b2090b7d8ab6b803ce2f352efe919515bbcda4148c6132"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "inactive-offset-1",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "observed_offset": 1,
+      "source_at_ns": 1228282702135884,
+      "files": {
+        "cells.json": "d7a111fed6a2155beaea601a13c641a56a355520bb22d439cf83d28402d95621",
+        "png": "ab2b74af795db28fb15a9a5edf521b4a4258e254949ecc83a78b77fddb5dd60d",
+        "txt": "45879e223a5772e8ff919013ba2c9daa4e5162fd28332bc936d3ec4f0d0ee79a",
+        "vt": "946c9fe139a0530ab9bd4e2fc39fef6ff0858cf50db24d1961de47e34ea67cf3",
+        "render.json": "8d5c7fde580cfc303679e48fe3b8c2a8d40a79ddcd83672ff9b8a5bd4953cc3d"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "inactive-offset-2",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "observed_offset": 2,
+      "source_at_ns": 1228282787192829,
+      "files": {
+        "cells.json": "85959b60415d28f06a2e00b469548c7e268791989148abaaebc6b3b741baf914",
+        "png": "9c711a84fde67018b640cee120c8ac346b0d376d001ca5882bd9cba57f7c9efd",
+        "txt": "7d873a19dc71b2e83e892265e1abe2d47f5995d340d0d0d97f32d4f2d37ed085",
+        "vt": "8fbb35ee30bad8654b6020f7a329a0f175b18139902c63b9a92b9f954e570706",
+        "render.json": "9a43540c75274d07d0825f3416f8fe827f5b3f8a9b99699a0871642f271072b7"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "inactive-offset-54",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "observed_offset": 54,
+      "source_at_ns": 1228286980021744,
+      "files": {
+        "cells.json": "c7bd9c235f7389f753cf63990f33bb889d2f8084488dc3e00de815e84368875d",
+        "png": "e5ff37902e43df966a9c70ba7303191338324b4a7a872c08d61fd54c1073bf79",
+        "txt": "6f32d80460c057fd3d68ed9e20d763a7cca8ef09490d736ce9aaf4f05a91b380",
+        "vt": "fd292820997a498b206135fbe9e50ac14ca91432c3b8ad0bb69e62a1158db2f5",
+        "render.json": "38f60547ef9fb7c6db3b56b3291d7a9dfabcf9936b2e583799cd7dbfe1c8c4d7"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "inactive-settled",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "6d4d49c0da149e2dac887f741d75bb5a0a4eb40050b0e51419adb934f02ca951",
+        "png": "b6dbb6bcba9a466394a75a2099623462a49d1e7c0ea17e4029975d181639dc8d",
+        "txt": "5b0493b0437d63ef04ff15ea03145b818a9ab69c2d909aad8546327bd74cffe2",
+        "vt": "e5018f9c7e6af427d6c7930cca759e4d965ff56eedb6dd714f3811481fa76f76",
+        "render.json": "ea25a795822e30d4e440f524a5b3698b3167ec0e1216be9368487ec633fc98c4"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "inactive-same-tab-no-restart",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "449540f6d0ae58d76324ef3511e89f1ce60b9d596d7a560a064c6b4cb22755f6",
+        "png": "b6dbb6bcba9a466394a75a2099623462a49d1e7c0ea17e4029975d181639dc8d",
+        "txt": "5b0493b0437d63ef04ff15ea03145b818a9ab69c2d909aad8546327bd74cffe2",
+        "vt": "e5018f9c7e6af427d6c7930cca759e4d965ff56eedb6dd714f3811481fa76f76",
+        "render.json": "6f832eadc01dca5b7f2f3a33dcdceec362f79794d3ce48b5445fbecb25057f91"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "inactive-nested-close",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "d1e3da9e3e665fd377454f27631af78112ad6246264e850a998a2ceddf63b027",
+        "png": "881665ff9f1fb57826599743f2018841c4eec9e5ca70fd26e8b319163f23b3bb",
+        "txt": "5b0493b0437d63ef04ff15ea03145b818a9ab69c2d909aad8546327bd74cffe2",
+        "vt": "d27332690291bbd790b8b2376347054864c4f362e521d9ac25eeadfb717a8777",
+        "render.json": "2cc74b8ae340878530cf482465d9598546660548b471bbef655534c77c1262ac"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "inactive-leave",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "files": {
+        "cells.json": "679ee709d3429bbe7b46b217e24018fb26049280f6d8370ac2693a78ccb80a8f",
+        "png": "f6ddfd10b8b9d495bca8a20b8fcda764f7609d7fe3323eb99af4415a17380506",
+        "txt": "ee680c60f1f8531d37633ee602f495ad63e9a37a4f786b8dea06bb8aab63f60e",
+        "vt": "038924b7c19675e938992f5e24fc8405af86ab190f70a57b63d3a9afd6574f7b",
+        "render.json": "9d9b75b92421f06c425fef01e7cd25f133fcbdf03db54ddcaf5a1e82d9a443a7"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "running-before-hover",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "efe219e5989e2217fed65da882c341343cb883b7495e1472ce54be8f46d76474",
+        "png": "077df9c27188608a682020fc2cead5264aa21ba9f0131039c4ff2736eb47c3c6",
+        "txt": "386d42a80cc53a97f1c990144cd37ba8dfaef112a602155d3996a39ffbc5a5b4",
+        "vt": "9e15f5d132d0e23b396f9dd400ffc14eac61dc0ed152b7f2064a8b785e0bb99f",
+        "render.json": "f4609f291f20c27705cf3590944e202d0453765013ecad144507cf7bbc37cbc6"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "busy-enter",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "bba54b83bd51c03b8737b5ee0e1794b4982d0c77bba423cba787a56eaa6d36c0",
+        "png": "4e8deec6f18e733ee66857eec2f295af984f3f96f846b1bae9db2f3264696e9c",
+        "txt": "2ecdd11377bea7961ca70bdc287c2842e732f8fe1be8436db923dd8bac340337",
+        "vt": "71d1ee51812d920d762e92d4c8a5a937915075d24bff459b64fda92c40fe9dcb",
+        "render.json": "af231a72853fe91e4b010d647e09440472717a28edeb7d8478ab1db8ea397eed"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "busy-offset-1",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "observed_offset": 1,
+      "source_at_ns": 1228294628434490,
+      "files": {
+        "cells.json": "7a3ac3b964d3d78140314c4ab52e0bb6facc9b6b8be9c390ab50deff735f29ab",
+        "png": "7538cbc422f519dc715b6b2408638abde72158a0c5153170f0b6c2d0adbc96a5",
+        "txt": "e9bbefd4ab358a9b42f5af9d402d6dcb77c4f29e19ae17d6d6c2c3e2d5d011bd",
+        "vt": "0fedffb60a69ebbaa21f903e9f2d7e3bb7de5326e691df8224aaa67a0a8249f3",
+        "render.json": "2379f31f1bfb4cd4756bee29619b0501b3f0cef041ee4fa4e5b4d842405d2f5b"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "busy-offset-2",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "observed_offset": 2,
+      "source_at_ns": 1228294714578331,
+      "files": {
+        "cells.json": "da65c57d0b81ea339218d6c7b761421898303936eaa2dffb67dde757bde7b35d",
+        "png": "f1af6a62cdc19ec30b96a7f409446e889986e225334f60fb2e813a3e99277b32",
+        "txt": "553c227bda218d5eac2d46804a15483e132300f39acfebb623e49703746d5dea",
+        "vt": "d53f6b2de55271602497be6447427fe51715e4f92e6b2920e787c14ce007f73c",
+        "render.json": "0e556b3d2b3e78ef7cd4234dbabb4eeb3988798c809afcd588aa914f4ef831b0"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "busy-offset-54",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "observed_offset": 54,
+      "source_at_ns": 1228298919943918,
+      "files": {
+        "cells.json": "1679987649b492cda59ec85641064ab6ca2fc6112e6d941529510a988b488a8a",
+        "png": "640fc3ff4d72cec7f66a25f2333d4743aa88239c3d883ac9ff437665e89c5d92",
+        "txt": "8a6d7a09acd1b8a34c80d8602281f9fde519e255ca7a5ba1b88306cc51481830",
+        "vt": "fa8102568d8dea9f411f2a37d036b81192e5b246393e3118c8fa45726efa519f",
+        "render.json": "9f3827d69eb58a43d79479bc1f23feeb6338f371309eae0253790cd4d02ae265"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "busy-settled",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "8d156c9a0158602414b9e12d4754d78a14f6cfc91dc14d674be360bdfb84214b",
+        "png": "3b1c774a74aa8cac693c820f93be5db5c6cf2ed361419feb6eeca58954f22933",
+        "txt": "adc990d7632d7618fc7afcd4fda69cb97249a42f6b670fa19f5f45b0fdc8b0e5",
+        "vt": "f093f48f51970db2385d4b11b055c795a1ad44b29cd153864842c0d234764e56",
+        "render.json": "6026508f1731da3c53a2d84c2f3a3475450a1ac09b34987add8419ade2e63ba7"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "busy-same-tab-no-restart",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "a048ad0d61cad00842348cbd410118c76df7ff4d66ee632df76594b074ae83ce",
+        "png": "aa76f1016e05b8bbd3f86bd424de0399a1b1323557d06d7b6f42d7134ec059be",
+        "txt": "b4d10ea9354a7beeb025395715eb39523b8c57318c00b9709ceba7a4d0d45fd0",
+        "vt": "ab8a05b7cd0b1f6c4a2123a1ab137451705d1cfc8871e85f9d5b11b3552593e7",
+        "render.json": "a900ec032e34b8658f2354f51b4424a2c285bdbaadbff43b2e239fa2864117cd"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "busy-leave",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "files": {
+        "cells.json": "99daa4a9aff4eb23930374d2fe0bd36a8d0f73c778f8441b0ae10d1b3ef69f11",
+        "png": "eaadff89d6312270a52ad12291da8126d84f3b70ddac7daf3a371238b842ca0e",
+        "txt": "8f29b0e3ed3921230269103bec28e7a7b4111307b9996cce9c870033debefd56",
+        "vt": "2915faa61f56054e4fdd6ca934a4adff0ac4cb3ee9203e5bdff502c7d6a05bf0",
+        "render.json": "ce86404141b8a6333ec49c07af60f4c858210bb336d78e7b03ea6cdee8e99cdb"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "running-glyph-280b",
+      "columns": 80,
+      "rows": 24,
+      "observed_glyph": "⠋",
+      "files": {
+        "cells.json": "5ce6ecf86d5fbc0cf3827ea48f865502b2c141b7e3ad7247725be1721aeb9c13",
+        "png": "05ee47fe3cf7967bb8d262f411a5de4867cd29d3dc38d04c3ddcb318a39c9e56",
+        "txt": "34707862d412c200b3e95e234c6faf277de41bcb5996ead4797c9d3e0c67be25",
+        "vt": "394d72fa03fac2f8c858afaabe23c367baea00a049043ecd908dbd4ae6cf8c28",
+        "render.json": "ff9494ff795678b2520f5a19233d85a4f9da26f9d78f59affc901575bb44e72f"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "running-glyph-2819",
+      "columns": 80,
+      "rows": 24,
+      "observed_glyph": "⠙",
+      "files": {
+        "cells.json": "7fdc9031578c354cfad93ab11abee1058c19e0a77c4fdaf8d63f221ee8254f8c",
+        "png": "ea619509343293910735cc2d57621adf6d640329fe618c832d627b17ae251898",
+        "txt": "7f0985fe9337922a7585ec5826bb3d4e3d39b44aec4ae0d2d138f88278900348",
+        "vt": "35cda80b6ae56636905f6fb19896ff15f2f76cf7bd62949f41932b2709ebb783",
+        "render.json": "4aeaf35f1f3afa47a3efb5b3a616ef65ef972a80f2f6616217b689abbf23b59a"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "completed",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "e21471859712042806431efffe1e15cc99aac9328dd82aa0cbb7b62f041f9f00",
+        "png": "5b235c150fa1f99bfc06bd7e53894332b275ce8bca4c61197e804616f4a79202",
+        "txt": "929d21282840b73c9a4428c8f43193f01ad610a00aa3f83613a50eb3967444c1",
+        "vt": "cbdc34b2e1aed93eaebf173e28a44a783e05077d4b2f447da9aa45157f207360",
+        "render.json": "2537c0b5ddc6942acedd6a2bb5ecc0b046d23b590ec4391d14ab4e764d58f37a"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "cancel-running",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "7f6d2bb11ec8e2b73919dc7bde3e6cef114312e3439f90a2dbb912ff177380a7",
+        "png": "ad004e00a30bd42de2a87ddd80f6bbc37bb7d07f8aeca8e1ffd353e8a5eb8079",
+        "txt": "aae410dac5dba1236d812b0422cfaa332bf5b305aa3fac8b70f13b823674408e",
+        "vt": "7c4025fa28d4f27cb81258d4df293b2e9c0a2e49ff93a291df63f659db3055fd",
+        "render.json": "0bc9a3c90fc8e5f2a0e717014550274e1419b439709a0a5d93529207e6651013"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "cancelled",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "1652538d661470cf5b043f18925f3d124eac6aa3e539a392ff21dba5f20245ff",
+        "png": "81656768d05883b557117607628ad065d746e53a0aa76b4fdd92b77e0d9c570f",
+        "txt": "0c1fbbd1339b5ee400508c6bd38cf7d8d59e9eff3649aede6761b0e0fa19a1a9",
+        "vt": "9a52fd30e8f1cbd0d0418cc812bcf8fca287830900acf577232da0d93f94b6f9",
+        "render.json": "7a12b97ae6043fcd1980012be49ef3ea17b7f4a4ad917e61aaac343e1382ce90"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "resize-0-80x24",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "fb6af6023608d676c5ef5f6e51d5ebdc2e53748cf1eb2cbfa8455f676f0edbed",
+        "png": "81656768d05883b557117607628ad065d746e53a0aa76b4fdd92b77e0d9c570f",
+        "txt": "0c1fbbd1339b5ee400508c6bd38cf7d8d59e9eff3649aede6761b0e0fa19a1a9",
+        "vt": "9a52fd30e8f1cbd0d0418cc812bcf8fca287830900acf577232da0d93f94b6f9",
+        "render.json": "0b19010c9ac3b287c5abceb60b397271e05ebe6dc8c4f40d0bd6ac76d3c60fa3"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "resize-1-120x40",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "2f240129c833c2595cb4a5e3b836179dc2754661fbcd45cc22c489e616bf09af",
+        "png": "c63f547b3857eb2ef4116d4b694d5e5d73d25d5d9b57df008035e7a7a824b7e7",
+        "txt": "773046a05e07ec8856a649b3fb6abd8a2017906eb2b5eaa456af216de4287c93",
+        "vt": "a0d0fae481ee33fe150be2aa32d7634f3c2c8a060be96f95b234e9cc4e6c2fa0",
+        "render.json": "e9cde6c286536da050ea07bf8db37e62a6656f454054a8be7bd56a42c3c3478f"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "resize-2-160x48",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "39b7aca7c05c7b0c38558f743377d72fd8b5880e9f397f94329c76d206dc86c1",
+        "png": "d64cf408c0ccec3c6e5463dee25ceab4e48f3ee280bfd707994023cf9f0c6ae1",
+        "txt": "24d64e889ddcbb32b8f02f5ca73ea642eb4a1b2cb4587f4f67095ebfc7fb6966",
+        "vt": "b49efe9faeaab24664d3e43924b2ca0fd7dd0327cfb32c411e598e38c3fb6e82",
+        "render.json": "534a1352fa7e20e8198c35bb44a8ab419947c98640940e9a63c5692036b36199"
+      }
+    },
+    {
+      "name": "upstream-80x24-on-horizontal-status",
+      "label": "resize-3-80x24",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "992408cfd223169c74e10cbcd389ee3d129014faba7eca88b15ed3044db8283e",
+        "png": "3203a2a5a92dd00408ed90d20e01d28d2250d18007f5e5d34a2c81f66b1631df",
+        "txt": "0c1fbbd1339b5ee400508c6bd38cf7d8d59e9eff3649aede6761b0e0fa19a1a9",
+        "vt": "8f92bc147d10a67f96b04e937aa169f71cafa08a4ab46fce5a9c07dcb22dcc4e",
+        "render.json": "f08e196dfc3cf42b6594bc6478e65e9e5349396d803ef29f7e7758463f3eab0e"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "home",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "70c1a822000a81f3189f79e906700b52d499318654e6689c4807ea222305c0b6",
+        "png": "7c11aa2d93c935fedc38861651b1fe0d6b7e550ae3bb5a901a89c88620e8bde7",
+        "txt": "0fc9d1f89b422242825bbcf7d25d36a50096a9a14215914a7472be5e17de43e3",
+        "vt": "7b3848228d14834260fafa074ff76d47657e830ee72b6031b1a56713861fd0e5",
+        "render.json": "90ba5c041c5acd935fc015984f567547143d8ff4ae84caa6291ea05f8ff4a29f"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "seed-a-completed",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "7ea0bf80d6c7c986802b4633e133b17f927bd730730f6f0fa857ee960cf8d8e7",
+        "png": "81a3e378560d4b33afd3149d22f22f11589585f939c9bdf2f277d23d0e7e92ee",
+        "txt": "8e915af6351a17fb2f516922ac2f77e01e1b8ac04e40635e33045f302936d23e",
+        "vt": "61002f617a232952a6952946cd2c078761fb6ff6e0272d181d0a0d17beffcc99",
+        "render.json": "31caec0a7ed6d51d05e636d8692fef56729db63afe0db09ee6e56b35e78bdb8c"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "seed-b-completed",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "b65b122d77f2436c63e567421d3b30eb5388f7a03d8f2c085baecd44d5091a20",
+        "png": "df204f23d67b47e7a8c9a1a3c78655e9a941e32e97f44c66e6e26507b26d4658",
+        "txt": "fd58ccc32762833ae654ec6fdb466463ec29b356a2087c7f1064350b877ca2fe",
+        "vt": "256cbab3f96cc40e37c58f4139a7d82418dd28e3ccda31245bf5dbd7202e35f8",
+        "render.json": "4bc3ca6f8262b68e44120d323c191f1d3fbb1e19b57ea36addda6e041beb8628"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "root-b-short-rename-input",
+      "columns": 80,
+      "rows": 24,
+      "requested_title": "Short",
+      "files": {
+        "cells.json": "e43506b9b6607496d862ee9b549e8c0b7380d2d0d36e2e8df795a6ae4fbe71f4",
+        "png": "80affde7ddc74669c58c82183496a003c588bbf447849f3d8f3c736a570cc040",
+        "txt": "abec2112f1f2e218d64a8149bf6628ff5c88d67a184c568254fa8d4bb9eed14b",
+        "vt": "0460a6b5deec13b57f3f2245b4b1a80b734375cd14bf16760ed97b2a66404a2c",
+        "render.json": "c7d63ce1785c9c5cf5ebd68c8bf192a445c53602908ef2aceaae50b2a57017c5"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "long-rename-input",
+      "columns": 80,
+      "rows": 24,
+      "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "files": {
+        "cells.json": "a6458281bfa58b739e72c64f97e1f8de328d42099ce3b5dceadd9a5baba1b164",
+        "png": "ebc1586dfe0ad6215a4eb32a0b26d15c259b70aa93a4a3f6edb819792e9581d6",
+        "txt": "a8b8deb05c347000ca4ef07237f29b79da7b0f8d81b0bb0a5bd5504a8d02f487",
+        "vt": "c4dc072fce3bdc8948eeae9afaf7a69180241679eb4155ab2670303b8abe1afd",
+        "render.json": "d0d70ded984f7d25614f0c19f1f4a7067b2a0974eb9f47d6345f662e250fb815"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "long-rest",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "files": {
+        "cells.json": "20cb182b843de8cc833825a5c1f38cade09fda96ce13fd9a218dc80c0cf58535",
+        "png": "a205c492a0216f52ad054853bfca6b226c49dbd4b75faa1b1bec875dcfc17654",
+        "txt": "04fe1a8abb2304b5233334b56acbc6cf874042811a3ff2e5dae06ee9071a537b",
+        "vt": "1ec1b04dd2b743864c6f607c7b0bce169a4bd300eb5e0bf2138e02cba5e24df2",
+        "render.json": "c01b5745cbf6b2f0de2e603b8f7ac8c118f6bd531d85147ff05970370520b42a"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "long-enter",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "dac86134face7b148b7a4f95ff918a78de8ef678743e4751440c87bb7a82b5fe",
+        "png": "18c4bc7b1f345c83eb60fdeec242cdccf001e88e92f2b15a80e8cffe550752b3",
+        "txt": "1bdb27c4f61a0034e48116889724eb1643f15d906906d7ff2e804de53c31425a",
+        "vt": "cb441fd7e0b1f01f7f7e99aee98920c95966bfc40610c58996dceae972fb9759",
+        "render.json": "d1b6cc7e8849f055981c2cf9c86b83392548071f4fa0978d15e6c0abf158ecca"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "long-offset-1",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 1,
+      "source_at_ns": 1228483238878696,
+      "files": {
+        "cells.json": "13ecc36e41e387829b3c2ff878c48fb902b64dc2b492b3ff5e4746cc86d826fb",
+        "png": "a22bb6b9d5f3f07576c5f1415b72f1c98ce278a8355874f60a90b99d9deeb4ae",
+        "txt": "60d4ac5fb024396a05b2fe52a139fa209adff13d3304b13da817dedef85afb5d",
+        "vt": "adbe35be920aa65c7c22123527be89d07e07b347c9df63edc1e3688f2bb21d8f",
+        "render.json": "158c218113e559556dec7eab6fbd27861f54ca110e6e99141b8929d821749d25"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "long-offset-2",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 2,
+      "source_at_ns": 1228483324094892,
+      "files": {
+        "cells.json": "a817784ad72381ee210bde6aa0801777d4ae657965e6b4cb9fae428d8018d1a9",
+        "png": "8e272e4bc3f161cf5a4740d22329c9b127a180f7fdd1abf2887ba79a1b1a4e02",
+        "txt": "380e820bd16c7a5dc145c2d2fa828cd424ae1d9bbf4adc356b29eee6b8331826",
+        "vt": "ee8e53023459bc13e8bbdbb788fefc0d13f7ee2698d2da08cb508096a64730bf",
+        "render.json": "5b9f1b9b75436991a99528d2c4b6d6c996f1564dd0be1c21b6799330da672375"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "long-offset-54",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 54,
+      "source_at_ns": 1228487509377760,
+      "files": {
+        "cells.json": "4fc695e4bf3b50dd46e100666a7ddfd8ebbef6d39051662f31230cc9f7f5c9d4",
+        "png": "b904c03b9dfda4b1fa019a46ccdd777c5dc15785765a8e253444462aa0f05503",
+        "txt": "ede4c8526a717d548b75eed9bcf904c78c29bdf78784a7130bd0b505dc180520",
+        "vt": "25a0bfaf7d254785e017bcbaba773621b58e22c3379770daabde6664e32760cd",
+        "render.json": "d3762cc250cd8545a5275957d7d2bbf8a5ab57c48f3d9c007196c1070eb2a7da"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "long-settled",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "9a40f983192020894526e53feebc63153da97740f3ca936952d8c9cd763ec4d2",
+        "png": "18c4bc7b1f345c83eb60fdeec242cdccf001e88e92f2b15a80e8cffe550752b3",
+        "txt": "1bdb27c4f61a0034e48116889724eb1643f15d906906d7ff2e804de53c31425a",
+        "vt": "76299b9caa75de1d7ad140dcf8af1610b41356b2a9683121923f4c6dae2ea739",
+        "render.json": "cb37dbb8fca18f98c8f869b4a8dbf398cf76427c35695d74ec6000e9cde30cfd"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "long-same-tab-no-restart",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "6523f07703a56058693d44f030ff76afbc5f0340fc1ce228439f2a6bf81903c3",
+        "png": "18c4bc7b1f345c83eb60fdeec242cdccf001e88e92f2b15a80e8cffe550752b3",
+        "txt": "1bdb27c4f61a0034e48116889724eb1643f15d906906d7ff2e804de53c31425a",
+        "vt": "76299b9caa75de1d7ad140dcf8af1610b41356b2a9683121923f4c6dae2ea739",
+        "render.json": "875a76604c58fc650d9e5870ed4490221350b4659f11be636a7628b0898dba6f"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "long-nested-close",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "d63b855196bde3f1bd13e49664f412f4d2d626ab89d289fa01c3769bf83ce24e",
+        "png": "7fe9eb5a73f117e7b74b164fd177b1c61ba8d55f5a138354a26241f369de4df4",
+        "txt": "1bdb27c4f61a0034e48116889724eb1643f15d906906d7ff2e804de53c31425a",
+        "vt": "fd1c43ce939ea283775b7da2d84161a73cdeec84269e8060dd027db3d0fdc183",
+        "render.json": "1edd1efc4d9697acac552a8393e769556b11eaec9e7549f23fa7b5edaff8f667"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "long-leave",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "files": {
+        "cells.json": "28b13c266cb9441039b682273d4bd8ad487d41a19d17f456124eeff5de6e1cdd",
+        "png": "a205c492a0216f52ad054853bfca6b226c49dbd4b75faa1b1bec875dcfc17654",
+        "txt": "04fe1a8abb2304b5233334b56acbc6cf874042811a3ff2e5dae06ee9071a537b",
+        "vt": "03f839cc8ebd08f0d9458f4111b13edf0fde9b5bb85f7cc576c427cfbd946783",
+        "render.json": "1c7b2257f4f4430613470ef0112b0d3ff7733b1e419502e299825eb9095a65ac"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "unicode-rename-input",
+      "columns": 80,
+      "rows": 24,
+      "requested_title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "files": {
+        "cells.json": "de8ddb8dae1e9fe7e47bf2395c36b54de0882163587ff14559470f237e6f683d",
+        "png": "d5c20f7406155631b08ba6e88a61bd657b547e0ada35f9bb67d805e74a09627d",
+        "txt": "990f3562bb38b9359f1d8d9b0bc403ada9bc6718376fe77c39985370ae92f827",
+        "vt": "2ee55782dd10e61760aa980990152a6bc64298719fc028ae2d0d1f5d2429c2ec",
+        "render.json": "b9cacc8d032754e2794e704c8f5cf0568f8cb2a398babfe6f50d2896e190b85c"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "unicode-rest",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "files": {
+        "cells.json": "702972965bf3dcc9aa3e07d99589da102f099c60eb5fb65e1721c84e566e76ae",
+        "png": "18027ae2d8543748cf9e95ee191324780b8b04d194cca50a1bef7d14b75643c8",
+        "txt": "b6ea2dd1d6e29ab8960987d23da82f372c08c8bcb829582c28e8446547878dc6",
+        "vt": "6d00cf8ded8960f6fbfff7493deeb99b08a4a9123862420f0c017fc9c21e26ee",
+        "render.json": "33a1b4a7a0581967b5a3fa2b74ea1daf686331ac1c38275c2ea78978c3a1e474"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "unicode-enter",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "316078afb31fe4c1631b02e40270f15c47afbcf47549bcbec040ff90d0d24d5d",
+        "png": "e4961a5b2dd9b9cb81f56c85358b26bebf3ff4768c046bf498d70d2172b85522",
+        "txt": "da5ef412ae6888472a0ee15d1ffb56e970f4df82f86551f82ccb05c55f741224",
+        "vt": "0c507e989fd289474bc271787bd69b7aa56cd505b94522f53b5784663a7f0b06",
+        "render.json": "c82c1f5c5b9718c01962f09f467fafa03f9e00647a4437ad5d174000980d6087"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "unicode-offset-1",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 1,
+      "source_at_ns": 1228494680503478,
+      "files": {
+        "cells.json": "9c31eb10957b071f5c2de62b9c5db5b8ce1d2ab76463c3e5f1c4609d71aba47b",
+        "png": "52ba2dd33391d5ec05734bbbf5dba8134b8ed928b4c2d5a480b5bdd473c8afc8",
+        "txt": "76bed793db0b589e2b5f85a531146ccf71673166496dd13a898c0b7cf2d6dc62",
+        "vt": "0dc10a86e6238f0448564a2ba615fb48b10a26ac76d81520ca37678e1be642c9",
+        "render.json": "de6fbee93620d93462c3583582e1e9a14bd2cc9ecd2c1c2c69501ae75e3d94ab"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "unicode-offset-2",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 2,
+      "source_at_ns": 1228494761205827,
+      "files": {
+        "cells.json": "0ca41b289c3f50267c32c81b837bea8e20693a1e63a138a81396994a4b83230c",
+        "png": "848f8c79447a352c1454303f20d6a5e233b93b526694b39f9ffb575a7f971de6",
+        "txt": "ee5f8a92d1d93c849f1c73dad900fd414763828c238907c0bfe5b3ebea6d91c7",
+        "vt": "fbce07ffebddc85c3146c00f4b9212e006108a46881900a58ca254acbdd23b9a",
+        "render.json": "1a141607889986e26ffdcfc44f7bb9257bd5cf155bb6a87119f2de8455c5085d"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "unicode-offset-46",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 46,
+      "source_at_ns": 1228498349666241,
+      "files": {
+        "cells.json": "fc4ec0d9cbea59a1e2d824054fd9cd4fb83f96c434fa57faebc9e1a9e8472715",
+        "png": "722dd99c7e8b358c13a513843dd7a6f8e952be22adf2a4cfaced5501aa48ad71",
+        "txt": "b9fadea0206c2f8cb973bb4f0663e3b2dd04c5f8d180131a797eafc829ca139b",
+        "vt": "f51f2398a4d56da6e82ee82acac2d53a306e386b6bc145d8a1201ecaf644afe5",
+        "render.json": "daf88516ebe6849bd4176d0a92bb92c66b6da676414fca4bf2beba2953364766"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "unicode-settled",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "04cf79540f3eff1a40c7bae183def24f36df28e2d6e7959bfc2085db9761b412",
+        "png": "e4961a5b2dd9b9cb81f56c85358b26bebf3ff4768c046bf498d70d2172b85522",
+        "txt": "da5ef412ae6888472a0ee15d1ffb56e970f4df82f86551f82ccb05c55f741224",
+        "vt": "9ac593001d9cd0cb6628935d070cfdf4114d4fe947214c334ad2c6dc0d3e3096",
+        "render.json": "4ebe10a8c64820a37f0d739cbba1d2b23db42ebda62d32708377943d6d6fd691"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "unicode-same-tab-no-restart",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "b3b3242c8270ad6275f23cab49a4861553d0c8e7f78e217d84bc339f655b5b74",
+        "png": "e4961a5b2dd9b9cb81f56c85358b26bebf3ff4768c046bf498d70d2172b85522",
+        "txt": "da5ef412ae6888472a0ee15d1ffb56e970f4df82f86551f82ccb05c55f741224",
+        "vt": "9ac593001d9cd0cb6628935d070cfdf4114d4fe947214c334ad2c6dc0d3e3096",
+        "render.json": "3c28500d7053c39d463e232866ad8956f802ef7dfe6e1930cafa006737873988"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "unicode-nested-close",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "386739b511662420ad1fe1b401e30de541a02ff381569391ed05b49852acad1f",
+        "png": "b1c4a85f60580430e4d67c5ef807143c956583868e157420d1c27beb1ee83d78",
+        "txt": "da5ef412ae6888472a0ee15d1ffb56e970f4df82f86551f82ccb05c55f741224",
+        "vt": "c023066bb39451216d40032478ea747eafc7c99a72204e9009f0be1eb22412c2",
+        "render.json": "e38a4b785828c7d08e47007be240084bbc5ba757bd0a188192cbfa11361cc904"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "unicode-leave",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "files": {
+        "cells.json": "ca2ff3d92ada9852c8e36f9c7f86ffec5e5f4e214266c496b6c7220010189f67",
+        "png": "18027ae2d8543748cf9e95ee191324780b8b04d194cca50a1bef7d14b75643c8",
+        "txt": "b6ea2dd1d6e29ab8960987d23da82f372c08c8bcb829582c28e8446547878dc6",
+        "vt": "7c01e9cf895881497d624c9560ca53fe61f29d4b6e8b488e572a0c11f4467e14",
+        "render.json": "4567644b14d714b4608b23e471f295f02377e14a854a8c95ba800aaada9f37ed"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "short-rename-input",
+      "columns": 80,
+      "rows": 24,
+      "requested_title": "Short-A",
+      "files": {
+        "cells.json": "40e7978ea7f7342721a1fc594c9df5e4106fed6efe1824b2a30f2039afb484f9",
+        "png": "c3e458a88079fee9f87e731939ec2051a0690f6952217251aca6084e93e6cbe2",
+        "txt": "a836d5abfd6459bff3e6afe52ed9dbf34518ff24d787523b0de6a990e907f13e",
+        "vt": "25107b2cc6a1e68686650b308530f9f4792aef1c98cea607724c70e0bbc8aa9a",
+        "render.json": "e24ebff99b1789a81d4b059d08c4a64262368d1e7398e9e743be74e81f58c89b"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "short-rest",
+      "columns": 80,
+      "rows": 24,
+      "title": "Short-A",
+      "hover_width": 27,
+      "files": {
+        "cells.json": "5bd7e46a68fd31248ef20d88afa1eeab8bdca7ee2d601f16e1050573b6bda784",
+        "png": "a171ddc0975fa7753791bc48b7e65645534a04920131654d7ad00e965359c680",
+        "txt": "01dbf62112f0188e946894f06b5744a5f6f9a8ee3e5583069507466f6e42e6d4",
+        "vt": "d4e0f33f69d0a7b60f4378e88d06788a3c6beb418ce84ac5b33d20f82f7cd5d4",
+        "render.json": "ab77320444b942a64829bde309c305e2971121cac059c954413d2e0fa44d9ec1"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "short-enter",
+      "columns": 80,
+      "rows": 24,
+      "title": "Short-A",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "52f7ac4b878f9afa841d02359270309902086a4650442a49562bf3d6e742693b",
+        "png": "5d88f1d2421814e1c8fc6826fe7aeac52ffbed2ea09e3528860ffd8e90659f4d",
+        "txt": "72f89f37615db15091275332454d4c0922d88fa2255cefd6701d33a721cd314f",
+        "vt": "4d414e0543ca16534d20599755134775d700698f8f1bc78e68a5d93962d44b4b",
+        "render.json": "d85abfe976dcb0c34d771879242615326535ad091e019c3fa551c219ef04674a"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "short-settled",
+      "columns": 80,
+      "rows": 24,
+      "title": "Short-A",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "7e63002106b441d7703cfa7c5a44fcb031ebef784e945ae2e0d5956849d8af91",
+        "png": "5d88f1d2421814e1c8fc6826fe7aeac52ffbed2ea09e3528860ffd8e90659f4d",
+        "txt": "72f89f37615db15091275332454d4c0922d88fa2255cefd6701d33a721cd314f",
+        "vt": "4d414e0543ca16534d20599755134775d700698f8f1bc78e68a5d93962d44b4b",
+        "render.json": "0953d5611b1a4cfb8394e6c93d4c1d9c0ba5d65bf6ff090aac04480a932df69f"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "short-same-tab-no-restart",
+      "columns": 80,
+      "rows": 24,
+      "title": "Short-A",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "ca9cca0daefe16ad96c7eb5787c87de9d265fb90f8456d75a98b611f5e627029",
+        "png": "5d88f1d2421814e1c8fc6826fe7aeac52ffbed2ea09e3528860ffd8e90659f4d",
+        "txt": "72f89f37615db15091275332454d4c0922d88fa2255cefd6701d33a721cd314f",
+        "vt": "4d414e0543ca16534d20599755134775d700698f8f1bc78e68a5d93962d44b4b",
+        "render.json": "08b8b57de46ff4a4a0502b4dff6b27b7093dfd717cdc299c25672677adfb36ca"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "short-nested-close",
+      "columns": 80,
+      "rows": 24,
+      "title": "Short-A",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "d4b8c868ef8c69243bb987905087406bd6d802d7a5e1c78ad1b3e3635d5637bb",
+        "png": "e80a5d396519baf034d0e1ef79be609696c27c2207eee435b8bd2586c4a3d0ab",
+        "txt": "72f89f37615db15091275332454d4c0922d88fa2255cefd6701d33a721cd314f",
+        "vt": "8a094af17b1b7a104f64dbff65c92e9aecf7af7bd1d3c58af78028d0fad37b2e",
+        "render.json": "45139feeb236455cd1e3c1a03bda29255c3d6ea133f142ad4639a61fb927a44b"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "short-leave",
+      "columns": 80,
+      "rows": 24,
+      "title": "Short-A",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "files": {
+        "cells.json": "d05ac1e278e2b4ea51ee9bb082af7078a1fd3720f7eaaf63851728b171f87759",
+        "png": "a171ddc0975fa7753791bc48b7e65645534a04920131654d7ad00e965359c680",
+        "txt": "01dbf62112f0188e946894f06b5744a5f6f9a8ee3e5583069507466f6e42e6d4",
+        "vt": "b1bd53ef13ca483aa6f81c6cd93ad8ef13190df8e9591ebc542ba13e7f7ce7a3",
+        "render.json": "9e54c1cde7a61e71f2646596fbd2cb4a930f49409bf46518738a59ffe40d5ea6"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "exact-rename-input",
+      "columns": 80,
+      "rows": 24,
+      "requested_title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "files": {
+        "cells.json": "e7b6845b8afdd356454461f5e39d18e268eb7ac239c9a137a07555a15c546a3c",
+        "png": "81a3e68e5ce19f925f33908aff8df845be26e532dd2e2a6e86d888fd6c2dbe05",
+        "txt": "db2c72e1903abffdd16d2ef192224ef444739b7639423d9272c9eb30465801ab",
+        "vt": "0197b12a7b7020eed1fe371a7372612de3c4a8ea81afcb0c7433bd3751cab784",
+        "render.json": "f923fa4fc4d7cb1a3c953e76f361bf91942ac651f26ab5028a5d67e7799188e4"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "exact-rest",
+      "columns": 80,
+      "rows": 24,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "files": {
+        "cells.json": "7b959c6a08619298254020f199c3ec3997f4de733876fbbfb95a1760a120caec",
+        "png": "2f16ff94e0d4dc62d657955258cface4b6a0138dc8d9c9d67d445368adeb244c",
+        "txt": "968082910e4beaf21c5b6bc99db3f5309294e37d8b0825e4861976ebfbc4d3de",
+        "vt": "8a63de44969a025078a49952516fc01c5ee3ae94649b672f4007e8f85062ffca",
+        "render.json": "6ffd24f92fbf4fd78b6b0f8a1e6dd1a2a69da896739abc357262b0c85b2f8f06"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "exact-enter",
+      "columns": 80,
+      "rows": 24,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "703e20af83fe66398f6be0f70908941f97f0819064eebbf1731b73a71b52791d",
+        "png": "f82c3677bede8d9ff1d5d174702609f73f46ee0f089bd91cef3053c271551d46",
+        "txt": "a2a0b963351771db2ed2a198fdf1b1166ec90607b064f9686183f466356216ff",
+        "vt": "fe2eab02ffb427ac3cc1b2c2c51c036d17a4815fafe186df511946ebbefe142d",
+        "render.json": "00eb91266c145960f4998ac3c99609e13b3ea57fee27c39d02370ae204b65f03"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "exact-settled",
+      "columns": 80,
+      "rows": 24,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "64ec6dceb77db77eeaa45a1f4b5817bb17774f5aefa47dd3cf01be3a7dfa52c8",
+        "png": "f82c3677bede8d9ff1d5d174702609f73f46ee0f089bd91cef3053c271551d46",
+        "txt": "a2a0b963351771db2ed2a198fdf1b1166ec90607b064f9686183f466356216ff",
+        "vt": "fe2eab02ffb427ac3cc1b2c2c51c036d17a4815fafe186df511946ebbefe142d",
+        "render.json": "7482b4ba45f74d8f6883d45a14596be48df0e84d4534c9c7116e9b5bec0cb8ec"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "exact-same-tab-no-restart",
+      "columns": 80,
+      "rows": 24,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "f8bfb7c1bec722ce3be771ad2c6fd2d96690c8838e98f5847ff78e824a7ca936",
+        "png": "f82c3677bede8d9ff1d5d174702609f73f46ee0f089bd91cef3053c271551d46",
+        "txt": "a2a0b963351771db2ed2a198fdf1b1166ec90607b064f9686183f466356216ff",
+        "vt": "fe2eab02ffb427ac3cc1b2c2c51c036d17a4815fafe186df511946ebbefe142d",
+        "render.json": "d61ab896f79cec2a9e3d5bc40ab795218efb352f0b78d53e632a6a69cf5688e9"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "exact-nested-close",
+      "columns": 80,
+      "rows": 24,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "67cda8e164ab5d39aa3e9d5b02b5465f34f5f08d48d982f1887395ef6609edbb",
+        "png": "838de92f300a2abf05366a657598d7cc06b72003fcac4a1dc13256d407027658",
+        "txt": "a2a0b963351771db2ed2a198fdf1b1166ec90607b064f9686183f466356216ff",
+        "vt": "7957d091ea8fc8cddcb925dd94956fea090529436914304b4c2be4fbd7d2941a",
+        "render.json": "cbf76aa37f87ae64e97580db7b1fc7a7bfc90b8784c5da410e513b6555b52181"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "exact-leave",
+      "columns": 80,
+      "rows": 24,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "files": {
+        "cells.json": "204b4b1234f7daa8fc1ac194b743d1305ca03093e531ab6ee04abee9fc4ea86a",
+        "png": "2f16ff94e0d4dc62d657955258cface4b6a0138dc8d9c9d67d445368adeb244c",
+        "txt": "968082910e4beaf21c5b6bc99db3f5309294e37d8b0825e4861976ebfbc4d3de",
+        "vt": "0b65c179724202bdcc81dd1ac3866572558ebb47322359e634b0e657914d9a4e",
+        "render.json": "e414d30ab8c6eec5187be7e515685eba34e79226f07cf8291ef67be2cf4c03c8"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "restfit-rename-input",
+      "columns": 80,
+      "rows": 24,
+      "requested_title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "files": {
+        "cells.json": "8832646cfcde94ff15c6e63665e075e85106d148691506be8bea41b2ecbf162d",
+        "png": "5d3b0259aeb1c6fedf12442f10c27b6f90f6d9bec94850d6234f5cd78cd37472",
+        "txt": "adb48d29efd8a0584bc9dd895f96c069da95c4fbe2e2c50c202bd6c7a9e12c4a",
+        "vt": "f75424166b8e8d36af94faccdd0c262b3c060a2241c0f6714bf95e0cfd04e310",
+        "render.json": "01380bf0943881fe9149120f8e47a214da55edea5bb878ca04a69065b342b9c4"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "restfit-rest",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "files": {
+        "cells.json": "e0a9780dffa3e1f02d00472f41affea6973542bcda016397964d82c127a8dad7",
+        "png": "284e7e6ada16a389be0d85baaaf08a4d6c08483cc1e422a0bd1a3fcd4b49be9b",
+        "txt": "38ff5b2b20fcc52b53982a10037b1b0f9de171585a62d8e82889e5a7abe78c44",
+        "vt": "9bd117894a0e6f168d16efdc43004d288fde09afdbc3d28d96a2f5abb1e537d8",
+        "render.json": "45c8f15bcd9dc1fcffe72fdd9a674ee904484e37b123655b25294723012f7a3e"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "restfit-enter",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "a7f62776aafbf59b66f4b27ded18f88612cb545eaace3e164b133ed9e63d84ca",
+        "png": "e5c23e36dd6851500e386bedee8b5c3ea196c8d2f1f5d5c57f41a0451200a750",
+        "txt": "ed0d008b69e00e538c44d1e68c43b1590e2af3dba33b298062d7dd14f5313f51",
+        "vt": "cdd849b4afcb52ab62c1be9e1055e93985206bee409b685a35ff145e9f77c1b2",
+        "render.json": "4349bbea1497c39cb2feda8c199510948d2d156ecb1a34eda6857b36a01cbce8"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "restfit-offset-1",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 1,
+      "source_at_ns": 1228520861972514,
+      "files": {
+        "cells.json": "a2cc0ed0d3bd6ba23bf0b5782861edc05575d4daecc8b3a4a7c0650a938ef052",
+        "png": "f272a6f85bd69a478067802eb188e294c92b06be6861da1db9188788671efca5",
+        "txt": "c1abdfede1289d769a09917280c0fd3d35e42bb6cb87927910d0fc070922c7b3",
+        "vt": "41984313aec028fdd073fb05aca0569218b16092daae433807110a07e968cc29",
+        "render.json": "0161ca0ee6b03e09a1997665f7e103edfd936d6d3e830640dd5fcbb695b355a1"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "restfit-offset-2",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 2,
+      "source_at_ns": 1228520944833974,
+      "files": {
+        "cells.json": "238d63d05f20600d3238f7aa643c9443c994eb9ba88806db8d3c6e2e0ccbab09",
+        "png": "59197a4e7f89211015477ee6e0d80ff8a4d0999f61790ef502a9978f9facdb5d",
+        "txt": "19efc9f1330e9876ec7fc2d9aff79420faf2eb2d75676376254acbcc3896ea10",
+        "vt": "abdab74fc217a007980e7c3358bb771660ca4e184de12620f9daf81218864275",
+        "render.json": "1e98f642f3b2be78bdbc71277d5f73ae866404c2b970a14097f0d8565b60f7fd"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "restfit-offset-28",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 28,
+      "source_at_ns": 1228523054996279,
+      "files": {
+        "cells.json": "6e2c9f99521344b19ce452a8b368e194d19d2b9a448f5f6b33a14020e2bbec26",
+        "png": "bea5b4998e70e626b33beb856d656d55695a39c4c55a45a7c3394e2bf4496a8b",
+        "txt": "5d7bd296f3e726003ef763f2ab84a05d2ae8412d2f58c861ef73e218942c3f16",
+        "vt": "10ed6f829e1b6b8f82a68d857bb94f970cb7a8f51ebd0297845334ff3c89c103",
+        "render.json": "4692582308e50b884c3a6155eec897d91e32a94e525bdab6f7ab0e7ff16b3cba"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "restfit-settled",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "5eb13ff406357adbf8e795bd5c58dc11a895000c62f7fa1e45df963c2e313a37",
+        "png": "e5c23e36dd6851500e386bedee8b5c3ea196c8d2f1f5d5c57f41a0451200a750",
+        "txt": "ed0d008b69e00e538c44d1e68c43b1590e2af3dba33b298062d7dd14f5313f51",
+        "vt": "a8720828379e5110ae0a21fdd81bae604814c05f9c0512315793bacae1a03d01",
+        "render.json": "2eb321e8592e28de74e63d3bbe4197a215917fd71c66f0e223b59e15b73c3e56"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "restfit-same-tab-no-restart",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "77417b62cc61b6c1d3dd6d2b3152fdef787956ea6de2b5c07e791fe0d5b03cfa",
+        "png": "e5c23e36dd6851500e386bedee8b5c3ea196c8d2f1f5d5c57f41a0451200a750",
+        "txt": "ed0d008b69e00e538c44d1e68c43b1590e2af3dba33b298062d7dd14f5313f51",
+        "vt": "a8720828379e5110ae0a21fdd81bae604814c05f9c0512315793bacae1a03d01",
+        "render.json": "fd589355767b9691b14e14f8de5d03805bb3aaaaad2f20912d1e4256447a19ad"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "restfit-nested-close",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "42982a97525f0685446d0eb9615a8fb3f2cfbfd33691733b5fcdd935c7d615a1",
+        "png": "07072fb0dc8d295dff9a619f639d9dc64b6f33652849e0430c48106eef9f6b2d",
+        "txt": "ed0d008b69e00e538c44d1e68c43b1590e2af3dba33b298062d7dd14f5313f51",
+        "vt": "1e5671de12778c0809e50f270e67c0fbc1cc84e288d245d9c360ccc9edf79f5d",
+        "render.json": "fd4ede311b512163367648ced80a154e46f57753ca8d2bdc9476effe431903e0"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "restfit-leave",
+      "columns": 80,
+      "rows": 24,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "files": {
+        "cells.json": "9dc517863dd60a6640a7a9102c9d9f7c0e78a0d0ea66a82192ef03e443a0c324",
+        "png": "284e7e6ada16a389be0d85baaaf08a4d6c08483cc1e422a0bd1a3fcd4b49be9b",
+        "txt": "38ff5b2b20fcc52b53982a10037b1b0f9de171585a62d8e82889e5a7abe78c44",
+        "vt": "4d25a7ae81f2ac3efacbc407c53c31afccc5f0868bc82c34430f791e33858041",
+        "render.json": "6d308a43ce6155e5dce25dc754a5225ddb61f8aee2b113992ab6eaedc7c9262c"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "inactive-long-rename-input",
+      "columns": 80,
+      "rows": 24,
+      "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "files": {
+        "cells.json": "f9f53c482bf294aed272267c9965285baff6536c7cd44bb45958e7b06af0ebd2",
+        "png": "53375abd121703da3b96fc5a1c02a3149b23d4bdf7dbf903872b107f0ab300e0",
+        "txt": "ac41f8e829290876e6b978e92585c2213062d6635560d057051ebd8180d46ca9",
+        "vt": "76e76b562537cd0ad14054034c53fe83367aa490690c96b39cb215673fa4e91c",
+        "render.json": "fd9dd8fd72acd5397267ec382f1c8be77f3391666d0f6eb3c629250bb092750a"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "inactive-enter",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "39e01fcde566c5dcd1bed10d939fd1f0aa6f560f4ea70d862c9c23af1fa083c7",
+        "png": "3706bc640639cd3505df953002f0b7093caed0ec7be0265fa211e09dc572bd15",
+        "txt": "6f930bc37ffccd0dd9cb7ea053a30540d7be78145b621a4acfc8e2ea9fa0fbf8",
+        "vt": "0d525f1307a6b592293706b418647502a5bde1bb4f982f1b57c5ead5bb039fea",
+        "render.json": "5f81f27ecbb0df2db1547359afdf73d8b67fe19853f9d8d12247434ffce23989"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "inactive-offset-1",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "observed_offset": 1,
+      "source_at_ns": 1228530635478649,
+      "files": {
+        "cells.json": "d67c2eb5b45865fd68851c3f8b7a58eb132b4c5d628010b1ef15859ef4c68d9b",
+        "png": "80e6afa3c97ef9ac86c85851520d9bc0bab9799d0f7856589f10019e0bcfe319",
+        "txt": "d72c7d239c9b3290628070fc7ec863a9ce8c0c70b8d86e7cecf34e39723b8696",
+        "vt": "367523f02a8c82a7302ab887c9a402ceaf565fe61b9210fe58f07ba09353a7f3",
+        "render.json": "937288f396961a7f3c189147cf5940e501ade50a68d3d04a42e72c3fdc0fd444"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "inactive-offset-2",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "observed_offset": 2,
+      "source_at_ns": 1228530716150944,
+      "files": {
+        "cells.json": "c5b3ec781f72d1a6a317a14718b948f22a86097bf5ac0fcb335b544115d6bc61",
+        "png": "a50832eaaf36239ef2dbeba4f07da5692a8e16f982ff94ab8a659ddf31089418",
+        "txt": "40632b666cbbf85609067a13bce7856fbb5f8314978708a2a72bb000f711034f",
+        "vt": "e368ab2d75cc159c7d085fa64bc6105e9b95472e7c822b0d4e54516eaf292e49",
+        "render.json": "2f7236836217dcc968d148867b682d296c3f49ce67dbc5878a49150564ba960c"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "inactive-offset-54",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "observed_offset": 54,
+      "source_at_ns": 1228534938909103,
+      "files": {
+        "cells.json": "ba8fd9b4b6be8ecc69b201df615dc5828397719282737fb3265c0ebe8028ac42",
+        "png": "d8ba58e5ffc60ac603f47d0f9e5766b1afda3c5603ad659ddba648708f6622fa",
+        "txt": "51507d8cabf4a2f9f5306763446ed6627592e3bb4c71c8b474b29f18d7483c6a",
+        "vt": "ec0a59dcc237024bd37814cbaacf3cc71f00219df04d9712acd68c75ca8c19d8",
+        "render.json": "6154fb7385c5131ec271db3e082fc7589e304721c553d16d4e5a285cd84e3c7f"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "inactive-settled",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "8280cee41760f582ddf0159957d6c3c42df74489679df431ebed44ed52277d55",
+        "png": "3706bc640639cd3505df953002f0b7093caed0ec7be0265fa211e09dc572bd15",
+        "txt": "6f930bc37ffccd0dd9cb7ea053a30540d7be78145b621a4acfc8e2ea9fa0fbf8",
+        "vt": "3068f3f00fa126453d473ed567504ee24abfa9dbcd9d246ac53a20c592afb3e9",
+        "render.json": "6226a8d94155ebf1c7a611c53405419706a514a38412697e93d583acb62dad79"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "inactive-same-tab-no-restart",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "2f61903b876b360b4e5c9d905ee02c4f165c8b44b7a9d3c5ff8398f14626bc57",
+        "png": "3706bc640639cd3505df953002f0b7093caed0ec7be0265fa211e09dc572bd15",
+        "txt": "6f930bc37ffccd0dd9cb7ea053a30540d7be78145b621a4acfc8e2ea9fa0fbf8",
+        "vt": "3068f3f00fa126453d473ed567504ee24abfa9dbcd9d246ac53a20c592afb3e9",
+        "render.json": "5041ba144a6da2d6b844a121f1d881991988ffc3d1eea618e86a41633022a804"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "inactive-nested-close",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "305f31a42925fb603383145c9caf56e42e99a3d51ab15a83437d86feed93497e",
+        "png": "81106483b9e62791ee154d3863491d9bca9ca8f818fb527e0c0b2f91baaff56d",
+        "txt": "6f930bc37ffccd0dd9cb7ea053a30540d7be78145b621a4acfc8e2ea9fa0fbf8",
+        "vt": "f8b2a8f3bde0672f270de7170fb38c247a1a8eb4bb850985e99d75cea9a4a4e0",
+        "render.json": "8e74a651f7642cab5989adbd97d6238a1627ba0922121edb71d44b63862e5b27"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "inactive-leave",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "files": {
+        "cells.json": "d55780c5fc0ba5cdeb0ce9b37ef78ee74e5b61cb73753c58ab80a8c4b911d078",
+        "png": "ce47dccb7e7c219c0a581d596e54f25099134c8732d5f207b4c9b4b0b2e0d1e6",
+        "txt": "139138c93401d8ddb6ff9559527ea1a75389004a9f3ee4abe9449fbf6f4d33e3",
+        "vt": "2445cb0688b470f5c04280f0ff88a3c036755257068eec38f61370b831362cc0",
+        "render.json": "6afab0d44126328e6799b209eeb0a10fdc971b4bb66ff21275e88bc134577e27"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "running-before-hover",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "0e2e9bbe3955fc2f7b5094528fc4a7c997803d43bd9d4ce5bc18885e939005f4",
+        "png": "e8bc9a9343fc932f937a9e041636a6764cc304db4e38416983824c6253d66c11",
+        "txt": "db267d2acd6c84e5e6d00ed67eea86bf63c2198ec33ce41d70805ae808f691b7",
+        "vt": "275cee866152acbd60a64cf9549c686c07baec4014dc11c972f778e5c1efb250",
+        "render.json": "619b0de9bb0ec261aac17355f688947fde9cf16dfc4fb9bd5fa4a67a280518ba"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "busy-enter",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "ccca43ef0564dab5658b4a2f60fc277a9695357cb3644777f3f119701afd4a99",
+        "png": "e61c7405b2012284213c3f027420fe23435aa21e3d090127ad2660665967cb76",
+        "txt": "daf0e7e202bea1f34f311ab8fb937c47718ebca4e01b14c99e26b67383cb7f27",
+        "vt": "341a28201d7c5d5697ae5f9787ebc34b62400ebea0e559e64aa431657a3dd130",
+        "render.json": "69b686d21d51e4567ef33ac35554d30ec43136bbf91a007eb40ef56f521527a4"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "busy-offset-1",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "observed_offset": 1,
+      "source_at_ns": 1228542070919166,
+      "files": {
+        "cells.json": "57b3e53e2545444379de41ea14394c0edbfefc5516ac9682894eb0bb04f242e8",
+        "png": "7f82c92bddc9914335b77e461682ab6040b385ddbadec49f48cee44498ac7377",
+        "txt": "8b358ab3355ffd1246dc79a5605a20fbb2e5733f2093d8b01b6f767f6921b69d",
+        "vt": "7877715f94fb3c547517a02b1384fe3d3ff759d7192d82bd164a39911b50119f",
+        "render.json": "fa0b6ef93824bfa564d740a0416de8e078d961a696764b6572a1ecedcd36f358"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "busy-offset-2",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "observed_offset": 2,
+      "source_at_ns": 1228542151388966,
+      "files": {
+        "cells.json": "60fe88f3d3940d48cfa80fbd5006c6b9d0deeb0d76fca5e72c08864b78c6f8cd",
+        "png": "64d53e9eab51b50fca28c0ffb5d4ae5b5901c9a420a0fa27cb28bc04b23ab494",
+        "txt": "a24492a0b5e9373052f8cf618a3b87ede8875b76a667346d1461575cab93f406",
+        "vt": "1c8d330e438d6e858d9bf96dc8b3c3c7e95eda1ea7224517ff7f971787e6e6e9",
+        "render.json": "635470d2b12c42a03ab777a2869c5b9560b5a8ad5e16261edaca8e98dca64087"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "busy-offset-54",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "observed_offset": 54,
+      "source_at_ns": 1228546380729158,
+      "files": {
+        "cells.json": "21b3180697fb05ffb2c75aa2c6113c5b9a4e5343410b129f43da4e49ceda8aa9",
+        "png": "e2e4131fbcc6b56c45a8794488e249509305409fdd9bfff4cdf9a51d7a3d5316",
+        "txt": "6792b45a6c9b459d1d013313aea1ef4750fa291355cd26963f62192d8c966f1f",
+        "vt": "2f9184c44d064776bb8ff9387670b6ea8c359af804ce6e3b610774843e64569d",
+        "render.json": "b44678052c1bbfefa106b3425fdbe6710be6aa36fe73e544cdf5c056221ed921"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "busy-settled",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "2cc90430d6a8ddd50e7f9af40a0493a5d11aad6d1ae4b7924fe1ec6c60239c0c",
+        "png": "e61c7405b2012284213c3f027420fe23435aa21e3d090127ad2660665967cb76",
+        "txt": "daf0e7e202bea1f34f311ab8fb937c47718ebca4e01b14c99e26b67383cb7f27",
+        "vt": "738dad052fdfc49473b363f7dd9356f3e37b15c84be44d54fda00f3a3d4375d0",
+        "render.json": "0bc07f3b0fb340a22f02c28d4a414e5d49ad3a7b16bc657c5fd1142aad7c65de"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "busy-same-tab-no-restart",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "4aa372964ef9482fc91846f44275e3c417c837931d9913a642b806be65c32974",
+        "png": "e61c7405b2012284213c3f027420fe23435aa21e3d090127ad2660665967cb76",
+        "txt": "daf0e7e202bea1f34f311ab8fb937c47718ebca4e01b14c99e26b67383cb7f27",
+        "vt": "738dad052fdfc49473b363f7dd9356f3e37b15c84be44d54fda00f3a3d4375d0",
+        "render.json": "1dd77949b27f6d2c4be806d0a38c87d4415d41615e368afbd1aa8222c457d71d"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "busy-leave",
+      "columns": 80,
+      "rows": 24,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "files": {
+        "cells.json": "43a3d8a7bf1780bbe651f915c84b0cda9741cb429f6b9bd43b5f17b08bd4d45e",
+        "png": "e8bc9a9343fc932f937a9e041636a6764cc304db4e38416983824c6253d66c11",
+        "txt": "db267d2acd6c84e5e6d00ed67eea86bf63c2198ec33ce41d70805ae808f691b7",
+        "vt": "5098ce90826736ea31c5a144fbad7e46df5988403661dd233ee002a66e5f5292",
+        "render.json": "9e56160972ac4c454ef4b4288c7edcea3873cf7305929d8db598ab8c611e91b6"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "running-glyph-280b",
+      "columns": 80,
+      "rows": 24,
+      "observed_glyph": "⠋",
+      "files": {
+        "cells.json": "d8c630596066028f3eb34aab8fffe3d8cb8ae30d9cdb2adf640586fe664a55a8",
+        "png": "e8bc9a9343fc932f937a9e041636a6764cc304db4e38416983824c6253d66c11",
+        "txt": "db267d2acd6c84e5e6d00ed67eea86bf63c2198ec33ce41d70805ae808f691b7",
+        "vt": "5098ce90826736ea31c5a144fbad7e46df5988403661dd233ee002a66e5f5292",
+        "render.json": "f4750936d7dcb7563e55129d9cd363e00960b6fa384dbfbd2adf80fd5782912b"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "completed",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "2f0eddb3c097725bc0e5a89685396946fd316c52d0e09490e25d6aef10eb9ba6",
+        "png": "f7139555c418cb3892f02bc0920f63a7cffc916472ea286529d817d8fb96f8ff",
+        "txt": "0ae9468f41c20956c0d2c9aed7574c6ffb1dee53f6eb942a1f3d107e1b6f0657",
+        "vt": "c8ef03d3f3a21b71de59df15bf2a0a7a2fb1439b87ae5e22f13976386be48623",
+        "render.json": "1440846bcb1dd01c00066daf67c4ea3c2f759e899d889f50597a29c3ba22a839"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "cancel-running",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "f8b9b906f34a2f5ce59c65aa787119bf9ec7156975dafedb763e0d930432a633",
+        "png": "8d177d06ed686a350b7bba5d91e5d3a24d3430ff9d8020d4e251b0e9731b4faa",
+        "txt": "9be0211ce251f8e62552b4432c215be0812ecc93e0e46bcfdc72ea04d2cdcaf3",
+        "vt": "8c82d974c4dfec98bbb14f2ae8623e0aeef7e50241936f70c5d511e4c5c8a739",
+        "render.json": "2ddc058a5323064a65ce11981a56bc041ba23773f816a73ef4f030f5fa7d52a3"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "cancelled",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "5705caa61d3c2af1fbc1bbf01082be9d16495eba97f2d95f8ebf0e0f300de1f0",
+        "png": "345541e28eb66b1b5ba8492cdbb2ae5d6fd51bbb4bc7a07cc069507d9acd5bb6",
+        "txt": "5b9362c0e0b4d3a03bcea6713dc36aa9d1932e70f131cc3e4e8a3aa960ee2573",
+        "vt": "b25ddda95ddef052b488630bc8094d35b6d95572dd0b26c1e1b44eb49fe46026",
+        "render.json": "6e14dbf21f8d977eff1e9d5241e7780e5e5f67364abc3fc7c88ce752bff98a5b"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "resize-0-80x24",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "fa80a2739113c8318ece470ab29fc3f9ca50833bdf4427739eb0ca781877a473",
+        "png": "345541e28eb66b1b5ba8492cdbb2ae5d6fd51bbb4bc7a07cc069507d9acd5bb6",
+        "txt": "5b9362c0e0b4d3a03bcea6713dc36aa9d1932e70f131cc3e4e8a3aa960ee2573",
+        "vt": "b25ddda95ddef052b488630bc8094d35b6d95572dd0b26c1e1b44eb49fe46026",
+        "render.json": "342edd2d2f75bc1463b047fd46b90000a4e653b774c9542a02a878484bf1b583"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "resize-1-120x40",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "0dfdb57ec984a9243445efcc618a402157b47f646f6f6b7f1460f3a5cb0a68c0",
+        "png": "c0e9bb3fff8a00da2a3e32ed2695a293926e36abdc63c79a35a85079360158b7",
+        "txt": "6b8e585c4b8b2e795f4a05c43692f828ea9a5565a9c59302ff0efb91e36c5c40",
+        "vt": "5913e3fdd4f3b65453575a02ddfb3557553507a2ab14dbc89946d8cca96b0b53",
+        "render.json": "846acbd3b692a81c71d68085916aa93da71c1300c31a29ca8772c0928f529d4a"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "resize-2-160x48",
+      "columns": 160,
+      "rows": 48,
+      "files": {
+        "cells.json": "e366612cfe1f2bc342ec75d57f8a536424b2708ebdcd2a50d93333d6eb68fe40",
+        "png": "26e5562807620a0dfde339a2aef27675a9c6efd5f11bee39a59b06bc84876ba1",
+        "txt": "2f4b69ffebcfe86034dfc16675017dfe0dcecc2f869e6e400160cac38a99c75d",
+        "vt": "a542bd7f3e91ccbd0383951e10f1652fea471a9375543072f29c8b6e95a86b5f",
+        "render.json": "097d4f8fd3bcea269c3ea2e0b4f3363e98a992b065b102a19f8bfeacbdca8743"
+      }
+    },
+    {
+      "name": "upstream-80x24-off-horizontal-status",
+      "label": "resize-3-80x24",
+      "columns": 80,
+      "rows": 24,
+      "files": {
+        "cells.json": "097178d81728883de04148515af04f8492510e276944c5da73b30e5c266e1b05",
+        "png": "57c47cb8e77790fe3f03eefdd9062853c4bae5e72c7371389a6cd2423f16a883",
+        "txt": "5b9362c0e0b4d3a03bcea6713dc36aa9d1932e70f131cc3e4e8a3aa960ee2573",
+        "vt": "57ab5734b30f9ff258eb13538465355ea253898bf0331f38ee72f586a8f57554",
+        "render.json": "3a1d8aa3dc70966ca9801dfcbf8576dfd15c238ba7012e76ec71426020a71f82"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "home",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "48d1c24e10943d8530b79ec59e777dee3d721d3e8992bbf251368d84ea23c697",
+        "png": "b2e0d819e045005b3e0418a8809e137d2b6efa674587ce5cbcffb3e2c01edf36",
+        "txt": "66b952d62be4a0f56aa400ee92c502fb09d7f516022a851ab5f0027835c1ff42",
+        "vt": "5081e51002fd41bbfc8e7c0238996ab0a8e1af4edf8b82266d744e25d2b3e55b",
+        "render.json": "2f2b1d5a3bb6472c9184db330f6dcad6bd5741cd0f2105920e4ab4283901f628"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "seed-a-completed",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "0bffd27395c24e74cc342ee5bd56b88be716cd9448bbb222b3892178c125af70",
+        "png": "4e69a7689c2cfc8ad81cefad29a9fd597982af704819b2685aa78a2f316983af",
+        "txt": "c987f2e0e9149ae3eeaf44da9c88574977610310c7077e251238059a43257089",
+        "vt": "6e162e393bdec118d93e99159a250f020ebc74006e1ff0047b993be610d12923",
+        "render.json": "a0f57bfe6c3cbca7b5ff5892221e5756e9283dd7c833032d9509255ecd71b9a7"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "seed-b-completed",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "5c8cf0b713b686ba30d97392b984da6c396b135095e1c173375ef67f82ea8bfc",
+        "png": "53a9c8882f4ea884a1a49dc97c631b89e9b6518d2546fe5a919b5e6f58f8e51a",
+        "txt": "77d7ca0b6e076694b8e60b546b2cdf294868d880aab400d32162d661973712cf",
+        "vt": "d287eb6a9c41deab703e74520fb9b39e77d7af1c63409a5f42aeea26fdae1a17",
+        "render.json": "0d44873dd0259e62477d8b3a7cf5d5244d5cd0f9a36961dac4bc18cb691941f7"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "root-b-short-rename-input",
+      "columns": 120,
+      "rows": 40,
+      "requested_title": "Short",
+      "files": {
+        "cells.json": "73189701fd5bc63e4ccea9149ba4a194100507008d987527d79f5065afaac4b3",
+        "png": "8b20781d57906b66b46c94d5415a104bf81828574e6f4db637294401f8c2f52c",
+        "txt": "e96854ea8807ec59fcb912c224d0c111e9cb2f446beac28cbedfa9c41317b4f6",
+        "vt": "f709eb976acc2075926ddee0eafade9fe1abe8e4c57e9928ad65e5b3cc14ae85",
+        "render.json": "79846e3733602ef8772cf0ca43bf899f48384f5ca06c6692274748e4984e6975"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "long-rename-input",
+      "columns": 120,
+      "rows": 40,
+      "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "files": {
+        "cells.json": "5738c69062a70b01067bee2d58af907d06b2f7407e345a88b2debebd09a6104b",
+        "png": "a01ec255762b7a0088e27f067430d9563c77eaf93b6bea760d8c9e44920621f0",
+        "txt": "e32afca4c55cba6d304c9542d8a4c73d742dfb3ace62dc7712926ab45f9ec80b",
+        "vt": "1981648a9ad0a54e60dbe4e8ee1f8c91f3e0f14571a8e6e277f5833271720901",
+        "render.json": "8f1cfeb330455e991406d5d01500adf7edd32c2172e0de77b011c645f702d329"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "long-rest",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "files": {
+        "cells.json": "6a9ff28d0ab24a942ad66c175034270d94290882878ce9855a4189f432a3d479",
+        "png": "7a67ac0f5c765518de37051d37e21ae3f3fa47d37fa3037276198d7d87a2cb6c",
+        "txt": "f4328d5a0131fdfeea4ea86aa7c6ded779595c71670b791a3f37d34ddf4d8a30",
+        "vt": "3bfe0a7e6b44706419da7673d49ba4085ca607183394a5e090ea4ef94e85593e",
+        "render.json": "d1daf0af354f8c6fa241f61c21d8ed797850a9bdec4c265f4a16704e666664c7"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "long-enter",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "af0308e418771823a444572e769ed708d32ee40a6a79e3d9d05643fbb82a98cf",
+        "png": "88a56755ebe4ca96eb537e21425ee6eca142344c5b6260729661064a5474d0c2",
+        "txt": "c22542acf3c66ba7ebe8bbc6509cb413f3152bdbf6e5d9e85a7a2ab512c790d9",
+        "vt": "2716dd6ce871bfa5cac2f654e2e3aab9d72dae1bde90efca13158515e868a021",
+        "render.json": "57e661ac3ba50729580f3087024ee9138b858676497e638051c9cc96cf9ea1a8"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "long-offset-1",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 1,
+      "source_at_ns": 1228628931643033,
+      "files": {
+        "cells.json": "84e9200f74a131cea8bc77522880c9c035c8125d30f9435dda7a25ec4ca10537",
+        "png": "651490ef9f1e3a6df96d05cfce447ac103bb75afeff498bdee99cff59b8c5cdc",
+        "txt": "04d608379097ecc64cc92b78ec3da1e33473b781183aa353cc4101db082db4e6",
+        "vt": "c65cbe3694827422e493d4b4aef8f0858f13b51e90faeb0eb5bd94fa82853dbe",
+        "render.json": "3cb8492174ff76de8f507dc31d036621e60766645c060c51ab7afdecf4728e54"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "long-offset-2",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 2,
+      "source_at_ns": 1228629020108272,
+      "files": {
+        "cells.json": "cde839a5170d659f15f9ebaa4fbac5939bbbc933ca3c6304b69aaf0908747349",
+        "png": "f6ba16023f088d2d1e7e1fca3ece2dd64cde11ab2e57c6af646b4187199a4eee",
+        "txt": "6ba4fdcc96b90677d7fb810ce570372947ede3aa9f228c5581bfbe6a78c321ed",
+        "vt": "01aa1098d085060450784596d03be67b148d8fae51a117adb78cea8eee737730",
+        "render.json": "0940de9ee4e1b8a9516a298bf23bae06d03994dee9d9811968d5292c33cc4634"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "long-offset-54",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 54,
+      "source_at_ns": 1228633209878683,
+      "files": {
+        "cells.json": "df42ca52caed76158c00afba92267059deca37495facd9c9146f106b72698898",
+        "png": "5c0a730886afabf783bf1f788a7dbc08eab1072ef7b7125b545d2cb11ab21f8e",
+        "txt": "d4ecb721060dbbcc00db3b137565571d62fe60ec06409548e944a449473a26f4",
+        "vt": "805b0da62f80d282ff941e62291eb75992be4088fa3e9aee3d8827c76b20db46",
+        "render.json": "ed046dfc4057a688bea5e062f9477fca8b4b407c7a75b5b7b997ab7a986952fb"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "long-settled",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "e2097635b4bbeff94557d4130d6445070ded5a3861474f5226aa4d4ea2e68f60",
+        "png": "88a56755ebe4ca96eb537e21425ee6eca142344c5b6260729661064a5474d0c2",
+        "txt": "c22542acf3c66ba7ebe8bbc6509cb413f3152bdbf6e5d9e85a7a2ab512c790d9",
+        "vt": "38564d0395551a9915938ff1c78517fc653d5279ad4540a5ac80ce8954f9a06f",
+        "render.json": "bf19aff0464209d450a34f76b41ee09dad2ff03bd6ab3dc7cc4ace9548fb69a9"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "long-same-tab-no-restart",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "ba3d6f564db2532d502024a64c19a3c25624604ced72fb5110376065562938f5",
+        "png": "88a56755ebe4ca96eb537e21425ee6eca142344c5b6260729661064a5474d0c2",
+        "txt": "c22542acf3c66ba7ebe8bbc6509cb413f3152bdbf6e5d9e85a7a2ab512c790d9",
+        "vt": "38564d0395551a9915938ff1c78517fc653d5279ad4540a5ac80ce8954f9a06f",
+        "render.json": "a89b5bff4ee86a2af748ebe00d7c517c904404df4147415bcbd9b2c8d8de67fe"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "long-nested-close",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "a7ca80d230e99e8007983583b99f78dbf7189aa69e3dbb9f9323b1e549e75301",
+        "png": "17e1747eef5ebc74a85c4fe7d8a720e247183834dcc690c90ece6b5bf6fbd38c",
+        "txt": "c22542acf3c66ba7ebe8bbc6509cb413f3152bdbf6e5d9e85a7a2ab512c790d9",
+        "vt": "daf6f6a2b9fed9b82f8f5411d3cf6d8e0834d90b16ff78e6a8c4b18dca990f7b",
+        "render.json": "9a4c02344e51ee7360a8d96b0e6397688a22dd5485bf0e55ea2a3d0e1aa076c4"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "long-leave",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "files": {
+        "cells.json": "14db70ab7648d4ed7474ea4bb1813cb7d06ac8b89d518fe519ef501a0d11fd47",
+        "png": "7a67ac0f5c765518de37051d37e21ae3f3fa47d37fa3037276198d7d87a2cb6c",
+        "txt": "f4328d5a0131fdfeea4ea86aa7c6ded779595c71670b791a3f37d34ddf4d8a30",
+        "vt": "932e78bdef4faf4d4e5330edb0c811600e719c0ddbc865ac7db06d9496a64208",
+        "render.json": "74733df2c309497788907d14d2506a28c3f3c197b5c61c5f11ac572c3b179d69"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "unicode-rename-input",
+      "columns": 120,
+      "rows": 40,
+      "requested_title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "files": {
+        "cells.json": "8a37f5ffca5bd9868e9414fbb2de72c5e5ac26f39a52663c9fbef9acb677c6ed",
+        "png": "7415e3d0131dea0a4a953808fcbc052e563587a04de8422235fe940f9e9493bd",
+        "txt": "8b2ea735fe8c33f5a710e2481980f8c838471c8d66eb7d92eee69911ff3bd835",
+        "vt": "5722ec8ab9d2be7bd09c78d08e2941318ac4267937914ef04405abc850e25536",
+        "render.json": "b8f9b3213b010ee7eb4e69be9a515f494609ef49bd9c4382ed0c24a93db963fe"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "unicode-rest",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "files": {
+        "cells.json": "012fdd34e83bc74504ee97285c9ce86cae9d607c3069906f30045ae96d98c010",
+        "png": "2bf449dbce53372a60e8efe111cb473a22da40f4d174a321276b3d1fe576bdb0",
+        "txt": "ee01ed7ed76f4f14b18ec76984b8a90f045f95c2e8a1f6b70a16951c95293398",
+        "vt": "112d8736d77c1e29e148591fa16b2e7edce8bf951a91a44ad2851b0fe42d7ee1",
+        "render.json": "be6897802296b030e714b9077f65f0ee3a6b8e38ac46443b2215cd751762a36c"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "unicode-enter",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "15ab73cc9ddcd4e8579c038e42e31775b931d6fe2943f8b2186f1d25f5894d07",
+        "png": "31e36d68320c6a103458a45fc6636d69639732d88a8f06a2af390bfd0489f015",
+        "txt": "61dbbad0255b3c319c120b5711c0e9435e149d72dcf30183f639b9fbd76787be",
+        "vt": "4de7b82449ee726ed05ebea8c3ae0739c233a4fa4126fa8b4498691eb95f9ead",
+        "render.json": "15a3025e8e1f916c4e403b8e7263bfa1eb1e323fb5b3f6f08b651339cf74235f"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "unicode-offset-1",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 1,
+      "source_at_ns": 1228643391320707,
+      "files": {
+        "cells.json": "610ed97686fe364fef6be8e7a12ef527c319c5885fd00efa0c00a7feebe0cb74",
+        "png": "623436a17a1e3251fe34506de3683365787ce16cfa16a6c73e22bfd356702baf",
+        "txt": "a88b6f521380812c66c1926a7951aa8aaad53f9830fed8b3f9fd568d4241fe0f",
+        "vt": "4ac1f92fad39e82c2aed9f81ec0ce5dccb4330b34c943a3d5e3aa637f4ff39c0",
+        "render.json": "c1a32a5cda1613b5fb6f0dbab27c7310b61ec2ef77606bbd0c7918e712b82cc9"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "unicode-offset-2",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 2,
+      "source_at_ns": 1228643473669787,
+      "files": {
+        "cells.json": "ec6386e34cf45c92bc70a5f228258a7bffed158ab0b2d5a5c669a331e27107f2",
+        "png": "339f0ac02910bfcde648d7ed24650d8d4f1e320c924f62d2934ad63e1d78c263",
+        "txt": "3dcc77053f1593a0c02c7fa62c89d54c71ef63d5e06b10aed5068e3fbe473cef",
+        "vt": "4574135beb66a839f327c2fe46bfe8b307f8be599c857ccb51c0b1217e5900b8",
+        "render.json": "a3f3e916d6e4d011a30f5d96bfcffe3431a89cc1603fd257bad4108b7d585571"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "unicode-offset-46",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 46,
+      "source_at_ns": 1228647033475659,
+      "files": {
+        "cells.json": "b9a8329f677040f3d264414616ef217de7f84b2ecf995328cee487a12b03d782",
+        "png": "3bebc6d146987bf492bc4721e1e71f90f99741f64656c7228a665a301042eaa6",
+        "txt": "eca40697e1c686fd91d6562745bc610ff6cc96a10a7bb03c45b86cfea29895fc",
+        "vt": "1f70db9631660574f46bf9024d3c8963a25cf69156840ca9b7911117efe357de",
+        "render.json": "59e409249c17e849f7930e6dfd428ac1796efad82b066ae0df7de4f33fcc3cbb"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "unicode-settled",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "933e90021450a2ef4d1f5003e4e5be7fd1de692eeecaf0ae1be6c1c347b3794d",
+        "png": "31e36d68320c6a103458a45fc6636d69639732d88a8f06a2af390bfd0489f015",
+        "txt": "61dbbad0255b3c319c120b5711c0e9435e149d72dcf30183f639b9fbd76787be",
+        "vt": "af2c0f1b3a63f575fc27250fbdd771aaf9dfc2c7e44bd0cc3f48a083d3e32321",
+        "render.json": "e04a6063c98080fb6900acc93b4b41053088bc235bdb99deff52a6f95491f3cf"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "unicode-same-tab-no-restart",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "585e465af3401403adc6d49b6e9b92b3139434ef325393e9b942c17181e7d00f",
+        "png": "31e36d68320c6a103458a45fc6636d69639732d88a8f06a2af390bfd0489f015",
+        "txt": "61dbbad0255b3c319c120b5711c0e9435e149d72dcf30183f639b9fbd76787be",
+        "vt": "af2c0f1b3a63f575fc27250fbdd771aaf9dfc2c7e44bd0cc3f48a083d3e32321",
+        "render.json": "f5f5f7475e555cd064f8e695299f36369c1caebe636ed269f475ce65b26c9987"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "unicode-nested-close",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "bdaf3419d3564c0854251eabd7ca6e160011072d00a6c71a03637f2798a00bb3",
+        "png": "a397233ba5611c30958e4a04198224982f9bc78250ad8b96496abc7d537881d4",
+        "txt": "61dbbad0255b3c319c120b5711c0e9435e149d72dcf30183f639b9fbd76787be",
+        "vt": "6454bc28a154f4ca9828b6d0e19a7aa7366796bad2f6ca98030a53fc21bcb478",
+        "render.json": "3ab3ef7c65b8f2aadb10f174d25c9bf3a4c46005609e6c4a9ad59967de2365a2"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "unicode-leave",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "files": {
+        "cells.json": "2b5b351e7fbd42b91ea2abb079d6e9cc731ca9002547b55f8631c934def304d9",
+        "png": "2bf449dbce53372a60e8efe111cb473a22da40f4d174a321276b3d1fe576bdb0",
+        "txt": "ee01ed7ed76f4f14b18ec76984b8a90f045f95c2e8a1f6b70a16951c95293398",
+        "vt": "ea78cfe7a8422f30618ccb4aa67f3dbd563e984d960ff80ba0f6c5700a03ecb7",
+        "render.json": "2e489a37023e45e5de9ae6f897aa77e4d78144e87e24af2c670b15295aa574d0"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "short-rename-input",
+      "columns": 120,
+      "rows": 40,
+      "requested_title": "Short-A",
+      "files": {
+        "cells.json": "82dc0524a6441fb31cc3e43321ce16f1a9c62a40f893d0eb4301c2a24ef7e5e5",
+        "png": "1f7453b20d841b9f30842d961d0fd78f86c07f30334f8c86e6766544474fa3f0",
+        "txt": "f87e3e4ef47a3dce324d52136f64229834796650c69386fdcd7b65eeed6ac456",
+        "vt": "cce603ed63644bdfd726a1e5855637aa07a8fd4b874f8e96642f2e37006482e2",
+        "render.json": "970ade23b83405358c9a3603414101c08902af25672c29db8341f05f14f920f2"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "short-rest",
+      "columns": 120,
+      "rows": 40,
+      "title": "Short-A",
+      "hover_width": 27,
+      "files": {
+        "cells.json": "0402bc1331ab762b8b0e811288bb440cf0fe3ae2d28e04df6fafecf5f108103c",
+        "png": "72c787987a4665af826c286a691137c13fbef49bb7c3ee2c30310972b2237208",
+        "txt": "f1587864e8fca9b17521689b93e7c47975d9e7e5b6579df14d77ca86a080dcc6",
+        "vt": "ab4ef0de4e3b9f51124977738f8818db88e69c72245e0ded16a85b7d6035ca62",
+        "render.json": "787501ca800bd92db2c9533f66fc1c691343932db6abd4d30ac9c9a434f9e612"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "short-enter",
+      "columns": 120,
+      "rows": 40,
+      "title": "Short-A",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "a7276b98f1246299733a0659ecdcae6b242c34e761ca8f88a7bfbb97973c6c06",
+        "png": "edc34c532f1d35452cb59a5da7e9d1027a40fc1e1e48260232b30713d63ba3b1",
+        "txt": "4c589e6e0de2aef4180405e36fd6b3b324827a23764734733ee7c247b019df58",
+        "vt": "16e3fbace0a9f7691a317bf4594f6ad18aa6744173a4883b61e1c4634b7b5c04",
+        "render.json": "9389a333c5725435479474b76a296127752c1ecba9f4b4eebd83fda54ee93751"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "short-settled",
+      "columns": 120,
+      "rows": 40,
+      "title": "Short-A",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "ff8721538b77a9463e3c7ca4852d214b37fcd937eea04d1c407910a4bcff2a95",
+        "png": "edc34c532f1d35452cb59a5da7e9d1027a40fc1e1e48260232b30713d63ba3b1",
+        "txt": "4c589e6e0de2aef4180405e36fd6b3b324827a23764734733ee7c247b019df58",
+        "vt": "16e3fbace0a9f7691a317bf4594f6ad18aa6744173a4883b61e1c4634b7b5c04",
+        "render.json": "bfba40e1aaa8a710990fba9af799106106963ac51d12df1d09179d34fd923b03"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "short-same-tab-no-restart",
+      "columns": 120,
+      "rows": 40,
+      "title": "Short-A",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "c1465df2e2a5c08864f63a2ad21b9c1222c911fbf0dc140a29fb5a5addb72856",
+        "png": "edc34c532f1d35452cb59a5da7e9d1027a40fc1e1e48260232b30713d63ba3b1",
+        "txt": "4c589e6e0de2aef4180405e36fd6b3b324827a23764734733ee7c247b019df58",
+        "vt": "16e3fbace0a9f7691a317bf4594f6ad18aa6744173a4883b61e1c4634b7b5c04",
+        "render.json": "339d3db08eb2d0e9bb7126b721e94d58791cbf61bd2775d7f8703f572d888efa"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "short-nested-close",
+      "columns": 120,
+      "rows": 40,
+      "title": "Short-A",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "ee253bd6ab343cba1b42fc288c41592758f010012cbc5d17ce4ff7bfaec008c0",
+        "png": "033988046449e3ef303340f076e5163e65e1393c080490002f5068276b72195c",
+        "txt": "4c589e6e0de2aef4180405e36fd6b3b324827a23764734733ee7c247b019df58",
+        "vt": "ed496f0be5c84b779abd1e82d27b226007d312cf60861613a5de8a22ca5eec29",
+        "render.json": "b26bfd7f80407ef9903fa18c1817bb17564688723984944d94e4097603ef7ef2"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "short-leave",
+      "columns": 120,
+      "rows": 40,
+      "title": "Short-A",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "files": {
+        "cells.json": "65743cba4fe0f6fddab86d3e47359a4d027b6c8c5c619ad9b5e10246e63dc90a",
+        "png": "72c787987a4665af826c286a691137c13fbef49bb7c3ee2c30310972b2237208",
+        "txt": "f1587864e8fca9b17521689b93e7c47975d9e7e5b6579df14d77ca86a080dcc6",
+        "vt": "cbe39cddaac55221cb7e0e9f60639542c0ef76e4f27a8a696e4a3b4a26e3c141",
+        "render.json": "a42bf82c07a6ef60905946018498cb96e9ab3af45483218ab055a831f9b736bd"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "exact-rename-input",
+      "columns": 120,
+      "rows": 40,
+      "requested_title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "files": {
+        "cells.json": "348b4224e390ccb66a35acb43071b00ed95505271dafd57402c482201b92aba8",
+        "png": "a4471a113a704226f3f9e05854a9ba7ccfd3f44452d61d8e3e54a306bc3b3459",
+        "txt": "ea1cdb4f9fc93650f05b64da1543b787541bea50a07e7b5fb2b8669dec67bdec",
+        "vt": "3f0464e69d93a1bdc7e900b4faf91424a73412326e9202476d33066316be9388",
+        "render.json": "9321e252ed6bd8105e52d51fe9ea4b3ecdc9be72e269aa16852bd47c4ff273ab"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "exact-rest",
+      "columns": 120,
+      "rows": 40,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "files": {
+        "cells.json": "9f7121b5b7bbdbcadad7830711fa895816b4c037cb06329d8259e4497a0cf639",
+        "png": "2e41b3c6d68fbb9dfc81f642c11a6d28eb65ee7335d2ee6efca7f8efb657d8e2",
+        "txt": "ffbdc1d56e03ae303cbb6c1da983100e57c2f13ac10d705743ab42daa24f356f",
+        "vt": "33c72a059d77b2bde93a46cb98b91561ea701729aaa410e87692832de32f29bd",
+        "render.json": "256811a5d935a4d9d47c90b598e96ac685472957ad4282fca3b4be160338a22f"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "exact-enter",
+      "columns": 120,
+      "rows": 40,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "b67635974d1458722b10bf42eac32b775954a8a0c203c0b0efb6dc390c3d5d98",
+        "png": "82747895fd7af50328d8b801c97a721a8498b58852919f8143cb0810f49acfe7",
+        "txt": "5b4043fb94352766559ff857a28d04efbd86bd3434f43f74aa50dc45f1d8ad8c",
+        "vt": "e15f37cb7099ba37feadbd38ea8b25c8c2b31d2808017f5956908b4cd263c8e4",
+        "render.json": "ae0d3a15d8dc6d6c734f8027f79301df2fd17f93cf000d47726f20a2ca8951c7"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "exact-settled",
+      "columns": 120,
+      "rows": 40,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "f8a526e505f204457e72343c9d7138f6abaf9230598afee43cd3464beee7506d",
+        "png": "82747895fd7af50328d8b801c97a721a8498b58852919f8143cb0810f49acfe7",
+        "txt": "5b4043fb94352766559ff857a28d04efbd86bd3434f43f74aa50dc45f1d8ad8c",
+        "vt": "e15f37cb7099ba37feadbd38ea8b25c8c2b31d2808017f5956908b4cd263c8e4",
+        "render.json": "2cd23175df95d07900c18c58fde2d9b387f58caa37a6ec84b456d95e0b00619c"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "exact-same-tab-no-restart",
+      "columns": 120,
+      "rows": 40,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "a66e85dd700d6458138178b793d456870406ef7c6895573a4bd40fbe54c4a6a8",
+        "png": "82747895fd7af50328d8b801c97a721a8498b58852919f8143cb0810f49acfe7",
+        "txt": "5b4043fb94352766559ff857a28d04efbd86bd3434f43f74aa50dc45f1d8ad8c",
+        "vt": "e15f37cb7099ba37feadbd38ea8b25c8c2b31d2808017f5956908b4cd263c8e4",
+        "render.json": "33024374fc9c036f769b770edfdb87d1df9ff7a051a88e4abcf49db12e6fdbf8"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "exact-nested-close",
+      "columns": 120,
+      "rows": 40,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "56f74c9c2e93d9aefbe9a6b980f4d241eb0cee5626738581e9be3f51e8e3053f",
+        "png": "cfc90686c2b3b1bb24b3f42fac573d3f175f731a74b3ad676e9a3bc37c7c44b6",
+        "txt": "5b4043fb94352766559ff857a28d04efbd86bd3434f43f74aa50dc45f1d8ad8c",
+        "vt": "43a55191e36812317f493efd50df86331b5dcb9845ea9446974968cac75607cc",
+        "render.json": "ca8d37011cad29b4b5aa203a4bccb5ffc67e156c33fc7f03c2a8f59f567f0180"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "exact-leave",
+      "columns": 120,
+      "rows": 40,
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "files": {
+        "cells.json": "5af7a504e81a05ef4bcf14cecce6b96f041a3ea3ad128a64d9f95d8a676f0540",
+        "png": "2e41b3c6d68fbb9dfc81f642c11a6d28eb65ee7335d2ee6efca7f8efb657d8e2",
+        "txt": "ffbdc1d56e03ae303cbb6c1da983100e57c2f13ac10d705743ab42daa24f356f",
+        "vt": "da965f29785d9f77f87e6b3fb9608ae003c7ad80ddead6fb2af10313fbf28456",
+        "render.json": "d99f2af5594faa3d5a3463f198649bc03f42da0ed61219f7af9019e7ed3a0c30"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "restfit-rename-input",
+      "columns": 120,
+      "rows": 40,
+      "requested_title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "files": {
+        "cells.json": "8f10aa6e419c0ab5e180e8250b2179cd4515ea3c60cbd905d51b380db4d64c39",
+        "png": "efcd9b127a4c03f867d8f9bc06163ab193b09fcf283c96c645986e21c53c8392",
+        "txt": "bd8fded8f33e190095ebef5043c9625ba2f07c2f9bafd0d2b04df0a9c2367865",
+        "vt": "d2ce6958219b0b8dc9b84d284f4f9ee5280a55a24190083f8d1a3edfcfa30004",
+        "render.json": "78e498360734aab5ad5c9a7a544b2a74b675fb1a03f0c1185511af549e4a6c5b"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "restfit-rest",
+      "columns": 120,
+      "rows": 40,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "files": {
+        "cells.json": "ff6fa55cc169f93ff0c93e6f03bf4279d8b9be6c91690aab79ef1bd64423c41c",
+        "png": "bfc5be939187380765c4388149134284a5f75f902b08f4b35a3d3999bb717c86",
+        "txt": "473984fc323590c41546c0d261d459baae47c77591923a410f97803de68aa4fb",
+        "vt": "2ec82d40872e5e5774740ae81574d02cd546568a2e6f43e216cf551d4b2b24f5",
+        "render.json": "3470633a0f11b6a7965a47308319a65a5b23deed3eaf5814f91f7e63850d9fb1"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "restfit-enter",
+      "columns": 120,
+      "rows": 40,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "f59f8a187abf3c1a6b659491031b5c6eebfd2d83b5b8e6f3630cc432949245b7",
+        "png": "16bbc39a6831cd0c5961b3f367e7367b26f1fc92945aa8d913dd192e46f459ad",
+        "txt": "6e3e237859417e00f50c7e0b9bbc119e1c9d1a036abd49f548907d8144659f8d",
+        "vt": "2d4e54000fafa466128a47bf0f64ee22264894be439db9125aa6ac0f681ff85d",
+        "render.json": "43b79c2261d1f255b4c58824f005cb362dc400f4f9e9a6d3e506d56a6fc0c8ab"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "restfit-offset-1",
+      "columns": 120,
+      "rows": 40,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 1,
+      "source_at_ns": 1228678580357032,
+      "files": {
+        "cells.json": "58457b700c5dde414d1b5e2a3f940238ad7c9f49812b8e915b34eaecc212ebbe",
+        "png": "554de9f0aea046013d30be54956552b13aed470b446fe130e2205a8a3cd0b83e",
+        "txt": "30d01aebed2cf3c524748ace31aaedf5861e1186282d258d93a2dbbc418fd53d",
+        "vt": "5f10ccae12d757b1b5000c180d22e2fb47a5eebf18ef6fa488b5e67e8723d39b",
+        "render.json": "574de9ab724ada0fc74de0a1bd2e4824025b7be79e46f1816e09ed16211e00f2"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "restfit-offset-2",
+      "columns": 120,
+      "rows": 40,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 2,
+      "source_at_ns": 1228678670173335,
+      "files": {
+        "cells.json": "133c494383d33218f9cb2ec18fc6e0d4909a815d8e20482be4c330f10564f5d9",
+        "png": "a0a6c0e0a61bd31e60b67e31822ad6722f37be561976edb5635e39033e96ab40",
+        "txt": "e6153bec574c268849df556e354b557809cd098ef2fc926dd8c2a2b298861385",
+        "vt": "bc33064e866f142615d55f7849b7983e61b4ea7c0f92814dc883d2db4fd54abd",
+        "render.json": "15500108d4e1afd79044bc27f167e4ae020a0a888f038cca49d1ea7b1fee27c1"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "restfit-offset-28",
+      "columns": 120,
+      "rows": 40,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "observed_offset": 28,
+      "source_at_ns": 1228680759335575,
+      "files": {
+        "cells.json": "c9e00e9eec5919a61ea6ac1ae035e40c44c07cfa8a30d8b5321e0e5772579925",
+        "png": "8e9d2131c9e7a9307ea67f51db6ca79560735df47ba13bce5f1dc8c68b9224f1",
+        "txt": "7d074c9fc80bf909e174e52fac906f11302e554698405d28df85f296746ca03e",
+        "vt": "bf4ac98c83f5e2a20c83cefc8533839f9075447a5a83356a4e733991c04687b0",
+        "render.json": "2ba42e3acbcaa54e1bac598a4f2e41434934b7f0c718d2de1fb6cbc3452c310f"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "restfit-settled",
+      "columns": 120,
+      "rows": 40,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "e1a0a8aefa3dc6c9e2c0241270ee9c6aa3a216c1ffbc093c13c9e88fb0e2b2aa",
+        "png": "16bbc39a6831cd0c5961b3f367e7367b26f1fc92945aa8d913dd192e46f459ad",
+        "txt": "6e3e237859417e00f50c7e0b9bbc119e1c9d1a036abd49f548907d8144659f8d",
+        "vt": "34779516549caafc7ef33691a0486c153d78a8bfc45ec882fecd041dd2ceca8c",
+        "render.json": "a0f460dfcca3995d00ff26dfeeadb10ce484e960ee51be8b7f0f56099388e3c2"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "restfit-same-tab-no-restart",
+      "columns": 120,
+      "rows": 40,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "6464d500445fe29e4b6997431f87e358fb25b4ae8f32f84cbcf25cc6a87db4d2",
+        "png": "16bbc39a6831cd0c5961b3f367e7367b26f1fc92945aa8d913dd192e46f459ad",
+        "txt": "6e3e237859417e00f50c7e0b9bbc119e1c9d1a036abd49f548907d8144659f8d",
+        "vt": "34779516549caafc7ef33691a0486c153d78a8bfc45ec882fecd041dd2ceca8c",
+        "render.json": "2f0b1f66a133de557f7d85c35ebeb280b5005c6332238d70b18ee454e4ec9931"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "restfit-nested-close",
+      "columns": 120,
+      "rows": 40,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "7a426ca0e363ce337a4cc43d01841894f687632721c8105fdfc46cacb4c8c671",
+        "png": "1ea6f1da406d793c6ecccc1285ab32b274fdf0f06b20affafaa2dba8e31baba5",
+        "txt": "6e3e237859417e00f50c7e0b9bbc119e1c9d1a036abd49f548907d8144659f8d",
+        "vt": "2720496e9b69a6bcfedc692ebb6a4dd4af29f0b243c7ac2f013c30bb8d79e668",
+        "render.json": "6b991589860588de23a3844730a6e873f2d4fd3cc973916c0d7ab9dfa7647a17"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "restfit-leave",
+      "columns": 120,
+      "rows": 40,
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": false,
+      "files": {
+        "cells.json": "1426c40e8cd78bcb64a4021dce9b883fe17c35165f02ba18eb102ffa6750ea96",
+        "png": "bfc5be939187380765c4388149134284a5f75f902b08f4b35a3d3999bb717c86",
+        "txt": "473984fc323590c41546c0d261d459baae47c77591923a410f97803de68aa4fb",
+        "vt": "f4f3d064b7a7a7e36fe077b34640610d77c25fbdbf4e30435db4ea5e08718be0",
+        "render.json": "81f857712c08d045b555d353279d6adbf03db136bf71a8e4d9d4e84a857e1788"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "inactive-long-rename-input",
+      "columns": 120,
+      "rows": 40,
+      "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "files": {
+        "cells.json": "e563f1a71ec9223e3466e45882031091ce5cf83114e794a43bcb3daae244234d",
+        "png": "2680e8c4ca6b777520816d6965f20f988b08ee09667ea3b069decb35f2ffdc26",
+        "txt": "aa41f3b06b0f7face536362440ca227df12d4fac6f87d8d56f85020708ef2cf7",
+        "vt": "f586a9b422519619d9356e8a2ef7f24d0810a0d4b502ce1318d352ff8919f7a8",
+        "render.json": "9b75cd4ef970919bf16f555e9ce3cf92de69f4d2d95997cd0d21256b93163d01"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "inactive-enter",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "46f3d4c3a3153fd46aba5a44bf8ccf4814c191f61e8c5125d38b4d13965b6b07",
+        "png": "7d7a2826144e5bf3362d92bcac29ea0bc5f5db6fc205e57ba0592f709b82c937",
+        "txt": "6b98cb84ef1ef569bad1792c7d10436f9a23cb0a730c851c52f8d3b75d491c02",
+        "vt": "39aa8a5ec77f326e50c182fe1287d896cedd12a54182364e5d068d3ec1928cad",
+        "render.json": "f8ad0c4e8e1680678ee726b804b8578b3da9ee08aedd5822401fccfa56c3ea7e"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "inactive-offset-1",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "observed_offset": 1,
+      "source_at_ns": 1228691324979788,
+      "files": {
+        "cells.json": "0e41cde20b6270149e1a600b06b9deb7f1b405feacaa2717726f53877d38322f",
+        "png": "a9b0927b691710a91cc84d533f5f7bb0bd85a22c6ad9821bd4b745370c470249",
+        "txt": "0d0941ffefc5cea7eb8dc48b456de36e560a9552061e7b1a16650d2762a0c98f",
+        "vt": "3a8f69ab16682c69ca1a379ef2863e71f9722b094b018a071328877d5d97908a",
+        "render.json": "ac723117c31c3e16005fbc80cc77e2b1c4f1947f71d20cba6ea5efa4a22dbd74"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "inactive-offset-2",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "observed_offset": 2,
+      "source_at_ns": 1228691409587649,
+      "files": {
+        "cells.json": "b44616d0604886a2549b8d46b1c844a10f726eb208d5b700b94863d08faf1390",
+        "png": "92bcedbc9ad7187dc3e874cce28d1dbc390338daedb2e92f6267289edadd9969",
+        "txt": "415372a5e15b630c1e118a26ffb8e674ea1b721f6bcb97f1253c7322d314976f",
+        "vt": "2deb25c2c230e128484d5bb69aa871c8884e32b54ad622f925dafd1928392e7f",
+        "render.json": "2b3a4d34689391464701253208be90c7a06b374bbd3771065cf817a986006c3a"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "inactive-offset-54",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "observed_offset": 54,
+      "source_at_ns": 1228695663395917,
+      "files": {
+        "cells.json": "5b6807e32150068a70b84129903e585d82efbcc72586af486338ab48be212e16",
+        "png": "a542d2d29478ae6148b0be897854514c19fb220b3d9b05bb06ac11e6f74509ce",
+        "txt": "48300172063fcea7ec0e95b8a66727d3215aaf98723548549f3a21892b7efd3d",
+        "vt": "b1d8dbbee55e40d7001afdc0c6e75ccb9e8f4b8d03545c943331ff4f6b49c425",
+        "render.json": "253a468ea71b8c3b96d4bebb83257faf2ffd0a7c0d71e2363c10eb6096203388"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "inactive-settled",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "414673c2e659cea848edec027d537683978597fd41f5119ba03ff3dd2521079f",
+        "png": "7d7a2826144e5bf3362d92bcac29ea0bc5f5db6fc205e57ba0592f709b82c937",
+        "txt": "6b98cb84ef1ef569bad1792c7d10436f9a23cb0a730c851c52f8d3b75d491c02",
+        "vt": "d7f7a9922dbfebe55d7b400ea39d7c137f48e18f5cba6fbdb755a7fec121134c",
+        "render.json": "3fc3359f820b22cf29e65ab2aa9d8b1bc1ef22bb942199f1daf4c737efe08119"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "inactive-same-tab-no-restart",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "4479c0935e4941ac5ca43774613a670761c37fd07ff673f6896e2d2e0a3ddb2e",
+        "png": "7d7a2826144e5bf3362d92bcac29ea0bc5f5db6fc205e57ba0592f709b82c937",
+        "txt": "6b98cb84ef1ef569bad1792c7d10436f9a23cb0a730c851c52f8d3b75d491c02",
+        "vt": "d7f7a9922dbfebe55d7b400ea39d7c137f48e18f5cba6fbdb755a7fec121134c",
+        "render.json": "6658a9f149c72e81855cfa9929cbb110f1db7ded425de030262941a6d93d3239"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "inactive-nested-close",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "expected_offset": 0,
+      "files": {
+        "cells.json": "5d0ce5885cb5989ce6eaa832b5f4a2bb8e3eda983af63661789a7d932f55ef63",
+        "png": "d787ae63f29d8c548a5144edafa4d5f687f25b40501267457cdd04e5b8e30613",
+        "txt": "6b98cb84ef1ef569bad1792c7d10436f9a23cb0a730c851c52f8d3b75d491c02",
+        "vt": "00d887f0935c56bd592b727d4184379a634cac9b0ffedf5ea6065a5a493b5706",
+        "render.json": "67991e0d979d06d916b67483993d16b84437e16bb844b3a4186e512862cd18de"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "inactive-leave",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": false,
+      "inactive": true,
+      "files": {
+        "cells.json": "86dd186d6e458bb2a3d4267787e4a76d59d0af5c72ccf360e971bed71d36436a",
+        "png": "807636e801503bd8c316959978b7f8d5eeefe44df07de1100f0d42b08110a484",
+        "txt": "e17ba2d164bf79e510b8d7f300cc9c2859f2a8f99e03687bc1ebb149d398b6e9",
+        "vt": "f931e1fc4cfc2f63d9a88f2fa38b660ed682752602a54bda4e5d483299785086",
+        "render.json": "241c7c4cb398c23f2673f5a790d727e1cfe7dc57a8cfbee2aee6d8972613ea52"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "running-before-hover",
+      "columns": 120,
+      "rows": 40,
+      "files": {
+        "cells.json": "afee2e5e004aafd0c9a828080868d3ba3ae308510914b9d9b3761b5c40828e69",
+        "png": "5f99bf181aaee66e702bedb5f6d676468ec62b86a61c8fe8bef32627357c1c91",
+        "txt": "bd4d24a9b3f318fbcf032067ad2001987360fe7ce8487791bc24005275b933f0",
+        "vt": "a2a34e2d47a9437368630496a9ac191369dc6bb8230ca7e43a532ccf08d7013f",
+        "render.json": "601824eff8c10c24688f58152653eb775e2d71b327f64a38c066534cb6870f8f"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "busy-offset-1",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "observed_offset": 1,
+      "source_at_ns": 1228711638866394,
+      "files": {
+        "cells.json": "5bcd0c8e9cfc2f32016b6868d9b05ca7139a615b21a8a5800966a0e52e1f6390",
+        "png": "559fc5215e967060851ec9319b347dc4af949e6014b891a6eae1f8944bad6cdb",
+        "txt": "3ce74d6c4960121162caa773e30beb3ef85a577080f6edd79379a12a5566cb08",
+        "vt": "0c8c375d9ba69426d6fa9506229ee237fd4af6512e79bbe507344361b9dc50f8",
+        "render.json": "8d0d812a8b37d6205ae0a2fb8bfca561c3707abe763f58514b50629fd59e94ab"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "busy-offset-2",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "observed_offset": 2,
+      "source_at_ns": 1228711721427544,
+      "files": {
+        "cells.json": "5f1e355774a2830bb55b63b9c26512758a155896e49735960386c6d0299e7912",
+        "png": "7951391f63de40cb05fd92cb8b3cea2f924a8ded7852086068ec95bd78a47bb9",
+        "txt": "6b255bf112e8a43265cf49376dc879d9204c41e741203cc496e0ace3f2506539",
+        "vt": "f07849a317fa62c9478d77f2d209f2f5f392f789e5ed72749e9627f3c5af364d",
+        "render.json": "58bf4f34356b28b03e6671a4ce6e501f274776bb5dbe849493213ddf25db53e7"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "busy-offset-54",
+      "columns": 120,
+      "rows": 40,
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "hover_width": 27,
+      "busy": true,
+      "inactive": false,
+      "observed_offset": 54,
+      "source_at_ns": 1228715918463367,
+      "files": {
+        "cells.json": "15525de4ee4dbc750027ae8a9a23a50ddf716ca7541ec6af4e6b327c1197c955",
+        "png": "92a6f5e9ea745d3ff3085dcedf81c11f7cbbe5bb5e97e16d8899271935c67336",
+        "txt": "43ed4894250dbfc6132f15cdf17305bda3d7a521c10fa0e09e5f9cb1eb0e7f9d",
+        "vt": "41313ce916363044b0b2718cc250c966290666ab78f1721c3cb9ff95597a3b09",
+        "render.json": "adcd7f83d6ce47a6c8d31c39dd615aac25a46a29db026be66945ae5c1f7865df"
+      }
+    },
+    {
+      "name": "upstream-120x40-on-horizontal-status",
+      "label": "failure",
+      "columns": 120,
+      "rows": 40,
+      "failed_stage": "busy",
+      "reason": "Held VT grid changed during screenshot\n+ actual - expected\n\n+ 'd0d2728c4b41258d42418f634c26aab00fd64a289c0cabdbd3af1be0aa083946'\n- '00b67481a184df7e35129d87adaaef186dc39672ffbd58bb06a84764c1d968e9'\n",
+      "files": {
+        "cells.json": "69716142926d617885f2639cd4d07c1442a146e56c53adae760e6fc400cc753d",
+        "png": "182f00bc97991d0370f73f41d3878a7b0f1867bb6236890274f96e1f58237d0e",
+        "txt": "270f3e4b1acabd4e43e21796c263df97a2ff3c2b60e40abfea1e539bd45fbf9b",
+        "vt": "a07417165b1c6810e9a3ccf8971d89f9802fabff9cae663c639e9bf4320fcb3e",
+        "render.json": "f118c753e80dd565503c6bf96699583c633379ccedc14b43a859b3e03738f646"
+      }
+    }
+  ],
+  "animation_clock": "Real independently mounted components only. No global synchronization, SIGSTOP, application time replacement, masks, crops, or tolerance.",
+  "screenshot_method": "Hold only frontend VT ingestion at an observed byte boundary; product remains live. Full styled grid/cursor and full-terminal PNG from that same real VT prefix. Deferred real output is retained and applied after the PNG.",
+  "compact": "NOT_QUALIFIED: no compact-only renderer branch is invented. Vertical captures must be checked against the real released native branch.",
+  "frontend": {
+    "chromium": "145.0.7632.6",
+    "playwright": "1.58.2",
+    "xterm": "6.0.0",
+    "unicode": "0.9.0",
+    "font": "DejaVu Sans Mono",
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "padding": 0,
+    "unmasked": true
+  },
+  "native_source_manifest_after": {
+    "Cargo.lock": "8d8718e1966bf60373a514d2a5b4bdfa516c8e11b054d9c09373a28684a4453d",
+    "Cargo.toml": "e5e3d488f5381f9b7452d51981a42096fc370f5e2f074c56c37e525210b9e76a",
+    "crates/oc-adapters/Cargo.toml": "132625b8f7dcda76443c015866d16242bebda894f652bf008d555dbb1aef18b8",
+    "crates/oc-adapters/assets/upstream/PROVENANCE.md": "2f3d5eab575430e352b2244d1a1daf9a5b8c27dea50417141dd666822003d951",
+    "crates/oc-adapters/assets/upstream/v2/review.txt": "727292c08ee718fff8852ec91408a255ce08c716b3d46cc56be3d399589e3479",
+    "crates/oc-adapters/src/admitted_fs.rs": "175c40ea26de4e83610f94f45f20d66d8132cdac6d7e483e5891244e0c98c3b0",
+    "crates/oc-adapters/src/application.rs": "51c9327e56ef8d0eaa52233865afd541f5e95bbd886549fe02808ed8e53f88c6",
+    "crates/oc-adapters/src/application_conversation_tests.rs": "3af08469aa81a990fe391ab15e7d2735c2cdfd94fad103e5927ee3200a40800a",
+    "crates/oc-adapters/src/application_fork_tests.rs": "1c7c5a4a8fa79acd97a1cee79d364285523656df36c0bf780a02f5f4aaccb964",
+    "crates/oc-adapters/src/application_selection.rs": "732bc4e9eccb14ede85ff274e47a6a5f6a7253bfa885c1c4b0960106af87d15f",
+    "crates/oc-adapters/src/application_tab_deck.rs": "1e489e3719c521ea8f3c7cf4844fe93002e8c0b55afda9ddd4a81610868febaf",
+    "crates/oc-adapters/src/approval.rs": "4a4e5127da60f343d4a24b9703758e66c3d1d33ba208c9d65866d2d494d1adbc",
+    "crates/oc-adapters/src/approval_tests.rs": "1d828cce684a83f9d69976fc0a57bd26b6a1dbac5226e1f5f3a9b8f7b1581117",
+    "crates/oc-adapters/src/attachments.rs": "97ca7933c7e33b85d2e20c4ac4a30e9380148a5b35f9250814155458ea17710c",
+    "crates/oc-adapters/src/cli_permissions.rs": "5bb0050bdcf48c7faf4ad9fb342dff6d9a21c0403baa8495efe00f16033280fb",
+    "crates/oc-adapters/src/compaction.rs": "d183b6254234fe33bf5be043f4e5eca4d226712487ceebcd8d5e890d55caa63a",
+    "crates/oc-adapters/src/composition.rs": "a1726ca5e238ea4ceef953484ec831f37a12da52d09c97f8c7405aad0510ab37",
+    "crates/oc-adapters/src/config.rs": "7ec366b6b94d9eecfeabc6cb2bfc6bf224ab7828aec4cd635c9901627be62152",
+    "crates/oc-adapters/src/dcp.rs": "7b29385071ceb806586bad104af61f67d515a5bbb96a7a1c04dc95cf2d700b34",
+    "crates/oc-adapters/src/dcp_auto.rs": "13aa09982bf9da779b42f1563a1e465f5ea341fe90d2e100511659e82c5711dc",
+    "crates/oc-adapters/src/defs.rs": "7b270c6b39b7a2b26224940c26a356b1d99755d533522f5a8688f4755554ef64",
+    "crates/oc-adapters/src/discovery.rs": "fd064f0d0c133f0cde10a354a0532ff84e3cb35700e0c1f1fa0669983b8b1c34",
+    "crates/oc-adapters/src/files.rs": "926bd1f7040368501c8af5bff2f0b7184e8dae84b87f0d4791ce726c10de2b50",
+    "crates/oc-adapters/src/lib.rs": "5b3ca33873b626baa19866274710594e91c453a74d959b55e1841ef7cec0c4e5",
+    "crates/oc-adapters/src/mcp_http_lifecycle.rs": "797bb9a8ff61dd98ddc95ffca10da844321bc0a2fe64c63b1c69ad1b3f9775c3",
+    "crates/oc-adapters/src/mcp_remote.rs": "e1b74c0774b8e4773e560d4b54cbf863735f0b48ffa9089cc26f6eff66687381",
+    "crates/oc-adapters/src/mcp_result.rs": "3f2d0616b60035cfe4f40d7f0b8ad51bdcdc42ba6221cee6e4ebb7207e58c76f",
+    "crates/oc-adapters/src/mcp_stdio.rs": "c62f60390ad433975304eec64f04879fb6025de00ec778cc7e5af628076c6c8b",
+    "crates/oc-adapters/src/models.rs": "5eadb4d5b22852c91aa23a1eb67dd80353b98e4395a674bcccfcc21261b1d858",
+    "crates/oc-adapters/src/patch.rs": "f7b15bb7e06a62cfb4f2613eb38a16cdd852012afc8125a5411741589787bd46",
+    "crates/oc-adapters/src/patch/effects.rs": "397d17a466bf4bc9fb7e3b6c1bf455220a466ba68b96a0b70c413bdcdbf8ffa8",
+    "crates/oc-adapters/src/patch/fs.rs": "843d54a6a62a602fa51cafe2d12b7fb3a778ae7f70b55ea05335e92f6a02c5e1",
+    "crates/oc-adapters/src/permissions.rs": "f8e8cc2fb6b92196bcdd319feaead16e9f24c447052acf8fb9877bd1ac87cffe",
+    "crates/oc-adapters/src/provider.rs": "8e5b17b2e44a17d583b14315b42b387afdfeb9a846de4a23ccee40bcd0efc9d7",
+    "crates/oc-adapters/src/runtime.rs": "b89b9cf1147c1404feedbceb4dacd4c6d5e9118cc0a80b5c33d4f975ab6a7fc5",
+    "crates/oc-adapters/src/runtime/tool_stream.rs": "867c2c1229af912067cdc9cb0dc4a5ffabbe27ea7050841152d94cf0f34173c2",
+    "crates/oc-adapters/src/runtime_compaction.rs": "8bee31d9d10fdd61ca7c7509f209f4e24c2db9c57aeeb49b84ce32497812d604",
+    "crates/oc-adapters/src/runtime_compaction_tests.rs": "9f4c52976d4c7a34c2c688d7c100beae3e7075512be461d97e89fc85dc470ef1",
+    "crates/oc-adapters/src/shell.rs": "c51156847ec11190a8846d67e9279731883e1fb299d4a3d7b1fa9f8528f6cf42",
+    "crates/oc-adapters/src/smoke.rs": "3579c89f6bd4373040bd1f8d2a62c759eed0cb136417263ef56c515efc3b0cce",
+    "crates/oc-adapters/src/storage.rs": "36717e4661bf9de5731d7dec3769477f1878e0bcc4ae398aa0835c68b51ac19c",
+    "crates/oc-adapters/src/storage_checkpoint_dcp_tests.rs": "412be70c514d7a39f44f79ce0f4b3e1efde1660215046827076e33f3dd751201",
+    "crates/oc-adapters/src/storage_compaction.rs": "3572f5a6f641be98fe119e0a7213ddcfbcbb03f9fd198b3fe4abee7ab7662ff9",
+    "crates/oc-adapters/src/storage_conversation.rs": "4bca0942e7132cb124c4e09adc1a4e91c51cc35a10b9d1ad349cf1bb681ac5b3",
+    "crates/oc-adapters/src/storage_conversation_tests.rs": "cb63787a4851d56ae571c8f778b4eb1c9172c12cef1f9fc639877e6f05b1dddc",
+    "crates/oc-adapters/src/storage_dcp_lifecycle_fixture.rs": "e762c4f757bd17c3a5cfdc8240fea3a11083ee803663e68fc2f57b58a8c7a099",
+    "crates/oc-adapters/src/storage_dcp_view.rs": "5cc6b52b66c13327aa29c8bc99527bb730bae618aabc60e19995762594ce44e9",
+    "crates/oc-adapters/src/storage_dcp_view_tests.rs": "6e0cecc920501acb28aa90af4443f47ff975347f0279f968744f5d144bb00906",
+    "crates/oc-adapters/src/storage_fork.rs": "2192959a6721a5dad8b738bc736aca0f75837d4737ed784b7c88585955632aea",
+    "crates/oc-adapters/src/storage_fork_context.rs": "296d94caabd8bd49ee2efb1b58a441fd2a0be348f3373bb3b6b279f7860643ba",
+    "crates/oc-adapters/src/storage_fork_dcp_tests.rs": "56407f43479bc82808d35b0c2e55b4e261ed857a5ffaccd494f6aa2e0846a4f7",
+    "crates/oc-adapters/src/storage_grants.rs": "63b47e740902e37542030c849b9b19e29b2909cabf536d73e64d8f8b34b75805",
+    "crates/oc-adapters/src/tools.rs": "94328eb09f19a3a726b786f69a7bb53a7a1378f6e23b926e9dd57c940b58675b",
+    "crates/oc-adapters/src/trace.rs": "9504dc77dfc5b860e23eb568afa4f2abf481d15ec8c7be6b641f727d4eeb9367",
+    "crates/oc-adapters/src/tui_workspace.rs": "a4cc6c6263899ad242025936c552ff28115607558faafa942554d37e3b7f5e93",
+    "crates/oc-adapters/src/webfetch.rs": "fcd5726b433e18d47be63bf5496597a29a043ebd879e39be0be2a1b30c160fdb",
+    "crates/oc-adapters/tests/blob_audit.rs": "3da8c3d9a164a46496b539529871f68a63414bc16a65eb3b3396cfc19386e4ec",
+    "crates/oc-adapters/tests/context_bounds.rs": "1151224ad9a0ce938f918cfae5675a7c1b52717874cca8095a5a3ea22e52e74a",
+    "crates/oc-adapters/tests/dcp_atomic.rs": "0ab7df37952fb327916b112250a6294536ad10da90339f8ebb3162884b6c7d71",
+    "crates/oc-adapters/tests/e2e_live.rs": "4a9c0d40d6d44f3e851fde61cbbfa26b22fa5907d5601b700f0bf141b679b6ff",
+    "crates/oc-adapters/tests/e2e_offline.rs": "f7aa58e68dc629242872a057750652d998714fa30a9c8e50cbd344b1ba1e6afe",
+    "crates/oc-adapters/tests/fixtures/approval_lifecycle.rs": "6591f7378486f7a0b2b49014511a670a2d62aa37db56df9173eb176ecd51fb43",
+    "crates/oc-adapters/tests/fixtures/compaction_normalization.json": "88370643949a68fce15915573c3e85d5960192f8d8411bb217e702a1faaa4c26",
+    "crates/oc-adapters/tests/mcp_remote.rs": "95de08ef6ce56f8b8049c303b41eb74d7ecbc2b0735ea9cecda9a7354955b44a",
+    "crates/oc-adapters/tests/mcp_stdio.rs": "2b0bea78d3b275964ca4b9adad1e5393dfe7fc7ec2a14f633f6593bd56ab1e39",
+    "crates/oc-adapters/tests/patch_audit.rs": "8464da4f94ce67fae50653f7bfec5ce5f46bc5504033871e9248c58749754a0e",
+    "crates/oc-adapters/tests/patch_effects.rs": "ed08cb4fe8e78761ee557efcbfaec421be44b5c46c0cf2d39a85a9a93b951b09",
+    "crates/oc-adapters/tests/permissions.rs": "2108c8d5e4ca672e38af9bc4b985275f9ae4d95474a0b8062901fbb20eee155a",
+    "crates/oc-adapters/tests/runtime.rs": "6730e7d89d83e92fab9a7c772db74216de48af4ae6895fc767d05cff0ca5780b",
+    "crates/oc-adapters/tests/session_rename.rs": "aebdf1fb3ceafb510b01acc40cda2bb422e2c0c3b2db8d4fc82fad0e075118ac",
+    "crates/oc-adapters/tests/shell_watchdog.rs": "0ac9f4f2e7d2a2112780b5bd5bd8dbdc8a4f261609b7e92351bebd6c6ec9c36b",
+    "crates/oc-adapters/tests/soak.rs": "9962206291f52d5d47ef6d407c7b1c3597b590fc51fac1e63941bf23d0b42a62",
+    "crates/oc-adapters/tests/storage_lock.rs": "8d1bdea426ddbffe2f79d9576f656cf73a9cf63ddd193471f75e813bb1978d12",
+    "crates/oc-adapters/tests/subagent.rs": "b6d772e4145e4fadf8a1017e46d02a8986f0d6f19e9a8f9e511076311140f66f",
+    "crates/oc-adapters/tests/tab_deck.rs": "338d432c5906b4e07eee28f24885d4d792537e5dd1491ba227b0730ef004bba2",
+    "crates/oc-core/Cargo.toml": "0182c888635e1408db27c824eab663a6291beee3f658fe757392675a2d589d74",
+    "crates/oc-core/src/application.rs": "9ed0e19d3bce40e2a36425f37b33ba0eb1a94181e0117cf083e29eaeae71cf40",
+    "crates/oc-core/src/approval.rs": "248e96b46cf635199a61a29191586d41b5bc11087362d8a613925768847c4dc3",
+    "crates/oc-core/src/compaction.rs": "500f4c3d380154274072bb7a0c34ef035e2312cacc39d07bc3f945e88336619f",
+    "crates/oc-core/src/context_plan.rs": "19c07416fa4c631529327c3541f5188bc19097e7738dd172d25fa3a29b4b6dfc",
+    "crates/oc-core/src/core_app.rs": "b1c6b5ec7753d323be10e14a0216b3f922e5bf7e2878bec3944e20d3cd8c25e6",
+    "crates/oc-core/src/dcp_view.rs": "74886e66b64736dc163b21daa35ab5a214a1b7dc61ccff5b291d310b7d11f0c1",
+    "crates/oc-core/src/domain.rs": "f2ceeb587ba7cb754d6e652307961530198d3d53853d28ce164bf5e84874258c",
+    "crates/oc-core/src/lib.rs": "9c7406d69121d49eaba5ce6efc9aea7c49b6364156b7eb90eca4b9060e3c93b3",
+    "crates/oc-core/src/patch.rs": "47a03dfe26fd3de36467c28f437b5396b14342e49c3add5a72551730ecd4e1e6",
+    "crates/oc-core/src/ports.rs": "c9bf84cd9218e2c43553cee96a6f949985cb83dfe00dde4a393adf61a6de43a3",
+    "crates/oc-core/src/queries.rs": "b765ef9dfddc5243e2b49d9e8ee9e1546440c9021d4d6e7bd20e81a867438a63",
+    "crates/oc-core/src/runtime.rs": "3734ea8fce8f0767f4acc671dfd3f72a713a3e4694785be2cc2fdc20e04fb38e",
+    "crates/oc-core/src/session.rs": "f7baff30840eba19e72cc90acaf55d8c236be16d3ca537508e07eaf31e6b603b",
+    "crates/oc-core/src/tool_stream.rs": "9259cdd3cd8dc2469c203699d5141c336c5fde7fd196fe24266dde299efc66d0",
+    "crates/oc-tui/Cargo.toml": "3bb2af6f296222e030586170983a1325e2b99c1e6bda95a160ef90a1ceeb04ba",
+    "crates/oc-tui/assets/fuzzysort-LICENSE": "9401e2d038d10f35d32aa1938e674f96fc32a689ef69a3ab0ae938f9d79365df",
+    "crates/oc-tui/assets/fuzzysort-oracle.json": "5d49daa5c4881ec956439911d371302d5da6d78e37b200d867453a62f6618484",
+    "crates/oc-tui/assets/upstream/PROVENANCE.md": "439736c466d570e348a394d4327f5250eb1a686b435d7603fd23c6ae81ca3137",
+    "crates/oc-tui/assets/upstream/v2/opencode.json": "f25bc5ae9187524f1997cccadeb9f724b2fac2fe7cc4a250bdadb24311e6b367",
+    "crates/oc-tui/src/app.rs": "22c525f5f0d5ba8c2395c74bab97f37c614180b5e650b8c3d149511dd7757fb7",
+    "crates/oc-tui/src/approval_view.rs": "8936b7b4d6c55d424de6d1194ea784d54ed4f5ee0a3d334f6e867f47b20df711",
+    "crates/oc-tui/src/autocomplete.rs": "84cb3cdb6ecfea6d53d514c5915fba3ec03df82505138e4e4fd8289f69ea27ad",
+    "crates/oc-tui/src/commands.rs": "31805effe5c52075f531eb863be0e5659b21c2b106a289410261a3232885376e",
+    "crates/oc-tui/src/compaction.rs": "189000dad49b61b292724db463ba6aa1745808a74548cb38668ef406d2a1ce90",
+    "crates/oc-tui/src/dcp_panel.rs": "fe2b7583d852baa92b31baf525c9c296a6e110bd1884517075fd07b63a734043",
+    "crates/oc-tui/src/dcp_view.rs": "40381297fa313ab32ed2492d678d9dc3fa185c2c103a55b3bc0b1d40df3063ba",
+    "crates/oc-tui/src/dialog.rs": "61612ec97be6beb3899d6dd5e8c6223e0f5cc367ce9b826baf4e74c2c0bcb643",
+    "crates/oc-tui/src/editor.rs": "d39c42ce8257997d57bc5bc0943473c557d13c60548ae37329302f7374d75419",
+    "crates/oc-tui/src/events.rs": "eb6ad9a23382f2597da219d51e6f63453f15b0722850f86efa6d9a250d6c8048",
+    "crates/oc-tui/src/fuzzy.rs": "31a520dd92402c5b3303c841ceba538fb0983ae6250d9efbd37792425cfa155f",
+    "crates/oc-tui/src/history.rs": "462feca8bf41855940dfe72297b2fc363f6c6293d84edfa3169e6d90ed164fd8",
+    "crates/oc-tui/src/layout.rs": "629485461c3d11f52dc048cd8ab10937fd68b98c3e435d2368c3933052e01c93",
+    "crates/oc-tui/src/lib.rs": "67e6d25ead7d8065f2986fbd0917dfadc16e0f95fe0cc8c6e1b980aa50043c42",
+    "crates/oc-tui/src/messages.rs": "333b373f68251232e1718a3ccaac70c3d4222fddc574c08edddd37046911a0d0",
+    "crates/oc-tui/src/patch_view.rs": "ca6b06d226c16e84f7c64faccaa698537e6c4f99156581e2dc7a1590df2110d0",
+    "crates/oc-tui/src/picker.rs": "c72eede20433c8a26faffa0a2643fb64b985d77e13dc158e50bb5a00c691255f",
+    "crates/oc-tui/src/scanner.rs": "1adc90a2bdb6ba42b7b86b6212d554f7d960ff4a2984cb43fa78ee88f4b592e6",
+    "crates/oc-tui/src/shell.rs": "faa67d6e415f49651ec395825c0ce910d65a46333db1d93798635d86765844ae",
+    "crates/oc-tui/src/smoke.rs": "3fd338f0ff7cbbe524e02c6e099c3a3e261a2239adf3e33935ee055012f064a7",
+    "crates/oc-tui/src/styled.rs": "a835fcf5857e5cbb0f12bb47f57d3a73ed18b4f9a2ccacbb2088d0e5899ea77b",
+    "crates/oc-tui/src/terminal.rs": "6adbe148c813c39b4e3b4fc7ed0f10cb3039c2e435d0fe97d3fb6a11d6289006",
+    "crates/oc-tui/src/theme.rs": "d42dd77557cb80c89e445b36073da2e4d01d51f2860998af1f8dc1fe3868cc6e",
+    "crates/oc-tui/src/tools.rs": "fd41cbbc8f6817bec64b480a4e941d382db2020cf384ff8dae9b422770214cff",
+    "crates/oc-tui/src/views.rs": "c169a9e1b90c19de9db4e8df0bb24a0a4a290a66bca711d89722b65b5f9d5bcc",
+    "crates/oc/Cargo.toml": "d06d1a6ae71b91640ec804d38b3fdcb868aa8294d14f0d2454b2c86ea070f140",
+    "crates/oc/src/approval_tests.rs": "b531639aaea0754c01a4abcd9405f090373e31f4da7f33b9a4096e2e6e5a33f7",
+    "crates/oc/src/bootstrap.rs": "f41c928abf3b232636a59f790be163bef4d78ed9f913eb7e4cfc7641f6029b86",
+    "crates/oc/src/cli.rs": "6e8ca52f0f33024d5e8c463bc5cf5b17c9f4ddcfad3e12c032a14fcdf210185f",
+    "crates/oc/src/clipboard.rs": "7152ab1d8fc1767b8d0048d0f8c20fd72b6fb236b978630f2b3af7bb143ca342",
+    "crates/oc/src/headless.rs": "9b9afbf09a867f584382b19b16a51f2f8a5f208b1485cdbd24b802293b76d898",
+    "crates/oc/src/main.rs": "212e5848911111de6c584afe9fbab15c04ab99cf8bdda8285d4005c281d5f222",
+    "crates/oc/src/tui_cmd.rs": "3dea6127d864745ac3c8671c70dc1ffd9e4f8038450d664a5e880597a0cfb747",
+    "crates/oc/tests/application.rs": "faf2d5d56b4de7e2029ddc8b74c9aa43357b73d758c7f1ad4a899a645b9b5718",
+    "crates/oc/tests/approval_binary.rs": "b0b7a4fe873aa7ae267cd8fb52497844ae0a789387ab09a9986679c7d6b69c62",
+    "crates/oc/tests/configured_workspace.rs": "cc2ac71c8e5bb6e84341d9af0a1c073125c404e5f755a98bda405a050804c047",
+    "crates/oc/tests/dcp_runtime.rs": "10a10661b100b4705582403531dff3f7c038e41867238045ef606ee57be47b71",
+    "crates/oc/tests/durability.rs": "ae7d528460b64b80919e873ab1356067654655de6a3772498cd22f09e9ce7590",
+    "crates/oc/tests/golden_binary.rs": "bc2cf88a5f20f658d316224846dd11b813f00fe717665637c173e37fb3277f87",
+    "crates/oc/tests/live_bounded.rs": "5b225b43421d5bbcf397b83fba7a3d55f20ae1752d4286ea62e649b42e17bfb7",
+    "crates/oc/tests/mcp_application.rs": "a080ebe5d522a10196a108dfdec14e785b9990ee5723f292402d6f2d4e3b6669",
+    "crates/oc/tests/memory_bounds.rs": "80f0bc51b5026bf6fe64dc88a72d6a66509502984aa274f1d08a44d8d46c0fd6",
+    "crates/oc/tests/pty.rs": "5ccb72bc231a23f34edf82e6a1b8b55669910e11b137954b8c5b33aaa3e48a93",
+    "crates/oc/tests/pty_t39.rs": "6e9caf7c2af8010d3599b577de12061cf375ed0113e712d736c5bcf61a8ed722",
+    "crates/oc/tests/pty_t42.rs": "d6b0da8cad6a1fdaaa111506eb284f04d71052d5ff56edd60e1990fb766733a7",
+    "crates/oc/tests/recovery_startup.rs": "90a08f425f8e22b4503f11bfa5bb6cf48aa61bfd2d330e127ebe723e6944f7e2",
+    "crates/oc/tests/recovery_v02.rs": "93ce3c0f203921e2c9f6787236322f6394f8a212deda77b1d3be194d2cba5e9e",
+    "crates/oc/tests/recovery_v03.rs": "754dccc76891e7a801cbab883fb734cbd71a102976772e592afc85321d192162",
+    "crates/oc/tests/responses.rs": "fd1b6e84fcb63a6728e9895abd18faa9e5d4456bc6c68253d2e1e2a125b64a73",
+    "crates/oc/tests/support/discovery_startup.py": "d7af7bb5d59161726a60e00f8007fdd64704c219b2c0e4fadf41a7605d77748c",
+    "crates/oc/tests/support/geometry.py": "fd33b20bf6373854309cecd80d5b917e882a27beba320b2ee25e05c470b218bc",
+    "crates/oc/tests/support/startup.py": "0db0ba1979d61cae56c58a3157bba3e961bb6d299c9b151a81adcf8d9f36b69d",
+    "crates/oc/tests/support/terminal.rs": "74ca1a73b2a18baab4c25bb17f7e225ac69246b2970f97eb7733d303bb78db89",
+    "crates/oc/tests/support/title.rs": "649fbc875c894a44cc2ec414659aa7f01f6952d8b9f6fb946ea77399af208937",
+    "crates/oc/tests/t49_live_smoke.rs": "75acbdb157fa4f333b6d4937676311cdc0c447c139a68ce4b93e8849db2f3ca8",
+    "crates/oc/tests/tui_render_alloc.rs": "257967ad8e12ea013ae5d08870ef7a26f420cd20dec59e3a80295e8ffa00366c",
+    "rust-toolchain.toml": "b364b7e44eff5aaa6f8f8357d2536dd284fe5af3c3a64eea4f6d0555d79c2c7a"
+  },
+  "native_source_changed": true
+}

@@ -1,0 +1,6231 @@
+{
+  "name": "upstream-160x48-off-horizontal-status",
+  "status": "PASS_BOUNDED_OWNER_AND_OBSERVATIONS",
+  "hover": [
+    {
+      "kind": "long",
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "width": 27,
+      "source_cycle_width": 57,
+      "overflow": true,
+      "target": {
+        "x": 5,
+        "y": 1
+      },
+      "busy": false,
+      "inactive": false,
+      "samples": [
+        {
+          "elapsed_ms": 56.556503000087105,
+          "source_elapsed_ms": 6.414707,
+          "source_at_ns": 1231078595977002,
+          "raw_byte_end": 97980,
+          "text": "VIS41 long-title abcdefghij",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 903.412124000024,
+          "source_elapsed_ms": 607.221685,
+          "source_at_ns": 1231079196783980,
+          "raw_byte_end": 98479,
+          "text": "IS41 long-title abcdefghijk",
+          "observed_source_offsets": [
+            1
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1750.7829609999899,
+          "source_elapsed_ms": 689.145654,
+          "source_at_ns": 1231079278707949,
+          "raw_byte_end": 98978,
+          "text": "S41 long-title abcdefghijkl",
+          "observed_source_offsets": [
+            2
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2596.0259729999816,
+          "source_elapsed_ms": 2540.742586,
+          "source_at_ns": 1231081130304881,
+          "raw_byte_end": 110455,
+          "text": "ijklmnopqrstuvwxyz 01234567",
+          "observed_source_offsets": [
+            25
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2657.908326999983,
+          "source_elapsed_ms": 2620.827376,
+          "source_at_ns": 1231081210389671,
+          "raw_byte_end": 110954,
+          "text": "jklmnopqrstuvwxyz 012345678",
+          "observed_source_offsets": [
+            26
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2744.492431999999,
+          "source_elapsed_ms": 2701.141811,
+          "source_at_ns": 1231081290704106,
+          "raw_byte_end": 111453,
+          "text": "klmnopqrstuvwxyz 0123456789",
+          "observed_source_offsets": [
+            27
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2838.6714230000507,
+          "source_elapsed_ms": 2785.200625,
+          "source_at_ns": 1231081374762920,
+          "raw_byte_end": 111952,
+          "text": "lmnopqrstuvwxyz 0123456789 ",
+          "observed_source_offsets": [
+            28
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2900.5810579999816,
+          "source_elapsed_ms": 2865.283633,
+          "source_at_ns": 1231081454845928,
+          "raw_byte_end": 112452,
+          "text": "mnopqrstuvwxyz 0123456789 ·",
+          "observed_source_offsets": [
+            29
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2980.5696020000614,
+          "source_elapsed_ms": 2946.174737,
+          "source_at_ns": 1231081535737032,
+          "raw_byte_end": 112952,
+          "text": "nopqrstuvwxyz 0123456789 · ",
+          "observed_source_offsets": [
+            30
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3066.28636300005,
+          "source_elapsed_ms": 3025.271889,
+          "source_at_ns": 1231081614834184,
+          "raw_byte_end": 113449,
+          "text": "opqrstuvwxyz 0123456789 · V",
+          "observed_source_offsets": [
+            31
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3134.932869000011,
+          "source_elapsed_ms": 3105.365732,
+          "source_at_ns": 1231081694928027,
+          "raw_byte_end": 113949,
+          "text": "pqrstuvwxyz 0123456789 · VI",
+          "observed_source_offsets": [
+            32
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3225.954596000025,
+          "source_elapsed_ms": 3188.020702,
+          "source_at_ns": 1231081777582997,
+          "raw_byte_end": 114499,
+          "text": "qrstuvwxyz 0123456789 · VIS",
+          "observed_source_offsets": [
+            33
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3314.775260000024,
+          "source_elapsed_ms": 3268.05049,
+          "source_at_ns": 1231081857612785,
+          "raw_byte_end": 115099,
+          "text": "rstuvwxyz 0123456789 · VIS4",
+          "observed_source_offsets": [
+            34
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3386.2119090000633,
+          "source_elapsed_ms": 3350.535213,
+          "source_at_ns": 1231081940097508,
+          "raw_byte_end": 115699,
+          "text": "stuvwxyz 0123456789 · VIS41",
+          "observed_source_offsets": [
+            35
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3470.0353880000766,
+          "source_elapsed_ms": 3429.836964,
+          "source_at_ns": 1231082019399259,
+          "raw_byte_end": 116299,
+          "text": "tuvwxyz 0123456789 · VIS41 ",
+          "observed_source_offsets": [
+            36
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3546.554920000024,
+          "source_elapsed_ms": 3510.386072,
+          "source_at_ns": 1231082099948367,
+          "raw_byte_end": 116899,
+          "text": "uvwxyz 0123456789 · VIS41 l",
+          "observed_source_offsets": [
+            37
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3628.9161070000846,
+          "source_elapsed_ms": 3590.0175,
+          "source_at_ns": 1231082179579795,
+          "raw_byte_end": 117499,
+          "text": "vwxyz 0123456789 · VIS41 lo",
+          "observed_source_offsets": [
+            38
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3709.3131170000415,
+          "source_elapsed_ms": 3670.061348,
+          "source_at_ns": 1231082259623643,
+          "raw_byte_end": 118099,
+          "text": "wxyz 0123456789 · VIS41 lon",
+          "observed_source_offsets": [
+            39
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3801.1323750000447,
+          "source_elapsed_ms": 3758.750743,
+          "source_at_ns": 1231082348313038,
+          "raw_byte_end": 118699,
+          "text": "xyz 0123456789 · VIS41 long",
+          "observed_source_offsets": [
+            40
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3872.9005830000388,
+          "source_elapsed_ms": 3837.688226,
+          "source_at_ns": 1231082427250521,
+          "raw_byte_end": 119299,
+          "text": "yz 0123456789 · VIS41 long-",
+          "observed_source_offsets": [
+            41
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3962.382581999991,
+          "source_elapsed_ms": 3917.710321,
+          "source_at_ns": 1231082507272616,
+          "raw_byte_end": 119899,
+          "text": "z 0123456789 · VIS41 long-t",
+          "observed_source_offsets": [
+            42
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4036.3468170000706,
+          "source_elapsed_ms": 3997.930525,
+          "source_at_ns": 1231082587492820,
+          "raw_byte_end": 120499,
+          "text": " 0123456789 · VIS41 long-ti",
+          "observed_source_offsets": [
+            43
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4113.13534300006,
+          "source_elapsed_ms": 4079.989417,
+          "source_at_ns": 1231082669551712,
+          "raw_byte_end": 121099,
+          "text": "0123456789 · VIS41 long-tit",
+          "observed_source_offsets": [
+            44
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4210.781784999999,
+          "source_elapsed_ms": 4160.332878,
+          "source_at_ns": 1231082749895173,
+          "raw_byte_end": 121699,
+          "text": "123456789 · VIS41 long-titl",
+          "observed_source_offsets": [
+            45
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4288.266941000009,
+          "source_elapsed_ms": 4240.281311,
+          "source_at_ns": 1231082829843606,
+          "raw_byte_end": 122299,
+          "text": "23456789 · VIS41 long-title",
+          "observed_source_offsets": [
+            46
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4367.902254000073,
+          "source_elapsed_ms": 4320.498391,
+          "source_at_ns": 1231082910060686,
+          "raw_byte_end": 122899,
+          "text": "3456789 · VIS41 long-title ",
+          "observed_source_offsets": [
+            47
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4446.571422000066,
+          "source_elapsed_ms": 4400.746387,
+          "source_at_ns": 1231082990308682,
+          "raw_byte_end": 123499,
+          "text": "456789 · VIS41 long-title a",
+          "observed_source_offsets": [
+            48
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4513.662138000014,
+          "source_elapsed_ms": 4481.030947,
+          "source_at_ns": 1231083070593242,
+          "raw_byte_end": 124099,
+          "text": "56789 · VIS41 long-title ab",
+          "observed_source_offsets": [
+            49
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4602.546977000078,
+          "source_elapsed_ms": 4560.871368,
+          "source_at_ns": 1231083150433663,
+          "raw_byte_end": 124698,
+          "text": "6789 · VIS41 long-title abc",
+          "observed_source_offsets": [
+            50
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4673.392885999987,
+          "source_elapsed_ms": 4640.793304,
+          "source_at_ns": 1231083230355599,
+          "raw_byte_end": 125247,
+          "text": "789 · VIS41 long-title abcd",
+          "observed_source_offsets": [
+            51
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4768.9557410000125,
+          "source_elapsed_ms": 4725.099159,
+          "source_at_ns": 1231083314661454,
+          "raw_byte_end": 125747,
+          "text": "89 · VIS41 long-title abcde",
+          "observed_source_offsets": [
+            52
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4841.538535000058,
+          "source_elapsed_ms": 4806.482254,
+          "source_at_ns": 1231083396044549,
+          "raw_byte_end": 126244,
+          "text": "9 · VIS41 long-title abcdef",
+          "observed_source_offsets": [
+            53
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4928.550536000053,
+          "source_elapsed_ms": 4884.841024,
+          "source_at_ns": 1231083474403319,
+          "raw_byte_end": 126744,
+          "text": " · VIS41 long-title abcdefg",
+          "observed_source_offsets": [
+            54
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 5804.026838000049,
+          "source_elapsed_ms": 5125.225079,
+          "source_at_ns": 1231083714787374,
+          "raw_byte_end": 128052,
+          "text": "VIS41 long-title abcdefghij",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ],
+      "captures": [
+        {
+          "offset": 1,
+          "elapsed_ms": 903.412124000024,
+          "source_elapsed_ms": 607.221685
+        },
+        {
+          "offset": 2,
+          "elapsed_ms": 1750.7829609999899,
+          "source_elapsed_ms": 689.145654
+        },
+        {
+          "offset": 54,
+          "elapsed_ms": 4928.550536000053,
+          "source_elapsed_ms": 4884.841024
+        }
+      ],
+      "first_changed_ms": 903.412124000024,
+      "changed": true,
+      "returned_to_entered_text": true,
+      "exactly_one_pointer_input": true,
+      "owner_rows_unchanged": true,
+      "requests_unchanged": true,
+      "project_unchanged": true,
+      "idle": "long-idle",
+      "checks_ok": true
+    },
+    {
+      "kind": "unicode",
+      "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "width": 27,
+      "source_cycle_width": 49,
+      "overflow": true,
+      "target": {
+        "x": 5,
+        "y": 1
+      },
+      "busy": false,
+      "inactive": false,
+      "samples": [
+        {
+          "elapsed_ms": 53.91414699994493,
+          "source_elapsed_ms": 3.284555,
+          "source_at_ns": 1231094371477555,
+          "raw_byte_end": 157471,
+          "text": "VIS41 Plan 🧭 日本語 é · ti",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 984.4009059999371,
+          "source_elapsed_ms": 604.386936,
+          "source_at_ns": 1231094972579936,
+          "raw_byte_end": 158178,
+          "text": "IS41 Plan 🧭 日本語 é · tit",
+          "observed_source_offsets": [
+            1
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1811.9228449999355,
+          "source_elapsed_ms": 684.808774,
+          "source_at_ns": 1231095053001774,
+          "raw_byte_end": 158885,
+          "text": "S41 Plan 🧭 日本語 é · titl",
+          "observed_source_offsets": [
+            2
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2677.3094869999913,
+          "source_elapsed_ms": 2623.466377,
+          "source_at_ns": 1231096991659377,
+          "raw_byte_end": 170867,
+          "text": "itle for the release · VIS4",
+          "observed_source_offsets": [
+            26
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2754.142491000006,
+          "source_elapsed_ms": 2704.41722,
+          "source_at_ns": 1231097072610220,
+          "raw_byte_end": 171467,
+          "text": "tle for the release · VIS41",
+          "observed_source_offsets": [
+            27
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2822.2260709999828,
+          "source_elapsed_ms": 2785.693194,
+          "source_at_ns": 1231097153886194,
+          "raw_byte_end": 172067,
+          "text": "le for the release · VIS41 ",
+          "observed_source_offsets": [
+            28
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2909.6043519999366,
+          "source_elapsed_ms": 2864.871769,
+          "source_at_ns": 1231097233064769,
+          "raw_byte_end": 172667,
+          "text": "e for the release · VIS41 P",
+          "observed_source_offsets": [
+            29
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2984.5745909999823,
+          "source_elapsed_ms": 2953.234813,
+          "source_at_ns": 1231097321427813,
+          "raw_byte_end": 173267,
+          "text": " for the release · VIS41 Pl",
+          "observed_source_offsets": [
+            30
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3069.089520999929,
+          "source_elapsed_ms": 3027.136293,
+          "source_at_ns": 1231097395329293,
+          "raw_byte_end": 173867,
+          "text": "for the release · VIS41 Pla",
+          "observed_source_offsets": [
+            31
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3151.1296950000105,
+          "source_elapsed_ms": 3106.729383,
+          "source_at_ns": 1231097474922383,
+          "raw_byte_end": 174467,
+          "text": "or the release · VIS41 Plan",
+          "observed_source_offsets": [
+            32
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3232.4435749999247,
+          "source_elapsed_ms": 3186.778959,
+          "source_at_ns": 1231097554971959,
+          "raw_byte_end": 175067,
+          "text": "r the release · VIS41 Plan ",
+          "observed_source_offsets": [
+            33,
+            34
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3302.0334729999304,
+          "source_elapsed_ms": 3266.9902,
+          "source_at_ns": 1231097635183200,
+          "raw_byte_end": 175713,
+          "text": " the release · VIS41 Plan  ",
+          "observed_source_offsets": [
+            34
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3389.1351179999765,
+          "source_elapsed_ms": 3350.080735,
+          "source_at_ns": 1231097718273735,
+          "raw_byte_end": 176315,
+          "text": "the release · VIS41 Plan 🧭",
+          "observed_source_offsets": [
+            35
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3464.517618999933,
+          "source_elapsed_ms": 3429.37234,
+          "source_at_ns": 1231097797565340,
+          "raw_byte_end": 176917,
+          "text": "he release · VIS41 Plan 🧭 ",
+          "observed_source_offsets": [
+            36,
+            37
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3562.4536760000046,
+          "source_elapsed_ms": 3509.736991,
+          "source_at_ns": 1231097877929991,
+          "raw_byte_end": 177565,
+          "text": "e release · VIS41 Plan 🧭  ",
+          "observed_source_offsets": [
+            37
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3632.8298680000007,
+          "source_elapsed_ms": 3590.460563,
+          "source_at_ns": 1231097958653563,
+          "raw_byte_end": 178168,
+          "text": " release · VIS41 Plan 🧭 日",
+          "observed_source_offsets": [
+            38,
+            39
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3724.0357219999423,
+          "source_elapsed_ms": 3671.269754,
+          "source_at_ns": 1231098039462754,
+          "raw_byte_end": 178817,
+          "text": "release · VIS41 Plan 🧭 日 ",
+          "observed_source_offsets": [
+            39
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3802.8315709999297,
+          "source_elapsed_ms": 3752.170182,
+          "source_at_ns": 1231098120363182,
+          "raw_byte_end": 179421,
+          "text": "elease · VIS41 Plan 🧭 日本",
+          "observed_source_offsets": [
+            40,
+            41
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3879.5331669999287,
+          "source_elapsed_ms": 3831.788458,
+          "source_at_ns": 1231098199981458,
+          "raw_byte_end": 180071,
+          "text": "lease · VIS41 Plan 🧭 日本 ",
+          "observed_source_offsets": [
+            41
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3949.569737999933,
+          "source_elapsed_ms": 3912.009495,
+          "source_at_ns": 1231098280202495,
+          "raw_byte_end": 180675,
+          "text": "ease · VIS41 Plan 🧭 日本語",
+          "observed_source_offsets": [
+            42
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4039.7154859999428,
+          "source_elapsed_ms": 4001.793759,
+          "source_at_ns": 1231098369986759,
+          "raw_byte_end": 181279,
+          "text": "ase · VIS41 Plan 🧭 日本語 ",
+          "observed_source_offsets": [
+            43
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4133.749598999973,
+          "source_elapsed_ms": 4082.551992,
+          "source_at_ns": 1231098450744992,
+          "raw_byte_end": 181836,
+          "text": "se · VIS41 Plan 🧭 日本語 é",
+          "observed_source_offsets": [
+            44
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4207.489545000019,
+          "source_elapsed_ms": 4161.517006,
+          "source_at_ns": 1231098529710006,
+          "raw_byte_end": 182440,
+          "text": "e · VIS41 Plan 🧭 日本語 é ",
+          "observed_source_offsets": [
+            45
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4292.4437769999495,
+          "source_elapsed_ms": 4241.813224,
+          "source_at_ns": 1231098610006224,
+          "raw_byte_end": 183098,
+          "text": " · VIS41 Plan 🧭 日本語 é ·",
+          "observed_source_offsets": [
+            46
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 5263.2262769999215,
+          "source_elapsed_ms": 4489.322937,
+          "source_at_ns": 1231098857515937,
+          "raw_byte_end": 185030,
+          "text": "VIS41 Plan 🧭 日本語 é · ti",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ],
+      "captures": [
+        {
+          "offset": 1,
+          "elapsed_ms": 984.4009059999371,
+          "source_elapsed_ms": 604.386936
+        },
+        {
+          "offset": 2,
+          "elapsed_ms": 1811.9228449999355,
+          "source_elapsed_ms": 684.808774
+        },
+        {
+          "offset": 46,
+          "elapsed_ms": 4292.4437769999495,
+          "source_elapsed_ms": 4241.813224
+        }
+      ],
+      "first_changed_ms": 984.4009059999371,
+      "changed": true,
+      "returned_to_entered_text": true,
+      "exactly_one_pointer_input": true,
+      "owner_rows_unchanged": true,
+      "requests_unchanged": true,
+      "project_unchanged": true,
+      "idle": "unicode-idle",
+      "checks_ok": true
+    },
+    {
+      "kind": "short",
+      "title": "Short-A",
+      "width": 27,
+      "source_cycle_width": 10,
+      "overflow": false,
+      "target": {
+        "x": 5,
+        "y": 1
+      },
+      "busy": false,
+      "inactive": false,
+      "samples": [
+        {
+          "elapsed_ms": 45.18462299997918,
+          "source_elapsed_ms": 2.484641,
+          "source_at_ns": 1231109896036560,
+          "raw_byte_end": 214756,
+          "text": "Short-A                    ",
+          "observed_source_offsets": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ],
+      "captures": [],
+      "first_changed_ms": null,
+      "changed": false,
+      "returned_to_entered_text": true,
+      "exactly_one_pointer_input": true,
+      "owner_rows_unchanged": true,
+      "requests_unchanged": true,
+      "project_unchanged": true,
+      "idle": "short-idle",
+      "checks_ok": true
+    },
+    {
+      "kind": "exact",
+      "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "width": 27,
+      "source_cycle_width": 30,
+      "overflow": false,
+      "target": {
+        "x": 5,
+        "y": 1
+      },
+      "busy": false,
+      "inactive": false,
+      "samples": [
+        {
+          "elapsed_ms": 45.48416299989913,
+          "source_elapsed_ms": 3.313969,
+          "source_at_ns": 1231122003345286,
+          "raw_byte_end": 242513,
+          "text": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+          "observed_source_offsets": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ],
+      "captures": [],
+      "first_changed_ms": null,
+      "changed": false,
+      "returned_to_entered_text": true,
+      "exactly_one_pointer_input": true,
+      "owner_rows_unchanged": true,
+      "requests_unchanged": true,
+      "project_unchanged": true,
+      "idle": "exact-idle",
+      "checks_ok": true
+    },
+    {
+      "kind": "restfit",
+      "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "width": 27,
+      "source_cycle_width": 31,
+      "overflow": true,
+      "target": {
+        "x": 5,
+        "y": 1
+      },
+      "busy": false,
+      "inactive": false,
+      "samples": [
+        {
+          "elapsed_ms": 37.208903999999166,
+          "source_elapsed_ms": 4.225793,
+          "source_at_ns": 1231133997592693,
+          "raw_byte_end": 270443,
+          "text": "Restfit-RRRRRRRRRRRRRRRRRRR",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 874.2381359999999,
+          "source_elapsed_ms": 771.45459,
+          "source_at_ns": 1231134764821490,
+          "raw_byte_end": 271443,
+          "text": "tfit-RRRRRRRRRRRRRRRRRRRR ·",
+          "observed_source_offsets": [
+            3
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 903.4034700000193,
+          "source_elapsed_ms": 853.224157,
+          "source_at_ns": 1231134846591057,
+          "raw_byte_end": 271874,
+          "text": "fit-RRRRRRRRRRRRRRRRRRRR · ",
+          "observed_source_offsets": [
+            4
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 960.0854619999882,
+          "source_elapsed_ms": 931.588466,
+          "source_at_ns": 1231134924955366,
+          "raw_byte_end": 272303,
+          "text": "it-RRRRRRRRRRRRRRRRRRRR · R",
+          "observed_source_offsets": [
+            5
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1043.3003249999601,
+          "source_elapsed_ms": 1011.840437,
+          "source_at_ns": 1231135005207337,
+          "raw_byte_end": 272736,
+          "text": "t-RRRRRRRRRRRRRRRRRRRR · Re",
+          "observed_source_offsets": [
+            6
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1123.2399860000005,
+          "source_elapsed_ms": 1092.042914,
+          "source_at_ns": 1231135085409814,
+          "raw_byte_end": 273170,
+          "text": "-RRRRRRRRRRRRRRRRRRRR · Res",
+          "observed_source_offsets": [
+            7
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1209.6723229999188,
+          "source_elapsed_ms": 1174.737913,
+          "source_at_ns": 1231135168104813,
+          "raw_byte_end": 273608,
+          "text": "RRRRRRRRRRRRRRRRRRRR · Rest",
+          "observed_source_offsets": [
+            8
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1283.7704290000256,
+          "source_elapsed_ms": 1252.424862,
+          "source_at_ns": 1231135245791762,
+          "raw_byte_end": 274000,
+          "text": "RRRRRRRRRRRRRRRRRRR · Restf",
+          "observed_source_offsets": [
+            9
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1369.2073059999384,
+          "source_elapsed_ms": 1333.343828,
+          "source_at_ns": 1231135326710728,
+          "raw_byte_end": 274393,
+          "text": "RRRRRRRRRRRRRRRRRR · Restfi",
+          "observed_source_offsets": [
+            10
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1450.6709719999926,
+          "source_elapsed_ms": 1419.654302,
+          "source_at_ns": 1231135413021202,
+          "raw_byte_end": 274787,
+          "text": "RRRRRRRRRRRRRRRRR · Restfit",
+          "observed_source_offsets": [
+            11
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1533.7668650000123,
+          "source_elapsed_ms": 1500.009808,
+          "source_at_ns": 1231135493376708,
+          "raw_byte_end": 275182,
+          "text": "RRRRRRRRRRRRRRRR · Restfit-",
+          "observed_source_offsets": [
+            12
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1615.752387000015,
+          "source_elapsed_ms": 1578.264242,
+          "source_at_ns": 1231135571631142,
+          "raw_byte_end": 275578,
+          "text": "RRRRRRRRRRRRRRR · Restfit-R",
+          "observed_source_offsets": [
+            13
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1689.092451000004,
+          "source_elapsed_ms": 1658.134529,
+          "source_at_ns": 1231135651501429,
+          "raw_byte_end": 275927,
+          "text": "RRRRRRRRRRRRRR · Restfit-RR",
+          "observed_source_offsets": [
+            14
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1772.6407650000183,
+          "source_elapsed_ms": 1738.104446,
+          "source_at_ns": 1231135731471346,
+          "raw_byte_end": 276229,
+          "text": "RRRRRRRRRRRRR · Restfit-RRR",
+          "observed_source_offsets": [
+            15
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1853.9404249999207,
+          "source_elapsed_ms": 1819.061939,
+          "source_at_ns": 1231135812428839,
+          "raw_byte_end": 276481,
+          "text": "RRRRRRRRRRRR · Restfit-RRRR",
+          "observed_source_offsets": [
+            16
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1932.1412169999676,
+          "source_elapsed_ms": 1898.498874,
+          "source_at_ns": 1231135891865774,
+          "raw_byte_end": 276683,
+          "text": "RRRRRRRRRRR · Restfit-RRRRR",
+          "observed_source_offsets": [
+            17
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2009.3100769999437,
+          "source_elapsed_ms": 1978.936024,
+          "source_at_ns": 1231135972302924,
+          "raw_byte_end": 276885,
+          "text": "RRRRRRRRRR · Restfit-RRRRRR",
+          "observed_source_offsets": [
+            18
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2087.8987130000023,
+          "source_elapsed_ms": 2058.779711,
+          "source_at_ns": 1231136052146611,
+          "raw_byte_end": 277087,
+          "text": "RRRRRRRRR · Restfit-RRRRRRR",
+          "observed_source_offsets": [
+            19
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2168.886020999984,
+          "source_elapsed_ms": 2138.861325,
+          "source_at_ns": 1231136132228225,
+          "raw_byte_end": 277289,
+          "text": "RRRRRRRR · Restfit-RRRRRRRR",
+          "observed_source_offsets": [
+            20
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2250.18591999996,
+          "source_elapsed_ms": 2219.304855,
+          "source_at_ns": 1231136212671755,
+          "raw_byte_end": 277491,
+          "text": "RRRRRRR · Restfit-RRRRRRRRR",
+          "observed_source_offsets": [
+            21
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2329.0023899999214,
+          "source_elapsed_ms": 2299.955456,
+          "source_at_ns": 1231136293322356,
+          "raw_byte_end": 277693,
+          "text": "RRRRRR · Restfit-RRRRRRRRRR",
+          "observed_source_offsets": [
+            22
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2422.5186039999826,
+          "source_elapsed_ms": 2382.529344,
+          "source_at_ns": 1231136375896244,
+          "raw_byte_end": 277894,
+          "text": "RRRRR · Restfit-RRRRRRRRRRR",
+          "observed_source_offsets": [
+            23
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2498.205811999971,
+          "source_elapsed_ms": 2462.411508,
+          "source_at_ns": 1231136455778408,
+          "raw_byte_end": 278094,
+          "text": "RRRR · Restfit-RRRRRRRRRRRR",
+          "observed_source_offsets": [
+            24
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2572.34652199992,
+          "source_elapsed_ms": 2542.734627,
+          "source_at_ns": 1231136536101527,
+          "raw_byte_end": 278293,
+          "text": "RRR · Restfit-RRRRRRRRRRRRR",
+          "observed_source_offsets": [
+            25
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2662.7294059999986,
+          "source_elapsed_ms": 2622.778686,
+          "source_at_ns": 1231136616145586,
+          "raw_byte_end": 278492,
+          "text": "RR · Restfit-RRRRRRRRRRRRRR",
+          "observed_source_offsets": [
+            26
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2736.6321289999178,
+          "source_elapsed_ms": 2703.02013,
+          "source_at_ns": 1231136696387030,
+          "raw_byte_end": 278734,
+          "text": "R · Restfit-RRRRRRRRRRRRRRR",
+          "observed_source_offsets": [
+            27
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2820.2040280000074,
+          "source_elapsed_ms": 2784.059247,
+          "source_at_ns": 1231136777426147,
+          "raw_byte_end": 279025,
+          "text": " · Restfit-RRRRRRRRRRRRRRRR",
+          "observed_source_offsets": [
+            28
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3691.0830670000287,
+          "source_elapsed_ms": 3026.748281,
+          "source_at_ns": 1231137020115181,
+          "raw_byte_end": 279700,
+          "text": "Restfit-RRRRRRRRRRRRRRRRRRR",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ],
+      "captures": [
+        {
+          "offset": 28,
+          "elapsed_ms": 2820.2040280000074,
+          "source_elapsed_ms": 2784.059247
+        }
+      ],
+      "first_changed_ms": 874.2381359999999,
+      "changed": true,
+      "returned_to_entered_text": true,
+      "exactly_one_pointer_input": true,
+      "owner_rows_unchanged": true,
+      "requests_unchanged": true,
+      "project_unchanged": true,
+      "idle": "restfit-idle",
+      "checks_ok": true
+    },
+    {
+      "kind": "inactive",
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "width": 27,
+      "source_cycle_width": 57,
+      "overflow": true,
+      "target": {
+        "x": 5,
+        "y": 1
+      },
+      "busy": false,
+      "inactive": true,
+      "samples": [
+        {
+          "elapsed_ms": 43.84475500008557,
+          "source_elapsed_ms": 2.675989,
+          "source_at_ns": 1231147255401509,
+          "raw_byte_end": 311428,
+          "text": "VIS41 long-title abcdefghij",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 947.0318360000383,
+          "source_elapsed_ms": 604.015256,
+          "source_at_ns": 1231147856740776,
+          "raw_byte_end": 311891,
+          "text": "IS41 long-title abcdefghijk",
+          "observed_source_offsets": [
+            1
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1783.013741999981,
+          "source_elapsed_ms": 685.311619,
+          "source_at_ns": 1231147938037139,
+          "raw_byte_end": 312354,
+          "text": "S41 long-title abcdefghijkl",
+          "observed_source_offsets": [
+            2
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2597.9608860000735,
+          "source_elapsed_ms": 2552.61425,
+          "source_at_ns": 1231149805339770,
+          "raw_byte_end": 323003,
+          "text": "ijklmnopqrstuvwxyz 01234567",
+          "observed_source_offsets": [
+            25
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2668.159489999991,
+          "source_elapsed_ms": 2632.648123,
+          "source_at_ns": 1231149885373643,
+          "raw_byte_end": 323466,
+          "text": "jklmnopqrstuvwxyz 012345678",
+          "observed_source_offsets": [
+            26
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2741.9915260000853,
+          "source_elapsed_ms": 2712.612101,
+          "source_at_ns": 1231149965337621,
+          "raw_byte_end": 323929,
+          "text": "klmnopqrstuvwxyz 0123456789",
+          "observed_source_offsets": [
+            27
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2826.466586000053,
+          "source_elapsed_ms": 2793.406438,
+          "source_at_ns": 1231150046131958,
+          "raw_byte_end": 324392,
+          "text": "lmnopqrstuvwxyz 0123456789 ",
+          "observed_source_offsets": [
+            28
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2904.9173140000785,
+          "source_elapsed_ms": 2873.418539,
+          "source_at_ns": 1231150126144059,
+          "raw_byte_end": 324856,
+          "text": "mnopqrstuvwxyz 0123456789 ·",
+          "observed_source_offsets": [
+            29
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2992.995740000042,
+          "source_elapsed_ms": 2956.212747,
+          "source_at_ns": 1231150208938267,
+          "raw_byte_end": 325320,
+          "text": "nopqrstuvwxyz 0123456789 · ",
+          "observed_source_offsets": [
+            30
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3069.4819610000122,
+          "source_elapsed_ms": 3039.37425,
+          "source_at_ns": 1231150292099770,
+          "raw_byte_end": 325781,
+          "text": "opqrstuvwxyz 0123456789 · V",
+          "observed_source_offsets": [
+            31
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3151.6770879999967,
+          "source_elapsed_ms": 3120.746368,
+          "source_at_ns": 1231150373471888,
+          "raw_byte_end": 326242,
+          "text": "pqrstuvwxyz 0123456789 · VI",
+          "observed_source_offsets": [
+            32
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3235.8793370000785,
+          "source_elapsed_ms": 3199.975579,
+          "source_at_ns": 1231150452701099,
+          "raw_byte_end": 326752,
+          "text": "qrstuvwxyz 0123456789 · VIS",
+          "observed_source_offsets": [
+            33
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3310.7305170000764,
+          "source_elapsed_ms": 3280.071014,
+          "source_at_ns": 1231150532796534,
+          "raw_byte_end": 327308,
+          "text": "rstuvwxyz 0123456789 · VIS4",
+          "observed_source_offsets": [
+            34
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3389.463028999977,
+          "source_elapsed_ms": 3360.442445,
+          "source_at_ns": 1231150613167965,
+          "raw_byte_end": 327864,
+          "text": "stuvwxyz 0123456789 · VIS41",
+          "observed_source_offsets": [
+            35
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3485.590784,
+          "source_elapsed_ms": 3440.506464,
+          "source_at_ns": 1231150693231984,
+          "raw_byte_end": 328420,
+          "text": "tuvwxyz 0123456789 · VIS41 ",
+          "observed_source_offsets": [
+            36
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3559.9613100000424,
+          "source_elapsed_ms": 3521.928597,
+          "source_at_ns": 1231150774654117,
+          "raw_byte_end": 328976,
+          "text": "uvwxyz 0123456789 · VIS41 l",
+          "observed_source_offsets": [
+            37
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3641.5873210000573,
+          "source_elapsed_ms": 3601.17908,
+          "source_at_ns": 1231150853904600,
+          "raw_byte_end": 329532,
+          "text": "vwxyz 0123456789 · VIS41 lo",
+          "observed_source_offsets": [
+            38
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3710.8972470000153,
+          "source_elapsed_ms": 3681.26414,
+          "source_at_ns": 1231150933989660,
+          "raw_byte_end": 330088,
+          "text": "wxyz 0123456789 · VIS41 lon",
+          "observed_source_offsets": [
+            39
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3791.638804999995,
+          "source_elapsed_ms": 3761.382039,
+          "source_at_ns": 1231151014107559,
+          "raw_byte_end": 330644,
+          "text": "xyz 0123456789 · VIS41 long",
+          "observed_source_offsets": [
+            40
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3870.3873519999906,
+          "source_elapsed_ms": 3841.810917,
+          "source_at_ns": 1231151094536437,
+          "raw_byte_end": 331200,
+          "text": "yz 0123456789 · VIS41 long-",
+          "observed_source_offsets": [
+            41
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3951.2015900000697,
+          "source_elapsed_ms": 3921.49266,
+          "source_at_ns": 1231151174218180,
+          "raw_byte_end": 331756,
+          "text": "z 0123456789 · VIS41 long-t",
+          "observed_source_offsets": [
+            42
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4037.6226000000024,
+          "source_elapsed_ms": 4001.836429,
+          "source_at_ns": 1231151254561949,
+          "raw_byte_end": 332312,
+          "text": " 0123456789 · VIS41 long-ti",
+          "observed_source_offsets": [
+            43
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4117.93339999998,
+          "source_elapsed_ms": 4084.16705,
+          "source_at_ns": 1231151336892570,
+          "raw_byte_end": 332868,
+          "text": "0123456789 · VIS41 long-tit",
+          "observed_source_offsets": [
+            44
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4205.256466999999,
+          "source_elapsed_ms": 4167.605028,
+          "source_at_ns": 1231151420330548,
+          "raw_byte_end": 333424,
+          "text": "123456789 · VIS41 long-titl",
+          "observed_source_offsets": [
+            45
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4285.079652999993,
+          "source_elapsed_ms": 4247.903499,
+          "source_at_ns": 1231151500629019,
+          "raw_byte_end": 333980,
+          "text": "23456789 · VIS41 long-title",
+          "observed_source_offsets": [
+            46
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4368.004508999991,
+          "source_elapsed_ms": 4327.497761,
+          "source_at_ns": 1231151580223281,
+          "raw_byte_end": 334536,
+          "text": "3456789 · VIS41 long-title ",
+          "observed_source_offsets": [
+            47
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4442.561636000057,
+          "source_elapsed_ms": 4407.66896,
+          "source_at_ns": 1231151660394480,
+          "raw_byte_end": 335092,
+          "text": "456789 · VIS41 long-title a",
+          "observed_source_offsets": [
+            48
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4534.920997000067,
+          "source_elapsed_ms": 4491.972051,
+          "source_at_ns": 1231151744697571,
+          "raw_byte_end": 335648,
+          "text": "56789 · VIS41 long-title ab",
+          "observed_source_offsets": [
+            49
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4599.30278300005,
+          "source_elapsed_ms": 4567.931129,
+          "source_at_ns": 1231151820656649,
+          "raw_byte_end": 336203,
+          "text": "6789 · VIS41 long-title abc",
+          "observed_source_offsets": [
+            50
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4685.825426000054,
+          "source_elapsed_ms": 4648.152715,
+          "source_at_ns": 1231151900878235,
+          "raw_byte_end": 336712,
+          "text": "789 · VIS41 long-title abcd",
+          "observed_source_offsets": [
+            51
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4773.5097770000575,
+          "source_elapsed_ms": 4727.867446,
+          "source_at_ns": 1231151980592966,
+          "raw_byte_end": 337173,
+          "text": "89 · VIS41 long-title abcde",
+          "observed_source_offsets": [
+            52
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4855.819678000058,
+          "source_elapsed_ms": 4810.325079,
+          "source_at_ns": 1231152063050599,
+          "raw_byte_end": 337634,
+          "text": "9 · VIS41 long-title abcdef",
+          "observed_source_offsets": [
+            53
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4947.635400000028,
+          "source_elapsed_ms": 4888.336096,
+          "source_at_ns": 1231152141061616,
+          "raw_byte_end": 338098,
+          "text": " · VIS41 long-title abcdefg",
+          "observed_source_offsets": [
+            54
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 5814.476398000028,
+          "source_elapsed_ms": 5140.789341,
+          "source_at_ns": 1231152393514861,
+          "raw_byte_end": 339314,
+          "text": "VIS41 long-title abcdefghij",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ],
+      "captures": [
+        {
+          "offset": 1,
+          "elapsed_ms": 947.0318360000383,
+          "source_elapsed_ms": 604.015256
+        },
+        {
+          "offset": 2,
+          "elapsed_ms": 1783.013741999981,
+          "source_elapsed_ms": 685.311619
+        },
+        {
+          "offset": 54,
+          "elapsed_ms": 4947.635400000028,
+          "source_elapsed_ms": 4888.336096
+        }
+      ],
+      "first_changed_ms": 947.0318360000383,
+      "changed": true,
+      "returned_to_entered_text": true,
+      "exactly_one_pointer_input": true,
+      "owner_rows_unchanged": true,
+      "requests_unchanged": true,
+      "project_unchanged": true,
+      "idle": "inactive-idle",
+      "checks_ok": true
+    },
+    {
+      "kind": "busy",
+      "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "width": 27,
+      "source_cycle_width": 57,
+      "overflow": true,
+      "target": {
+        "x": 5,
+        "y": 1
+      },
+      "busy": true,
+      "inactive": false,
+      "samples": [
+        {
+          "elapsed_ms": 56.961434000055306,
+          "source_elapsed_ms": 2.846636,
+          "source_at_ns": 1231161987385274,
+          "raw_byte_end": 345578,
+          "text": "VIS41 long-title abcdefghij",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 921.6906910000835,
+          "source_elapsed_ms": 604.893096,
+          "source_at_ns": 1231162589431734,
+          "raw_byte_end": 346077,
+          "text": "IS41 long-title abcdefghijk",
+          "observed_source_offsets": [
+            1
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 1749.4744310000679,
+          "source_elapsed_ms": 685.166029,
+          "source_at_ns": 1231162669704667,
+          "raw_byte_end": 346576,
+          "text": "S41 long-title abcdefghijkl",
+          "observed_source_offsets": [
+            2
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2619.688227000064,
+          "source_elapsed_ms": 2563.806019,
+          "source_at_ns": 1231164548344657,
+          "raw_byte_end": 358053,
+          "text": "ijklmnopqrstuvwxyz 01234567",
+          "observed_source_offsets": [
+            25
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2665.942320000031,
+          "source_elapsed_ms": 2633.202925,
+          "source_at_ns": 1231164617741563,
+          "raw_byte_end": 358552,
+          "text": "jklmnopqrstuvwxyz 012345678",
+          "observed_source_offsets": [
+            26
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2744.6622630000347,
+          "source_elapsed_ms": 2714.289323,
+          "source_at_ns": 1231164698827961,
+          "raw_byte_end": 359051,
+          "text": "klmnopqrstuvwxyz 0123456789",
+          "observed_source_offsets": [
+            27
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2838.988685999997,
+          "source_elapsed_ms": 2796.629148,
+          "source_at_ns": 1231164781167786,
+          "raw_byte_end": 359550,
+          "text": "lmnopqrstuvwxyz 0123456789 ",
+          "observed_source_offsets": [
+            28
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2907.081089000101,
+          "source_elapsed_ms": 2873.697746,
+          "source_at_ns": 1231164858236384,
+          "raw_byte_end": 360050,
+          "text": "mnopqrstuvwxyz 0123456789 ·",
+          "observed_source_offsets": [
+            29
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 2990.196432000026,
+          "source_elapsed_ms": 2954.919548,
+          "source_at_ns": 1231164939458186,
+          "raw_byte_end": 360550,
+          "text": "nopqrstuvwxyz 0123456789 · ",
+          "observed_source_offsets": [
+            30
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3068.362812000094,
+          "source_elapsed_ms": 3036.691939,
+          "source_at_ns": 1231165021230577,
+          "raw_byte_end": 361047,
+          "text": "opqrstuvwxyz 0123456789 · V",
+          "observed_source_offsets": [
+            31
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3155.0807100000093,
+          "source_elapsed_ms": 3115.559775,
+          "source_at_ns": 1231165100098413,
+          "raw_byte_end": 361547,
+          "text": "pqrstuvwxyz 0123456789 · VI",
+          "observed_source_offsets": [
+            32
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3224.3563230000436,
+          "source_elapsed_ms": 3195.008908,
+          "source_at_ns": 1231165179547546,
+          "raw_byte_end": 362097,
+          "text": "qrstuvwxyz 0123456789 · VIS",
+          "observed_source_offsets": [
+            33
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3306.817271000007,
+          "source_elapsed_ms": 3274.981257,
+          "source_at_ns": 1231165259519895,
+          "raw_byte_end": 362697,
+          "text": "rstuvwxyz 0123456789 · VIS4",
+          "observed_source_offsets": [
+            34
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3401.409333000076,
+          "source_elapsed_ms": 3355.318608,
+          "source_at_ns": 1231165339857246,
+          "raw_byte_end": 363297,
+          "text": "stuvwxyz 0123456789 · VIS41",
+          "observed_source_offsets": [
+            35
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3489.3062450001016,
+          "source_elapsed_ms": 3448.03821,
+          "source_at_ns": 1231165432576848,
+          "raw_byte_end": 363897,
+          "text": "tuvwxyz 0123456789 · VIS41 ",
+          "observed_source_offsets": [
+            36
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3557.7913300000364,
+          "source_elapsed_ms": 3527.649256,
+          "source_at_ns": 1231165512187894,
+          "raw_byte_end": 364497,
+          "text": "uvwxyz 0123456789 · VIS41 l",
+          "observed_source_offsets": [
+            37
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3645.666659000097,
+          "source_elapsed_ms": 3611.760618,
+          "source_at_ns": 1231165596299256,
+          "raw_byte_end": 365097,
+          "text": "vwxyz 0123456789 · VIS41 lo",
+          "observed_source_offsets": [
+            38
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3720.18430600001,
+          "source_elapsed_ms": 3688.022993,
+          "source_at_ns": 1231165672561631,
+          "raw_byte_end": 365697,
+          "text": "wxyz 0123456789 · VIS41 lon",
+          "observed_source_offsets": [
+            39
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3801.8967160000466,
+          "source_elapsed_ms": 3769.105474,
+          "source_at_ns": 1231165753644112,
+          "raw_byte_end": 366297,
+          "text": "xyz 0123456789 · VIS41 long",
+          "observed_source_offsets": [
+            40
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3884.2609470000025,
+          "source_elapsed_ms": 3851.388733,
+          "source_at_ns": 1231165835927371,
+          "raw_byte_end": 366897,
+          "text": "yz 0123456789 · VIS41 long-",
+          "observed_source_offsets": [
+            41
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 3980.392427999992,
+          "source_elapsed_ms": 3931.56439,
+          "source_at_ns": 1231165916103028,
+          "raw_byte_end": 367497,
+          "text": "z 0123456789 · VIS41 long-t",
+          "observed_source_offsets": [
+            42
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4048.4178500000853,
+          "source_elapsed_ms": 4015.546097,
+          "source_at_ns": 1231166000084735,
+          "raw_byte_end": 368097,
+          "text": " 0123456789 · VIS41 long-ti",
+          "observed_source_offsets": [
+            43
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4123.159775000066,
+          "source_elapsed_ms": 4091.785436,
+          "source_at_ns": 1231166076324074,
+          "raw_byte_end": 368697,
+          "text": "0123456789 · VIS41 long-tit",
+          "observed_source_offsets": [
+            44
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4201.769904999994,
+          "source_elapsed_ms": 4171.802524,
+          "source_at_ns": 1231166156341162,
+          "raw_byte_end": 369297,
+          "text": "123456789 · VIS41 long-titl",
+          "observed_source_offsets": [
+            45
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4288.9051590000745,
+          "source_elapsed_ms": 4251.900654,
+          "source_at_ns": 1231166236439292,
+          "raw_byte_end": 369897,
+          "text": "23456789 · VIS41 long-title",
+          "observed_source_offsets": [
+            46
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4365.834388000076,
+          "source_elapsed_ms": 4331.996731,
+          "source_at_ns": 1231166316535369,
+          "raw_byte_end": 370497,
+          "text": "3456789 · VIS41 long-title ",
+          "observed_source_offsets": [
+            47
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4447.190111000091,
+          "source_elapsed_ms": 4414.647613,
+          "source_at_ns": 1231166399186251,
+          "raw_byte_end": 371097,
+          "text": "456789 · VIS41 long-title a",
+          "observed_source_offsets": [
+            48
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4526.80655400001,
+          "source_elapsed_ms": 4494.447554,
+          "source_at_ns": 1231166478986192,
+          "raw_byte_end": 371697,
+          "text": "56789 · VIS41 long-title ab",
+          "observed_source_offsets": [
+            49
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4606.9672590000555,
+          "source_elapsed_ms": 4574.536289,
+          "source_at_ns": 1231166559074927,
+          "raw_byte_end": 372296,
+          "text": "6789 · VIS41 long-title abc",
+          "observed_source_offsets": [
+            50
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4687.664220000035,
+          "source_elapsed_ms": 4654.823564,
+          "source_at_ns": 1231166639362202,
+          "raw_byte_end": 372845,
+          "text": "789 · VIS41 long-title abcd",
+          "observed_source_offsets": [
+            51
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4775.421552000102,
+          "source_elapsed_ms": 4734.890056,
+          "source_at_ns": 1231166719428694,
+          "raw_byte_end": 373345,
+          "text": "89 · VIS41 long-title abcde",
+          "observed_source_offsets": [
+            52
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4850.595948000089,
+          "source_elapsed_ms": 4815.206544,
+          "source_at_ns": 1231166799745182,
+          "raw_byte_end": 373842,
+          "text": "9 · VIS41 long-title abcdef",
+          "observed_source_offsets": [
+            53
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 4931.181912000058,
+          "source_elapsed_ms": 4895.40882,
+          "source_at_ns": 1231166879947458,
+          "raw_byte_end": 374342,
+          "text": " · VIS41 long-title abcdefg",
+          "observed_source_offsets": [
+            54
+          ],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "elapsed_ms": 5782.32996100001,
+          "source_elapsed_ms": 5137.385242,
+          "source_at_ns": 1231167121923880,
+          "raw_byte_end": 375650,
+          "text": "VIS41 long-title abcdefghij",
+          "observed_source_offsets": [],
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ],
+      "captures": [
+        {
+          "offset": 1,
+          "elapsed_ms": 921.6906910000835,
+          "source_elapsed_ms": 604.893096
+        },
+        {
+          "offset": 2,
+          "elapsed_ms": 1749.4744310000679,
+          "source_elapsed_ms": 685.166029
+        },
+        {
+          "offset": 54,
+          "elapsed_ms": 4931.181912000058,
+          "source_elapsed_ms": 4895.40882
+        }
+      ],
+      "first_changed_ms": 921.6906910000835,
+      "changed": true,
+      "returned_to_entered_text": true,
+      "exactly_one_pointer_input": true,
+      "owner_rows_unchanged": true,
+      "requests_unchanged": true,
+      "project_unchanged": true,
+      "idle": "busy-idle",
+      "checks_ok": true
+    }
+  ],
+  "idle": [
+    {
+      "label": "long-idle",
+      "start": {
+        "at_ns": 1231085954717110,
+        "kind": "process_sample",
+        "request_id": "long-idle-start",
+        "pid": 1785714,
+        "cpu_ticks": 225,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 479,
+            "involuntary": 1263
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 710,
+            "involuntary": 547
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 697,
+            "involuntary": 42
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 164,
+            "involuntary": 57
+          },
+          {
+            "tid": 1785718,
+            "voluntary": 460,
+            "involuntary": 285
+          },
+          {
+            "tid": 1785719,
+            "voluntary": 348,
+            "involuntary": 210
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 139,
+            "involuntary": 23
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 143,
+            "involuntary": 29
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 133,
+            "involuntary": 9
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 118,
+            "involuntary": 14
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 21,
+            "involuntary": 4
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 252,
+            "involuntary": 307
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 273,
+            "involuntary": 321
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 250,
+            "involuntary": 242
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 258,
+            "involuntary": 292
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 274,
+            "involuntary": 253
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 103,
+            "involuntary": 158
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 74,
+            "involuntary": 8
+          }
+        ],
+        "voluntary_context_switches": 4896,
+        "involuntary_context_switches": 4064
+      },
+      "end": {
+        "at_ns": 1231087473300279,
+        "kind": "process_sample",
+        "request_id": "long-idle-end",
+        "pid": 1785714,
+        "cpu_ticks": 232,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 504,
+            "involuntary": 1305
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 710,
+            "involuntary": 547
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 716,
+            "involuntary": 52
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 165,
+            "involuntary": 57
+          },
+          {
+            "tid": 1785718,
+            "voluntary": 460,
+            "involuntary": 285
+          },
+          {
+            "tid": 1785719,
+            "voluntary": 348,
+            "involuntary": 210
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 143,
+            "involuntary": 23
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 147,
+            "involuntary": 29
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 135,
+            "involuntary": 9
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 118,
+            "involuntary": 14
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 21,
+            "involuntary": 4
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 277,
+            "involuntary": 345
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 295,
+            "involuntary": 360
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 269,
+            "involuntary": 247
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 289,
+            "involuntary": 313
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 297,
+            "involuntary": 292
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 112,
+            "involuntary": 175
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 77,
+            "involuntary": 8
+          }
+        ],
+        "voluntary_context_switches": 5083,
+        "involuntary_context_switches": 4275
+      },
+      "duration_ms": 1518.583169,
+      "cpu_ticks": 7,
+      "cpu_ms": 70,
+      "cpu_percent": 4.609559846899633,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 187,
+      "involuntary_context_switches": 211,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "unicode-idle",
+      "start": {
+        "at_ns": 1231101218094967,
+        "kind": "process_sample",
+        "request_id": "unicode-idle-start",
+        "pid": 1785714,
+        "cpu_ticks": 261,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 733,
+            "involuntary": 1570
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 772,
+            "involuntary": 569
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 967,
+            "involuntary": 62
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 170,
+            "involuntary": 58
+          },
+          {
+            "tid": 1785718,
+            "voluntary": 490,
+            "involuntary": 316
+          },
+          {
+            "tid": 1785719,
+            "voluntary": 359,
+            "involuntary": 212
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 180,
+            "involuntary": 30
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 186,
+            "involuntary": 36
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 175,
+            "involuntary": 11
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 127,
+            "involuntary": 15
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 22,
+            "involuntary": 4
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 431,
+            "involuntary": 434
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 447,
+            "involuntary": 437
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 423,
+            "involuntary": 311
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 453,
+            "involuntary": 362
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 448,
+            "involuntary": 382
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 177,
+            "involuntary": 225
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 113,
+            "involuntary": 15
+          }
+        ],
+        "voluntary_context_switches": 6673,
+        "involuntary_context_switches": 5049
+      },
+      "end": {
+        "at_ns": 1231102740071362,
+        "kind": "process_sample",
+        "request_id": "unicode-idle-end",
+        "pid": 1785714,
+        "cpu_ticks": 263,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 753,
+            "involuntary": 1581
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 773,
+            "involuntary": 569
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 980,
+            "involuntary": 62
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 170,
+            "involuntary": 58
+          },
+          {
+            "tid": 1785718,
+            "voluntary": 491,
+            "involuntary": 317
+          },
+          {
+            "tid": 1785719,
+            "voluntary": 359,
+            "involuntary": 212
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 184,
+            "involuntary": 31
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 188,
+            "involuntary": 37
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 179,
+            "involuntary": 11
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 127,
+            "involuntary": 15
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 22,
+            "involuntary": 4
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 452,
+            "involuntary": 443
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 462,
+            "involuntary": 441
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 441,
+            "involuntary": 314
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 471,
+            "involuntary": 374
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 465,
+            "involuntary": 393
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 182,
+            "involuntary": 241
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 116,
+            "involuntary": 15
+          }
+        ],
+        "voluntary_context_switches": 6815,
+        "involuntary_context_switches": 5118
+      },
+      "duration_ms": 1521.976395,
+      "cpu_ticks": 2,
+      "cpu_ms": 20,
+      "cpu_percent": 1.3140808271208437,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 142,
+      "involuntary_context_switches": 69,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "short-idle",
+      "start": {
+        "at_ns": 1231113527586806,
+        "kind": "process_sample",
+        "request_id": "short-idle-start",
+        "pid": 1785714,
+        "cpu_ticks": 277,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 893,
+            "involuntary": 1834
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 792,
+            "involuntary": 588
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 1105,
+            "involuntary": 75
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 174,
+            "involuntary": 58
+          },
+          {
+            "tid": 1785718,
+            "voluntary": 500,
+            "involuntary": 325
+          },
+          {
+            "tid": 1785719,
+            "voluntary": 365,
+            "involuntary": 217
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 213,
+            "involuntary": 33
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 215,
+            "involuntary": 42
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 209,
+            "involuntary": 16
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 134,
+            "involuntary": 15
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 25,
+            "involuntary": 4
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 559,
+            "involuntary": 498
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 582,
+            "involuntary": 497
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 557,
+            "involuntary": 392
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 576,
+            "involuntary": 425
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 573,
+            "involuntary": 456
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 225,
+            "involuntary": 292
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 142,
+            "involuntary": 19
+          }
+        ],
+        "voluntary_context_switches": 7839,
+        "involuntary_context_switches": 5786
+      },
+      "end": {
+        "at_ns": 1231115048605109,
+        "kind": "process_sample",
+        "request_id": "short-idle-end",
+        "pid": 1785714,
+        "cpu_ticks": 277,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 905,
+            "involuntary": 1840
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 792,
+            "involuntary": 588
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 1114,
+            "involuntary": 75
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 174,
+            "involuntary": 58
+          },
+          {
+            "tid": 1785718,
+            "voluntary": 500,
+            "involuntary": 325
+          },
+          {
+            "tid": 1785719,
+            "voluntary": 365,
+            "involuntary": 217
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 218,
+            "involuntary": 33
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 219,
+            "involuntary": 44
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 212,
+            "involuntary": 18
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 135,
+            "involuntary": 15
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 25,
+            "involuntary": 4
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 564,
+            "involuntary": 501
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 589,
+            "involuntary": 502
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 564,
+            "involuntary": 393
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 578,
+            "involuntary": 427
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 575,
+            "involuntary": 458
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 225,
+            "involuntary": 292
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 144,
+            "involuntary": 19
+          }
+        ],
+        "voluntary_context_switches": 7898,
+        "involuntary_context_switches": 5809
+      },
+      "duration_ms": 1521.018303,
+      "cpu_ticks": 0,
+      "cpu_ms": 0,
+      "cpu_percent": 0,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 59,
+      "involuntary_context_switches": 23,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "exact-idle",
+      "start": {
+        "at_ns": 1231125834056787,
+        "kind": "process_sample",
+        "request_id": "exact-idle-start",
+        "pid": 1785714,
+        "cpu_ticks": 292,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 1047,
+            "involuntary": 2010
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 818,
+            "involuntary": 593
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 1237,
+            "involuntary": 85
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 177,
+            "involuntary": 58
+          },
+          {
+            "tid": 1785718,
+            "voluntary": 512,
+            "involuntary": 329
+          },
+          {
+            "tid": 1785719,
+            "voluntary": 372,
+            "involuntary": 217
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 246,
+            "involuntary": 33
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 249,
+            "involuntary": 48
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 240,
+            "involuntary": 18
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 140,
+            "involuntary": 16
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 27,
+            "involuntary": 4
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 631,
+            "involuntary": 529
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 651,
+            "involuntary": 551
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 634,
+            "involuntary": 428
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 650,
+            "involuntary": 454
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 649,
+            "involuntary": 475
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 225,
+            "involuntary": 292
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 176,
+            "involuntary": 21
+          }
+        ],
+        "voluntary_context_switches": 8681,
+        "involuntary_context_switches": 6161
+      },
+      "end": {
+        "at_ns": 1231127353762963,
+        "kind": "process_sample",
+        "request_id": "exact-idle-end",
+        "pid": 1785714,
+        "cpu_ticks": 294,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 1060,
+            "involuntary": 2034
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 818,
+            "involuntary": 593
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 1250,
+            "involuntary": 85
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 177,
+            "involuntary": 58
+          },
+          {
+            "tid": 1785718,
+            "voluntary": 512,
+            "involuntary": 329
+          },
+          {
+            "tid": 1785719,
+            "voluntary": 372,
+            "involuntary": 217
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 250,
+            "involuntary": 33
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 253,
+            "involuntary": 48
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 244,
+            "involuntary": 18
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 141,
+            "involuntary": 17
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 27,
+            "involuntary": 4
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 642,
+            "involuntary": 537
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 658,
+            "involuntary": 557
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 646,
+            "involuntary": 434
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 659,
+            "involuntary": 459
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 659,
+            "involuntary": 481
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 225,
+            "involuntary": 292
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 179,
+            "involuntary": 21
+          }
+        ],
+        "voluntary_context_switches": 8772,
+        "involuntary_context_switches": 6217
+      },
+      "duration_ms": 1519.706176,
+      "cpu_ticks": 2,
+      "cpu_ms": 20,
+      "cpu_percent": 1.3160438718911938,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 91,
+      "involuntary_context_switches": 56,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "restfit-idle",
+      "start": {
+        "at_ns": 1231139207149448,
+        "kind": "process_sample",
+        "request_id": "restfit-idle-start",
+        "pid": 1785714,
+        "cpu_ticks": 313,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 1249,
+            "involuntary": 2276
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 853,
+            "involuntary": 597
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 1430,
+            "involuntary": 100
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 180,
+            "involuntary": 59
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 280,
+            "involuntary": 35
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 287,
+            "involuntary": 51
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 270,
+            "involuntary": 18
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 149,
+            "involuntary": 18
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 29,
+            "involuntary": 4
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 726,
+            "involuntary": 609
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 739,
+            "involuntary": 615
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 726,
+            "involuntary": 485
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 740,
+            "involuntary": 469
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 741,
+            "involuntary": 517
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 225,
+            "involuntary": 292
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 209,
+            "involuntary": 23
+          },
+          {
+            "tid": 1786620,
+            "voluntary": 10,
+            "involuntary": 7
+          },
+          {
+            "tid": 1786621,
+            "voluntary": 8,
+            "involuntary": 0
+          }
+        ],
+        "voluntary_context_switches": 8851,
+        "involuntary_context_switches": 6175
+      },
+      "end": {
+        "at_ns": 1231140727293051,
+        "kind": "process_sample",
+        "request_id": "restfit-idle-end",
+        "pid": 1785714,
+        "cpu_ticks": 314,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 1264,
+            "involuntary": 2297
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 853,
+            "involuntary": 597
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 1440,
+            "involuntary": 100
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 180,
+            "involuntary": 59
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 285,
+            "involuntary": 35
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 291,
+            "involuntary": 51
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 274,
+            "involuntary": 19
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 150,
+            "involuntary": 18
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 29,
+            "involuntary": 4
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 733,
+            "involuntary": 615
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 746,
+            "involuntary": 622
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 733,
+            "involuntary": 486
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 742,
+            "involuntary": 470
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 746,
+            "involuntary": 519
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 225,
+            "involuntary": 292
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 213,
+            "involuntary": 23
+          },
+          {
+            "tid": 1786620,
+            "voluntary": 10,
+            "involuntary": 7
+          },
+          {
+            "tid": 1786621,
+            "voluntary": 8,
+            "involuntary": 0
+          }
+        ],
+        "voluntary_context_switches": 8922,
+        "involuntary_context_switches": 6214
+      },
+      "duration_ms": 1520.143603,
+      "cpu_ticks": 1,
+      "cpu_ms": 10,
+      "cpu_percent": 0.6578325876756,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 71,
+      "involuntary_context_switches": 39,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "inactive-idle",
+      "start": {
+        "at_ns": 1231154565806830,
+        "kind": "process_sample",
+        "request_id": "inactive-idle-start",
+        "pid": 1785714,
+        "cpu_ticks": 349,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 1552,
+            "involuntary": 2583
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 906,
+            "involuntary": 643
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 1718,
+            "involuntary": 116
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 196,
+            "involuntary": 61
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 323,
+            "involuntary": 36
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 330,
+            "involuntary": 54
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 313,
+            "involuntary": 19
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 162,
+            "involuntary": 19
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 30,
+            "involuntary": 5
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 830,
+            "involuntary": 700
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 843,
+            "involuntary": 709
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 833,
+            "involuntary": 534
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 842,
+            "involuntary": 525
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 829,
+            "involuntary": 545
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 241,
+            "involuntary": 294
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 256,
+            "involuntary": 28
+          },
+          {
+            "tid": 1786620,
+            "voluntary": 29,
+            "involuntary": 12
+          },
+          {
+            "tid": 1786778,
+            "voluntary": 12,
+            "involuntary": 6
+          },
+          {
+            "tid": 1786795,
+            "voluntary": 2,
+            "involuntary": 1
+          },
+          {
+            "tid": 1786796,
+            "voluntary": 1,
+            "involuntary": 0
+          },
+          {
+            "tid": 1786797,
+            "voluntary": 1,
+            "involuntary": 0
+          },
+          {
+            "tid": 1786798,
+            "voluntary": 1,
+            "involuntary": 0
+          }
+        ],
+        "voluntary_context_switches": 10250,
+        "involuntary_context_switches": 6890
+      },
+      "end": {
+        "at_ns": 1231156089639295,
+        "kind": "process_sample",
+        "request_id": "inactive-idle-end",
+        "pid": 1785714,
+        "cpu_ticks": 351,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 1567,
+            "involuntary": 2596
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 907,
+            "involuntary": 658
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 1734,
+            "involuntary": 120
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 196,
+            "involuntary": 61
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 327,
+            "involuntary": 37
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 334,
+            "involuntary": 55
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 315,
+            "involuntary": 19
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 163,
+            "involuntary": 19
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 30,
+            "involuntary": 5
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 838,
+            "involuntary": 700
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 849,
+            "involuntary": 716
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 839,
+            "involuntary": 539
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 849,
+            "involuntary": 527
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 838,
+            "involuntary": 545
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 241,
+            "involuntary": 294
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 260,
+            "involuntary": 28
+          },
+          {
+            "tid": 1786620,
+            "voluntary": 29,
+            "involuntary": 12
+          },
+          {
+            "tid": 1786778,
+            "voluntary": 12,
+            "involuntary": 6
+          },
+          {
+            "tid": 1786795,
+            "voluntary": 2,
+            "involuntary": 1
+          },
+          {
+            "tid": 1786796,
+            "voluntary": 1,
+            "involuntary": 0
+          },
+          {
+            "tid": 1786797,
+            "voluntary": 1,
+            "involuntary": 0
+          },
+          {
+            "tid": 1786798,
+            "voluntary": 1,
+            "involuntary": 0
+          }
+        ],
+        "voluntary_context_switches": 10333,
+        "involuntary_context_switches": 6938
+      },
+      "duration_ms": 1523.832465,
+      "cpu_ticks": 2,
+      "cpu_ms": 20,
+      "cpu_percent": 1.3124802404049056,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 83,
+      "involuntary_context_switches": 48,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "busy-idle",
+      "start": {
+        "at_ns": 1231169268771014,
+        "kind": "process_sample",
+        "request_id": "busy-idle-start",
+        "pid": 1785714,
+        "cpu_ticks": 401,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 1816,
+            "involuntary": 2993
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 973,
+            "involuntary": 725
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 1999,
+            "involuntary": 151
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 225,
+            "involuntary": 82
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 357,
+            "involuntary": 45
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 363,
+            "involuntary": 59
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 349,
+            "involuntary": 25
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 178,
+            "involuntary": 21
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 31,
+            "involuntary": 5
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 955,
+            "involuntary": 795
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 960,
+            "involuntary": 799
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 951,
+            "involuntary": 632
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 952,
+            "involuntary": 622
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 943,
+            "involuntary": 670
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 242,
+            "involuntary": 294
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 296,
+            "involuntary": 30
+          },
+          {
+            "tid": 1786620,
+            "voluntary": 63,
+            "involuntary": 40
+          },
+          {
+            "tid": 1787018,
+            "voluntary": 20,
+            "involuntary": 7
+          },
+          {
+            "tid": 1787021,
+            "voluntary": 1,
+            "involuntary": 1
+          },
+          {
+            "tid": 1787022,
+            "voluntary": 1,
+            "involuntary": 2
+          },
+          {
+            "tid": 1787023,
+            "voluntary": 1,
+            "involuntary": 0
+          },
+          {
+            "tid": 1787024,
+            "voluntary": 1,
+            "involuntary": 0
+          },
+          {
+            "tid": 1787025,
+            "voluntary": 1,
+            "involuntary": 1
+          }
+        ],
+        "voluntary_context_switches": 11678,
+        "involuntary_context_switches": 7999
+      },
+      "end": {
+        "at_ns": 1231169793421202,
+        "kind": "process_sample",
+        "request_id": "busy-idle-end",
+        "pid": 1785714,
+        "cpu_ticks": 401,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 1823,
+            "involuntary": 2994
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 973,
+            "involuntary": 725
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 2001,
+            "involuntary": 151
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 225,
+            "involuntary": 82
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 359,
+            "involuntary": 45
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 365,
+            "involuntary": 59
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 349,
+            "involuntary": 25
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 178,
+            "involuntary": 21
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 31,
+            "involuntary": 5
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 960,
+            "involuntary": 799
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 969,
+            "involuntary": 810
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 958,
+            "involuntary": 646
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 955,
+            "involuntary": 627
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 949,
+            "involuntary": 676
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 242,
+            "involuntary": 294
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 298,
+            "involuntary": 31
+          },
+          {
+            "tid": 1786620,
+            "voluntary": 63,
+            "involuntary": 40
+          },
+          {
+            "tid": 1787018,
+            "voluntary": 20,
+            "involuntary": 7
+          },
+          {
+            "tid": 1787021,
+            "voluntary": 1,
+            "involuntary": 1
+          },
+          {
+            "tid": 1787022,
+            "voluntary": 1,
+            "involuntary": 2
+          },
+          {
+            "tid": 1787023,
+            "voluntary": 1,
+            "involuntary": 0
+          },
+          {
+            "tid": 1787024,
+            "voluntary": 1,
+            "involuntary": 0
+          },
+          {
+            "tid": 1787025,
+            "voluntary": 1,
+            "involuntary": 1
+          }
+        ],
+        "voluntary_context_switches": 11723,
+        "involuntary_context_switches": 8041
+      },
+      "duration_ms": 524.650188,
+      "cpu_ticks": 0,
+      "cpu_ms": 0,
+      "cpu_percent": 0,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 45,
+      "involuntary_context_switches": 42,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "completed-idle",
+      "start": {
+        "at_ns": 1231176800292338,
+        "kind": "process_sample",
+        "request_id": "completed-idle-start",
+        "pid": 1785714,
+        "cpu_ticks": 417,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 1902,
+            "involuntary": 3205
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 1000,
+            "involuntary": 729
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 2086,
+            "involuntary": 158
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 232,
+            "involuntary": 82
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 376,
+            "involuntary": 47
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 384,
+            "involuntary": 62
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 365,
+            "involuntary": 25
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 192,
+            "involuntary": 21
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 31,
+            "involuntary": 5
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 1006,
+            "involuntary": 869
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 1026,
+            "involuntary": 866
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 1016,
+            "involuntary": 698
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 997,
+            "involuntary": 709
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 1004,
+            "involuntary": 694
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 246,
+            "involuntary": 297
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 314,
+            "involuntary": 34
+          },
+          {
+            "tid": 1786620,
+            "voluntary": 76,
+            "involuntary": 43
+          },
+          {
+            "tid": 1787018,
+            "voluntary": 24,
+            "involuntary": 8
+          }
+        ],
+        "voluntary_context_switches": 12277,
+        "involuntary_context_switches": 8552
+      },
+      "end": {
+        "at_ns": 1231178323456515,
+        "kind": "process_sample",
+        "request_id": "completed-idle-end",
+        "pid": 1785714,
+        "cpu_ticks": 418,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 1913,
+            "involuntary": 3222
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 1000,
+            "involuntary": 729
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 2096,
+            "involuntary": 158
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 232,
+            "involuntary": 82
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 380,
+            "involuntary": 47
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 387,
+            "involuntary": 63
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 369,
+            "involuntary": 25
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 192,
+            "involuntary": 21
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 31,
+            "involuntary": 5
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 1013,
+            "involuntary": 870
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 1032,
+            "involuntary": 869
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 1022,
+            "involuntary": 702
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 1004,
+            "involuntary": 716
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 1010,
+            "involuntary": 700
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 246,
+            "involuntary": 297
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 320,
+            "involuntary": 34
+          },
+          {
+            "tid": 1786620,
+            "voluntary": 76,
+            "involuntary": 43
+          },
+          {
+            "tid": 1787018,
+            "voluntary": 24,
+            "involuntary": 8
+          }
+        ],
+        "voluntary_context_switches": 12347,
+        "involuntary_context_switches": 8591
+      },
+      "duration_ms": 1523.164177,
+      "cpu_ticks": 1,
+      "cpu_ms": 10,
+      "cpu_percent": 0.6565280454334109,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 70,
+      "involuntary_context_switches": 39,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "cancelled-idle",
+      "start": {
+        "at_ns": 1231182977356213,
+        "kind": "process_sample",
+        "request_id": "cancelled-idle-start",
+        "pid": 1785714,
+        "cpu_ticks": 435,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 1995,
+            "involuntary": 3376
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 1042,
+            "involuntary": 751
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 2195,
+            "involuntary": 159
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 252,
+            "involuntary": 86
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 393,
+            "involuntary": 47
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 400,
+            "involuntary": 65
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 380,
+            "involuntary": 25
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 213,
+            "involuntary": 34
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 32,
+            "involuntary": 5
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 1045,
+            "involuntary": 870
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 1057,
+            "involuntary": 890
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 1046,
+            "involuntary": 723
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 1039,
+            "involuntary": 752
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 1044,
+            "involuntary": 744
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 246,
+            "involuntary": 297
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 332,
+            "involuntary": 36
+          },
+          {
+            "tid": 1786620,
+            "voluntary": 101,
+            "involuntary": 48
+          },
+          {
+            "tid": 1787018,
+            "voluntary": 37,
+            "involuntary": 11
+          }
+        ],
+        "voluntary_context_switches": 12849,
+        "involuntary_context_switches": 8919
+      },
+      "end": {
+        "at_ns": 1231184498328720,
+        "kind": "process_sample",
+        "request_id": "cancelled-idle-end",
+        "pid": 1785714,
+        "cpu_ticks": 436,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 2014,
+            "involuntary": 3382
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 1043,
+            "involuntary": 751
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 2207,
+            "involuntary": 159
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 252,
+            "involuntary": 86
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 396,
+            "involuntary": 47
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 402,
+            "involuntary": 65
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 383,
+            "involuntary": 25
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 214,
+            "involuntary": 34
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 32,
+            "involuntary": 5
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 1052,
+            "involuntary": 879
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 1065,
+            "involuntary": 892
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 1052,
+            "involuntary": 728
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 1048,
+            "involuntary": 754
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 1050,
+            "involuntary": 753
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 246,
+            "involuntary": 297
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 333,
+            "involuntary": 36
+          },
+          {
+            "tid": 1786620,
+            "voluntary": 101,
+            "involuntary": 48
+          },
+          {
+            "tid": 1787018,
+            "voluntary": 37,
+            "involuntary": 11
+          }
+        ],
+        "voluntary_context_switches": 12927,
+        "involuntary_context_switches": 8952
+      },
+      "duration_ms": 1520.972507,
+      "cpu_ticks": 1,
+      "cpu_ms": 10,
+      "cpu_percent": 0.6574740801675779,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 78,
+      "involuntary_context_switches": 33,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    },
+    {
+      "label": "final-settled-idle",
+      "start": {
+        "at_ns": 1231189497034644,
+        "kind": "process_sample",
+        "request_id": "final-settled-idle-start",
+        "pid": 1785714,
+        "cpu_ticks": 446,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 2087,
+            "involuntary": 3433
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 1053,
+            "involuntary": 751
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 2277,
+            "involuntary": 164
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 252,
+            "involuntary": 86
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 405,
+            "involuntary": 51
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 412,
+            "involuntary": 65
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 394,
+            "involuntary": 27
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 218,
+            "involuntary": 34
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 32,
+            "involuntary": 5
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 1103,
+            "involuntary": 894
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 1118,
+            "involuntary": 923
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 1099,
+            "involuntary": 762
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 1098,
+            "involuntary": 797
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 1100,
+            "involuntary": 793
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 269,
+            "involuntary": 328
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 344,
+            "involuntary": 37
+          },
+          {
+            "tid": 1786620,
+            "voluntary": 103,
+            "involuntary": 48
+          },
+          {
+            "tid": 1787018,
+            "voluntary": 39,
+            "involuntary": 11
+          }
+        ],
+        "voluntary_context_switches": 13403,
+        "involuntary_context_switches": 9209
+      },
+      "end": {
+        "at_ns": 1231191014591918,
+        "kind": "process_sample",
+        "request_id": "final-settled-idle-end",
+        "pid": 1785714,
+        "cpu_ticks": 449,
+        "clock_ticks_per_second": 100,
+        "threads": [
+          {
+            "tid": 1785714,
+            "voluntary": 2104,
+            "involuntary": 3450
+          },
+          {
+            "tid": 1785715,
+            "voluntary": 1053,
+            "involuntary": 751
+          },
+          {
+            "tid": 1785716,
+            "voluntary": 2290,
+            "involuntary": 169
+          },
+          {
+            "tid": 1785717,
+            "voluntary": 253,
+            "involuntary": 86
+          },
+          {
+            "tid": 1785720,
+            "voluntary": 408,
+            "involuntary": 51
+          },
+          {
+            "tid": 1785721,
+            "voluntary": 416,
+            "involuntary": 65
+          },
+          {
+            "tid": 1785722,
+            "voluntary": 397,
+            "involuntary": 28
+          },
+          {
+            "tid": 1785737,
+            "voluntary": 218,
+            "involuntary": 34
+          },
+          {
+            "tid": 1785739,
+            "voluntary": 32,
+            "involuntary": 5
+          },
+          {
+            "tid": 1785759,
+            "voluntary": 1137,
+            "involuntary": 951
+          },
+          {
+            "tid": 1785760,
+            "voluntary": 1148,
+            "involuntary": 986
+          },
+          {
+            "tid": 1785761,
+            "voluntary": 1132,
+            "involuntary": 796
+          },
+          {
+            "tid": 1785762,
+            "voluntary": 1124,
+            "involuntary": 846
+          },
+          {
+            "tid": 1785763,
+            "voluntary": 1133,
+            "involuntary": 812
+          },
+          {
+            "tid": 1785795,
+            "voluntary": 276,
+            "involuntary": 345
+          },
+          {
+            "tid": 1785801,
+            "voluntary": 349,
+            "involuntary": 37
+          },
+          {
+            "tid": 1786620,
+            "voluntary": 103,
+            "involuntary": 48
+          },
+          {
+            "tid": 1787018,
+            "voluntary": 39,
+            "involuntary": 11
+          }
+        ],
+        "voluntary_context_switches": 13612,
+        "involuntary_context_switches": 9471
+      },
+      "duration_ms": 1517.557274,
+      "cpu_ticks": 3,
+      "cpu_ms": 30,
+      "cpu_percent": 1.9768611382241643,
+      "terminal_chunks": 0,
+      "terminal_bytes": 0,
+      "no_input": true,
+      "styled_grid_and_cursor_equal": true,
+      "same_threads": true,
+      "voluntary_context_switches": 209,
+      "involuntary_context_switches": 262,
+      "scheduler_counters": "No original app counter API; actual product CPU/context switches and PTY writes only"
+    }
+  ],
+  "checks": [
+    {
+      "label": "root-b-short",
+      "requested_title": "Short",
+      "owner_rows": [
+        {
+          "id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+          "project_id": "367b4db0d309eece79c6d458e3c35661dbacbf74",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "swift-lagoon",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project",
+          "path": "",
+          "title": "VIS41 fixture A",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556058965,
+          "time_updated": 1790556059128,
+          "time_idle": 1790556059145,
+          "time_viewed": 1790556059145,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        },
+        {
+          "id": "ses_f1a8ac099ffe5KrumAJtouRyGC",
+          "project_id": "367b4db0d309eece79c6d458e3c35661dbacbf74",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "shiny-forest",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project",
+          "path": "",
+          "title": "Short",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556061566,
+          "time_updated": 1790556065038,
+          "time_idle": 1790556061709,
+          "time_viewed": 1790556061709,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        }
+      ],
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      }
+    },
+    {
+      "label": "long",
+      "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "owner_rows": [
+        {
+          "id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+          "project_id": "367b4db0d309eece79c6d458e3c35661dbacbf74",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "swift-lagoon",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project",
+          "path": "",
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556058965,
+          "time_updated": 1790556067072,
+          "time_idle": 1790556059145,
+          "time_viewed": 1790556059145,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        },
+        {
+          "id": "ses_f1a8ac099ffe5KrumAJtouRyGC",
+          "project_id": "367b4db0d309eece79c6d458e3c35661dbacbf74",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "shiny-forest",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project",
+          "path": "",
+          "title": "Short",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556061566,
+          "time_updated": 1790556065038,
+          "time_idle": 1790556061709,
+          "time_viewed": 1790556061709,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        }
+      ],
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      }
+    },
+    {
+      "label": "unicode",
+      "requested_title": "VIS41 Plan 🧭 日本語 é · title for the release",
+      "owner_rows": [
+        {
+          "id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+          "project_id": "367b4db0d309eece79c6d458e3c35661dbacbf74",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "swift-lagoon",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project",
+          "path": "",
+          "title": "VIS41 Plan 🧭 日本語 é · title for the release",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556058965,
+          "time_updated": 1790556082840,
+          "time_idle": 1790556059145,
+          "time_viewed": 1790556059145,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        },
+        {
+          "id": "ses_f1a8ac099ffe5KrumAJtouRyGC",
+          "project_id": "367b4db0d309eece79c6d458e3c35661dbacbf74",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "shiny-forest",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project",
+          "path": "",
+          "title": "Short",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556061566,
+          "time_updated": 1790556065038,
+          "time_idle": 1790556061709,
+          "time_viewed": 1790556061709,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        }
+      ],
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      }
+    },
+    {
+      "label": "short",
+      "requested_title": "Short-A",
+      "owner_rows": [
+        {
+          "id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+          "project_id": "367b4db0d309eece79c6d458e3c35661dbacbf74",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "swift-lagoon",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project",
+          "path": "",
+          "title": "Short-A",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556058965,
+          "time_updated": 1790556098388,
+          "time_idle": 1790556059145,
+          "time_viewed": 1790556059145,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        },
+        {
+          "id": "ses_f1a8ac099ffe5KrumAJtouRyGC",
+          "project_id": "367b4db0d309eece79c6d458e3c35661dbacbf74",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "shiny-forest",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project",
+          "path": "",
+          "title": "Short",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556061566,
+          "time_updated": 1790556065038,
+          "time_idle": 1790556061709,
+          "time_viewed": 1790556061709,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        }
+      ],
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      }
+    },
+    {
+      "label": "exact",
+      "requested_title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+      "owner_rows": [
+        {
+          "id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+          "project_id": "367b4db0d309eece79c6d458e3c35661dbacbf74",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "swift-lagoon",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project",
+          "path": "",
+          "title": "Exact-EEEEEEEEEEEEEEEEEEEEE",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556058965,
+          "time_updated": 1790556110506,
+          "time_idle": 1790556059145,
+          "time_viewed": 1790556059145,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        },
+        {
+          "id": "ses_f1a8ac099ffe5KrumAJtouRyGC",
+          "project_id": "367b4db0d309eece79c6d458e3c35661dbacbf74",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "shiny-forest",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project",
+          "path": "",
+          "title": "Short",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556061566,
+          "time_updated": 1790556065038,
+          "time_idle": 1790556061709,
+          "time_viewed": 1790556061709,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        }
+      ],
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      }
+    },
+    {
+      "label": "restfit",
+      "requested_title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+      "owner_rows": [
+        {
+          "id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+          "project_id": "367b4db0d309eece79c6d458e3c35661dbacbf74",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "swift-lagoon",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project",
+          "path": "",
+          "title": "Restfit-RRRRRRRRRRRRRRRRRRRR",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556058965,
+          "time_updated": 1790556122637,
+          "time_idle": 1790556059145,
+          "time_viewed": 1790556059145,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        },
+        {
+          "id": "ses_f1a8ac099ffe5KrumAJtouRyGC",
+          "project_id": "367b4db0d309eece79c6d458e3c35661dbacbf74",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "shiny-forest",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project",
+          "path": "",
+          "title": "Short",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556061566,
+          "time_updated": 1790556065038,
+          "time_idle": 1790556061709,
+          "time_viewed": 1790556061709,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        }
+      ],
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      }
+    },
+    {
+      "label": "inactive-long",
+      "requested_title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+      "owner_rows": [
+        {
+          "id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+          "project_id": "367b4db0d309eece79c6d458e3c35661dbacbf74",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "swift-lagoon",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project",
+          "path": "",
+          "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556058965,
+          "time_updated": 1790556135954,
+          "time_idle": 1790556059145,
+          "time_viewed": 1790556059145,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        },
+        {
+          "id": "ses_f1a8ac099ffe5KrumAJtouRyGC",
+          "project_id": "367b4db0d309eece79c6d458e3c35661dbacbf74",
+          "workspace_id": null,
+          "parent_id": null,
+          "fork_session_id": null,
+          "fork_boundary": null,
+          "slug": "shiny-forest",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project",
+          "path": "",
+          "title": "Short",
+          "version": "2.0.12",
+          "share_url": null,
+          "summary_additions": null,
+          "summary_deletions": null,
+          "summary_files": null,
+          "summary_diffs": null,
+          "metadata": null,
+          "cost": 0,
+          "tokens_input": 1024,
+          "tokens_output": 32,
+          "tokens_reasoning": 0,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "revert": null,
+          "permission": null,
+          "agent": "build",
+          "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+          "time_created": 1790556061566,
+          "time_updated": 1790556065038,
+          "time_idle": 1790556061709,
+          "time_viewed": 1790556061709,
+          "idle_outcome": "succeeded",
+          "time_compacting": null,
+          "time_archived": null,
+          "time_suspended": null,
+          "resume_attempts": 0
+        }
+      ],
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      }
+    }
+  ],
+  "counts": [
+    {
+      "requests": 6,
+      "completed": 5,
+      "invalid": 0
+    }
+  ],
+  "observed_phase_matching": "Source-title text and actual glyph observed independently, never elapsed global clock",
+  "root_b": "ses_f1a8ac099ffe5KrumAJtouRyGC",
+  "root_a": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+  "spinner": {
+    "line": 0,
+    "animations": false,
+    "indicators": "status",
+    "observations": [
+      {
+        "at_ns": 1231160899090846,
+        "raw_byte_end": 343635,
+        "row": "   VIS41 long-title abcdefghijkl   Short                         +                                                                                              ",
+        "glyphs": []
+      },
+      {
+        "at_ns": 1231160936689306,
+        "raw_byte_end": 344653,
+        "row": " ⠋ VIS41 long-title abcdefghijkl   Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231161028111735,
+        "raw_byte_end": 345245,
+        "row": " ⠋ VIS41 long-title abcdefghijkl   Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231161987385274,
+        "raw_byte_end": 345578,
+        "row": " ⠋ VIS41 long-title abcdefghij✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231162589431734,
+        "raw_byte_end": 346077,
+        "row": " ⠋ IS41 long-title abcdefghijk✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231162669704667,
+        "raw_byte_end": 346576,
+        "row": " ⠋ S41 long-title abcdefghijkl✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231164548344657,
+        "raw_byte_end": 358053,
+        "row": " ⠋ ijklmnopqrstuvwxyz 01234567✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231164617741563,
+        "raw_byte_end": 358552,
+        "row": " ⠋ jklmnopqrstuvwxyz 012345678✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231164698827961,
+        "raw_byte_end": 359051,
+        "row": " ⠋ klmnopqrstuvwxyz 0123456789✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231164781167786,
+        "raw_byte_end": 359550,
+        "row": " ⠋ lmnopqrstuvwxyz 0123456789 ✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231164858236384,
+        "raw_byte_end": 360050,
+        "row": " ⠋ mnopqrstuvwxyz 0123456789 ·✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231164939458186,
+        "raw_byte_end": 360550,
+        "row": " ⠋ nopqrstuvwxyz 0123456789 · ✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231165021230577,
+        "raw_byte_end": 361047,
+        "row": " ⠋ opqrstuvwxyz 0123456789 · V✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231165100098413,
+        "raw_byte_end": 361547,
+        "row": " ⠋ pqrstuvwxyz 0123456789 · VI✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231165179547546,
+        "raw_byte_end": 362097,
+        "row": " ⠋ qrstuvwxyz 0123456789 · VIS✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231165259519895,
+        "raw_byte_end": 362697,
+        "row": " ⠋ rstuvwxyz 0123456789 · VIS4✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231165339857246,
+        "raw_byte_end": 363297,
+        "row": " ⠋ stuvwxyz 0123456789 · VIS41✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231165432576848,
+        "raw_byte_end": 363897,
+        "row": " ⠋ tuvwxyz 0123456789 · VIS41 ✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231165512187894,
+        "raw_byte_end": 364497,
+        "row": " ⠋ uvwxyz 0123456789 · VIS41 l✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231165596299256,
+        "raw_byte_end": 365097,
+        "row": " ⠋ vwxyz 0123456789 · VIS41 lo✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231165672561631,
+        "raw_byte_end": 365697,
+        "row": " ⠋ wxyz 0123456789 · VIS41 lon✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231165753644112,
+        "raw_byte_end": 366297,
+        "row": " ⠋ xyz 0123456789 · VIS41 long✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231165835927371,
+        "raw_byte_end": 366897,
+        "row": " ⠋ yz 0123456789 · VIS41 long-✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231165916103028,
+        "raw_byte_end": 367497,
+        "row": " ⠋ z 0123456789 · VIS41 long-t✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231166000084735,
+        "raw_byte_end": 368097,
+        "row": " ⠋  0123456789 · VIS41 long-ti✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231166076324074,
+        "raw_byte_end": 368697,
+        "row": " ⠋ 0123456789 · VIS41 long-tit✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231166156341162,
+        "raw_byte_end": 369297,
+        "row": " ⠋ 123456789 · VIS41 long-titl✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231166236439292,
+        "raw_byte_end": 369897,
+        "row": " ⠋ 23456789 · VIS41 long-title✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231166316535369,
+        "raw_byte_end": 370497,
+        "row": " ⠋ 3456789 · VIS41 long-title ✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231166399186251,
+        "raw_byte_end": 371097,
+        "row": " ⠋ 456789 · VIS41 long-title a✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231166478986192,
+        "raw_byte_end": 371697,
+        "row": " ⠋ 56789 · VIS41 long-title ab✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231166559074927,
+        "raw_byte_end": 372296,
+        "row": " ⠋ 6789 · VIS41 long-title abc✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231166639362202,
+        "raw_byte_end": 372845,
+        "row": " ⠋ 789 · VIS41 long-title abcd✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231166719428694,
+        "raw_byte_end": 373345,
+        "row": " ⠋ 89 · VIS41 long-title abcde✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231166799745182,
+        "raw_byte_end": 373842,
+        "row": " ⠋ 9 · VIS41 long-title abcdef✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231166879947458,
+        "raw_byte_end": 374342,
+        "row": " ⠋  · VIS41 long-title abcdefg✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231167121923880,
+        "raw_byte_end": 375650,
+        "row": " ⠋ VIS41 long-title abcdefghij✕    Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      },
+      {
+        "at_ns": 1231172062304250,
+        "raw_byte_end": 375939,
+        "row": " ⠋ VIS41 long-title abcdefghijkl   Short                         +                                                                                              ",
+        "glyphs": [
+          "⠋"
+        ]
+      }
+    ]
+  },
+  "final_owner": {
+    "at_ns": 1231184903266664,
+    "kind": "owner_snapshot",
+    "request_id": "cancelled-owner",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_v2",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+            "project_id": "367b4db0d309eece79c6d458e3c35661dbacbf74",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "swift-lagoon",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project",
+            "path": "",
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1536,
+            "tokens_output": 48,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790556058965,
+            "time_updated": 1790556168563,
+            "time_idle": 1790556169771,
+            "time_viewed": 1790556169771,
+            "idle_outcome": "interrupted",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          },
+          {
+            "id": "ses_f1a8ac099ffe5KrumAJtouRyGC",
+            "project_id": "367b4db0d309eece79c6d458e3c35661dbacbf74",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "shiny-forest",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project",
+            "path": "",
+            "title": "Short",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790556061566,
+            "time_updated": 1790556065038,
+            "time_idle": 1790556061709,
+            "time_viewed": 1790556061709,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/home/data/opencode/opencode.db",
+        "table": "session_message",
+        "count": 12,
+        "rows": [
+          {
+            "id": "msg_0e575353a001UcNSTKVIwwO1uK",
+            "session_id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790556059057,
+            "time_updated": 1790556059059,
+            "data": "{\"time\":{\"created\":1790556059057},\"text\":\"VIS41 seed-a: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e57535e00011UHyUUGK66qNgB",
+            "session_id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790556059113,
+            "time_updated": 1790556059142,
+            "data": "{\"time\":{\"created\":1790556059113,\"streamed\":1790556059140,\"completed\":1790556059142},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-a\",\"state\":{\"itemId\":\"msg_vis41_1\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_1\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e57536090011YGEs80J4CgPnX",
+            "session_id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790556059145,
+            "time_updated": 1790556059145,
+            "data": "{\"time\":{\"created\":1790556059145},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e5753f6d001oECa4Y3NQuv8oa",
+            "session_id": "ses_f1a8ac099ffe5KrumAJtouRyGC",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790556061662,
+            "time_updated": 1790556061662,
+            "data": "{\"time\":{\"created\":1790556061662},\"text\":\"VIS41 seed-b: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e5753ff1001ZFJ1eQg1vCzaQr",
+            "session_id": "ses_f1a8ac099ffe5KrumAJtouRyGC",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790556061686,
+            "time_updated": 1790556061708,
+            "data": "{\"time\":{\"created\":1790556061686,\"streamed\":1790556061706,\"completed\":1790556061707},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-b\",\"state\":{\"itemId\":\"msg_vis41_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_3\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e575400d002mKhioZ00TRF89B",
+            "session_id": "ses_f1a8ac099ffe5KrumAJtouRyGC",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790556061709,
+            "time_updated": 1790556061710,
+            "data": "{\"time\":{\"created\":1790556061709},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e5769bb9001WDkJym0CzZwtCR",
+            "session_id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+            "type": "user",
+            "seq": 22,
+            "time_created": 1790556150756,
+            "time_updated": 1790556150757,
+            "data": "{\"time\":{\"created\":1790556150756},\"text\":\"VIS41 complete: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e5769bee0019aWPQimQKXEQBN",
+            "session_id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+            "type": "assistant",
+            "seq": 23,
+            "time_created": 1790556150780,
+            "time_updated": 1790556163582,
+            "data": "{\"time\":{\"created\":1790556150780,\"streamed\":1790556163579,\"completed\":1790556163581},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE complete\",\"state\":{\"itemId\":\"msg_vis41_4\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_4\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e576ce00001m6KyrYYiECsJqH",
+            "session_id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+            "type": "idle",
+            "seq": 28,
+            "time_created": 1790556163584,
+            "time_updated": 1790556163585,
+            "data": "{\"time\":{\"created\":1790556163584},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e576e15f001omjOcT5n390anJ",
+            "session_id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+            "type": "user",
+            "seq": 32,
+            "time_created": 1790556168574,
+            "time_updated": 1790556168575,
+            "data": "{\"time\":{\"created\":1790556168574},\"text\":\"VIS41 cancel: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e576e183001nNvelYX6yUJy5o",
+            "session_id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+            "type": "assistant",
+            "seq": 33,
+            "time_created": 1790556168595,
+            "time_updated": 1790556169770,
+            "data": "{\"time\":{\"created\":1790556168595,\"completed\":1790556169769},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[],\"finish\":\"error\",\"error\":{\"type\":\"aborted\",\"message\":\"Step interrupted\"}}"
+          },
+          {
+            "id": "msg_0e576e62b001FihCsa9O0YW8Wy",
+            "session_id": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+            "type": "idle",
+            "seq": 35,
+            "time_created": 1790556169771,
+            "time_updated": 1790556169771,
+            "data": "{\"time\":{\"created\":1790556169771},\"outcome\":\"interrupted\"}"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-08-upstream-160x48-off-horizontal-status/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_f1a8acac9ffeyUdOr1nrUhWGHm",
+                  "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789"
+                },
+                {
+                  "sessionID": "ses_f1a8ac099ffe5KrumAJtouRyGC",
+                  "title": "Short"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "project_files": {},
+    "requests": 6,
+    "completed": 5,
+    "invalid": 0,
+    "readonly_sqlite": true
+  }
+}

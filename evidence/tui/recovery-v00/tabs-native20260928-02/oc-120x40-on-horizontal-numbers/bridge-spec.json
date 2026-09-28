@@ -1,0 +1,18 @@
+{
+  "origin": "oc",
+  "binary": "/home/opencode/ai/oc/target/debug/oc",
+  "binary_sha256": "a4e1e4a38060c2a31ff85dd0e91e4a3765682de5b7dbbed7947ecf4244ef466e",
+  "columns": 120,
+  "rows": 40,
+  "animations": true,
+  "tabs": "horizontal",
+  "indicators": "numbers",
+  "root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-02-oc-120x40-on-horizontal-numbers",
+  "evidence": "/home/opencode/ai/oc/evidence/tui/recovery-v00/tabs-native20260928-02/oc-120x40-on-horizontal-numbers",
+  "project": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-12-upstream-120x40-on-horizontal-numbers/project",
+  "reference_project": {
+    "project": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-12-upstream-120x40-on-horizontal-numbers/project",
+    "reference_root": "/home/opencode/ai/oc/evidence/tui/recovery-v00/tabs-reference20260928-12",
+    "reference_attempt": "upstream-120x40-on-horizontal-numbers"
+  }
+}

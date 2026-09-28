@@ -1,5 +1,39 @@
 # T44 — parity qualification remains open (2026-09-28)
 
+VIS39 own-running tab indicators and VIS41 hover titles now use stable session IDs
+and the existing demand-driven clock. Dots advance through the pinned ten frames
+every80 ms; permission attention and numeric/static-off branches remain distinct.
+Source U48 tint/sweep/glow/release/completion clocks drain rather than become an
+idle ticker. Hover is independent of close eligibility: overflowing titles wait
+600 ms, move by display cells through one title-plus-separator cycle, return to
+zero and stop. Animations off still advances that title cycle, with an immediate
+leading fade. Mouse activation and height-only resize preserve the same painted
+ID's clock; hidden/removed/other-Location views dispose it. Tab ticks reuse the
+warm visible transcript instead of copying retained history. The real vertical
+rail is admitted at106 columns and gets its subtitle from the owner Location.
+
+Fresh [`tabs-report20260928-03.md`](../tui/recovery-v00/tabs-report20260928-03.md)
+preserves original/native attempts and qualifies18 actual fixtures across80×24,
+120×40 and160×48, animations on/off and horizontal status/numbers/vertical. Each
+native fixture has6 local requests,5 completions and1 real cancellation, with no
+tools or extra hover requests. All162 complete nonbusy idle windows have zero
+draws/UI wakes/PTY bytes/CPU ticks, using actual exported CLOCK_MONOTONIC samples,
+not a fitted epoch. Across1280 full paired records,1280 title phases and1238 tab
+glyph phases match;18 full frames are EQUAL,1220 differ and42 retain independent
+glyph-phase differences. Cursors match1037/1280. Busy `+` eligibility, actual time,
+rename/cursor and compact-route differences remain unmasked. T45 family/unread
+and T50 question facts are not synthesized. **No VIS39/VIS41/V09 parity PASS.**
+
+Final serial workspace fmt/locked tests (413 TUI,91 runtime,26 core; zero failures),
+strict all-target Clippy, debug+release builds, frontend/capture syntax, docs/
+progress/diff checks **PASS**: `tool_0e67c9a2c001P1ihDPFAbGW4Xe`. An earlier VIS31
+idle test sampled the new finite completion animation as idle; its sample now
+starts after the source-defined500 ms release plus1200 ms completion. The one-second
+zero-byte/≤1 CPU-tick gate is unchanged. A separate pending-Unicode PTY timing
+failure passed isolated and in the final gate without changed assertions. This
+test-only correction changes the captured PTY fixture hash, not any of the five
+production hashes or debug binary `895d476534e71b2db42317cabb78f6e0c2c6ccbf778156b6af3cd4b49f74358f`.
+
 VIS38 now persists one typed DCP snapshot per genuine successful compression
 operation, with session-local stable ordinal, distinct gross-removed/active-summary
 and run-local estimates, unique newly covered message/call-occurrence counts,

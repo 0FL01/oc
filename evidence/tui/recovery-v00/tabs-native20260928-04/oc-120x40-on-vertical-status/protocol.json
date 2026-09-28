@@ -1,0 +1,4116 @@
+[
+  {
+    "at_ns": 1240822655058252,
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "tui"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+    "env_names": [
+      "COLORTERM",
+      "HOME",
+      "LANG",
+      "LC_ALL",
+      "OC_TEST_ALLOW_LOOPBACK",
+      "OC_TUI_TEST_METRICS",
+      "OPENCODE_CONFIG_CONTENT",
+      "OPENCODE_CONFIG_PROJECT_DISABLE",
+      "OPENCODE_DISABLE_AUTOUPDATE",
+      "OPENCODE_DISABLE_FILEWATCHER",
+      "OPENCODE_DISABLE_MODELS_FETCH",
+      "OPENCODE_TEST_HOME",
+      "PATH",
+      "SHELL",
+      "TERM",
+      "TZ",
+      "XDG_CACHE_HOME",
+      "XDG_CONFIG_HOME",
+      "XDG_DATA_HOME",
+      "XDG_STATE_HOME"
+    ],
+    "inherited_environment": false,
+    "version": "oc 0.1.0",
+    "version_exit": 0,
+    "binary_sha256": "a4e1e4a38060c2a31ff85dd0e91e4a3765682de5b7dbbed7947ecf4244ef466e",
+    "config": {
+      "model": "fixture/fixture-model-1",
+      "animations": true,
+      "snapshots": false,
+      "compaction": {
+        "auto": false
+      },
+      "permissions": {
+        "*": "deny"
+      },
+      "provider": {
+        "fixture": {
+          "name": "Fixture",
+          "npm": "@ai-sdk/openai",
+          "options": {
+            "baseURL": "http://127.0.0.1:40729/v1",
+            "apiKey": "fixture-not-secret"
+          },
+          "models": {
+            "fixture-model-1": {
+              "name": "VIS41 Fixture",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              }
+            }
+          }
+        }
+      }
+    },
+    "cli_config": {
+      "theme": {
+        "name": "opencode",
+        "mode": "dark"
+      },
+      "animations": true,
+      "session": {
+        "sidebar": "hide",
+        "tps": false
+      },
+      "tabs": {
+        "layout": "vertical",
+        "indicators": "status"
+      },
+      "debug": {
+        "devtools": false
+      },
+      "attention": {
+        "notifications": false,
+        "sound": false
+      },
+      "cursor": {
+        "style": "block",
+        "blinking": false
+      }
+    },
+    "history_ingress": false,
+    "authenticated_api_calls": 0,
+    "reference_project_reused": true
+  },
+  {
+    "at_ns": 1240822657648373,
+    "kind": "process_started",
+    "pid": 1921615
+  },
+  {
+    "at_ns": 1240823780998043,
+    "kind": "input_written",
+    "label": "seed_prompt",
+    "base64": "G1syMDB+VklTNDEgc2VlZC1hOiBubyB0b29scyBvciBmaWxlc3lzdGVtIGVmZmVjdHMuG1syMDF+"
+  },
+  {
+    "at_ns": 1240823781066988,
+    "kind": "input_written",
+    "label": "seed_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1240823893467320,
+    "kind": "provider",
+    "index": 0,
+    "operation": "main",
+    "case": "seed-a",
+    "valid": true,
+    "body_sha256": "8e18dcd519f964a858fd502f0963fc01ed099f01f21bc2bb53bfe605e250848f",
+    "input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          }
+        ]
+      }
+    ],
+    "tool_names": [
+      "read",
+      "glob",
+      "grep",
+      "apply_patch",
+      "bash",
+      "webfetch",
+      "skill"
+    ]
+  },
+  {
+    "at_ns": 1240823893815013,
+    "kind": "provider_completed",
+    "case": "seed-a",
+    "index": 0,
+    "operation": "main"
+  },
+  {
+    "at_ns": 1240823964514563,
+    "kind": "provider",
+    "index": 1,
+    "operation": "title",
+    "case": "seed-a",
+    "valid": true,
+    "body_sha256": "61ccb1e535e8a94c73b720592653d43cf2d1ff8da16e0fce562ce806c7bc7bdf",
+    "input": [
+      {
+        "type": "message",
+        "role": "developer",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "Generate a short session title from the user's request. Output only the title, in at most 100 characters."
+          }
+        ]
+      },
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          }
+        ]
+      }
+    ],
+    "tool_names": []
+  },
+  {
+    "at_ns": 1240823964810108,
+    "kind": "provider_completed",
+    "case": "seed-a",
+    "index": 1,
+    "operation": "title"
+  },
+  {
+    "at_ns": 1240825568211831,
+    "kind": "input_written",
+    "label": "new_root_type",
+    "base64": "L25ldw=="
+  },
+  {
+    "at_ns": 1240825615116241,
+    "kind": "input_written",
+    "label": "new_root_enter",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1240825685705243,
+    "kind": "input_written",
+    "label": "seed_prompt",
+    "base64": "G1syMDB+VklTNDEgc2VlZC1iOiBubyB0b29scyBvciBmaWxlc3lzdGVtIGVmZmVjdHMuG1syMDF+"
+  },
+  {
+    "at_ns": 1240825686065225,
+    "kind": "input_written",
+    "label": "seed_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1240825772333167,
+    "kind": "provider",
+    "index": 2,
+    "operation": "main",
+    "case": "seed-b",
+    "valid": true,
+    "body_sha256": "6fc71170eee0058f80ec7514b8dbbbdcaf0227e46792f0a7738d80227378a8a9",
+    "input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          }
+        ]
+      }
+    ],
+    "tool_names": [
+      "read",
+      "glob",
+      "grep",
+      "apply_patch",
+      "bash",
+      "webfetch",
+      "skill"
+    ]
+  },
+  {
+    "at_ns": 1240825772638718,
+    "kind": "provider_completed",
+    "case": "seed-b",
+    "index": 2,
+    "operation": "main"
+  },
+  {
+    "at_ns": 1240825815478356,
+    "kind": "provider",
+    "index": 3,
+    "operation": "title",
+    "case": "seed-b",
+    "valid": true,
+    "body_sha256": "dfdebfce7c716148cd61656413bdaf2cc22fe9f65350a5bd5a8cd6d6f03d2e17",
+    "input": [
+      {
+        "type": "message",
+        "role": "developer",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "Generate a short session title from the user's request. Output only the title, in at most 100 characters."
+          }
+        ]
+      },
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          }
+        ]
+      }
+    ],
+    "tool_names": []
+  },
+  {
+    "at_ns": 1240825815937857,
+    "kind": "provider_completed",
+    "case": "seed-b",
+    "index": 3,
+    "operation": "title"
+  },
+  {
+    "at_ns": 1240827586890420,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1240827586958091,
+    "kind": "input_written",
+    "label": "rename_ctrl_r",
+    "base64": "Eg=="
+  },
+  {
+    "at_ns": 1240827679915155,
+    "kind": "input_written",
+    "label": "rename_home",
+    "base64": "G1tI"
+  },
+  {
+    "at_ns": 1240827759714127,
+    "kind": "input_written",
+    "label": "rename_shift_end",
+    "base64": "G1sxOzJG"
+  },
+  {
+    "at_ns": 1240827840486714,
+    "kind": "input_written",
+    "label": "rename_title_paste",
+    "base64": "G1syMDB+U2hvcnQbWzIwMX4="
+  },
+  {
+    "at_ns": 1240828457143827,
+    "kind": "input_written",
+    "label": "rename_commit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1240829022843707,
+    "kind": "owner_snapshot",
+    "request_id": "root-b-short-rename-owner",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "count": 2,
+        "rows": [
+          {
+            "id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "created_at": "1790565813",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS41 fixture A",
+            "updated_at": "1790565813.755"
+          },
+          {
+            "id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "created_at": "1790565815",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "Short",
+            "updated_at": "1790565818.252"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "messages",
+        "count": 4,
+        "rows": [
+          {
+            "id": "m0001",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          },
+          {
+            "id": "m0002",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-a"
+          },
+          {
+            "id": "m0003",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 3,
+            "role": "user",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          },
+          {
+            "id": "m0004",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 4,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-b"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "turns",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 seed-a: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":120,\"streamed_ms\":93,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-a: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_0\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-a\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "status": "completed",
+            "prompt": "VIS41 seed-b: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":89,\"streamed_ms\":66,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-b: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_2\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-b\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0004\"}"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "prefs",
+        "count": 7,
+        "rows": [
+          {
+            "key": "tui.session_location.s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1ee0ffb36e-1d524f-0\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1ee0ffb36e-1d524f-0\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"s-tui-18d95e1ee0ffb36e-1d524f-0\",\"s-tui-18d95e1f52bc541c-1d524f-1\"],\"active\":\"s-tui-18d95e1f52bc541c-1d524f-1\"}",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "tui.session_location.s-tui-18d95e1f52bc541c-1d524f-1",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1f52bc541c-1d524f-1\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1f52bc541c-1d524f-1\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565815"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1240829038438030,
+    "kind": "input_written",
+    "label": "tab_select_down",
+    "base64": "G1s8MDs1OzJN"
+  },
+  {
+    "at_ns": 1240829038501535,
+    "kind": "input_written",
+    "label": "tab_select_up",
+    "base64": "G1s8MDs1OzJt"
+  },
+  {
+    "at_ns": 1240829104196409,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1240829602900628,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1240829603880133,
+    "kind": "input_written",
+    "label": "rename_ctrl_r",
+    "base64": "Eg=="
+  },
+  {
+    "at_ns": 1240829702580295,
+    "kind": "input_written",
+    "label": "rename_home",
+    "base64": "G1tI"
+  },
+  {
+    "at_ns": 1240829783935210,
+    "kind": "input_written",
+    "label": "rename_shift_end",
+    "base64": "G1sxOzJG"
+  },
+  {
+    "at_ns": 1240829863711326,
+    "kind": "input_written",
+    "label": "rename_title_paste",
+    "base64": "G1syMDB+VklTNDEgbG9uZy10aXRsZSBhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5eiAwMTIzNDU2Nzg5G1syMDF+"
+  },
+  {
+    "at_ns": 1240830499143681,
+    "kind": "input_written",
+    "label": "rename_commit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1240831084794184,
+    "kind": "owner_snapshot",
+    "request_id": "long-rename-owner",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "count": 2,
+        "rows": [
+          {
+            "id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "created_at": "1790565813",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "updated_at": "1790565820.291"
+          },
+          {
+            "id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "created_at": "1790565815",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "Short",
+            "updated_at": "1790565818.252"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "messages",
+        "count": 4,
+        "rows": [
+          {
+            "id": "m0001",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          },
+          {
+            "id": "m0002",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-a"
+          },
+          {
+            "id": "m0003",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 3,
+            "role": "user",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          },
+          {
+            "id": "m0004",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 4,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-b"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "turns",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 seed-a: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":120,\"streamed_ms\":93,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-a: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_0\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-a\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "status": "completed",
+            "prompt": "VIS41 seed-b: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":89,\"streamed_ms\":66,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-b: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_2\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-b\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0004\"}"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "prefs",
+        "count": 7,
+        "rows": [
+          {
+            "key": "tui.session_location.s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1ee0ffb36e-1d524f-0\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1ee0ffb36e-1d524f-0\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"s-tui-18d95e1ee0ffb36e-1d524f-0\",\"s-tui-18d95e1f52bc541c-1d524f-1\"],\"active\":\"s-tui-18d95e1ee0ffb36e-1d524f-0\"}",
+            "updated_at": "1790565818"
+          },
+          {
+            "key": "tui.session_location.s-tui-18d95e1f52bc541c-1d524f-1",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1f52bc541c-1d524f-1\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1f52bc541c-1d524f-1\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565815"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1240831656161979,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1240831758202491,
+    "kind": "owner_snapshot",
+    "request_id": "long-before",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "count": 2,
+        "rows": [
+          {
+            "id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "created_at": "1790565813",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "updated_at": "1790565820.291"
+          },
+          {
+            "id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "created_at": "1790565815",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "Short",
+            "updated_at": "1790565818.252"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "messages",
+        "count": 4,
+        "rows": [
+          {
+            "id": "m0001",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          },
+          {
+            "id": "m0002",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-a"
+          },
+          {
+            "id": "m0003",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 3,
+            "role": "user",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          },
+          {
+            "id": "m0004",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 4,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-b"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "turns",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 seed-a: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":120,\"streamed_ms\":93,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-a: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_0\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-a\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "status": "completed",
+            "prompt": "VIS41 seed-b: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":89,\"streamed_ms\":66,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-b: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_2\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-b\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0004\"}"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "prefs",
+        "count": 7,
+        "rows": [
+          {
+            "key": "tui.session_location.s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1ee0ffb36e-1d524f-0\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1ee0ffb36e-1d524f-0\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"s-tui-18d95e1ee0ffb36e-1d524f-0\",\"s-tui-18d95e1f52bc541c-1d524f-1\"],\"active\":\"s-tui-18d95e1ee0ffb36e-1d524f-0\"}",
+            "updated_at": "1790565818"
+          },
+          {
+            "key": "tui.session_location.s-tui-18d95e1f52bc541c-1d524f-1",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1f52bc541c-1d524f-1\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1f52bc541c-1d524f-1\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565815"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1240831856917808,
+    "kind": "input_written",
+    "label": "long-enter",
+    "base64": "G1s8MzU7NTsyTQ=="
+  },
+  {
+    "at_ns": 1240838548219990,
+    "kind": "process_sample",
+    "request_id": "long-idle-start",
+    "pid": 1921615,
+    "cpu_ticks": 99,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1921615,
+        "voluntary": 333,
+        "involuntary": 1385,
+        "scheduler_runtime_ns": 740864445,
+        "scheduler_wait_ns": 1038447816,
+        "scheduler_timeslices": 1718,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240838547354126,
+        "sample_end_ns": 1240838547501318
+      },
+      {
+        "tid": 1921616,
+        "voluntary": 5,
+        "involuntary": 1,
+        "scheduler_runtime_ns": 198337,
+        "scheduler_wait_ns": 119149,
+        "scheduler_timeslices": 6,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240838547507958,
+        "sample_end_ns": 1240838547643422
+      },
+      {
+        "tid": 1921617,
+        "voluntary": 64,
+        "involuntary": 5,
+        "scheduler_runtime_ns": 10926766,
+        "scheduler_wait_ns": 1147284663,
+        "scheduler_timeslices": 69,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240838547647308,
+        "sample_end_ns": 1240838547753498
+      },
+      {
+        "tid": 1921618,
+        "voluntary": 4,
+        "involuntary": 0,
+        "scheduler_runtime_ns": 156504,
+        "scheduler_wait_ns": 50977,
+        "scheduler_timeslices": 4,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240838547757064,
+        "sample_end_ns": 1240838547875802
+      },
+      {
+        "tid": 1921619,
+        "voluntary": 144,
+        "involuntary": 24,
+        "scheduler_runtime_ns": 24141698,
+        "scheduler_wait_ns": 73081404,
+        "scheduler_timeslices": 168,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240838547878425,
+        "sample_end_ns": 1240838547954751
+      },
+      {
+        "tid": 1921620,
+        "voluntary": 19,
+        "involuntary": 54,
+        "scheduler_runtime_ns": 98545384,
+        "scheduler_wait_ns": 20161084,
+        "scheduler_timeslices": 73,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240838547957264,
+        "sample_end_ns": 1240838548048762
+      },
+      {
+        "tid": 1921621,
+        "voluntary": 371,
+        "involuntary": 84,
+        "scheduler_runtime_ns": 128432736,
+        "scheduler_wait_ns": 214420252,
+        "scheduler_timeslices": 455,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240838548050715,
+        "sample_end_ns": 1240838548129564
+      },
+      {
+        "tid": 1921633,
+        "voluntary": 47,
+        "involuntary": 4,
+        "scheduler_runtime_ns": 2354533,
+        "scheduler_wait_ns": 18269902,
+        "scheduler_timeslices": 51,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240838548131227,
+        "sample_end_ns": 1240838548199549
+      }
+    ],
+    "voluntary_context_switches": 987,
+    "involuntary_context_switches": 1557
+  },
+  {
+    "at_ns": 1240840071134084,
+    "kind": "process_sample",
+    "request_id": "long-idle-end",
+    "pid": 1921615,
+    "cpu_ticks": 99,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1921615,
+        "voluntary": 333,
+        "involuntary": 1385,
+        "scheduler_runtime_ns": 740864445,
+        "scheduler_wait_ns": 1038447816,
+        "scheduler_timeslices": 1718,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240840070316353,
+        "sample_end_ns": 1240840070446969
+      },
+      {
+        "tid": 1921616,
+        "voluntary": 5,
+        "involuntary": 1,
+        "scheduler_runtime_ns": 198337,
+        "scheduler_wait_ns": 119149,
+        "scheduler_timeslices": 6,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240840070450784,
+        "sample_end_ns": 1240840070599769
+      },
+      {
+        "tid": 1921617,
+        "voluntary": 64,
+        "involuntary": 5,
+        "scheduler_runtime_ns": 10926766,
+        "scheduler_wait_ns": 1147284663,
+        "scheduler_timeslices": 69,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240840070604036,
+        "sample_end_ns": 1240840070705208
+      },
+      {
+        "tid": 1921618,
+        "voluntary": 4,
+        "involuntary": 0,
+        "scheduler_runtime_ns": 156504,
+        "scheduler_wait_ns": 50977,
+        "scheduler_timeslices": 4,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240840070708132,
+        "sample_end_ns": 1240840070796114
+      },
+      {
+        "tid": 1921619,
+        "voluntary": 144,
+        "involuntary": 24,
+        "scheduler_runtime_ns": 24141698,
+        "scheduler_wait_ns": 73081404,
+        "scheduler_timeslices": 168,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240840070798277,
+        "sample_end_ns": 1240840070879621
+      },
+      {
+        "tid": 1921620,
+        "voluntary": 19,
+        "involuntary": 54,
+        "scheduler_runtime_ns": 98545384,
+        "scheduler_wait_ns": 20161084,
+        "scheduler_timeslices": 73,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240840070881684,
+        "sample_end_ns": 1240840070959030
+      },
+      {
+        "tid": 1921621,
+        "voluntary": 371,
+        "involuntary": 84,
+        "scheduler_runtime_ns": 128432736,
+        "scheduler_wait_ns": 214420252,
+        "scheduler_timeslices": 455,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240840070960873,
+        "sample_end_ns": 1240840071038130
+      },
+      {
+        "tid": 1921633,
+        "voluntary": 47,
+        "involuntary": 4,
+        "scheduler_runtime_ns": 2354533,
+        "scheduler_wait_ns": 18269902,
+        "scheduler_timeslices": 51,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240840071040162,
+        "sample_end_ns": 1240840071117238
+      }
+    ],
+    "voluntary_context_switches": 987,
+    "involuntary_context_switches": 1557
+  },
+  {
+    "at_ns": 1240840342803794,
+    "kind": "owner_snapshot",
+    "request_id": "long-after",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "count": 2,
+        "rows": [
+          {
+            "id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "created_at": "1790565813",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "updated_at": "1790565820.291"
+          },
+          {
+            "id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "created_at": "1790565815",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "Short",
+            "updated_at": "1790565818.252"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "messages",
+        "count": 4,
+        "rows": [
+          {
+            "id": "m0001",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          },
+          {
+            "id": "m0002",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-a"
+          },
+          {
+            "id": "m0003",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 3,
+            "role": "user",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          },
+          {
+            "id": "m0004",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 4,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-b"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "turns",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 seed-a: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":120,\"streamed_ms\":93,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-a: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_0\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-a\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "status": "completed",
+            "prompt": "VIS41 seed-b: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":89,\"streamed_ms\":66,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-b: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_2\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-b\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0004\"}"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "prefs",
+        "count": 7,
+        "rows": [
+          {
+            "key": "tui.session_location.s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1ee0ffb36e-1d524f-0\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1ee0ffb36e-1d524f-0\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"s-tui-18d95e1ee0ffb36e-1d524f-0\",\"s-tui-18d95e1f52bc541c-1d524f-1\"],\"active\":\"s-tui-18d95e1ee0ffb36e-1d524f-0\"}",
+            "updated_at": "1790565818"
+          },
+          {
+            "key": "tui.session_location.s-tui-18d95e1f52bc541c-1d524f-1",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1f52bc541c-1d524f-1\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1f52bc541c-1d524f-1\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565815"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1240840357400964,
+    "kind": "input_written",
+    "label": "long-same-tab-motion",
+    "base64": "G1s8MzU7NjsyTQ=="
+  },
+  {
+    "at_ns": 1240841984784537,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1240842636247460,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1240842636308602,
+    "kind": "input_written",
+    "label": "rename_ctrl_r",
+    "base64": "Eg=="
+  },
+  {
+    "at_ns": 1240842704946977,
+    "kind": "input_written",
+    "label": "rename_home",
+    "base64": "G1tI"
+  },
+  {
+    "at_ns": 1240842785130088,
+    "kind": "input_written",
+    "label": "rename_shift_end",
+    "base64": "G1sxOzJG"
+  },
+  {
+    "at_ns": 1240842865421110,
+    "kind": "input_written",
+    "label": "rename_title_paste",
+    "base64": "G1syMDB+VklTNDEgbG9uZy10aXRsZSBhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5eiAwMTIzNDU2Nzg5G1syMDF+"
+  },
+  {
+    "at_ns": 1240843486565338,
+    "kind": "input_written",
+    "label": "rename_commit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1240844065144222,
+    "kind": "owner_snapshot",
+    "request_id": "inactive-long-rename-owner",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "count": 2,
+        "rows": [
+          {
+            "id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "created_at": "1790565813",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "updated_at": "1790565833.277"
+          },
+          {
+            "id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "created_at": "1790565815",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "Short",
+            "updated_at": "1790565818.252"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "messages",
+        "count": 4,
+        "rows": [
+          {
+            "id": "m0001",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          },
+          {
+            "id": "m0002",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-a"
+          },
+          {
+            "id": "m0003",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 3,
+            "role": "user",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          },
+          {
+            "id": "m0004",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 4,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-b"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "turns",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 seed-a: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":120,\"streamed_ms\":93,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-a: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_0\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-a\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "status": "completed",
+            "prompt": "VIS41 seed-b: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":89,\"streamed_ms\":66,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-b: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_2\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-b\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0004\"}"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "prefs",
+        "count": 7,
+        "rows": [
+          {
+            "key": "tui.session_location.s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1ee0ffb36e-1d524f-0\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1ee0ffb36e-1d524f-0\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"s-tui-18d95e1ee0ffb36e-1d524f-0\",\"s-tui-18d95e1f52bc541c-1d524f-1\"],\"active\":\"s-tui-18d95e1ee0ffb36e-1d524f-0\"}",
+            "updated_at": "1790565818"
+          },
+          {
+            "key": "tui.session_location.s-tui-18d95e1f52bc541c-1d524f-1",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1f52bc541c-1d524f-1\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1f52bc541c-1d524f-1\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565815"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1240844085815558,
+    "kind": "input_written",
+    "label": "tab_select_down",
+    "base64": "G1s8MDs1OzVN"
+  },
+  {
+    "at_ns": 1240844085888108,
+    "kind": "input_written",
+    "label": "tab_select_up",
+    "base64": "G1s8MDs1OzVt"
+  },
+  {
+    "at_ns": 1240844152526212,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1240844653341940,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1240844756514136,
+    "kind": "owner_snapshot",
+    "request_id": "inactive-before",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "count": 2,
+        "rows": [
+          {
+            "id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "created_at": "1790565813",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "updated_at": "1790565833.277"
+          },
+          {
+            "id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "created_at": "1790565815",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "Short",
+            "updated_at": "1790565818.252"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "messages",
+        "count": 4,
+        "rows": [
+          {
+            "id": "m0001",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          },
+          {
+            "id": "m0002",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-a"
+          },
+          {
+            "id": "m0003",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 3,
+            "role": "user",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          },
+          {
+            "id": "m0004",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 4,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-b"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "turns",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 seed-a: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":120,\"streamed_ms\":93,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-a: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_0\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-a\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "status": "completed",
+            "prompt": "VIS41 seed-b: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":89,\"streamed_ms\":66,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-b: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_2\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-b\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0004\"}"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "prefs",
+        "count": 7,
+        "rows": [
+          {
+            "key": "tui.session_location.s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1ee0ffb36e-1d524f-0\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1ee0ffb36e-1d524f-0\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"s-tui-18d95e1ee0ffb36e-1d524f-0\",\"s-tui-18d95e1f52bc541c-1d524f-1\"],\"active\":\"s-tui-18d95e1f52bc541c-1d524f-1\"}",
+            "updated_at": "1790565833"
+          },
+          {
+            "key": "tui.session_location.s-tui-18d95e1f52bc541c-1d524f-1",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1f52bc541c-1d524f-1\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1f52bc541c-1d524f-1\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565815"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1240844851233204,
+    "kind": "input_written",
+    "label": "inactive-enter",
+    "base64": "G1s8MzU7NTsyTQ=="
+  },
+  {
+    "at_ns": 1240851633966979,
+    "kind": "process_sample",
+    "request_id": "inactive-idle-start",
+    "pid": 1921615,
+    "cpu_ticks": 134,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1921615,
+        "voluntary": 439,
+        "involuntary": 2157,
+        "scheduler_runtime_ns": 1061604560,
+        "scheduler_wait_ns": 1601270778,
+        "scheduler_timeslices": 2596,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240851633281296,
+        "sample_end_ns": 1240851633466355
+      },
+      {
+        "tid": 1921616,
+        "voluntary": 5,
+        "involuntary": 1,
+        "scheduler_runtime_ns": 198337,
+        "scheduler_wait_ns": 119149,
+        "scheduler_timeslices": 6,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240851633470581,
+        "sample_end_ns": 1240851633559434
+      },
+      {
+        "tid": 1921617,
+        "voluntary": 86,
+        "involuntary": 12,
+        "scheduler_runtime_ns": 14021326,
+        "scheduler_wait_ns": 1155739999,
+        "scheduler_timeslices": 98,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240851633561467,
+        "sample_end_ns": 1240851633629631
+      },
+      {
+        "tid": 1921618,
+        "voluntary": 4,
+        "involuntary": 0,
+        "scheduler_runtime_ns": 156504,
+        "scheduler_wait_ns": 50977,
+        "scheduler_timeslices": 4,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240851633631524,
+        "sample_end_ns": 1240851633692445
+      },
+      {
+        "tid": 1921619,
+        "voluntary": 162,
+        "involuntary": 24,
+        "scheduler_runtime_ns": 25893994,
+        "scheduler_wait_ns": 77018872,
+        "scheduler_timeslices": 186,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240851633693927,
+        "sample_end_ns": 1240851633757153
+      },
+      {
+        "tid": 1921620,
+        "voluntary": 19,
+        "involuntary": 54,
+        "scheduler_runtime_ns": 98545384,
+        "scheduler_wait_ns": 20161084,
+        "scheduler_timeslices": 73,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240851633758815,
+        "sample_end_ns": 1240851633821069
+      },
+      {
+        "tid": 1921621,
+        "voluntary": 585,
+        "involuntary": 117,
+        "scheduler_runtime_ns": 144339009,
+        "scheduler_wait_ns": 303232614,
+        "scheduler_timeslices": 702,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240851633822421,
+        "sample_end_ns": 1240851633885315
+      },
+      {
+        "tid": 1921633,
+        "voluntary": 71,
+        "involuntary": 4,
+        "scheduler_runtime_ns": 3705408,
+        "scheduler_wait_ns": 24380376,
+        "scheduler_timeslices": 75,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240851633886797,
+        "sample_end_ns": 1240851633950003
+      }
+    ],
+    "voluntary_context_switches": 1371,
+    "involuntary_context_switches": 2369
+  },
+  {
+    "at_ns": 1240853153813903,
+    "kind": "process_sample",
+    "request_id": "inactive-idle-end",
+    "pid": 1921615,
+    "cpu_ticks": 134,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1921615,
+        "voluntary": 439,
+        "involuntary": 2157,
+        "scheduler_runtime_ns": 1061604560,
+        "scheduler_wait_ns": 1601270778,
+        "scheduler_timeslices": 2596,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240853153190524,
+        "sample_end_ns": 1240853153306338
+      },
+      {
+        "tid": 1921616,
+        "voluntary": 5,
+        "involuntary": 1,
+        "scheduler_runtime_ns": 198337,
+        "scheduler_wait_ns": 119149,
+        "scheduler_timeslices": 6,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240853153309253,
+        "sample_end_ns": 1240853153397505
+      },
+      {
+        "tid": 1921617,
+        "voluntary": 86,
+        "involuntary": 12,
+        "scheduler_runtime_ns": 14021326,
+        "scheduler_wait_ns": 1155739999,
+        "scheduler_timeslices": 98,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240853153399538,
+        "sample_end_ns": 1240853153490465
+      },
+      {
+        "tid": 1921618,
+        "voluntary": 4,
+        "involuntary": 0,
+        "scheduler_runtime_ns": 156504,
+        "scheduler_wait_ns": 50977,
+        "scheduler_timeslices": 4,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240853153492428,
+        "sample_end_ns": 1240853153561932
+      },
+      {
+        "tid": 1921619,
+        "voluntary": 162,
+        "involuntary": 24,
+        "scheduler_runtime_ns": 25893994,
+        "scheduler_wait_ns": 77018872,
+        "scheduler_timeslices": 186,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240853153563455,
+        "sample_end_ns": 1240853153623645
+      },
+      {
+        "tid": 1921620,
+        "voluntary": 19,
+        "involuntary": 54,
+        "scheduler_runtime_ns": 98545384,
+        "scheduler_wait_ns": 20161084,
+        "scheduler_timeslices": 73,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240853153625038,
+        "sample_end_ns": 1240853153683466
+      },
+      {
+        "tid": 1921621,
+        "voluntary": 585,
+        "involuntary": 117,
+        "scheduler_runtime_ns": 144339009,
+        "scheduler_wait_ns": 303232614,
+        "scheduler_timeslices": 702,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240853153684848,
+        "sample_end_ns": 1240853153742595
+      },
+      {
+        "tid": 1921633,
+        "voluntary": 71,
+        "involuntary": 4,
+        "scheduler_runtime_ns": 3705408,
+        "scheduler_wait_ns": 24380376,
+        "scheduler_timeslices": 75,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240853153744618,
+        "sample_end_ns": 1240853153801945
+      }
+    ],
+    "voluntary_context_switches": 1371,
+    "involuntary_context_switches": 2369
+  },
+  {
+    "at_ns": 1240853419408935,
+    "kind": "owner_snapshot",
+    "request_id": "inactive-after",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "count": 2,
+        "rows": [
+          {
+            "id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "created_at": "1790565813",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "updated_at": "1790565833.277"
+          },
+          {
+            "id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "created_at": "1790565815",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "Short",
+            "updated_at": "1790565818.252"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "messages",
+        "count": 4,
+        "rows": [
+          {
+            "id": "m0001",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          },
+          {
+            "id": "m0002",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-a"
+          },
+          {
+            "id": "m0003",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 3,
+            "role": "user",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          },
+          {
+            "id": "m0004",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 4,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-b"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "turns",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 seed-a: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":120,\"streamed_ms\":93,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-a: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_0\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-a\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "status": "completed",
+            "prompt": "VIS41 seed-b: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":89,\"streamed_ms\":66,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-b: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_2\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-b\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0004\"}"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "prefs",
+        "count": 7,
+        "rows": [
+          {
+            "key": "tui.session_location.s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1ee0ffb36e-1d524f-0\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1ee0ffb36e-1d524f-0\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"s-tui-18d95e1ee0ffb36e-1d524f-0\",\"s-tui-18d95e1f52bc541c-1d524f-1\"],\"active\":\"s-tui-18d95e1f52bc541c-1d524f-1\"}",
+            "updated_at": "1790565833"
+          },
+          {
+            "key": "tui.session_location.s-tui-18d95e1f52bc541c-1d524f-1",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1f52bc541c-1d524f-1\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1f52bc541c-1d524f-1\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565815"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1240853435591402,
+    "kind": "input_written",
+    "label": "inactive-same-tab-motion",
+    "base64": "G1s8MzU7NjsyTQ=="
+  },
+  {
+    "at_ns": 1240855054101953,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1240855731660971,
+    "kind": "input_written",
+    "label": "tab_select_down",
+    "base64": "G1s8MDs1OzJN"
+  },
+  {
+    "at_ns": 1240855732108285,
+    "kind": "input_written",
+    "label": "tab_select_up",
+    "base64": "G1s8MDs1OzJt"
+  },
+  {
+    "at_ns": 1240855778098787,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1240856078160259,
+    "kind": "input_written",
+    "label": "running_prompt",
+    "base64": "G1syMDB+VklTNDEgY29tcGxldGU6IG5vIHRvb2xzIG9yIGZpbGVzeXN0ZW0gZWZmZWN0cy4bWzIwMX4="
+  },
+  {
+    "at_ns": 1240856078221251,
+    "kind": "input_written",
+    "label": "running_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1240856161566502,
+    "kind": "provider",
+    "index": 4,
+    "operation": "main",
+    "case": "complete",
+    "valid": true,
+    "body_sha256": "b9dc0b1477345154d639d8e599c578f5fd3af45f371ea552e5a32b394a8c1220",
+    "input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          }
+        ]
+      },
+      {
+        "id": "msg_vis41_0",
+        "type": "message",
+        "role": "assistant",
+        "status": "completed",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "VIS41-DONE seed-a",
+            "annotations": []
+          }
+        ]
+      },
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 complete: no tools or filesystem effects."
+          }
+        ]
+      }
+    ],
+    "tool_names": [
+      "read",
+      "glob",
+      "grep",
+      "apply_patch",
+      "bash",
+      "webfetch",
+      "skill"
+    ]
+  },
+  {
+    "at_ns": 1240856161808135,
+    "kind": "provider_held",
+    "case": "complete",
+    "index": 4,
+    "timeout_seconds": 60
+  },
+  {
+    "at_ns": 1240856928553089,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1240857032092880,
+    "kind": "owner_snapshot",
+    "request_id": "busy-before",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "count": 2,
+        "rows": [
+          {
+            "id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "created_at": "1790565813",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "updated_at": "1790565845.876"
+          },
+          {
+            "id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "created_at": "1790565815",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "Short",
+            "updated_at": "1790565818.252"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "messages",
+        "count": 5,
+        "rows": [
+          {
+            "id": "m0001",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          },
+          {
+            "id": "m0002",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-a"
+          },
+          {
+            "id": "m0003",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 3,
+            "role": "user",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          },
+          {
+            "id": "m0004",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 4,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-b"
+          },
+          {
+            "id": "m0005",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 5,
+            "role": "user",
+            "text": "VIS41 complete: no tools or filesystem effects."
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "turns",
+        "count": 3,
+        "rows": [
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 seed-a: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":120,\"streamed_ms\":93,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-a: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_0\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-a\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "status": "completed",
+            "prompt": "VIS41 seed-b: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":89,\"streamed_ms\":66,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-b: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_2\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-b\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0004\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565845876-1921615-2",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "started",
+            "prompt": "VIS41 complete: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0},\"display_parts\":[],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565845876-1921615-2\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":null,\"user_message\":\"m0005\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 complete: no tools or filesystem effects.\"}]}],\"agent_digest\":\"3776c54743c91d48\"}"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "prefs",
+        "count": 7,
+        "rows": [
+          {
+            "key": "tui.session_location.s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1ee0ffb36e-1d524f-0\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1ee0ffb36e-1d524f-0\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565845"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"s-tui-18d95e1ee0ffb36e-1d524f-0\",\"s-tui-18d95e1f52bc541c-1d524f-1\"],\"active\":\"s-tui-18d95e1ee0ffb36e-1d524f-0\"}",
+            "updated_at": "1790565845"
+          },
+          {
+            "key": "tui.session_location.s-tui-18d95e1f52bc541c-1d524f-1",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1f52bc541c-1d524f-1\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1f52bc541c-1d524f-1\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565815"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [],
+    "project_files": {},
+    "requests": 5,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1240857112741891,
+    "kind": "input_written",
+    "label": "busy-enter",
+    "base64": "G1s8MzU7NTsyTQ=="
+  },
+  {
+    "at_ns": 1240864056582214,
+    "kind": "process_sample",
+    "request_id": "busy-idle-start",
+    "pid": 1921615,
+    "cpu_ticks": 339,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1921615,
+        "voluntary": 920,
+        "involuntary": 5902,
+        "scheduler_runtime_ns": 2900378516,
+        "scheduler_wait_ns": 4379626716,
+        "scheduler_timeslices": 6822,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240864055901950,
+        "sample_end_ns": 1240864056068200
+      },
+      {
+        "tid": 1921616,
+        "voluntary": 5,
+        "involuntary": 1,
+        "scheduler_runtime_ns": 198337,
+        "scheduler_wait_ns": 119149,
+        "scheduler_timeslices": 6,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240864056071425,
+        "sample_end_ns": 1240864056151625
+      },
+      {
+        "tid": 1921617,
+        "voluntary": 799,
+        "involuntary": 58,
+        "scheduler_runtime_ns": 96606127,
+        "scheduler_wait_ns": 1381373072,
+        "scheduler_timeslices": 857,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240864056153528,
+        "sample_end_ns": 1240864056220199
+      },
+      {
+        "tid": 1921618,
+        "voluntary": 4,
+        "involuntary": 0,
+        "scheduler_runtime_ns": 156504,
+        "scheduler_wait_ns": 50977,
+        "scheduler_timeslices": 4,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240864056221872,
+        "sample_end_ns": 1240864056285917
+      },
+      {
+        "tid": 1921619,
+        "voluntary": 785,
+        "involuntary": 106,
+        "scheduler_runtime_ns": 148277000,
+        "scheduler_wait_ns": 298755399,
+        "scheduler_timeslices": 891,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240864056287500,
+        "sample_end_ns": 1240864056354271
+      },
+      {
+        "tid": 1921620,
+        "voluntary": 19,
+        "involuntary": 54,
+        "scheduler_runtime_ns": 98545384,
+        "scheduler_wait_ns": 20161084,
+        "scheduler_timeslices": 73,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240864056355914,
+        "sample_end_ns": 1240864056416695
+      },
+      {
+        "tid": 1921621,
+        "voluntary": 602,
+        "involuntary": 117,
+        "scheduler_runtime_ns": 145818818,
+        "scheduler_wait_ns": 307342438,
+        "scheduler_timeslices": 719,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240864056418047,
+        "sample_end_ns": 1240864056503465
+      },
+      {
+        "tid": 1921633,
+        "voluntary": 88,
+        "involuntary": 4,
+        "scheduler_runtime_ns": 4424306,
+        "scheduler_wait_ns": 29089079,
+        "scheduler_timeslices": 92,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240864056505138,
+        "sample_end_ns": 1240864056566340
+      }
+    ],
+    "voluntary_context_switches": 3222,
+    "involuntary_context_switches": 6242
+  },
+  {
+    "at_ns": 1240864595858154,
+    "kind": "process_sample",
+    "request_id": "busy-idle-end",
+    "pid": 1921615,
+    "cpu_ticks": 352,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1921615,
+        "voluntary": 952,
+        "involuntary": 6188,
+        "scheduler_runtime_ns": 3031039126,
+        "scheduler_wait_ns": 4500452610,
+        "scheduler_timeslices": 7140,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240864595106483,
+        "sample_end_ns": 1240864595242658
+      },
+      {
+        "tid": 1921616,
+        "voluntary": 5,
+        "involuntary": 1,
+        "scheduler_runtime_ns": 198337,
+        "scheduler_wait_ns": 119149,
+        "scheduler_timeslices": 6,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240864595246083,
+        "sample_end_ns": 1240864595338842
+      },
+      {
+        "tid": 1921617,
+        "voluntary": 833,
+        "involuntary": 65,
+        "scheduler_runtime_ns": 100598517,
+        "scheduler_wait_ns": 1393893692,
+        "scheduler_timeslices": 898,
+        "state": "R (running)",
+        "sample_start_ns": 1240864595341126,
+        "sample_end_ns": 1240864595423830
+      },
+      {
+        "tid": 1921618,
+        "voluntary": 4,
+        "involuntary": 0,
+        "scheduler_runtime_ns": 156504,
+        "scheduler_wait_ns": 50977,
+        "scheduler_timeslices": 4,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240864595439474,
+        "sample_end_ns": 1240864595524792
+      },
+      {
+        "tid": 1921619,
+        "voluntary": 840,
+        "involuntary": 108,
+        "scheduler_runtime_ns": 154675768,
+        "scheduler_wait_ns": 310238753,
+        "scheduler_timeslices": 948,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240864595526956,
+        "sample_end_ns": 1240864595606325
+      },
+      {
+        "tid": 1921620,
+        "voluntary": 19,
+        "involuntary": 54,
+        "scheduler_runtime_ns": 98545384,
+        "scheduler_wait_ns": 20161084,
+        "scheduler_timeslices": 73,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240864595608288,
+        "sample_end_ns": 1240864595684393
+      },
+      {
+        "tid": 1921621,
+        "voluntary": 602,
+        "involuntary": 117,
+        "scheduler_runtime_ns": 145818818,
+        "scheduler_wait_ns": 307342438,
+        "scheduler_timeslices": 719,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240864595686335,
+        "sample_end_ns": 1240864595763452
+      },
+      {
+        "tid": 1921633,
+        "voluntary": 88,
+        "involuntary": 4,
+        "scheduler_runtime_ns": 4424306,
+        "scheduler_wait_ns": 29089079,
+        "scheduler_timeslices": 92,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240864595765344,
+        "sample_end_ns": 1240864595842410
+      }
+    ],
+    "voluntary_context_switches": 3343,
+    "involuntary_context_switches": 6537
+  },
+  {
+    "at_ns": 1240864943165359,
+    "kind": "owner_snapshot",
+    "request_id": "busy-after",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "count": 2,
+        "rows": [
+          {
+            "id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "created_at": "1790565813",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "updated_at": "1790565845.876"
+          },
+          {
+            "id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "created_at": "1790565815",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "Short",
+            "updated_at": "1790565818.252"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "messages",
+        "count": 5,
+        "rows": [
+          {
+            "id": "m0001",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          },
+          {
+            "id": "m0002",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-a"
+          },
+          {
+            "id": "m0003",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 3,
+            "role": "user",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          },
+          {
+            "id": "m0004",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 4,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-b"
+          },
+          {
+            "id": "m0005",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 5,
+            "role": "user",
+            "text": "VIS41 complete: no tools or filesystem effects."
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "turns",
+        "count": 3,
+        "rows": [
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 seed-a: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":120,\"streamed_ms\":93,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-a: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_0\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-a\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "status": "completed",
+            "prompt": "VIS41 seed-b: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":89,\"streamed_ms\":66,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-b: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_2\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-b\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0004\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565845876-1921615-2",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "started",
+            "prompt": "VIS41 complete: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0},\"display_parts\":[],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565845876-1921615-2\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":null,\"user_message\":\"m0005\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 complete: no tools or filesystem effects.\"}]}],\"agent_digest\":\"3776c54743c91d48\"}"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "prefs",
+        "count": 7,
+        "rows": [
+          {
+            "key": "tui.session_location.s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1ee0ffb36e-1d524f-0\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1ee0ffb36e-1d524f-0\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565845"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"s-tui-18d95e1ee0ffb36e-1d524f-0\",\"s-tui-18d95e1f52bc541c-1d524f-1\"],\"active\":\"s-tui-18d95e1ee0ffb36e-1d524f-0\"}",
+            "updated_at": "1790565845"
+          },
+          {
+            "key": "tui.session_location.s-tui-18d95e1f52bc541c-1d524f-1",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1f52bc541c-1d524f-1\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1f52bc541c-1d524f-1\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565815"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [],
+    "project_files": {},
+    "requests": 5,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1240864967034421,
+    "kind": "input_written",
+    "label": "busy-same-tab-motion",
+    "base64": "G1s8MzU7NjsyTQ=="
+  },
+  {
+    "at_ns": 1240866781422412,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1240869746087008,
+    "kind": "barrier_release",
+    "request_id": "complete"
+  },
+  {
+    "at_ns": 1240869792146143,
+    "kind": "provider_completed",
+    "case": "complete",
+    "index": 4,
+    "operation": "main"
+  },
+  {
+    "at_ns": 1240872382678080,
+    "kind": "process_sample",
+    "request_id": "completed-idle-start",
+    "pid": 1921615,
+    "cpu_ticks": 495,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1921615,
+        "voluntary": 1298,
+        "involuntary": 8835,
+        "scheduler_runtime_ns": 4345234017,
+        "scheduler_wait_ns": 6486729208,
+        "scheduler_timeslices": 10133,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240872381705447,
+        "sample_end_ns": 1240872381872047
+      },
+      {
+        "tid": 1921616,
+        "voluntary": 5,
+        "involuntary": 1,
+        "scheduler_runtime_ns": 198337,
+        "scheduler_wait_ns": 119149,
+        "scheduler_timeslices": 6,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240872381879759,
+        "sample_end_ns": 1240872382037535
+      },
+      {
+        "tid": 1921617,
+        "voluntary": 1387,
+        "involuntary": 139,
+        "scheduler_runtime_ns": 156951651,
+        "scheduler_wait_ns": 1596517238,
+        "scheduler_timeslices": 1526,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240872382041993,
+        "sample_end_ns": 1240872382122444
+      },
+      {
+        "tid": 1921618,
+        "voluntary": 4,
+        "involuntary": 0,
+        "scheduler_runtime_ns": 156504,
+        "scheduler_wait_ns": 50977,
+        "scheduler_timeslices": 4,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240872382124727,
+        "sample_end_ns": 1240872382192158
+      },
+      {
+        "tid": 1921619,
+        "voluntary": 1246,
+        "involuntary": 155,
+        "scheduler_runtime_ns": 205438780,
+        "scheduler_wait_ns": 442828371,
+        "scheduler_timeslices": 1401,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240872382193781,
+        "sample_end_ns": 1240872382290387
+      },
+      {
+        "tid": 1921620,
+        "voluntary": 19,
+        "involuntary": 54,
+        "scheduler_runtime_ns": 98545384,
+        "scheduler_wait_ns": 20161084,
+        "scheduler_timeslices": 73,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240872382292359,
+        "sample_end_ns": 1240872382355805
+      },
+      {
+        "tid": 1921621,
+        "voluntary": 602,
+        "involuntary": 117,
+        "scheduler_runtime_ns": 145818818,
+        "scheduler_wait_ns": 307342438,
+        "scheduler_timeslices": 719,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240872382358218,
+        "sample_end_ns": 1240872382583288
+      },
+      {
+        "tid": 1921633,
+        "voluntary": 92,
+        "involuntary": 4,
+        "scheduler_runtime_ns": 4576854,
+        "scheduler_wait_ns": 29946325,
+        "scheduler_timeslices": 96,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240872382586312,
+        "sample_end_ns": 1240872382663058
+      }
+    ],
+    "voluntary_context_switches": 4653,
+    "involuntary_context_switches": 9305
+  },
+  {
+    "at_ns": 1240873902986037,
+    "kind": "process_sample",
+    "request_id": "completed-idle-end",
+    "pid": 1921615,
+    "cpu_ticks": 495,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1921615,
+        "voluntary": 1298,
+        "involuntary": 8835,
+        "scheduler_runtime_ns": 4345234017,
+        "scheduler_wait_ns": 6486729208,
+        "scheduler_timeslices": 10133,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240873902345402,
+        "sample_end_ns": 1240873902492564
+      },
+      {
+        "tid": 1921616,
+        "voluntary": 5,
+        "involuntary": 1,
+        "scheduler_runtime_ns": 198337,
+        "scheduler_wait_ns": 119149,
+        "scheduler_timeslices": 6,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240873902495979,
+        "sample_end_ns": 1240873902583720
+      },
+      {
+        "tid": 1921617,
+        "voluntary": 1387,
+        "involuntary": 139,
+        "scheduler_runtime_ns": 156951651,
+        "scheduler_wait_ns": 1596517238,
+        "scheduler_timeslices": 1526,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240873902585583,
+        "sample_end_ns": 1240873902654167
+      },
+      {
+        "tid": 1921618,
+        "voluntary": 4,
+        "involuntary": 0,
+        "scheduler_runtime_ns": 156504,
+        "scheduler_wait_ns": 50977,
+        "scheduler_timeslices": 4,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240873902656180,
+        "sample_end_ns": 1240873902722670
+      },
+      {
+        "tid": 1921619,
+        "voluntary": 1246,
+        "involuntary": 155,
+        "scheduler_runtime_ns": 205438780,
+        "scheduler_wait_ns": 442828371,
+        "scheduler_timeslices": 1401,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240873902724272,
+        "sample_end_ns": 1240873902786275
+      },
+      {
+        "tid": 1921620,
+        "voluntary": 19,
+        "involuntary": 54,
+        "scheduler_runtime_ns": 98545384,
+        "scheduler_wait_ns": 20161084,
+        "scheduler_timeslices": 73,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240873902787888,
+        "sample_end_ns": 1240873902848599
+      },
+      {
+        "tid": 1921621,
+        "voluntary": 602,
+        "involuntary": 117,
+        "scheduler_runtime_ns": 145818818,
+        "scheduler_wait_ns": 307342438,
+        "scheduler_timeslices": 719,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240873902850913,
+        "sample_end_ns": 1240873902911463
+      },
+      {
+        "tid": 1921633,
+        "voluntary": 92,
+        "involuntary": 4,
+        "scheduler_runtime_ns": 4576854,
+        "scheduler_wait_ns": 29946325,
+        "scheduler_timeslices": 96,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240873902912986,
+        "sample_end_ns": 1240873902971954
+      }
+    ],
+    "voluntary_context_switches": 4653,
+    "involuntary_context_switches": 9305
+  },
+  {
+    "at_ns": 1240874145645462,
+    "kind": "owner_snapshot",
+    "request_id": "completed-owner",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "count": 2,
+        "rows": [
+          {
+            "id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "created_at": "1790565813",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "updated_at": "1790565859.600"
+          },
+          {
+            "id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "created_at": "1790565815",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "Short",
+            "updated_at": "1790565818.252"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "messages",
+        "count": 6,
+        "rows": [
+          {
+            "id": "m0001",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          },
+          {
+            "id": "m0002",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-a"
+          },
+          {
+            "id": "m0003",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 3,
+            "role": "user",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          },
+          {
+            "id": "m0004",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 4,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-b"
+          },
+          {
+            "id": "m0005",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 5,
+            "role": "user",
+            "text": "VIS41 complete: no tools or filesystem effects."
+          },
+          {
+            "id": "m0006",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 6,
+            "role": "assistant",
+            "text": "VIS41-DONE complete"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "turns",
+        "count": 3,
+        "rows": [
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 seed-a: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":120,\"streamed_ms\":93,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-a: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_0\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-a\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "status": "completed",
+            "prompt": "VIS41 seed-b: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":89,\"streamed_ms\":66,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-b: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_2\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-b\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0004\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565845876-1921615-2",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 complete: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":13734,\"streamed_ms\":13692,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565845876-1921615-2\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0005\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 complete: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_4\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE complete\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0006\"}"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "prefs",
+        "count": 7,
+        "rows": [
+          {
+            "key": "tui.session_location.s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1ee0ffb36e-1d524f-0\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1ee0ffb36e-1d524f-0\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565845"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"s-tui-18d95e1ee0ffb36e-1d524f-0\",\"s-tui-18d95e1f52bc541c-1d524f-1\"],\"active\":\"s-tui-18d95e1ee0ffb36e-1d524f-0\"}",
+            "updated_at": "1790565845"
+          },
+          {
+            "key": "tui.session_location.s-tui-18d95e1f52bc541c-1d524f-1",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1f52bc541c-1d524f-1\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1f52bc541c-1d524f-1\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565815"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [],
+    "project_files": {},
+    "requests": 5,
+    "completed": 5,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1240874163284343,
+    "kind": "input_written",
+    "label": "cancel_prompt",
+    "base64": "G1syMDB+VklTNDEgY2FuY2VsOiBubyB0b29scyBvciBmaWxlc3lzdGVtIGVmZmVjdHMuG1syMDF+"
+  },
+  {
+    "at_ns": 1240874163356701,
+    "kind": "input_written",
+    "label": "cancel_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1240874237393045,
+    "kind": "provider",
+    "index": 5,
+    "operation": "main",
+    "case": "cancel",
+    "valid": true,
+    "body_sha256": "026e608792df38d87ec5afd7906546de20b627090aa1e78f482d491901a1f1bd",
+    "input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          }
+        ]
+      },
+      {
+        "id": "msg_vis41_0",
+        "type": "message",
+        "role": "assistant",
+        "status": "completed",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "VIS41-DONE seed-a",
+            "annotations": []
+          }
+        ]
+      },
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 complete: no tools or filesystem effects."
+          }
+        ]
+      },
+      {
+        "id": "msg_vis41_4",
+        "type": "message",
+        "role": "assistant",
+        "status": "completed",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "VIS41-DONE complete",
+            "annotations": []
+          }
+        ]
+      },
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 cancel: no tools or filesystem effects."
+          }
+        ]
+      }
+    ],
+    "tool_names": [
+      "read",
+      "glob",
+      "grep",
+      "apply_patch",
+      "bash",
+      "webfetch",
+      "skill"
+    ]
+  },
+  {
+    "at_ns": 1240874237603312,
+    "kind": "provider_held",
+    "case": "cancel",
+    "index": 5,
+    "timeout_seconds": 60
+  },
+  {
+    "at_ns": 1240875068135596,
+    "kind": "input_written",
+    "label": "cancel_escape_first",
+    "base64": "Gw=="
+  },
+  {
+    "at_ns": 1240875175503470,
+    "kind": "input_written",
+    "label": "cancel_escape_second",
+    "base64": "Gw=="
+  },
+  {
+    "at_ns": 1240875196607489,
+    "kind": "provider_disconnected",
+    "case": "cancel",
+    "index": 5
+  },
+  {
+    "at_ns": 1240877869799472,
+    "kind": "process_sample",
+    "request_id": "cancelled-idle-start",
+    "pid": 1921615,
+    "cpu_ticks": 556,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1921615,
+        "voluntary": 1430,
+        "involuntary": 9535,
+        "scheduler_runtime_ns": 4875215763,
+        "scheduler_wait_ns": 6823514823,
+        "scheduler_timeslices": 10965,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240877869190106,
+        "sample_end_ns": 1240877869310727
+      },
+      {
+        "tid": 1921616,
+        "voluntary": 5,
+        "involuntary": 1,
+        "scheduler_runtime_ns": 198337,
+        "scheduler_wait_ns": 119149,
+        "scheduler_timeslices": 6,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240877869313882,
+        "sample_end_ns": 1240877869386382
+      },
+      {
+        "tid": 1921617,
+        "voluntary": 1574,
+        "involuntary": 175,
+        "scheduler_runtime_ns": 223935409,
+        "scheduler_wait_ns": 1656736687,
+        "scheduler_timeslices": 1749,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240877869388614,
+        "sample_end_ns": 1240877869466762
+      },
+      {
+        "tid": 1921618,
+        "voluntary": 4,
+        "involuntary": 0,
+        "scheduler_runtime_ns": 156504,
+        "scheduler_wait_ns": 50977,
+        "scheduler_timeslices": 4,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240877869468675,
+        "sample_end_ns": 1240877869532612
+      },
+      {
+        "tid": 1921619,
+        "voluntary": 1360,
+        "involuntary": 168,
+        "scheduler_runtime_ns": 217235975,
+        "scheduler_wait_ns": 467380434,
+        "scheduler_timeslices": 1528,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240877869534364,
+        "sample_end_ns": 1240877869597529
+      },
+      {
+        "tid": 1921620,
+        "voluntary": 19,
+        "involuntary": 54,
+        "scheduler_runtime_ns": 98545384,
+        "scheduler_wait_ns": 20161084,
+        "scheduler_timeslices": 73,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240877869599121,
+        "sample_end_ns": 1240877869664851
+      },
+      {
+        "tid": 1921621,
+        "voluntary": 604,
+        "involuntary": 117,
+        "scheduler_runtime_ns": 145943986,
+        "scheduler_wait_ns": 307409448,
+        "scheduler_timeslices": 721,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240877869666343,
+        "sample_end_ns": 1240877869726794
+      },
+      {
+        "tid": 1921633,
+        "voluntary": 99,
+        "involuntary": 4,
+        "scheduler_runtime_ns": 4868218,
+        "scheduler_wait_ns": 30074156,
+        "scheduler_timeslices": 103,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240877869728156,
+        "sample_end_ns": 1240877869785953
+      }
+    ],
+    "voluntary_context_switches": 5095,
+    "involuntary_context_switches": 10054
+  },
+  {
+    "at_ns": 1240879389785834,
+    "kind": "process_sample",
+    "request_id": "cancelled-idle-end",
+    "pid": 1921615,
+    "cpu_ticks": 556,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1921615,
+        "voluntary": 1430,
+        "involuntary": 9535,
+        "scheduler_runtime_ns": 4875215763,
+        "scheduler_wait_ns": 6823514823,
+        "scheduler_timeslices": 10965,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240879389139610,
+        "sample_end_ns": 1240879389257128
+      },
+      {
+        "tid": 1921616,
+        "voluntary": 5,
+        "involuntary": 1,
+        "scheduler_runtime_ns": 198337,
+        "scheduler_wait_ns": 119149,
+        "scheduler_timeslices": 6,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240879389260243,
+        "sample_end_ns": 1240879389335236
+      },
+      {
+        "tid": 1921617,
+        "voluntary": 1574,
+        "involuntary": 175,
+        "scheduler_runtime_ns": 223935409,
+        "scheduler_wait_ns": 1656736687,
+        "scheduler_timeslices": 1749,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240879389337189,
+        "sample_end_ns": 1240879389402577
+      },
+      {
+        "tid": 1921618,
+        "voluntary": 4,
+        "involuntary": 0,
+        "scheduler_runtime_ns": 156504,
+        "scheduler_wait_ns": 50977,
+        "scheduler_timeslices": 4,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240879389404450,
+        "sample_end_ns": 1240879389485932
+      },
+      {
+        "tid": 1921619,
+        "voluntary": 1360,
+        "involuntary": 168,
+        "scheduler_runtime_ns": 217235975,
+        "scheduler_wait_ns": 467380434,
+        "scheduler_timeslices": 1528,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240879389487795,
+        "sample_end_ns": 1240879389562188
+      },
+      {
+        "tid": 1921620,
+        "voluntary": 19,
+        "involuntary": 54,
+        "scheduler_runtime_ns": 98545384,
+        "scheduler_wait_ns": 20161084,
+        "scheduler_timeslices": 73,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240879389563880,
+        "sample_end_ns": 1240879389625192
+      },
+      {
+        "tid": 1921621,
+        "voluntary": 604,
+        "involuntary": 117,
+        "scheduler_runtime_ns": 145943986,
+        "scheduler_wait_ns": 307409448,
+        "scheduler_timeslices": 721,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240879389626654,
+        "sample_end_ns": 1240879389685423
+      },
+      {
+        "tid": 1921633,
+        "voluntary": 99,
+        "involuntary": 4,
+        "scheduler_runtime_ns": 4868218,
+        "scheduler_wait_ns": 30074156,
+        "scheduler_timeslices": 103,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240879389686945,
+        "sample_end_ns": 1240879389767126
+      }
+    ],
+    "voluntary_context_switches": 5095,
+    "involuntary_context_switches": 10054
+  },
+  {
+    "at_ns": 1240879622548757,
+    "kind": "owner_snapshot",
+    "request_id": "cancelled-owner",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "count": 2,
+        "rows": [
+          {
+            "id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "created_at": "1790565813",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "updated_at": "1790565864.975"
+          },
+          {
+            "id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "created_at": "1790565815",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "Short",
+            "updated_at": "1790565818.252"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "messages",
+        "count": 7,
+        "rows": [
+          {
+            "id": "m0001",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          },
+          {
+            "id": "m0002",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-a"
+          },
+          {
+            "id": "m0003",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 3,
+            "role": "user",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          },
+          {
+            "id": "m0004",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 4,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-b"
+          },
+          {
+            "id": "m0005",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 5,
+            "role": "user",
+            "text": "VIS41 complete: no tools or filesystem effects."
+          },
+          {
+            "id": "m0006",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 6,
+            "role": "assistant",
+            "text": "VIS41-DONE complete"
+          },
+          {
+            "id": "m0007",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 7,
+            "role": "user",
+            "text": "VIS41 cancel: no tools or filesystem effects."
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "turns",
+        "count": 4,
+        "rows": [
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 seed-a: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":120,\"streamed_ms\":93,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-a: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_0\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-a\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "status": "completed",
+            "prompt": "VIS41 seed-b: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":89,\"streamed_ms\":66,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-b: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_2\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-b\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0004\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565845876-1921615-2",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 complete: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":13734,\"streamed_ms\":13692,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565845876-1921615-2\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0005\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 complete: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_4\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE complete\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0006\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565863963-1921615-3",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "cancelled",
+            "prompt": "VIS41 cancel: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":1020,\"streamed_ms\":1002},\"display_parts\":[],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565863963-1921615-3\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":null,\"user_message\":\"m0007\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 cancel: no tools or filesystem effects.\"}]}],\"agent_digest\":\"3776c54743c91d48\"}"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "prefs",
+        "count": 7,
+        "rows": [
+          {
+            "key": "tui.session_location.s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1ee0ffb36e-1d524f-0\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1ee0ffb36e-1d524f-0\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565863"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"s-tui-18d95e1ee0ffb36e-1d524f-0\",\"s-tui-18d95e1f52bc541c-1d524f-1\"],\"active\":\"s-tui-18d95e1ee0ffb36e-1d524f-0\"}",
+            "updated_at": "1790565845"
+          },
+          {
+            "key": "tui.session_location.s-tui-18d95e1f52bc541c-1d524f-1",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1f52bc541c-1d524f-1\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1f52bc541c-1d524f-1\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565815"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [],
+    "project_files": {},
+    "requests": 6,
+    "completed": 5,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1240879642767042,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1240879746779685,
+    "kind": "owner_snapshot",
+    "request_id": "compact-before",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "count": 2,
+        "rows": [
+          {
+            "id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "created_at": "1790565813",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "updated_at": "1790565864.975"
+          },
+          {
+            "id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "created_at": "1790565815",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "Short",
+            "updated_at": "1790565818.252"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "messages",
+        "count": 7,
+        "rows": [
+          {
+            "id": "m0001",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          },
+          {
+            "id": "m0002",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-a"
+          },
+          {
+            "id": "m0003",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 3,
+            "role": "user",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          },
+          {
+            "id": "m0004",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 4,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-b"
+          },
+          {
+            "id": "m0005",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 5,
+            "role": "user",
+            "text": "VIS41 complete: no tools or filesystem effects."
+          },
+          {
+            "id": "m0006",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 6,
+            "role": "assistant",
+            "text": "VIS41-DONE complete"
+          },
+          {
+            "id": "m0007",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 7,
+            "role": "user",
+            "text": "VIS41 cancel: no tools or filesystem effects."
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "turns",
+        "count": 4,
+        "rows": [
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 seed-a: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":120,\"streamed_ms\":93,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-a: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_0\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-a\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "status": "completed",
+            "prompt": "VIS41 seed-b: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":89,\"streamed_ms\":66,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-b: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_2\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-b\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0004\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565845876-1921615-2",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 complete: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":13734,\"streamed_ms\":13692,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565845876-1921615-2\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0005\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 complete: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_4\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE complete\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0006\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565863963-1921615-3",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "cancelled",
+            "prompt": "VIS41 cancel: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":1020,\"streamed_ms\":1002},\"display_parts\":[],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565863963-1921615-3\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":null,\"user_message\":\"m0007\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 cancel: no tools or filesystem effects.\"}]}],\"agent_digest\":\"3776c54743c91d48\"}"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "prefs",
+        "count": 7,
+        "rows": [
+          {
+            "key": "tui.session_location.s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1ee0ffb36e-1d524f-0\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1ee0ffb36e-1d524f-0\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565863"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"s-tui-18d95e1ee0ffb36e-1d524f-0\",\"s-tui-18d95e1f52bc541c-1d524f-1\"],\"active\":\"s-tui-18d95e1ee0ffb36e-1d524f-0\"}",
+            "updated_at": "1790565845"
+          },
+          {
+            "key": "tui.session_location.s-tui-18d95e1f52bc541c-1d524f-1",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1f52bc541c-1d524f-1\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1f52bc541c-1d524f-1\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565815"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [],
+    "project_files": {},
+    "requests": 6,
+    "completed": 5,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1240879764797966,
+    "kind": "resize",
+    "columns": 50,
+    "rows": 24
+  },
+  {
+    "at_ns": 1240880681535737,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7NDg7MTRN"
+  },
+  {
+    "at_ns": 1240881192942833,
+    "kind": "input_written",
+    "label": "compact-tab-hover",
+    "base64": "G1s8MzU7MzszTQ=="
+  },
+  {
+    "at_ns": 1240882410945968,
+    "kind": "process_sample",
+    "request_id": "compact-motionless-idle-start",
+    "pid": 1921615,
+    "cpu_ticks": 557,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1921615,
+        "voluntary": 1437,
+        "involuntary": 9555,
+        "scheduler_runtime_ns": 4889890290,
+        "scheduler_wait_ns": 6828874915,
+        "scheduler_timeslices": 10992,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240882410200204,
+        "sample_end_ns": 1240882410319133
+      },
+      {
+        "tid": 1921616,
+        "voluntary": 5,
+        "involuntary": 1,
+        "scheduler_runtime_ns": 198337,
+        "scheduler_wait_ns": 119149,
+        "scheduler_timeslices": 6,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240882410322128,
+        "sample_end_ns": 1240882410395178
+      },
+      {
+        "tid": 1921617,
+        "voluntary": 1574,
+        "involuntary": 175,
+        "scheduler_runtime_ns": 223935409,
+        "scheduler_wait_ns": 1656736687,
+        "scheduler_timeslices": 1749,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240882410397141,
+        "sample_end_ns": 1240882410474197
+      },
+      {
+        "tid": 1921618,
+        "voluntary": 4,
+        "involuntary": 0,
+        "scheduler_runtime_ns": 156504,
+        "scheduler_wait_ns": 50977,
+        "scheduler_timeslices": 4,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240882410476120,
+        "sample_end_ns": 1240882410539144
+      },
+      {
+        "tid": 1921619,
+        "voluntary": 1363,
+        "involuntary": 168,
+        "scheduler_runtime_ns": 217317887,
+        "scheduler_wait_ns": 467682627,
+        "scheduler_timeslices": 1531,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240882410540727,
+        "sample_end_ns": 1240882410635500
+      },
+      {
+        "tid": 1921620,
+        "voluntary": 19,
+        "involuntary": 54,
+        "scheduler_runtime_ns": 98545384,
+        "scheduler_wait_ns": 20161084,
+        "scheduler_timeslices": 73,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240882410640107,
+        "sample_end_ns": 1240882410726526
+      },
+      {
+        "tid": 1921621,
+        "voluntary": 607,
+        "involuntary": 117,
+        "scheduler_runtime_ns": 146297927,
+        "scheduler_wait_ns": 307422156,
+        "scheduler_timeslices": 724,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240882410728520,
+        "sample_end_ns": 1240882410795320
+      },
+      {
+        "tid": 1921633,
+        "voluntary": 106,
+        "involuntary": 5,
+        "scheduler_runtime_ns": 5276530,
+        "scheduler_wait_ns": 32257221,
+        "scheduler_timeslices": 111,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240882410797945,
+        "sample_end_ns": 1240882410932366
+      }
+    ],
+    "voluntary_context_switches": 5115,
+    "involuntary_context_switches": 10075
+  },
+  {
+    "at_ns": 1240883931958303,
+    "kind": "process_sample",
+    "request_id": "compact-motionless-idle-end",
+    "pid": 1921615,
+    "cpu_ticks": 557,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1921615,
+        "voluntary": 1437,
+        "involuntary": 9555,
+        "scheduler_runtime_ns": 4889890290,
+        "scheduler_wait_ns": 6828874915,
+        "scheduler_timeslices": 10992,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240883931337588,
+        "sample_end_ns": 1240883931475345
+      },
+      {
+        "tid": 1921616,
+        "voluntary": 5,
+        "involuntary": 1,
+        "scheduler_runtime_ns": 198337,
+        "scheduler_wait_ns": 119149,
+        "scheduler_timeslices": 6,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240883931478680,
+        "sample_end_ns": 1240883931554955
+      },
+      {
+        "tid": 1921617,
+        "voluntary": 1574,
+        "involuntary": 175,
+        "scheduler_runtime_ns": 223935409,
+        "scheduler_wait_ns": 1656736687,
+        "scheduler_timeslices": 1749,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240883931556808,
+        "sample_end_ns": 1240883931622207
+      },
+      {
+        "tid": 1921618,
+        "voluntary": 4,
+        "involuntary": 0,
+        "scheduler_runtime_ns": 156504,
+        "scheduler_wait_ns": 50977,
+        "scheduler_timeslices": 4,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240883931624019,
+        "sample_end_ns": 1240883931685893
+      },
+      {
+        "tid": 1921619,
+        "voluntary": 1363,
+        "involuntary": 168,
+        "scheduler_runtime_ns": 217317887,
+        "scheduler_wait_ns": 467682627,
+        "scheduler_timeslices": 1531,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240883931687586,
+        "sample_end_ns": 1240883931747966
+      },
+      {
+        "tid": 1921620,
+        "voluntary": 19,
+        "involuntary": 54,
+        "scheduler_runtime_ns": 98545384,
+        "scheduler_wait_ns": 20161084,
+        "scheduler_timeslices": 73,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240883931749488,
+        "sample_end_ns": 1240883931807646
+      },
+      {
+        "tid": 1921621,
+        "voluntary": 607,
+        "involuntary": 117,
+        "scheduler_runtime_ns": 146297927,
+        "scheduler_wait_ns": 307422156,
+        "scheduler_timeslices": 724,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240883931809088,
+        "sample_end_ns": 1240883931867476
+      },
+      {
+        "tid": 1921633,
+        "voluntary": 106,
+        "involuntary": 5,
+        "scheduler_runtime_ns": 5276530,
+        "scheduler_wait_ns": 32257221,
+        "scheduler_timeslices": 111,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240883931868939,
+        "sample_end_ns": 1240883931945143
+      }
+    ],
+    "voluntary_context_switches": 5115,
+    "involuntary_context_switches": 10075
+  },
+  {
+    "at_ns": 1240884008405907,
+    "kind": "owner_snapshot",
+    "request_id": "compact-after",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "count": 2,
+        "rows": [
+          {
+            "id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "created_at": "1790565813",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "updated_at": "1790565864.975"
+          },
+          {
+            "id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "created_at": "1790565815",
+            "parent_id": null,
+            "agent": null,
+            "model": null,
+            "title": "Short",
+            "updated_at": "1790565818.252"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "messages",
+        "count": 7,
+        "rows": [
+          {
+            "id": "m0001",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 1,
+            "role": "user",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          },
+          {
+            "id": "m0002",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 2,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-a"
+          },
+          {
+            "id": "m0003",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 3,
+            "role": "user",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          },
+          {
+            "id": "m0004",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "seq": 4,
+            "role": "assistant",
+            "text": "VIS41-DONE seed-b"
+          },
+          {
+            "id": "m0005",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 5,
+            "role": "user",
+            "text": "VIS41 complete: no tools or filesystem effects."
+          },
+          {
+            "id": "m0006",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 6,
+            "role": "assistant",
+            "text": "VIS41-DONE complete"
+          },
+          {
+            "id": "m0007",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "seq": 7,
+            "role": "user",
+            "text": "VIS41 cancel: no tools or filesystem effects."
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "turns",
+        "count": 4,
+        "rows": [
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 seed-a: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":120,\"streamed_ms\":93,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565813575-1921615-0\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0001\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-a: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_0\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-a\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0002\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1",
+            "session_id": "s-tui-18d95e1f52bc541c-1d524f-1",
+            "status": "completed",
+            "prompt": "VIS41 seed-b: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":89,\"streamed_ms\":66,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1f52bc541c-1d524f-1-1790565815483-1921615-1\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0003\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 seed-b: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_2\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE seed-b\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0004\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565845876-1921615-2",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "completed",
+            "prompt": "VIS41 complete: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":13734,\"streamed_ms\":13692,\"usage\":[512,16],\"context_usage\":[512,16]},\"display_parts\":[{\"message\":1}],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565845876-1921615-2\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":[512,16],\"user_message\":\"m0005\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 complete: no tools or filesystem effects.\"}]},{\"id\":\"msg_vis41_4\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"VIS41-DONE complete\",\"annotations\":[]}]}],\"agent_digest\":\"3776c54743c91d48\",\"assistant_message\":\"m0006\"}"
+          },
+          {
+            "id": "ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565863963-1921615-3",
+            "session_id": "s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "status": "cancelled",
+            "prompt": "VIS41 cancel: no tools or filesystem effects.",
+            "result": "{\"display\":{\"model_label\":\"VIS41 Fixture\",\"agent\":\"build\",\"agent_color_index\":0,\"duration_ms\":1020,\"streamed_ms\":1002},\"display_parts\":[],\"turn_id\":\"ts-tui-18d95e1ee0ffb36e-1d524f-0-1790565863963-1921615-3\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"opaque\":[],\"usage\":null,\"user_message\":\"m0007\",\"input\":[{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"VIS41 cancel: no tools or filesystem effects.\"}]}],\"agent_digest\":\"3776c54743c91d48\"}"
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-native20260928-04-oc-120x40-on-vertical-status/home/data/oc/oc.sqlite",
+        "table": "prefs",
+        "count": 7,
+        "rows": [
+          {
+            "key": "tui.session_location.s-tui-18d95e1ee0ffb36e-1d524f-0",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1ee0ffb36e-1d524f-0\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565813"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1ee0ffb36e-1d524f-0\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565863"
+          },
+          {
+            "key": "tui.selection.tab_deck:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\"]",
+            "value": "{\"version\":1,\"sessions\":[\"s-tui-18d95e1ee0ffb36e-1d524f-0\",\"s-tui-18d95e1f52bc541c-1d524f-1\"],\"active\":\"s-tui-18d95e1ee0ffb36e-1d524f-0\"}",
+            "updated_at": "1790565845"
+          },
+          {
+            "key": "tui.session_location.s-tui-18d95e1f52bc541c-1d524f-1",
+            "value": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "tui.selection.session:[\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-120x40-on-vertical-status/project\",\"fixture\",\"s-tui-18d95e1f52bc541c-1d524f-1\"]",
+            "value": "{\"agent\":\"build\",\"models\":{\"build\":{\"id\":\"fixture-model-1\",\"variant\":null}},\"epoch\":0}",
+            "updated_at": "1790565815"
+          },
+          {
+            "key": "dcp.nudge.s-tui-18d95e1f52bc541c-1d524f-1\u0000fixture\u0000fixture-model-1",
+            "value": "{\"iteration\":0,\"turns_since_compress\":0,\"last_reminder\":null,\"emitted\":0}",
+            "updated_at": "1790565815"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [],
+    "project_files": {},
+    "requests": 6,
+    "completed": 5,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1240884026507014,
+    "kind": "resize",
+    "columns": 120,
+    "rows": 40
+  },
+  {
+    "at_ns": 1240884535983031,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7MTE4OzMwTQ=="
+  },
+  {
+    "at_ns": 1240885226024393,
+    "kind": "resize",
+    "columns": 80,
+    "rows": 24
+  },
+  {
+    "at_ns": 1240885850687088,
+    "kind": "resize",
+    "columns": 120,
+    "rows": 40
+  },
+  {
+    "at_ns": 1240886789317546,
+    "kind": "resize",
+    "columns": 160,
+    "rows": 48
+  },
+  {
+    "at_ns": 1240888080774366,
+    "kind": "resize",
+    "columns": 120,
+    "rows": 40
+  },
+  {
+    "at_ns": 1240889272040731,
+    "kind": "process_sample",
+    "request_id": "final-settled-idle-start",
+    "pid": 1921615,
+    "cpu_ticks": 561,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1921615,
+        "voluntary": 1453,
+        "involuntary": 9648,
+        "scheduler_runtime_ns": 4926028414,
+        "scheduler_wait_ns": 6842033258,
+        "scheduler_timeslices": 11101,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240889271426466,
+        "sample_end_ns": 1240889271555039
+      },
+      {
+        "tid": 1921616,
+        "voluntary": 5,
+        "involuntary": 1,
+        "scheduler_runtime_ns": 198337,
+        "scheduler_wait_ns": 119149,
+        "scheduler_timeslices": 6,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240889271558104,
+        "sample_end_ns": 1240889271631314
+      },
+      {
+        "tid": 1921617,
+        "voluntary": 1574,
+        "involuntary": 175,
+        "scheduler_runtime_ns": 223935409,
+        "scheduler_wait_ns": 1656736687,
+        "scheduler_timeslices": 1749,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240889271633738,
+        "sample_end_ns": 1240889271699788
+      },
+      {
+        "tid": 1921618,
+        "voluntary": 4,
+        "involuntary": 0,
+        "scheduler_runtime_ns": 156504,
+        "scheduler_wait_ns": 50977,
+        "scheduler_timeslices": 4,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240889271701580,
+        "sample_end_ns": 1240889271763093
+      },
+      {
+        "tid": 1921619,
+        "voluntary": 1369,
+        "involuntary": 168,
+        "scheduler_runtime_ns": 217823437,
+        "scheduler_wait_ns": 470008006,
+        "scheduler_timeslices": 1537,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240889271764605,
+        "sample_end_ns": 1240889271824034
+      },
+      {
+        "tid": 1921620,
+        "voluntary": 19,
+        "involuntary": 54,
+        "scheduler_runtime_ns": 98545384,
+        "scheduler_wait_ns": 20161084,
+        "scheduler_timeslices": 73,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240889271825537,
+        "sample_end_ns": 1240889271884356
+      },
+      {
+        "tid": 1921621,
+        "voluntary": 613,
+        "involuntary": 117,
+        "scheduler_runtime_ns": 146743686,
+        "scheduler_wait_ns": 311228586,
+        "scheduler_timeslices": 730,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240889271886018,
+        "sample_end_ns": 1240889271945367
+      },
+      {
+        "tid": 1921633,
+        "voluntary": 118,
+        "involuntary": 7,
+        "scheduler_runtime_ns": 6004272,
+        "scheduler_wait_ns": 34244420,
+        "scheduler_timeslices": 125,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240889271946869,
+        "sample_end_ns": 1240889272027830
+      }
+    ],
+    "voluntary_context_switches": 5155,
+    "involuntary_context_switches": 10170
+  },
+  {
+    "at_ns": 1240890792438871,
+    "kind": "process_sample",
+    "request_id": "final-settled-idle-end",
+    "pid": 1921615,
+    "cpu_ticks": 561,
+    "clock_ticks_per_second": 100,
+    "threads": [
+      {
+        "tid": 1921615,
+        "voluntary": 1453,
+        "involuntary": 9648,
+        "scheduler_runtime_ns": 4926028414,
+        "scheduler_wait_ns": 6842033258,
+        "scheduler_timeslices": 11101,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240890791780579,
+        "sample_end_ns": 1240890791898077
+      },
+      {
+        "tid": 1921616,
+        "voluntary": 5,
+        "involuntary": 1,
+        "scheduler_runtime_ns": 198337,
+        "scheduler_wait_ns": 119149,
+        "scheduler_timeslices": 6,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240890791901071,
+        "sample_end_ns": 1240890791978798
+      },
+      {
+        "tid": 1921617,
+        "voluntary": 1574,
+        "involuntary": 175,
+        "scheduler_runtime_ns": 223935409,
+        "scheduler_wait_ns": 1656736687,
+        "scheduler_timeslices": 1749,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240890791981722,
+        "sample_end_ns": 1240890792096355
+      },
+      {
+        "tid": 1921618,
+        "voluntary": 4,
+        "involuntary": 0,
+        "scheduler_runtime_ns": 156504,
+        "scheduler_wait_ns": 50977,
+        "scheduler_timeslices": 4,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240890792098569,
+        "sample_end_ns": 1240890792165229
+      },
+      {
+        "tid": 1921619,
+        "voluntary": 1369,
+        "involuntary": 168,
+        "scheduler_runtime_ns": 217823437,
+        "scheduler_wait_ns": 470008006,
+        "scheduler_timeslices": 1537,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240890792166731,
+        "sample_end_ns": 1240890792229856
+      },
+      {
+        "tid": 1921620,
+        "voluntary": 19,
+        "involuntary": 54,
+        "scheduler_runtime_ns": 98545384,
+        "scheduler_wait_ns": 20161084,
+        "scheduler_timeslices": 73,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240890792231599,
+        "sample_end_ns": 1240890792292170
+      },
+      {
+        "tid": 1921621,
+        "voluntary": 613,
+        "involuntary": 117,
+        "scheduler_runtime_ns": 146743686,
+        "scheduler_wait_ns": 311228586,
+        "scheduler_timeslices": 730,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240890792293592,
+        "sample_end_ns": 1240890792354164
+      },
+      {
+        "tid": 1921633,
+        "voluntary": 118,
+        "involuntary": 7,
+        "scheduler_runtime_ns": 6004272,
+        "scheduler_wait_ns": 34244420,
+        "scheduler_timeslices": 125,
+        "state": "S (sleeping)",
+        "sample_start_ns": 1240890792355526,
+        "sample_end_ns": 1240890792415706
+      }
+    ],
+    "voluntary_context_switches": 5155,
+    "involuntary_context_switches": 10170
+  },
+  {
+    "at_ns": 1240891040815095,
+    "kind": "input_written",
+    "label": "clean_exit",
+    "base64": "BA=="
+  },
+  {
+    "at_ns": 1240891268197116,
+    "kind": "exit",
+    "code": 0,
+    "termination": "natural",
+    "provider_requests": 6,
+    "provider_completed": 5
+  }
+]

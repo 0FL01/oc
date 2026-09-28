@@ -21,7 +21,10 @@ use ratatui::{
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
-use crate::app::{NoteVariant, TuiState, TuiStatus};
+use crate::app::{
+    NoteVariant, TAB_SPINNER_FRAMES, TabAttention, TabPulseFrame, TuiState, TuiStatus,
+    tab_glow_intensity,
+};
 use crate::layout;
 use crate::theme::{Theme, tint};
 
@@ -35,7 +38,7 @@ const PROMPT_BORDER: border::Set<'static> = border::Set {
 /// Upstream fallback when a session has no title (`component/session-tabs.tsx:1561`).
 pub const UNTITLED_SESSION: &str = "Untitled session";
 /// Promoted sessionless Home slot (`context/session-tabs-model.ts:8`).
-const NEW_SESSION_TAB_TITLE: &str = "New session";
+pub(crate) const NEW_SESSION_TAB_TITLE: &str = "New session";
 /// Jump-to-bottom affordance (`routes/session/index.tsx:1346`).
 pub const JUMP_TO_LATEST: &str = "Jump to latest ↓";
 /// Interrupt hint while a turn streams (`component/prompt/index.tsx:139-142`).
@@ -177,20 +180,9 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         area,
     );
     let regions = shell_regions(state, area);
+    state.prepare_tabs(area, std::time::Instant::now());
     if let Some(strip) = tab_strip(state, area) {
-        if state.tab_presentation().0.is_empty() {
-            render_single_tab(
-                frame,
-                theme,
-                regions.tabs,
-                &strip,
-                state.session_title.as_deref(),
-                state.chrome.tab_indicators,
-                state.is_busy(),
-            );
-        } else {
-            render_deck_tabs(frame, state, theme, regions.tabs, &strip);
-        }
+        render_deck_tabs(frame, state, theme, regions.tabs, &strip);
     }
     let main = session_main(state, regions.session);
     if main.width < regions.session.width {
@@ -244,6 +236,18 @@ pub fn tab_strip(state: &TuiState, area: Rect) -> Option<layout::HorizontalTabSt
     let region = shell_regions(state, area).tabs;
     if region.width == 0 || region.height == 0 {
         return None;
+    }
+    if layout::vertical_tabs_width(area.width, state.chrome.vertical_tabs_width) > 0 {
+        return Some(layout::vertical_tab_strip(
+            region,
+            if tabs.is_empty() {
+                1
+            } else {
+                tabs.len() + usize::from(state.home)
+            },
+            state.tab_scroll.get(),
+            !tabs.is_empty() && !state.home && can_add,
+        ));
     }
     Some(layout::horizontal_tab_strip(
         region,
@@ -320,6 +324,7 @@ pub(crate) fn transcript_area(state: &TuiState, area: Rect) -> Rect {
 
 /// Single active tab in the horizontal strip
 /// (`component/session-tabs.tsx:1506-1508`, `context/session-tabs-model.ts:33-35`).
+#[cfg(test)]
 fn tab_line(
     theme: &Theme,
     tab_width: u16,
@@ -328,7 +333,22 @@ fn tab_line(
     busy: bool,
 ) -> Line<'static> {
     deck_tab_line(
-        theme, tab_width, title, indicators, busy, 0, true, false, false, false,
+        theme,
+        tab_width,
+        title,
+        indicators,
+        busy,
+        0,
+        true,
+        false,
+        false,
+        (false, false),
+        None,
+        (0, 0.0, 0),
+        TabPulseFrame::default(),
+        false,
+        false,
+        2,
     )
 }
 
@@ -343,99 +363,200 @@ fn deck_tab_line(
     selected: bool,
     home_slot: bool,
     hovered: bool,
-    close_hovered: bool,
+    close: (bool, bool),
+    attention: Option<TabAttention>,
+    animation: (usize, f32, usize),
+    pulse: TabPulseFrame,
+    vertical: bool,
+    compact: bool,
+    number_width: usize,
 ) -> Line<'static> {
     let title = if home_slot {
         NEW_SESSION_TAB_TITLE
     } else {
         title.unwrap_or(UNTITLED_SESSION)
     };
-    let tab_bg = if selected {
-        theme.decrease(theme.background_panel())
-    } else if hovered {
-        theme
-            .color("background.action.primary.$hovered")
-            .unwrap_or(theme.background())
-    } else {
-        theme.background()
-    };
-    let title_width = tab_width.saturating_sub(if hovered { 5 } else { 3 }) as usize;
+    let tab_bg = tab_background(theme, selected, hovered, vertical, compact);
+    let title_width =
+        layout::tab_title_width(tab_width, number_width, vertical, compact, hovered).unwrap_or(0);
     let foreground = if hovered || selected {
         theme.text()
     } else {
         theme.text_muted()
     };
     let overflow = UnicodeWidthStr::width(title) > title_width;
-    let mut used = 0;
-    let mut visible = Vec::new();
-    for grapheme in title.graphemes(true) {
-        let width = UnicodeWidthStr::width(grapheme);
-        if used + width > title_width {
-            break; // never split a wide glyph across the tab boundary
-        }
-        if width > 0 {
-            visible.push(grapheme);
-            used += width;
-        }
-    }
+    let visible = marquee_parts(title, title_width, animation.0);
+    let used = visible
+        .iter()
+        .map(|(value, _)| UnicodeWidthStr::width(*value))
+        .sum::<usize>();
     // Indicator cell: `numberWidth + 1` with the label right-aligned and one
     // padding cell (`component/session-tabs.tsx:1671-1682`). Status has no
     // idle label; a busy tab uses the first dot-spinner frame even without
     // animations (`TabIndicator`, `spinner-frames.ts`).
+    let number = if attention.is_some() {
+        theme.hue("accent", 200).unwrap_or(theme.primary())
+    } else if busy {
+        theme.hue("interactive", 200).unwrap_or(theme.primary())
+    } else if hovered && !selected {
+        foreground
+    } else if selected {
+        tint(theme.text(), tab_bg, 0.25)
+    } else {
+        tint(
+            theme
+                .color("text.formfield.base")
+                .unwrap_or(theme.text_muted()),
+            if vertical {
+                theme.background_panel()
+            } else {
+                theme.background()
+            },
+            0.55,
+        )
+    };
+    let number = if attention.is_none() && !busy {
+        tint(
+            number,
+            theme.hue("accent", 200).unwrap_or(theme.primary()),
+            if vertical {
+                pulse.number_glow
+            } else {
+                f32::from(u8::from(pulse.complete))
+            },
+        )
+    } else {
+        number
+    };
+    // U48 onLevel reports the sweep under cell 1, quantized to 1/32. U47
+    // caps the number toward white at .15 horizontally / .35 vertically;
+    // its independent 700 ms ignition can lift it as far as .85.
+    let pulse_width = if vertical {
+        tab_width.min(10)
+    } else {
+        tab_width
+    };
+    let sweep_level = (pulse.sweep(1.0, pulse_width) * 32.0).round() / 32.0;
     let number = tint(
-        if selected || hovered {
+        number,
+        theme.text(),
+        pulse
+            .whitecap
+            .max(if vertical { 0.35 } else { 0.15 } * sweep_level),
+    );
+    // U47's mounted spinner does not inherit the fallback text attributes;
+    // its box padding inherits text.base, while fallback blanks retain canvas white.
+    let animated_indicator =
+        busy && attention.is_none() && pulse.animations && indicators == TabIndicators::Status;
+    let blank = Style::default()
+        .fg(if animated_indicator {
             theme.text()
         } else {
-            theme.text_muted()
-        },
-        tab_bg,
-        0.25,
-    );
-    let blank = Style::default().fg(Color::Rgb(255, 255, 255)).bg(tab_bg);
+            Color::Rgb(255, 255, 255)
+        })
+        .bg(tab_bg);
     let label = match indicators {
         _ if home_slot => Some("+".to_string()),
         TabIndicators::Numbers => Some((index + 1).to_string()),
-        TabIndicators::Status if busy => Some("⠋".to_string()),
+        TabIndicators::Status if attention == Some(TabAttention::Permission) => {
+            Some("!".to_string())
+        }
+        TabIndicators::Status if attention == Some(TabAttention::Question) => Some("?".to_string()),
+        TabIndicators::Status if busy => Some(TAB_SPINNER_FRAMES[animation.2 % 10].to_string()),
+        TabIndicators::Status if compact => Some(
+            title
+                .trim_start()
+                .graphemes(true)
+                .next()
+                .unwrap_or("U")
+                .to_string(),
+        ),
         TabIndicators::Status => None,
     };
-    let mut spans = vec![Span::styled(" ", blank)];
+    let mut spans = Vec::new();
     if let Some(label) = label {
-        let color = if indicators == TabIndicators::Status && busy && !home_slot {
-            theme.primary()
+        let color = if compact && selected {
+            theme.text()
+        } else if compact && indicators == TabIndicators::Status {
+            if attention.is_some() {
+                theme.hue("accent", 200).unwrap_or(theme.primary())
+            } else if busy {
+                theme.hue("interactive", 200).unwrap_or(theme.primary())
+            } else {
+                foreground
+            }
         } else {
             number
         };
-        if UnicodeWidthStr::width(label.as_str()) > 1 {
-            spans.clear();
-        }
+        let label_width = UnicodeWidthStr::width(label.as_str());
+        let leading = if compact {
+            (tab_width as usize).saturating_sub(label_width) / 2
+        } else {
+            number_width.saturating_sub(label_width)
+        };
+        spans.push(Span::styled(" ".repeat(leading), blank));
         let mut style = Style::default().fg(color).bg(tab_bg);
-        if selected {
+        if selected && !animated_indicator {
             style = style.add_modifier(Modifier::BOLD);
         }
         spans.push(Span::styled(label, style));
     } else {
-        spans.push(Span::styled(" ", blank));
+        spans.push(Span::styled(" ".repeat(number_width), blank));
     }
     spans.push(Span::styled(" ", blank));
-    for (index, grapheme) in visible.iter().enumerate() {
-        // At rest the marquee's leading fade is zero. Its trailing fade is
-        // 0.2, 0.44, 0.68, 0.92 over the final four visible graphemes.
-        let end = index as isize - (visible.len() as isize - TAB_TITLE_FADE_WIDTH as isize) + 1;
-        let opacity = if overflow && title_width > TAB_TITLE_FADE_WIDTH && end > 0 {
-            0.2 + 0.72 * (end - 1) as f32 / (TAB_TITLE_FADE_WIDTH - 1) as f32
+    if compact {
+        return Line::from(spans);
+    }
+    for (index, (grapheme, separator)) in visible.iter().enumerate() {
+        // U56 fades by visible grapheme ordinal, not display-cell position.
+        let fade = |position: isize| {
+            if position <= 0 {
+                0.0
+            } else {
+                0.2 + 0.72 * (position - 1) as f32 / (TAB_TITLE_FADE_WIDTH - 1) as f32
+            }
+        };
+        let opacity = if overflow && title_width > TAB_TITLE_FADE_WIDTH {
+            (fade(TAB_TITLE_FADE_WIDTH as isize - index as isize) * animation.1).max(fade(
+                index as isize - (visible.len() as isize - TAB_TITLE_FADE_WIDTH as isize) + 1,
+            ))
         } else {
             0.0
         };
+        let glow = tint(
+            tab_bg,
+            theme.hue("accent", 200).unwrap_or(theme.primary()),
+            if vertical { 0.45 } else { 1.0 } * pulse.dim,
+        );
+        let title_glow = if vertical {
+            pulse.title_glow
+        } else {
+            f32::from(u8::from(pulse.glows))
+        };
+        let foreground = tint(
+            foreground,
+            glow,
+            0.12 * title_glow
+                * tab_glow_intensity(
+                    (number_width + 1 + index) as f32,
+                    12.0_f32.min(f32::from(tab_width.saturating_sub(2).max(1))),
+                ),
+        );
+        let faded = tint(foreground, tab_bg, opacity);
         let mut style = Style::default()
-            .fg(tint(foreground, tab_bg, opacity))
+            .fg(if *separator {
+                tint(faded, tab_bg, 0.55)
+            } else {
+                faded
+            })
             .bg(tab_bg);
         if selected {
             style = style.add_modifier(Modifier::BOLD);
         }
         spans.push(Span::styled((*grapheme).to_owned(), style));
     }
-    let pad = (tab_width as usize).saturating_sub(3 + used);
-    if hovered {
+    let pad = (tab_width as usize).saturating_sub(number_width + 1 + used);
+    if hovered && close.0 {
         if pad > 2 {
             spans.push(Span::styled(
                 " ".repeat(pad - 2),
@@ -445,8 +566,10 @@ fn deck_tab_line(
         spans.push(Span::styled(
             "✕",
             Style::default()
-                .fg(if close_hovered {
+                .fg(if close.1 {
                     theme.text()
+                } else if vertical {
+                    theme.text_muted()
                 } else {
                     tint(theme.text_muted(), theme.text(), 0.6)
                 })
@@ -457,6 +580,73 @@ fn deck_tab_line(
         spans.push(Span::styled(" ".repeat(pad), Style::default().bg(tab_bg)));
     }
     Line::from(spans)
+}
+
+fn tab_background(
+    theme: &Theme,
+    selected: bool,
+    hovered: bool,
+    vertical: bool,
+    compact: bool,
+) -> Color {
+    if vertical {
+        if selected && !compact {
+            theme
+                .color("background.action.primary.$selected")
+                .unwrap_or(theme.background_panel())
+        } else if hovered || selected {
+            theme
+                .color("background.raised.high")
+                .unwrap_or(theme.background_panel())
+        } else {
+            theme.background_panel()
+        }
+    } else if selected {
+        theme.decrease(theme.background_panel())
+    } else if hovered {
+        theme
+            .color("background.action.primary.$hovered")
+            .unwrap_or(theme.background())
+    } else {
+        theme.background()
+    }
+}
+
+/// U57 display-cell cursor skips a complete wide grapheme when the cursor is
+/// inside it. Only the generated gap dot carries separator tint metadata.
+fn marquee_parts(title: &str, width: usize, offset: usize) -> Vec<(&str, bool)> {
+    if width == 0 {
+        return Vec::new();
+    }
+    let scrolling = offset > 0 && UnicodeWidthStr::width(title) > width;
+    let mut parts: Vec<_> = title.graphemes(true).map(|value| (value, false)).collect();
+    if scrolling {
+        parts.extend([(" ", false), ("·", true), (" ", false)]);
+    }
+    let cursor = if scrolling {
+        offset % (UnicodeWidthStr::width(title) + 3)
+    } else {
+        0
+    };
+    let mut traversed = 0;
+    let mut used = 0;
+    let mut visible = Vec::new();
+    for (value, separator) in parts.iter().chain(parts.iter()).copied() {
+        let cells = UnicodeWidthStr::width(value);
+        if traversed < cursor {
+            traversed += cells;
+            continue;
+        }
+        if used + cells > width {
+            break;
+        }
+        visible.push((value, separator));
+        used += cells;
+        if !scrolling && visible.len() == parts.len() {
+            break;
+        }
+    }
+    visible
 }
 
 fn render_deck_tabs(
@@ -503,69 +693,109 @@ fn render_deck_tabs(
         } else {
             tab.index == active
         };
-        let hovered = state
-            .tab_close_cell(frame.area(), tab.index, tab.rect)
-            .is_some();
+        let hovered = state.hovered_tab(frame.area()) == Some(tab.index);
+        let close = state.tab_close_cell(frame.area(), tab.index, tab.rect);
+        let attention = state.tab_attention_for(tab.index);
         frame.render_widget(
             Paragraph::new(deck_tab_line(
                 theme,
                 tab.rect.width,
-                presentation.and_then(|p| p.title.as_deref()),
+                Some(state.tab_title(tab.index)),
                 state.chrome.tab_indicators,
-                presentation.is_some_and(|p| p.busy),
+                state.tab_busy(tab.index),
                 tab.index,
                 selected,
                 home_slot || presentation.is_some_and(|p| p.home),
                 hovered,
-                hovered
-                    && state.mouse_position().is_some_and(|(x, y, area)| {
-                        area == frame.area()
-                            && y == tab.rect.y
-                            && Some(x) == layout::tab_close_cell(tab.rect)
-                    }),
-            )),
+                (
+                    close.is_some(),
+                    close.is_some()
+                        && state.mouse_position().is_some_and(|(x, y, area)| {
+                            area == frame.area()
+                                && y == tab.rect.y
+                                && Some(x) == layout::tab_close_cell(tab.rect)
+                        }),
+                ),
+                attention,
+                state.tab_animation(tab.index),
+                state.tab_pulse(tab.index),
+                strip.vertical,
+                strip.compact,
+                state.tab_number_width(),
+            ))
+            .style(Style::default().bg(tab_background(
+                theme,
+                selected,
+                hovered,
+                strip.vertical,
+                strip.compact,
+            ))),
             tab.rect,
         );
-        if state.tab_attention.contains(&tab.index) && tab.rect.width > 1 {
-            // session-tabs.tsx:121/1557 + tab-pulse.tsx:75-79/713:
-            // settled attention glow, composited over the actual tab surface.
-            let accent = theme.hue("accent", 200).unwrap_or(theme.primary());
-            for dx in 0..tab.rect.width {
-                let cell = &mut frame.buffer_mut()[(tab.rect.x + dx, tab.rect.y)];
-                let tail = tab.rect.width.saturating_sub(2).clamp(1, 12) as f32;
-                let t = (1.0 - f32::from(dx.saturating_sub(1)) / tail).clamp(0.0, 1.0);
-                let intensity = t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
-                let glow = tint(cell.bg, accent, if selected { 0.7 } else { 1.0 });
-                cell.bg = tint(cell.bg, glow, 0.16 * intensity);
-                if dx >= 3 && cell.symbol() != " " {
-                    cell.fg = tint(cell.fg, glow, 0.12 * intensity);
-                }
-                if dx < 3 && cell.symbol() != " " {
-                    cell.fg = accent;
-                }
-            }
-            if state.chrome.tab_indicators == TabIndicators::Numbers {
-                continue;
-            }
-            let background = frame.buffer_mut()[(tab.rect.x + 1, tab.rect.y)].bg;
+        if strip.vertical && !strip.compact && tab.rect.height > 1 {
+            let detail = presentation
+                .and_then(|tab| tab.detail.as_deref())
+                .unwrap_or("");
+            let width = layout::tab_title_width(
+                tab.rect.width,
+                state.tab_number_width(),
+                true,
+                false,
+                hovered,
+            )
+            .unwrap_or(0);
+            let parts = marquee_parts(detail, width, 0);
+            let bg = tab_background(theme, selected, hovered, true, false);
+            let fg = tint(theme.text_muted(), bg, 0.35);
+            let overflow = UnicodeWidthStr::width(detail) > width && width > TAB_TITLE_FADE_WIDTH;
+            let mut spans = vec![Span::styled(
+                " ".repeat(state.tab_number_width() + 1),
+                Style::default().bg(bg),
+            )];
+            spans.extend(parts.iter().enumerate().map(|(index, (part, _))| {
+                let end =
+                    index as isize - (parts.len() as isize - TAB_TITLE_FADE_WIDTH as isize) + 1;
+                let fade = if overflow && end > 0 {
+                    0.2 + 0.72 * (end - 1) as f32 / (TAB_TITLE_FADE_WIDTH - 1) as f32
+                } else {
+                    0.0
+                };
+                Span::styled(
+                    (*part).to_owned(),
+                    Style::default().fg(tint(fg, bg, fade)).bg(bg),
+                )
+            }));
             frame.render_widget(
-                Paragraph::new("!").style(Style::default().fg(accent).bg(background).add_modifier(
-                    if selected {
-                        Modifier::BOLD
-                    } else {
-                        Modifier::empty()
-                    },
-                )),
-                Rect::new(tab.rect.x + 1, tab.rect.y, 1, 1),
+                Paragraph::new(Line::from(spans)).style(Style::default().bg(bg)),
+                Rect::new(tab.rect.x, tab.rect.y + 1, tab.rect.width, 1),
+            );
+        }
+        if !strip.compact {
+            paint_tab_pulse(
+                frame,
+                tab.rect,
+                theme,
+                state.tab_pulse(tab.index),
+                strip.vertical,
             );
         }
     }
-    if let Some(add) = strip.add.filter(|rect| rect.width == 3) {
+    if let Some(add) = strip.add.filter(|rect| strip.vertical || rect.width == 3) {
         // session-tabs.tsx:1744-1752: the entire " + " control, including
         // padding, shares the hovered text and action background tokens.
         let hovered = state.tab_add_hovered(frame.area(), add);
         frame.render_widget(
-            Paragraph::new(" + ").style(
+            Paragraph::new(if strip.vertical && !strip.compact {
+                " + New session"
+            } else {
+                " + "
+            })
+            .alignment(if strip.compact {
+                Alignment::Center
+            } else {
+                Alignment::Left
+            })
+            .style(
                 Style::default()
                     .fg(if hovered {
                         theme.text()
@@ -585,6 +815,83 @@ fn render_deck_tabs(
     }
 }
 
+/// U48 mixes glow → sweep → edge flash → completion in floating point. Round
+/// only the final truecolor cell, not each intermediate blend stage.
+fn blend_tab_pulse_color(background: Color, layers: [(Color, f32, f32); 4]) -> Color {
+    let Color::Rgb(r, g, b) = background else {
+        return background;
+    };
+    let mut channels = [f32::from(r), f32::from(g), f32::from(b)];
+    let base = channels;
+    for (color, stop, opacity) in layers {
+        let Color::Rgb(r, g, b) = color else { continue };
+        for ((channel, base), overlay) in channels.iter_mut().zip(base).zip([r, g, b]) {
+            let overlay = base + (f32::from(overlay) - base) * stop;
+            *channel += (overlay - *channel) * opacity;
+        }
+    }
+    Color::Rgb(
+        channels[0].round() as u8,
+        channels[1].round() as u8,
+        channels[2].round() as u8,
+    )
+}
+
+fn paint_tab_pulse(
+    frame: &mut Frame<'_>,
+    rect: Rect,
+    theme: &Theme,
+    pulse: TabPulseFrame,
+    vertical: bool,
+) {
+    let width = if vertical {
+        rect.width.min(10)
+    } else {
+        rect.width
+    };
+    for dy in 0..if vertical { rect.height.min(2) } else { 1 } {
+        for dx in 0..width {
+            let cell = &mut frame.buffer_mut()[(rect.x + dx, rect.y + dy)];
+            let background = cell.bg;
+            let accent = theme.hue("accent", 200).unwrap_or(theme.primary());
+            let (running, flash_stop, glow) = if !vertical {
+                (0.45, 0.65, pulse.dim)
+            } else if dy == 0 {
+                (0.25, 0.7, 0.45 * pulse.dim)
+            } else {
+                (0.13, 0.42, 0.25 * pulse.dim)
+            };
+            let flash_opacity = pulse.flash
+                * if vertical {
+                    tab_glow_intensity(
+                        f32::from(dx),
+                        8.0_f32.min(f32::from(width.saturating_sub(2).max(1))),
+                    )
+                } else {
+                    1.0
+                };
+            cell.bg = blend_tab_pulse_color(
+                background,
+                [
+                    (
+                        accent,
+                        glow,
+                        pulse.glow_at(f32::from(dx), width, if dy == 0 { 12.0 } else { 10.0 }),
+                    ),
+                    (
+                        theme.text(),
+                        running,
+                        0.14 * pulse.sweep(f32::from(dx), width),
+                    ),
+                    (theme.text(), flash_stop, flash_opacity),
+                    (accent, if vertical { glow } else { 1.0 }, pulse.completion),
+                ],
+            );
+        }
+    }
+}
+
+#[cfg(test)]
 fn render_single_tab(
     frame: &mut Frame<'_>,
     theme: &Theme,
@@ -2659,6 +2966,7 @@ mod tests {
                 title: Some("Restored".into()),
                 home: false,
                 busy: false,
+                ..TabPresentation::new(SessionId("restored".into()))
             }],
             0,
             true,
@@ -2848,11 +3156,13 @@ mod tests {
                     title: Some("Old".into()),
                     home: false,
                     busy: false,
+                    ..TabPresentation::new(SessionId("old".into()))
                 },
                 TabPresentation {
                     title: Some("Second".into()),
                     home: false,
                     busy: false,
+                    ..TabPresentation::new(SessionId("second".into()))
                 },
             ],
             1,
@@ -2915,6 +3225,87 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn vis39_selected_animated_spinner_attributes_and_prefix_match_u47_fallback() {
+        let mut state = golden_state().await;
+        state.set_tab_strip(
+            vec![TabPresentation {
+                busy: true,
+                title: Some("Own running".into()),
+                ..TabPresentation::new(SessionId("own".into()))
+            }],
+            0,
+            false,
+        );
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        for animations in [true, false] {
+            state.chrome.animations = Some(animations);
+            terminal.draw(|frame| render(frame, &state)).unwrap();
+            let cells = terminal.backend().buffer();
+            assert_eq!(cells[(1, 0)].symbol(), "⠋");
+            assert_eq!(cells[(1, 0)].modifier.contains(Modifier::BOLD), !animations);
+            for x in [0, 2] {
+                assert_eq!(
+                    cells[(x, 0)].fg,
+                    if animations {
+                        Color::Rgb(238, 238, 238)
+                    } else {
+                        Color::Rgb(255, 255, 255)
+                    }
+                );
+                assert!(!cells[(x, 0)].modifier.contains(Modifier::BOLD));
+            }
+            assert!(cells[(3, 0)].modifier.contains(Modifier::BOLD));
+        }
+        state.chrome.animations = Some(true);
+        state.chrome.tab_indicators = TabIndicators::Numbers;
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer()[(1, 0)].symbol(), "1");
+        assert!(
+            terminal.backend().buffer()[(1, 0)]
+                .modifier
+                .contains(Modifier::BOLD)
+        );
+        state.chrome.tab_indicators = TabIndicators::Status;
+        state.tab_attention.insert(0);
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer()[(1, 0)].symbol(), "!");
+        assert!(
+            terminal.backend().buffer()[(1, 0)]
+                .modifier
+                .contains(Modifier::BOLD)
+        );
+    }
+
+    #[tokio::test]
+    async fn vis41_real_vertical_detail_uses_owner_location_fallback_without_synthetic_metadata() {
+        let mut state = golden_state().await;
+        state.chrome.vertical_tabs_width = 42;
+        state.chrome.animations = Some(false);
+        state.set_tab_strip(
+            vec![TabPresentation {
+                title: Some("Real title".into()),
+                detail: Some("actual-project".into()),
+                ..TabPresentation::new(SessionId("real-location".into()))
+            }],
+            0,
+            false,
+        );
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let cells = terminal.backend().buffer();
+        assert_eq!(
+            (3..17).map(|x| cells[(x, 2)].symbol()).collect::<String>(),
+            "actual-project"
+        );
+        assert_eq!(
+            cells[(3, 2)].fg,
+            tint(Theme::dark().text_muted(), cells[(3, 2)].bg, 0.35)
+        );
+        assert!(!cells[(3, 2)].modifier.contains(Modifier::BOLD));
+        assert!(!screen(&state, 80, 24)[0].contains("actual-project"));
+    }
+
     #[test]
     fn single_tab_render_uses_layout_without_an_inert_add_control() {
         let theme = Theme::dark();
@@ -2967,7 +3358,7 @@ mod tests {
         let buffer = terminal.backend().buffer();
         assert_eq!(buffer[(0, 0)].symbol(), " ");
         assert_eq!(buffer[(1, 0)].symbol(), "⠋");
-        assert_eq!(buffer[(1, 0)].fg, theme.primary());
+        assert_eq!(buffer[(1, 0)].fg, tint(theme.primary(), theme.text(), 0.85));
         assert_eq!(buffer[(1, 0)].bg, tab_bg);
         assert_eq!(buffer[(2, 0)].symbol(), " ");
         assert_eq!(buffer[(3, 0)].symbol(), "U");
@@ -2986,16 +3377,19 @@ mod tests {
                 title: Some("First".into()),
                 home: false,
                 busy: false,
+                ..TabPresentation::new(SessionId("first".into()))
             },
             TabPresentation {
                 title: Some("Running".into()),
                 home: false,
                 busy: true,
+                ..TabPresentation::new(SessionId("running".into()))
             },
             TabPresentation {
                 title: Some("Last".into()),
                 home: false,
                 busy: false,
+                ..TabPresentation::new(SessionId("last".into()))
             },
         ];
         state.set_tab_strip(tabs.clone(), 1, true);
@@ -3036,6 +3430,368 @@ mod tests {
         assert!(!(0..80).any(|x| terminal.backend().buffer()[(x, 0)].symbol() == "+"));
     }
 
+    #[test]
+    fn vis41_marquee_uses_u59_cell_cursor_and_generated_separator_fixtures() {
+        let text = |title, width, offset| {
+            marquee_parts(title, width, offset)
+                .iter()
+                .map(|(text, _)| *text)
+                .collect::<String>()
+        };
+        assert_eq!(text("Short", 10, 8), "Short");
+        assert_eq!(text("Exact fit", 9, 8), "Exact fit");
+        for (offset, expected) in [
+            (0, "A long s"),
+            (2, "long ses"),
+            (15, "title · "),
+            (20, " · A lon"),
+            (23, "A long s"),
+        ] {
+            assert_eq!(text("A long session title", 8, offset), expected);
+        }
+        assert_eq!(
+            marquee_parts("A · title", 6, 7),
+            [
+                ("l", false),
+                ("e", false),
+                (" ", false),
+                ("·", true),
+                (" ", false),
+                ("A", false)
+            ]
+        );
+        assert_eq!(marquee_parts("A · title", 6, 2)[0], ("·", false));
+        assert_eq!(text("Plan 🧭 the release", 8, 5), "🧭 the r");
+        assert_eq!(text("Plan 🧭 the release", 8, 6), " the rel");
+        assert_eq!(text("e\u{301}🧑‍💻界tail", 4, 1), "🧑‍💻界");
+        assert!(marquee_parts("title", 0, 1).is_empty());
+    }
+
+    #[tokio::test]
+    async fn vis39_painted_permission_priority_number_mode_and_static_busy_fallback() {
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, SessionId("indicator".into()));
+        let mut tab = TabPresentation::new(SessionId("indicator".into()));
+        tab.busy = true;
+        tab.attention = Some(TabAttention::Question);
+        state.set_tab_strip(vec![tab.clone()], 0, false);
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        terminal.draw(|f| render(f, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer()[(1, 0)].symbol(), "?");
+        assert_eq!(state.next_ui_deadline(), None);
+        state.tab_attention.insert(0);
+        terminal.draw(|f| render(f, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer()[(1, 0)].symbol(), "!");
+        state.chrome.tab_indicators = TabIndicators::Numbers;
+        terminal.draw(|f| render(f, &state)).unwrap();
+        assert_eq!(
+            terminal.backend().buffer()[(1, 0)].symbol(),
+            "1",
+            "attention tints but cannot replace ordinal"
+        );
+        assert_eq!(state.next_ui_deadline(), None);
+        state.chrome.tab_indicators = TabIndicators::Status;
+        state.chrome.animations = Some(false);
+        state.tab_attention.clear();
+        tab.attention = None;
+        state.set_tab_strip(vec![tab], 0, false);
+        terminal.draw(|f| render(f, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer()[(1, 0)].symbol(), "⠋");
+        assert_eq!(state.next_ui_deadline(), None);
+        state.chrome.animations = Some(true);
+        terminal.draw(|f| render(f, &state)).unwrap();
+        let spinner = state.next_ui_deadline().unwrap() + std::time::Duration::from_millis(80);
+        assert!(state.tick_ui(spinner));
+        terminal.draw(|f| render(f, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer()[(1, 0)].symbol(), "⠙");
+    }
+
+    #[test]
+    fn vis39_u48_styled_sweep_whitecaps_and_blend_order_preserve_title_attributes() {
+        assert_eq!(
+            blend_tab_pulse_color(
+                Color::Rgb(10, 20, 30),
+                [
+                    (Color::Rgb(110, 120, 130), 1.0, 0.16),
+                    (Color::Rgb(210, 220, 230), 1.0, 0.14),
+                    (Color::Rgb(250, 240, 230), 1.0, 0.1),
+                    (Color::Rgb(90, 80, 70), 1.0, 0.18),
+                ]
+            ),
+            Color::Rgb(75, 80, 84)
+        );
+        let theme = Theme::dark();
+        let pulse = TabPulseFrame {
+            running: 1.0,
+            sweep_clock: 1.4,
+            whitecap: 0.85,
+            dim: 1.0,
+            ..Default::default()
+        };
+        let mut terminal = Terminal::new(TestBackend::new(32, 1)).unwrap();
+        terminal
+            .draw(|frame| {
+                let rect = frame.area();
+                frame.render_widget(
+                    Paragraph::new(deck_tab_line(
+                        theme,
+                        32,
+                        Some("Title"),
+                        TabIndicators::Numbers,
+                        true,
+                        0,
+                        true,
+                        false,
+                        true,
+                        (false, false),
+                        None,
+                        (0, 0.0, 0),
+                        pulse,
+                        false,
+                        false,
+                        2,
+                    )),
+                    rect,
+                );
+                paint_tab_pulse(frame, rect, theme, pulse, false);
+            })
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        let bg = theme.decrease(theme.background_panel());
+        assert_eq!(buffer[(1, 0)].symbol(), "1");
+        assert_eq!(
+            buffer[(1, 0)].fg,
+            tint(theme.hue("interactive", 200).unwrap(), theme.text(), 0.85)
+        );
+        assert_eq!(buffer[(0, 0)].bg, bg);
+        assert_ne!(
+            buffer[(22, 0)].bg,
+            bg,
+            "source running front paints the background"
+        );
+        assert_eq!(buffer[(31, 0)].bg, bg);
+        assert_eq!(buffer[(3, 0)].symbol(), "T");
+        assert_eq!(buffer[(3, 0)].fg, theme.text());
+        assert!(buffer[(3, 0)].modifier.contains(Modifier::BOLD));
+        assert!(!buffer[(22, 0)].modifier.contains(Modifier::BOLD));
+        assert_eq!(
+            buffer[(30, 0)].symbol(),
+            " ",
+            "busy hover retains the close guard"
+        );
+
+        // Noncompact source rail limits pulse layers to ten cells; the actual
+        // second row receives its lower color stop, without invented metadata.
+        let mut rail = Terminal::new(TestBackend::new(36, 2)).unwrap();
+        let pulse = TabPulseFrame {
+            glow: 1.0,
+            dim: 0.7,
+            ..Default::default()
+        };
+        rail.draw(|frame| {
+            let rect = frame.area();
+            frame.render_widget(
+                Block::default().style(Style::default().bg(theme.background_panel())),
+                rect,
+            );
+            paint_tab_pulse(frame, rect, theme, pulse, true);
+        })
+        .unwrap();
+        let buffer = rail.backend().buffer();
+        assert_ne!(buffer[(1, 0)].bg, buffer[(1, 1)].bg);
+        assert_eq!(buffer[(10, 0)].bg, theme.background_panel());
+        assert_eq!(buffer[(10, 1)].bg, theme.background_panel());
+        assert!(!buffer.content.iter().any(|cell| cell.symbol() != " "));
+    }
+
+    #[tokio::test]
+    async fn vis39_actual_compact_number_ignition_settles_without_a_hidden_pulse() {
+        let mut state = golden_state().await;
+        state.chrome.vertical_tabs_width = 6;
+        state.chrome.tab_indicators = TabIndicators::Numbers;
+        state.chrome.animations = Some(true);
+        let mut first = TabPresentation::new(SessionId("running".into()));
+        first.busy = true;
+        let second = TabPresentation::new(SessionId("selected".into()));
+        state.set_tab_strip(vec![first.clone(), second.clone()], 1, false);
+        let area = Rect::new(0, 0, 80, 24);
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let strip = tab_strip(&state, area).unwrap();
+        assert!(strip.vertical && strip.compact);
+        let first_cell = (strip.tabs[0].rect.x + 2, strip.tabs[0].rect.y);
+        let selected_cell = (strip.tabs[1].rect.x + 2, strip.tabs[1].rect.y);
+        let theme = Theme::dark();
+        assert_eq!(terminal.backend().buffer()[first_cell].symbol(), "1");
+        assert_eq!(
+            terminal.backend().buffer()[first_cell].fg,
+            theme.hue("interactive", 200).unwrap()
+        );
+        assert_eq!(terminal.backend().buffer()[selected_cell].symbol(), "2");
+        assert_eq!(terminal.backend().buffer()[selected_cell].fg, theme.text());
+        assert_eq!(
+            state.next_ui_deadline(),
+            None,
+            "compact numbers mount no U48 pulse or spinner"
+        );
+        first.busy = false;
+        state.set_tab_strip(vec![first, second], 1, false);
+        let pulse = state.tab_pulse(0);
+        assert_eq!(pulse.whitecap, 0.85);
+        assert_eq!(pulse.running, 0.0);
+        assert_eq!(pulse.flash, 0.0);
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        assert_eq!(
+            terminal.backend().buffer()[first_cell].bg,
+            theme.background_panel()
+        );
+        assert_ne!(
+            terminal.backend().buffer()[first_cell].fg,
+            theme.hue("interactive", 200).unwrap()
+        );
+        assert!(state.next_ui_deadline().is_some());
+        state.tick_ui(std::time::Instant::now() + std::time::Duration::from_millis(700));
+        assert_eq!(state.tab_pulse(0).whitecap, 0.0);
+        assert_eq!(state.next_ui_deadline(), None);
+    }
+
+    #[test]
+    fn vis41_styled_fades_use_grapheme_ordinals_and_only_dim_the_generated_dot() {
+        let theme = Theme::dark();
+        let bg = theme.decrease(theme.background_panel());
+        for (offset, expected, dot, alpha) in [(7, "le · A", 3, 0.44), (2, "· titl", 0, 0.92)] {
+            let line = deck_tab_line(
+                theme,
+                11,
+                Some("A · title"),
+                TabIndicators::Numbers,
+                false,
+                0,
+                true,
+                false,
+                true,
+                (true, false),
+                None,
+                (offset, 1.0, 0),
+                TabPulseFrame::default(),
+                false,
+                false,
+                2,
+            );
+            let mut terminal = Terminal::new(TestBackend::new(11, 1)).unwrap();
+            terminal
+                .draw(|frame| frame.render_widget(Paragraph::new(line.clone()), frame.area()))
+                .unwrap();
+            let buffer = terminal.backend().buffer();
+            assert_eq!(
+                (3..9).map(|x| buffer[(x, 0)].symbol()).collect::<String>(),
+                expected
+            );
+            let faded = tint(theme.text(), bg, alpha);
+            assert_eq!(
+                buffer[(3 + dot, 0)].fg,
+                if offset == 7 {
+                    tint(faded, bg, 0.55)
+                } else {
+                    faded
+                }
+            );
+            for x in 3..9 {
+                assert_eq!(buffer[(x, 0)].bg, bg);
+                assert!(buffer[(x, 0)].modifier.contains(Modifier::BOLD));
+            }
+            assert_eq!(buffer[(9, 0)].symbol(), "✕");
+            assert!(!buffer[(10, 0)].modifier.contains(Modifier::BOLD));
+            assert_eq!(buffer[(10, 0)].bg, bg);
+        }
+    }
+
+    #[tokio::test]
+    async fn vis41_busy_hover_scrolls_without_close_and_vertical_compact_is_reachable() {
+        use crossterm::event::{KeyModifiers, MouseEvent, MouseEventKind};
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, SessionId("real-tab".into()));
+        state.chrome.animations = Some(false);
+        let mut tab = TabPresentation::new(SessionId("real-tab".into()));
+        tab.title = Some("abcdefghijklmnopqrstuvwxyz123".into()); // resting fit29, hovered overflow27
+        tab.busy = true;
+        state.set_tab_strip(vec![tab.clone()], 0, false);
+        let area = Rect::new(0, 0, 80, 24);
+        let moved = |x, y| MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: x,
+            row: y,
+            modifiers: KeyModifiers::NONE,
+        };
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        terminal.draw(|f| render(f, &state)).unwrap();
+        state.handle_mouse(moved(3, 0), area);
+        terminal.draw(|f| render(f, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer()[(1, 0)].symbol(), "⠋");
+        assert_eq!(
+            state.tab_close_cell(area, 0, tab_strip(&state, area).unwrap().tabs[0].rect),
+            None
+        );
+        assert_eq!(terminal.backend().buffer()[(30, 0)].symbol(), " ");
+        let delay = state.next_ui_deadline().unwrap();
+        assert!(state.tick_ui(delay));
+        terminal.draw(|f| render(f, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer()[(3, 0)].symbol(), "b");
+        assert_eq!(
+            terminal.backend().buffer()[(1, 0)].symbol(),
+            "⠋",
+            "off mode only freezes spinner/fade tween"
+        );
+
+        state.clear_mouse_position();
+        state.chrome.vertical_tabs_width = 42;
+        tab.busy = false;
+        tab.title = Some("V".repeat(40));
+        state.set_tab_strip(vec![tab], 0, false);
+        assert!(
+            !tab_strip(&state, area).unwrap().vertical,
+            "configured vertical80 still falls back to horizontal"
+        );
+        assert!(
+            !tab_strip(&state, Rect::new(0, 0, 105, 24))
+                .unwrap()
+                .vertical
+        );
+        assert!(
+            tab_strip(&state, Rect::new(0, 0, 106, 24))
+                .unwrap()
+                .vertical
+        );
+        let area = Rect::new(0, 0, 120, 24);
+        let mut terminal = Terminal::new(TestBackend::new(120, 24)).unwrap();
+        let strip = tab_strip(&state, area).unwrap();
+        assert!(strip.vertical && !strip.compact);
+        assert_eq!(strip.tabs[0].rect, Rect::new(0, 1, 42, 2));
+        state.handle_mouse(moved(3, 1), area);
+        terminal.draw(|f| render(f, &state)).unwrap();
+        let bg = tab_background(Theme::dark(), true, true, true, false);
+        assert_eq!(terminal.backend().buffer()[(3, 1)].bg, bg);
+        assert_eq!(terminal.backend().buffer()[(3, 2)].bg, bg);
+        assert_eq!(terminal.backend().buffer()[(40, 1)].symbol(), "✕");
+        assert!(state.next_ui_deadline().is_some());
+
+        state.clear_mouse_position();
+        state.chrome.vertical_tabs_width = 6; // actual admitted rail width, still leaves the preferred pane
+        let compact = Rect::new(0, 0, 80, 24);
+        let strip = tab_strip(&state, compact).unwrap();
+        assert!(strip.vertical && strip.compact);
+        state.handle_mouse(moved(3, strip.tabs[0].rect.y), compact);
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        terminal.draw(|f| render(f, &state)).unwrap();
+        assert_eq!(
+            state.next_ui_deadline(),
+            None,
+            "compact Infinity cannot start marquee"
+        );
+        assert_eq!(terminal.backend().buffer()[(2, 2)].symbol(), "V");
+        assert!(inbox.try_recv().is_err());
+    }
+
     #[tokio::test]
     async fn retained_add_colors_follow_real_pointer_and_eligibility() {
         use crossterm::event::{KeyModifiers, MouseEvent, MouseEventKind};
@@ -3045,6 +3801,7 @@ mod tests {
                 title: Some("Old".into()),
                 home: false,
                 busy: false,
+                ..TabPresentation::new(SessionId("old".into()))
             }],
             0,
             true,
@@ -3110,6 +3867,7 @@ mod tests {
                 title: Some("Old".into()),
                 home: false,
                 busy: true,
+                ..TabPresentation::new(SessionId("old".into()))
             }],
             0,
             true,
@@ -3161,6 +3919,7 @@ mod tests {
                 title: Some("abcdefghijklmnopqrstuvwxyz123456789".into()),
                 home: false,
                 busy: false,
+                ..TabPresentation::new(SessionId("long".into()))
             }],
             0,
             false,
@@ -3218,6 +3977,7 @@ mod tests {
                 title: None,
                 home: false,
                 busy: true,
+                ..TabPresentation::new(SessionId("busy".into()))
             }],
             0,
             false,
@@ -3234,6 +3994,7 @@ mod tests {
                 title: Some("Long title".into()),
                 home: false,
                 busy: false,
+                ..TabPresentation::new(SessionId("long".into()))
             }],
             0,
             false,
@@ -3265,6 +4026,7 @@ mod tests {
                     title: Some(format!("Tab {i}")),
                     home: false,
                     busy: false,
+                    ..TabPresentation::new(SessionId(format!("tab-{i}")))
                 })
                 .collect(),
             10,

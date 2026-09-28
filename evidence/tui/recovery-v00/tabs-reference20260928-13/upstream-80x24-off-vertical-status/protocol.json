@@ -1,0 +1,1024 @@
+[
+  {
+    "at_ns": 1237669977285487,
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-80x24-off-vertical-status/project",
+    "env_names": [
+      "COLORTERM",
+      "HOME",
+      "LANG",
+      "LC_ALL",
+      "OC_TEST_ALLOW_LOOPBACK",
+      "OPENCODE_CONFIG_CONTENT",
+      "OPENCODE_CONFIG_PROJECT_DISABLE",
+      "OPENCODE_DISABLE_AUTOUPDATE",
+      "OPENCODE_DISABLE_FILEWATCHER",
+      "OPENCODE_DISABLE_MODELS_FETCH",
+      "OPENCODE_TEST_HOME",
+      "PATH",
+      "SHELL",
+      "TERM",
+      "TZ",
+      "XDG_CACHE_HOME",
+      "XDG_CONFIG_HOME",
+      "XDG_DATA_HOME",
+      "XDG_STATE_HOME"
+    ],
+    "inherited_environment": false,
+    "version": "opencode v2.0.12",
+    "version_exit": 0,
+    "binary_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "config": {
+      "model": "fixture/fixture-model-1",
+      "plugins": [
+        "-opencode.models.dev"
+      ],
+      "share": "disabled",
+      "update": "disable",
+      "snapshots": false,
+      "compaction": {
+        "auto": false
+      },
+      "providers": {
+        "fixture": {
+          "name": "Fixture",
+          "package": "@opencode/ai/providers/openai/responses",
+          "settings": {
+            "baseURL": "http://127.0.0.1:35693/v1",
+            "apiKey": "fixture-not-secret"
+          },
+          "models": {
+            "fixture-model-1": {
+              "name": "VIS41 Fixture",
+              "limit": {
+                "context": 65536,
+                "output": 2048
+              }
+            }
+          }
+        }
+      },
+      "permissions": [
+        {
+          "action": "*",
+          "resource": "*",
+          "effect": "deny"
+        }
+      ]
+    },
+    "cli_config": {
+      "theme": {
+        "name": "opencode",
+        "mode": "dark"
+      },
+      "animations": false,
+      "session": {
+        "sidebar": "hide",
+        "tps": false
+      },
+      "tabs": {
+        "layout": "vertical",
+        "indicators": "status"
+      },
+      "debug": {
+        "devtools": false
+      },
+      "attention": {
+        "notifications": false,
+        "sound": false
+      },
+      "cursor": {
+        "style": "block",
+        "blinking": false
+      }
+    },
+    "history_ingress": false,
+    "authenticated_api_calls": 0,
+    "reference_project_reused": false
+  },
+  {
+    "at_ns": 1237669979661004,
+    "kind": "process_started",
+    "pid": 1875181
+  },
+  {
+    "at_ns": 1237670600220091,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G10xMDtyZ2I6ZWVlZS9lZWVlL2VlZWUbXA=="
+  },
+  {
+    "at_ns": 1237670600285450,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G10xMTtyZ2I6MGEwYS8wYTBhLzBhMGEbXA=="
+  },
+  {
+    "at_ns": 1237670600311980,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1sxOzFS"
+  },
+  {
+    "at_ns": 1237670600329817,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1s/MTAxNjsyJHk="
+  },
+  {
+    "at_ns": 1237670600345320,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1s/MjAyNzswJHk="
+  },
+  {
+    "at_ns": 1237670605122242,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1s/MjAzMTswJHk="
+  },
+  {
+    "at_ns": 1237670605503736,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1s/MTAwNDsyJHk="
+  },
+  {
+    "at_ns": 1237670605833473,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1s/MjAwNDsyJHk="
+  },
+  {
+    "at_ns": 1237670606094006,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1s/MjAyNjsyJHk="
+  },
+  {
+    "at_ns": 1237670606391393,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1s/MTsyYw=="
+  },
+  {
+    "at_ns": 1237670606698505,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1sxOzFS"
+  },
+  {
+    "at_ns": 1237670612218187,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1sxOzFS"
+  },
+  {
+    "at_ns": 1237670691412036,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ns": 1237670691472257,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ns": 1237670691491766,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ns": 1237670691507220,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ns": 1237670691521752,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ns": 1237670691537736,
+    "kind": "input_written",
+    "label": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ns": 1237671235586985,
+    "kind": "input_written",
+    "label": "seed_prompt",
+    "base64": "G1syMDB+VklTNDEgc2VlZC1hOiBubyB0b29scyBvciBmaWxlc3lzdGVtIGVmZmVjdHMuG1syMDF+"
+  },
+  {
+    "at_ns": 1237671235754547,
+    "kind": "input_written",
+    "label": "seed_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1237671503685252,
+    "kind": "provider",
+    "index": 0,
+    "operation": "title",
+    "case": "seed-a",
+    "valid": true,
+    "body_sha256": "6cf27a3b80d4ed20b50b612bdd32d8033101fc1ec66f5c158278b0e78e354a13",
+    "input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          }
+        ]
+      }
+    ],
+    "tool_names": []
+  },
+  {
+    "at_ns": 1237671505781668,
+    "kind": "provider_completed",
+    "case": "seed-a",
+    "index": 0,
+    "operation": "title"
+  },
+  {
+    "at_ns": 1237671515558328,
+    "kind": "provider",
+    "index": 1,
+    "operation": "main",
+    "case": "seed-a",
+    "valid": true,
+    "body_sha256": "03febfa4ebf103b8c0aa98151b932a098718950e9df672efd615638b05f14bf9",
+    "input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 seed-a: no tools or filesystem effects."
+          }
+        ]
+      }
+    ],
+    "tool_names": []
+  },
+  {
+    "at_ns": 1237671516588239,
+    "kind": "provider_completed",
+    "case": "seed-a",
+    "index": 1,
+    "operation": "main"
+  },
+  {
+    "at_ns": 1237673126681128,
+    "kind": "input_written",
+    "label": "new_root_type",
+    "base64": "L25ldw=="
+  },
+  {
+    "at_ns": 1237673237889361,
+    "kind": "input_written",
+    "label": "new_root_enter",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1237673388620453,
+    "kind": "input_written",
+    "label": "seed_prompt",
+    "base64": "G1syMDB+VklTNDEgc2VlZC1iOiBubyB0b29scyBvciBmaWxlc3lzdGVtIGVmZmVjdHMuG1syMDF+"
+  },
+  {
+    "at_ns": 1237673388721415,
+    "kind": "input_written",
+    "label": "seed_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1237673581981711,
+    "kind": "provider",
+    "index": 2,
+    "operation": "title",
+    "case": "seed-b",
+    "valid": true,
+    "body_sha256": "1b096aec342998b05830930dacb13c1af473c694928662743e6201c4c3c9bd42",
+    "input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          }
+        ]
+      }
+    ],
+    "tool_names": []
+  },
+  {
+    "at_ns": 1237673582849417,
+    "kind": "provider_completed",
+    "case": "seed-b",
+    "index": 2,
+    "operation": "title"
+  },
+  {
+    "at_ns": 1237673598336075,
+    "kind": "provider",
+    "index": 3,
+    "operation": "main",
+    "case": "seed-b",
+    "valid": true,
+    "body_sha256": "37333e1f6c2abb87de0e700479227f9b5f341827e0641115739c2b7851805cad",
+    "input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS41 seed-b: no tools or filesystem effects."
+          }
+        ]
+      }
+    ],
+    "tool_names": []
+  },
+  {
+    "at_ns": 1237673599000045,
+    "kind": "provider_completed",
+    "case": "seed-b",
+    "index": 3,
+    "operation": "main"
+  },
+  {
+    "at_ns": 1237675045722402,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7Nzg7MTRN"
+  },
+  {
+    "at_ns": 1237675045780699,
+    "kind": "input_written",
+    "label": "rename_ctrl_r",
+    "base64": "Eg=="
+  },
+  {
+    "at_ns": 1237675116393979,
+    "kind": "input_written",
+    "label": "rename_home",
+    "base64": "G1tI"
+  },
+  {
+    "at_ns": 1237675196040500,
+    "kind": "input_written",
+    "label": "rename_shift_end",
+    "base64": "G1sxOzJG"
+  },
+  {
+    "at_ns": 1237675275961896,
+    "kind": "input_written",
+    "label": "rename_title_paste",
+    "base64": "G1syMDB+U2hvcnQbWzIwMX4="
+  },
+  {
+    "at_ns": 1237675681986606,
+    "kind": "input_written",
+    "label": "rename_commit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1237675903508985,
+    "kind": "owner_snapshot",
+    "request_id": "root-b-short-rename-owner",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-80x24-off-vertical-status/home/data/opencode/opencode.db",
+        "table": "session_v2",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ses_f1a260d2fffeHkQboZc4ilPM6g",
+            "project_id": "f0af7ceaa52df1a23b75d91d76c801ceaaf2d27b",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "eager-wizard",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-80x24-off-vertical-status/project",
+            "path": "",
+            "title": "VIS41 fixture A",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790562661125,
+            "time_updated": 1790562661311,
+            "time_idle": 1790562661328,
+            "time_viewed": 1790562661328,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          },
+          {
+            "id": "ses_f1a2604caffebQmRIVOUznKJbz",
+            "project_id": "f0af7ceaa52df1a23b75d91d76c801ceaaf2d27b",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "shiny-wizard",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-80x24-off-vertical-status/project",
+            "path": "",
+            "title": "Short",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790562663237,
+            "time_updated": 1790562665477,
+            "time_idle": 1790562663422,
+            "time_viewed": 1790562663422,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-80x24-off-vertical-status/home/data/opencode/opencode.db",
+        "table": "session_message",
+        "count": 6,
+        "rows": [
+          {
+            "id": "msg_0e5d9f2d3001I1EsdB3YmYxhyF",
+            "session_id": "ses_f1a260d2fffeHkQboZc4ilPM6g",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790562661273,
+            "time_updated": 1790562661275,
+            "data": "{\"time\":{\"created\":1790562661273},\"text\":\"VIS41 seed-a: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e5d9f3af0017UWIN2hNZj48SX",
+            "session_id": "ses_f1a260d2fffeHkQboZc4ilPM6g",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790562661301,
+            "time_updated": 1790562661326,
+            "data": "{\"time\":{\"created\":1790562661301,\"streamed\":1790562661321,\"completed\":1790562661325},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-a\",\"state\":{\"itemId\":\"msg_vis41_1\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_1\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e5d9f3d0001D0VaJSqkFC5n1A",
+            "session_id": "ses_f1a260d2fffeHkQboZc4ilPM6g",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790562661328,
+            "time_updated": 1790562661329,
+            "data": "{\"time\":{\"created\":1790562661328},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e5d9fb38001AqeieHXw3Iay44",
+            "session_id": "ses_f1a2604caffebQmRIVOUznKJbz",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790562663358,
+            "time_updated": 1790562663359,
+            "data": "{\"time\":{\"created\":1790562663358},\"text\":\"VIS41 seed-b: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e5d9fbcc001jqbH6CkTT1a1VX",
+            "session_id": "ses_f1a2604caffebQmRIVOUznKJbz",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790562663384,
+            "time_updated": 1790562663420,
+            "data": "{\"time\":{\"created\":1790562663384,\"streamed\":1790562663415,\"completed\":1790562663419},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-b\",\"state\":{\"itemId\":\"msg_vis41_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_3\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e5d9fbfe001wfw1j7aBED1Kav",
+            "session_id": "ses_f1a2604caffebQmRIVOUznKJbz",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790562663422,
+            "time_updated": 1790562663422,
+            "data": "{\"time\":{\"created\":1790562663422},\"outcome\":\"succeeded\"}"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-80x24-off-vertical-status/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_f1a260d2fffeHkQboZc4ilPM6g",
+                  "title": "VIS41 fixture A"
+                },
+                {
+                  "sessionID": "ses_f1a2604caffebQmRIVOUznKJbz",
+                  "title": "Short"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1237675921405351,
+    "kind": "input_written",
+    "label": "tab_select_down",
+    "base64": "G1s8MDs1OzFN"
+  },
+  {
+    "at_ns": 1237675922244755,
+    "kind": "input_written",
+    "label": "tab_select_up",
+    "base64": "G1s8MDs1OzFt"
+  },
+  {
+    "at_ns": 1237676055802579,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7Nzg7MTRN"
+  },
+  {
+    "at_ns": 1237676556666946,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7Nzg7MTRN"
+  },
+  {
+    "at_ns": 1237676558296288,
+    "kind": "input_written",
+    "label": "rename_ctrl_r",
+    "base64": "Eg=="
+  },
+  {
+    "at_ns": 1237676615434160,
+    "kind": "input_written",
+    "label": "rename_home",
+    "base64": "G1tI"
+  },
+  {
+    "at_ns": 1237676700564508,
+    "kind": "input_written",
+    "label": "rename_shift_end",
+    "base64": "G1sxOzJG"
+  },
+  {
+    "at_ns": 1237676780595058,
+    "kind": "input_written",
+    "label": "rename_title_paste",
+    "base64": "G1syMDB+VklTNDEgbG9uZy10aXRsZSBhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5eiAwMTIzNDU2Nzg5G1syMDF+"
+  },
+  {
+    "at_ns": 1237677207374136,
+    "kind": "input_written",
+    "label": "rename_commit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ns": 1237677427831361,
+    "kind": "owner_snapshot",
+    "request_id": "long-rename-owner",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-80x24-off-vertical-status/home/data/opencode/opencode.db",
+        "table": "session_v2",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ses_f1a260d2fffeHkQboZc4ilPM6g",
+            "project_id": "f0af7ceaa52df1a23b75d91d76c801ceaaf2d27b",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "eager-wizard",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-80x24-off-vertical-status/project",
+            "path": "",
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790562661125,
+            "time_updated": 1790562667006,
+            "time_idle": 1790562661328,
+            "time_viewed": 1790562661328,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          },
+          {
+            "id": "ses_f1a2604caffebQmRIVOUznKJbz",
+            "project_id": "f0af7ceaa52df1a23b75d91d76c801ceaaf2d27b",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "shiny-wizard",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-80x24-off-vertical-status/project",
+            "path": "",
+            "title": "Short",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790562663237,
+            "time_updated": 1790562665477,
+            "time_idle": 1790562663422,
+            "time_viewed": 1790562663422,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-80x24-off-vertical-status/home/data/opencode/opencode.db",
+        "table": "session_message",
+        "count": 6,
+        "rows": [
+          {
+            "id": "msg_0e5d9f2d3001I1EsdB3YmYxhyF",
+            "session_id": "ses_f1a260d2fffeHkQboZc4ilPM6g",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790562661273,
+            "time_updated": 1790562661275,
+            "data": "{\"time\":{\"created\":1790562661273},\"text\":\"VIS41 seed-a: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e5d9f3af0017UWIN2hNZj48SX",
+            "session_id": "ses_f1a260d2fffeHkQboZc4ilPM6g",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790562661301,
+            "time_updated": 1790562661326,
+            "data": "{\"time\":{\"created\":1790562661301,\"streamed\":1790562661321,\"completed\":1790562661325},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-a\",\"state\":{\"itemId\":\"msg_vis41_1\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_1\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e5d9f3d0001D0VaJSqkFC5n1A",
+            "session_id": "ses_f1a260d2fffeHkQboZc4ilPM6g",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790562661328,
+            "time_updated": 1790562661329,
+            "data": "{\"time\":{\"created\":1790562661328},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e5d9fb38001AqeieHXw3Iay44",
+            "session_id": "ses_f1a2604caffebQmRIVOUznKJbz",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790562663358,
+            "time_updated": 1790562663359,
+            "data": "{\"time\":{\"created\":1790562663358},\"text\":\"VIS41 seed-b: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e5d9fbcc001jqbH6CkTT1a1VX",
+            "session_id": "ses_f1a2604caffebQmRIVOUznKJbz",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790562663384,
+            "time_updated": 1790562663420,
+            "data": "{\"time\":{\"created\":1790562663384,\"streamed\":1790562663415,\"completed\":1790562663419},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-b\",\"state\":{\"itemId\":\"msg_vis41_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_3\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e5d9fbfe001wfw1j7aBED1Kav",
+            "session_id": "ses_f1a2604caffebQmRIVOUznKJbz",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790562663422,
+            "time_updated": 1790562663422,
+            "data": "{\"time\":{\"created\":1790562663422},\"outcome\":\"succeeded\"}"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-80x24-off-vertical-status/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_f1a260d2fffeHkQboZc4ilPM6g",
+                  "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789"
+                },
+                {
+                  "sessionID": "ses_f1a2604caffebQmRIVOUznKJbz",
+                  "title": "Short"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1237677788774564,
+    "kind": "input_written",
+    "label": "pointer_leave",
+    "base64": "G1s8MzU7Nzg7MTRN"
+  },
+  {
+    "at_ns": 1237677891600776,
+    "kind": "owner_snapshot",
+    "request_id": "long-before",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-80x24-off-vertical-status/home/data/opencode/opencode.db",
+        "table": "session_v2",
+        "count": 2,
+        "rows": [
+          {
+            "id": "ses_f1a260d2fffeHkQboZc4ilPM6g",
+            "project_id": "f0af7ceaa52df1a23b75d91d76c801ceaaf2d27b",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "eager-wizard",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-80x24-off-vertical-status/project",
+            "path": "",
+            "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790562661125,
+            "time_updated": 1790562667006,
+            "time_idle": 1790562661328,
+            "time_viewed": 1790562661328,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          },
+          {
+            "id": "ses_f1a2604caffebQmRIVOUznKJbz",
+            "project_id": "f0af7ceaa52df1a23b75d91d76c801ceaaf2d27b",
+            "workspace_id": null,
+            "parent_id": null,
+            "fork_session_id": null,
+            "fork_boundary": null,
+            "slug": "shiny-wizard",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-80x24-off-vertical-status/project",
+            "path": "",
+            "title": "Short",
+            "version": "2.0.12",
+            "share_url": null,
+            "summary_additions": null,
+            "summary_deletions": null,
+            "summary_files": null,
+            "summary_diffs": null,
+            "metadata": null,
+            "cost": 0,
+            "tokens_input": 1024,
+            "tokens_output": 32,
+            "tokens_reasoning": 0,
+            "tokens_cache_read": 0,
+            "tokens_cache_write": 0,
+            "revert": null,
+            "permission": null,
+            "agent": "build",
+            "model": "{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\"}",
+            "time_created": 1790562663237,
+            "time_updated": 1790562665477,
+            "time_idle": 1790562663422,
+            "time_viewed": 1790562663422,
+            "idle_outcome": "succeeded",
+            "time_compacting": null,
+            "time_archived": null,
+            "time_suspended": null,
+            "resume_attempts": 0
+          }
+        ]
+      },
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-80x24-off-vertical-status/home/data/opencode/opencode.db",
+        "table": "session_message",
+        "count": 6,
+        "rows": [
+          {
+            "id": "msg_0e5d9f2d3001I1EsdB3YmYxhyF",
+            "session_id": "ses_f1a260d2fffeHkQboZc4ilPM6g",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790562661273,
+            "time_updated": 1790562661275,
+            "data": "{\"time\":{\"created\":1790562661273},\"text\":\"VIS41 seed-a: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e5d9f3af0017UWIN2hNZj48SX",
+            "session_id": "ses_f1a260d2fffeHkQboZc4ilPM6g",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790562661301,
+            "time_updated": 1790562661326,
+            "data": "{\"time\":{\"created\":1790562661301,\"streamed\":1790562661321,\"completed\":1790562661325},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-a\",\"state\":{\"itemId\":\"msg_vis41_1\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_1\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e5d9f3d0001D0VaJSqkFC5n1A",
+            "session_id": "ses_f1a260d2fffeHkQboZc4ilPM6g",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790562661328,
+            "time_updated": 1790562661329,
+            "data": "{\"time\":{\"created\":1790562661328},\"outcome\":\"succeeded\"}"
+          },
+          {
+            "id": "msg_0e5d9fb38001AqeieHXw3Iay44",
+            "session_id": "ses_f1a2604caffebQmRIVOUznKJbz",
+            "type": "user",
+            "seq": 4,
+            "time_created": 1790562663358,
+            "time_updated": 1790562663359,
+            "data": "{\"time\":{\"created\":1790562663358},\"text\":\"VIS41 seed-b: no tools or filesystem effects.\",\"files\":[],\"agents\":[]}"
+          },
+          {
+            "id": "msg_0e5d9fbcc001jqbH6CkTT1a1VX",
+            "session_id": "ses_f1a2604caffebQmRIVOUznKJbz",
+            "type": "assistant",
+            "seq": 7,
+            "time_created": 1790562663384,
+            "time_updated": 1790562663420,
+            "data": "{\"time\":{\"created\":1790562663384,\"streamed\":1790562663415,\"completed\":1790562663419},\"agent\":\"build\",\"model\":{\"id\":\"fixture-model-1\",\"providerID\":\"fixture\",\"variant\":\"default\"},\"content\":[{\"type\":\"text\",\"text\":\"VIS41-DONE seed-b\",\"state\":{\"itemId\":\"msg_vis41_3\"}}],\"finish\":\"stop\",\"providerState\":{\"responseId\":\"resp_vis41_3\"},\"cost\":0,\"tokens\":{\"input\":512,\"output\":16,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}}}"
+          },
+          {
+            "id": "msg_0e5d9fbfe001wfw1j7aBED1Kav",
+            "session_id": "ses_f1a2604caffebQmRIVOUznKJbz",
+            "type": "idle",
+            "seq": 12,
+            "time_created": 1790562663422,
+            "time_updated": 1790562663422,
+            "data": "{\"time\":{\"created\":1790562663422},\"outcome\":\"succeeded\"}"
+          }
+        ]
+      }
+    ],
+    "client_persistence": [
+      {
+        "path": "state/opencode/latest/tui/tabs.json",
+        "data": {
+          "global": {
+            "tabs": [],
+            "unread": {}
+          },
+          "cwd": {
+            "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tabs-reference20260928-13-upstream-80x24-off-vertical-status/project": {
+              "tabs": [
+                {
+                  "sessionID": "ses_f1a260d2fffeHkQboZc4ilPM6g",
+                  "title": "VIS41 long-title abcdefghijklmnopqrstuvwxyz 0123456789"
+                },
+                {
+                  "sessionID": "ses_f1a2604caffebQmRIVOUznKJbz",
+                  "title": "Short"
+                }
+              ],
+              "unread": {}
+            }
+          }
+        }
+      }
+    ],
+    "project_files": {},
+    "requests": 4,
+    "completed": 4,
+    "invalid": 0,
+    "readonly_sqlite": true
+  },
+  {
+    "at_ns": 1237677988687616,
+    "kind": "input_written",
+    "label": "long-enter",
+    "base64": "G1s8MzU7NTsxTQ=="
+  },
+  {
+    "at_ns": 1237686621522265,
+    "kind": "exit",
+    "code": 130,
+    "termination": "forced",
+    "provider_requests": 4,
+    "provider_completed": 4
+  }
+]
