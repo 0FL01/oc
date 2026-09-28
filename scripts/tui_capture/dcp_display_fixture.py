@@ -142,7 +142,8 @@ transfer = {'info': {'id': 'ses_vis38_native_' + session['id'].replace('-', '_')
     'time': {'created': int(Decimal(session['created_at']) * 1000), 'updated': int(Decimal(session['updated_at']) * 1000)},
     'cost': 0, 'tokens': session_tokens}, 'messages': messages}
 source_paths = [
-    ('native admission/elapsed display metadata', 'crates/oc-adapters/src/runtime.rs', '1685-1719,2513-2532,5737-5752'),
+    ('native clock identity and elapsed display metadata', 'crates/oc-adapters/src/runtime.rs', '867-885,1352-1398'),
+    ('native turn acceptance and completed report', 'crates/oc-adapters/src/runtime/turn.rs', '895-921,1843-1854'),
     ('original public transfer', 'opencode/packages/core/src/session/transfer.ts', '64-153'),
     ('original session schema', 'opencode/packages/schema/src/session.ts', '31-59'),
     ('original default session variant', 'opencode/packages/core/src/session/info.ts', '29-35'),

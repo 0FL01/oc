@@ -26,7 +26,14 @@ for(const [name,run] of Object.entries(analysis.runs)) {
   result.runs[name].completion_and_settlement=Object.fromEntries(['upstream','oc'].map(side=>[side,{provider_completions:run.sides[side].provider_completions,chip_settlement:run.sides[side].chip_settlement}]));
 }
 const manifest=read(path.join(root,'chip-120','source-manifest.json'));
-for(const p of ['Cargo.toml','Cargo.lock','rust-toolchain.toml','crates/oc/Cargo.toml','crates/oc-tui/src/app.rs','crates/oc-tui/src/approval_view.rs','crates/oc-tui/src/editor.rs','crates/oc-tui/src/shell.rs','crates/oc/tests/pty.rs','crates/oc/tests/pty_t39.rs'])result.source_files[p]={captured_sha256:manifest[p],current_sha256:hash(path.join(repo,p)),matches_current:manifest[p]===hash(path.join(repo,p))};
+for(const p of ['Cargo.toml','Cargo.lock','rust-toolchain.toml','crates/oc/Cargo.toml',
+  'crates/oc-tui/src/app.rs','crates/oc-tui/src/app/input.rs','crates/oc-tui/src/app/transcript.rs',
+  'crates/oc-tui/src/app/tabs.rs','crates/oc-tui/src/app/live.rs','crates/oc-tui/src/approval_view.rs',
+  'crates/oc-tui/src/editor.rs','crates/oc-tui/src/shell.rs','crates/oc/tests/pty.rs',
+  'crates/oc/tests/pty_t39.rs','crates/oc/tests/pty_t39/interaction.rs','crates/oc/tests/pty_t39/lifecycle.rs']) {
+  const current=hash(path.join(repo,p)),present=Object.hasOwn(manifest,p);
+  result.source_files[p]={captured_sha256:present?manifest[p]:null,current_sha256:current,capture_present:present,matches_current:present&&manifest[p]===current};
+}
 result.captured_heads=[...new Set(Object.values(result.runs).map(r=>r.commit))];
 result.native_binary_sha256=[...new Set(Object.values(result.runs).map(r=>r.binary_sha256))];
 result.rust_inputs_sha256=[...new Set(Object.values(result.runs).map(r=>r.rust_inputs_sha256))];

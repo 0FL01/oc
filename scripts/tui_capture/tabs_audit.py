@@ -121,12 +121,19 @@ for report_file in map(Path, args.reports.split(',')):
     for directory in report['sides']['native']['directories']:
         lock_file = Path(directory['directory']) / 'capture.lock.json'
         lock = read(lock_file)
-        source_files = ['crates/oc-tui/src/app.rs', 'crates/oc-tui/src/history.rs', 'crates/oc-tui/src/layout.rs', 'crates/oc-tui/src/shell.rs', 'crates/oc/src/tui_cmd.rs', 'crates/oc/tests/pty_t39.rs']
-        recorded = {file: lock['native_source_manifest_before'][file] for file in source_files}
+        source_files = ['crates/oc-tui/src/app.rs', 'crates/oc-tui/src/app/input.rs', 'crates/oc-tui/src/app/transcript.rs',
+            'crates/oc-tui/src/app/tabs.rs', 'crates/oc-tui/src/app/live.rs', 'crates/oc-tui/src/history.rs',
+            'crates/oc-tui/src/layout.rs', 'crates/oc-tui/src/shell.rs', 'crates/oc/src/tui_cmd.rs',
+            'crates/oc/tests/pty_t39.rs', 'crates/oc/tests/pty_t39/interaction.rs', 'crates/oc/tests/pty_t39/lifecycle.rs']
+        # Historical locks predate the slices: missing coverage is explicit,
+        # never inferred from current bytes or backfilled into an immutable lock.
+        recorded = {file: lock['native_source_manifest_before'].get(file) for file in source_files}
+        missing = [file for file in source_files if file not in lock['native_source_manifest_before']]
         current = {file: digest(Path('/home/opencode/ai/oc') / file) for file in source_files}
         associations.append({'directory': directory['directory'], 'capture_lock_sha256': digest(lock_file), 'source_HEAD': lock['source_HEAD'],
             'released_binaries': lock['binaries'], 'native_source_changed_during_capture': lock['native_source_changed'],
-            'native_source_sha256': recorded, 'current_source_sha256': current, 'current_source_matches_recorded': recorded == current,
+            'native_source_sha256': recorded, 'current_source_sha256': current, 'missing_capture_source_files': missing,
+            'capture_source_coverage_complete': not missing, 'current_source_matches_recorded': not missing and recorded == current,
             'runner_hashes': lock['runner_hashes'], 'actual_commands': lock['commands']})
     result['reports'].append({'path': str(report_file), 'sha256': digest(report_file),
         'capture_gate': report['capture_gate'], 'comparison_status_counts': dict(Counter(pair['status'] for pair in report['comparisons'])),
