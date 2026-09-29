@@ -367,12 +367,24 @@ class EnvelopeTests(unittest.TestCase):
             self.assertEqual(response.status, 200)
             self.assertEqual(response.read1(4096), b"data: offline\n\n")
             self.assertFalse(peer.release.is_set(), "first SSE bytes must arrive before upstream finishes")
+            response.close()
             conn.close()
         with self.guarded(oversize_header=True) as (peer, runner):
             self.assertEqual(request(runner.ready["provider_base"] + "/responses", GEN)[0], 403)
             self.assertEqual(len(peer.hits), 1)
             self.assertEqual(self.ledger.snapshot()["counts"]["generation"], 2)
-            self.assertEqual(self.ledger.snapshot()["attempts"][-1]["outcome"], "uncertain")
+            # The bounded local error has Content-Length, so reading its body
+            # can finish before the worker's finally block fsyncs the receipt.
+            # A response is not that receipt's acknowledgement. Observe the
+            # existing three-second fixture budget without accepting reserved.
+            until = time.monotonic() + 3
+            while time.monotonic() < until:
+                receipt = self.ledger.snapshot()["attempts"][-1]
+                if receipt["outcome"] != "reserved":
+                    break
+                time.sleep(0.01)
+            self.assertEqual(receipt["outcome"], "uncertain")
+            self.assertEqual((receipt["failure"], receipt["failure_stage"]), ("response_limit", "response"))
 
     def test_actual_http_status_receipts_are_additive_to_old_used_schema(self):
         # An owned old-format used journal, not the parent's actual campaign.
