@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-28T20:01:01+00:00
+State updated: 2026-09-29T00:01:14+00:00
 Active: T46
 
 Сверить Git status/diff до выполнения команд.
@@ -14,13 +14,13 @@ D13 attach degradation/warnings/UA delivered 3ce5e03/b7ab06d; historical evidenc
 
 # T46
 ## Result
-R6/MCP09 PASS; config-admission.md.
+R5/R7 PASS; lifecycle.md.
 ## Checks
-1220/0;17 MCP09; env-domain review repaired.
+1232/0; actual controls/leases/reap; parent repairs verified.
 ## Risks
-R5/R7/media/live still open; noREADY.
+Live/media/prompts/resources and V09/READY open.
 ## Next
-Independent initial MCP startup and typed safe controls.
+Existing MCP typed media and resource/prompt APIs.
 
 
 Ready (до 5): T45, T50, T51

@@ -40,6 +40,9 @@ const POLL: Duration = Duration::from_millis(10);
 #[path = "mcp_application/config_admission.rs"]
 mod config_admission;
 
+#[path = "mcp_application/lifecycle.rs"]
+mod lifecycle;
+
 #[test]
 fn pending_edit_screen_accepts_fragmented_cursor_updates_not_raw_substrings() {
     let bytes = concat!(
@@ -374,6 +377,91 @@ impl FakeMcp {
         )
     }
 
+    fn stalled_catalog_refresh() -> (Self, Arc<AtomicBool>) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let url = format!("http://{}/strict/v1/mcp", listener.local_addr().unwrap());
+        let records = Arc::new(Mutex::new(Vec::new()));
+        let captured = records.clone();
+        let stop = Arc::new(AtomicBool::new(false));
+        let stopping = stop.clone();
+        let closed = Arc::new(AtomicBool::new(false));
+        let observed = closed.clone();
+        let thread = std::thread::spawn(move || {
+            let mut first_catalog = true;
+            let mut held = Vec::<TcpStream>::new();
+            while !stopping.load(Ordering::Relaxed) {
+                let socket = match listener.accept() {
+                    Ok((socket, _)) => socket,
+                    Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                        for socket in &held {
+                            if matches!(socket.peek(&mut [0u8; 1]), Ok(0)) {
+                                observed.store(true, Ordering::Relaxed);
+                            }
+                        }
+                        std::thread::sleep(POLL);
+                        continue;
+                    }
+                    Err(error) => panic!("fixture accept: {error}"),
+                };
+                let Some((mut socket, request)) = read_http(socket) else {
+                    continue;
+                };
+                let method = request.body["method"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string();
+                let id = request.body.get("id").cloned().unwrap_or(Value::Null);
+                captured.lock().unwrap().push(McpRecord {
+                    http_method: request.method,
+                    path: request.path,
+                    authorization: None,
+                    protocol_version: request.headers.get("mcp-protocol-version").cloned(),
+                    rpc_method: method.clone(),
+                    request_id: request.body.get("id").cloned(),
+                    arguments: None,
+                });
+                match method.as_str() {
+                    "initialize" => {
+                        first_catalog = true;
+                        write_json(
+                            &mut socket,
+                            id,
+                            json!({"protocolVersion":"2025-11-25","capabilities":{"tools":{"listChanged":true}},"serverInfo":{"name":"refresh","version":"fixture"}}),
+                        );
+                    }
+                    "notifications/initialized" | "notifications/cancelled" => {
+                        write_http(&mut socket, 202, "application/json", b"")
+                    }
+                    "tools/list" if first_catalog => {
+                        first_catalog = false;
+                        let frames = format!(
+                            "event: message\ndata: {}\n\nevent: message\ndata: {}\n\n",
+                            json!({"jsonrpc":"2.0","method":"notifications/tools/list_changed"}),
+                            json!({"jsonrpc":"2.0","id":id,"result":{"tools":[]}})
+                        );
+                        write_http(&mut socket, 200, "text/event-stream", frames.as_bytes());
+                    }
+                    "tools/list" => {
+                        socket.set_nonblocking(true).unwrap();
+                        held.push(socket);
+                    }
+                    _ => write_http(&mut socket, 404, "application/json", b""),
+                }
+            }
+        });
+        (
+            Self {
+                url,
+                records,
+                call_socket_closed: Arc::new(AtomicBool::new(false)),
+                stop,
+                thread: Some(thread),
+            },
+            closed,
+        )
+    }
+
     fn start(label: &str, bearer: &str, tools: &[&str]) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").expect("fake MCP listener");
         listener.set_nonblocking(true).expect("nonblocking MCP");
@@ -533,6 +621,10 @@ impl Drop for FakeMcp {
 #[derive(Clone)]
 enum ResponsesScript {
     TextByPrompt,
+    HeldPrompts {
+        prompts: Vec<String>,
+        release: Arc<AtomicBool>,
+    },
     ToolEveryTurn,
     ToolNamed(String),
     ToolBatch {
@@ -592,25 +684,68 @@ impl FakeResponses {
                         .iter()
                         .any(|item| item["type"] == "function_call_output")
                 });
+                // R7: the fake model can only choose MCP tools from the actual
+                // request snapshot. A read-only builtin round lets independent
+                // startup complete without inserting a product launch barrier.
+                let requested_mcp: Vec<&str> = match &script {
+                    ResponsesScript::ToolEveryTurn => vec!["stall__ping"],
+                    ResponsesScript::ToolNamed(name) => vec![name],
+                    ResponsesScript::ToolBatch { calls, .. }
+                    | ResponsesScript::ControlProbe { calls, .. } => calls
+                        .iter()
+                        .filter_map(|(_, _, args)| args["__wireName"].as_str())
+                        .filter(|name| name.contains("__"))
+                        .collect(),
+                    _ => Vec::new(),
+                };
+                let current_items = request.body["input"].as_array().map(|items| {
+                    let start = items
+                        .iter()
+                        .rposition(|item| item["type"] == "message" && item["role"] == "user")
+                        .unwrap_or(0);
+                    &items[start..]
+                });
+                let actual_mcp_followup = current_items.is_some_and(|items| {
+                    items.iter().any(|item| {
+                        item["type"] == "function_call"
+                            && requested_mcp.iter().any(|name| item["name"] == *name)
+                    })
+                });
+                let names = function_tool_names(&request.body);
+                let await_catalog = !title::is_title(&request.body)
+                    && !actual_mcp_followup
+                    && requested_mcp
+                        .iter()
+                        .any(|name| !names.iter().any(|available| available == name));
                 match &script {
                     _ if title::respond(&mut socket, &request.body) => {}
+                    _ if await_catalog => respond_tools(
+                        &mut socket,
+                        &[(
+                            format!("ready-item-{main_index}"),
+                            format!("ready-call-{main_index}"),
+                            json!({"__wireName":"glob","arguments":{"pattern":"*"}}),
+                        )],
+                    ),
                     ResponsesScript::TextByPrompt => {
                         let prompt = last_user_text(&request.body).unwrap_or_default();
                         respond_text(&mut socket, &format!("answer:{prompt}"));
                     }
+                    ResponsesScript::HeldPrompts { prompts, release } => {
+                        let prompt = last_user_text(&request.body).unwrap_or_default();
+                        if prompts.contains(&prompt) {
+                            while !release.load(Ordering::SeqCst)
+                                && !stopping.load(Ordering::SeqCst)
+                            {
+                                std::thread::sleep(POLL);
+                            }
+                        }
+                        if !stopping.load(Ordering::SeqCst) {
+                            respond_text(&mut socket, &format!("answer:{prompt}"));
+                        }
+                    }
                     ResponsesScript::ToolEveryTurn | ResponsesScript::ToolNamed(_) => {
-                        if request.body["input"].as_array().is_some_and(|items| {
-                            let current = items
-                                .iter()
-                                .rposition(|item| {
-                                    item["type"] == "message" && item["role"] == "user"
-                                })
-                                .unwrap_or(0);
-                            items
-                                .iter()
-                                .skip(current)
-                                .any(|item| item["type"] == "function_call_output")
-                        }) {
+                        if actual_mcp_followup {
                             respond_text(&mut socket, "retry complete");
                         } else {
                             respond_tools(
@@ -626,15 +761,18 @@ impl FakeResponses {
                             );
                         }
                     }
-                    ResponsesScript::ToolBatch { calls, .. } if !is_followup => {
+                    ResponsesScript::ToolBatch { calls, .. }
+                        if !is_followup || !requested_mcp.is_empty() && !actual_mcp_followup =>
+                    {
                         respond_tools(&mut socket, calls);
                     }
                     ResponsesScript::ControlProbe { calls, .. }
-                        if !request.body["input"].as_array().is_some_and(|items| {
-                            items
-                                .iter()
-                                .any(|item| item["type"] == "function_call_output")
-                        }) =>
+                        if !requested_mcp.is_empty() && !actual_mcp_followup
+                            || !request.body["input"].as_array().is_some_and(|items| {
+                                items
+                                    .iter()
+                                    .any(|item| item["type"] == "function_call_output")
+                            }) =>
                     {
                         respond_tools(&mut socket, calls);
                     }
@@ -1029,19 +1167,29 @@ fn aud24_binary_rejects_oversized_catalog_without_partial_provider_tools() {
         json!({}),
     );
 
-    let mut process = fixture.spawn_run("aud24-catalog-limit");
+    let mut process = PtyProcess::spawn(&fixture, "aud24-catalog-limit");
+    process.wait_visible(READY);
+    process.send_line("/mcps");
+    lifecycle::wait_row(&process, "oversized", "Failed");
+    lifecycle::close_mcps(&mut process);
     // The oversized server degrades: no partial catalog reaches the model, and
     // the run still answers with a visible warning.
     assert!(
-        process.wait().success(),
-        "degraded catalog aborted the run: {}",
-        process.diagnostics()
+        process.child.try_wait().unwrap().is_none(),
+        "degraded catalog aborted the application"
     );
-    let diagnostic = process.diagnostics().to_ascii_lowercase();
+    process.wait_screen("mcp oversized tools-list: catalog_limit", TIMEOUT);
+    process.send_line("exercise configured MCP");
+    process.wait_screen("answer:exercise configured MCP", TIMEOUT);
+    process.wait_screen("mcp oversized tools-list: catalog_limit", TIMEOUT);
+    let diagnostic = String::from_utf8_lossy(&process.output.lock().unwrap()).to_ascii_lowercase();
     assert!(
-        diagnostic.contains("warning: mcp oversized tools-list: catalog_limit"),
+        diagnostic.contains("mcp oversized tools-list: catalog_limit"),
         "visible catalog diagnostic: {diagnostic}"
     );
+    std::thread::sleep(Duration::from_millis(300));
+    process.send_line("/quit");
+    assert!(process.wait_exit().success());
     let turns = responses
         .requests()
         .into_iter()
@@ -2143,6 +2291,66 @@ fn v01_pending_initialize_raw_pty_cancel_edit_duplicate_and_retry() {
     pending_initialize_raw_pty(false, false);
 }
 
+/// R7 replaces first-turn startup admission. Keep the real pending-receipt
+/// editor/cancel/reap contract using MCP07's pre-request dirty-catalog relist.
+fn write_stalled_catalog_refresh(server: &Path, log: &Path, release: &Path) {
+    write_executable(
+        server,
+        &format!(
+            r#"#!/usr/bin/python3
+import json, os, sys, time
+log = {log:?}
+release = {release:?}
+lists = 0
+with open(log, 'a') as f: f.write('spawn %s\n' % os.getpid())
+for line in sys.stdin:
+    request = json.loads(line)
+    method = request['method']
+    with open(log, 'a') as f: f.write(method + '\n')
+    if method == 'initialize':
+        result = {{'protocolVersion':'2025-11-25','capabilities':{{'tools':{{}}}},'serverInfo':{{'name':'stall','version':'1'}}}}
+    elif method == 'tools/list':
+        lists += 1
+        if lists > 1:
+            while not os.path.exists(release): time.sleep(0.01)
+        result = {{'tools':[]}}
+    else: continue
+    print(json.dumps({{'jsonrpc':'2.0','id':request['id'],'result':result}}), flush=True)
+    if method == 'tools/list' and lists == 1:
+        print(json.dumps({{'jsonrpc':'2.0','method':'notifications/tools/list_changed'}}), flush=True)
+        with open(log, 'a') as f: f.write('dirty\n')
+"#,
+            log = log.to_string_lossy(),
+            release = release.to_string_lossy()
+        ),
+    );
+}
+
+fn wait_dirty_catalog(tui: &mut PtyProcess, log: &Path) {
+    tui.wait_visible(READY);
+    tui.send_line("/mcps");
+    lifecycle::wait_row(tui, "stall", "Connected");
+    lifecycle::close_mcps(tui);
+    let deadline = Instant::now() + IO_TIMEOUT;
+    while !fs::read_to_string(log)
+        .unwrap_or_default()
+        .contains("dirty")
+    {
+        assert!(
+            Instant::now() < deadline,
+            "initial catalog did not publish its change notification"
+        );
+        std::thread::sleep(POLL);
+    }
+}
+
+fn wait_initial_mcp(tui: &mut PtyProcess, server: &str) {
+    tui.wait_visible(READY);
+    tui.send_line("/mcps");
+    lifecycle::wait_row(tui, server, "Connected");
+    lifecycle::close_mcps(tui);
+}
+
 /// S06: the real key route must refuse both navigation actions while a
 /// submission is waiting for MCP admission, without accepting a stale turn.
 #[test]
@@ -2155,28 +2363,7 @@ fn s06_pending_submit_refuses_navigation_and_keeps_draft() {
     let log = fixture.home.join("stalled-s06.log");
     let _cleanup = FixtureChildren(log.clone());
     let release = fixture.home.join("release-s06");
-    write_executable(
-        &server,
-        &format!(
-            r#"#!/usr/bin/python3
-import json, os, sys, time
-log = {log:?}
-release = {release:?}
-with open(log, 'a') as f: f.write('spawn %s\n' % os.getpid())
-for line in sys.stdin:
-    request = json.loads(line)
-    with open(log, 'a') as f: f.write(request['method'] + '\n')
-    if request['method'] == 'initialize':
-        while not os.path.exists(release): time.sleep(0.01)
-        result = {{'protocolVersion':'2025-11-25','capabilities':{{'tools':{{}}}},'serverInfo':{{'name':'stall','version':'1'}}}}
-    elif request['method'] == 'tools/list': result = {{'tools':[]}}
-    else: continue
-    print(json.dumps({{'jsonrpc':'2.0','id':request['id'],'result':result}}), flush=True)
-"#,
-            log = log.to_string_lossy(),
-            release = release.to_string_lossy(),
-        ),
-    );
+    write_stalled_catalog_refresh(&server, &log, &release);
     fixture.write_config(
         &responses,
         json!({"stall": {"type":"local", "command":[server], "enabled":true, "timeout":10000}}),
@@ -2185,7 +2372,7 @@ for line in sys.stdin:
     let session = "s06-pending";
     let draft = "retain this draft";
     let mut tui = PtyProcess::spawn(&fixture, session);
-    tui.wait_visible(READY);
+    wait_dirty_catalog(&mut tui, &log);
     tui.send_line(draft);
     let deadline = Instant::now() + IO_TIMEOUT;
     while !fs::read_to_string(&log)
@@ -2298,29 +2485,7 @@ fn pending_initialize_raw_pty(manual_compress: bool, unicode_edit: bool) {
     let log = fixture.home.join("stalled.log");
     let _cleanup_on_assertion_failure = FixtureChildren(log.clone());
     let release = fixture.home.join("release");
-    write_executable(
-        &server,
-        &format!(
-            r#"#!/usr/bin/python3
-import json, os, sys, time
-log = {log:?}
-release = {release:?}
-with open(log, 'a') as f: f.write('spawn %s\n' % os.getpid())
-for line in sys.stdin:
-    request = json.loads(line)
-    method = request['method']
-    with open(log, 'a') as f: f.write(method + '\n')
-    if method == 'initialize':
-        while not os.path.exists(release): time.sleep(0.01)
-        result = {{'protocolVersion':'2025-11-25','capabilities':{{'tools':{{}}}},'serverInfo':{{'name':'stall','version':'1'}}}}
-    elif method == 'tools/list': result = {{'tools':[]}}
-    else: continue
-    print(json.dumps({{'jsonrpc':'2.0','id':request['id'],'result':result}}), flush=True)
-"#,
-            log = log.to_string_lossy(),
-            release = release.to_string_lossy()
-        ),
-    );
+    write_stalled_catalog_refresh(&server, &log, &release);
     fixture.write_config(
         &responses,
         json!({"stall": {
@@ -2329,7 +2494,7 @@ for line in sys.stdin:
         json!({}),
     );
     let mut tui = PtyProcess::spawn(&fixture, "v01-pending");
-    tui.wait_visible(READY);
+    wait_dirty_catalog(&mut tui, &log);
     tui.send_line(if manual_compress {
         "/dcp-compress pending draft"
     } else {
@@ -2519,7 +2684,7 @@ for line in sys.stdin:
     // cleanup without accepting the prompt or waiting for the fake's release.
     fs::remove_file(&release).unwrap();
     let mut quitting = PtyProcess::spawn(&fixture, "v01-quit-pending");
-    quitting.wait_visible(READY);
+    wait_dirty_catalog(&mut quitting, &log);
     quitting.send_line(if manual_compress {
         "/dcp-compress quit before acceptance"
     } else {
@@ -2703,10 +2868,22 @@ fn v07_s05_disabled_and_failed_mcp_only_retry_after_explicit_repair() {
         }),
         json!({}),
     );
-    let mut first = fixture.spawn_run("v07-s05-failed");
-    assert!(first.wait().success(), "{}", first.diagnostics());
-    assert_eq!(first.output().trim(), "answer:exercise configured MCP");
-    let failure = first.diagnostics();
+    let mut first = PtyProcess::spawn(&fixture, "v07-s05-failed");
+    first.wait_visible(READY);
+    first.send_line("/mcps");
+    lifecycle::wait_row(&first, "required", "Sign in required");
+    lifecycle::wait_row(&first, "disabled", "Disabled");
+    lifecycle::close_mcps(&mut first);
+    first.send_line("exercise configured MCP");
+    first.wait_screen("answer:exercise configured MCP", TIMEOUT);
+    first.wait_screen(
+        "warning: mcp required initialize: unauthorized (retryable=false)",
+        TIMEOUT,
+    );
+    std::thread::sleep(Duration::from_millis(300));
+    first.send_line("/quit");
+    assert!(first.wait_exit().success());
+    let failure = String::from_utf8_lossy(&first.output.lock().unwrap()).to_string();
     assert!(
         failure.contains("warning: mcp required initialize: unauthorized (retryable=false)"),
         "missing explicit degraded-server diagnostic: {failure}"
@@ -2759,10 +2936,16 @@ fn v07_s05_disabled_and_failed_mcp_only_retry_after_explicit_repair() {
         "config repair replayed the previous turn"
     );
     // A new explicit invocation loads the repaired generation and its catalog.
-    let mut second = fixture.spawn_run("v07-s05-repaired");
-    assert!(second.wait().success(), "{}", second.diagnostics());
-    assert_eq!(second.output().trim(), "answer:exercise configured MCP");
-    assert!(!second.diagnostics().contains("warning: mcp required"));
+    let mut second = PtyProcess::spawn(&fixture, "v07-s05-repaired");
+    wait_initial_mcp(&mut second, "required");
+    second.send_line("exercise configured MCP");
+    second.wait_screen("answer:exercise configured MCP", TIMEOUT);
+    std::thread::sleep(Duration::from_millis(300));
+    second.send_line("/quit");
+    assert!(second.wait_exit().success());
+    assert!(
+        !String::from_utf8_lossy(&second.output.lock().unwrap()).contains("warning: mcp required")
+    );
     assert!(
         disabled.records().is_empty(),
         "disabled MCP probed after repair"
@@ -2789,7 +2972,7 @@ fn v07_s05_disabled_and_failed_mcp_only_retry_after_explicit_repair() {
 #[test]
 fn v01_remote_pending_cancel_closes_request_before_fake_release() {
     let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
-    let (mcp, closed) = FakeMcp::stalled_initialize();
+    let (mcp, closed) = FakeMcp::stalled_catalog_refresh();
     let fixture = Fixture::new();
     fixture.write_config(
         &responses,
@@ -2799,11 +2982,20 @@ fn v01_remote_pending_cancel_closes_request_before_fake_release() {
         json!({}),
     );
     let mut tui = PtyProcess::spawn(&fixture, "v01-remote-cancel");
-    tui.wait_visible(READY);
+    wait_initial_mcp(&mut tui, "anonymous");
     tui.send_line("remote draft");
     let deadline = Instant::now() + IO_TIMEOUT;
-    while mcp.records().is_empty() {
-        assert!(Instant::now() < deadline, "initialize not received");
+    while mcp
+        .records()
+        .iter()
+        .filter(|r| r.rpc_method == "tools/list")
+        .count()
+        < 2
+    {
+        assert!(
+            Instant::now() < deadline,
+            "dirty catalog refresh not received"
+        );
         std::thread::sleep(POLL);
     }
     tui.raw(b"\r\x1b");
@@ -2813,7 +3005,14 @@ fn v01_remote_pending_cancel_closes_request_before_fake_release() {
         assert!(Instant::now() < deadline, "cancel leaked an HTTP request");
         std::thread::sleep(POLL);
     }
-    assert_eq!(mcp.records().len(), 1, "no hidden retry");
+    assert_eq!(
+        mcp.records()
+            .iter()
+            .filter(|r| r.rpc_method == "tools/call")
+            .count(),
+        0,
+        "no tool-call replay"
+    );
     assert!(responses.requests().is_empty());
     assert!(
         tui.clear_draft_then_exit("remote draft", Instant::now() + TIMEOUT)
@@ -2843,13 +3042,25 @@ fn v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retry() {
         json!({"stall__ping":"allow"}),
     );
     let mut tui = PtyProcess::spawn(&fixture, "v07b-remote");
-    tui.wait_visible(READY);
+    wait_initial_mcp(&mut tui, "stall");
     tui.send_line("remote side effect");
     let deadline = Instant::now() + TIMEOUT;
     while !mcp.records().iter().any(|r| r.rpc_method == "tools/call") {
         assert!(Instant::now() < deadline, "call not sent");
         std::thread::sleep(POLL);
     }
+    // MCP08: status/resize must not queue behind this actual held tools/call.
+    tui.send_line("/mcps");
+    lifecycle::wait_row(&tui, "stall", "Connected");
+    tui.resize(120, 40);
+    lifecycle::wait_row(&tui, "stall", "Connected");
+    lifecycle::close_mcps(&mut tui);
+    assert!(!mcp.call_socket_closed.load(Ordering::Relaxed));
+    assert!(
+        !mcp.records()
+            .iter()
+            .any(|r| r.rpc_method == "notifications/cancelled")
+    );
     tui.raw(b"\x1b"); // real PTY key, not a direct cancel helper
     while !mcp
         .records()
@@ -2956,7 +3167,7 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
     .unwrap();
 
     let mut tui = PtyProcess::spawn(&fixture, "v07b-switch-a");
-    tui.wait_visible(READY);
+    wait_initial_mcp(&mut tui, "stall");
     tui.send_line("first remote side effect");
     let deadline = Instant::now() + TIMEOUT;
     while mcp
@@ -3198,7 +3409,7 @@ fn v07b_remote_cancel_notification_failure_is_safe_and_poisoned() {
         json!({"stall__ping":"allow"}),
     );
     let mut tui = PtyProcess::spawn(&fixture, "v07b-cancel-failure");
-    tui.wait_visible(READY);
+    wait_initial_mcp(&mut tui, "stall");
     tui.send_line("rejected cancel");
     let deadline = Instant::now() + TIMEOUT;
     while !mcp.records().iter().any(|r| r.rpc_method == "tools/call") {
@@ -3259,7 +3470,7 @@ fn v07b_remote_unverified_result(tool: &str) {
         json!({format!("effects__{tool}"):"allow"}),
     );
     let mut tui = PtyProcess::spawn(&fixture, &format!("v07b-remote-{tool}"));
-    tui.wait_visible(READY);
+    wait_initial_mcp(&mut tui, "effects");
     tui.send_line("perform side effect");
     let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
     let deadline = Instant::now() + TIMEOUT;
@@ -3353,7 +3564,7 @@ fn v07b_remote_definitive_is_error_remains_failed_and_reusable() {
         json!({format!("effects__{tool}"):"allow"}),
     );
     let mut tui = PtyProcess::spawn(&fixture, "v07b-definitive-error");
-    tui.wait_visible(READY);
+    wait_initial_mcp(&mut tui, "effects");
     tui.send_line("declared error one");
     tui.wait_visible("retry complete");
     let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
@@ -3454,7 +3665,7 @@ for line in sys.stdin:
         json!({"stall__ping":"allow"}),
     );
     let mut tui = PtyProcess::spawn(&fixture, "v07b-stdio");
-    tui.wait_visible(READY);
+    wait_initial_mcp(&mut tui, "stall");
     tui.send_line("local side effect");
     let deadline = Instant::now() + TIMEOUT;
     while !fs::read_to_string(&log)
@@ -3512,6 +3723,7 @@ for line in sys.stdin:
     // only after the TUI has released ownership of the failed turn.
     tui.wait_screen("(error: application: MCP outcome unknown", IO_TIMEOUT);
     fs::write(fixture.home.join("release"), "now safe").unwrap();
+    wait_initial_mcp(&mut tui, "stall");
     tui.send_line("explicit retry");
     tui.wait_screen("retry complete", TIMEOUT);
     tui.raw(b"\x03");
@@ -3577,7 +3789,7 @@ fn v07b_stdio_definitive_is_error_remains_failed_and_reusable() {
         json!({"results__is_error":"allow"}),
     );
     let mut tui = PtyProcess::spawn(&fixture, "v07b-declared-stdio");
-    tui.wait_visible(READY);
+    wait_initial_mcp(&mut tui, "results");
     tui.send_line("declared failure one");
     tui.wait_visible("retry complete");
     let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
@@ -3655,7 +3867,7 @@ fn v07b_stdio_unverified_result(mode: &str) {
         &server,
         &format!(
             r#"#!/usr/bin/python3
-import json, os, sys
+import json, os, sys, time
 log = {log:?}
 release = {release:?}
 mode = {mode:?}
@@ -3664,7 +3876,9 @@ for line in sys.stdin:
     request = json.loads(line)
     method = request['method']
     if method == 'initialize': result = {{'protocolVersion':'2025-11-25','capabilities':{{'tools':{{}}}},'serverInfo':{{'name':'result','version':'1'}}}}
-    elif method == 'tools/list': result = {{'tools':[{{'name':'ping','inputSchema':{{'type':'object','properties':{{}}}}}}]}}
+    elif method == 'tools/list':
+        time.sleep(0.2)
+        result = {{'tools':[{{'name':'ping','inputSchema':{{'type':'object','properties':{{}}}}}}]}}
     elif method == 'tools/call':
         with open(log, 'a') as f: f.write('effect\n')
         if os.path.exists(release): result = {{'content':[{{'type':'text','text':'pong'}}]}}
@@ -3685,7 +3899,9 @@ for line in sys.stdin:
         json!({"stall__ping":"allow"}),
     );
     let mut tui = PtyProcess::spawn(&fixture, &format!("v07b-result-{mode}"));
-    tui.wait_visible(READY);
+    // R7 no longer promises first-prompt catalog readiness. This scenario
+    // observes an MCP after-effect outcome, not an unrelated builtin probe.
+    wait_initial_mcp(&mut tui, "stall");
     tui.send_line("perform local effect");
     let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
     let deadline = Instant::now() + TIMEOUT;
@@ -3698,7 +3914,11 @@ for line in sys.stdin:
         }
         assert!(
             state.as_deref() != Ok("failed"),
-            "after-effect result was recorded failed, not unknown"
+            "after-effect result was recorded failed, not unknown; first tool={:?}",
+            db.query_row("SELECT name FROM tool_operations LIMIT 1", [], |row| row
+                .get::<_, String>(
+                0
+            ))
         );
         assert!(
             Instant::now() < deadline,
@@ -3725,6 +3945,7 @@ for line in sys.stdin:
         1
     );
     fs::write(&release, "explicit retry after reap").unwrap();
+    wait_initial_mcp(&mut tui, "stall");
     tui.send_line("explicit retry");
     tui.wait_screen("retry complete", TIMEOUT);
     tui.raw(b"\x03");

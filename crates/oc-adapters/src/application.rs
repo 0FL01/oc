@@ -633,6 +633,7 @@ fn build_runtime<'a>(db: &'a Db, composition: &Composition) -> Result<Runtime<'a
         composition.dcp_config.clone(),
     )
     .map_err(|error| error.to_string())?;
+    runtime.set_mcp_activation(composition.mcp_activation.clone());
     runtime
         .publish_dcp_protection(composition.dcp_protected.clone())
         .map_err(|error| error.to_string())?;
@@ -753,7 +754,23 @@ async fn start_worker(
         )));
         return Ok(());
     }
+    runtime.set_approval_events(&events);
+    if let Err(error) = runtime.start_mcp() {
+        let _ = ready.send(Err(SpawnIssue::new(
+            SpawnFailure::Runtime,
+            error.to_string(),
+        )));
+        runtime
+            .shutdown_mcp()
+            .await
+            .map_err(|error| error.to_string())?;
+        return Ok(());
+    }
     if ready.send(Ok(diagnostics)).is_err() {
+        runtime
+            .shutdown_mcp()
+            .await
+            .map_err(|error| error.to_string())?;
         return Ok(());
     }
     // This worker, not any one Location runtime, owns unresolved remote calls.
@@ -784,7 +801,18 @@ async fn start_worker(
             &mut title_rx,
             &title_work,
         )
-        .await?;
+        .await;
+        let outcome = match outcome {
+            Ok(outcome) => outcome,
+            Err(error) => {
+                stop_automatic_titles(&title_work).await;
+                runtime
+                    .shutdown_mcp()
+                    .await
+                    .map_err(|error| error.to_string())?;
+                return Err(error);
+            }
+        };
         match outcome {
             WorkerOutcome::PickerOpen {
                 path,
@@ -876,6 +904,8 @@ async fn start_worker(
                 if remote_retry_quarantined {
                     next.quarantine_remote_retries();
                 }
+                next.set_approval_events(&events);
+                next.start_mcp().map_err(|error| error.to_string())?;
                 runtime = next;
                 composition = next_composition;
                 effective = next_effective;
@@ -969,6 +999,8 @@ async fn start_worker(
                         if remote_retry_quarantined {
                             next.quarantine_remote_retries();
                         }
+                        next.set_approval_events(&events);
+                        next.start_mcp().map_err(|error| error.to_string())?;
                         let mode = composition.approval_consumer_mode.load(Ordering::SeqCst);
                         if mode > 0 {
                             next.register_approval_consumer(mode == 2);
@@ -1544,6 +1576,19 @@ fn query(
     message: InboxMsg,
 ) {
     match message {
+        InboxMsg::McpStatus { ack } => {
+            let _ = ack.send(Ok(runtime.mcp_status()));
+        }
+        InboxMsg::McpControl { control, ack } => {
+            match runtime.mcp_control_server(&control) {
+                Ok(_) => {}
+                Err(error) => {
+                    let _ = ack.send(Err(app_error(error)));
+                    return;
+                }
+            }
+            runtime.enqueue_mcp_control(control, ack);
+        }
         InboxMsg::PendingApprovals { ack } => {
             let _ = ack.send(Ok(runtime.pending_approvals()));
         }
@@ -2383,6 +2428,7 @@ async fn worker(
         } else {
             tokio::select! {
                 biased;
+                error = runtime.wait_mcp_failure() => return Err(error.to_string()),
                 Some(result) = title_rx.recv() => {
                     commit_automatic_title(db, events, title_work, result);
                     continue;
@@ -3057,6 +3103,12 @@ async fn worker(
                     result = loop {
                         tokio::select! {
                             result = &mut operation => break result,
+                            _ = runtime.wait_mcp_failure(), if !shutdown => {
+                                shutdown = true;
+                                cancel.store(true, Ordering::Relaxed);
+                                runtime.cancel_pending_approvals();
+                                runtime.cancel_all_compactions();
+                            },
                             Some(result) = title_rx.recv(), if !shutdown => {
                                 commit_automatic_title(db, events, title_work, result);
                             }
@@ -3264,3 +3316,7 @@ fn resolve_submission(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "application/mcp_tests.rs"]
+mod mcp_tests;

@@ -925,30 +925,8 @@ impl<'a> Runtime<'a> {
         accepted(&turn_id, accepted_turn.model_switch.as_ref());
         let user_message = accepted_turn.user_message;
         let snapshot = workspace.skills;
-        let runner = subagents.as_ref().map(|catalog| TurnSubagent {
-            runtime: self,
-            parent_session: params.session.clone(),
-            parent_model_id: params.model_id.clone(),
-            parent_variant: params.variant.clone(),
-            catalog: params.catalog,
-            provider: &params.provider,
-            cancel: params.cancel,
-            attached,
-            subagents: catalog.clone(),
-            parent_lane: lane,
-        });
-        let ctx = ToolContext {
-            files: &self.files,
-            shell: &self.shell,
-            parent_env: &self.parent_env,
-            webfetch_auth: self.webfetch_auth.clone(),
-            webfetch_allow_private: self.webfetch_allow_private,
-            policy: &policy,
-            subagent: runner.as_ref().map(|runner| runner as &dyn SubagentRunner),
-            snapshot: &snapshot,
-            cancel: params.cancel,
-            roots: Some(self.roots.clone()),
-        };
+        // Children retain the parent's exact admitted MCP capability view.
+        let primary_request = self.db.session_meta(&params.session)?.parent_id.is_none();
         let mut text = String::new();
         let mut usage = None;
         let mut context_usage = None;
@@ -990,6 +968,74 @@ impl<'a> Runtime<'a> {
                     &published,
                 );
             }
+            // A completed connection/control is adopted only before building
+            // the next provider request. Its clients, schemas, guidance and
+            // execution context then stay leased through that request's tools.
+            // Notification relists still occur at the outer turn boundary.
+            let current_mcp = if primary_request {
+                let view = self.mcp_owner().request_view()?;
+                (view.publication == attached.publication).then_some(view)
+            } else {
+                None
+            };
+            let attached = current_mcp.as_deref().unwrap_or(attached);
+            let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules)
+                .with_root(&self.roots.project)
+                .with_mcp(&attached.entries);
+            let mut fixed_input = lane.fixed_input.clone();
+            fixed_input.extend(mcp_instruction_input(attached, &policy));
+            let mut tool_defs = builtin_tool_defs();
+            if !compress_available {
+                tool_defs.retain(|tool| tool.name != COMPRESS_TOOL);
+            }
+            if let Some(catalog) = &subagents {
+                tool_defs.push(subagent_tool_def(catalog, &policy));
+            }
+            for entry in &attached.entries {
+                tool_defs.push(ToolDef {
+                    name: entry.namespaced.clone(),
+                    description: entry
+                        .description
+                        .clone()
+                        .unwrap_or_else(|| format!("mcp {} tool", entry.tool)),
+                    parameters: entry.input_schema.clone(),
+                });
+            }
+            let usage_scope = crate::compaction::fingerprint(&(
+                crate::compaction::route_identity(
+                    &params.catalog.provider,
+                    &selection.id,
+                    &params.provider,
+                )
+                .map_err(|_| RuntimeError::Provider)?,
+                &fixed_input,
+                &tool_defs,
+                &params.variant,
+            ));
+            let runner = subagents.as_ref().map(|catalog| TurnSubagent {
+                runtime: self,
+                parent_session: params.session.clone(),
+                parent_model_id: params.model_id.clone(),
+                parent_variant: params.variant.clone(),
+                catalog: params.catalog,
+                provider: &params.provider,
+                cancel: params.cancel,
+                attached,
+                subagents: catalog.clone(),
+                parent_lane: lane,
+            });
+            let ctx = ToolContext {
+                files: &self.files,
+                shell: &self.shell,
+                parent_env: &self.parent_env,
+                webfetch_auth: self.webfetch_auth.clone(),
+                webfetch_allow_private: self.webfetch_allow_private,
+                policy: &policy,
+                subagent: runner.as_ref().map(|runner| runner as &dyn SubagentRunner),
+                snapshot: &snapshot,
+                cancel: params.cancel,
+                roots: Some(self.roots.clone()),
+            };
             let projected_continuation =
                 dcp_continuation(&history, &turn_log.input, &tool_projection);
             let (nudge, persisted_nudge) = {

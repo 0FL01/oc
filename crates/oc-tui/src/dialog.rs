@@ -667,6 +667,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         TuiPanel::Sessions => "Sessions",
         TuiPanel::Rename => unreachable!("rendered above"),
         TuiPanel::Skills => "Skills",
+        TuiPanel::Mcps => "MCP servers",
         TuiPanel::Cards => "Tool cards",
         TuiPanel::Help(_) => "Help",
         TuiPanel::Dcp => "DCP context",
@@ -683,7 +684,9 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         title,
         size,
         &state.modal_options(),
-        if state.panel() == &TuiPanel::Settings {
+        if state.panel() == &TuiPanel::Mcps {
+            Some(state.mcp_footer())
+        } else if state.panel() == &TuiPanel::Settings {
             Some("←/→ change")
         } else {
             (state.panel() == &TuiPanel::Sessions).then_some(if state.sessions_all_projects() {

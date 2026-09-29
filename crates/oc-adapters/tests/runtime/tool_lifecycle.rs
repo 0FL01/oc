@@ -413,6 +413,7 @@ for line in sys.stdin:
     );
     let runtime = runtime_of(&harness, generation, Vec::new());
     runtime.create_session("s").unwrap();
+    wait_initial_mcp(&runtime).await;
     let first = sse_tool_call(
         "builtin-first",
         "bash",
@@ -626,11 +627,23 @@ async fn aud12_cancel_during_mcp_initialize_reaps_child_before_acceptance() {
     std::fs::write(
         &script,
         r#"import json, os, sys, time
-request = json.loads(sys.stdin.readline())
-assert request['method'] == 'initialize'
-with open(sys.argv[1], 'w') as f:
-    f.write(str(os.getpid()))
-time.sleep(30)
+lists = 0
+for line in sys.stdin:
+    request = json.loads(line)
+    method = request['method']
+    if method == 'initialize':
+        result = {'protocolVersion':'2025-11-25','capabilities':{'tools':{'listChanged':True}},'serverInfo':{'name':'fixture','version':'1'}}
+    elif method == 'tools/list':
+        lists += 1
+        if lists > 1:
+            with open(sys.argv[1], 'w') as f: f.write(str(os.getpid()))
+            time.sleep(30)
+        else:
+            print(json.dumps({'jsonrpc':'2.0','method':'notifications/tools/list_changed'}), flush=True)
+        result = {'tools':[]}
+    else:
+        continue
+    print(json.dumps({'jsonrpc':'2.0','id':request['id'],'result':result}), flush=True)
 "#,
     )
     .unwrap();
@@ -660,10 +673,13 @@ time.sleep(30)
     );
     let cancel = AtomicBool::new(false);
     let accepted = AtomicBool::new(false);
+    // R7 initializes independently; preserve AUD12's real pre-admission
+    // cancellation/reap contract using MCP07's held catalog preparation.
+    wait_initial_mcp(&runtime).await;
     let outcome = tokio::time::timeout(Duration::from_secs(5), async {
         tokio::join!(
             async {
-                // Synchronize on initialize received, not an assumed startup delay.
+                // Synchronize on the held catalog RPC, not a startup delay.
                 loop {
                     if std::fs::read_to_string(&pid_file)
                         .is_ok_and(|text| text.parse::<u32>().is_ok())
@@ -916,6 +932,7 @@ for line in sys.stdin:
     );
     let runtime = runtime_of(&harness, generation.clone(), Vec::new());
     runtime.create_session("s").unwrap();
+    wait_initial_mcp(&runtime).await;
     let (base, _, requests) = Fake::start_recording(
         vec![
             sse_tool_call("data", "good__query", &serde_json::json!({}))
@@ -1032,11 +1049,12 @@ async fn aud23_tool_list_changed_relists_only_the_dirty_server() {
     let (harness, mut generation) = make_harness(allow_all());
     let changed_script = harness._project.path().join("list_changed.py");
     let changed_log = harness._project.path().join("list_changed.log");
+    let notification_gate = harness._project.path().join("first-request-completed");
     // The dirty server announces a change after every list, so a notification
     // arriving during a relist must stay pending for the next turn.
     std::fs::write(
         &changed_script,
-        r#"import json, os, sys
+        r#"import json, os, sys, time
 count = 0
 with open(sys.argv[1], 'a') as f: f.write('spawn %d\n' % os.getpid())
 for line in sys.stdin:
@@ -1051,6 +1069,8 @@ for line in sys.stdin:
     if result is not None:
         print(json.dumps({'jsonrpc':'2.0','id':r['id'],'result':result}), flush=True)
         if method == 'tools/list':
+            if count == 1:
+                while not os.path.exists(sys.argv[2]): time.sleep(0.01)
             print(json.dumps({'jsonrpc':'2.0','method':'notifications/tools/list_changed'}), flush=True)
 "#,
     )
@@ -1090,6 +1110,7 @@ for line in sys.stdin:
                     "/usr/bin/python3".into(),
                     script.to_string_lossy().into_owned(),
                     log.to_string_lossy().into_owned(),
+                    notification_gate.to_string_lossy().into_owned(),
                 ],
                 timeout: Some(2_000),
                 codemode: None,
@@ -1099,6 +1120,7 @@ for line in sys.stdin:
     }
     let runtime = runtime_of(&harness, generation, Vec::new());
     runtime.create_session("s").unwrap();
+    wait_initial_mcp(&runtime).await;
     let (base, _, requests) =
         Fake::start_recording(vec![sse_delta("ok") + &sse_completed()], Duration::ZERO);
     for prompt in ["first", "second", "third"] {
@@ -1116,6 +1138,9 @@ for line in sys.stdin:
                 .status,
             TurnStatus::Completed
         );
+        if prompt == "first" {
+            std::fs::write(&notification_gate, "notify").unwrap();
+        }
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
     {
@@ -1363,6 +1388,7 @@ for line in sys.stdin:
     let runtime = runtime_of(&harness, generation, Vec::new());
     runtime.create_session("s").unwrap();
     let (base, _) = Fake::start(vec![sse_delta("ok") + &sse_completed()], Duration::ZERO);
+    wait_initial_mcp(&runtime).await;
     let report = runtime
         .run_turn(params(
             "s",
@@ -1419,6 +1445,7 @@ async fn mcp_attach_failure_degrades_the_server() {
     );
     let runtime = runtime_of(&harness, generation, Vec::new());
     runtime.create_session("s").expect("create");
+    wait_initial_mcp(&runtime).await;
     let (base, _) = Fake::start(vec![sse_delta("hi") + &sse_completed()], Duration::ZERO);
     let report = runtime
         .run_turn(params("s", "hi", &harness, provider_of(&base), &NO_CANCEL))

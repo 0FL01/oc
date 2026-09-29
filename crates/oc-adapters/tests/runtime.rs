@@ -447,6 +447,24 @@ fn provider_of(base: &str) -> ResponsesConfig {
     }
 }
 
+async fn wait_initial_mcp(runtime: &Runtime<'_>) {
+    runtime.start_mcp().unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while runtime
+        .mcp_status()
+        .servers
+        .iter()
+        .any(|row| row.status == oc_core::queries::McpStatus::Pending)
+    {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "initial MCP not settled: {:?}",
+            runtime.mcp_status()
+        );
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+}
+
 fn params<'c>(
     session: &str,
     prompt: &str,
@@ -587,6 +605,7 @@ async fn dropped_remote_call_cannot_retry_after(shutdown: bool) {
     )
     .unwrap();
     runtime.create_session("dropped").unwrap();
+    wait_initial_mcp(&runtime).await;
     let tool = sse_tool_call("drop", "stall__ping", &serde_json::json!({}));
     let (base, _, requests) = Fake::start_recording(vec![tool + &sse_completed()], Duration::ZERO);
     let mut turn = Box::pin(runtime.run_turn(params(
@@ -834,6 +853,7 @@ async fn check_application_patch_replay(line: &str, count: usize) {
                 break;
             }
             CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
+            CoreEvent::McpChanged(snapshot) => assert!(snapshot.servers.is_empty()),
             CoreEvent::TurnPresentation { projection, .. } => checkpoints.push(projection),
             CoreEvent::TurnStarted { .. }
             | CoreEvent::SessionTitleUpdated { .. }
@@ -949,6 +969,8 @@ async fn check_application_patch_replay(line: &str, count: usize) {
 
 #[path = "runtime/context.rs"]
 mod context;
+#[path = "runtime/mcp_lifecycle.rs"]
+mod mcp_lifecycle;
 #[path = "runtime/tool_lifecycle.rs"]
 mod tool_lifecycle;
 #[path = "runtime/turns.rs"]

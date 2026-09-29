@@ -85,6 +85,13 @@ for line in sys.stdin:
     let (app, guard, _) = application::spawn_with_env(project.path(), data.path(), env.clone())
         .await
         .unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while app.mcp_status().await.unwrap().servers[0].status
+        != oc_core::queries::McpStatus::Connected
+    {
+        assert!(std::time::Instant::now() < deadline);
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
     let session = SessionId::new("primary-policy").unwrap();
     app.create_session(session.clone()).await.unwrap();
     // This fixture scripts conversational requests by arrival index. Pin its
@@ -129,6 +136,13 @@ for line in sys.stdin:
     let (app, guard, _) = application::spawn_with_env(project.path(), data.path(), env)
         .await
         .unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while app.mcp_status().await.unwrap().servers[0].status
+        != oc_core::queries::McpStatus::Connected
+    {
+        assert!(std::time::Instant::now() < deadline);
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
     assert_eq!(
         app.catalog().await.unwrap().agent_id.as_deref(),
         Some("review")

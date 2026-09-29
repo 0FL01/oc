@@ -23,6 +23,8 @@ pub struct Composition {
     /// Owner-selected CLI configuration file for permission mode persistence.
     pub permission_mode_source: PathBuf,
     permission_mode_root: AdmittedRoot,
+    /// Frozen source authority for explicitly activating disabled MCP templates.
+    pub(crate) mcp_activation: std::sync::Arc<McpActivation>,
     /// Safe, generation-pinned CLI presentation settings.
     pub tui_chrome: oc_core::queries::TuiChrome,
     /// Immutable effective config for this application instance.
@@ -1091,6 +1093,18 @@ async fn load_stages(
     tui_chrome.command_palette_shortcut = Some(conversation_keybinds.command_palette_shortcut());
     tui_chrome.conversation_shortcuts = conversation_keybinds.resolve();
     Ok(Composition {
+        mcp_activation: std::sync::Arc::new(McpActivation {
+            sources: sources.clone(),
+            global: global.as_ref().and_then(|root| root.canonicalize().ok()),
+            roots: source_roots
+                .iter()
+                .map(|(source, (root, directory))| {
+                    root.try_clone()
+                        .map(|root| (source.clone(), (root, directory.clone())))
+                })
+                .collect::<Result<_, _>>()
+                .map_err(|_| "MCP source authority unavailable")?,
+        }),
         approval_consumer_mode: std::sync::atomic::AtomicU8::new(0),
         permission_preference: AtomicBool::new(tui_chrome.permissions_auto),
         permission_mode_source,
@@ -1235,6 +1249,58 @@ fn admit_local_mcp(
         entry.resource_admitted = true;
     }
     Ok(())
+}
+
+/// Root descriptors and original bytes, not a fresh config read on an action.
+pub(crate) struct McpActivation {
+    sources: Vec<config::Source>,
+    global: Option<PathBuf>,
+    roots: BTreeMap<String, (File, PathBuf)>,
+}
+
+impl McpActivation {
+    pub(crate) fn activate(
+        &self,
+        generation: &config::Generation,
+        project: &Path,
+        env: &BTreeMap<String, String>,
+        id: &str,
+    ) -> Result<config::McpEntry, String> {
+        let mut generation = generation.clone();
+        let entry = generation.mcp.get_mut(id).ok_or("unknown MCP server")?;
+        // Malformed/unsupported input never becomes executable by toggling it.
+        if entry.failure.is_some() {
+            return Ok(entry.clone());
+        }
+        if !entry.enabled {
+            let source = generation
+                .provenance
+                .get(&format!("mcp.{id}"))
+                .ok_or("MCP source authority unavailable")?;
+            let trusted = self.sources.iter().any(|s| &s.path == source && s.trusted);
+            config::activate_mcp_entry(id, source, trusted, entry, env, &|path, source| {
+                let (root, directory) =
+                    self.roots
+                        .get(source)
+                        .ok_or_else(|| config::ConfigError::Untrusted {
+                            origin: source.into(),
+                            reason: "MCP source authority unavailable".into(),
+                        })?;
+                config::read_trusted_file_rooted(path, source, root, directory)
+            })
+            .map_err(|_| "MCP activation admission refused")?;
+        }
+        // Revalidate resources/credential domains on every new connection,
+        // including retries; the immutable source/provenance is unchanged.
+        admit_local_mcp(
+            &mut generation,
+            project,
+            self.global.as_deref(),
+            env,
+            &self.sources,
+        )?;
+        Ok(generation.mcp.remove(id).expect("activated entry"))
+    }
 }
 
 #[cfg(test)]

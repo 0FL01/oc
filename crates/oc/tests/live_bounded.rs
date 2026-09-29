@@ -609,7 +609,7 @@ fn sse_calls(calls: &[(&str, &str, Value)]) -> String {
 
 /// Deterministic dry-run script, keyed on the prompt and the request state
 /// (never on a global counter, so a blocked step cannot shift the script).
-fn dry_run_reply(_index: usize, body: &Value) -> String {
+fn dry_run_reply(index: usize, body: &Value) -> String {
     let prompt = last_user_text(body).unwrap_or_default();
     let answered = body["input"]
         .as_array()
@@ -639,7 +639,13 @@ fn dry_run_reply(_index: usize, body: &Value) -> String {
                 tool.as_str(),
                 json!({"query": "bounded live harness", "response_length": "short"}),
             )]),
-            None => sse_text("no mcp configured"),
+            // R7 startup is independent. Only request an advertised MCP tool;
+            // a permitted read lets the next safe request observe its catalog.
+            None => sse_calls(&[(
+                &format!("mcp-readiness-{index}"),
+                "read",
+                json!({"path":"src/lib.rs"}),
+            )]),
         };
     }
     if prompt.contains("Compress the closed") {

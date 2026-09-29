@@ -50,6 +50,7 @@ struct Step {
     label: String,
     check: Check,
     reply: String,
+    required_tool: Option<&'static str>,
 }
 
 struct Peer {
@@ -89,6 +90,25 @@ impl Peer {
                         };
                         seen_out.lock().expect("seen").push(body.clone());
                         if is_genuine_title(&body) && title::respond(&mut socket, &body) {
+                            continue;
+                        }
+                        // R7 publishes ready catalogs at request boundaries.
+                        // The scripted model consumes advertised capabilities;
+                        // a read-only round preserves its golden steps while an
+                        // independently starting MCP is still pending.
+                        let pending = steps_out
+                            .lock()
+                            .expect("steps")
+                            .front()
+                            .and_then(|step| step.required_tool)
+                            .is_some_and(|tool| !tool_names(&body).iter().any(|name| name == tool));
+                        if pending {
+                            assert!(tool_names(&body).iter().any(|name| name == "read"));
+                            let id =
+                                format!("mcp-readiness-{}", seen_out.lock().expect("seen").len());
+                            let reply =
+                                sse_tool_calls(&[(&id, "read", json!({"path":"src/lib.rs"}))]);
+                            let _ = socket.write_all(format!("HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}", reply.len(), reply).as_bytes());
                             continue;
                         }
                         let step = steps_out.lock().expect("steps").pop_front();
@@ -589,13 +609,14 @@ fn step(
         label: label.to_string(),
         check: Box::new(check),
         reply,
+        required_tool: None,
     }
 }
 
 #[test]
 fn aud35_binary_golden_workflow() {
     let mut summary: Vec<(String, String, String)> = Vec::new();
-    let script = vec![
+    let mut script = vec![
         step(
             "turn1-round1",
             |body| {
@@ -627,7 +648,10 @@ fn aud35_binary_golden_workflow() {
         step(
             "turn1-round2",
             |body| {
-                let calls = function_calls(body);
+                let calls: Vec<_> = function_calls(body)
+                    .into_iter()
+                    .filter(|(id, _)| !id.starts_with("mcp-readiness-"))
+                    .collect();
                 if calls
                     != vec![
                         ("g-patch".to_string(), "apply_patch".to_string()),
@@ -682,6 +706,8 @@ fn aud35_binary_golden_workflow() {
             sse_text("searched"),
         ),
     ];
+    script[0].required_tool = Some("codex_web__search");
+    script[2].required_tool = Some("codex_web__search");
     let fixture = Fixture::new(script);
 
     // 1. Coding turn through the real binary. The prompt is deliberately

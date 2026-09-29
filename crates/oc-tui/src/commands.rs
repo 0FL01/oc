@@ -48,6 +48,7 @@ pub enum CommandAction {
     OpenSessions,
     /// Open the skill catalog.
     OpenSkills,
+    OpenMcps,
     /// Open the tool-card list.
     OpenCards,
     /// Open current committed DCP context/stats without executing compression.
@@ -309,6 +310,14 @@ pub const REGISTRY: &[CommandSpec] = &[
         action: CommandAction::OpenCards,
     },
     CommandSpec {
+        id: "mcp.list",
+        title: "MCP servers",
+        group: "MCP",
+        shortcuts: &[],
+        aliases: &["mcps"],
+        action: CommandAction::OpenMcps,
+    },
+    CommandSpec {
         id: "native.location",
         title: "Change location",
         group: "Native",
@@ -502,7 +511,9 @@ mod tests {
                 assert_eq!(dispatch(&format!("/{alias}")), Some(command.action.clone()));
             }
         }
-        for unsupported in ["open", "projects", "project", "mcps"] {
+        assert_eq!(dispatch("/mcps"), Some(super::CommandAction::OpenMcps));
+        assert!(complete("/").contains(&"mcps"));
+        for unsupported in ["open", "projects", "project"] {
             assert!(!complete("/").contains(&unsupported));
         }
     }

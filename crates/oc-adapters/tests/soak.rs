@@ -515,6 +515,16 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
         warnings: Vec::new(),
     };
     let bad_runtime = runtime_of(harness, bad);
+    bad_runtime
+        .start_mcp()
+        .expect("independent initial startup");
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while bad_runtime.mcp_status().servers[0].status != oc_core::queries::McpStatus::Failed {
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .expect("actual failure precedes its warning observation");
     let degraded = bad_runtime
         .run_turn(params("s0", "hi", harness, provider.clone(), &CANCEL))
         .await
@@ -524,6 +534,10 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
         degraded.warnings,
         vec!["mcp codex DNS: private_host (retryable=false)"]
     );
+    bad_runtime
+        .shutdown_mcp()
+        .await
+        .expect("owned failed scope joined");
     let rows_after: usize = (0..SESSIONS)
         .map(|s| harness.db.history_len(&format!("s{s}")).unwrap_or(0))
         .sum();

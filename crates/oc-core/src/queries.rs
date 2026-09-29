@@ -534,6 +534,12 @@ pub enum ServiceStage {
     Config,
     Capability,
     Admission,
+    Dns,
+    Connection,
+    Initialize,
+    Catalog,
+    Cleanup,
+    Call,
 }
 
 impl ServiceStage {
@@ -542,6 +548,12 @@ impl ServiceStage {
             Self::Config => "config",
             Self::Capability => "capability",
             Self::Admission => "admission",
+            Self::Dns => "DNS",
+            Self::Connection => "connect",
+            Self::Initialize => "initialize",
+            Self::Catalog => "tools-list",
+            Self::Cleanup => "cleanup",
+            Self::Call => "call",
         }
     }
 }
@@ -557,6 +569,20 @@ pub enum ServiceCode {
     AuthorizationHeaderConflict,
     HeaderConflict,
     InvalidCwd,
+    PrivateHost,
+    ResolutionFailed,
+    ConnectionFailed,
+    SpawnFailed,
+    Deadline,
+    Transport,
+    Unauthorized,
+    Forbidden,
+    ProtocolMismatch,
+    CatalogLimit,
+    InvalidCatalog,
+    CleanupFailed,
+    Cancelled,
+    UnsafeRetry,
 }
 
 impl ServiceCode {
@@ -570,6 +596,20 @@ impl ServiceCode {
             Self::AuthorizationHeaderConflict => "authorization_header_conflict",
             Self::HeaderConflict => "header_conflict",
             Self::InvalidCwd => "invalid_cwd",
+            Self::PrivateHost => "private_host",
+            Self::ResolutionFailed => "resolution_failed",
+            Self::ConnectionFailed => "connection_failed",
+            Self::SpawnFailed => "spawn_failed",
+            Self::Deadline => "deadline",
+            Self::Transport => "transport",
+            Self::Unauthorized => "unauthorized",
+            Self::Forbidden => "forbidden",
+            Self::ProtocolMismatch => "protocol_mismatch",
+            Self::CatalogLimit => "catalog_limit",
+            Self::InvalidCatalog => "invalid_catalog",
+            Self::CleanupFailed => "cleanup_failed",
+            Self::Cancelled => "cancelled",
+            Self::UnsafeRetry => "unsafe_retry",
         }
     }
 }
@@ -578,20 +618,84 @@ impl ServiceCode {
 #[serde(rename_all = "snake_case")]
 pub enum ServiceAction {
     ReviewConfiguration,
+    RetryConnection,
+    SignInUnsupported,
+    RestartApplication,
 }
 
 impl std::fmt::Display for ServiceDiagnostic {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "mcp {} {}: {} (retryable=false); {} {}: review configuration",
+            "mcp {} {}: {} (retryable={}); {} {}: {}",
             self.service,
             self.stage.as_str(),
             self.code.as_str(),
+            self.action == ServiceAction::RetryConnection,
             self.source,
-            self.field.join(".")
+            self.field.join("."),
+            match self.action {
+                ServiceAction::ReviewConfiguration => "review configuration",
+                ServiceAction::RetryConnection => "retry connection",
+                ServiceAction::SignInUnsupported =>
+                    "native OAuth sign-in unsupported; review credentials",
+                ServiceAction::RestartApplication => "restart application; retry unsafe",
+            }
         )
     }
+}
+
+/// Exact ephemeral resource scope. An instance changes even on a return to the
+/// same Location; neither connected labels nor controls are restored from disk.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpBinding {
+    pub location: String,
+    pub generation: u64,
+    pub instance: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum McpStatus {
+    Pending,
+    Connected,
+    Disabled,
+    Failed,
+    NeedsAuth,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum McpAction {
+    Connect,
+    Disconnect,
+    Retry,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpControl {
+    pub binding: McpBinding,
+    /// Opaque entry identity from the snapshot, never an endpoint/command.
+    pub server: String,
+    pub action: McpAction,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpServerSnapshot {
+    pub id: String,
+    pub name: String,
+    pub configured_enabled: bool,
+    pub status: McpStatus,
+    pub pending_action: Option<McpAction>,
+    pub tools: usize,
+    pub diagnostic: Option<ServiceDiagnostic>,
+    pub actions: Vec<McpAction>,
+}
+
+/// Bounded by admitted inventory (64); tool/resource payloads never enter UI.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpSnapshot {
+    pub binding: McpBinding,
+    pub revision: u64,
+    pub servers: Vec<McpServerSnapshot>,
 }
 
 /// Presentation-only key strings, ready for the UI's existing key parser.

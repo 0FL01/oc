@@ -625,7 +625,7 @@ fn file_refused(source: &str) -> ConfigError {
     }
 }
 
-fn read_trusted_file_rooted(
+pub(crate) fn read_trusted_file_rooted(
     path: &str,
     source: &str,
     root: &File,
@@ -889,30 +889,7 @@ fn assemble_with_reader(
         let mut entry = entry.clone();
         entry.timeouts = mcp_timeout.overlay(entry.timeouts);
         if entry.enabled && entry.failure.is_none() {
-            if !trusted {
-                return Err(ConfigError::Untrusted {
-                    origin: path.clone(),
-                    reason: "MCP endpoint/command before source trust".into(),
-                });
-            }
-            if let Some(url) = &entry.url {
-                entry.url = Some(substitute_with(url, path, trusted, env, reader)?);
-            }
-            for (key, value) in entry.headers.clone() {
-                entry
-                    .headers
-                    .insert(key, substitute_with(&value, path, trusted, env, reader)?);
-            }
-            for arg in &mut entry.command {
-                *arg = substitute_with(arg, path, trusted, env, reader)?;
-            }
-            if let Some(cwd) = &mut entry.cwd {
-                *cwd = substitute_with(cwd, path, trusted, env, reader)?;
-            }
-            for value in entry.environment.values_mut() {
-                *value = substitute_with(value, path, trusted, env, reader)?;
-            }
-            mcp::validate_effective(id, path, &mut entry);
+            activate_mcp_entry(id, path, trusted, &mut entry, env, reader)?;
         }
         // Disabled entries keep inert templates: no secret/file read and no launch.
         out_mcp.insert(id.clone(), entry);
@@ -974,6 +951,43 @@ fn terminal_copy_value(
             reason: "must be select or manual".to_string(),
         }),
     }
+}
+
+/// One entry's effect-free trust/substitution/effective validation path. Used
+/// both at startup and explicit activation of an inert disabled template.
+pub(crate) fn activate_mcp_entry(
+    id: &str,
+    path: &str,
+    trusted: bool,
+    entry: &mut McpEntry,
+    env: &BTreeMap<String, String>,
+    reader: &impl Fn(&str, &str) -> Result<String, ConfigError>,
+) -> Result<(), ConfigError> {
+    if !trusted {
+        return Err(ConfigError::Untrusted {
+            origin: path.into(),
+            reason: "MCP endpoint/command before source trust".into(),
+        });
+    }
+    entry.enabled = true;
+    if let Some(url) = &entry.url {
+        entry.url = Some(substitute_with(url, path, trusted, env, reader)?);
+    }
+    for value in entry
+        .headers
+        .values_mut()
+        .chain(entry.environment.values_mut())
+    {
+        *value = substitute_with(value, path, trusted, env, reader)?;
+    }
+    for arg in &mut entry.command {
+        *arg = substitute_with(arg, path, trusted, env, reader)?;
+    }
+    if let Some(cwd) = &mut entry.cwd {
+        *cwd = substitute_with(cwd, path, trusted, env, reader)?;
+    }
+    mcp::validate_effective(id, path, entry);
+    Ok(())
 }
 
 /// Known provider option keys; anything else is a visible warning.

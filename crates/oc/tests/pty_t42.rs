@@ -3444,6 +3444,13 @@ fn aud38_location_switch_is_one_lifecycle() {
     // line instead of a byte needle inside the path. The B_RULE assertions
     // below prove the target Location really switched.
     wait_screen_row(&pty, "location:", DEADLINE);
+    // R7 starts the target's MCP independently. Observe genuine readiness
+    // before asking this text-only scripted model to use its first catalog.
+    pty.send(b"/mcps\r");
+    wait_screen_row(&pty, "t42mcp", DEADLINE);
+    wait_screen_row(&pty, "Connected", DEADLINE);
+    pty.send(b"\x1b");
+    wait_dialog_closed(&pty, "MCP servers");
     let off = submit(&mut pty, "beta one");
     pty.wait_visible_after(off, "echo: beta one", DEADLINE);
     let requests = fixture.wait_requests(3);

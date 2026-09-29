@@ -196,6 +196,7 @@ impl TuiState {
                 })
                 .collect(),
             TuiPanel::Rename => Vec::new(),
+            TuiPanel::Mcps => self.mcp_options(),
             TuiPanel::None => Vec::new(),
             _ => crate::views::panel_lines(self)
                 .into_iter()
@@ -2387,6 +2388,12 @@ impl TuiState {
                 self.panel = TuiPanel::Skills;
                 open_snapshot(&mut outcome, self.skills_loaded, PanelIntent::LoadSkills);
             }
+            CommandAction::OpenMcps => {
+                self.panel = TuiPanel::Mcps;
+                self.mcp_detail = None;
+                outcome.intent = Some(PanelIntent::LoadMcps);
+                outcome.consumed_input = true;
+            }
             CommandAction::OpenCards => {
                 self.panel = TuiPanel::Cards;
                 self.card_output = None;
@@ -2495,6 +2502,15 @@ impl TuiState {
         if self.panel == TuiPanel::Rename {
             return self.handle_rename_key(action);
         }
+        if self.panel == TuiPanel::Mcps {
+            if action == KeyAction::Char(' ') {
+                return self.mcp_toggle();
+            }
+            if action == KeyAction::Cancel && self.mcp_detail.take().is_some() {
+                self.select.reset();
+                return KeyOutcome::default();
+            }
+        }
         if self.panel == TuiPanel::Cards && self.card_output.is_some() {
             let (start, height, count) = crate::views::card_window(self);
             self.card_scroll = start;
@@ -2583,6 +2599,7 @@ impl TuiState {
                         | TuiPanel::Agents
                         | TuiPanel::Sessions
                         | TuiPanel::Skills
+                        | TuiPanel::Mcps
                         | TuiPanel::MessageActions { .. }
                 ) =>
             {
@@ -2901,6 +2918,7 @@ impl TuiState {
             TuiPanel::Skills => {
                 self.panel = TuiPanel::None;
             }
+            TuiPanel::Mcps => return self.mcp_enter(),
             TuiPanel::Cards => {
                 if self.session.is_none() {
                     outcome.note = Some("no session yet".into());

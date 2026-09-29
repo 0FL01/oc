@@ -521,6 +521,42 @@ fn explicit_root_id_matches_owner_tab_predicate() {
     }
 }
 
+async fn empty_mcp_status(inbox: &mut tokio::sync::mpsc::Receiver<InboxMsg>) {
+    let Some(InboxMsg::McpStatus { ack }) = inbox.recv().await else {
+        panic!("initial resource status")
+    };
+    ack.send(Ok(oc_core::queries::McpSnapshot {
+        binding: oc_core::queries::McpBinding {
+            location: "/fixture".into(),
+            generation: 1,
+            instance: 1,
+        },
+        revision: 1,
+        servers: Vec::new(),
+    }))
+    .unwrap();
+}
+
+#[tokio::test]
+async fn initial_mcp_owner_query_failure_is_not_usable_empty_inventory() {
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let worker = tokio::spawn(async move {
+        let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
+            panic!("Home selection")
+        };
+        ack.send(Ok(catalog())).unwrap();
+        let Some(InboxMsg::McpStatus { ack }) = inbox.recv().await else {
+            panic!("resource status")
+        };
+        ack.send(Err(CoreError::Shutdown)).unwrap();
+    });
+    assert!(matches!(
+        initial_state(&app, None).await,
+        Err(StartupFailure::Query)
+    ));
+    worker.await.unwrap();
+}
+
 #[tokio::test]
 async fn unreadable_parked_tab_keeps_good_route_and_disables_saves() {
     let (app, mut inbox, _) = CoreApp::channel(8);
@@ -559,6 +595,7 @@ async fn unreadable_parked_tab_keeps_good_route_and_disables_saves() {
         };
         assert_eq!(action, SelectionAction::Current);
         ack.send(Ok(catalog())).unwrap();
+        empty_mcp_status(&mut inbox).await;
         assert!(inbox.try_recv().is_err(), "filtered route was written");
     });
     let (mut state, mut deck) = restore_initial(&app, None).await.unwrap();
@@ -673,6 +710,7 @@ async fn failed_active_tab_falls_back_to_home_with_surviving_parked_tab() {
             panic!("fallback Home")
         };
         ack.send(Ok(catalog())).unwrap();
+        empty_mcp_status(&mut inbox).await;
         assert!(inbox.try_recv().is_err());
     });
     let (mut state, mut deck) = restore_initial(&app, None).await.unwrap();
@@ -1062,6 +1100,7 @@ async fn quit_pending_fork_saves_accepted_identity_even_when_refresh_fails() {
                 panic!("restart Home")
             };
             ack.send(Ok(catalog())).unwrap();
+            empty_mcp_status(&mut inbox).await;
             assert!(inbox.try_recv().is_err(), "restart never recreates fork");
         });
         let (_, restarted) = restore_initial(&app, None).await.unwrap();
@@ -1944,6 +1983,7 @@ async fn restore_home_with_parked_views_keeps_order_and_failed_save_keeps_route(
             panic!("Home selection")
         };
         ack.send(Ok(catalog())).unwrap();
+        empty_mcp_status(&mut inbox).await;
         let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
             panic!("activate saves route")
         };
@@ -2035,6 +2075,7 @@ async fn pruned_home_deck_keeps_all_owner_projected_tabs() {
             panic!("Home selection")
         };
         ack.send(Ok(catalog())).unwrap();
+        empty_mcp_status(&mut inbox).await;
         assert!(
             inbox.try_recv().is_err(),
             "no Home root or automatic repair write"

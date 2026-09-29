@@ -897,21 +897,14 @@ async fn compaction_schema_inclusive_irreducible_mcp_admission_spends_no_summary
     let mut catalog = catalog();
     catalog.models.get_mut("m").unwrap()["limit"] =
         serde_json::json!({"context":20_000,"output":1024});
-    let attached = McpGeneration {
-        publication: 0,
-        servers: vec![],
-        entries: vec![mcp_remote::RegistryEntry {
-            namespaced: "test__large".into(),
-            server: "test".into(),
-            tool: "large".into(),
-            description: None,
-            input_schema: serde_json::json!({"type":"object","description":"schema ".repeat(15_000)}),
-        }],
-        degraded: vec![],
-        poisoned: AtomicBool::new(false),
-        remote_unknown: AtomicBool::new(false),
-        cleanup_error: AtomicBool::new(false),
-    };
+    let mut attached = McpGeneration::empty(0, Arc::new(tokio::sync::Notify::new()));
+    attached.entries = vec![mcp_remote::RegistryEntry {
+        namespaced: "test__large".into(),
+        server: "test".into(),
+        tool: "large".into(),
+        description: None,
+        input_schema: serde_json::json!({"type":"object","description":"schema ".repeat(15_000)}),
+    }];
     let published = runtime.current.read().unwrap().clone();
     let lane = runtime.primary_lane(&published);
     let cancel = AtomicBool::new(false);

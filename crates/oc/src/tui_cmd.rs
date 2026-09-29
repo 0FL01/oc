@@ -1148,6 +1148,8 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             poll_and_sync(app, &mut state, &mut loop_state).await;
             if let CoreEvent::Compaction(snapshot) = event {
                 apply_compaction_to_view(&mut state, &mut loop_state, snapshot);
+            } else if let CoreEvent::McpChanged(snapshot) = event {
+                state.apply_mcp_snapshot(snapshot);
             } else if let Some(current) = state.attached_session().cloned() {
                 handle_worker_event(app, &mut state, &mut loop_state, &current, event).await?;
             }
@@ -1405,6 +1407,7 @@ async fn initial_state(
             state.push_warning(&diagnostic.to_string());
         }
         state.apply_catalog(snapshot);
+        state.apply_mcp_snapshot(app.mcp_status().await.map_err(|_| StartupFailure::Query)?);
         return Ok(state);
     };
     app.create_session(session.clone())
@@ -1425,6 +1428,7 @@ async fn initial_state(
         state.push_warning(&diagnostic.to_string());
     }
     state.apply_catalog(snapshot);
+    state.apply_mcp_snapshot(app.mcp_status().await.map_err(|_| StartupFailure::Query)?);
     state.apply_compaction_history(
         app.compaction_history(state.session().clone())
             .await
@@ -2055,6 +2059,16 @@ async fn apply_intent_with_origin(
         PanelIntent::LoadCatalog => {
             let snapshot = selection(app, state, SelectionAction::Current).await?;
             state.apply_catalog(snapshot);
+        }
+        PanelIntent::LoadMcps => {
+            state.apply_mcp_snapshot(app.mcp_status().await.map_err(|error| error.to_string())?);
+        }
+        PanelIntent::McpControl(control) => {
+            state.apply_mcp_snapshot(
+                app.mcp_control(control)
+                    .await
+                    .map_err(|error| error.to_string())?,
+            );
         }
         PanelIntent::LoadSessions => {
             let context = app
@@ -2954,6 +2968,10 @@ async fn handle_worker_event(
         apply_compaction_to_view(state, _loop_state, snapshot);
         return Ok(());
     }
+    if let CoreEvent::McpChanged(snapshot) = event {
+        state.apply_mcp_snapshot(snapshot);
+        return Ok(());
+    }
     let owner = match &event {
         CoreEvent::SessionTitleUpdated { session, .. }
         | CoreEvent::TurnStarted { session, .. }
@@ -2968,7 +2986,7 @@ async fn handle_worker_event(
         | CoreEvent::TurnFinished { session, .. }
         | CoreEvent::TurnInterrupted { session, .. }
         | CoreEvent::TurnFailed { session, .. } => session,
-        CoreEvent::Compaction(_) => unreachable!("handled above"),
+        CoreEvent::Compaction(_) | CoreEvent::McpChanged(_) => unreachable!("handled above"),
         CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {
             unreachable!("handled above")
         }
@@ -2977,7 +2995,7 @@ async fn handle_worker_event(
         return Ok(());
     }
     match event {
-        CoreEvent::Compaction(_) => unreachable!("handled above"),
+        CoreEvent::Compaction(_) | CoreEvent::McpChanged(_) => unreachable!("handled above"),
         CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {
             unreachable!("handled above")
         }

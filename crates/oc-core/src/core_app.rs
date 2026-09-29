@@ -129,6 +129,8 @@ impl SubmissionReceipt {
 /// Typed application events (live hints + durable outcomes for T03).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CoreEvent {
+    /// Actual resource-owner publication, independent of an active turn.
+    McpChanged(crate::queries::McpSnapshot),
     PermissionAsked(crate::approval::ApprovalRequest),
     PermissionResolved {
         request: crate::approval::ApprovalRequest,
@@ -329,6 +331,13 @@ impl MockProvider {
 
 /// Commands consumed by the single application owner (native or scripted).
 pub enum InboxMsg {
+    McpStatus {
+        ack: oneshot::Sender<Result<crate::queries::McpSnapshot, CoreError>>,
+    },
+    McpControl {
+        control: crate::queries::McpControl,
+        ack: oneshot::Sender<Result<crate::queries::McpSnapshot, CoreError>>,
+    },
     PendingApprovals {
         ack: oneshot::Sender<Result<Vec<crate::approval::ApprovalRequest>, CoreError>>,
     },
@@ -660,6 +669,28 @@ pub struct WorkerGuard {
 }
 
 impl CoreApp {
+    pub async fn mcp_status(&self) -> Result<crate::queries::McpSnapshot, CoreError> {
+        let (ack, reply) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::McpStatus { ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        reply.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Acknowledges the owner's admitted/coalesced action, not its eventual
+    /// network outcome. Completion arrives through McpChanged/status reads.
+    pub async fn mcp_control(
+        &self,
+        control: crate::queries::McpControl,
+    ) -> Result<crate::queries::McpSnapshot, CoreError> {
+        let (ack, reply) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::McpControl { control, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        reply.await.map_err(|_| CoreError::Shutdown)?
+    }
     pub async fn pending_approvals(
         &self,
     ) -> Result<Vec<crate::approval::ApprovalRequest>, CoreError> {
@@ -1659,6 +1690,9 @@ fn elapsed_ms(started: std::time::Instant) -> u64 {
 fn scripted_unsupported(message: InboxMsg) {
     let error = || CoreError::Application("query unsupported by scripted worker".to_string());
     match message {
+        InboxMsg::McpStatus { ack } | InboxMsg::McpControl { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::PendingApprovals { ack } => {
             let _ = ack.send(Ok(Vec::new()));
         }
@@ -1824,6 +1858,7 @@ mod tests {
                 | CoreEvent::ToolArgumentStream { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
+                CoreEvent::McpChanged(_) => panic!("unexpected MCP in scripted runtime"),
                 CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {
                     panic!("unexpected permission request")
                 }
@@ -2128,6 +2163,7 @@ mod tests {
                 | CoreEvent::ToolArgumentStream { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
+                CoreEvent::McpChanged(_) => panic!("unexpected MCP in scripted runtime"),
                 CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             }
         }

@@ -815,7 +815,8 @@ pub struct Runtime<'a> {
     workspace: RwLock<RuntimeWorkspace>,
     nudge_state: Mutex<BTreeMap<String, NudgeState>>,
     stats: Mutex<crate::dcp_auto::DcpStats>,
-    mcp_generation: tokio::sync::Mutex<Option<McpGeneration>>,
+    mcp_generation: RwLock<Arc<mcp::McpOwner>>,
+    mcp_activation: RwLock<Option<Arc<crate::composition::McpActivation>>>,
     mcp_unsafe_retry: AtomicBool,
     mcp_cleanup_failed: AtomicBool,
     subagent_seq: AtomicU64,
@@ -932,7 +933,8 @@ impl<'a> Runtime<'a> {
             workspace: RwLock::new(RuntimeWorkspace::default()),
             nudge_state: Mutex::new(BTreeMap::new()),
             stats: Mutex::new(DcpStats::default()),
-            mcp_generation: tokio::sync::Mutex::new(None),
+            mcp_generation: RwLock::new(Arc::new(mcp::McpOwner::new(location, 1))),
+            mcp_activation: RwLock::new(None),
             mcp_unsafe_retry: AtomicBool::new(false),
             mcp_cleanup_failed: AtomicBool::new(false),
             subagent_seq: AtomicU64::new(0),
@@ -975,6 +977,7 @@ impl<'a> Runtime<'a> {
         events: &tokio::sync::broadcast::Sender<oc_core::core_app::CoreEvent>,
     ) {
         *self.compaction_events.lock().expect("events lock") = Some(events.clone());
+        self.mcp_owner().bind_events(events);
     }
     pub fn reply_approval(
         &self,
@@ -1086,23 +1089,21 @@ impl<'a> Runtime<'a> {
     /// between turns; returns the new id.
     pub async fn reload(&self, generation: Generation) -> Result<u64, RuntimeError> {
         let _lease = self.begin_active()?;
-        let mut slot = self.mcp_generation.lock().await;
-        self.retire_poisoned(&mut slot).await?;
-        if self.mcp_cleanup_failed.load(Ordering::SeqCst) {
-            return Err(RuntimeError::McpShutdown);
-        }
-        if let Some(old) = slot.take()
-            && let Err(error) = close_generation(old).await
-        {
-            self.mcp_cleanup_failed.store(true, Ordering::SeqCst);
-            return Err(error);
-        }
-        let mut current = self.current.write().expect("generation lock");
-        let id = current.id + 1;
-        *current = Arc::new(PublishedGeneration {
-            id,
-            config: generation,
-        });
+        self.shutdown_mcp().await?;
+        // This low-level replacement has no newly pinned source descriptors.
+        // Application reload builds a complete Composition/runtime instead.
+        self.mcp_activation.write().expect("MCP activation").take();
+        let id = {
+            let mut current = self.current.write().expect("generation lock");
+            let id = current.id + 1;
+            *current = Arc::new(PublishedGeneration {
+                id,
+                config: generation,
+            });
+            id
+        };
+        self.replace_mcp_owner();
+        self.start_mcp()?;
         Ok(id)
     }
 
@@ -1120,11 +1121,14 @@ impl<'a> Runtime<'a> {
         if let Some(events) = self.compaction_events.lock().expect("events lock").clone() {
             self.approvals.cancel(None, &events);
         }
-        let mut slot = self.mcp_generation.lock().await;
-        self.retire_poisoned(&mut slot).await?;
-        if let Some(generation) = slot.take()
-            && let Err(error) = close_generation(generation).await
-        {
+        let owner = self.mcp_owner();
+        if owner.remote_unknown() {
+            self.mcp_unsafe_retry.store(true, Ordering::SeqCst);
+        }
+        if owner.cleanup_failed() {
+            self.mcp_cleanup_failed.store(true, Ordering::SeqCst);
+        }
+        if let Err(error) = owner.stop().await {
             self.mcp_cleanup_failed.store(true, Ordering::SeqCst);
             return Err(error);
         }
@@ -1133,6 +1137,130 @@ impl<'a> Runtime<'a> {
         } else {
             Ok(())
         }
+    }
+
+    fn mcp_owner(&self) -> Arc<mcp::McpOwner> {
+        self.mcp_generation.read().expect("MCP owner").clone()
+    }
+
+    fn replace_mcp_owner(&self) {
+        let owner = Arc::new(mcp::McpOwner::new(&self.location, self.generation_id()));
+        if let Some(events) = self.compaction_events.lock().expect("events lock").as_ref() {
+            owner.bind_events(events);
+        }
+        *self.mcp_generation.write().expect("MCP owner") = owner;
+    }
+
+    /// Launch independent admitted initial connections before application ready.
+    /// Target Location runtimes call this only after quarantine is transferred.
+    pub fn start_mcp(&self) -> Result<(), RuntimeError> {
+        if self.mcp_cleanup_failed.load(Ordering::SeqCst) {
+            return Err(RuntimeError::McpShutdown);
+        }
+        let mut config = self.current.read().expect("generation lock").config.clone();
+        if self.mcp_unsafe_retry.load(Ordering::SeqCst) {
+            for (server, entry) in &mut config.mcp {
+                if entry.kind == "remote" && entry.enabled {
+                    let source = config
+                        .provenance
+                        .get(&format!("mcp.{server}"))
+                        .map(String::as_str)
+                        .unwrap_or("native config");
+                    let mut failure = crate::config::mcp::failure(
+                        server,
+                        source,
+                        "connection",
+                        oc_core::queries::ServiceCode::UnsafeRetry,
+                    );
+                    failure.stage = oc_core::queries::ServiceStage::Call;
+                    failure.action = oc_core::queries::ServiceAction::RestartApplication;
+                    entry.failure = Some(failure);
+                }
+            }
+        }
+        self.mcp_owner().start(
+            config,
+            self.roots.project.clone(),
+            self.parent_env.clone(),
+            self.mcp_activation.read().expect("MCP activation").clone(),
+        )
+    }
+
+    pub fn mcp_status(&self) -> oc_core::queries::McpSnapshot {
+        self.mcp_owner().snapshot()
+    }
+
+    pub(crate) async fn wait_mcp_failure(&self) -> RuntimeError {
+        self.mcp_owner().wait_failure().await
+    }
+
+    pub(crate) fn mcp_control_server(
+        &self,
+        control: &oc_core::queries::McpControl,
+    ) -> Result<String, RuntimeError> {
+        let config = &self.current.read().expect("generation lock").config;
+        let server = self.mcp_owner().server_name(control, config)?;
+        if control.action != oc_core::queries::McpAction::Disconnect
+            && config.mcp[&server].kind == "remote"
+            && self.mcp_unsafe_retry.load(Ordering::SeqCst)
+        {
+            return Err(RuntimeError::McpAttach {
+                server: "generation".into(),
+                stage: "call",
+                safe_code: "unsafe_retry",
+                retryable: false,
+            });
+        }
+        Ok(server)
+    }
+
+    pub(crate) fn enqueue_mcp_control(
+        &self,
+        control: oc_core::queries::McpControl,
+        ack: tokio::sync::oneshot::Sender<
+            Result<oc_core::queries::McpSnapshot, oc_core::session::CoreError>,
+        >,
+    ) {
+        self.mcp_owner().control(control, ack);
+    }
+
+    pub(crate) fn set_mcp_activation(&self, activation: Arc<crate::composition::McpActivation>) {
+        *self.mcp_activation.write().expect("MCP activation") = Some(activation);
+    }
+
+    async fn retire_poisoned_mcp(&self) -> Result<(), RuntimeError> {
+        if let Some(error) = self.mcp_owner().fatal() {
+            return Err(error);
+        }
+        if self.mcp_owner().poisoned() {
+            self.shutdown_mcp().await?;
+            self.replace_mcp_owner();
+            self.start_mcp()?;
+        }
+        Ok(())
+    }
+
+    async fn request_mcp(&self, cancel: &AtomicBool) -> Result<Arc<McpGeneration>, RuntimeError> {
+        self.retire_poisoned_mcp().await?;
+        self.start_mcp()?;
+        if self.mcp_unsafe_retry.load(Ordering::SeqCst)
+            && self
+                .current
+                .read()
+                .expect("generation lock")
+                .config
+                .mcp
+                .values()
+                .any(|entry| entry.enabled && entry.kind == "remote")
+        {
+            return Err(RuntimeError::McpAttach {
+                server: "generation".into(),
+                stage: "call",
+                safe_code: "unsafe_retry",
+                retryable: false,
+            });
+        }
+        self.mcp_owner().request(cancel).await
     }
 
     /// Owner-only status, read after shutdown has retired any poisoned MCP
@@ -1362,16 +1490,13 @@ impl<'a> Runtime<'a> {
         let _lease = self.begin_active()?;
         let published = self.current.read().expect("generation lock").clone();
         let lane = self.primary_lane(&published);
-        let mut mcp = self.mcp_generation.lock().await;
-        let attached = self
-            .ensure_mcp_generation(&mut mcp, &published, params.cancel)
-            .await?;
+        let attached = self.request_mcp(params.cancel).await?;
         let mcp_warnings = attached.warnings();
         let result = self
             .run_turn_inner(
                 params,
                 &lane,
-                attached,
+                &attached,
                 None,
                 &mut accepted,
                 &mut text_delta,
@@ -1380,8 +1505,8 @@ impl<'a> Runtime<'a> {
                 &mut tool_event,
             )
             .await;
-        self.retire_poisoned(&mut mcp).await?;
-        drop(mcp);
+        drop(attached);
+        self.retire_poisoned_mcp().await?;
         let duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
         result.and_then(|mut report| {
             report.duration_ms = duration_ms;
@@ -1463,16 +1588,13 @@ impl<'a> Runtime<'a> {
         let _lease = self.begin_active()?;
         let published = self.current.read().expect("generation lock").clone();
         let lane = self.primary_lane(&published);
-        let mut mcp = self.mcp_generation.lock().await;
-        let attached = self
-            .ensure_mcp_generation(&mut mcp, &published, params.cancel)
-            .await?;
+        let attached = self.request_mcp(params.cancel).await?;
         let mcp_warnings = attached.warnings();
         let result = self
             .run_turn_inner(
                 params,
                 &lane,
-                attached,
+                &attached,
                 Some(initial_selection),
                 &mut accepted,
                 &mut text_delta,
@@ -1483,8 +1605,8 @@ impl<'a> Runtime<'a> {
             .await;
         // A committed fresh root must remain observable through the acceptance
         // callback even if cleanup or display-metadata writes later fail.
-        let cleanup = self.retire_poisoned(&mut mcp).await;
-        drop(mcp);
+        drop(attached);
+        let cleanup = self.retire_poisoned_mcp().await;
         cleanup?;
         let duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
         result.and_then(|mut report| {
@@ -1543,6 +1665,6 @@ use context::{active_summary_tokens, dcp_config_input, dcp_continuation};
 pub(crate) use context::{
     apply_dcp_projection, dcp_call_contents, dcp_call_identities, dcp_contents,
 };
-use mcp::{McpGeneration, close_generation, mcp_instruction_input};
+use mcp::{McpGeneration, mcp_instruction_input};
 use turn::lane_fixed_input;
 pub(crate) use turn::resolve_subagent_model;

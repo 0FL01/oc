@@ -127,6 +127,8 @@ pub enum TuiPanel {
     Rename,
     /// Skill catalog (UI06).
     Skills,
+    /// Current Location's actual MCP resource inventory and controls.
+    Mcps,
     /// Help, optionally for one topic.
     Help(Option<String>),
     /// DCP context panel (UI04).
@@ -161,6 +163,8 @@ pub enum PanelIntent {
     LoadSessions,
     /// Load the skill card snapshot.
     LoadSkills,
+    LoadMcps,
+    McpControl(oc_core::queries::McpControl),
     /// Load the newest tool-card page.
     LoadCards,
     /// Continue reading one card's durable result through the owning application.
@@ -670,6 +674,8 @@ pub struct TuiState {
     /// Skills cursor.
     pub(crate) skills_cursor: usize,
     skills_loaded: bool,
+    mcp_snapshot: Option<oc_core::queries::McpSnapshot>,
+    mcp_detail: Option<String>,
     /// DCP panel state: snapshot in, request out, transient outcome (UI04).
     pub(crate) dcp: DcpPanelState,
     /// Command ids known to the application (templates stay there).
@@ -844,6 +850,8 @@ impl TuiState {
             skills: Vec::new(),
             skills_cursor: 0,
             skills_loaded: false,
+            mcp_snapshot: None,
+            mcp_detail: None,
             dcp: DcpPanelState::default(),
             commands: Vec::new(),
             command_descriptions: BTreeMap::new(),
@@ -1295,6 +1303,7 @@ impl TuiState {
 
 mod input;
 mod live;
+mod mcp;
 mod tabs;
 mod transcript;
 

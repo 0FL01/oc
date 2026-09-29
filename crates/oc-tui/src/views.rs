@@ -36,6 +36,7 @@ pub fn cursor_color(state: &TuiState) -> ratatui::style::Color {
             | TuiPanel::Agents
             | TuiPanel::Sessions
             | TuiPanel::Skills
+            | TuiPanel::Mcps
     ) && state.approvals.active().is_none()
     {
         crate::theme::Theme::dark()
@@ -137,7 +138,10 @@ pub fn render_test(state: &TuiState, width: u16, height: u16) -> Vec<String> {
 pub fn panel_lines(state: &TuiState) -> Vec<String> {
     const ROWS: usize = 8;
     match state.panel() {
-        TuiPanel::Settings | TuiPanel::Commands | TuiPanel::MessageActions { .. } => state
+        TuiPanel::Settings
+        | TuiPanel::Commands
+        | TuiPanel::Mcps
+        | TuiPanel::MessageActions { .. } => state
             .modal_options()
             .iter()
             .map(|o| o.title.clone())

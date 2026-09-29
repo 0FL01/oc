@@ -85,6 +85,7 @@ impl ScriptDriver {
                     }
                 }
                 Ok(Ok(CoreEvent::Compaction(snapshot))) => state.apply_compaction(snapshot),
+                Ok(Ok(CoreEvent::McpChanged(snapshot))) => state.apply_mcp_snapshot(snapshot),
                 Ok(Ok(CoreEvent::SessionTitleUpdated { session, title })) => {
                     if state.attached_session() == Some(&session) {
                         state.session_title = Some(title);
