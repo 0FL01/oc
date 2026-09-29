@@ -1,7 +1,11 @@
-//! Shared native MCP projection into the current textual tool-output surface.
+//! Shared native MCP result projection; legacy text and native rich output.
 //! Never copy arbitrary server error messages into diagnostics.
 
 use serde_json::Value;
+
+mod media;
+pub use media::McpToolOutput;
+pub(crate) use media::project_rich;
 
 /// Maximum projected initialize instructions per server.
 pub const INSTRUCTIONS_BYTES_CAP: usize = 8 * 1024;
@@ -26,6 +30,7 @@ pub enum FailureDetail {
     Timeout,
 }
 
+#[derive(Debug)]
 pub(crate) enum ResultError {
     Failed(Option<FailureDetail>),
     Unsupported,
@@ -94,7 +99,7 @@ pub(crate) fn rpc_failure(error: &rmcp::service::ServiceError) -> Option<Failure
     }
 }
 
-fn redact_json(value: &mut Value, secrets: &[String]) {
+pub(crate) fn redact_json(value: &mut Value, secrets: &[String]) {
     match value {
         Value::String(text) => *text = redact(text, secrets),
         Value::Array(values) => values.iter_mut().for_each(|v| redact_json(v, secrets)),
@@ -163,8 +168,8 @@ pub(crate) fn project(
                 redact_json(&mut link, secrets);
                 parts.push(link.to_string());
             }
-            // FunctionCallOutput is text-only today. Do not pretend base64 is
-            // visible image/audio data or silently discard part of a result.
+            // Legacy String API stays text-only. The native runtime uses the
+            // additive rich path; never pretend base64 is visible text here.
             _ => return Err(ResultError::Unsupported),
         }
     }

@@ -69,6 +69,7 @@ fn estimate_tail(input: &[crate::provider::InputItem]) -> u64 {
                 })
                 .sum(),
             InputItem::FunctionCallOutput { output, .. } => text(output),
+            InputItem::McpFunctionCallOutput { output, .. } => output.estimated_tokens(),
             InputItem::ProviderOutput(value) => match value["type"].as_str() {
                 Some("function_call") => text(&format!(
                     "{}{}",

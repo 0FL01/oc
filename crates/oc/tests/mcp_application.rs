@@ -46,6 +46,9 @@ mod lifecycle;
 #[path = "mcp_application/lookups.rs"]
 mod lookups;
 
+#[path = "mcp_application/media.rs"]
+mod media;
+
 #[test]
 fn pending_edit_screen_accepts_fragmented_cursor_updates_not_raw_substrings() {
     let bytes = concat!(
@@ -555,6 +558,10 @@ impl FakeMcp {
                     "tools/call" => {
                         let name = tool.as_deref().unwrap_or("");
                         let result = match name {
+                            "mcp_media_mixed" => media::mixed_result(),
+                            "mcp_media_sensitive" => {
+                                json!({"content":[{"type":"text","text":"do not publish partial media"},{"type":"audio","mimeType":"audio/wav","data":"bWNwLW1lZGlhLXByaXZhdGUtY2FuYXJ5"}]})
+                            }
                             "is_error" => json!({
                                 "content": [{"type": "text", "text": "server-declared failure"}],
                                 "isError": true,
@@ -562,14 +569,19 @@ impl FakeMcp {
                             "image" => json!({
                                 "content": [{
                                     "type": "image",
-                                    "data": "aGVsbG8=",
+                                    // Image is now supported by the native
+                                    // bridge; retain this unknown-effect case
+                                    // with an actually malformed payload.
+                                    "data": "not-base64!",
                                     "mimeType": "image/png",
                                 }],
                                 "isError": false,
                             }),
+                            // Declared image/audio/blob are now supported.
+                            // Video is genuinely outside native MCP 2025.
                             "v07b_unsupported" => json!({
                                 "content":[{"type":"text","text":"PRIVATE_RESULT_BODY"},
-                                    {"type":"image","data":"aGVsbG8=","mimeType":"image/png"}],
+                                     {"type":"video","data":"aGVsbG8=","mimeType":"video/mp4"}],
                                 "isError":false,
                             }),
                             "v07b_bad_result" => json!({"content":[],"isError":false}),
@@ -634,6 +646,7 @@ enum ResponsesScript {
     },
     ToolEveryTurn,
     ToolNamed(String),
+    ToolNamedOnce(String),
     ToolBatch {
         calls: Vec<(String, String, Value)>,
         final_text: String,
@@ -696,7 +709,9 @@ impl FakeResponses {
                 // startup complete without inserting a product launch barrier.
                 let requested_mcp: Vec<&str> = match &script {
                     ResponsesScript::ToolEveryTurn => vec!["stall__ping"],
-                    ResponsesScript::ToolNamed(name) => vec![name],
+                    ResponsesScript::ToolNamed(name) | ResponsesScript::ToolNamedOnce(name) => {
+                        vec![name]
+                    }
                     ResponsesScript::ToolBatch { calls, .. }
                     | ResponsesScript::ControlProbe { calls, .. } => calls
                         .iter()
@@ -726,6 +741,15 @@ impl FakeResponses {
                         .any(|name| !names.iter().any(|available| available == name));
                 match &script {
                     _ if title::respond(&mut socket, &request.body) => {}
+                    ResponsesScript::ToolNamedOnce(_)
+                        if request.body["input"].as_array().is_some_and(|items| {
+                            items.iter().any(|i| {
+                                i["type"] == "function_call_output" && i["output"].is_array()
+                            })
+                        }) =>
+                    {
+                        respond_text(&mut socket, "retained media complete")
+                    }
                     _ if await_catalog => respond_tools(
                         &mut socket,
                         &[(
@@ -751,7 +775,9 @@ impl FakeResponses {
                             respond_text(&mut socket, &format!("answer:{prompt}"));
                         }
                     }
-                    ResponsesScript::ToolEveryTurn | ResponsesScript::ToolNamed(_) => {
+                    ResponsesScript::ToolEveryTurn
+                    | ResponsesScript::ToolNamed(_)
+                    | ResponsesScript::ToolNamedOnce(_) => {
                         if actual_mcp_followup {
                             respond_text(&mut socket, "retry complete");
                         } else {
@@ -761,7 +787,7 @@ impl FakeResponses {
                                     "item-stall".into(),
                                     format!("call-{main_index}"),
                                     json!({"__wireName": match &script {
-                                        ResponsesScript::ToolNamed(name) => name.as_str(),
+                                        ResponsesScript::ToolNamed(name) | ResponsesScript::ToolNamedOnce(name) => name.as_str(),
                                         _ => "stall__ping",
                                     },"arguments":{}}),
                                 )],
@@ -1423,7 +1449,7 @@ fn aud24_binary_surfaces_is_error_and_unsupported_result_modality() {
     );
     assert!(
         unsupported.starts_with("error:"),
-        "unsupported image result was reported as success: {unsupported:?}"
+        "malformed media result was reported as success: {unsupported:?}"
     );
     assert_ne!(
         declared, unsupported,
@@ -1553,7 +1579,7 @@ while IFS= read -r line; do
                     ;;
                 *'"name":"image"'*)
                     name='image'
-                    result='{{"content":[{{"type":"image","data":"aGVsbG8=","mimeType":"image/png"}}],"isError":false}}'
+                     result='{{"content":[{{"type":"image","data":"not-base64!","mimeType":"image/png"}}],"isError":false}}'
                     ;;
                 *'"name":"b__c"'*)
                     name='b__c'
@@ -3889,7 +3915,9 @@ for line in sys.stdin:
     elif method == 'tools/call':
         with open(log, 'a') as f: f.write('effect\n')
         if os.path.exists(release): result = {{'content':[{{'type':'text','text':'pong'}}]}}
-        elif mode == 'unsupported': result = {{'content':[{{'type':'text','text':'PRIVATE_RESULT_BODY'}},{{'type':'image','data':'aGVsbG8=','mimeType':'image/png'}}]}}
+        # Video remains unsupported in the native MCP 2025 path; valid image,
+        # audio and blob must no longer serve as unknown-effect fixtures.
+        elif mode == 'unsupported': result = {{'content':[{{'type':'text','text':'PRIVATE_RESULT_BODY'}},{{'type':'video','data':'aGVsbG8=','mimeType':'video/mp4'}}]}}
         else: result = {{'content':[]}}
     else: continue
     print(json.dumps({{'jsonrpc':'2.0','id':request['id'],'result':result}}), flush=True)

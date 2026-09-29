@@ -773,6 +773,27 @@ impl StdioClient {
         arguments: serde_json::Value,
         cancel: &std::sync::atomic::AtomicBool,
     ) -> Result<String, StdioError> {
+        let result = self.tool_result(tool, arguments, cancel).await?;
+        crate::mcp_result::project(result, &self.redactions).map_err(result_error)
+    }
+
+    pub(crate) async fn call_tool_rich(
+        &self,
+        tool: &str,
+        arguments: serde_json::Value,
+        cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<crate::mcp_result::McpToolOutput, StdioError> {
+        let result = self.tool_result(tool, arguments, cancel).await?;
+        crate::mcp_result::project_rich(result, &self.redactions, &self.identity_secrets)
+            .map_err(result_error)
+    }
+
+    async fn tool_result(
+        &self,
+        tool: &str,
+        arguments: serde_json::Value,
+        cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<rmcp::model::CallToolResult, StdioError> {
         let arguments = arguments
             .as_object()
             .cloned()
@@ -821,16 +842,7 @@ impl StdioClient {
             Some(Ok(Err(_))) => return Err(StdioError::Transport),
         };
         match outcome {
-            rmcp::model::CallToolResponse::Complete(result) => {
-                crate::mcp_result::project(result, &self.redactions).map_err(|error| match error {
-                    crate::mcp_result::ResultError::Failed(Some(detail)) => {
-                        StdioError::ToolFailedDetail(detail)
-                    }
-                    crate::mcp_result::ResultError::Failed(None) => StdioError::ToolFailed,
-                    crate::mcp_result::ResultError::Unsupported => StdioError::UnsupportedModality,
-                    crate::mcp_result::ResultError::BadResult => StdioError::BadResult,
-                })
-            }
+            rmcp::model::CallToolResponse::Complete(result) => Ok(result),
             _ => Err(StdioError::UnsupportedModality),
         }
     }
@@ -867,6 +879,17 @@ impl StdioClient {
         let config = self.config.clone();
         self.shutdown().await?;
         Self::launch_generation(&config, generation).await
+    }
+}
+
+fn result_error(error: crate::mcp_result::ResultError) -> StdioError {
+    match error {
+        crate::mcp_result::ResultError::Failed(Some(detail)) => {
+            StdioError::ToolFailedDetail(detail)
+        }
+        crate::mcp_result::ResultError::Failed(None) => StdioError::ToolFailed,
+        crate::mcp_result::ResultError::Unsupported => StdioError::UnsupportedModality,
+        crate::mcp_result::ResultError::BadResult => StdioError::BadResult,
     }
 }
 

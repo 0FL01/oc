@@ -716,6 +716,26 @@ impl CodexWebClient {
         arguments: serde_json::Value,
         cancel: &AtomicBool,
     ) -> Result<String, McpError> {
+        let result = self.tool_result(tool, arguments, cancel).await?;
+        crate::mcp_result::project(result, &self.secrets).map_err(result_error)
+    }
+
+    pub(crate) async fn call_tool_rich(
+        &self,
+        tool: &str,
+        arguments: serde_json::Value,
+        cancel: &AtomicBool,
+    ) -> Result<crate::mcp_result::McpToolOutput, McpError> {
+        let result = self.tool_result(tool, arguments, cancel).await?;
+        crate::mcp_result::project_rich(result, &self.secrets, &self.secrets).map_err(result_error)
+    }
+
+    async fn tool_result(
+        &self,
+        tool: &str,
+        arguments: serde_json::Value,
+        cancel: &AtomicBool,
+    ) -> Result<rmcp::model::CallToolResult, McpError> {
         let arguments = arguments
             .as_object()
             .cloned()
@@ -761,16 +781,7 @@ impl CodexWebClient {
             Some(Ok(Err(_))) => return Err(McpError::Transport),
         };
         match outcome {
-            rmcp::model::CallToolResponse::Complete(result) => {
-                crate::mcp_result::project(result, &self.secrets).map_err(|error| match error {
-                    crate::mcp_result::ResultError::Failed(Some(detail)) => {
-                        McpError::ToolFailedDetail(detail)
-                    }
-                    crate::mcp_result::ResultError::Failed(None) => McpError::ToolFailed,
-                    crate::mcp_result::ResultError::Unsupported => McpError::UnsupportedResult,
-                    crate::mcp_result::ResultError::BadResult => McpError::BadResult,
-                })
-            }
+            rmcp::model::CallToolResponse::Complete(result) => Ok(result),
             _ => Err(McpError::UnsupportedResult),
         }
     }
@@ -792,6 +803,15 @@ impl CodexWebClient {
                 Ok(Ok(value)) => Ok(value),
             },
         }
+    }
+}
+
+fn result_error(error: crate::mcp_result::ResultError) -> McpError {
+    match error {
+        crate::mcp_result::ResultError::Failed(Some(detail)) => McpError::ToolFailedDetail(detail),
+        crate::mcp_result::ResultError::Failed(None) => McpError::ToolFailed,
+        crate::mcp_result::ResultError::Unsupported => McpError::UnsupportedResult,
+        crate::mcp_result::ResultError::BadResult => McpError::BadResult,
     }
 }
 

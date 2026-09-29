@@ -1222,6 +1222,8 @@ pub struct TurnLog {
     pub agent_digest: Option<String>,
 }
 
+mod mcp_log;
+
 impl TurnLog {
     /// Start an empty log for a turn.
     pub fn new(turn_id: &str, model: &str, provider: &str) -> Self {
@@ -1257,7 +1259,8 @@ impl TurnLog {
 
     /// Serialize for the turn row.
     pub fn to_json(&self) -> serde_json::Value {
-        serde_json::json!({
+        let (input, native_mcp) = self.encode_mcp_input();
+        let mut value = serde_json::json!({
             "display": self.display,
             "display_parts": self.display_parts,
             "turn_id": self.turn_id,
@@ -1266,9 +1269,13 @@ impl TurnLog {
             "opaque": self.opaque,
             "usage": self.usage.map(|(i, o)| serde_json::json!([i, o])),
             "user_message": self.user_message,
-            "input": self.input,
+            "input": input,
             "agent_digest": self.agent_digest,
-        })
+        });
+        if !native_mcp.is_empty() {
+            value["native_mcp_results"] = native_mcp.into();
+        }
+        value
     }
 
     /// Deserialize from the turn row.
@@ -1287,13 +1294,7 @@ impl TurnLog {
                 .get("user_message")
                 .and_then(|v| v.as_str())
                 .map(str::to_owned),
-            input: serde_json::from_value(
-                value
-                    .get("input")
-                    .cloned()
-                    .unwrap_or_else(|| serde_json::json!([])),
-            )
-            .map_err(|_| "invalid wire input")?,
+            input: Self::decode_mcp_input(value)?,
             agent_digest: value
                 .get("agent_digest")
                 .and_then(|value| value.as_str())

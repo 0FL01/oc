@@ -471,12 +471,31 @@ impl Runtime<'_> {
                 }));
             }
         }
-        // Serialize the real causal transcript as data; no function tools are offered.
-        let transcript = serde_json::to_string(&history).map_err(|_| RuntimeError::Storage)?;
-        let input = [
+        // The transcript stays unprivileged data. Binary native results must be
+        // actual Responses content, not base64 inside quoted JSON text. Carry
+        // each such result with its original call; no function tools are offered.
+        let mut transcript = history.clone();
+        let mut media_pairs = Vec::new();
+        for (index, item) in history.iter().enumerate() {
+            if let InputItem::McpFunctionCallOutput { call_id, output } = item
+                && output.has_media()
+            {
+                let call = history[..index].iter().rev().find(|i| {
+                    matches!(i, InputItem::ProviderOutput(v) if v["type"] == "function_call" && v["call_id"].as_str() == Some(call_id.as_str()))
+                }).ok_or(RuntimeError::Storage)?;
+                media_pairs.extend([call.clone(), item.clone()]);
+                transcript[index] = InputItem::FunctionCallOutput {
+                    call_id: call_id.clone(),
+                    output: output.display().into(),
+                };
+            }
+        }
+        let transcript = serde_json::to_string(&transcript).map_err(|_| RuntimeError::Storage)?;
+        let mut input = vec![
             InputItem::message(InputRole::Developer, PROMPT),
             InputItem::message(InputRole::User, transcript),
         ];
+        input.extend(media_pairs);
         models::admit_budget(
             &selection,
             estimate_tokens(&serde_json::to_string(&input).map_err(|_| RuntimeError::Storage)?),

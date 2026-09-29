@@ -260,7 +260,8 @@ impl Db {
                             return Err(refuse("duplicate wire call identity").into());
                         }
                     }
-                    crate::provider::InputItem::FunctionCallOutput { call_id, .. } => {
+                    crate::provider::InputItem::FunctionCallOutput { call_id, .. }
+                    | crate::provider::InputItem::McpFunctionCallOutput { call_id, .. } => {
                         if !calls.contains(call_id.as_str()) {
                             return Err(refuse("wire output precedes call").into());
                         }

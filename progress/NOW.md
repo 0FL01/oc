@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-29T02:39:04+00:00
+State updated: 2026-09-29T04:10:31+00:00
 Active: T46
 
 Сверить Git status/diff до выполнения команд.
@@ -14,13 +14,13 @@ D13 attach degradation/warnings/UA delivered 3ce5e03/b7ab06d; historical evidenc
 
 # T46
 ## Result
-Prompt/resource lookup PASS; lookups.md.
+Native media bridge PASS; media.md.
 ## Checks
-1246/0; 14 targeted; parent privacy repair verified.
+1254/0; parent 5+3 targets and final ELF 14+2 PASS.
 ## Risks
-Media/live, V09/READY open.
+R4 live and V09/READY open.
 ## Next
-Native MCP media tool-output bridge.
+Durable bounded live envelope, then R4.
 
 
 Ready (до 5): T45, T50, T51

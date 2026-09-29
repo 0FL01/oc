@@ -304,6 +304,7 @@ impl Runtime<'_> {
         turn: &str,
         attached: &McpGeneration,
         cancel: &AtomicBool,
+        native_result: &mut Option<crate::mcp_result::McpToolOutput>,
     ) -> (&'static str, String) {
         let Some(entry) = attached
             .entries
@@ -340,7 +341,7 @@ impl Runtime<'_> {
         };
         let result = match server.client.as_ref() {
             AttachedServer::Remote(client) => client
-                .call_tool(&entry.tool, call.arguments.clone(), cancel)
+                .call_tool_rich(&entry.tool, call.arguments.clone(), cancel)
                 .await
                 .map_or_else(
                     |error| {
@@ -366,10 +367,16 @@ impl Runtime<'_> {
                         }
                         remote_mcp_failure(error, cancel)
                     },
-                    |text| ("completed", text),
+                    |output| {
+                        let text = output.display().to_owned();
+                        if output.needs_native_log() {
+                            *native_result = Some(output);
+                        }
+                        ("completed", text)
+                    },
                 ),
             AttachedServer::Stdio(client) => client
-                .call_tool(&entry.tool, call.arguments.clone(), cancel)
+                .call_tool_rich(&entry.tool, call.arguments.clone(), cancel)
                 .await
                 .map_or_else(
                     |error| {
@@ -394,7 +401,13 @@ impl Runtime<'_> {
                         }
                         stdio_mcp_failure(error, cancel)
                     },
-                    |text| ("completed", text),
+                    |output| {
+                        let text = output.display().to_owned();
+                        if output.needs_native_log() {
+                            *native_result = Some(output);
+                        }
+                        ("completed", text)
+                    },
                 ),
         };
         lease.armed = false;

@@ -74,11 +74,11 @@ fn plan_dcp_strategies(
         .count() as u64;
     let mut outputs: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for item in input {
-        if let InputItem::FunctionCallOutput { call_id, output } = item {
+        if let Some((call_id, output)) = item.call_output() {
             outputs
-                .entry(call_id.clone())
+                .entry(call_id.to_owned())
                 .or_default()
-                .push(output.clone());
+                .push(output.to_owned());
         }
     }
     let mut users_seen = 0u64;
@@ -229,10 +229,7 @@ pub(crate) fn dcp_call_identities(
         let answered = log
             .input
             .iter()
-            .filter_map(|item| match item {
-                InputItem::FunctionCallOutput { call_id, .. } => Some(call_id.as_str()),
-                _ => None,
-            })
+            .filter_map(|item| item.call_output().map(|(id, _)| id))
             .collect::<std::collections::BTreeSet<_>>();
         let mut local = BTreeMap::<String, u64>::new();
         for id in calls {
@@ -279,7 +276,8 @@ pub(crate) fn apply_dcp_projection(
             }
             !projection.hidden.contains(&key)
         }
-        InputItem::FunctionCallOutput { call_id, .. } => {
+        InputItem::FunctionCallOutput { call_id, .. }
+        | InputItem::McpFunctionCallOutput { call_id, .. } => {
             let occurrence = outputs.entry(call_id.clone()).or_default();
             let key = (call_id.clone(), *occurrence);
             *occurrence += 1;
@@ -307,6 +305,9 @@ pub(crate) fn dcp_contents(input: &[InputItem]) -> Vec<&str> {
                 }
             }
             InputItem::FunctionCallOutput { output, .. } => content.push(output.as_str()),
+            InputItem::McpFunctionCallOutput { output, .. } => {
+                content.extend(output.texts().iter().map(String::as_str))
+            }
             InputItem::ProviderOutput(value) => {
                 if value["type"] == "function_call" {
                     if let Some(arguments) = value["arguments"].as_str() {
@@ -387,6 +388,14 @@ pub(crate) fn dcp_call_contents(
                 *occurrence += 1;
                 if !projection.hidden.contains(&key) {
                     values.entry(key).or_default().1 = output.clone();
+                }
+            }
+            InputItem::McpFunctionCallOutput { call_id, output } => {
+                let occurrence = outputs.entry(call_id.clone()).or_default();
+                let key = (call_id.clone(), *occurrence);
+                *occurrence += 1;
+                if !projection.hidden.contains(&key) {
+                    values.entry(key).or_default().1 = output.texts().join("\n");
                 }
             }
             _ => {}
@@ -917,10 +926,7 @@ impl<'a> Runtime<'a> {
             let answered: std::collections::BTreeSet<String> = log
                 .input
                 .iter()
-                .filter_map(|item| match item {
-                    InputItem::FunctionCallOutput { call_id, .. } => Some(call_id.clone()),
-                    _ => None,
-                })
+                .filter_map(|item| item.call_output().map(|(id, _)| id.to_owned()))
                 .collect();
             let input = log
                 .input
@@ -1010,10 +1016,7 @@ impl<'a> Runtime<'a> {
             let answered = log
                 .input
                 .iter()
-                .filter_map(|i| match i {
-                    InputItem::FunctionCallOutput { call_id, .. } => Some(call_id.clone()),
-                    _ => None,
-                })
+                .filter_map(|i| i.call_output().map(|(id, _)| id.to_owned()))
                 .collect::<std::collections::BTreeSet<_>>();
             wire.extend(log.input.into_iter().filter(|i| {
                 match i {

@@ -2324,6 +2324,7 @@ impl<'a> Runtime<'a> {
                 }
             }
             let mut patch_effects = None;
+            let mut native_mcp_result = None;
             let (state, output) = if let Some(rejection) = rejection {
                 rejection
             } else {
@@ -2341,16 +2342,33 @@ impl<'a> Runtime<'a> {
                         (output_state(&output), output)
                     }
                     Assembled::Call(call) => {
-                        self.execute_mcp(call, &op, turn_id, attached, cancel).await
+                        self.execute_mcp(
+                            call,
+                            &op,
+                            turn_id,
+                            attached,
+                            cancel,
+                            &mut native_mcp_result,
+                        )
+                        .await
                     }
                     Assembled::Failed(_) => unreachable!("assembly failure rejected above"),
                 }
             };
             // Failure here leaves started/unknown; never continue the batch.
-            turn_log.input.push(InputItem::FunctionCallOutput {
-                call_id: id.clone(),
-                output: output.clone(),
-            });
+            turn_log
+                .input
+                .push(if let Some(native) = native_mcp_result {
+                    InputItem::McpFunctionCallOutput {
+                        call_id: id.clone(),
+                        output: native,
+                    }
+                } else {
+                    InputItem::FunctionCallOutput {
+                        call_id: id.clone(),
+                        output: output.clone(),
+                    }
+                });
             self.db.tool_outcome_with_log_and_effects(
                 &op,
                 state,

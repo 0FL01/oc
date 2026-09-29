@@ -886,6 +886,9 @@ fn next_turn_id(session: &str, timestamp: u64) -> String {
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod media_tests;
+
 impl<'a> Runtime<'a> {
     /// Build a runtime over one Location and an initial generation.
     #[allow(clippy::too_many_arguments)]

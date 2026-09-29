@@ -145,6 +145,13 @@ pub enum InputItem {
     },
     /// A tool result linked to the function call's call_id, never its item id.
     FunctionCallOutput { call_id: String, output: String },
+    /// Runtime-owned MCP result. Serialized as standard Responses output; native
+    /// facts are attached by TurnLog, never inferred by this deserializer.
+    #[serde(rename = "function_call_output")]
+    McpFunctionCallOutput {
+        call_id: String,
+        output: crate::mcp_result::McpToolOutput,
+    },
     /// Complete output item, including opaque fields and assistant phase.
     #[serde(untagged)]
     ProviderOutput(serde_json::Value),
@@ -171,17 +178,32 @@ impl<'de> Deserialize<'de> for InputItem {
                 .as_str()
                 .ok_or_else(|| serde::de::Error::custom("missing call_id"))?
                 .to_owned();
-            let output = value["output"]
-                .as_str()
-                .ok_or_else(|| serde::de::Error::custom("missing output"))?
-                .to_owned();
-            return Ok(Self::FunctionCallOutput { call_id, output });
+            if let Some(output) = value["output"].as_str() {
+                return Ok(Self::FunctionCallOutput {
+                    call_id,
+                    output: output.into(),
+                });
+            }
+            // Provider-authored arrays remain opaque, never native MCP facts.
+            if value["output"].is_array() {
+                return Ok(Self::ProviderOutput(value));
+            }
+            return Err(serde::de::Error::custom("missing output"));
         }
         Ok(Self::ProviderOutput(value))
     }
 }
 
 impl InputItem {
+    /// Exact tool-result graph identity for either legacy or native MCP output.
+    pub(crate) fn call_output(&self) -> Option<(&str, &str)> {
+        match self {
+            Self::FunctionCallOutput { call_id, output } => Some((call_id, output)),
+            Self::McpFunctionCallOutput { call_id, output } => Some((call_id, output.display())),
+            _ => None,
+        }
+    }
+
     /// Construct a text message (canonical model output should use ProviderOutput).
     pub fn message(role: InputRole, text: impl Into<String>) -> Self {
         Self::Message {
