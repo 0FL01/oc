@@ -1,6 +1,63 @@
 use super::*;
 
 #[test]
+fn completion_warning_union_is_typed_and_exact_binding_scoped() {
+    let owner = Arc::new(McpOwner::new("old-location", 7));
+    let binding = owner.snapshot().binding;
+    let original = stdio_attach_error_at("unavailable", "initialize", StdioError::Transport);
+    let changed = stdio_attach_error_at("unavailable", "tools-list", StdioError::Deadline);
+    let mut initial = McpGeneration::empty(7, owner.shared.wake.clone());
+    initial.degraded = vec![original.clone()];
+    let mut latest = McpGeneration::empty(7, owner.shared.wake.clone());
+    latest.degraded = vec![original.clone(), changed.clone()];
+    owner.shared.publication.write().unwrap().request = Arc::new(latest);
+    assert_eq!(
+        owner.completion_warnings(&binding, &initial),
+        [original.to_string(), changed.to_string()]
+    );
+    assert_eq!(
+        initial.degraded.as_slice(),
+        std::slice::from_ref(&original),
+        "completion mutated the held lease"
+    );
+    for mismatch in [
+        McpBinding {
+            location: "new-location".into(),
+            ..binding.clone()
+        },
+        McpBinding {
+            generation: 8,
+            ..binding.clone()
+        },
+        McpBinding {
+            instance: binding.instance + 1,
+            ..binding.clone()
+        },
+    ] {
+        assert_eq!(
+            owner.completion_warnings(&mismatch, &initial),
+            [original.to_string()]
+        );
+    }
+    let replacement = Arc::new(McpOwner::new("old-location", 7));
+    let mut foreign = McpGeneration::empty(7, replacement.shared.wake.clone());
+    foreign.degraded = vec![changed];
+    replacement.shared.publication.write().unwrap().request = Arc::new(foreign);
+    assert_eq!(
+        replacement.completion_warnings(&binding, &initial),
+        [original.to_string()],
+        "same Location/generation but different owner instance mixed warnings"
+    );
+    // Diagnostic observation cannot clear or demote an existing fatal result.
+    owner.shared.publication.write().unwrap().fatal = Some(RuntimeError::McpShutdown);
+    let _ = owner.completion_warnings(&binding, &initial);
+    assert!(matches!(
+        owner.request_view(),
+        Err(RuntimeError::McpShutdown)
+    ));
+}
+
+#[test]
 fn successful_retry_clears_the_exact_sanitized_failure_identity() {
     assert_eq!(safe_server_id("known-peer.example"), "known-peer.example");
     for server in ["peer_日本語", &"long_peer_".repeat(12)] {

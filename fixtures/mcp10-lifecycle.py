@@ -6,9 +6,10 @@ import signal
 import sys
 import time
 
-report, label, initialize_gate, catalog_gate, expected_cwd = sys.argv[1:]
+report, label, initialize_gate, catalog_gate, expected_cwd, *failure = sys.argv[1:]
+assert failure in ([], ["initialize-error"])
 counts = {"spawn": 1, "pid": os.getpid(), "initialize": 0, "catalog": 0,
-          "call": 0, "closed": 0, "cwd": os.getcwd() == expected_cwd,
+          "call": 0, "closed": 0, "failed": 0, "cwd": os.getcwd() == expected_cwd,
           "activated": os.environ.get("MCP10_CANARY") == "mcp10-activated-canary"}
 
 
@@ -66,6 +67,13 @@ try:
             event("initialize")
             save()
             gate(initialize_gate)
+            if failure:
+                counts["failed"] += 1
+                event("failed")
+                save()
+                print(json.dumps({"jsonrpc": "2.0", "id": request["id"], "error": {
+                    "code": -32603, "message": "PRIVATE_LATE_MCP_FAILURE"}}), flush=True)
+                break
             result = {"protocolVersion": "2025-11-25", "capabilities": {"tools": {}},
                       "serverInfo": {"name": label, "version": "fixture"},
                       "instructions": "LIFECYCLE_GUIDANCE"}

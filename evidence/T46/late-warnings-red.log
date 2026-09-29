@@ -1,0 +1,29 @@
+Original deterministic RED, before production repair.
+HEAD e739cfbf387e8b869aa4920cebb7150010f2712b
+CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=1 CARGO_NET_OFFLINE=true
+TMPDIR=/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924
+cargo test -p oc-adapters --locked --test runtime mcp_lifecycle::mcp_late_failure_reaches_completed_existing_and_fresh_turn_without_startup_barrier -- --exact --nocapture
+
+running 1 test
+test mcp_lifecycle::mcp_late_failure_reaches_completed_existing_and_fresh_turn_without_startup_barrier ...
+assertion `left == right` failed: fresh=false: late typed degradation lost
+  left: []
+ right: ["mcp unavailable initialize: transport (retryable=true)"]
+FAILED
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 93 filtered out; finished in 0.33s
+
+First additional CLI fixture experiment after the production merge:
+cargo test -p oc --locked --test mcp_application lifecycle::mcp_late_failure_headless_warning_is_once_safe_and_does_not_wait_for_slow_startup -- --exact --nocapture
+
+assertion `left == right` failed: late headless degradation: session late-headless
+  left: 0
+ right: 1
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 40 filtered out; finished in 0.32s
+
+Diagnosis: child reaping is earlier than the native supervisor's published
+failure (stdio kill/reap joins its independent TERM-grace/stderr work). That
+fixture condition did not establish a typed degradation before turn completion.
+Materially different native experiment observes the existing MCP status/modal
+consumer's Failed publication during the held provider request, then releases
+the provider. Exact-once headless stderr proof is retained and strengthened in
+the strict same-envelope native offline R4 test with a numeric warning observer.

@@ -1525,7 +1525,10 @@ impl<'a> Runtime<'a> {
         let published = self.current.read().expect("generation lock").clone();
         let lane = self.primary_lane(&published);
         let attached = self.request_mcp(params.cancel).await?;
-        let mcp_warnings = attached.warnings();
+        // request_mcp may replace a poisoned owner. Bind diagnostics only after
+        // it has returned the exact immutable lease for this turn.
+        let mcp_owner = self.mcp_owner();
+        let mcp_binding = mcp_owner.snapshot().binding;
         let result = self
             .run_turn_inner(
                 params,
@@ -1539,6 +1542,7 @@ impl<'a> Runtime<'a> {
                 &mut tool_event,
             )
             .await;
+        let mcp_warnings = mcp_owner.completion_warnings(&mcp_binding, &attached);
         drop(attached);
         self.retire_poisoned_mcp().await?;
         let duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
@@ -1623,7 +1627,8 @@ impl<'a> Runtime<'a> {
         let published = self.current.read().expect("generation lock").clone();
         let lane = self.primary_lane(&published);
         let attached = self.request_mcp(params.cancel).await?;
-        let mcp_warnings = attached.warnings();
+        let mcp_owner = self.mcp_owner();
+        let mcp_binding = mcp_owner.snapshot().binding;
         let result = self
             .run_turn_inner(
                 params,
@@ -1637,6 +1642,7 @@ impl<'a> Runtime<'a> {
                 &mut tool_event,
             )
             .await;
+        let mcp_warnings = mcp_owner.completion_warnings(&mcp_binding, &attached);
         // A committed fresh root must remain observable through the acceptance
         // callback even if cleanup or display-metadata writes later fail.
         drop(attached);

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-29T04:10:31+00:00
+State updated: 2026-09-29T06:53:49+00:00
 Active: T46
 
 Сверить Git status/diff до выполнения команд.
@@ -14,13 +14,13 @@ D13 attach degradation/warnings/UA delivered 3ce5e03/b7ab06d; historical evidenc
 
 # T46
 ## Result
-Native media bridge PASS; media.md.
+Durable envelope and late-warning fix verified.
 ## Checks
-1254/0; parent 5+3 targets and final ELF 14+2 PASS.
+1262/0; native R4 offline 5gen/1search/1warning.
 ## Risks
-R4 live and V09/READY open.
+Live NOT_RUN; full T46/V09/READY open.
 ## Next
-Durable bounded live envelope, then R4.
+Execute R4 with one persistent campaign/journal.
 
 
 Ready (до 5): T45, T50, T51

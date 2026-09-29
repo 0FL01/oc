@@ -167,6 +167,31 @@ impl McpOwner {
             .clone()
     }
 
+    /// Diagnostics may arrive during a held turn; clients/catalog/guidance stay
+    /// on its immutable lease. Read only typed degradation from this exact
+    /// owner/binding, without requesting a new lease or awaiting startup.
+    pub(in crate::runtime) fn completion_warnings(
+        &self,
+        binding: &McpBinding,
+        initial: &McpGeneration,
+    ) -> Vec<String> {
+        let latest = {
+            let publication = self.shared.publication.read().expect("MCP publication");
+            if &publication.status.binding == binding {
+                publication.request.degraded.clone()
+            } else {
+                Vec::new()
+            }
+        };
+        let mut warnings = Vec::new();
+        for error in initial.degraded.iter().chain(&latest) {
+            if !warnings.contains(error) {
+                warnings.push(error.clone());
+            }
+        }
+        warnings.iter().map(ToString::to_string).collect()
+    }
+
     pub(in crate::runtime) fn request_view(&self) -> Result<Arc<McpGeneration>, RuntimeError> {
         let publication = self.shared.publication.read().expect("MCP publication");
         if let Some(error) = &publication.fatal {

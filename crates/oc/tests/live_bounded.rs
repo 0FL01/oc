@@ -7,9 +7,10 @@
 //!   configured (the step executes) and once without (the step is recorded as
 //!   `blocked`, never silently skipped). This is how every harness branch is
 //!   exercised before any paid run.
-//! * `live_bounded_campaign` (ignored) is fail-closed until an approved durable
-//!   campaign-envelope authority can be verified. The external boundary returns
-//!   machine-readable BLOCKED before discovery, MCP attachment or generation.
+//! * `live_bounded_campaign` / `live_bounded_r4` (ignored) require explicit
+//!   opt-in, an existing inode-bound campaign ID and explicit in-memory target
+//!   manifest. Owned `scripts/bounded_live.py` reserves/fsyncs every upstream
+//!   attempt, including retry/title/restart, before external dispatch.
 //!
 //! Model eligibility comes from the product's effective static/discovered
 //! catalog; unknown capacities remain unknown (T47 supplies local admission
@@ -27,6 +28,9 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
+
+#[path = "live_bounded/envelope.rs"]
+mod envelope;
 
 const BIN: &str = env!("CARGO_BIN_EXE_oc");
 const POLL: Duration = Duration::from_millis(10);
@@ -176,7 +180,12 @@ struct LiveConfig {
 }
 
 impl LiveConfig {
-    async fn load(model: &str, variant: Option<&str>, project: &Path) -> Result<Self, String> {
+    async fn load(
+        model: &str,
+        variant: Option<&str>,
+        project: &Path,
+        r4: bool,
+    ) -> Result<Self, String> {
         let (provider_id, model_id) = split_model(model)?;
         // No bespoke HTTP discovery or config interpretation. Do not propagate
         // composition diagnostics: they can contain substituted configuration.
@@ -190,7 +199,7 @@ impl LiveConfig {
             .map_err(|_| "requested model is absent from the effective catalog".to_string())?;
         let selection = oc_adapters::models::select_variant(&selection, variant)
             .map_err(|_| "requested variant is unavailable in the effective catalog".to_string())?;
-        validate_smoke_permissions(&loaded)?;
+        validate_smoke_permissions(&loaded, r4)?;
         let limits = |key| {
             selection
                 .entry
@@ -233,6 +242,7 @@ impl LiveConfig {
 /// Inspect permissions only; never add grants or connect a server to discover tools.
 fn validate_smoke_permissions(
     loaded: &oc_adapters::composition::Composition,
+    r4: bool,
 ) -> Result<(), String> {
     use oc_adapters::tools::ToolPolicy as _;
 
@@ -251,12 +261,14 @@ fn validate_smoke_permissions(
     }
     let policy = oc_adapters::runtime::RuntimePolicy::with_rules(&generation.permissions, &rules)
         .with_root(&loaded.project);
-    for (action, resource) in [
+    let actions = [
         ("read", "src/lib.rs"),
         ("apply_patch", "src/lib.rs"),
         ("bash", "cargo test"),
         ("compress", "*"),
-    ] {
+    ];
+    let required = if r4 { &actions[..1] } else { &actions[..] };
+    for &(action, resource) in required {
         policy.check_resource(action, resource).map_err(|_| {
             format!("required headless permission is not allow: {action} ({resource})")
         })?;
@@ -317,6 +329,7 @@ fn bounded_catalog_probe() {
         &model,
         variant.as_deref(),
         &std::env::current_dir().expect("project"),
+        std::env::var("OC_BOUNDED_R4").as_deref() == Ok("1"),
     ));
     let report = match result {
         Ok(config) => {
@@ -352,6 +365,14 @@ impl Peer {
     }
 
     fn with_catalog(catalog: Value) -> Self {
+        Self::with_policy(catalog, false)
+    }
+
+    fn with_retry() -> Self {
+        Self::with_policy(json!({"data": []}), true)
+    }
+
+    fn with_policy(catalog: Value, retry_once: bool) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
         let url = format!(
             "http://127.0.0.1:{}/v1",
@@ -385,9 +406,14 @@ impl Peer {
                         }
                         captured.lock().expect("requests").push(json!({
                             "model": body["model"], "reasoning": body["reasoning"],
-                            "max_output_tokens": body["max_output_tokens"]
+                            "max_output_tokens": body["max_output_tokens"],
+                            "is_title": texts(&body).iter().any(|s| s.contains("Generate a short session title"))
                         }));
                         let index = hits.fetch_add(1, Ordering::Relaxed);
+                        if retry_once && index == 0 {
+                            let _ = socket.write_all(b"HTTP/1.1 500 Offline\r\ncontent-length: 0\r\nconnection: close\r\n\r\n");
+                            continue;
+                        }
                         let reply = dry_run_reply(index, &body);
                         let _ = socket.write_all(
                             format!(
@@ -430,6 +456,7 @@ impl Drop for Peer {
 /// Minimal streamable-HTTP MCP server for the dry run.
 struct Mcp {
     url: String,
+    initialize_attempts: Arc<AtomicUsize>,
     calls: Arc<Mutex<Vec<Value>>>,
     stop: Arc<AtomicBool>,
     handle: Option<std::thread::JoinHandle<()>>,
@@ -437,6 +464,14 @@ struct Mcp {
 
 impl Mcp {
     fn start() -> Self {
+        Self::with_unavailable(false)
+    }
+
+    fn unavailable() -> Self {
+        Self::with_unavailable(true)
+    }
+
+    fn with_unavailable(unavailable: bool) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
         let url = format!(
             "http://127.0.0.1:{}/mcp",
@@ -444,6 +479,8 @@ impl Mcp {
         );
         listener.set_nonblocking(true).expect("nonblocking");
         let calls = Arc::new(Mutex::new(Vec::new()));
+        let initialize_attempts = Arc::new(AtomicUsize::new(0));
+        let initializes = initialize_attempts.clone();
         let calls_out = calls.clone();
         let stop = Arc::new(AtomicBool::new(false));
         let stopping = stop.clone();
@@ -456,6 +493,17 @@ impl Mcp {
                             continue;
                         };
                         let id = body.get("id").cloned().unwrap_or(Value::Null);
+                        if body["method"] == "initialize" {
+                            initializes.fetch_add(1, Ordering::Relaxed);
+                            if unavailable {
+                                write_mcp_message(
+                                    &mut socket,
+                                    json!({"jsonrpc":"2.0", "id":id,
+                                    "error":{"code":-32603,"message":"PRIVATE_R4_UNAVAILABLE_FAILURE"}}),
+                                );
+                                continue;
+                            }
+                        }
                         match body["method"].as_str().unwrap_or_default() {
                             "initialize" => write_mcp(
                                 &mut socket,
@@ -508,6 +556,7 @@ impl Mcp {
         });
         Self {
             url,
+            initialize_attempts,
             calls,
             stop,
             handle: Some(handle),
@@ -532,8 +581,14 @@ impl Drop for Mcp {
 }
 
 fn write_mcp(socket: &mut TcpStream, id: Value, result: Value) {
-    let body = serde_json::to_vec(&json!({"jsonrpc": "2.0", "id": id, "result": result}))
-        .expect("mcp json");
+    write_mcp_message(
+        socket,
+        json!({"jsonrpc": "2.0", "id": id, "result": result}),
+    );
+}
+
+fn write_mcp_message(socket: &mut TcpStream, message: Value) {
+    let body = serde_json::to_vec(&message).expect("mcp json");
     let _ = socket.write_all(
         format!(
             "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n",
@@ -752,13 +807,16 @@ struct Fixture {
     config_dir: Option<PathBuf>,
     model: String,
     variant: Option<String>,
+    envelope: Option<envelope::Envelope>,
+    unavailable_warnings: AtomicUsize,
 }
 
 impl Fixture {
-    /// Live fixture: real HOME config, isolated data root and project.
-    fn live(model: String, variant: Option<String>, config_dir: Option<PathBuf>) -> Self {
+    /// Guarded fixture: only loopback config and placeholder credentials on disk.
+    fn guarded(model: String, variant: Option<String>, guard: envelope::Envelope) -> Self {
         let root = tempfile::tempdir().expect("root");
         let project = root.path().join("project");
+        let config_dir = Some(root.path().join("home/config/opencode"));
         let fixture = Self {
             data_dir: root.path().join("data/oc"),
             root,
@@ -767,9 +825,37 @@ impl Fixture {
             config_dir,
             model,
             variant,
+            envelope: None,
+            unavailable_warnings: AtomicUsize::new(0),
         };
+        let mut fixture = fixture;
+        fixture.route_guard(guard);
         fixture.prepare_project(&project);
         fixture
+    }
+
+    fn route_guard(&mut self, guard: envelope::Envelope) {
+        let (provider, model) = split_model(&self.model).expect("validated model");
+        let mut permissions = json!({"*":"deny", "read":"allow", "apply_patch":"allow", "bash":{"cargo test":"allow"}, "compress":"allow", SEARCH_TOOL:"allow"});
+        // Catalogs are admitted; all calls still pass the counted short-search guard.
+        permissions["crw_*"] = json!("allow");
+        let mcp = guard.ready["mcp"].as_object().expect("owned routes").iter().map(|(name, entry)| (name.clone(), json!({"type":"remote", "url":entry["url"], "headers":entry["headers"], "oauth":false, "enabled":true, "timeout":{"startup":30000,"catalog":30000,"execution":60000}}))).collect::<serde_json::Map<_,_>>();
+        let config = json!({"model": self.model, "permissions":permissions, "dcp":{"enabled":true},
+            "provider": {provider: {"npm":"@ai-sdk/openai", "options":{"baseURL":guard.ready["provider_base"], "apiKey":envelope::PLACEHOLDER, "headers":guard.ready["provider_headers"], "timeout":false, "setCacheKey":false, "nativeFallbackLimits":{"context":32768,"output":2048}}, "models":{model:{"limit":{"output":2048}}}}}, "mcp":mcp});
+        let config_dir = self.config_dir.as_ref().expect("private config");
+        std::fs::create_dir_all(config_dir).expect("private config directory");
+        std::fs::write(config_dir.join("opencode.json"), config.to_string())
+            .expect("placeholder config");
+        self.envelope = Some(guard);
+    }
+
+    fn restrict_r4(&self) {
+        let config_path = self.config_dir.as_ref().unwrap().join("opencode.json");
+        let mut config: Value =
+            serde_json::from_slice(&std::fs::read(&config_path).unwrap()).unwrap();
+        config["permissions"] =
+            json!({"*":"deny", "read":"allow", SEARCH_TOOL:"allow", "crw_*":"allow"});
+        std::fs::write(config_path, config.to_string()).unwrap();
     }
 
     /// Dry-run fixture: loopback Responses peer, optional loopback MCP server.
@@ -822,6 +908,8 @@ impl Fixture {
             config_dir: Some(config_dir),
             model: "fixture/dry-run-model".into(),
             variant: None,
+            envelope: None,
+            unavailable_warnings: AtomicUsize::new(0),
         }
     }
 
@@ -841,7 +929,7 @@ impl Fixture {
     }
 
     fn environment(&self, command: &mut Command) {
-        if self.peer.is_some() {
+        if self.peer.is_some() || self.envelope.is_some() {
             let home = self.root.path().join("home");
             // Only build-tool locations pass through. No parent config roots,
             // proxy settings or provider credentials enter offline children.
@@ -872,6 +960,10 @@ impl Fixture {
     }
 
     fn preflight(&self, remaining: Duration) -> Result<LiveConfig, String> {
+        self.preflight_mode(remaining, false)
+    }
+
+    fn preflight_mode(&self, remaining: Duration, r4: bool) -> Result<LiveConfig, String> {
         self.verify_external_envelope()?;
         let report_path = self.root.path().join("catalog.json");
         let _ = std::fs::remove_file(&report_path);
@@ -883,6 +975,7 @@ impl Fixture {
             .env("OC_BOUNDED_PROBE_REPORT", &report_path)
             .env("OC_BOUNDED_DATA", &self.data_dir)
             .env("OC_TEST_MODEL", &self.model)
+            .env("OC_BOUNDED_R4", if r4 { "1" } else { "0" })
             .env("OC_TEST_VARIANT", self.variant.as_deref().unwrap_or(""));
         let (ok, detail) = run_bounded(&mut command, remaining);
         if !ok {
@@ -900,6 +993,9 @@ impl Fixture {
     }
 
     fn verify_external_envelope(&self) -> Result<(), String> {
+        if let Some(guard) = &self.envelope {
+            return guard.verify();
+        }
         if self.peer.is_none() {
             // Product retries/rounds and models::budget are request/turn-local.
             // No verifiable runner/proxy campaign quota is integrated here.
@@ -932,13 +1028,21 @@ impl Fixture {
         ]);
         self.environment(&mut command);
         command.current_dir(project);
-        run_bounded(&mut command, remaining)
+        run_bounded_observed(&mut command, remaining, Some(&self.unavailable_warnings))
     }
 }
 
 /// Drain both pipes while polling, retain byte counts only, and always reap.
 /// Nonblocking reads also bound cleanup when a descendant inherits a pipe.
 fn run_bounded(command: &mut Command, remaining: Duration) -> (bool, String) {
+    run_bounded_observed(command, remaining, None)
+}
+
+fn run_bounded_observed(
+    command: &mut Command,
+    remaining: Duration,
+    warning: Option<&AtomicUsize>,
+) -> (bool, String) {
     let timeout = remaining.min(CALL_TIMEOUT);
     if timeout.is_zero() {
         return (false, "watchdog=true spawned=false".into());
@@ -964,11 +1068,13 @@ fn run_bounded(command: &mut Command, remaining: Duration) -> (bool, String) {
     let mut stdout_bytes = 0u64;
     let mut stderr_bytes = 0u64;
     let mut watchdog = false;
+    let mut warning_tail = Vec::new();
     let status = loop {
         if !io_ok {
             break None;
         }
-        io_ok = drain(&mut stdout, &mut stdout_bytes) && drain(&mut stderr, &mut stderr_bytes);
+        io_ok = drain(&mut stdout, &mut stdout_bytes)
+            && drain_observed(&mut stderr, &mut stderr_bytes, warning, &mut warning_tail);
         if started.elapsed() >= timeout {
             watchdog = true;
             break None;
@@ -987,7 +1093,8 @@ fn run_bounded(command: &mut Command, remaining: Duration) -> (bool, String) {
     }
     let reaped = child.wait().is_ok();
     if io_ok {
-        io_ok = drain(&mut stdout, &mut stdout_bytes) && drain(&mut stderr, &mut stderr_bytes);
+        io_ok = drain(&mut stdout, &mut stdout_bytes)
+            && drain_observed(&mut stderr, &mut stderr_bytes, warning, &mut warning_tail);
     }
     let ok = status.is_some_and(|s| s.success()) && io_ok && reaped && !watchdog;
     (
@@ -1000,12 +1107,31 @@ fn run_bounded(command: &mut Command, remaining: Duration) -> (bool, String) {
 }
 
 fn drain(pipe: &mut impl Read, count: &mut u64) -> bool {
+    drain_observed(pipe, count, None, &mut Vec::new())
+}
+
+fn drain_observed(
+    pipe: &mut impl Read,
+    count: &mut u64,
+    warning: Option<&AtomicUsize>,
+    tail: &mut Vec<u8>,
+) -> bool {
     let mut bytes = [0u8; 8192];
     // A continuously writing child cannot starve deadline checks or the other pipe.
     for _ in 0..16 {
         match pipe.read(&mut bytes) {
             Ok(0) => return true,
-            Ok(n) => *count = count.saturating_add(n as u64),
+            Ok(n) => {
+                *count = count.saturating_add(n as u64);
+                if let Some(warning) = warning {
+                    const MARKER: &[u8] = b"warning: mcp unavailable ";
+                    tail.extend_from_slice(&bytes[..n]);
+                    let count = tail.windows(MARKER.len()).filter(|s| *s == MARKER).count();
+                    warning.fetch_add(count, Ordering::Relaxed);
+                    let keep = tail.len().saturating_sub(MARKER.len() - 1);
+                    tail.drain(..keep);
+                }
+            }
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => return true,
             Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
             Err(_) => return false,
@@ -1201,7 +1327,7 @@ fn emit_report(report: &Value, label: &str) {
     }
 }
 
-fn write_summary(campaign: &Campaign, mode: &str, config: &LiveConfig) {
+fn write_summary(campaign: &Campaign, mode: &str, config: &LiveConfig, fixture: &Fixture) {
     let mut report = campaign.summary(
         mode,
         &format!("{}/{}", config.provider_id, config.model_id),
@@ -1209,7 +1335,12 @@ fn write_summary(campaign: &Campaign, mode: &str, config: &LiveConfig) {
     );
     report["model_limits"] = json!({"context": config.context, "output": config.output});
     report["request_policy"] = json!({"context": config.budget_context, "output": config.budget_output,
-                                     "uses_local_fallback": config.local_fallback});
+                                      "uses_local_fallback": config.local_fallback});
+    if let Some(guard) = &fixture.envelope {
+        report["durable_envelope"] =
+            envelope::inspect(&guard.campaign).expect("verified durable accounting");
+        report["live_envelope_verified"] = json!(true);
+    }
     let text = serde_json::to_string_pretty(&report).expect("summary json");
     println!("{text}");
     if let Ok(path) = std::env::var("OC_LIVE_SUMMARY") {
@@ -1632,6 +1763,18 @@ fn bounded_summary_requires_every_mandatory_step() {
 
 #[test]
 fn bounded_pipes_redact_output_drain_and_reap_on_timeout() {
+    let warning = AtomicUsize::new(0);
+    let mut diagnostic = Command::new("sh");
+    diagnostic.args([
+        "-c",
+        "printf 'warning: mcp unavailable initialize: connection_failed (retryable=true)\n' >&2",
+    ]);
+    let (ok, detail) =
+        run_bounded_observed(&mut diagnostic, Duration::from_secs(3), Some(&warning));
+    assert!(
+        ok && warning.load(Ordering::Relaxed) == 1,
+        "bounded warning observer: {detail}"
+    );
     let mut flood = Command::new("sh");
     flood.args(["-c", "i=0; while [ $i -lt 12000 ]; do printf 'private-output-marker-0123456789\\n'; printf 'private-error-marker-0123456789\\n' >&2; i=$((i+1)); done"]);
     let (ok, detail) = run_bounded(&mut flood, Duration::from_secs(10));
@@ -1655,6 +1798,79 @@ fn bounded_pipes_redact_output_drain_and_reap_on_timeout() {
 #[test]
 #[ignore = "needs verified durable campaign envelope, product credentials and OC_TEST_MODEL"]
 fn live_bounded_campaign() {
+    let fixture = explicit_live_fixture();
+    let campaign = Campaign::new();
+    let config = match fixture.preflight(campaign.remaining()) {
+        Ok(config) => config,
+        Err(reason) => blocked_out(&reason),
+    };
+    let campaign = bounded_campaign(&fixture, config.has_search(), campaign);
+    write_summary(&campaign, "live", &config, &fixture);
+}
+
+/// R4 only: genuine native run, advertised crw/codex catalogs, completed short
+/// search and visible unavailable-server warning. Same durable campaign ID as
+/// any other explicitly authorized bounded gate; no automatic initialization.
+#[test]
+#[ignore = "explicit bounded-v1 opt-in, existing campaign ID, in-memory provider/crw/codex/unavailable targets"]
+fn live_bounded_r4() {
+    let fixture = explicit_live_fixture();
+    fixture.restrict_r4();
+    let report = r4_report(&fixture);
+    emit_report(&report, "R4");
+    assert_eq!(report["status"], "passed", "R4 native contract incomplete");
+}
+
+fn r4_report(fixture: &Fixture) -> Value {
+    let guard = fixture.envelope.as_ref().expect("owned guard");
+    for name in ["crw", SEARCH_SERVER, "unavailable"] {
+        if guard.ready["mcp"].get(name).is_none() {
+            blocked_out(
+                "R4 requires explicit crw, codex_web and unavailable MCP target association",
+            );
+        }
+    }
+    fixture
+        .preflight_mode(CALL_TIMEOUT, true)
+        .unwrap_or_else(|_| blocked_out("R4 product preflight failed"));
+    let before = envelope::inspect(&guard.campaign).expect("R4 prior accounting")["attempts"]
+        .as_array()
+        .expect("prior attempts")
+        .len();
+    let session = "s-bounded-r4";
+    let (ok, detail) = fixture.run(&fixture.project(), session,
+        "Read src/lib.rs first so the asynchronously connected MCP catalogs are available. Then use the codex_web MCP search tool exactly once for `Rust language documentation`, with response_length short. Complete the turn despite the unavailable MCP server; do not use webfetch, shell, browser, or any other remote call.", CALL_TIMEOUT);
+    let state = envelope::inspect(&guard.campaign).expect("durable R4 accounting");
+    let attempts = state["attempts"].as_array().expect("attempt accounting");
+    let advertised = |name: &str| {
+        attempts.iter().skip(before).any(|attempt| {
+            attempt["catalog_ids"]
+                .as_array()
+                .is_some_and(|ids| ids.iter().any(|id| id == name))
+        })
+    };
+    let catalog_ok = advertised("crw") && advertised(SEARCH_SERVER);
+    let search_ok = db_completed_mcp(fixture, session).is_some_and(|ops| !ops.is_empty())
+        && attempts.iter().skip(before).any(|a| {
+            a["kind"] == "mcp" && a["target"] == SEARCH_SERVER && a["outcome"] == "complete"
+        });
+    let warning_count = fixture.unavailable_warnings.load(Ordering::Relaxed);
+    let warning = warning_count > 0;
+    json!({"harness":"live_bounded_r4", "live_envelope_verified":true,
+        "status": if ok && catalog_ok && search_ok && warning {"passed"} else {"non-success"},
+        "native_run_ok":ok, "native_catalogs_advertised":catalog_ok, "completed_short_codex_search":search_ok,
+        "visible_unavailable_warning":warning, "visible_unavailable_warning_count":warning_count,
+        "process":detail, "durable_envelope":state})
+}
+
+fn explicit_live_fixture() -> Fixture {
+    if std::env::var("OC_LIVE_OPT_IN").as_deref() != Ok("bounded-v1") {
+        blocked_out("explicit OC_LIVE_OPT_IN=bounded-v1 required");
+    }
+    let identity = std::env::var("OC_LIVE_CAMPAIGN_ID").unwrap_or_default();
+    if envelope::inspect(&identity).is_err() {
+        blocked_out("existing trusted OC_LIVE_CAMPAIGN_ID required; resume must reuse journal");
+    }
     let model = std::env::var("OC_TEST_MODEL").unwrap_or_default();
     if let Err(reason) = split_model(&model) {
         blocked_out(&reason);
@@ -1662,19 +1878,12 @@ fn live_bounded_campaign() {
     let variant = std::env::var("OC_TEST_VARIANT")
         .ok()
         .filter(|s| !s.trim().is_empty());
-    let config_dir = match std::env::var_os("OC_TEST_CONFIG")
-        .map(|path| config_root(Path::new(&path)))
-        .transpose()
-    {
-        Ok(root) => root,
-        Err(reason) => blocked_out(&reason),
+    // Explicit target/header input, only after independent ledger verification.
+    // Never read a real HOME config, .local/live.env or runner credentials here.
+    let manifest = std::env::var("OC_LIVE_UPSTREAM_JSON").unwrap_or_default();
+    let guard = match envelope::Envelope::start(identity, &manifest, false) {
+        Ok(guard) => guard,
+        Err(_) => blocked_out("owned campaign interposer verification failed"),
     };
-    let campaign = Campaign::new();
-    let fixture = Fixture::live(model, variant, config_dir);
-    let config = match fixture.preflight(campaign.remaining()) {
-        Ok(config) => config,
-        Err(reason) => blocked_out(&reason),
-    };
-    let campaign = bounded_campaign(&fixture, config.has_search(), campaign);
-    write_summary(&campaign, "live", &config);
+    Fixture::guarded(model, variant, guard)
 }

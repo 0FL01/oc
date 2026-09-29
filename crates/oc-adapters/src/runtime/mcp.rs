@@ -38,9 +38,6 @@ impl McpGeneration {
             wake,
         }
     }
-    pub(super) fn warnings(&self) -> Vec<String> {
-        self.degraded.iter().map(ToString::to_string).collect()
-    }
 }
 
 impl Drop for McpGeneration {

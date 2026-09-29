@@ -358,6 +358,138 @@ fn assert_child_reaped(fixture: &Fixture, label: &str) {
 }
 
 #[test]
+fn mcp_late_failure_published_during_held_native_turn_is_visible_scoped_and_reaped() {
+    let release = Arc::new(AtomicBool::new(false));
+    let responses = FakeResponses::start(ResponsesScript::HeldPrompts {
+        prompts: vec!["held late warning".into()],
+        release: release.clone(),
+    });
+    let fixture = Fixture::new();
+    let failed_gate = fixture.project.join("release-late-failure");
+    let slow_gate = fixture.project.join("never-release-slow");
+    let mut unavailable = lifecycle_entry(
+        &fixture,
+        "unavailable",
+        true,
+        failed_gate.to_str().unwrap(),
+        "-",
+    );
+    unavailable["command"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!("initialize-error"));
+    fixture.write_config(
+        &responses,
+        json!({
+            "healthy": lifecycle_entry(&fixture, "healthy", true, "-", "-"),
+            "slow": lifecycle_entry(&fixture, "slow", true, slow_gate.to_str().unwrap(), "-"),
+            "unavailable": unavailable,
+        }),
+        json!({"healthy__ping":"allow"}),
+    );
+    let _children: Vec<_> = ["healthy", "slow", "unavailable"]
+        .into_iter()
+        .map(|name| FixtureChildren(fixture.project.join(format!("{name}.json.events"))))
+        .collect();
+    let mut tui = PtyProcess::spawn(&fixture, "late-warning");
+    tui.wait_visible(READY);
+    tui.resize(120, 40);
+    tui.send_line("/mcps");
+    wait_row(&tui, "healthy", "Connected");
+    wait_row(&tui, "slow", "Connecting");
+    wait_row(&tui, "unavailable", "Connecting");
+    close_mcps(&mut tui);
+    tui.send_line("held late warning");
+    let deadline = Instant::now() + TIMEOUT;
+    let held = loop {
+        if let Some(body) = responses
+            .requests()
+            .into_iter()
+            .find(|r| !title::is_title(r))
+        {
+            break body;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "provider blocked behind optional startup"
+        );
+        std::thread::sleep(POLL);
+    };
+    wait_counter(&fixture, "healthy", "catalog", 1);
+    wait_counter(&fixture, "slow", "initialize", 1);
+    wait_counter(&fixture, "unavailable", "initialize", 1);
+    assert_eq!(counters(&fixture, "unavailable")["failed"], 0);
+    assert_eq!(counters(&fixture, "slow")["catalog"], 0);
+    let held_tools = function_tool_names(&held);
+    assert!(held_tools.contains(&"healthy__ping".into()));
+    assert!(
+        held_tools
+            .iter()
+            .all(|name| !name.starts_with("unavailable__") && !name.starts_with("slow__"))
+    );
+    // The actual failure, not a timeout/sleep, is released AFTER the native POST.
+    fs::write(&failed_gate, "release-after-held-provider-post").unwrap();
+    wait_counter(&fixture, "unavailable", "failed", 1);
+    // Reaping is not publication. Observe the existing native typed-status
+    // consumer while the provider is still held; never add a startup barrier.
+    tui.send_line("/mcps");
+    wait_row(&tui, "unavailable", "Failed");
+    wait_row(&tui, "healthy", "Connected");
+    wait_row(&tui, "slow", "Connecting");
+    assert_child_reaped(&fixture, "unavailable");
+    assert_eq!(
+        responses
+            .requests()
+            .into_iter()
+            .find(|r| !title::is_title(r))
+            .unwrap(),
+        held,
+        "async failure mutated an already-dispatched request"
+    );
+    assert_eq!(
+        counters(&fixture, "slow")["closed"],
+        0,
+        "global startup barrier was awaited"
+    );
+    close_mcps(&mut tui);
+    release.store(true, Ordering::SeqCst);
+    tui.wait_screen("answer:held late warning", TIMEOUT);
+    tui.wait_screen("warning: mcp unavailable", TIMEOUT);
+    tui.send_line("next healthy");
+    tui.wait_screen("answer:next healthy", TIMEOUT);
+    let next = responses
+        .requests()
+        .into_iter()
+        .find(|request| {
+            !title::is_title(request) && last_user_text(request).as_deref() == Some("next healthy")
+        })
+        .unwrap();
+    assert_eq!(next["tools"], held["tools"]);
+    tui.send_line("/mcps");
+    wait_row(&tui, "slow", "Connecting");
+    wait_row(&tui, "healthy", "Connected");
+    wait_row(&tui, "unavailable", "Failed");
+    close_mcps(&mut tui);
+    tui.send_line("/quit");
+    let status = tui.wait_exit();
+    for name in ["healthy", "slow", "unavailable"] {
+        assert_child_reaped(&fixture, name);
+    }
+    assert!(status.success());
+    let output = String::from_utf8_lossy(&tui.output.lock().unwrap()).into_owned();
+    for marker in [
+        "PRIVATE_LATE_MCP_FAILURE",
+        "mcp10-activated-canary",
+        "responses-key",
+        "http://127.0.0.1",
+    ] {
+        assert!(!output.contains(marker));
+    }
+    assert_eq!(counters(&fixture, "unavailable")["catalog"], 0);
+    assert_eq!(counters(&fixture, "unavailable")["call"], 0);
+}
+
+#[test]
 fn mcp08_actual_retry_and_reload_location_retire_pending_scope_without_late_effects() {
     let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
     let fixture = Fixture::new();
