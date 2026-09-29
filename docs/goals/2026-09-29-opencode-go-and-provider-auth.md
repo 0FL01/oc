@@ -41,7 +41,7 @@ required outcome is resolved and affected constraints remain satisfied.
 
 - R3: три native wires и все Go request metadata lanes.
   - Source: «нюансы интеграции OpenCode Go, например хедеры»; pinned native AI routes и common model-request owner.
-  - Acceptance: GO03 доказывает Responses/Chat/Messages text, complete tool roundtrip, reasoning/usage, terminal/error/cancel и bounded pre-commit retry. Every Go request lane получает immutable binding/metadata; custom providers переиспользуют admitted adapters, но не Go-only headers. Нет guessed route/model/paid fallback.
+  - Acceptance: GO03 доказывает Responses/Chat/Messages text, complete tool roundtrip, reasoning/usage, terminal/error/cancel и повторное использование T54/RET01 typed provider-error policy: bounded pre-output retry либо continuation после записанного partial output, без replay effects. Every Go request lane получает immutable binding/metadata; custom providers переиспользуют admitted adapters, но не Go-only headers. Нет guessed route/model/paid fallback.
   - Primary evidence: parameterized fake wire/runtime tests; captured requests main/follow-up/title/summary-compaction/child/retry и concurrent-session barriers.
   - Status: pending
   - Evidence: pending — evidence/T53/report.md.
@@ -152,9 +152,13 @@ OpenProxy/custom cache и configured headers не меняются на Go polic
 Нужен private finite Protocol enum и smallest common ordered text/reasoning/complete
 validated tool calls/linked results/usage seam; native opaque continuation отдельна.
 Share bounded transport/SSE framing, не Responses event state machine. Runtime/title
-readers больше не интерпретируют любой результат как Responses JSON. Incomplete/EOF/
-refusal/error/cancel не становятся success и не исполняют partial tools. Один bounded
-pre-commit retry owner, без replay committed generation/effects.
+readers больше не интерпретируют любой результат как Responses JSON. EOF/
+refusal/error/cancel без genuine terminal не становятся success и не исполняют
+partial tools. Responses `response.incomplete(max_output_tokens)` сохраняет
+явный `length`, `content_filter` остаётся failure, unknown-incomplete проходит
+общий typed T54/RET01 bounded retry/continuation contract. Один runtime
+owner без replay исходной committed generation/effects и без нового
+per-protocol retry-loop; backend Responses slice T54 не ждёт T53 целиком.
 Existing admitted text/image attachments и MCP results проходят protocol-specific
 lowering; unsupported modality отказывает явно, не превращается в текстовый success.
 Это сохранение A04/current capabilities, не добавление audio/video/PDF execution.
@@ -217,8 +221,11 @@ done dependency или claim общего pixel parity.
    owner; protocol/history seam с legacy/SQL/fork/checkpoint fixtures. Порядок между
    ними свободный, state/secret ownership не дублируется.
 3. **Bindings/wires/startup.** Сначала провести existing Responses через seam, затем
-   Chat/Messages и Go metadata; provider-qualified optional selection/configless
-   local startup используют готовые owner facts и immutable admitted binding.
+   Chat/Messages и Go metadata; каждый admitted wire подключить к T54/RET01
+   typed error/headers и общему retry owner, не ждать whole T54/T44 task status,
+   но не выдавать GO03 PASS без соответствующей квалификации. Provider-qualified
+   optional selection/configless local startup используют готовые owner facts
+   и immutable admitted binding.
 4. **Connect/models consumers.** Core typed actions/safe DTO → application owner →
    TUI commands/dialog/picker/input/live; headless consumes тот же resolver, без новых
    auth CLI commands. T50 model lookup получает тот же catalog view.

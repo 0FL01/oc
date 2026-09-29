@@ -813,6 +813,51 @@
       "locator": "67–75 Default/named round trip, reserved default, stale choice and empty list",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/model-preference.ts#L67-L75",
       "purpose": "VIS29 preserved cycle edge cases independent of approved native known-effort rank"
+    },
+    {
+      "id": "U69",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "1934–1982 AssistantFooter error suppression/spacing/muted agent; 2432–2456 AssistantRetry warning/countdown/due",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L1934-L1982",
+      "purpose": "VIS43 exact provider-error retry footer and assistant metadata; not the unrelated RetryProvider tool-label fade"
+    },
+    {
+      "id": "U70",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/rows.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "257–272 session.retry.scheduled appends footer; semantic session.step.started removes owning footer",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/rows.ts#L257-L272",
+      "purpose": "VIS43 footer identity/lifecycle, not physical POST or startup/MCP retry"
+    },
+    {
+      "id": "U71",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/message-updater.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "213–255 step.started clears matching or current unfinished assistant; 272–285 failed settlement; 402–409 retry projection",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/message-updater.ts#L213-L255",
+      "purpose": "VIS43 durable failed assistant retry descriptor and non-blanket clearing through continuation"
+    },
+    {
+      "id": "U72",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/test/app-lifecycle.test.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "1604–1694 44/100 columns countdown 3/2/1/due, reschedule, step-start clearing, interrupted lifecycle",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/test/app-lifecycle.test.tsx#L1604-L1694",
+      "purpose": "VIS43 source-derived temporal fixtures; rendered frames are not independent paired capture"
+    },
+    {
+      "id": "U73",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/projector.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "298–313 getCurrentAssistant returns only most recent unfinished assistant",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/projector.ts#L298-L313",
+      "purpose": "VIS43 preserve completed partial-failure assistant retry history while next span succeeds"
     }
   ],
   "external_primary_sources": [

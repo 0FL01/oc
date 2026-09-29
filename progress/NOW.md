@@ -23,7 +23,7 @@ GeneralR3/fullREADY open; T53 separate, T44 paused.
 Safe source/field/stage fatal classification and rollback.
 
 
-Ready (до 5): T45, T50, T53
+Ready (до 5): T45, T50, T53, T54
 Blocked: T27, T43, T44
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.

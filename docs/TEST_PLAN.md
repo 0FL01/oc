@@ -443,7 +443,7 @@ planning/acceptance.json имеют только T53 как owner. Одна inte
 | --- | --- |
 | GO01 | Synthetic Key/OAuth tagged storage + reopen; transactional account lifecycle, precedence и provider/endpoint authority. None vs missing Key vs unsupported OAuth; config URL change не получает старый secret, no-auth loopback capture без credential headers. Redaction/root/DB/WAL guarantees. |
 | GO02 | Public models.dev fixture/fake clock: no-key fetch без auth headers, source-qualified cache/stale single-flight/offline/last-good/atomic failures; route aliases, actual reasoning overlays, local merge/retirement и auth rejection independence. Existing OpenProxy oracle unaffected. |
-| GO03 | Parameterized fake server: все три protocols text/tool/reasoning/usage, bounded splits/terminal/error/cancel/retry. Exact auth/defaults и captured metadata main/follow-up/title/summary-compaction/child/retry, concurrent identities/held binding. Custom Chat/None и OpenProxy regressions используют те же owner fixtures. |
+| GO03 | Parameterized fake server: все три protocols text/tool/reasoning/usage, bounded splits/terminal/error/cancel и typed HTTP/SSE/header lowering в единый T54/RET01 retry owner, включая safe continuation после partial output. Exact auth/defaults и captured metadata main/follow-up/title/summary-compaction/child/retry, concurrent identities/held binding. Custom Chat/None и OpenProxy regressions используют те же owner fixtures. |
 | GO04 | Legacy/new journal → SQL presentation/DCP/fork/reopen → next request: protocol/binding/checkpoint guards, ordered complete pairs/MCP indices и raw-history integrity; switch не переносит alien opaque items или unknown effects. |
 | GO05 | Actual-binary fresh offline/no-config/no-key PTY → masked cancel/paste → labeled accounts/source truth → acknowledged Go picker → explicit qualified selection → fake generation/cancel/reopen. Provider-ID collision, retired choice, pinned held request и headless zero-effect refusal; fatal policy/storage boundaries retain non-success. |
 | GO06 | Factual report final fmt/clippy/workspace tests/locked build/help + bounded real Go text/tool representative per protocol и known route-conflict probes. Fake/live/NOT_RUN и exact binding/counters различаются. |
@@ -461,3 +461,30 @@ conflict без hardcoded routing/automatic paid fallback. Unresolved mismatch �
 recorded unavailable/protocol blocker не скрывать public catalog success. Missing/
 revoked Go key блокирует live только; supplied key не попадает в artifacts/logs/Git.
 Existing mandatory OpenProxy live gates остаются отдельной обязанностью.
+
+## Provider-error retry parity — T54/RET01 + T44/VIS43 (approved 2026-09-29; pending)
+
+[T54 frozen contract](goals/2026-09-29-provider-retry-parity.md) и RET01 в
+`planning/acceptance.json` имеют только T54 как owner. Старые PROV06/PROV07,
+AUD11/AUD13 сохраняют владельцев/регрессии; GO03/T53 доказывает применение
+общей policy новыми wires, не отдельный retry-loop. T44 owns ONLY VIS43
+в `tui-recovery/ACCEPTANCE.json` после явного resume; backend T54 не зависит
+от завершения всей T51/T53/T44. Полный feature parity требует backend и
+парных visual кадров; ни план, ни source-derived/native golden не дают PASS.
+
+| Evidence | Минимальный прямой сценарий |
+| --- | --- |
+| RET01 policy | Таблица fake HTTP/SSE: 429 throttle vs exhausted quota, 402/401/403/400/413, 408/409/5xx, context overflow, body/code/event status и observed `x-should-retry`; numeric/date `Retry-After`, `retry-after-ms` priority/clamp, HTTP-200 SSE не наследует retryAfterMs, но видит HTTP override. Generic `providerError` event terminal. Clock+RNG фиксируют 2/4/8/10s ±20%, attempt 2…11 и cancellable sleep без реальных минут. |
+| RET01 lifecycle | Один physical POST на adapter call, before-output same assistant и mixed failures с общей step allowance; after-output continuation сохраняет partial text/reasoning/settled results и новый assistant span, не исполняет partial args/unknown effects. Empty EOF, typed failed/incomplete, length/content-filter, exhausted budget, publish/storage/cancel/backoff и bounded physical request count проверяются владельческими тестами. |
+| RET01 integration | Rebuilt actual binary fake-provider headless NDJSON и PTY: pending retry не terminal failure, persisted/reopen/parked notice не теряется, selected provider/model/headers/config pinned, stale/foreign events не изменяют view, cancel во время ожидания не отправляет следующий POST. A02/A04/A07/A08/A10/A13 и затронутые PROV07/AUD11/AUD13/security regressions не ослабляются. |
+| VIS43 | Source-derived UI-clock/render + running pinned-original/native paired full styled cells/PNG/cursor для warning/spacing/footer/countdown→due→step start/reschedule, safe long Unicode error, quota/terminal/cancel, partial→new span→success→reopen старого completed span. Donor 44/100 + применимые утверждённые 80x24/120x40/160x48 и узкие wrap cases, без полного cartesian product; idle timer останавливается, tab/cursor/draft/busy остаются owner-backed. |
+
+Использовать уже действующие affected crate + финальные workspace gates выше.
+Fault injection только offline; новый paid campaign ради 429/5xx не нужен.
+Ограничение ≤24 физических запросов принадлежит явно допущенной live
+кампании, **не** production turn cap. Прежний `docs/CONTRACTS.md` обещал
+суммарный физический счётчик, но native `rounds` считал только успешные
+generations; RET01 обязан измерить выдачу всех запросов, согласовать её
+с logical step/round пределами без магического нового потолка. T30 FINAL
+ссылается на RET01, GO03 при допуске Chat/Messages и VIS43; никакого
+history-PASS или NOT_RUN→PASS по обновлению registry.

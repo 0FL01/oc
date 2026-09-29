@@ -219,6 +219,34 @@ MCP ownership остаётся T46, visual — T44 после explicit resume; T
 Это доставка плана, не runtime PASS и не завершение T51/A13; historical evidence
 и execution statuses не переписываются.
 
+## Owner scope amendment (2026-09-29 — LLM-provider retry и TUI)
+
+Владелец запросил полный retry parity с pinned OC2 v2.0.12 для ошибок
+LLM-провайдера (временные лимиты, исчерпанная квота, 5xx) и визуальный
+паритет при retry. После RECON и независимого аудита утверждён
+[T54 backend contract](docs/goals/2026-09-29-provider-retry-parity.md) с одним
+RET01; [T44 VIS43](tui-recovery/T44_CONTRACT_AMENDMENT.md) владеет только
+парным TUI-доказательством после явного resume. Полный retry parity нельзя
+заявить по одним RET01/нативным golden. Это узкое исключение из общего A08
+«pixel parity не требуется» для retry notice, не требование завершить весь T44.
+Новые Chat/Messages из T53/GO03 обязаны потреблять общий retry owner при
+их допуске; текущий Responses
+result не ждёт завершения всей T53/T44/T51. T44 остаётся PAUSED.
+
+Узко superseded старое pre-first-event-only/две попытки в
+`docs/CONTRACTS.md`: типизированные ошибки, конечные задержки и
+продолжение после частичного вывода разрешены **без** повторного исполнения
+подтверждённых/неизвестных tools. `response.incomplete(max_output_tokens)`
+сохраняет явный `length`, а не становится скрытым полным ответом; EOF/
+unknown-incomplete/exhaustion без подлинного завершения — non-success.
+Исчерпанная quota по умолчанию terminal, временный throttle/server — retry;
+наблюдаемый provider header имеет строго bounded override. Immutable raw
+history/DCP, binding/credential/config generation, validation, redaction,
+trust/permissions, cancellation, timeout/resource caps и no unknown-effect
+replay не ослабляются. T51 readiness refresh, discovery и MCP retries не
+являются paid generation retry. План pending/NOT_RUN, historical PASS и
+execution statuses не переписываются; A01–A13/mandatory gates сохраняются.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

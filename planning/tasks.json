@@ -503,13 +503,15 @@
         "T45",
         "T46",
         "T47",
-        "T52"
+        "T52",
+        "T53",
+        "T54"
       ],
       "tests": [
         "OPS02",
         "OPS03"
       ],
-      "work": "Заполнить FINAL по A01–A13 и связать authoritative executable evidence. После backend-изменений повторить AUD38/AUD39 qualification на итоговом code commit (ownership остаётся T42); старый PASS не заменяет проверки нового кода. При missing mandatory live evidence записать BUILD_READY_LIVE_BLOCKED и block T30. Выполнить final staged secret review, reviewed own-branch push и отдельный delivery status; не объявлять READY при открытом обязательном scope.",
+      "work": "Заполнить FINAL по A01–A13 и связать authoritative executable evidence. RET01/T54 и VIS43/T44 обязательны для заявленного provider-retry parity; GO03/T53 — для допуска новых Chat/Messages wires, без зависимости T54 от завершения T44/T53. После backend-изменений повторить AUD38/AUD39 qualification на итоговом code commit (ownership остаётся T42); старый PASS не заменяет проверки нового кода. При missing mandatory live evidence записать BUILD_READY_LIVE_BLOCKED и block T30. Выполнить final staged secret review, reviewed own-branch push и отдельный delivery status; не объявлять READY при открытом обязательном scope.",
       "evidence": "evidence/T30/report.md",
       "spec": "roadmap/M6.md"
     },
@@ -727,7 +729,7 @@
     {
       "id": "T44",
       "phase": "M9",
-      "title": "TUI pixel parity с opencode v2.0.12, включая Approve (VIS36), question (VIS37), DCP (VIS38), subagent (VIS39), MCP modal/startup (VIS19/VIS40), tab hover-marquee (VIS41), plugin/service errors (VIS42)",
+      "title": "TUI pixel parity с opencode v2.0.12, включая Approve (VIS36), question (VIS37), DCP (VIS38), subagent (VIS39), MCP modal/startup (VIS19/VIS40), tab hover-marquee (VIS41), plugin/service errors (VIS42), provider retry (VIS43)",
       "depends_on": [],
       "tests": [
         "A02",
@@ -841,6 +843,16 @@
       "work": "Owner-approved 2026-09-29 Go plan after RECON/general audit; R1-R6 and ordered slices in spec. One existing SQLite Key/OAuth credential owner, explicit custom None/Key/OAuth and endpoint authority; no auth.json/import or OAuth execution. Preserve OpenProxy config/key priority/oracle; anonymous llama.cpp needs no dummy key. Go public models.dev/auth-independent cache -> native Responses/Chat/Messages + immutable all-lane headers/protocol-safe journal/DCP/fork -> fresh-start masked /connect/accounts/provider-aware /models -> GO01-GO06 offline/final/bounded live qualification. Minimal qualified T51/T47 seams and shared T50 lookup, no whole-task dependency; T44 PAUSED. No hardcoded model/guessed route/paid fallback. Plan todo, implementation NOT_STARTED; prior statuses/PASS unchanged.",
       "evidence": "evidence/T53/report.md",
       "spec": "docs/goals/2026-09-29-opencode-go-and-provider-auth.md"
+    },
+    {
+      "id": "T54",
+      "phase": "M8",
+      "title": "Provider-error retry and safe continuation parity (OC2 v2.0.12)",
+      "depends_on": ["T12"],
+      "tests": ["A02", "A04", "A07", "A08", "A10", "A13", "RET01"],
+      "work": "Owner-approved 2026-09-29 provider-error retry plan: typed HTTP/Responses SSE errors, quota versus transient throttle, one cancellable finite per-logical-step policy and one physical attempt per adapter call; truthful pre-output retry versus post-output durable continuation, no tool/effect replay or failed-attempt success. Main/child/compaction auxiliary lanes, pinned bindings, physical dispatch accounting and actual-binary headless/PTY qualification in spec. T53/GO03 reuses the policy on future Chat/Messages wires; T44/VIS43 owns paired retry visuals after explicit resume. Consume minimal qualified T51 seam, no whole-task T51/T53/T44 dependency, daemon, JS hooks or new retry framework. Plan only: pending/NOT_RUN, historical statuses/PASS unchanged.",
+      "evidence": "evidence/T54/report.md",
+      "spec": "docs/goals/2026-09-29-provider-retry-parity.md"
     }
   ]
 }

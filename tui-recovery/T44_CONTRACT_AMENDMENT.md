@@ -1022,6 +1022,61 @@ VIS42 mandatory NOT_RUN/evidence empty; VIS19/VIS40 remain open until current ba
 and paired qualification. No execution status/history/PASS rewrite. T46/T51 own backend
 scenarios, T44 owns VIS only; minimal slice dependencies have no circular task completion.
 
+## Provider-error retry footer — VIS43
+
+Owner-approved 2026-09-29 after OC2 retry RECON and independent audit:
+[T54/RET01](../docs/goals/2026-09-29-provider-retry-parity.md) owns classified
+generation errors, finite continuation, durable assistant-span facts and actual
+headless/PTY effects; future T53/GO03 wires consume its policy. T44 owns only
+visible/interactive VIS43 after **explicit resume** from PAUSED, without
+whole-T54/T53 completion dependency or duplicate retry owner. Pinned sources
+U69–U73; startup/MCP retry VIS19/VIS40/VIS42 is a separate feature.
+
+1. **Assistant footer.** On an assistant bearing a retry descriptor, draw
+   `⚠ Retrying in Ns · attempt N · <safe error>` in warning color, left padding 3;
+   `N = max(0, ceil((at - now)/1000))`. At zero draw `⚠ Retry due · attempt N · …`,
+   never `in 0s`. Update immediately, then at 1s intervals until due/clear,
+   even with animations off; stop the timer at due and use existing UI deadline
+   scheduler, not a new spinner or idle poll. Ordinary text wrapping; no
+   truncation/detail modal. Suppress a simultaneous `Error:` line, place one
+   blank row before agent/model footer and mute the agent only if the assistant
+   actually has an error. Preserve normal model/width/timing/usage footer rules,
+   disabled animation and surrounding busy indicators without adding a retry badge.
+2. **Lifecycle and causality.** Publish retry only from T54 owner state; neither
+   provider failure before scheduled wait nor intermediate step failure is a
+   terminal TurnFailed/headless done. Semantic `step.started`, not physical POST
+   or `response.created`, clears a matching span's retry or the last *unfinished*
+   assistant before a new span. A failed completed partial span can retain its
+   own historical retry even after the continuation's new assistant succeeds;
+   that descriptor never means active wait, cancel authority or restart work.
+   Active retry/terminal/cancel/shutdown changes only currently unfinished
+   owner state. Keep safe error message controls/redaction and session/turn/span
+   identity; ignore stale foreign events.
+3. **Navigation.** Retained same-Location tab park/return/reopen and actual
+   history read preserve the notice, draft, selection, scroll and cursor;
+   address events to focused or parked owning view through existing receiver.
+   Do not let an older query overwrite a later retry-clear/delta (local ordered
+   event-loop boundary suffices). Keep accepted worker running, Location/model/
+   permission guards and one-request-at-a-time admission; do not add parallel
+   session execution just for a warning.
+4. **Qualification.** First prove T54/RET01 fake-provider classification,
+   physical request count, cancellation and durable effect safety plus actual
+   rebuilt binary PTY/headless routing. Source-derived clock/render assertions
+   at donor 44/100 widths cover 3→2→1→due, reschedule/attempt, step start,
+   expired due, terminal and cancel. Paired running pinned-original/native
+   full styled-cell/PNG/cursor captures at matched clock/phase, fixture and
+   environment cover retry, success/exhaustion/quota, partial→new span→success
+   with old historical footer, park/reopen and representative long Unicode
+   error. Reuse existing 80x24/120x40/160x48 profiles and relevant narrow
+   wrapping boundaries, not every state×width×theme combination. VIS31/normal
+   footer checks cover idle deadlines/resource behavior. No masks, relaxed
+   tolerance, native-only golden parity claim, paid fault campaign or rewrite
+   of prior evidence; reference unavailable means BLOCKED_REFERENCE.
+
+VIS43 mandatory NOT_RUN/evidence empty until actual paired qualification.
+Neither a plan commit nor RET01 PASS resumes/finishes T44 or proves full
+provider-retry visual parity; no new task/progress engine or historical PASS.
+
 ## Обязательные результаты нового прохода
 
 V00–V09 из IMPLEMENTATION_GUIDE.md и все mandatory сценарии из актуального ACCEPTANCE.json:

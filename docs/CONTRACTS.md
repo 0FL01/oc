@@ -56,9 +56,37 @@ Multi-file patch не атомарен целиком: preflight всех entrie
 
 ConfigInvalid/UnsupportedCapability/UnsupportedPlugin/MissingCredential/StaleGeneration/UnknownAgent/UnknownCommand/UnknownSkill/UnknownModel/InvalidVariant; PermissionDenied/ApprovalRequired; Conflict/PathDenied/PatchInvalid; ProviderAuth/RateLimited/ProviderTimeout/ProtocolError/ContextLimit; McpUnavailable/McpProtocol/McpToolError; StorageFull/StorageBusy/DataRootBusy; Cancelled/Interrupted/UnknownOutcome.
 
-Retry только в одном явно указанном месте. Discovery имеет собственный user-defined bounded retry. MCP invocation retry по умолчанию отсутствует. Генерация не повторяется после first committed response event/текстовых deltas; initial transient failure допускает не более 2 новых попыток в текущем turn при отсутствии side effects, с видимым счетчиком и bounded Retry-After. 400/401/403/413/422 не циклятся; context error не приводит к молчаливой потере сообщений.
+Retry только в одном явно указанном месте. Discovery имеет собственный
+user-defined bounded retry; MCP invocation retry по умолчанию отсутствует.
+Owner-approved T54/RET01 supersedes только старый pre-first-event/two-retries
+generation default: одна физическая попытка в adapter, одна runtime policy
+на логический LLM step, первоначальный запрос + до 10 retries со source-derived
+2/4/8/10s jitter, bounded Retry-After и отменяемым ожиданием. 400/401/403/
+413/422 и исчерпанная quota по умолчанию terminal; структурированный
+наблюдаемый `x-should-retry` может переопределить default provider-policy,
+но не trust/validation/permissions/caps. Context error идёт в отдельную
+compaction ветку без молчаливой потери сообщений.
 
-Изначальные provider retries — технический default; они не копируются в OpenProxy, не размножаются в HTTP adapter/SDK layers. Суммарный request counter входит в turn limit.
+До фактического output retry сохраняет assistant-step identity, не
+публикует terminal turn failure. После output допускается только
+source-derived continuation из зафиксированного partial context с новым
+assistant-span и общей для этого шага конечной allowance, не повтор исходной
+committed generation. Partial tool args не исполняются; committed/unknown
+effects не replay и не превращаются в успех. EOF/failed/unknown-incomplete
+без последующего terminal остаются non-success; явный
+`response.incomplete(max_output_tokens)` — truthful finish `length`,
+`content_filter` — failure, не generic retry. Title не получает main policy;
+поддержанные compaction auxiliary paths имеют свою finite allowance.
+
+Physical generation request counter включает фактически выданные attempts,
+follow-ups/children/compaction/title и участвует в пределах owning turn;
+logical round/step cap и finite retry allowances остаются отдельными.
+Существующий test-campaign ceiling ≤24 requests — не новый production cap;
+adapter/OpenProxy/SDK не получают второго retry слоя. Durable retry descriptor
+на assistant-span — история и UI, не разрешение на dispatch после crash;
+clearing привязан к смысловому началу следующего шага, не HTTP POST.
+Точный contract/owners: [T54](goals/2026-09-29-provider-retry-parity.md),
+T53/GO03 для будущих wires и T44/VIS43 для visual parity.
 
 ## Permissions
 
