@@ -36,7 +36,7 @@
 
 **A12 HANDOFF:** `evidence/FINAL.md` содержит code commit, команды проверки, отдельный результат каждого A-gate, supported differences, инструкцию запуска и известные ограничения. Лицензии и provenance DCP/upstream сохранены до push производного кода. Нет обещания full OpenCode parity.
 
-**A13 CONFIGURED WORKSPACE:** global и Location-local `opencode.json/jsonc`, ordered `AGENTS.md`, `.opencode`, skills, primary agents и current-session commands загружаются с pinned precedence, provenance и actionable diagnostics. Один turn использует одну immutable Location/config generation; switch сохраняет global и полностью убирает старое project-local состояние. Skill body появляется только как bounded result native `skill`; exact DCP и admitted `openproxy-models.js` aliases включают native modules, а прочие JS/TS/package plugins дают per-entry failed/`UnsupportedPlugin` до исполнения и без Node/Bun, не обрушая исправную локальную часть приложения (T51). CFG05–CFG10, TOOL11, UI06/UI07 и E2E05 проходят.
+**A13 CONFIGURED WORKSPACE:** global и Location-local `opencode.json/jsonc`, ordered `AGENTS.md`, `.opencode`, skills, primary agents и current-session commands загружаются с pinned precedence, provenance и actionable diagnostics. Один turn использует одну immutable Location/config generation; switch сохраняет global и полностью убирает старое project-local состояние. Skill body появляется только как bounded result native `skill`; exact DCP и admitted `openproxy-models.js` aliases включают native modules, а прочие JS/TS/package plugins дают per-entry failed/`UnsupportedPlugin` до исполнения и без Node/Bun, не обрушая исправную локальную часть приложения (T51). Унаследованные OpenCode TS конфиги/MCP и недоступные saved agent/model/variant не блокируют исправный локальный Home/history/selectors; недоступный выбор остаётся явным и запрещает запрос до effects, без скрытого fallback/reset или ослабления policy. CFG05–CFG10, TOOL11, UI06/UI07 и E2E05/E2E06 проходят; E2E06 обязательно квалифицирует rebuilt release-бинарник в реальной текущей пользовательской среде под PTY/strace, с existing и fresh native data roots.
 
 Детальные test IDs и методики: `docs/TEST_PLAN.md`. Задачи/зависимости: `planning/tasks.json`.
 
@@ -195,6 +195,29 @@ Protocol-safe immutable journals/DCP/forks и pre-effect unavailable refusal о�
 T50 потребляет общий catalog. T44 остаётся PAUSED и владеет отдельной visual
 qualification после explicit resume. T53 todo, реализация/Go live pending/NOT_RUN;
 existing execution statuses и исторические PASS не переписываются.
+
+## Owner scope amendment (2026-09-29 — inherited TS config / real-user startup)
+
+Владелец потребовал закрыть startup gap для пользователей с накопленными конфигами
+и MCP от OpenCode TS, проверить текущую конфликтующую среду от лица пользователя
+и запуск бинарника под `strace`; затем утвердил внесение этого дополнения в план.
+[T51 R4/E2E06](docs/goals/2026-09-27-startup-fault-isolation.md) дополняет R1–R3:
+saved missing/invalid agent/model/variant, включая restored/parked tabs, не обрушает
+локальный TUI. Нужны явное unavailable состояние и ручное исправление выбора;
+turn/headless с ним отказывают до generation/tools, не выбирают sibling/default.
+Mandatory policy/trust/storage/recovery/cleanup/caps остаются настоящими fatal.
+
+E2E06 имеет одного владельца T51: source-derived offline regression/recovery плюс
+bounded PTY/strace текущего non-root пользователя, реальных HOME/XDG/PATH/Location
+и неизменённых config sources. Обязательны bare `target/release/oc` с существующим
+default native store и тот же config environment с fresh `--data-dir`. `--help`,
+temp HOME, только fresh store или NOT_RUN не заменяют real-user qualification.
+Методика и безопасные trace/effect assertions — [TEST_PLAN](docs/TEST_PLAN.md#e2e06--inherited-ts-config--real-user-startup-approved-2026-09-29-pending),
+порядок — [M8](roadmap/M8.md). No paid generation в пользовательском workspace;
+никакого TS DB import/migration, редактирования user config или сброса native prefs.
+MCP ownership остаётся T46, visual — T44 после explicit resume; T44 остаётся PAUSED.
+Это доставка плана, не runtime PASS и не завершение T51/A13; historical evidence
+и execution statuses не переписываются.
 
 ## Исполнение
 

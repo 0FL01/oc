@@ -284,6 +284,86 @@ New runtime evidence requires targeted affected-crate checks and workspace fmt/c
 tests/build at integration/final acceptance. A02/A03/A06/A08/A10/A13, T46 R4 and existing
 mandatory live gates remain; historical PASS is neither edited nor reused as new proof.
 
+## E2E06 — inherited TS config / real-user startup (approved 2026-09-29; pending)
+
+Only T51/R4 owns E2E06; E2E05 remains T25's hermetic configured-workspace scenario.
+This is mandatory T51/A13 qualification, not an optional replacement for runtime
+evidence. Reuse CFG09/CFG10/UI07 and MCP09/MCP10 without reassigning their owners;
+T44 visual qualification remains separate and PAUSED until explicit resume.
+
+### Required profiles and assertions
+
+1. **Source-derived deterministic regression.** With fake discovery/Responses/MCP,
+   combine the current conflict's supported global + Location + .opencode sources,
+   unsupported plugin marker, legacy DCP/compaction diagnostics, disabled MCP with
+   environment/timeout, discovery 401 and saved missing agent (such as build-yolo)
+   in active/parked tabs restored before Home. Use synthetic secrets, not copied user
+   config/DB. Assert pinned precedence and independent diagnostics, responsive Home,
+   stored history and agent/model/variant selectors. Cover saved missing/invalid
+   agent/model/variant by owner facts, not keyword matching of an error frame.
+   Unavailable identity/cause remains visible; no default/sibling fallback, automatic
+   deck/selection reset, preference rewrite or wider policy. An attempted invalid
+   turn and headless request produce typed pre-effect refusal and zero generation/
+   tool calls. Keep mandatory malformed policy/trust/storage/recovery/cleanup/caps
+   fatal; selected malformed agent must not authorize built-in/sibling behavior.
+2. **Current real-user existing-store launch.** Rebuild and retain target/release/oc;
+   run bare target/release/oc under bounded PTY/strace as the current non-root user,
+   from the current Location with inherited HOME/XDG/PATH and actual config resolution.
+   Do not env_clear, replace HOME/XDG/config roots, switch cwd or pass a fresh data-dir.
+   Record which admitted global/project/.opencode roots and default native store were
+   actually opened, without printing config/env values or sensitive absolute paths.
+   Exercise Home, existing history, diagnostics and selectors before any prompt;
+   stale parked tab/selection must not cause the reported startup error frame.
+   Do not change user selections/history/config to make this test pass. Normal owned
+   native lock/WAL/recovery/startup-trace writes are expected, not read-only behavior.
+3. **First-native-start real-user launch.** Run the same rebuilt release binary,
+   current user/Location and unchanged real config environment under PTY/strace with
+   a fresh isolated --data-dir. This proves existing TS config coexistence without
+   native prefs, not migration/import of the TS database. Both profiles 2 and 3 are
+   required; neither substitutes for the other or for the fixture regression.
+4. **Explicit repair and durable recovery.** On the controlled fake-service fixture,
+   explicitly choose a valid primary agent/model/variant, send a request and assert
+   captured identity/effect counters, then restart/reopen and verify that choice and
+   history. No exact generated prose assertion, hidden fallback or uncertain-effect
+   replay. This exercises generation/recovery without paid requests or test edits in
+   the actual user's workspace; real-user profiles do not send generation prompts.
+
+### Trace, safety and evidence
+
+- Use a locally opt-in harness for real-user profiles, but require successful evidence
+  before T51/A13 closure. Preflight non-root identity, current branch/binary revision,
+  terminal/profile, config-root resolution and default-store ownership without secrets.
+  Freeze explicit watchdog and output bounds respecting existing discovery/MCP budgets;
+  do not shorten service deadlines to obtain green. A competing store owner is a real
+  lock blocker, not permission to kill it, reset data or substitute only a fresh store.
+- Trace only the launched oc and its owned descendants (-f), not unrelated processes.
+  Capture config/store opens and locks, connect, process creation/exec/wait/exit and
+  cleanup metadata. Exclude read/write/send/recv payloads and environment dumps; render
+  execve/execveat arguments raw (e.g. -e raw=execve,execveat) to avoid logging argv/env
+  contents. Redact sensitive paths/address details before a report; no raw user logs,
+  config, database, secrets, auth headers or credentials in Git/copy/evidence.
+- Pair trace metadata with typed inventory and deterministic fixture marker/call
+  counters: disabled MCP means zero npx/browser spawn/probe, unsupported plugin means
+  zero resolver/import/file-as-code/execution/network for that entry. Attribute any
+  admitted enabled external MCP startup separately; it is an explicit dependency,
+  not evidence of a forbidden JS host. Discovery failure is visible, not fatal local
+  startup. Verify clean owned task/process shutdown and restored terminal state.
+- Original user configs and TS database stay untouched; no native data wipe/migration
+  or preference reset. Respect admission/credential-domain boundaries and existing
+  quarantine/retry/atomic-generation rules. Reuse runbook campaign/effect limits;
+  do not extract runner-auth or start an extra paid/browser campaign.
+- Raw logs stay in bounded gitignored per-run storage: existing 16 MiB/log and 1 GiB
+  own total limits, explicit truncation status. Sanitized evidence/T51/report.md records
+  exact commands, rebuilt binary source revision, exits, profile-specific interaction/
+  effect/cleanup results and trace findings. Separate fixture vs existing-store vs
+  fresh-store vs recovery PASS/FAIL/NOT_RUN/BLOCKED; missing mandatory evidence cannot
+  be labelled PASS. The observed strace --help exit 0 does not exercise config/startup.
+  Temp HOME, --help, fixture-only PASS or fresh native data alone cannot close E2E06.
+- Run nearest selection/startup tests and affected-crate checks, then required workspace
+  fmt/clippy/tests/build and rebuilt debug/release regressions at integration/final
+  acceptance. Docs checks prove registry consistency only; historical PASS and existing
+  execution statuses remain unchanged by this plan delivery.
+
 ## T50 selected native tools qualification (approved 2026-09-27; pending)
 
 TOOL12–TOOL19 in planning/acceptance.json have only T50 as owner; relevant high-level
