@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-29T21:25:52+00:00",
-  "current": "T51",
+  "updated_at": "2026-09-29T21:51:52+00:00",
+  "current": null,
   "tasks": {
     "T00": {
       "status": "done",
@@ -354,10 +354,10 @@
       "reopen_reason": null
     },
     "T51": {
-      "status": "active",
-      "last_seq": 4,
-      "latest": "progress/M8/T51/0004.md",
-      "evidence": null,
+      "status": "done",
+      "last_seq": 5,
+      "latest": "progress/M8/T51/0005.md",
+      "evidence": "evidence/T51/report.md",
       "reopen_reason": null
     },
     "T52": {

@@ -8,6 +8,6 @@ Plan: ../../roadmap/M8.md
 - [T47](T47/INDEX.md) [done] — Model admission: unknown limits, explicit variants и canonical effort ordering; latest: 0001.md.
 - [T49](T49/INDEX.md) [done] — Turn model identity and ancillary request attribution; latest: 0008.md.
 - [T50](T50/INDEX.md) [todo] — Selected native tool parity: shell/search/question/read/fetch/session controls; latest: нет.
-- [T51](T51/INDEX.md) [active] — Startup fault isolation: plugins/provider readiness и typed actionable diagnostics; latest: 0004.md.
+- [T51](T51/INDEX.md) [done] — Startup fault isolation: plugins/provider readiness и typed actionable diagnostics; latest: 0005.md.
 - [T53](T53/INDEX.md) [todo] — OpenCode Go: единые credentials, native wires и connect/model TUI; latest: нет.
 - [T54](T54/INDEX.md) [todo] — Provider-error retry and safe continuation parity (OC2 v2.0.12); latest: нет.
