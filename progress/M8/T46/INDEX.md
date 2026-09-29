@@ -1,6 +1,6 @@
 # T46 — MCP config/startup parity: per-server degradation, cwd/environment, async lifecycle + User-Agent
 
-Status: active
+Status: done
 Spec: ../../../docs/goals/2026-09-22-mcp-attach-parity.md
 
 Последние 12 записей; остальные доступны по номеру/targeted search.
@@ -11,3 +11,4 @@ Spec: ../../../docs/goals/2026-09-22-mcp-attach-parity.md
 - [0004](0004.md)
 - [0005](0005.md)
 - [0006](0006.md)
+- [0007](0007.md)

@@ -1,8 +1,8 @@
 # Goal: MCP attach parity с opencode v2.0.12
 
-Status: active
+Status: complete (assigned T46 backend scope; T44/product qualification separate)
 Source: инструкция владельца 2026-09-22 и утверждённый после RECON план 2026-09-27 (MCP config/startup/failure parity), reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`).
-Last updated: 2026-09-27
+Last updated: 2026-09-29
 
 ## Objective
 
@@ -36,44 +36,44 @@ required outcome is resolved and affected constraints remain satisfied.
 - R1: per-server деградация вместо отказа turn.
   - Source: upstream `packages/core/src/mcp/index.ts` (status `pending|connected|disabled|failed|needs_auth`, `logWarning`, turn продолжается) и `docs/DECISIONS.md` D13.
   - Acceptance: `attach_mcp` при ошибке одного enabled-сервера записывает санитизированную деградацию (`mcp <id> <stage>: <code> (retryable=<bool>)`), выполняет cleanup этого сервера и продолжает; turn завершается, инструменты упавшего сервера в реестре отсутствуют.
-  - Status: pending
+   - Status: verified (current report; historical baseline retained)
   - Evidence: `evidence/T46/report.md`
 
 - R2: деградация видима, а не silent.
   - Acceptance: `TurnReport.warnings` несёт деградации generation; TUI показывает `warning: …` note, headless печатает `warning: …` в stderr; в предупреждении нет URL, заголовков и значений секретов.
-  - Status: pending
+   - Status: verified (scoped current/late warnings and actual native live run)
   - Evidence: `evidence/T46/report.md`
 
 - R3: `User-Agent` на outbound HTTP-клиентах.
   - Acceptance: MCP remote, provider generation и discovery отправляют статический `oc/<version>`; webfetch — browser-like `oc-user/1.0` (паттерн upstream `OpenCode-User/1.0`: страницы блокируют клиента без UA); тесты фиксируют наличие UA на каждом клиенте.
-  - Status: pending
+   - Status: verified (fresh client regressions and actual CRW attach)
   - Evidence: `evidence/T46/report.md`
 
 - R4: живая проверка в окружении владельца.
   - Acceptance: `oc run` с включённым crw подключает сервер (каталог доступен), а `codex_web` остаётся connected с search; при недоступном сервере turn завершается с видимым warning.
-  - Status: pending (требует live credentials владельца)
+   - Status: verified (bounded owner-live; same continuing campaign, 8 generation / 1 search)
   - Evidence: `evidence/T46/report.md`
 
 - R5: typed MCP status/control projection для T44/VIS40.
   - Source: owner-approved MCP modal plan 2026-09-27; pinned `packages/core/src/mcp/index.ts:380–447,593–609` and `packages/tui/src/component/dialog-mcp.tsx:37–175` (U50/U54).
   - Acceptance: MCP08 proves bounded current-Location/config-generation server snapshots, including disabled entries, from actual owner state; configured-enabled is not connected. Genuine pending/connected/disabled/failed and any typed auth-required outcome are not parsed from server names/free text. Actual async connect/disconnect/retry reuse existing clients/registry; connected requires initialize and catalog success, disconnect closes owned resources, catalog changes publish only at safe request boundaries. Reads/resize/cancel stay responsive during a turn instead of waiting behind its long-held MCP mutex. Pending actions are coalesced/revalidated by server/Location/generation, late completions cannot mutate a new generation. Failed attach remains visible per D13 without cancelling the turn; fatal cancellation/cleanup/caps remain. Runtime controls do not secretly rewrite config, auto-enable disabled browser, clear quarantine or replay uncertain tool effects. Reopen reads current state; restart rebuilds state from effective config, never restores stale connected labels or claims persisted runtime toggles. T44 consumes this slice and separately qualifies the modal; no all-T46 or reverse completion dependency.
   - Primary evidence: rebuilt actual binary + fake HTTP/stdio initialize/catalog/disconnect/retry counters and owned process cleanup, current/next request catalogs and Location/restart/late-action assertions under MCP08, reusing MCP07/AUD23/MCP05.
-  - Status: pending
-  - Evidence: pending — `evidence/T46/report.md`; paired visual evidence belongs to T44/VIS40.
+   - Status: verified
+   - Evidence: `evidence/T46/report.md`, `evidence/T46/lifecycle.md`; paired visual evidence belongs to T44/VIS40.
 
 - R6: donor-compatible config admission и настоящий local launch.
   - Source: утверждённый план 2026-09-27; pinned `packages/core/src/v1/config/mcp.ts`, `v1/config/migrate.ts:202–225`, `config/normalize.ts:260–293,633–696`, `config/plugin/mcp.ts`, `packages/schema/src/mcp.ts:7–64`, `packages/core/src/mcp/client.ts:195–207`, `mcp/stdio.ts:17–31,80–89`.
   - Acceptance: MCP09 проверяет матрицу ниже через общий trust→substitute→normalize→validate pipeline. Legacy/canonical/global timeout и precedence имеют донорскую семантику, неизвестные не-security fields не вызывают общий отказ. Некорректная recognized запись остаётся в bounded diagnostic inventory с server/source/field/stage/safe code и без tools/process/network; валидные соседи сохраняются. Unsupported OAuth/CodeMode/protocol — per-server capability failure, не молчаливое принятие. Валидный disabled chrome с `environment:{npm_config_offline:"true"}`/timeout запускает TUI с нулём npx/browser effects. Для admitted local fake MCP actual argv/cwd/inherited env/overlay/PATH и раздельные deadlines соответствуют normalized config. Explain/logs/UI/history не раскрывают env/credential values; исходные файлы не меняются.
   - Primary evidence: source-derived normalization fixtures плюс rebuilt actual binary/fake stdio cwd/env/argv and process counters; reuse CFG02/CFG04/AUD22/MCP04/MCP05, новый owner только MCP09.
-  - Status: pending
-  - Evidence: pending — `evidence/T46/report.md`; historical stdio tests не квалифицируют новый env contract.
+   - Status: verified
+   - Evidence: `evidence/T46/report.md`, `evidence/T46/config-admission.md`; actual new env/launch evidence, not historical stdio inheritance.
 
 - R7: независимый асинхронный initial MCP startup.
   - Source: утверждённый план 2026-09-27; pinned `packages/core/src/mcp/index.ts:355–447,487–513,583–638`.
   - Acceptance: MCP10 доказывает startup до prompt с одним healthy, одним barrier-held slow и одним failed MCP: TUI/history/status и healthy server доступны, failed не отменяет запуск/turn, slow не удерживает global launch barrier. Initialize+catalog precede connected; только доступные tools/guidance попадают в новый request snapshot. Все клиенты/actions/startup принадлежат существующему owner; late completion/reload/Location/cancel/shutdown не смешивают generations и не оставляют owned tasks/children. Config/startup failures сразу видны R5-consumer; исправление config/retry восстанавливает фактическое состояние на безопасной границе, не исполняет неизвестный tool effect.
   - Primary evidence: rebuilt actual binary + barrier-controlled HTTP/stdio counters, pre-prompt PTY responsiveness, first/next request catalogs и owned cleanup; reuse MCP08/AUD23/A02/A10 без второго lifecycle registry.
-  - Status: pending
-  - Evidence: pending — `evidence/T46/report.md`; paired presentation separately T44/VIS19/VIS40.
+   - Status: verified
+   - Evidence: `evidence/T46/report.md`, `evidence/T46/lifecycle.md`; paired presentation separately T44/VIS19/VIS40.
 
 ## R6 field/capability matrix — approved target, not supported claim
 
@@ -133,7 +133,7 @@ excluded by the older non-goals list. This follow-up does not change T44 surface
 Approval freezes this plan, not implementation PASS. Existing execution statuses,
 evidence and dependencies remain factual; independent T44 slices stay ready.
 
-## Change Envelope and current checkpoint
+## Change Envelope and historical approval checkpoint
 
 - Expected owners/paths: adapters config/composition/mcp_stdio/mcp_remote/application,
   core runtime MCP generations/actions/redactions; direct typed consumers in `oc`/TUI.
@@ -155,3 +155,14 @@ evidence and dependencies remain factual; independent T44 slices stay ready.
 
 - `oc mcp list` CLI и отдельная персистентная status service/panel остаются вне этого среза. Typed snapshots/control для T44/VIS40 входят в R5; прежняя отсрочка всех статусов superseded владельцем 2026-09-27.
 - OAuth, Code Mode, новый protocol/remote-workspace execution plane, отдельный browser-like UA для MCP (webfetch R3 сохраняется), расширение `{file:}` (absolute/`~/`) и прочие parity-дельты вне согласованных R1–R7. Config admission/cwd/env/status/async startup больше не являются non-goals.
+
+## Completion — 2026-09-29
+
+Current `evidence/T46/report.md` verifies R1–R7 and mandatory structured/guidance,
+prompt/resource/template and media follow-up, with existing implementation commits,
+fresh full Rust gates and bounded actual owner-live R4. Frozen behavior, security,
+cleanup/quarantine, request/config ownership and no-JS constraints remain intact.
+The implementation source/report precedes the progress-owner finish; Git delivery
+is checked separately. The approval/history sections above are source context,
+not today's execution state. T44 paired presentation/full V09 and other GOAL
+owners remain open; T46 completion is not product READY or a final stopping point.

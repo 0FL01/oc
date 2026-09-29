@@ -1,27 +1,24 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-29T07:33:10+00:00
-Active: T46
+State updated: 2026-09-29T08:04:13+00:00
+Active: нет
 
 Сверить Git status/diff до выполнения команд.
-Task: T46 — MCP config/startup parity: per-server degradation, cwd/environment, async lifecycle + User-Agent
-Spec: docs/goals/2026-09-22-mcp-attach-parity.md
-Evidence target: evidence/T46/report.md
 
-D13 attach degradation/warnings/UA delivered 3ce5e03/b7ab06d; historical evidence/T46/report.md is not new full-live PASS. Existing remainder structured/textual-resource results, initialize guidance/safe categories (backend-parity.md), mandatory R4 live and media/prompts/resources remain open. Owner-approved 2026-09-27 R5/MCP08 supplies bounded typed Location/generation statuses and real async controls via existing clients/registry. R6/MCP09 adds legacy/canonical/global-timeout normalization and full donor field/capability matrix; per-entry failed config/capability diagnostics preserve valid siblings. Admitted local cwd/environment have actual effects: product-process env inheritance + overlay after command/resource/credential-domain admission; shell minimal env unchanged. Valid disabled chrome with environment/timeout is zero-spawn. R7/MCP10 replaces lazy first-turn/sequential attach with independent async initial connections; healthy/slow/failed startup, pre-prompt UI/status and safe next-request catalogs. Preserve fatal Cancelled/cleanup/caps, AUD23 reaping, immutable generations, redaction/permissions/quarantine/no unknown-effect replay, exact codex_web negotiation and explicit OAuth/CodeMode/protocol differences. T51 independently owns plugin/provider startup isolation/common safe diagnostics; no second MCP owner or whole-task dependency. T44 qualifies VIS19/VIS40 config/startup/modal effects/frames, not all-T46 completion; evidence separate, no new paid/browser campaign or PASS from approval.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
+Последний срез: T46 [done]; сверить незакоммиченный diff.
 
 # T46
 ## Result
-Live attempt non-success; safe receipt diagnostics ready.
+Assigned R1–R7, lookups/media and owner-live R4 PASS.
 ## Checks
-Original campaign 2gen/0search; offline13/15/native4 PASS.
+Rust1263; live same campaign8gen/1search; safe artifacts.
 ## Risks
-Live cause unknown; no R4/READY claim.
+Full T44/V09/A01–13 still open; no READY.
 ## Next
-Same campaign, bounded diagnostic experiment.
+T51 isolation, T44 presentation and other backend/product gates.
 
+
+Следующий шаг: проверить зависимости и начать первую ready-задачу.
 
 Ready (до 5): T45, T50, T51
 Blocked: T27, T43, T44
