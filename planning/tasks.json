@@ -831,6 +831,16 @@
       "work": "Структурный проход без изменения поведения: baseline/test inventory; отдельно крупные unit suites; coarse slices TuiState и Runtime; части integration targets runtime/pty_t39; актуальные owner/test maps и warning-only ориентир 5000 физических строк. Не создавать сотни микрофайлов, новые crates/traits или SHA256-манифесты. Сохранить ownership, публичные пути, test discovery и existing parity/resource gates. Окно 400k использовать выборочно, scouts read-only, один mutation owner. R0–R7 в spec. План не снимает PAUSED T44; старт только после явного resume и корректного scheduling handoff.",
       "evidence": "evidence/T52/report.md",
       "spec": "docs/goals/2026-09-28-code-slices.md"
+    },
+    {
+      "id": "T53",
+      "phase": "M8",
+      "title": "OpenCode Go: единые credentials, native wires и connect/model TUI",
+      "depends_on": [],
+      "tests": ["A02", "A03", "A04", "A07", "A08", "A10", "A13", "GO01", "GO02", "GO03", "GO04", "GO05", "GO06"],
+      "work": "Owner-approved 2026-09-29 Go plan after RECON/general audit; R1-R6 and ordered slices in spec. One existing SQLite Key/OAuth credential owner, explicit custom None/Key/OAuth and endpoint authority; no auth.json/import or OAuth execution. Preserve OpenProxy config/key priority/oracle; anonymous llama.cpp needs no dummy key. Go public models.dev/auth-independent cache -> native Responses/Chat/Messages + immutable all-lane headers/protocol-safe journal/DCP/fork -> fresh-start masked /connect/accounts/provider-aware /models -> GO01-GO06 offline/final/bounded live qualification. Minimal qualified T51/T47 seams and shared T50 lookup, no whole-task dependency; T44 PAUSED. No hardcoded model/guessed route/paid fallback. Plan todo, implementation NOT_STARTED; prior statuses/PASS unchanged.",
+      "evidence": "evidence/T53/report.md",
+      "spec": "docs/goals/2026-09-29-opencode-go-and-provider-auth.md"
     }
   ]
 }

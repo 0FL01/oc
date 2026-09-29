@@ -171,6 +171,31 @@ profile/child selection и immutable generations сохраняются. VAR01 �
 минимальный backend slice предшествует presentation, не whole-task completion. План
 pending/NOT_RUN; исторические PASS, execution statuses и baselines не изменяются.
 
+## Owner scope amendment (2026-09-29 — OpenCode Go и единые provider credentials)
+
+После RECON и независимого аудита владелец утвердил [T53 contract/ordered slices](docs/goals/2026-09-29-opencode-go-and-provider-auth.md)
+и [M8 follow-up](roadmap/M8.md). Добавляются native `opencode-go`, public models.dev
+catalog, Console API-key `/connect`/account management → provider-aware `/models`,
+Go request headers на main/auxiliary lanes и необходимые Chat/Messages adapters
+наряду с Responses. Admitted custom providers используют те же finite protocols:
+explicit no-auth local server не требует dummy key; `ludka2` сохраняет configured
+baseURL/apiKey/headers/options и OpenProxy `/models` oracle без изменения приоритета.
+
+Один credential owner в existing native SQLite хранит tagged Key/OAuth material;
+config/env остаются resolver inputs, endpoint/protocol — connection config. Stored
+credentials привязаны к admitted provider/endpoint scope, не текут при URL override.
+OAuth representation нужна для будущих providers, но Codex/OAuth execution/refresh,
+`auth.json`/import/dual-write, SDK host и generic registry остаются вне этого среза.
+Прежний запрет native families/Chat/direct Go superseded **только** для T53;
+никакого скрытого model/protocol/OAuth fallback или расширения T51.
+
+GO01–GO06 имеют только T53 как owner; A01–A13 и mandatory OpenProxy gates сохраняются.
+Protocol-safe immutable journals/DCP/forks и pre-effect unavailable refusal обязательны.
+Нужны минимальные qualified T51/T47 seams, не whole-task done-dependencies;
+T50 потребляет общий catalog. T44 остаётся PAUSED и владеет отдельной visual
+qualification после explicit resume. T53 todo, реализация/Go live pending/NOT_RUN;
+existing execution statuses и исторические PASS не переписываются.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

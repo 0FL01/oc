@@ -151,6 +151,37 @@ not full upstream pixel parity. T47 owns VAR01 behavior; T44 VIS09/VIS29 qualifi
 presentation using the same ordered fixture on both sides and separately records
 unsorted-fixture differences. Existing statuses and historical PASS remain unchanged.
 
+## Provider connections и единые credentials — T53 (approved 2026-09-29; pending)
+
+Frozen behavior/precedence, endpoint authority, protocol/replay boundary и ordered
+slices: [T53](goals/2026-09-29-opencode-go-and-provider-auth.md). Это future contract,
+не утверждение, что connect/no-auth/Go уже реализованы.
+
+- Connection config (provider/protocol/baseURL/headers/options/model source), auth
+  policy None/Key/OAuth и secret material — разные факты. Один existing native Db
+  owner хранит tagged Key/OAuth accounts; no auth.json/import/dual-write. None не
+  credential row и не missing Key; unsupported OAuth никогда не становится Key.
+- Go: active stored → OPENCODE_API_KEY → configured Key после preset authority
+  admission. OpenProxy/custom: explicit configured Key сохраняет приоритет, scoped
+  stored account — при отсутствии; no implicit foreign provider env inheritance.
+  Custom None явно anonymous, без auth header/dummy key. Existing config default Key.
+- Stored/default-env credentials не авторизуют произвольный URL: built-in Go имеет
+  owned HTTPS prefix, custom namespace включает provider + endpoint/auth scope.
+  Source trust/env substitution сами по себе не credential-domain admission.
+- Public catalog availability, credential source и generation auth rejection
+  независимы. Go models.dev refresh не валидирует key/не очищает auth failure.
+  Effective source/active/effective account публикуются safe DTO, не material.
+- Optional provider-qualified ModelRef проходит actions/preferences/UI/restart;
+  unavailable selection не подменяется. Unready request отказывает до effects.
+  Credential/config/model changes создают новый binding; in-flight работа pinned.
+- Typed credential operations используют existing CoreApp/application/storage
+  owners и expected generation; labels/summaries и acknowledgements safe, secret
+  input ephemeral/redacted вне composer/history/drafts/Debug. Без RPC/auth framework.
+- New protocol/non-secret binding provenance сохраняются во всех journal/SQL/fork
+  projections; opaque replay/checkpoints только compatible, raw history неизменна.
+  Absence protocol — legacy Responses, explicit unknown — safe failure. Token bytes
+  и session telemetry не deployment identity; no unknown-effect replay.
+
 ## Limits и context admission
 
 Резидентная память ограничивается отдельными byte/item caps, а не одним параметром «context tokens». Проверять event size, tool argument bytes, active context serialization, attachment encoding, queued bytes и outputs независимо.

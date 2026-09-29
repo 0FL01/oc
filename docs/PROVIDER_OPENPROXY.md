@@ -4,7 +4,12 @@
 
 ## Граница
 
-Одна native protocol family: OpenAI Responses. `npm: "@ai-sdk/openai"` — compatibility alias. OpenProxy делает свои OAuth/vendor/account routing; `oc` отвечает за историю, tools, context projection, workflow и свои retries. Не обращаться напрямую к Codex/GLM/OpenCode Go API и не внедрять их model lists.
+Для OpenProxy lane одна native protocol family: OpenAI Responses. `npm: "@ai-sdk/openai"` — compatibility alias. OpenProxy делает свои OAuth/vendor/account routing; `oc` отвечает за историю, tools, context projection, workflow и свои retries. Этот lane не обращается напрямую к upstream vendor APIs и не внедряет их model lists.
+
+Owner-approved [T53](goals/2026-09-29-opencode-go-and-provider-auth.md) отдельно добавляет
+Go/models.dev и общий credential owner (implementation pending). Это не смена
+OpenProxy wire/discovery oracle: configured baseURL/apiKey priority, headers/options,
+trusted exact prefix, retries и metadata authority ниже сохраняются.
 
 Pinned proxy имеет `/v1/responses`, `/responses` и совместимые alias routes; это не основание для blind probing всех URL. Конечный generation URL = `baseURL` без завершающих `/` + `/responses`; discovery = такой же base + `/models`. Prefix path сохраняется. MCP URL задаётся отдельно. Нет автоматического добавления/удаления `/v1`.
 

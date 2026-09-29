@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-29T09:03:42+00:00
+State updated: 2026-09-29T11:11:18+00:00
 Active: T51
 
 Сверить Git status/diff до выполнения команд.
@@ -23,7 +23,7 @@ R2/generalR3 and full V09/READY open.
 Provider cold availability, then safe fatal diagnostics.
 
 
-Ready (до 5): T45, T50
+Ready (до 5): T45, T50, T53
 Blocked: T27, T43, T44
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.

@@ -351,3 +351,33 @@ T52 проверяет ARCH01–ARCH05 из `planning/acceptance.json`; это �
 Чистое перемещение не меняет golden/expected output/timeout/skip/ignored/resource thresholds. Любая наблюдаемая разница — расследовать отдельно, не обновлять baseline автоматически. Для затронутых UI paths использовать существующие deterministic PTY/full-frame сценарии; compare styled cells, cursor и PNG там, где этого требует их контракт. Source-path metadata может измениться, а ожидаемое поведение — нет. Недостающие в присланном архиве raw captures — `NOT_AVAILABLE_IN_ARCHIVE`, не новый PASS или требование восстановить всю многогигабайтную историю.
 
 Размерный helper из T52/R0 warning-only при превышении 5k; его тесты проверяют подсчёт/фильтрацию/Git changes и не превращают ориентир в hidden hard gate. Новых SHA256-based regression gates нет; используем Git identity/diff и семантические проверки. Старые frozen locks и используемые продуктом digests не переписываются в этом scope.
+
+## T53 — OpenCode Go и единые provider credentials (approved 2026-09-29; pending)
+
+[Frozen contract](goals/2026-09-29-opencode-go-and-provider-auth.md) и GO01–GO06 в
+planning/acceptance.json имеют только T53 как owner. Одна integration task, не задачи
+на каждый срез и не reassignment DISC/PROV/VAR01/UI07/T44. Reuse квалифицированных
+минимальных T51 readiness/diagnostic, T47 variant и T50 catalog consumers; T44 PAUSED.
+
+| ID | Минимальная primary evidence surface |
+| --- | --- |
+| GO01 | Synthetic Key/OAuth tagged storage + reopen; transactional account lifecycle, precedence и provider/endpoint authority. None vs missing Key vs unsupported OAuth; config URL change не получает старый secret, no-auth loopback capture без credential headers. Redaction/root/DB/WAL guarantees. |
+| GO02 | Public models.dev fixture/fake clock: no-key fetch без auth headers, source-qualified cache/stale single-flight/offline/last-good/atomic failures; route aliases, actual reasoning overlays, local merge/retirement и auth rejection independence. Existing OpenProxy oracle unaffected. |
+| GO03 | Parameterized fake server: все три protocols text/tool/reasoning/usage, bounded splits/terminal/error/cancel/retry. Exact auth/defaults и captured metadata main/follow-up/title/summary-compaction/child/retry, concurrent identities/held binding. Custom Chat/None и OpenProxy regressions используют те же owner fixtures. |
+| GO04 | Legacy/new journal → SQL presentation/DCP/fork/reopen → next request: protocol/binding/checkpoint guards, ordered complete pairs/MCP indices и raw-history integrity; switch не переносит alien opaque items или unknown effects. |
+| GO05 | Actual-binary fresh offline/no-config/no-key PTY → masked cancel/paste → labeled accounts/source truth → acknowledged Go picker → explicit qualified selection → fake generation/cancel/reopen. Provider-ID collision, retired choice, pinned held request и headless zero-effect refusal; fatal policy/storage boundaries retain non-success. |
+| GO06 | Factual report final fmt/clippy/workspace tests/locked build/help + bounded real Go text/tool representative per protocol и known route-conflict probes. Fake/live/NOT_RUN и exact binding/counters различаются. |
+
+Не дублировать весь matrix на каждом layer и не добавлять тест на каждую ветку.
+Для owned new behavior нужны nearest targeted checks; final cross-crate gates —
+команды раздела «Команды качества» выше. Historical PASS/документный validator
+не квалифицируют новые runtime behavior или full pixel parity.
+
+Live journal/opt-in/envelope **до** requests: ≤24 physical generation HTTP requests
+всего, включая retries/title/compaction/children/protocol probes; output ≤2048 tokens
+на smoke. Выбрать exact present representative каждого protocol, не sweep всех Go
+моделей. Проверить dated `qwen3.8-max`/`qwen3.7-plus` models.dev Chat vs Go-docs Messages
+conflict без hardcoded routing/automatic paid fallback. Unresolved mismatch не PASS;
+recorded unavailable/protocol blocker не скрывать public catalog success. Missing/
+revoked Go key блокирует live только; supplied key не попадает в artifacts/logs/Git.
+Existing mandatory OpenProxy live gates остаются отдельной обязанностью.
