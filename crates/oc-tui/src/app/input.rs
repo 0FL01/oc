@@ -127,18 +127,44 @@ impl TuiState {
                     &self.panel,
                 );
             }
-            TuiPanel::Settings => vec![item(
-                "permissions".into(),
-                "Permissions".into(),
-                "Session",
-                if self.chrome.permissions_auto {
-                    "auto accept"
-                } else {
-                    "prompt"
+            TuiPanel::Settings => {
+                let mut options = vec![item(
+                    "permissions".into(),
+                    "Permissions".into(),
+                    "Session",
+                    if self.chrome.permissions_auto {
+                        "auto accept"
+                    } else {
+                        "prompt"
+                    }
+                    .into(),
+                    false,
+                )];
+                options.extend(self.chrome.plugins.entries.iter().enumerate().map(
+                    |(index, plugin)| {
+                        item(
+                            format!("plugin:{index}"),
+                            format!("{} — {}", plugin.label(), plugin.status.as_str()),
+                            "Compiled plugins",
+                            plugin.to_string(),
+                            false,
+                        )
+                    },
+                ));
+                if self.chrome.plugins.omitted > 0 {
+                    options.push(item(
+                        "plugin:omitted".into(),
+                        format!("{} additional plugin requests", self.chrome.plugins.omitted),
+                        "Compiled plugins",
+                        format!(
+                            "Bounded display; {} failed/unsupported_plugin; active modules: {:?}",
+                            self.chrome.plugins.omitted_failed, self.chrome.plugins.active_modules
+                        ),
+                        false,
+                    ));
                 }
-                .into(),
-                false,
-            )],
+                options
+            }
             TuiPanel::Variant => self
                 .picker
                 .as_ref()
@@ -2443,7 +2469,12 @@ impl TuiState {
             self.changed_modal_query();
             return KeyOutcome::default();
         }
-        if self.panel == TuiPanel::Settings && matches!(action, KeyAction::Left | KeyAction::Right)
+        if self.panel == TuiPanel::Settings
+            && matches!(action, KeyAction::Left | KeyAction::Right)
+            && self
+                .modal_options()
+                .get(self.select.cursor)
+                .is_some_and(|option| option.value == "permissions")
         {
             return KeyOutcome {
                 intent: Some(PanelIntent::SetPermissionMode {
@@ -2594,6 +2625,7 @@ impl TuiState {
                 if matches!(
                     self.panel,
                     TuiPanel::Commands
+                        | TuiPanel::Settings
                         | TuiPanel::Model
                         | TuiPanel::Variant
                         | TuiPanel::Agents
@@ -2900,9 +2932,15 @@ impl TuiState {
                 }
             }
             TuiPanel::Settings => {
-                outcome.intent = Some(PanelIntent::SetPermissionMode {
-                    auto_once: !self.chrome.permissions_auto,
-                });
+                if let Some(option) = self.modal_options().get(self.select.cursor) {
+                    if option.value == "permissions" {
+                        outcome.intent = Some(PanelIntent::SetPermissionMode {
+                            auto_once: !self.chrome.permissions_auto,
+                        });
+                    } else {
+                        outcome.note = Some(option.footer.clone());
+                    }
+                }
             }
             TuiPanel::Agents => match self.selected_agent() {
                 Some(id) => outcome.intent = Some(PanelIntent::SelectAgent { id }),

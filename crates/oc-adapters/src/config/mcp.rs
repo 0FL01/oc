@@ -1,6 +1,6 @@
 //! Pinned MCP forms → one canonical domain; narrow per-entry failure boundary.
 use super::{ConfigError, McpEntry, Source};
-use oc_core::queries::{ServiceAction, ServiceCode, ServiceDiagnostic, ServiceStage};
+use oc_core::queries::{ServiceAction, ServiceCode, ServiceDiagnostic, ServiceKind, ServiceStage};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use sha2::{Digest as _, Sha256};
@@ -53,27 +53,12 @@ pub(crate) fn safe_identity(id: &str) -> String {
 }
 
 pub(crate) fn failure(id: &str, source: &str, field: &str, code: ServiceCode) -> ServiceDiagnostic {
-    let basename = std::path::Path::new(source)
-        .file_name()
-        .and_then(|p| p.to_str())
-        .unwrap_or("config");
     let mut fields = vec!["mcp".into(), safe_identity(id)];
     fields.extend(field.split('.').map(str::to_string));
     ServiceDiagnostic {
+        kind: ServiceKind::Mcp,
         service: safe_identity(id),
-        source: format!(
-            "source-{:x}/{}",
-            u32::from_be_bytes(
-                Sha256::digest(source.as_bytes())[..4]
-                    .try_into()
-                    .expect("digest prefix")
-            ),
-            if matches!(basename, "opencode.json" | "opencode.jsonc") {
-                basename
-            } else {
-                "config"
-            }
-        ),
+        source: safe_source_id(source),
         field: fields,
         stage: if matches!(
             code,
@@ -86,6 +71,28 @@ pub(crate) fn failure(id: &str, source: &str, field: &str, code: ServiceCode) ->
         code,
         action: ServiceAction::ReviewConfiguration,
     }
+}
+
+/// Stable source qualifier shared by optional-service diagnostics. Never exposes
+/// an arbitrary basename, configured directory or control sequence.
+pub(crate) fn safe_source_id(source: &str) -> String {
+    let basename = std::path::Path::new(source)
+        .file_name()
+        .and_then(|p| p.to_str())
+        .unwrap_or("config");
+    format!(
+        "source-{:x}/{}",
+        u32::from_be_bytes(
+            Sha256::digest(source.as_bytes())[..4]
+                .try_into()
+                .expect("digest prefix")
+        ),
+        if matches!(basename, "opencode.json" | "opencode.jsonc") {
+            basename
+        } else {
+            "config"
+        }
+    )
 }
 
 pub(super) fn merge_document(

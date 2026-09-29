@@ -39,7 +39,7 @@ pub enum ConfigError {
     /// Unknown plugin identity.
     #[error("unsupported plugin {identity}: {reason}")]
     UnsupportedPlugin {
-        /// Given identity string.
+        /// Stable opaque requested identity, never raw package/URL/path text.
         identity: String,
         /// Why it is rejected.
         reason: String,
@@ -1197,9 +1197,14 @@ pub fn classify_plugin(identity: &str, config_root: &str) -> Result<&'static str
         return Ok("discovery");
     }
     Err(ConfigError::UnsupportedPlugin {
-        identity: identity.to_string(),
+        identity: safe_plugin_id(identity),
         reason: "unknown JS/TS/package identity".to_string(),
     })
+}
+
+pub(crate) fn safe_plugin_id(identity: &str) -> String {
+    use sha2::{Digest as _, Sha256};
+    format!("plugin-{:x}", Sha256::digest(identity.as_bytes()))
 }
 
 /// Skill frontmatter metadata (all fields optional, upstream parity).
@@ -1494,6 +1499,9 @@ pub fn parse_native_profile(text: &str) -> Result<NativeProfile, ConfigError> {
 #[cfg(test)]
 #[path = "config/mcp_tests.rs"]
 mod mcp_tests;
+#[cfg(test)]
+#[path = "config/plugin_tests.rs"]
+mod plugin_tests;
 
 #[cfg(test)]
 mod tests {

@@ -18,7 +18,7 @@ use std::net::{TcpListener, TcpStream};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -61,6 +61,7 @@ struct Fixture {
     root: tempfile::TempDir,
     requests: Arc<Mutex<Vec<serde_json::Value>>>,
     models: Arc<Mutex<serde_json::Value>>,
+    discoveries: Arc<AtomicUsize>,
     hold_title: Arc<AtomicBool>,
     title_closed: Arc<AtomicBool>,
     s07_continue: Arc<AtomicBool>,
@@ -116,6 +117,8 @@ impl Fixture {
         let captured = requests.clone();
         let models = Arc::new(Mutex::new(serde_json::json!({"object":"list", "data":[]})));
         let discovered = models.clone();
+        let discoveries = Arc::new(AtomicUsize::new(0));
+        let discovery_count = discoveries.clone();
         let hold_title = Arc::new(AtomicBool::new(false));
         let hold = hold_title.clone();
         let title_closed = Arc::new(AtomicBool::new(false));
@@ -138,7 +141,8 @@ impl Fixture {
                         socket
                             .set_write_timeout(Some(DEADLINE))
                             .expect("write timeout");
-                        let Some(body) = read_request(&mut socket, &discovered) else {
+                        let Some(body) = read_request(&mut socket, &discovered, &discovery_count)
+                        else {
                             continue;
                         };
                         captured.lock().expect("requests").push(body.clone());
@@ -182,6 +186,7 @@ impl Fixture {
             root,
             requests,
             models,
+            discoveries,
             hold_title,
             title_closed,
             s07_continue,
@@ -373,6 +378,7 @@ fn dcp_anchors(body: &serde_json::Value) -> Option<Vec<serde_json::Value>> {
 fn read_request(
     socket: &mut TcpStream,
     models: &Mutex<serde_json::Value>,
+    discoveries: &AtomicUsize,
 ) -> Option<serde_json::Value> {
     let mut bytes = Vec::new();
     let mut chunk = [0; 4096];
@@ -395,6 +401,7 @@ fn read_request(
             .contains("authorization: bearer fixture-not-a-secret\r\n")
     );
     if headers.starts_with("GET /proxy/v1/models HTTP/1.1\r\n") {
+        discoveries.fetch_add(1, Ordering::Relaxed);
         let body = models.lock().unwrap().to_string();
         write!(socket, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).expect("discovery response");
         socket.flush().expect("discovery flush");
@@ -1989,3 +1996,5 @@ fn measure_s07(archive: usize) -> S07Run {
 mod interaction;
 #[path = "pty_t39/lifecycle.rs"]
 mod lifecycle;
+#[path = "pty_t39/plugin_admission.rs"]
+mod plugin_admission;

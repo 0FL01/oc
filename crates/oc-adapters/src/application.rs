@@ -38,6 +38,9 @@ mod conversation_tests;
 #[path = "application_fork_tests.rs"]
 mod fork_tests;
 mod mcp_lookup;
+#[cfg(test)]
+#[path = "application/plugin_tests.rs"]
+mod plugin_tests;
 #[path = "application_selection.rs"]
 mod selection;
 #[path = "application_tab_deck.rs"]

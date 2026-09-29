@@ -519,7 +519,7 @@ fn aud16_binary_selected_agent_can_only_narrow_apply_patch_permission() {
 }
 
 #[test]
-fn aud17_binary_unknown_plugin_is_precise_preflight_error_without_side_effect() {
+fn aud17_binary_unknown_plugin_is_isolated_without_loader_side_effect() {
     let fixture = Fixture::new();
     // If admission accidentally resolves this URL, the same loopback listener
     // records it. A valid provider request would use the distinct /proxy/v1 path.
@@ -532,19 +532,26 @@ fn aud17_binary_unknown_plugin_is_precise_preflight_error_without_side_effect() 
     let mut process = fixture.spawn(
         &fixture.project_a,
         "s-aud17-unknown-plugin",
-        "must fail before provider",
+        "healthy local runtime survives",
         "unknown-plugin",
     );
+    let (mut socket, request) = fixture.accept(&mut process);
+    assert_eq!(request["model"], MODEL);
+    assert_eq!(count_tool(&request, "skill"), 1);
+    assert_absent(&request, &plugin);
+    respond_text(&mut socket, "healthy runtime complete");
+    fixture.respond_title(&mut process);
     let status = process.wait();
-    assert!(!status.success());
-    assert!(process.output().is_empty());
+    assert!(status.success());
+    assert_eq!(process.output().trim(), "healthy runtime complete");
     let diagnostic = process.diagnostics();
-    assert_eq!(diagnostic.lines().count(), 1, "{diagnostic}");
-    assert!(diagnostic.contains("UnsupportedPlugin"), "{diagnostic}");
-    assert!(diagnostic.contains(&plugin));
-    assert!(diagnostic.contains(&config.to_string_lossy().to_string()));
+    assert!(diagnostic.contains("unsupported_plugin"), "{diagnostic}");
+    assert!(diagnostic.contains("plugin.0"), "{diagnostic}");
+    assert!(diagnostic.contains("source-"), "{diagnostic}");
+    assert!(!diagnostic.contains(&plugin));
+    assert!(!diagnostic.contains(&config.to_string_lossy().to_string()));
     assert_eq!(fs::read(&config).expect("config after"), before);
-    assert!(!fixture.home.join("data/oc").exists());
+    assert!(fixture.home.join("data/oc").exists());
     fixture.assert_no_request();
     fixture.assert_no_loader_execution();
 }

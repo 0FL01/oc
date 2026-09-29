@@ -413,6 +413,8 @@ pub struct TuiChrome {
     /// Ordered, value-free diagnostics from admitted configuration sources.
     pub config_diagnostics: Vec<ConfigDiagnostic>,
     pub service_diagnostics: Vec<ServiceDiagnostic>,
+    /// Current generation's compiled-plugin requests; contains no executable identities.
+    pub plugins: PluginInventory,
     /// Canonical application Location, unknown in mock workers.
     pub location: Option<String>,
     /// Explicit debug.devtools override; absence uses the build channel.
@@ -523,12 +525,22 @@ impl std::fmt::Display for ConfigDiagnostic {
 /// Producers bound/sanitize identities; no remote exceptions or expanded values.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ServiceDiagnostic {
+    #[serde(default)]
+    pub kind: ServiceKind,
     pub service: String,
     pub source: String,
     pub field: Vec<String>,
     pub stage: ServiceStage,
     pub code: ServiceCode,
     pub action: ServiceAction,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ServiceKind {
+    #[default]
+    Mcp,
+    Plugin,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -565,6 +577,7 @@ impl ServiceStage {
 #[serde(rename_all = "snake_case")]
 pub enum ServiceCode {
     InvalidConfig,
+    UnsupportedPlugin,
     UnsupportedCapability,
     UnsupportedProtocol,
     MissingCredential,
@@ -592,6 +605,7 @@ impl ServiceCode {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::InvalidConfig => "invalid_config",
+            Self::UnsupportedPlugin => "unsupported_plugin",
             Self::UnsupportedCapability => "unsupported_capability",
             Self::UnsupportedProtocol => "unsupported_protocol",
             Self::MissingCredential => "missing_credential",
@@ -630,7 +644,11 @@ impl std::fmt::Display for ServiceDiagnostic {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "mcp {} {}: {} (retryable={}); {} {}: {}",
+            "{} {} {}: {} (retryable={}); {} {}: {}",
+            match self.kind {
+                ServiceKind::Mcp => "mcp",
+                ServiceKind::Plugin => "plugin",
+            },
             self.service,
             self.stage.as_str(),
             self.code.as_str(),
@@ -645,6 +663,98 @@ impl std::fmt::Display for ServiceDiagnostic {
                 ServiceAction::RestartApplication => "restart application; retry unsafe",
             }
         )
+    }
+}
+
+/// A bounded presentation window, not an admission/activation limit. The owner
+/// classifies every request and counts omitted rows without retaining raw text.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PluginInventory {
+    pub entries: Vec<PluginEntry>,
+    pub omitted: usize,
+    pub omitted_failed: usize,
+    /// Deduplicated compiled capabilities bound by this complete generation.
+    pub active_modules: Vec<NativePlugin>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum NativePlugin {
+    Dcp,
+    OpenProxyModels,
+}
+
+impl NativePlugin {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Dcp => "DCP",
+            Self::OpenProxyModels => "OpenProxy models",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PluginStatus {
+    Active,
+    Failed,
+    Ignored,
+}
+
+impl PluginStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Active => "active",
+            Self::Failed => "failed",
+            Self::Ignored => "ignored",
+        }
+    }
+}
+
+/// One exact requested identity maps to a compiled identity only on successful
+/// admission. Requested ids are opaque hashes, never package/URL/path fragments.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PluginEntry {
+    pub requested: String,
+    pub current: Option<String>,
+    pub module: Option<NativePlugin>,
+    pub status: PluginStatus,
+    pub source: String,
+    pub field: Vec<String>,
+    pub diagnostic: Option<ServiceDiagnostic>,
+}
+
+impl PluginEntry {
+    pub fn label(&self) -> &'static str {
+        self.module.map_or_else(
+            || match self.status {
+                PluginStatus::Ignored => "Authoring-only marker",
+                _ => "Unsupported plugin",
+            },
+            NativePlugin::label,
+        )
+    }
+}
+
+impl std::fmt::Display for PluginEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "plugin {}: {}; requested={}; current={}; {} {}",
+            self.label(),
+            self.status.as_str(),
+            self.requested,
+            self.current.as_deref().unwrap_or("none"),
+            self.source,
+            self.field.join(".")
+        )?;
+        if let Some(diagnostic) = &self.diagnostic {
+            write!(f, "; {diagnostic}")?;
+        } else if self.status == PluginStatus::Ignored {
+            write!(
+                f,
+                "; authoring-only plugin ignored; no package code was loaded"
+            )?;
+        }
+        Ok(())
     }
 }
 
@@ -866,7 +976,7 @@ pub enum StartupNotice {
     McpConfig,
     /// Agent, skill or command definition could not be admitted.
     Definitions,
-    /// A plugin marker was ignored without executing it.
+    /// Plugin requests failed admission or were ignored without execution.
     Plugin,
     /// Native DCP settings include ignored or unsupported options.
     Dcp,

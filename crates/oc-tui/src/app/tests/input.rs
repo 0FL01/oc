@@ -1,6 +1,50 @@
 use super::*;
 
 #[tokio::test]
+async fn cfg09_plugin_settings_rows_show_owner_status_and_are_read_only() {
+    use oc_core::queries::{
+        PluginEntry, PluginStatus, ServiceAction, ServiceCode, ServiceDiagnostic, ServiceKind,
+        ServiceStage,
+    };
+    let mut state = fresh_state("cfg09-settings").await;
+    let mut catalog = snapshot();
+    let diagnostic = ServiceDiagnostic {
+        kind: ServiceKind::Plugin,
+        service: "plugin-opaque-fixture".into(),
+        source: "source-123/opencode.json".into(),
+        field: vec!["plugin".into(), "0".into()],
+        stage: ServiceStage::Capability,
+        code: ServiceCode::UnsupportedPlugin,
+        action: ServiceAction::ReviewConfiguration,
+    };
+    catalog.chrome.plugins.entries.push(PluginEntry {
+        requested: diagnostic.service.clone(),
+        current: None,
+        module: None,
+        status: PluginStatus::Failed,
+        source: diagnostic.source.clone(),
+        field: diagnostic.field.clone(),
+        diagnostic: Some(diagnostic),
+    });
+    state.apply_catalog(catalog);
+    state.panel = TuiPanel::Settings;
+    state.handle_panel_key(KeyAction::Down);
+    assert_eq!(state.select.cursor, 1);
+    let rows = state.modal_options();
+    assert_eq!(rows[1].title, "Unsupported plugin — failed");
+    assert!(rows[1].footer.contains("current=none"));
+    assert!(rows[1].footer.contains("retryable=false"));
+    assert!(rows[1].footer.contains("plugin.0"));
+    assert!(state.handle_panel_key(KeyAction::Right).intent.is_none());
+    let result = state.handle_panel_key(KeyAction::Enter);
+    assert!(
+        result.intent.is_none(),
+        "read-only facts never toggle permissions"
+    );
+    assert_eq!(result.note.as_deref(), Some(rows[1].footer.as_str()));
+}
+
+#[tokio::test]
 async fn vis26_trigger_caret_tab_and_escape_keep_textual_draft() {
     let mut state = fresh_state("mention-editor").await;
     state.chrome.location = Some("/A".into());

@@ -221,8 +221,16 @@ async fn run_stages(
         eprintln!("warning: {}", startup_notice(notice));
     }
     let catalog = app.catalog().await.map_err(|e| e.to_string())?;
-    for diagnostic in &catalog.chrome.service_diagnostics {
+    for diagnostic in catalog
+        .chrome
+        .service_diagnostics
+        .iter()
+        .filter(|diagnostic| diagnostic.kind == oc_core::queries::ServiceKind::Mcp)
+    {
         eprintln!("warning: {diagnostic}");
+    }
+    for plugin in &catalog.chrome.plugins.entries {
+        eprintln!("info: {plugin}");
     }
     app.register_approval_consumer(auto_once || catalog.chrome.permissions_auto)
         .await
@@ -1386,10 +1394,27 @@ fn startup_notice(source: StartupNotice) -> &'static str {
             "MCP configuration entries failed; review configuration diagnostics"
         }
         StartupNotice::Definitions => "agent/skill/command definitions need review",
-        StartupNotice::Plugin => "configured plugin marker was ignored; review plugin settings",
+        StartupNotice::Plugin => {
+            "plugin requests failed or were ignored; review Settings inventory"
+        }
         StartupNotice::Dcp => "DCP settings have unsupported entries; review native dcp settings",
         StartupNotice::Instructions => "instruction sources need review",
         StartupNotice::SavedSelection => "saved model/agent selection needs review",
+    }
+}
+
+fn service_warnings(state: &mut TuiState, chrome: &oc_core::queries::TuiChrome) {
+    for diagnostic in chrome
+        .service_diagnostics
+        .iter()
+        .filter(|diagnostic| diagnostic.kind == oc_core::queries::ServiceKind::Mcp)
+    {
+        state.push_warning(&diagnostic.to_string());
+    }
+    for plugin in &chrome.plugins.entries {
+        if plugin.status != oc_core::queries::PluginStatus::Active {
+            state.push_warning(&plugin.to_string());
+        }
     }
 }
 
@@ -1403,9 +1428,7 @@ async fn initial_state(
             .await
             .map_err(|_| StartupFailure::Query)?;
         let mut state = TuiState::new_home(app.clone());
-        for diagnostic in &snapshot.chrome.service_diagnostics {
-            state.push_warning(&diagnostic.to_string());
-        }
+        service_warnings(&mut state, &snapshot.chrome);
         state.apply_catalog(snapshot);
         state.apply_mcp_snapshot(app.mcp_status().await.map_err(|_| StartupFailure::Query)?);
         return Ok(state);
@@ -1424,9 +1447,7 @@ async fn initial_state(
         .session_selection(state.session().clone(), false, SelectionAction::Current)
         .await
         .map_err(|_| StartupFailure::Query)?;
-    for diagnostic in &snapshot.chrome.service_diagnostics {
-        state.push_warning(&diagnostic.to_string());
-    }
+    service_warnings(&mut state, &snapshot.chrome);
     state.apply_catalog(snapshot);
     state.apply_mcp_snapshot(app.mcp_status().await.map_err(|_| StartupFailure::Query)?);
     state.apply_compaction_history(
@@ -2548,7 +2569,9 @@ async fn apply_intent_with_origin(
             // Publish a sessionless generation first: even when switching
             // from a real tab, a saved Home route cannot mint a new root.
             let snapshot = app.switch_location_home(path).await.map_err(switch_error)?;
+            let chrome = snapshot.catalog.chrome.clone();
             adopt_location(app, state, loop_state, snapshot.catalog, &snapshot.location).await;
+            service_warnings(state, &chrome);
             for notice in snapshot.notices {
                 state.push_note(&format!("warning: {}", startup_notice(notice)));
             }
@@ -2748,6 +2771,7 @@ async fn finish_reload(
     for notice in snapshot.notices {
         state.push_warning(startup_notice(notice));
     }
+    service_warnings(state, &snapshot.catalog.chrome);
     Ok(())
 }
 

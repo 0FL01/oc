@@ -13,7 +13,10 @@ use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
 use crate::{admitted_fs, config, dcp_auto, defs, discovery, models, provider, trace};
-use oc_core::queries::StartupNotice;
+use oc_core::queries::{
+    NativePlugin, PluginEntry, PluginInventory, PluginStatus, ServiceAction, ServiceCode,
+    ServiceDiagnostic, ServiceKind, ServiceStage, StartupNotice,
+};
 
 /// Fully built application configuration. Contains credentials and must not be logged.
 pub struct Composition {
@@ -356,7 +359,8 @@ async fn load_stages(
     let mut enabled = None;
     let mut disabled = Vec::new();
     let mut native_modules = BTreeSet::new();
-    let mut plugin_diagnostics = Vec::new();
+    let mut plugins = PluginInventory::default();
+    let mut plugin_issues = false;
     let mut conversation_keybinds = config::ConversationKeybinds::default();
     for source in &sources {
         let value = match config::parse_jsonc(&source.text, &source.path) {
@@ -415,35 +419,65 @@ async fn load_stages(
         if let Some(list) = value.get("disabled_providers") {
             disabled = provider_ids(list, "disabled_providers", &source.path)?;
         }
-        if let Some(plugins) = value.get("plugin") {
-            let plugins = provider_ids(plugins, "plugin", &source.path)?;
-            for identity in plugins {
+        if let Some(identities) = value.get("plugin") {
+            let identities = provider_ids(identities, "plugin", &source.path)?;
+            for (index, identity) in identities.into_iter().enumerate() {
                 // Exact compiled aliases only. No plugin is opened or executed.
-                let module = roots.iter().find_map(|root| {
-                    let root = root.canonicalize().unwrap_or_else(|_| root.clone());
-                    config::classify_plugin(&identity, &root.to_string_lossy()).ok()
+                let module = admitted_roots.iter().flatten().find_map(|root| {
+                    config::classify_plugin(&identity, &root.path.to_string_lossy()).ok()
                 });
-                let module = match module {
-                    Some(module) => module,
-                    None => {
-                        trace::log(
-                            "plugin.fail",
-                            &format!("category=UnsupportedPlugin path={}", source.path),
-                        );
-                        return Err(format!(
-                            "{}: UnsupportedPlugin: unsupported plugin {identity}",
-                            source.path
-                        )
-                        .into());
-                    }
+                let (native, current, status) = match module {
+                    Some("dcp") => (
+                        Some(NativePlugin::Dcp),
+                        Some(format!("native-dcp-{}", dcp_auto::DCP_MODULE_REVISION)),
+                        PluginStatus::Active,
+                    ),
+                    Some("discovery") => (
+                        Some(NativePlugin::OpenProxyModels),
+                        Some("native-openproxy-models".to_string()),
+                        PluginStatus::Active,
+                    ),
+                    Some("ignored-authoring-goal") => (None, None, PluginStatus::Ignored),
+                    _ => (None, None, PluginStatus::Failed),
                 };
-                if module == "ignored-authoring-goal" {
-                    plugin_diagnostics.push(format!(
-                        "{}: authoring-only plugin {identity} ignored; no package code was loaded",
-                        source.path
-                    ));
+                plugin_issues |= status != PluginStatus::Active;
+                if let Some(native) = native {
+                    native_modules.insert(module.expect("classified native module").to_string());
+                    if !plugins.active_modules.contains(&native) {
+                        plugins.active_modules.push(native);
+                    }
                 }
-                native_modules.insert(module.to_string());
+                let requested = config::safe_plugin_id(&identity);
+                let source_id = config::mcp::safe_source_id(&source.path);
+                let field = vec!["plugin".into(), index.to_string()];
+                let diagnostic = (status == PluginStatus::Failed).then(|| ServiceDiagnostic {
+                    kind: ServiceKind::Plugin,
+                    service: requested.clone(),
+                    source: source_id.clone(),
+                    field: field.clone(),
+                    stage: ServiceStage::Capability,
+                    code: ServiceCode::UnsupportedPlugin,
+                    action: ServiceAction::ReviewConfiguration,
+                });
+                if let Some(diagnostic) = &diagnostic {
+                    trace::log("plugin.fail", &diagnostic.to_string());
+                }
+                // Presentation window only: later aliases still participate in
+                // admission and activate their one compiled native capability.
+                if plugins.entries.len() < 64 {
+                    plugins.entries.push(PluginEntry {
+                        requested,
+                        current,
+                        module: native,
+                        status,
+                        source: source_id,
+                        field,
+                        diagnostic,
+                    });
+                } else {
+                    plugins.omitted += 1;
+                    plugins.omitted_failed += usize::from(status == PluginStatus::Failed);
+                }
             }
         }
     }
@@ -914,7 +948,7 @@ async fn load_stages(
     if !loaded_defs.diagnostics.is_empty() {
         startup_notices.push(StartupNotice::Definitions);
     }
-    if !plugin_diagnostics.is_empty() {
+    if plugin_issues {
         startup_notices.push(StartupNotice::Plugin);
     }
     if !dcp_warnings.is_empty() {
@@ -933,7 +967,13 @@ async fn load_stages(
             )
         })
         .collect();
-    diagnostics.extend(plugin_diagnostics);
+    diagnostics.extend(plugins.entries.iter().map(ToString::to_string));
+    if plugins.omitted > 0 {
+        diagnostics.push(format!(
+            "plugin inventory: {} additional requests omitted from presentation ({} failed/unsupported_plugin); active modules: {:?}",
+            plugins.omitted, plugins.omitted_failed, plugins.active_modules
+        ));
+    }
     diagnostics.extend(
         generation
             .mcp
@@ -1002,7 +1042,14 @@ async fn load_stages(
             .mcp
             .values()
             .filter_map(|entry| entry.failure.clone())
+            .chain(
+                plugins
+                    .entries
+                    .iter()
+                    .filter_map(|entry| entry.diagnostic.clone()),
+            )
             .collect(),
+        plugins,
         location: Some(project.to_string_lossy().into_owned()),
         terminal_copy,
         animations: generation.animations,
@@ -1306,6 +1353,9 @@ impl McpActivation {
 #[cfg(test)]
 #[path = "composition/mcp_tests.rs"]
 mod mcp_tests;
+#[cfg(test)]
+#[path = "composition/plugin_tests.rs"]
+mod plugin_tests;
 
 fn merge_json_object(
     target: &mut serde_json::Value,

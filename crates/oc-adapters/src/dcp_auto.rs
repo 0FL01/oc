@@ -46,7 +46,7 @@ pub enum DcpAutoError {
     /// Unknown plugin identity (not bare/pinned DCP).
     #[error("unsupported plugin {identity}")]
     UnsupportedPlugin {
-        /// Given identity.
+        /// Stable opaque requested identity.
         identity: String,
     },
 }
@@ -900,7 +900,7 @@ pub fn resolve_dcp_module(identity: &str) -> Result<DcpModuleId, DcpAutoError> {
         });
     }
     Err(DcpAutoError::UnsupportedPlugin {
-        identity: identity.to_string(),
+        identity: crate::config::safe_plugin_id(identity),
     })
 }
 

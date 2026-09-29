@@ -127,11 +127,15 @@ text, not config instructions or automatic parent-history inheritance (R8).
 
 До resolver/import/process/network классифицируются только exact identities. Bare `@tarquinen/opencode-dcp`, pinned `@tarquinen/opencode-dcp@3.1.15` и пользовательский exact alias `@tarquinen/opencode-dcp@latest` обозначают один compiled DCP module фиксированной repository revision: `@latest` здесь НЕ вызывает registry resolution и не меняет revision. Exact canonical `<effective-config-root>/{plugin,plugins}/openproxy-models.js` обозначает один compiled OpenProxy discovery module; файл не читается и не исполняется. Exact `@prevalentware/opencode-goal-plugin@0.1.49` из общей authoring-конфигурации даёт warning и нулевую runtime capability: код пакета не загружается. Basename вне admitted root, `.ts`, URL/arbitrary path, ranges, другие versions/packages и любой unknown JS/TS дают source-qualified `UnsupportedPlugin`. Duplicate aliases idempotent. Provider alias `@ai-sdk/openai` остаётся отдельным config domain, не plugin identity.
 
-T51/CFG09 approved target isolates `UnsupportedPlugin` to the rejected capability,
-not the entire usable candidate/TUI. Failed requested/current native activation and
-source are reported truthfully before first prompt and on reload. Known native aliases
-and definitions survive; no plugin code/resolver is invoked. The exact classifier and
-authoring-only ignored alias remain unchanged; this does not add a plugin SDK/hot-load.
+R1/CFG09 admission isolates `UnsupportedPlugin` to the rejected request. The existing
+Core catalog exposes a bounded current-generation inventory in `TuiChrome.plugins`:
+opaque stable requested identity, compiled current identity only for active aliases,
+typed status/module, safe source/field and `ServiceDiagnostic`. Settings shows these
+read-only facts before the first prompt and after reload/reopen; headless diagnostics
+stay on stderr. All requests are classified even beyond the presentation window.
+Known native aliases and definitions survive; the ignored authoring marker has no
+current module. The exact classifier remains the pre-resolution gate. Provider cold
+availability and general fatal-source diagnostics remain separate T51 slices.
 
 ## Generation и limits
 
