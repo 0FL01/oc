@@ -17,6 +17,8 @@ use oc_core::queries::{
     NativePlugin, PluginEntry, PluginInventory, PluginStatus, ServiceAction, ServiceCode,
     ServiceDiagnostic, ServiceKind, ServiceStage, StartupNotice,
 };
+mod provider_readiness;
+pub(crate) use provider_readiness::ProviderState;
 
 /// Fully built application configuration. Contains credentials and must not be logged.
 pub struct Composition {
@@ -38,6 +40,7 @@ pub struct Composition {
     pub model_id: String,
     /// Native Responses connection configuration.
     pub provider: provider::ResponsesConfig,
+    pub(crate) provider_state: ProviderState,
     /// Canonical admitted project boundary.
     pub project: PathBuf,
     /// Environment snapshot for substitutions and child processes.
@@ -83,25 +86,12 @@ pub struct Composition {
 #[derive(Debug)]
 pub(crate) enum LoadFailure {
     Configuration(String),
-    MissingCredential(String),
-    Discovery {
-        reason: SelectedCatalogFailure,
-        detail: String,
-    },
-}
-
-/// A selected id could not be resolved against the effective catalog.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum SelectedCatalogFailure {
-    Refresh(discovery::DiscoveryFailure),
-    Absent,
 }
 
 impl LoadFailure {
     fn into_detail(self) -> String {
         match self {
-            Self::Configuration(detail) | Self::MissingCredential(detail) => detail,
-            Self::Discovery { detail, .. } => detail,
+            Self::Configuration(detail) => detail,
         }
     }
 }
@@ -143,7 +133,12 @@ pub(crate) async fn load_with_env_diagnostic(
     project: &Path,
     parent_env: BTreeMap<String, String>,
 ) -> Result<Composition, LoadFailure> {
-    let result = load_stages(project, parent_env).await;
+    let result = async {
+        let mut composition = load_stages(project, parent_env).await?;
+        composition.refresh_provider().await?;
+        Ok(composition)
+    }
+    .await;
     match &result {
         Ok(_) => trace::log("load.ok", ""),
         Err(failure) => trace::log(
@@ -154,11 +149,17 @@ pub(crate) async fn load_with_env_diagnostic(
     result
 }
 
+/// Admit the complete local generation before any optional discovery work.
+pub(crate) async fn load_local_with_env(
+    project: &Path,
+    parent_env: BTreeMap<String, String>,
+) -> Result<Composition, LoadFailure> {
+    load_stages(project, parent_env).await
+}
+
 fn failure_category(failure: &LoadFailure) -> String {
     match failure {
         LoadFailure::Configuration(_) => "Configuration".to_string(),
-        LoadFailure::MissingCredential(_) => "MissingCredential".to_string(),
-        LoadFailure::Discovery { reason, .. } => format!("Discovery({reason:?})"),
     }
 }
 
@@ -768,12 +769,7 @@ async fn load_stages(
         Some(&selected_providers),
         &source_roots,
     )
-    .map_err(|error| match error {
-        config::ConfigError::MissingCredential { .. } => {
-            LoadFailure::MissingCredential(error.to_string())
-        }
-        _ => LoadFailure::Configuration(error.to_string()),
-    })?;
+    .map_err(|error| LoadFailure::Configuration(error.to_string()))?;
     admit_local_mcp(
         &mut generation,
         &project,
@@ -830,88 +826,40 @@ async fn load_stages(
             "provider.{provider_id}.options.baseURL must be an HTTP(S) prefix without credentials, query or fragment"
         ).into());
     }
+    // Mandatory transport shape/security remains admission, even with no key.
+    provider::request_headers(&provider)
+        .map_err(|_| "provider.options.headers or apiKey has invalid HTTP syntax")?;
     trace::log(
         "provider.base_url",
-        &format!(
-            "scheme={} host={} port={} path={}",
-            url.scheme(),
-            url.host_str().unwrap_or("none"),
-            url.port()
-                .map_or_else(|| "none".to_string(), |port| port.to_string()),
-            url.path()
-        ),
+        &format!("scheme={} configured=true", url.scheme()),
     );
     trace::log(
         "provider.headers",
         &format!("configured={}", entry.options.headers.len()),
     );
-    let mut catalog = models::ModelCatalog {
+    let catalog = models::ModelCatalog {
         provider: provider_id.to_string(),
         models: entry.models.clone(),
     };
-    let mut discovery_result = None;
-    // The existing native daily-direct profile enables discovery for this
-    // provider; an admitted JS alias denotes the same compiled module.
-    if provider_id == discovery::PROVIDER_ID {
-        let run = discovery::should_run(&disabled, enabled.as_deref());
-        let discovery_url =
-            discovery::discovery_url(&provider.base_url).unwrap_or_else(|_| "none".to_string());
-        trace::log("discovery", &format!("url={discovery_url} enabled={run}"));
-        if run {
-            let client =
-                discovery::ReqwestDiscoveryClient::new(provider.connect_timeout).map_err(|e| {
-                    LoadFailure::Discovery {
-                        reason: SelectedCatalogFailure::Refresh(discovery::DiscoveryFailure::from(
-                            &e,
-                        )),
-                        detail: format!("model discovery: {e}"),
-                    }
-                })?;
-            let outcome = discovery::refresh(
-                &discovery::RealClock,
-                &client,
-                &provider.base_url,
-                &provider.api_key,
-                &provider.headers,
-                &catalog.models,
-                &AtomicBool::new(false),
-            )
-            .await;
-            match &outcome.failure {
-                None => trace::log(
-                    "discovery.ok",
-                    &format!(
-                        "models={} selected_present={}",
-                        outcome.models.len(),
-                        outcome.models.contains_key(model_id)
-                    ),
-                ),
-                Some(failure) => {
-                    trace::log("discovery.fail", &format!("class={failure:?}"));
-                }
-            }
-            discovery_result = Some(outcome.failure);
-            catalog.models = outcome.models;
-            generation.warnings.extend(outcome.warnings);
-        }
+    if provider_id != discovery::PROVIDER_ID {
+        models::select_model(&catalog, model_id).map_err(|error| {
+            LoadFailure::Configuration(format!(
+                "{error}; configure provider.{provider_id}.models or check native discovery. {}",
+                generation.warnings.join(" ")
+            ))
+        })?;
     }
-    models::select_model(&catalog, model_id).map_err(|e| {
-        let warnings = generation.warnings.join(" ");
-        let detail = format!(
-            "{e}; configure provider.{provider_id}.models or check native discovery. {warnings}"
-        );
-        match discovery_result {
-            Some(Some(reason)) => LoadFailure::Discovery {
-                reason: SelectedCatalogFailure::Refresh(reason),
-                detail,
-            },
-            Some(None) => LoadFailure::Discovery {
-                reason: SelectedCatalogFailure::Absent,
-                detail,
-            },
-            None => LoadFailure::Configuration(detail),
-        }
-    })?;
+    let provider_state = ProviderState::new(
+        provider_id,
+        generation
+            .provenance
+            .get(&format!("provider.{provider_id}"))
+            .map(String::as_str)
+            .unwrap_or("native config"),
+        !provider.api_key.trim().is_empty(),
+        provider_id == discovery::PROVIDER_ID
+            && discovery::should_run(&disabled, enabled.as_deref()),
+    );
     let skills = loaded_defs
         .skills
         .values()
@@ -1038,6 +986,7 @@ async fn load_stages(
             show_compression: dcp_config.show_compression,
         },
         config_diagnostics: generation.config_diagnostics.clone(),
+        provider: Some(provider_state.for_model(model_id, catalog.models.contains_key(model_id))),
         service_diagnostics: generation
             .mcp
             .values()
@@ -1161,6 +1110,7 @@ async fn load_stages(
         catalog,
         model_id: model_id.to_string(),
         provider,
+        provider_state,
         project,
         parent_env,
         instructions,
@@ -2217,11 +2167,20 @@ mod tests {
                 .allow_private
         );
         env.remove("FIXTURE_KEY");
-        let error = load_with_env(&project, env)
+        let unavailable = load_with_env(&project, env)
             .await
-            .map(|_| ())
-            .expect_err("missing key");
-        assert!(error.contains("missing credential"));
+            .expect("local generation");
+        assert!(unavailable.provider.api_key.is_empty());
+        assert_eq!(unavailable.model_id, "org/new");
+        let readiness = unavailable.tui_chrome.provider.unwrap();
+        assert_eq!(
+            readiness.status,
+            oc_core::queries::ProviderStatus::Unavailable
+        );
+        assert_eq!(
+            readiness.diagnostic.unwrap().code,
+            oc_core::queries::ServiceCode::MissingCredential
+        );
     }
 
     /// A config file that resolves outside its admitted root is not a

@@ -102,6 +102,8 @@ pub enum RuntimeError {
     McpShutdown,
     /// Provider failure (kind only).
     Provider,
+    /// Typed credential/catalog refusal before durable turn/effect acceptance.
+    ProviderUnavailable(oc_core::queries::ServiceDiagnostic),
     /// Storage failure (kind only).
     Storage,
     /// Compress argument/apply failure (reason only).
@@ -145,6 +147,7 @@ impl std::fmt::Display for RuntimeError {
             ),
             Self::McpShutdown => write!(f, "mcp shutdown failed"),
             Self::Provider => write!(f, "provider error"),
+            Self::ProviderUnavailable(diagnostic) => write!(f, "{diagnostic}"),
             Self::Storage => write!(f, "storage error"),
             Self::Compress(reason) => write!(f, "compress: {reason}"),
             Self::ContextOverflow { bytes, cap } => write!(
@@ -802,6 +805,7 @@ pub struct Runtime<'a> {
     db: &'a Db,
     location: String,
     current: RwLock<Arc<PublishedGeneration>>,
+    provider_state: RwLock<Option<crate::composition::ProviderState>>,
     active: AtomicBool,
     protected: ProtectedGlobs,
     files: crate::files::Files,
@@ -923,6 +927,7 @@ impl<'a> Runtime<'a> {
                 id: 1,
                 config: generation,
             })),
+            provider_state: RwLock::new(None),
             active: AtomicBool::new(false),
             protected,
             files,
@@ -947,6 +952,77 @@ impl<'a> Runtime<'a> {
     /// Current publication id.
     pub fn generation_id(&self) -> u64 {
         self.current.read().expect("generation lock").id
+    }
+
+    pub(crate) fn publish_provider_state(
+        &self,
+        state: crate::composition::ProviderState,
+    ) -> Result<(), RuntimeError> {
+        let _lease = self.begin_active()?;
+        *self.provider_state.write().expect("provider state") = Some(state);
+        Ok(())
+    }
+
+    /// One shared admission for root/profile/child lanes and direct runtime callers.
+    pub(crate) fn admit_provider(
+        &self,
+        catalog: &ModelCatalog,
+        model: &str,
+        provider: &ResponsesConfig,
+    ) -> Result<(), RuntimeError> {
+        let published = self.current.read().expect("generation lock").clone();
+        let admitted = self.provider_state.read().expect("provider state").clone();
+        let availability_known = admitted.is_some();
+        let state = admitted.unwrap_or_else(|| {
+            let credential = published
+                .config
+                .providers
+                .get(&catalog.provider)
+                // Legacy public callers may supply only budget metadata in
+                // Generation and the complete transport in TurnParams.
+                .is_none_or(|entry| {
+                    entry.options.base_url.is_empty() || !entry.options.api_key.trim().is_empty()
+                })
+                && !provider.api_key.trim().is_empty();
+            crate::composition::ProviderState::new(
+                &catalog.provider,
+                published
+                    .config
+                    .provenance
+                    .get(&format!("provider.{}", catalog.provider))
+                    .map(String::as_str)
+                    .unwrap_or("native config"),
+                credential,
+                false,
+            )
+        });
+        state
+            // With no native owner publication, preserve existing model/budget
+            // validation contracts; credential admission is still central.
+            .admit(
+                model,
+                !availability_known || catalog.models.contains_key(model),
+            )
+            .map_err(RuntimeError::ProviderUnavailable)?;
+        if provider.api_key.trim().is_empty() {
+            let missing = crate::composition::ProviderState::new(
+                &catalog.provider,
+                published
+                    .config
+                    .provenance
+                    .get(&format!("provider.{}", catalog.provider))
+                    .map(String::as_str)
+                    .unwrap_or("native config"),
+                false,
+                false,
+            );
+            missing
+                .admit(model, true)
+                .map_err(RuntimeError::ProviderUnavailable)?;
+        }
+        crate::provider::request_headers(provider)
+            .map_err(|_| RuntimeError::InvalidArgs("invalid provider HTTP configuration".into()))?;
+        Ok(())
     }
 
     pub fn register_approval_consumer(&self, auto_once: bool) {
@@ -1522,6 +1598,7 @@ impl<'a> Runtime<'a> {
     ) -> Result<TurnReport, RuntimeError> {
         let started = std::time::Instant::now();
         let _lease = self.begin_active()?;
+        self.admit_provider(params.catalog, &params.model_id, &params.provider)?;
         let published = self.current.read().expect("generation lock").clone();
         let lane = self.primary_lane(&published);
         let attached = self.request_mcp(params.cancel).await?;
@@ -1624,6 +1701,7 @@ impl<'a> Runtime<'a> {
     ) -> Result<TurnReport, RuntimeError> {
         let started = std::time::Instant::now();
         let _lease = self.begin_active()?;
+        self.admit_provider(params.catalog, &params.model_id, &params.provider)?;
         let published = self.current.read().expect("generation lock").clone();
         let lane = self.primary_lane(&published);
         let attached = self.request_mcp(params.cancel).await?;

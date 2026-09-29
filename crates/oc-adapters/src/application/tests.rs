@@ -1356,12 +1356,22 @@ mod reload_tests {
         );
 
         std::fs::write(&path, config("new", &base_url, false)).unwrap();
-        assert!(matches!(
-            app.reload_location().await,
-            Err(CoreError::LocationSwitch { .. })
-        ));
+        let CoreError::ProviderUnavailable(diagnostic) = app.reload_location().await.unwrap_err()
+        else {
+            panic!("failed refresh must have a typed provider cause");
+        };
+        assert_eq!(
+            diagnostic.code,
+            oc_core::queries::ServiceCode::ConnectionFailed
+        );
         server.await.unwrap();
-        assert_eq!(app.catalog().await.unwrap(), reloaded.catalog);
+        let mut retained = reloaded.catalog.clone();
+        let readiness = retained.chrome.provider.as_mut().unwrap();
+        assert_eq!(readiness.status, oc_core::queries::ProviderStatus::Ready);
+        readiness.catalog_status = oc_core::queries::ProviderStatus::Failed;
+        readiness.diagnostic = Some(diagnostic.clone());
+        retained.chrome.service_diagnostics.push(diagnostic);
+        assert_eq!(app.catalog().await.unwrap(), retained);
         assert_eq!(app.tab_deck().await.unwrap(), saved);
         assert_eq!(
             app.probe_session(session).await.unwrap(),

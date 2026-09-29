@@ -64,6 +64,42 @@ pub async fn run_once_to_writers(
             writeln!(err, "warning: {diagnostic}").map_err(|e| e.to_string())?;
         }
         let outcome = async {
+            let default = app.catalog().await.map_err(|error| error.to_string())?;
+            // An unavailable default must not block an admitted stored choice.
+            // Ready defaults retain create_session's existing Location gate;
+            // runtime admission still checks the exact scoped request choice.
+            let default_unavailable =
+                default.chrome.provider.as_ref().is_some_and(|provider| {
+                    provider.status != oc_core::queries::ProviderStatus::Ready
+                });
+            let catalog = if default_unavailable
+                && app
+                    .probe_session(session.clone())
+                    .await
+                    .map_err(|error| error.to_string())?
+                    == oc_core::queries::SessionProbe::Root
+            {
+                app.session_selection(
+                    session.clone(),
+                    false,
+                    oc_core::queries::SessionSelectionAction::Current,
+                )
+                .await
+            } else {
+                Ok(default)
+            }
+            .map_err(|error| error.to_string())?;
+            if let Some(provider) = catalog.chrome.provider {
+                if provider.status != oc_core::queries::ProviderStatus::Ready {
+                    return Err(provider
+                        .diagnostic
+                        .expect("unavailable provider has a cause")
+                        .to_string());
+                }
+                if let Some(diagnostic) = provider.diagnostic {
+                    writeln!(err, "warning: {diagnostic}").map_err(|error| error.to_string())?;
+                }
+            }
             if auto_once {
                 app.register_approval_consumer(true)
                     .await

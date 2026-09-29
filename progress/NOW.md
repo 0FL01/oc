@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-29T11:11:18+00:00
+State updated: 2026-09-29T12:35:21+00:00
 Active: T51
 
 Сверить Git status/diff до выполнения команд.
@@ -14,13 +14,13 @@ Owner-approved 2026-09-27 after OC2 RECON: R1/CFG09 isolates unsupported/failed 
 
 # T51
 ## Result
-R1/CFG09 verified: independent safe plugin inventory.
+R2/UI07 verified: local availability, typed pre-effect refusal.
 ## Checks
-Workspace1268 PASS; native13+1; owner3+1; docs PASS.
+Workspace1277 PASS; native4+13+1+3; owner3+1+1.
 ## Risks
-R2/generalR3 and full V09/READY open.
+GeneralR3/fullREADY open; T53 separate, T44 paused.
 ## Next
-Provider cold availability, then safe fatal diagnostics.
+Safe source/field/stage fatal classification and rollback.
 
 
 Ready (до 5): T45, T50, T53

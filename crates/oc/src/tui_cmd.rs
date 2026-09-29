@@ -928,11 +928,13 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         metrics: output_metrics.clone(),
     });
     let mut terminal = Terminal::new(backend).map_err(|e| format!("terminal: {e}"))?;
+    // Subscribe before reading any view snapshots: a fast optional catalog
+    // completion between those reads must remain observable.
+    let mut rx = app.subscribe();
     let (mut state, mut loop_state) = match restore_initial(app, session).await {
         Ok(restored) => restored,
         Err(failure) => return startup_failure(&mut terminal, failure).map(|_| 1),
     };
-    let mut rx = app.subscribe();
     loop_state.cli_auto = cli_auto;
     loop_state.permission_auto = Some(
         app.catalog().await.map_err(|e| e.to_string())?.auto_accept
@@ -1158,6 +1160,8 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                 apply_compaction_to_view(&mut state, &mut loop_state, snapshot);
             } else if let CoreEvent::McpChanged(snapshot) = event {
                 state.apply_mcp_snapshot(snapshot);
+            } else if matches!(event, CoreEvent::ProviderChanged) {
+                refresh_provider_views(app, &mut state, &mut loop_state).await;
             } else if let Some(current) = state.attached_session().cloned() {
                 handle_worker_event(app, &mut state, &mut loop_state, &current, event).await?;
             }
@@ -1415,6 +1419,35 @@ fn service_warnings(state: &mut TuiState, chrome: &oc_core::queries::TuiChrome) 
         if plugin.status != oc_core::queries::PluginStatus::Active {
             state.push_warning(&plugin.to_string());
         }
+    }
+    if let Some(provider) = &chrome.provider
+        && (provider.status != oc_core::queries::ProviderStatus::Ready
+            || provider.diagnostic.is_some())
+    {
+        state.push_warning(&provider.to_string());
+    }
+}
+
+async fn refresh_provider_view(app: &CoreApp, state: &mut TuiState) {
+    let catalog = if let Some(session) = state.attached_session() {
+        app.session_selection(session.clone(), false, SelectionAction::Current)
+            .await
+    } else {
+        app.home_selection(SelectionAction::Current).await
+    };
+    if let Ok(catalog) = catalog {
+        service_warnings(state, &catalog.chrome);
+        state.apply_catalog(catalog);
+    }
+}
+
+async fn refresh_provider_views(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
+    refresh_provider_view(app, state).await;
+    for view in deck.tabs.iter_mut().flatten() {
+        refresh_provider_view(app, view).await;
+    }
+    if let Some(home) = deck.home.as_mut() {
+        refresh_provider_view(app, home).await;
     }
 }
 
@@ -2637,6 +2670,9 @@ fn switch_error(error: CoreError) -> String {
 fn reload_error(error: CoreError) -> String {
     match error {
         CoreError::TurnBusy => "turn active; configuration reload refused".into(),
+        CoreError::ProviderUnavailable(diagnostic) => {
+            format!("Configuration reload failed; {diagnostic}")
+        }
         CoreError::LocationSwitch { category, .. } => match category {
             LocationSwitchFailure::Configuration => {
                 "Configuration reload failed; check opencode.json/jsonc and selected model".into()
@@ -3010,7 +3046,9 @@ async fn handle_worker_event(
         | CoreEvent::TurnFinished { session, .. }
         | CoreEvent::TurnInterrupted { session, .. }
         | CoreEvent::TurnFailed { session, .. } => session,
-        CoreEvent::Compaction(_) | CoreEvent::McpChanged(_) => unreachable!("handled above"),
+        CoreEvent::Compaction(_) | CoreEvent::McpChanged(_) | CoreEvent::ProviderChanged => {
+            unreachable!("handled above")
+        }
         CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {
             unreachable!("handled above")
         }
@@ -3019,7 +3057,9 @@ async fn handle_worker_event(
         return Ok(());
     }
     match event {
-        CoreEvent::Compaction(_) | CoreEvent::McpChanged(_) => unreachable!("handled above"),
+        CoreEvent::Compaction(_) | CoreEvent::McpChanged(_) | CoreEvent::ProviderChanged => {
+            unreachable!("handled above")
+        }
         CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {
             unreachable!("handled above")
         }

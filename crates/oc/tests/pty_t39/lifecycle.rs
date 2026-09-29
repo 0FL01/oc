@@ -1375,7 +1375,11 @@ fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
     std::thread::sleep(POLL);
     prepare.send(b"\x03");
     let (status, _) = prepare.wait_exit(DEADLINE);
-    assert!(status.success() && prepare.restored());
+    assert!(
+        status.success() && prepare.restored(),
+        "prepare exit={status:?}; restored={}",
+        prepare.restored()
+    );
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
     let ops = db.list_tool_ops(session).unwrap();
     assert_eq!(ops.len(), 1);

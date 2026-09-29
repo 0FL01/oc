@@ -854,6 +854,7 @@ async fn check_application_patch_replay(line: &str, count: usize) {
             }
             CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             CoreEvent::McpChanged(snapshot) => assert!(snapshot.servers.is_empty()),
+            CoreEvent::ProviderChanged => panic!("unexpected native discovery in static fixture"),
             CoreEvent::TurnPresentation { projection, .. } => checkpoints.push(projection),
             CoreEvent::TurnStarted { .. }
             | CoreEvent::SessionTitleUpdated { .. }
@@ -971,6 +972,8 @@ async fn check_application_patch_replay(line: &str, count: usize) {
 mod context;
 #[path = "runtime/mcp_lifecycle.rs"]
 mod mcp_lifecycle;
+#[path = "runtime/provider_readiness.rs"]
+mod provider_readiness;
 #[path = "runtime/tool_lifecycle.rs"]
 mod tool_lifecycle;
 #[path = "runtime/turns.rs"]

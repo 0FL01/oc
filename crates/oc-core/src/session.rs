@@ -98,6 +98,9 @@ pub enum CoreError {
     /// Provider failure (scripted only in T03).
     #[error("provider: {0}")]
     Provider(String),
+    /// Typed pre-acceptance refusal, without an underlying provider exception.
+    #[error("{0}")]
+    ProviderUnavailable(crate::queries::ServiceDiagnostic),
     /// Native application/storage error; no secrets or provider payloads.
     #[error("application: {0}")]
     Application(String),

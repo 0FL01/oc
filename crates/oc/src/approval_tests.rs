@@ -464,7 +464,17 @@ async fn prepared_patch_geometry_cache_busy_add_rejection_and_palette_are_real()
     state.handle_paste("permission");
     state.handle_panel_key(KeyAction::Cancel);
     assert_eq!(state.panel(), &TuiPanel::Settings);
-    assert_eq!(state.modal_options().len(), 1);
+    assert_eq!(state.modal_options().len(), 2);
+    assert_eq!(
+        state.modal_options()[1].footer,
+        app.catalog()
+            .await
+            .unwrap()
+            .chrome
+            .provider
+            .unwrap()
+            .to_string()
+    );
     state.handle_paste("permission");
     for width in [79, 80, 120, 121] {
         let rows = oc_tui::views::render_test(&state, width, 40);

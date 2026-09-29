@@ -146,7 +146,8 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
             drain(master, .2)
             code = child.wait(timeout=5)
             assert (code == 0) == (label in ('success', 'lock released', 'warning',
-                                            'credential present')), (label, code)
+                                            'credential present', 'credential missing',
+                                            'credential empty env', 'credential empty literal')), (label, code)
             assert termios.tcgetattr(slave) == original, (label, 'terminal not restored')
             print(f'{label}: exit {code}, terminal restored')
         finally:
@@ -182,21 +183,21 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
         config_file.unlink()
         config_file = config / 'opencode.jsonc'
         config_file.write_text(json.dumps(fixture))
-        expected = ['Native startup error', 'Selected provider credential missing',
-                    'export that variable in the launching shell']
+        expected = ['█▀▀█', 'missing_credential', 'source-']
         env.pop('FIXTURE_KEY', None)
         check('credential missing', expected,
-              forbidden=('Configuration load failed', 'FIXTURE_KEY'))
+              forbidden=('Native startup error', 'Configuration load failed', 'FIXTURE_KEY'))
         headless = subprocess.run([binary, 'run', 'no network call'], cwd=project,
                                   env=env, capture_output=True, timeout=5)
-        assert headless.returncode == 1 and b'missing credential for provider.fixture.options.apiKey' in headless.stderr
+        assert headless.returncode == 1 and b'missing_credential' in headless.stderr
+        assert headless.stdout == b'' and b'source-' in headless.stderr
         env['FIXTURE_KEY'] = ''
-        check('credential empty env', expected, forbidden=('Configuration load failed',))
+        check('credential empty env', expected, forbidden=('Native startup error', 'Configuration load failed',))
         env['FIXTURE_KEY'] = 'DUMMY-STARTUP-SECRET'
         check('credential present', ['█▀▀█'], forbidden=('Native startup error',))
         fixture['provider']['fixture']['options']['apiKey'] = ''
         config_file.write_text(json.dumps(fixture))
-        check('credential empty literal', expected, forbidden=('Configuration load failed',))
+        check('credential empty literal', expected, forbidden=('Native startup error', 'Configuration load failed',))
         try:
             accepted, _ = listener.accept()
         except BlockingIOError:

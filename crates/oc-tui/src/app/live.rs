@@ -86,6 +86,26 @@ impl ScriptDriver {
                 }
                 Ok(Ok(CoreEvent::Compaction(snapshot))) => state.apply_compaction(snapshot),
                 Ok(Ok(CoreEvent::McpChanged(snapshot))) => state.apply_mcp_snapshot(snapshot),
+                Ok(Ok(CoreEvent::ProviderChanged)) => {
+                    let catalog = if let Some(session) = state.attached_session() {
+                        state
+                            .app
+                            .session_selection(
+                                session.clone(),
+                                false,
+                                oc_core::queries::SessionSelectionAction::Current,
+                            )
+                            .await
+                    } else {
+                        state
+                            .app
+                            .home_selection(oc_core::queries::SessionSelectionAction::Current)
+                            .await
+                    };
+                    if let Ok(catalog) = catalog {
+                        state.apply_catalog(catalog);
+                    }
+                }
                 Ok(Ok(CoreEvent::SessionTitleUpdated { session, title })) => {
                     if state.attached_session() == Some(&session) {
                         state.session_title = Some(title);
@@ -343,7 +363,11 @@ impl TuiState {
             picker.load_persisted_raw(Some(&record.to_string()));
             picker.focus_id(&snapshot.model_id);
         }
-        if let Some(error) = picker.last_error() {
+        if let Some(provider) = &snapshot.chrome.provider
+            && provider.status != oc_core::queries::ProviderStatus::Ready
+        {
+            self.push_note(&provider.to_string());
+        } else if let Some(error) = picker.last_error() {
             self.push_note(error);
         }
         self.picker = Some(picker);

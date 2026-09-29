@@ -316,7 +316,7 @@ pub struct ResponsesConfig {
 impl std::fmt::Debug for ResponsesConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ResponsesConfig")
-            .field("base_url", &self.base_url)
+            .field("base_url", &"[configured]")
             .field("api_key", &"***")
             .field("timeout", &self.timeout)
             .field("chunk_timeout_ms", &self.chunk_timeout_ms)
@@ -332,6 +332,16 @@ impl ResponsesConfig {
             return Err(ProviderError::InvalidConfig);
         }
         Ok(format!("{}/responses", base.trim_end_matches('/')))
+    }
+
+    /// Compare actual canonical routing/auth headers, never config spelling or
+    /// Debug output. Reserved header overrides share request_headers' authority.
+    pub(crate) fn same_request_binding(&self, other: &Self) -> Result<bool, ProviderError> {
+        let current = reqwest::Url::parse(&self.generation_url()?)
+            .map_err(|_| ProviderError::InvalidConfig)?;
+        let next = reqwest::Url::parse(&other.generation_url()?)
+            .map_err(|_| ProviderError::InvalidConfig)?;
+        Ok(current == next && request_headers(self)? == request_headers(other)?)
     }
 }
 

@@ -96,11 +96,6 @@ fn cfg09_native_mixed_plugins_reload_reopen_and_effects_are_truthful() {
     let original = std::fs::read(&source).unwrap();
     let mut pty = spawn(fixture.clone(), &trap);
     pty.wait_visible(READY, DEADLINE);
-    assert_eq!(
-        fixture.discoveries.load(Ordering::Relaxed),
-        1,
-        "duplicate aliases did not duplicate discovery setup"
-    );
     assert!(
         fixture.requests.lock().unwrap().is_empty(),
         "inventory before prompt"
@@ -120,6 +115,11 @@ fn cfg09_native_mixed_plugins_reload_reopen_and_effects_are_truthful() {
     pty.send(b"/model\r");
     wait_screen_row(&pty, "Select model", DEADLINE);
     wait_screen_row(&pty, "CFG09 discovered model", DEADLINE);
+    assert_eq!(
+        fixture.discoveries.load(Ordering::Relaxed),
+        1,
+        "duplicate aliases did not duplicate discovery setup"
+    );
     pty.send(b"\x1b");
     dismissed(&pty, "Select model");
     for prompt in ["cfg09 first", "cfg09 second", "cfg09 third"] {

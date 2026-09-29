@@ -415,6 +415,8 @@ pub struct TuiChrome {
     pub service_diagnostics: Vec<ServiceDiagnostic>,
     /// Current generation's compiled-plugin requests; contains no executable identities.
     pub plugins: PluginInventory,
+    /// Owner facts for this exact selection; ready means request-admissible, not connected.
+    pub provider: Option<ProviderReadiness>,
     /// Canonical application Location, unknown in mock workers.
     pub location: Option<String>,
     /// Explicit debug.devtools override; absence uses the build channel.
@@ -541,6 +543,7 @@ pub enum ServiceKind {
     #[default]
     Mcp,
     Plugin,
+    Provider,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -553,6 +556,7 @@ pub enum ServiceStage {
     Connection,
     Initialize,
     Catalog,
+    ModelCatalog,
     Cleanup,
     Call,
 }
@@ -567,6 +571,7 @@ impl ServiceStage {
             Self::Connection => "connect",
             Self::Initialize => "initialize",
             Self::Catalog => "tools-list",
+            Self::ModelCatalog => "models-list",
             Self::Cleanup => "cleanup",
             Self::Call => "call",
         }
@@ -581,6 +586,9 @@ pub enum ServiceCode {
     UnsupportedCapability,
     UnsupportedProtocol,
     MissingCredential,
+    ProviderPending,
+    ModelUnavailable,
+    HttpFailure,
     InvalidHeader,
     AuthorizationHeaderConflict,
     HeaderConflict,
@@ -609,6 +617,9 @@ impl ServiceCode {
             Self::UnsupportedCapability => "unsupported_capability",
             Self::UnsupportedProtocol => "unsupported_protocol",
             Self::MissingCredential => "missing_credential",
+            Self::ProviderPending => "provider_pending",
+            Self::ModelUnavailable => "model_unavailable",
+            Self::HttpFailure => "http_failure",
             Self::InvalidHeader => "invalid_header",
             Self::AuthorizationHeaderConflict => "authorization_header_conflict",
             Self::HeaderConflict => "header_conflict",
@@ -638,6 +649,9 @@ pub enum ServiceAction {
     RetryConnection,
     SignInUnsupported,
     RestartApplication,
+    RefreshCatalog,
+    SelectModel,
+    WaitForProvider,
 }
 
 impl std::fmt::Display for ServiceDiagnostic {
@@ -648,11 +662,15 @@ impl std::fmt::Display for ServiceDiagnostic {
             match self.kind {
                 ServiceKind::Mcp => "mcp",
                 ServiceKind::Plugin => "plugin",
+                ServiceKind::Provider => "provider",
             },
             self.service,
             self.stage.as_str(),
             self.code.as_str(),
-            self.action == ServiceAction::RetryConnection,
+            matches!(
+                self.action,
+                ServiceAction::RetryConnection | ServiceAction::RefreshCatalog
+            ),
             self.source,
             self.field.join("."),
             match self.action {
@@ -661,8 +679,69 @@ impl std::fmt::Display for ServiceDiagnostic {
                 ServiceAction::SignInUnsupported =>
                     "native OAuth sign-in unsupported; review credentials",
                 ServiceAction::RestartApplication => "restart application; retry unsafe",
+                ServiceAction::RefreshCatalog => "reload configuration to refresh catalog",
+                ServiceAction::SelectModel => "select an admitted model",
+                ServiceAction::WaitForProvider => "wait for catalog; selection remains unchanged",
             }
         )
+    }
+}
+
+/// Transient provider/catalog facts, owned by the existing application generation.
+/// No endpoint, credential, raw exception or untrusted identity crosses this DTO.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProviderReadiness {
+    pub service: String,
+    /// Opaque exact model identity; raw unavailable IDs may be URLs or secrets.
+    pub model: String,
+    pub status: ProviderStatus,
+    pub catalog_status: ProviderStatus,
+    pub diagnostic: Option<ServiceDiagnostic>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProviderStatus {
+    /// Credential and exact model metadata are admitted; no network health claim.
+    Ready,
+    Pending,
+    Unavailable,
+    Failed,
+}
+
+impl ProviderStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Ready => "ready",
+            Self::Pending => "pending",
+            Self::Unavailable => "unavailable",
+            Self::Failed => "failed",
+        }
+    }
+}
+
+impl std::fmt::Display for ProviderReadiness {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Provider request — {}; catalog — {}",
+            self.status.as_str(),
+            self.catalog_status.as_str()
+        )?;
+        if self.status != ProviderStatus::Ready {
+            write!(f, "; selection={}", self.model)?;
+        }
+        if let Some(diagnostic) = &self.diagnostic {
+            write!(
+                f,
+                "; {}: {diagnostic}",
+                if self.status == ProviderStatus::Ready {
+                    "catalog attempt"
+                } else {
+                    "request refusal"
+                }
+            )?;
+        }
+        Ok(())
     }
 }
 

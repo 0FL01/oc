@@ -133,6 +133,8 @@ impl SubmissionReceipt {
 /// Typed application events (live hints + durable outcomes for T03).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CoreEvent {
+    /// The owner atomically completed a catalog attempt; read the current scoped catalog.
+    ProviderChanged,
     /// Actual resource-owner publication, independent of an active turn.
     McpChanged(crate::queries::McpSnapshot),
     PermissionAsked(crate::approval::ApprovalRequest),
@@ -1895,6 +1897,9 @@ mod tests {
                 | CoreEvent::ToolCallFinished { .. } => {}
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
                 CoreEvent::McpChanged(_) => panic!("unexpected MCP in scripted runtime"),
+                CoreEvent::ProviderChanged => {
+                    panic!("unexpected native provider in scripted runtime")
+                }
                 CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {
                     panic!("unexpected permission request")
                 }
@@ -2200,6 +2205,9 @@ mod tests {
                 | CoreEvent::ToolCallFinished { .. } => {}
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
                 CoreEvent::McpChanged(_) => panic!("unexpected MCP in scripted runtime"),
+                CoreEvent::ProviderChanged => {
+                    panic!("unexpected native provider in scripted runtime")
+                }
                 CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             }
         }

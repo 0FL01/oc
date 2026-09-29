@@ -62,6 +62,7 @@ struct Fixture {
     requests: Arc<Mutex<Vec<serde_json::Value>>>,
     models: Arc<Mutex<serde_json::Value>>,
     discoveries: Arc<AtomicUsize>,
+    catalog_control: Arc<provider_readiness::CatalogControl>,
     hold_title: Arc<AtomicBool>,
     title_closed: Arc<AtomicBool>,
     s07_continue: Arc<AtomicBool>,
@@ -125,6 +126,8 @@ impl Fixture {
         let closed = title_closed.clone();
         let stop = Arc::new(AtomicBool::new(false));
         let stopping = stop.clone();
+        let catalog_control = Arc::new(provider_readiness::CatalogControl::default());
+        let catalog_peer = catalog_control.clone();
         let s07_continue = Arc::new(AtomicBool::new(false));
         let continue_stream = s07_continue.clone();
         let vis28_continue = Arc::new(AtomicBool::new(false));
@@ -141,8 +144,13 @@ impl Fixture {
                         socket
                             .set_write_timeout(Some(DEADLINE))
                             .expect("write timeout");
-                        let Some(body) = read_request(&mut socket, &discovered, &discovery_count)
-                        else {
+                        let Some(body) = read_request(
+                            &mut socket,
+                            &discovered,
+                            &discovery_count,
+                            &catalog_peer,
+                            &stopping,
+                        ) else {
                             continue;
                         };
                         captured.lock().expect("requests").push(body.clone());
@@ -187,6 +195,7 @@ impl Fixture {
             requests,
             models,
             discoveries,
+            catalog_control,
             hold_title,
             title_closed,
             s07_continue,
@@ -251,6 +260,7 @@ impl Drop for Fixture {
                 result.expect("fake endpoint assertions");
             }
         }
+        self.catalog_control.join();
         for thread in self.held_titles.lock().unwrap().drain(..) {
             if !std::thread::panicking() {
                 thread.join().expect("held title connection");
@@ -377,8 +387,10 @@ fn dcp_anchors(body: &serde_json::Value) -> Option<Vec<serde_json::Value>> {
 
 fn read_request(
     socket: &mut TcpStream,
-    models: &Mutex<serde_json::Value>,
+    models: &Arc<Mutex<serde_json::Value>>,
     discoveries: &AtomicUsize,
+    control: &Arc<provider_readiness::CatalogControl>,
+    stop: &Arc<AtomicBool>,
 ) -> Option<serde_json::Value> {
     let mut bytes = Vec::new();
     let mut chunk = [0; 4096];
@@ -402,9 +414,7 @@ fn read_request(
     );
     if headers.starts_with("GET /proxy/v1/models HTTP/1.1\r\n") {
         discoveries.fetch_add(1, Ordering::Relaxed);
-        let body = models.lock().unwrap().to_string();
-        write!(socket, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).expect("discovery response");
-        socket.flush().expect("discovery flush");
+        control.reply(socket.try_clone().unwrap(), models.clone(), stop.clone());
         return None;
     }
     assert!(headers.starts_with("POST /proxy/v1/responses HTTP/1.1\r\n"));
@@ -1998,3 +2008,5 @@ mod interaction;
 mod lifecycle;
 #[path = "pty_t39/plugin_admission.rs"]
 mod plugin_admission;
+#[path = "pty_t39/provider_readiness.rs"]
+mod provider_readiness;

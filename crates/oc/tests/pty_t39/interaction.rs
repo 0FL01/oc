@@ -1592,7 +1592,15 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
         }
         assert!(fixture.requests.lock().unwrap().is_empty());
         pty.send(b"blocked draft\r");
-        wait_screen_row(&pty, "select an admitted replacement", DEADLINE);
+        wait_screen_row(
+            &pty,
+            if retired_model {
+                "model_unavailable"
+            } else {
+                "select an admitted replacement"
+            },
+            DEADLINE,
+        );
         wait_screen_row(&pty, "blocked draft", DEADLINE);
         assert!(
             fixture.requests.lock().unwrap().is_empty(),

@@ -94,20 +94,17 @@ with tempfile.TemporaryDirectory(prefix='oc-discovery-', dir=base) as tmp:
             {'id': ident, 'context_length': 10000, 'max_completion_tokens': 1000}
         ]}).encode()
         cases = [
-            ('unauthorized', 401, body_marker.encode(), False, 'Model discovery authentication rejected (401)',
-              'HTTP 401'),
-            ('forbidden', 403, body_marker.encode(), False, 'Model discovery access forbidden (403)',
-              'HTTP 403'),
+            ('unauthorized', 401, body_marker.encode(), False, 'unauthorized', 'unauthorized'),
+            ('forbidden', 403, body_marker.encode(), False, 'forbidden', 'forbidden'),
             ('unauthorized-oversized', 401, body_marker.encode() * (9 * 1024 * 1024 // len(body_marker) + 1),
-             False, 'Model discovery authentication rejected (401)', 'HTTP 401'),
+             False, 'unauthorized', 'unauthorized'),
             ('forbidden-oversized', 403, body_marker.encode() * (9 * 1024 * 1024 // len(body_marker) + 1),
-             False, 'Model discovery access forbidden (403)', 'HTTP 403'),
+             False, 'forbidden', 'forbidden'),
             ('unauthorized-slow', 401, body_marker.encode(), True,
-             'Model discovery authentication rejected (401)', 'HTTP 401'),
+              'unauthorized', 'unauthorized'),
             ('forbidden-slow', 403, body_marker.encode(), True,
-             'Model discovery access forbidden (403)', 'HTTP 403'),
-            ('absent', 200, catalog('fixture/other'), False, 'Selected model absent from catalog',
-             'unknown model'),
+              'forbidden', 'forbidden'),
+            ('absent', 200, catalog('fixture/other'), False, 'model_unavailable', 'model_unavailable'),
             ('present', 200, catalog(chosen), False, '█▀▀█', None),
         ]
         for label, status, payload, slow, expected, detailed in cases:
@@ -125,14 +122,14 @@ with tempfile.TemporaryDirectory(prefix='oc-discovery-', dir=base) as tmp:
                 screen = drain(master)
                 assert child.poll() is None, (label, 'premature exit')
                 assert expected in screen, (label, 'wrong startup category')
-                assert (label == 'present') == ('Native startup error' not in screen), (label, 'unexpected home/error')
+                assert 'Native startup error' not in screen and '█▀▀█' in screen, (label, 'local home unavailable')
                 for marker in (key, body_marker, str(root), 'Authorization:'):
                     assert marker not in screen, (label, 'private data reached TUI')
                 if label != 'present':
                     assert chosen not in screen, (label, 'selected id reached error UI')
                 os.write(master, b'\x03')
                 drain(master, .15)
-                assert child.wait(timeout=5) == (0 if label == 'present' else 1), (label, 'exit code')
+                assert child.wait(timeout=5) == 0, (label, 'exit code')
                 assert termios.tcgetattr(slave) == original, (label, 'terminal state')
             finally:
                 if child.poll() is None:
@@ -151,8 +148,8 @@ with tempfile.TemporaryDirectory(prefix='oc-discovery-', dir=base) as tmp:
                     r'discovery\.attempt: n=\d+ status=401 class=Unauthorized',
                     trace_text), (label, 'no 401 discovery attempt line')
                 assert 'discovery.fail: class=Unauthorized' in trace_text, (label, 'no discovery fail line')
-                assert 'spawn.fail: category=DiscoveryUnauthorized' in trace_text, (label, 'no typed spawn fail')
-                assert 'tui.exit: code=1' in trace_text, (label, 'no failing tui exit')
+                assert 'spawn.ok' in trace_text and 'spawn.fail' not in trace_text, (label, 'optional auth stopped local startup')
+                assert 'tui.exit: code=0' in trace_text, (label, 'no clean local tui exit')
             if label == 'present':
                 assert 'discovery.ok: models=1 selected_present=true' in trace_text, (label, 'no discovery ok')
                 assert 'spawn.ok' in trace_text, (label, 'no spawn.ok')
@@ -166,6 +163,7 @@ with tempfile.TemporaryDirectory(prefix='oc-discovery-', dir=base) as tmp:
                 result = subprocess.run([binary, 'run', 'no network call'],
                                         cwd=project, env=headless_env, capture_output=True, timeout=5)
                 assert result.returncode == 1 and detailed.encode() in result.stderr, (label, 'headless detail')
+                assert result.stdout == b'' and b'source-' in result.stderr, (label, 'unsafe headless channel/source')
                 assert key.encode() not in result.stderr and body_marker.encode() not in result.stderr, (label, 'headless leak')
                 assert headless_trace.exists(), (label, 'headless trace missing')
                 headless_bytes = headless_trace.read_bytes()

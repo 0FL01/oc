@@ -717,10 +717,16 @@ pub(crate) fn assemble_admitted_with_terminal_copy(
     enabled_providers: Option<&HashSet<String>>,
     roots: &BTreeMap<String, (&File, PathBuf)>,
 ) -> Result<(Generation, Option<oc_core::queries::TerminalCopyMode>), ConfigError> {
-    assemble_with_reader(sources, env, enabled_providers, &|path, source| {
-        let (root, directory) = roots.get(source).ok_or_else(|| file_refused(source))?;
-        read_trusted_file_rooted(path, source, root, directory)
-    })
+    assemble_with_admission(
+        sources,
+        env,
+        enabled_providers,
+        &|path, source| {
+            let (root, directory) = roots.get(source).ok_or_else(|| file_refused(source))?;
+            read_trusted_file_rooted(path, source, root, directory)
+        },
+        false,
+    )
 }
 
 fn assemble_with_reader(
@@ -728,6 +734,16 @@ fn assemble_with_reader(
     env: &BTreeMap<String, String>,
     enabled_providers: Option<&HashSet<String>>,
     reader: &impl Fn(&str, &str) -> Result<String, ConfigError>,
+) -> Result<(Generation, Option<oc_core::queries::TerminalCopyMode>), ConfigError> {
+    assemble_with_admission(sources, env, enabled_providers, reader, true)
+}
+
+fn assemble_with_admission(
+    sources: &[Source],
+    env: &BTreeMap<String, String>,
+    enabled_providers: Option<&HashSet<String>>,
+    reader: &impl Fn(&str, &str) -> Result<String, ConfigError>,
+    require_credential: bool,
 ) -> Result<(Generation, Option<oc_core::queries::TerminalCopyMode>), ConfigError> {
     let mut providers: BTreeMap<String, (ProviderEntry, String)> = BTreeMap::new();
     // Unknown provider option keys: visible warnings, never a hard failure.
@@ -874,7 +890,7 @@ fn assemble_with_reader(
         if selected {
             validate_provider(id, &entry)?;
         }
-        if selected && entry.options.api_key.trim().is_empty() {
+        if require_credential && selected && entry.options.api_key.trim().is_empty() {
             return Err(ConfigError::MissingCredential {
                 field: format!("provider.{id}.options.apiKey"),
             });

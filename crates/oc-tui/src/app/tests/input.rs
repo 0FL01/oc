@@ -1,6 +1,49 @@
 use super::*;
 
 #[tokio::test]
+async fn ui07_provider_settings_are_read_only_owner_facts_and_preserve_draft() {
+    use oc_core::queries::{
+        ProviderReadiness, ProviderStatus, ServiceAction, ServiceCode, ServiceDiagnostic,
+        ServiceKind, ServiceStage,
+    };
+    let mut state = fresh_state("ui07-settings").await;
+    state.handle_paste("keep this local draft");
+    let mut catalog = snapshot();
+    let readiness = ProviderReadiness {
+        service: "provider-opaque-fixture".into(),
+        model: "model-opaque-fixture".into(),
+        status: ProviderStatus::Unavailable,
+        catalog_status: ProviderStatus::Unavailable,
+        diagnostic: Some(ServiceDiagnostic {
+            kind: ServiceKind::Provider,
+            service: "provider-opaque-fixture".into(),
+            source: "source-123/opencode.json".into(),
+            field: vec!["options".into(), "apiKey".into()],
+            stage: ServiceStage::Config,
+            code: ServiceCode::MissingCredential,
+            action: ServiceAction::ReviewConfiguration,
+        }),
+    };
+    catalog.chrome.provider = Some(readiness.clone());
+    state.apply_catalog(catalog);
+    assert_eq!(state.input, "keep this local draft");
+    state.panel = TuiPanel::Settings;
+    state.handle_panel_key(KeyAction::Down);
+    let rows = state.modal_options();
+    assert_eq!(rows[1].title, "Provider request — unavailable");
+    assert_eq!(rows[1].footer, readiness.to_string());
+    assert!(rows[1].footer.contains("missing_credential"));
+    assert!(state.handle_panel_key(KeyAction::Right).intent.is_none());
+    let detail = state.handle_panel_key(KeyAction::Enter);
+    assert!(
+        detail.intent.is_none(),
+        "read-only provider facts cannot trigger effects"
+    );
+    assert_eq!(detail.note.as_deref(), Some(rows[1].footer.as_str()));
+    assert_eq!(state.input, "keep this local draft");
+}
+
+#[tokio::test]
 async fn cfg09_plugin_settings_rows_show_owner_status_and_are_read_only() {
     use oc_core::queries::{
         PluginEntry, PluginStatus, ServiceAction, ServiceCode, ServiceDiagnostic, ServiceKind,

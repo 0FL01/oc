@@ -140,6 +140,15 @@ impl TuiState {
                     .into(),
                     false,
                 )];
+                if let Some(provider) = &self.chrome.provider {
+                    options.push(item(
+                        "provider".into(),
+                        format!("Provider request — {}", provider.status.as_str()),
+                        "Services",
+                        provider.to_string(),
+                        false,
+                    ));
+                }
                 options.extend(self.chrome.plugins.entries.iter().enumerate().map(
                     |(index, plugin)| {
                         item(
@@ -1668,7 +1677,12 @@ impl TuiState {
     pub fn active_model_label(&self) -> Option<(String, Option<String>)> {
         let picker = self.picker.as_ref()?;
         if let crate::picker::PickerState::Retired { wanted, .. } = picker.state() {
-            return Some((format!("{wanted} (unavailable)"), None));
+            let identity = self
+                .chrome
+                .provider
+                .as_ref()
+                .map_or(wanted.as_str(), |provider| provider.model.as_str());
+            return Some((format!("{identity} (unavailable)"), None));
         }
         let selection = picker.selection()?;
         Some((

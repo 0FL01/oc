@@ -41,6 +41,10 @@ mod mcp_lookup;
 #[cfg(test)]
 #[path = "application/plugin_tests.rs"]
 mod plugin_tests;
+mod provider_catalog;
+#[cfg(test)]
+#[path = "application/provider_tests.rs"]
+mod provider_tests;
 #[path = "application_selection.rs"]
 mod selection;
 #[path = "application_tab_deck.rs"]
@@ -245,7 +249,7 @@ pub async fn spawn_with_env(
     data: &Path,
     env: BTreeMap<String, String>,
 ) -> Result<(CoreApp, WorkerGuard, Vec<String>), String> {
-    spawn_inner(project, data, env)
+    spawn_inner(project, data, env, false)
         .await
         .map(|(app, guard, diagnostics, _)| (app, guard, diagnostics))
         .map_err(|issue| issue.detail)
@@ -260,7 +264,7 @@ pub async fn spawn_diagnostic(
     let env = std::env::vars_os()
         .filter_map(|(key, value)| Some((key.into_string().ok()?, value.into_string().ok()?)))
         .collect();
-    spawn_inner(project, data, env)
+    spawn_inner(project, data, env, true)
         .await
         .map(|(app, guard, _, notices)| (app, guard, notices))
         .map_err(|issue| issue.category)
@@ -270,6 +274,7 @@ async fn spawn_inner(
     project: &Path,
     data: &Path,
     env: BTreeMap<String, String>,
+    defer_provider: bool,
 ) -> Result<(CoreApp, WorkerGuard, Vec<String>, Vec<StartupNotice>), SpawnIssue> {
     trace::log(
         "spawn.begin",
@@ -280,7 +285,7 @@ async fn spawn_inner(
             env.len()
         ),
     );
-    let result = spawn_stages(project, data, env).await;
+    let result = spawn_stages(project, data, env, defer_provider).await;
     if let Err(issue) = &result {
         trace::log("spawn.fail", &format!("category={:?}", issue.category));
     }
@@ -291,46 +296,25 @@ async fn spawn_stages(
     project: &Path,
     data: &Path,
     env: BTreeMap<String, String>,
+    defer_provider: bool,
 ) -> Result<(CoreApp, WorkerGuard, Vec<String>, Vec<StartupNotice>), SpawnIssue> {
-    let composition = composition::load_with_env_diagnostic(project, env)
+    let mut composition = composition::load_local_with_env(project, env)
         .await
         .map_err(|failure| match failure {
             composition::LoadFailure::Configuration(detail) => {
                 SpawnIssue::new(SpawnFailure::Configuration, detail)
             }
-            composition::LoadFailure::MissingCredential(detail) => {
-                SpawnIssue::new(SpawnFailure::MissingCredential, detail)
-            }
-            composition::LoadFailure::Discovery { reason, detail } => {
-                use crate::discovery::DiscoveryFailure;
-                use composition::SelectedCatalogFailure;
-                let category = match reason {
-                    SelectedCatalogFailure::Refresh(DiscoveryFailure::Unauthorized) => {
-                        SpawnFailure::DiscoveryUnauthorized
-                    }
-                    SelectedCatalogFailure::Refresh(DiscoveryFailure::Forbidden) => {
-                        SpawnFailure::DiscoveryForbidden
-                    }
-                    SelectedCatalogFailure::Refresh(DiscoveryFailure::Http) => {
-                        SpawnFailure::DiscoveryHttp
-                    }
-                    SelectedCatalogFailure::Refresh(DiscoveryFailure::Network) => {
-                        SpawnFailure::DiscoveryNetwork
-                    }
-                    SelectedCatalogFailure::Refresh(
-                        DiscoveryFailure::InvalidResponse | DiscoveryFailure::EmptyResponse,
-                    ) => SpawnFailure::DiscoveryInvalidResponse,
-                    SelectedCatalogFailure::Refresh(DiscoveryFailure::InvalidConfig) => {
-                        SpawnFailure::DiscoveryInvalidConfig
-                    }
-                    SelectedCatalogFailure::Refresh(DiscoveryFailure::Cancelled) => {
-                        SpawnFailure::DiscoveryCancelled
-                    }
-                    SelectedCatalogFailure::Absent => SpawnFailure::SelectedModelAbsent,
-                };
-                SpawnIssue::new(category, detail)
-            }
         })?;
+    if !defer_provider {
+        composition
+            .refresh_provider()
+            .await
+            .map_err(|failure| match failure {
+                composition::LoadFailure::Configuration(detail) => {
+                    SpawnIssue::new(SpawnFailure::Configuration, detail)
+                }
+            })?;
+    }
     let mut diagnostics = composition.diagnostics.clone();
     let mut notices = composition.startup_notices.clone();
     let db = match Db::open(data) {
@@ -488,21 +472,42 @@ impl Effective {
             // share the child/title resolver, including IDs with slashes.
             let (model, variant) = if composition.catalog.models.contains_key(model) {
                 (model.to_string(), agent.variant.clone())
+            } else if let Some((provider, rest)) = model.split_once('/')
+                && provider == composition.catalog.provider
+                && provider == crate::discovery::PROVIDER_ID
+                && !rest.is_empty()
+            {
+                // A cold/retired exact same-provider profile remains an explicit
+                // choice. Execution admission owns availability; no fallback.
+                let (id, variant) = rest.split_once('#').map_or((rest, None), |(id, variant)| {
+                    (id, Some(variant.to_string()))
+                });
+                if id.is_empty() {
+                    return Err(app_error("agent model reference is malformed"));
+                }
+                (id.to_string(), agent.variant.clone().or(variant))
             } else {
                 let resolved = crate::runtime::resolve_subagent_model(&composition.catalog, model)
                     .map_err(|error| app_error(format!("agent {id}: {error}")))?;
                 (resolved.id, agent.variant.clone().or(resolved.variant))
             };
-            let selection = crate::models::select_model(&composition.catalog, &model)
-                .and_then(|base| crate::models::select_variant(&base, variant.as_deref()))
-                .map_err(|error| app_error(format!("agent {id}: {error}")))?;
-            self.model_id = selection.id;
-            self.variant = selection.variant.map(|v| v.name);
+            if composition.catalog.models.contains_key(&model) {
+                let selection = crate::models::select_model(&composition.catalog, &model)
+                    .and_then(|base| crate::models::select_variant(&base, variant.as_deref()))
+                    .map_err(|error| app_error(format!("agent {id}: {error}")))?;
+                self.model_id = selection.id;
+                self.variant = selection.variant.map(|v| v.name);
+            } else {
+                self.model_id = model;
+                self.variant = variant;
+            }
         } else if agent.variant.is_some() {
-            let base = crate::models::select_model(&composition.catalog, &self.model_id)
-                .map_err(|error| app_error(error.to_string()))?;
-            crate::models::select_variant(&base, agent.variant.as_deref())
-                .map_err(|error| app_error(format!("agent {id}: {error}")))?;
+            if composition.catalog.models.contains_key(&self.model_id) {
+                let base = crate::models::select_model(&composition.catalog, &self.model_id)
+                    .map_err(app_error)?;
+                crate::models::select_variant(&base, agent.variant.as_deref())
+                    .map_err(app_error)?;
+            }
             self.variant = agent.variant.clone();
         }
         self.agent_id = Some(id.to_string());
@@ -593,6 +598,19 @@ impl Effective {
             chrome: {
                 let mut chrome = composition.tui_chrome.clone();
                 chrome.permissions_auto = composition.permission_preference.load(Ordering::SeqCst);
+                chrome.provider = Some(composition.provider_state.for_model(
+                    &self.model_id,
+                    composition.catalog.models.contains_key(&self.model_id),
+                ));
+                chrome.service_diagnostics.retain(|diagnostic| {
+                    diagnostic.kind != oc_core::queries::ServiceKind::Provider
+                });
+                chrome.service_diagnostics.extend(
+                    chrome
+                        .provider
+                        .as_ref()
+                        .and_then(|provider| provider.diagnostic.clone()),
+                );
                 chrome
             },
             auto_accept: if composition.approval_consumer_mode.load(Ordering::SeqCst) == 2 {
@@ -638,6 +656,9 @@ fn build_runtime<'a>(db: &'a Db, composition: &Composition) -> Result<Runtime<'a
     )
     .map_err(|error| error.to_string())?;
     runtime.set_mcp_activation(composition.mcp_activation.clone());
+    runtime
+        .publish_provider_state(composition.provider_state.clone())
+        .map_err(|error| error.to_string())?;
     runtime
         .publish_dcp_protection(composition.dcp_protected.clone())
         .map_err(|error| error.to_string())?;
@@ -688,6 +709,7 @@ fn subagent_catalog(composition: &Composition) -> Option<SubagentCatalog> {
 enum WorkerOutcome {
     /// Inbox closed or an explicit shutdown was requested.
     Stop,
+    ProviderCatalog(Result<crate::discovery::DiscoveryOutcome, String>),
     PickerOpen {
         path: String,
         session: SessionId,
@@ -770,11 +792,14 @@ async fn start_worker(
             .map_err(|error| error.to_string())?;
         return Ok(());
     }
+    let mut provider_work = provider_catalog::ProviderWork::start(&composition);
     if ready.send(Ok(diagnostics)).is_err() {
+        let provider_stop = provider_work.stop().await;
         runtime
             .shutdown_mcp()
             .await
             .map_err(|error| error.to_string())?;
+        provider_stop?;
         return Ok(());
     }
     // This worker, not any one Location runtime, owns unresolved remote calls.
@@ -804,20 +829,41 @@ async fn start_worker(
             &title_tx,
             &mut title_rx,
             &title_work,
+            &mut provider_work,
         )
         .await;
         let outcome = match outcome {
             Ok(outcome) => outcome,
             Err(error) => {
+                let provider_stop = provider_work.stop().await;
                 stop_automatic_titles(&title_work).await;
                 runtime
                     .shutdown_mcp()
                     .await
                     .map_err(|error| error.to_string())?;
+                provider_stop?;
                 return Err(error);
             }
         };
         match outcome {
+            WorkerOutcome::ProviderCatalog(outcome) => {
+                let outcome = match outcome {
+                    Ok(outcome) => outcome,
+                    Err(error) => {
+                        stop_automatic_titles(&title_work).await;
+                        runtime
+                            .shutdown_mcp()
+                            .await
+                            .map_err(|error| error.to_string())?;
+                        return Err(error);
+                    }
+                };
+                composition.accept_provider_catalog(outcome);
+                runtime
+                    .publish_provider_state(composition.provider_state.clone())
+                    .map_err(|error| error.to_string())?;
+                let _ = events.send(CoreEvent::ProviderChanged);
+            }
             WorkerOutcome::PickerOpen {
                 path,
                 session,
@@ -899,11 +945,13 @@ async fn start_worker(
                 };
                 // The route and both decks have committed. Cleanup cannot turn
                 // that accepted route back into a refusal or an old view.
+                let provider_stop = provider_work.stop().await;
                 let _ = runtime.shutdown_mcp().await;
                 while let Ok(result) = title_rx.try_recv() {
                     commit_automatic_title(&db, &events, &title_work, result);
                 }
                 stop_automatic_titles(&title_work).await;
+                provider_stop?;
                 remote_retry_quarantined |= runtime.remote_retry_quarantined();
                 if remote_retry_quarantined {
                     next.quarantine_remote_retries();
@@ -919,11 +967,13 @@ async fn start_worker(
                 let _ = ack.send(Ok(receipt));
             }
             WorkerOutcome::Stop => {
+                let provider_stop = provider_work.stop().await;
                 drain_automatic_titles(&db, &events, &title_work, &mut title_rx).await;
                 runtime
                     .shutdown_mcp()
                     .await
                     .map_err(|error| error.to_string())?;
+                provider_stop?;
                 break;
             }
             WorkerOutcome::Switch { path, ack } => {
@@ -938,6 +988,42 @@ async fn start_worker(
                 .await
                 {
                     Ok((next, next_composition, next_effective, next_registry, session, notes)) => {
+                        if matches!(ack, SwitchAck::Reload(_))
+                            && next_composition.provider_state.catalog_status
+                                == oc_core::queries::ProviderStatus::Failed
+                        {
+                            let error = next_composition
+                                .provider_state
+                                .for_model(&next_composition.model_id, false)
+                                .diagnostic
+                                .expect("failed refresh has a cause");
+                            next.shutdown_mcp()
+                                .await
+                                .map_err(|error| error.to_string())?;
+                            if next_composition.catalog.provider == composition.catalog.provider {
+                                // Keep the complete healthy catalog/policy/credentials. Only the
+                                // transient latest-attempt fact changes, as with MCP status.
+                                let same_binding = composition
+                                    .provider
+                                    .same_request_binding(&next_composition.provider)
+                                    .map_err(|_| {
+                                        "native provider binding has invalid HTTP syntax"
+                                            .to_string()
+                                    })?;
+                                composition.provider_state.retain_failed_attempt(
+                                    &next_composition.provider_state,
+                                    same_binding,
+                                );
+                                runtime
+                                    .publish_provider_state(composition.provider_state.clone())
+                                    .map_err(|error| error.to_string())?;
+                                let _ = events.send(CoreEvent::ProviderChanged);
+                            }
+                            if let SwitchAck::Reload(ack) = ack {
+                                let _ = ack.send(Err(CoreError::ProviderUnavailable(error)));
+                            }
+                            continue;
+                        }
                         if matches!(ack, SwitchAck::Reload(_)) {
                             let validation = validate_reload_selections(
                                 &db,
@@ -984,6 +1070,7 @@ async fn start_worker(
                         };
                         // The target generation is complete: only now drop the
                         // old Location's MCP resources and swap the state.
+                        let provider_stop = provider_work.stop().await;
                         runtime
                             .shutdown_mcp()
                             .await
@@ -999,6 +1086,7 @@ async fn start_worker(
                         // old provider work before publishing the new Location;
                         // queued results lose their pending stamp as well.
                         stop_automatic_titles(&title_work).await;
+                        provider_stop?;
                         remote_retry_quarantined |= runtime.remote_retry_quarantined();
                         if remote_retry_quarantined {
                             next.quarantine_remote_retries();
@@ -1280,6 +1368,13 @@ fn skill_cards(composition: &Composition) -> Vec<SkillCard> {
 
 fn app_error(error: impl std::fmt::Display) -> CoreError {
     CoreError::Application(error.to_string())
+}
+
+fn runtime_error(error: RuntimeError) -> CoreError {
+    match error {
+        RuntimeError::ProviderUnavailable(diagnostic) => CoreError::ProviderUnavailable(diagnostic),
+        other => app_error(other),
+    }
 }
 
 fn file_suggestion_error(error: crate::files::FileToolError) -> CoreError {
@@ -2326,9 +2421,19 @@ fn query(
             let _ = ack.send(Err(CoreError::TurnBusy));
         }
         InboxMsg::CompactSession { session, ack } => {
-            let result = runtime
-                .queue_compaction(&session.0, oc_core::compaction::CompactionReason::Manual)
-                .map_err(app_error);
+            let result =
+                selection::for_turn(db, composition, effective, &session.0).and_then(|selected| {
+                    runtime
+                        .admit_provider(
+                            &composition.catalog,
+                            &selected.model_id,
+                            &composition.provider,
+                        )
+                        .map_err(runtime_error)?;
+                    runtime
+                        .queue_compaction(&session.0, oc_core::compaction::CompactionReason::Manual)
+                        .map_err(app_error)
+                });
             let _ = ack.send(result);
         }
         InboxMsg::CancelCompaction { session, ack } => {
@@ -2365,6 +2470,7 @@ async fn worker(
     title_tx: &mpsc::Sender<AutomaticTitleResult>,
     title_rx: &mut mpsc::Receiver<AutomaticTitleResult>,
     title_work: &Mutex<AutomaticTitles>,
+    provider_work: &mut provider_catalog::ProviderWork,
 ) -> Result<WorkerOutcome, String> {
     runtime.set_compaction_events(events);
     let mut pending_inputs = std::collections::VecDeque::new();
@@ -2445,6 +2551,7 @@ async fn worker(
                     commit_automatic_title(db, events, title_work, result);
                     continue;
                 }
+                result = provider_work.wait(), if provider_work.pending() => return Ok(WorkerOutcome::ProviderCatalog(result)),
                 message = inbox.recv() => match message {
                     Some(message) => message,
                     None => break,
@@ -2534,6 +2641,13 @@ async fn worker(
                         .map_err(app_error)?
                         .ok_or_else(|| app_error("no user request to title"))?;
                     let selected = selection::for_turn(db, composition, effective, &session.0)?;
+                    runtime
+                        .admit_provider(
+                            &composition.catalog,
+                            &selected.model_id,
+                            &composition.provider,
+                        )
+                        .map_err(runtime_error)?;
                     // A retired primary selection is not permission to call an
                     // unrelated fallback model, even if the title agent pins one.
                     crate::models::select_model(&composition.catalog, &selected.model_id)
@@ -2559,6 +2673,9 @@ async fn worker(
                     let selection = crate::models::select_model(&composition.catalog, &id)
                         .and_then(|base| crate::models::select_variant(&base, variant.as_deref()))
                         .map_err(|_| app_error("title agent model/variant unavailable"))?;
+                    runtime
+                        .admit_provider(&composition.catalog, &selection.id, &composition.provider)
+                        .map_err(runtime_error)?;
                     let fallback = composition
                         .generation
                         .providers
@@ -2724,6 +2841,15 @@ async fn worker(
                 });
             }
             InboxMsg::ReloadLocation { ack } => {
+                if provider_work.pending() {
+                    let diagnostic = composition
+                        .provider_state
+                        .for_model(&effective.model_id, false)
+                        .diagnostic
+                        .expect("pending catalog has a cause");
+                    let _ = ack.send(Err(CoreError::ProviderUnavailable(diagnostic)));
+                    continue;
+                }
                 return Ok(WorkerOutcome::Switch {
                     path: runtime.location().to_string(),
                     ack: SwitchAck::Reload(ack),
@@ -2766,6 +2892,13 @@ async fn worker(
                     }
                     let (selected, initial_selection) = match fresh {
                         Some(Some(choice)) => {
+                            runtime
+                                .admit_provider(
+                                    &composition.catalog,
+                                    &choice.model_id,
+                                    &composition.provider,
+                                )
+                                .map_err(runtime_error)?;
                             let (selected, record) =
                                 selection::fresh(composition, effective, &session.0, choice)?;
                             (selected, Some(record))
@@ -2780,6 +2913,13 @@ async fn worker(
                                 model_id: home.model_id.clone(),
                                 variant: home.variant.clone(),
                             };
+                            runtime
+                                .admit_provider(
+                                    &composition.catalog,
+                                    &choice.model_id,
+                                    &composition.provider,
+                                )
+                                .map_err(runtime_error)?;
                             let (selected, record) =
                                 selection::fresh(composition, effective, &session.0, choice)?;
                             (selected, Some(record))
@@ -2789,6 +2929,13 @@ async fn worker(
                             None,
                         ),
                     };
+                    runtime
+                        .admit_provider(
+                            &composition.catalog,
+                            &selected.model_id,
+                            &composition.provider,
+                        )
+                        .map_err(runtime_error)?;
                     crate::models::select_model(&composition.catalog, &selected.model_id)
                                 .and_then(|base| crate::models::select_variant(&base, selected.variant.as_deref()))
                                 .map_err(|e| app_error(format!("selected model/variant unavailable; select an admitted replacement or Default: {e}")))?;
@@ -3179,7 +3326,7 @@ async fn worker(
                 }
                 if let Some(ack) = ack {
                     let error = result.err().unwrap_or(RuntimeError::Storage);
-                    let _ = ack.send(Err(app_error(error)));
+                    let _ = ack.send(Err(runtime_error(error)));
                 } else if let Some(turn) = turn {
                     // Provider usage is forwarded only when the provider
                     // reported it; never synthesized.

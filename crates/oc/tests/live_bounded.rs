@@ -195,6 +195,14 @@ impl LiveConfig {
         if loaded.catalog.provider != provider_id {
             return Err("effective primary agent selects a different provider".into());
         }
+        if loaded
+            .tui_chrome
+            .provider
+            .as_ref()
+            .is_some_and(|provider| provider.status != oc_core::queries::ProviderStatus::Ready)
+        {
+            return Err("selected provider request unavailable (credential or catalog)".into());
+        }
         let selection = oc_adapters::models::select_model(&loaded.catalog, model_id)
             .map_err(|_| "requested model is absent from the effective catalog".to_string())?;
         let selection = oc_adapters::models::select_variant(&selection, variant)

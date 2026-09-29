@@ -148,6 +148,13 @@ impl Runtime<'_> {
             .map(|(id, _)| id.clone())
     }
     pub(crate) fn refuse_compaction(&self, session: &str) -> Result<(), RuntimeError> {
+        self.refuse_compaction_with_error(session, "selected model unavailable".into())
+    }
+    fn refuse_compaction_with_error(
+        &self,
+        session: &str,
+        error: String,
+    ) -> Result<(), RuntimeError> {
         if let Some(mut work) = self
             .compactions
             .lock()
@@ -155,7 +162,7 @@ impl Runtime<'_> {
             .remove(session)
         {
             work.snapshot.state = CompactionState::Failed;
-            work.snapshot.error = Some("selected model unavailable".into());
+            work.snapshot.error = Some(error);
             self.publish_compaction(&work.snapshot)?;
         }
         Ok(())
@@ -206,6 +213,19 @@ impl Runtime<'_> {
         provider: &ResponsesConfig,
         caller_cancel: Option<&AtomicBool>,
     ) -> Result<bool, RuntimeError> {
+        if !self
+            .compactions
+            .lock()
+            .expect("compactions")
+            .get(session)
+            .is_some_and(|work| work.snapshot.state == CompactionState::Queued)
+        {
+            return Ok(false);
+        }
+        if let Err(error) = self.admit_provider(catalog, model, provider) {
+            self.refuse_compaction_with_error(session, error.to_string())?;
+            return Err(error);
+        }
         let (mut snapshot, cancel) = {
             let mut work = self.compactions.lock().expect("compactions");
             let Some(w) = work.get_mut(session) else {

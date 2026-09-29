@@ -296,6 +296,9 @@ impl TurnSubagent<'_, '_> {
             self.parent_variant.as_deref(),
         )
         .map_err(failed)?;
+        self.runtime
+            .admit_provider(self.catalog, &model.id, self.provider)
+            .map_err(|error| failed(error.to_string()))?;
         Ok((agent, model))
     }
 
@@ -654,6 +657,7 @@ impl<'a> Runtime<'a> {
         reasoning_item_ended: &mut (dyn FnMut(&str) + Send),
         tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
     ) -> Result<TurnReport, RuntimeError> {
+        self.admit_provider(params.catalog, &params.model_id, &params.provider)?;
         let published = self.current.read().expect("generation lock").clone();
         let base = models::select_model(params.catalog, &params.model_id)
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
