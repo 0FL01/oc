@@ -282,12 +282,20 @@ fn bounded_native_restart_and_helper_restart_share_real_attempts() {
         "Acknowledge.",
         CALL_TIMEOUT,
     );
-    assert!(ok, "first native process: {detail}");
     let before = peer.requests.lock().unwrap().len();
-    assert!(
-        before >= 3,
-        "first native turn, retry and automatic title must dispatch"
+    // T54 R1 removes the adapter retry. The first exchange is HTTP 500;
+    // main and title can race, but each lane makes exactly one physical POST.
+    let requests = peer.requests.lock().unwrap().clone();
+    assert_eq!(
+        ok,
+        requests[0]["is_title"] == true,
+        "first native process: {detail}"
     );
+    assert_eq!(
+        before, 2,
+        "one main and one automatic title, no adapter retry"
+    );
+    assert_eq!(requests.iter().filter(|v| v["is_title"] != true).count(), 1);
     assert!(
         peer.requests
             .lock()
@@ -305,7 +313,7 @@ fn bounded_native_restart_and_helper_restart_share_real_attempts() {
             .filter(|a| a["kind"] == "generation" && a["http_status"] == 500)
             .count(),
         1,
-        "actual automatic retry's HTTP 500 is a consumed complete exchange"
+        "the one physical HTTP 500 is a consumed complete exchange"
     );
     drop(fixture.envelope.take());
     let guard = Envelope::start(id.clone(), &targets, true).unwrap();
@@ -319,9 +327,19 @@ fn bounded_native_restart_and_helper_restart_share_real_attempts() {
     assert!(ok, "second native process: {detail}");
     let after = peer.requests.lock().unwrap().len();
     assert!(after > before);
+    assert_eq!(
+        peer.requests
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|v| v["is_title"] != true)
+            .count(),
+        2,
+        "one main POST per explicit user turn, including restart"
+    );
     assert_eq!(inspect(&id).unwrap()["counts"]["generation"], after);
     println!(
-        "owned_native_attempts first={before} combined={after} native_processes=2 helper_processes=2 retry=true title=true"
+        "owned_native_attempts first={before} combined={after} native_processes=2 helper_processes=2 adapter_retry=false title=true"
     );
 }
 

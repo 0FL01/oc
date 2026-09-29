@@ -6,8 +6,8 @@
 //! fallback. Bounded incremental SSE (arbitrary byte splits incl. split
 //! UTF-8, multiline `data:`, CRLF, comments), text/argument deltas and usage
 //! metadata with event/byte caps. Errors distinguish failed/incomplete/EOF;
-//! exactly one retry lives here and only before any event
-//! is committed — callers never repeat a committed generation or tool call.
+//! exactly one physical attempt lives here. Logical retry/continuation belongs
+//! to the runtime owner; this adapter never repeats generation or tool calls.
 //! `timeout:false` means no total deadline; the 6 000 000 ms chunk idle
 //! default budget is enforced between bytes; effective config may override it.
 //! Explicit cancel interrupts DNS, header and body waits.
@@ -22,12 +22,15 @@ use thiserror::Error;
 
 use crate::models::SelectedVariant;
 
+mod failure;
+pub use failure::{Delivery, FailureKind, Operation, PhysicalFailure, RetryHeaders, TransportKind};
+
 /// Idle budget between SSE bytes (6 000 000 ms = 100 min, not 6 s).
 pub const CHUNK_TIMEOUT_MS: u64 = 6_000_000;
 /// Max SSE events decoded per response.
 pub const EVENT_CAP: usize = 10_000;
-/// Max attempts per generation: initial + exactly one retry.
-pub const MAX_ATTEMPTS: usize = 2;
+/// Physical attempts per adapter invocation (no internal HTTP retry).
+pub const MAX_ATTEMPTS: usize = 1;
 /// Maximum pending SSE line and complete event, in bytes.
 pub const SSE_BYTE_CAP: usize = 2 * 1024 * 1024;
 /// Maximum arguments for one call, including all deltas.
@@ -42,6 +45,12 @@ pub const TEXT_DELTA_BYTE_CAP: usize = 16 * 1024;
 /// Typed provider errors (no credentials, no prompt contents).
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum ProviderError {
+    /// One physical provider request, with bounded classified wire facts.
+    #[error("{0}")]
+    Request(Box<PhysicalFailure>),
+    /// Invalid local protocol decoding/validation, never generic provider retry.
+    #[error("invalid provider output")]
+    InvalidOutput,
     /// 401: key rejected; never retried, never logged with the key.
     #[error("unauthorized")]
     Unauthorized,
@@ -102,6 +111,20 @@ pub enum ProviderError {
     /// An explicit provider context-window error, eligible for one checkpoint rebuild.
     #[error("context window exceeded")]
     ContextOverflow,
+}
+
+impl ProviderError {
+    /// Existing compaction path consumes the typed context-overflow category.
+    pub fn is_context_overflow(&self) -> bool {
+        matches!(self, Self::ContextOverflow)
+            || matches!(self, Self::Request(failure) if failure.kind == FailureKind::ContextOverflow)
+    }
+
+    /// Truthful incomplete status for existing callers, without retry dispatch.
+    pub fn is_incomplete(&self) -> bool {
+        matches!(self, Self::Incomplete | Self::ResponseIncomplete)
+            || matches!(self, Self::Request(failure) if failure.kind == FailureKind::IncompleteStream)
+    }
 }
 
 /// Responses message role, independent of UI event kinds.
@@ -281,6 +304,8 @@ pub enum StreamItem {
 /// Complete streamed generation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Generation {
+    /// Explicit terminal meaning; length never implies an untruncated answer.
+    pub finish: FinishReason,
     pub compaction_usage: Option<oc_core::compaction::CompactionUsage>,
     /// Full completed output, including opaque continuation state.
     pub output: Vec<serde_json::Value>,
@@ -290,6 +315,13 @@ pub struct Generation {
     pub text: String,
     /// Usage when reported, else `None`.
     pub usage: Option<(u64, u64)>,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum FinishReason {
+    #[default]
+    Stop,
+    Length,
 }
 
 /// Adapter configuration (secret `api_key` never appears in `Debug`).
@@ -394,6 +426,7 @@ pub fn request_body(
 /// Incremental SSE decoder over an arbitrary byte stream.
 #[derive(Debug, Default)]
 pub struct SseParser {
+    finish: FinishReason,
     compaction_usage: Option<oc_core::compaction::CompactionUsage>,
     /// Pending bytes (incomplete UTF-8 tail or partial line).
     pending: Vec<u8>,
@@ -519,14 +552,17 @@ impl SseParser {
         }
         self.retained += cost;
         let value: serde_json::Value =
-            serde_json::from_str(&payload).map_err(|_| ProviderError::Incomplete)?;
+            serde_json::from_str(&payload).map_err(|_| ProviderError::InvalidOutput)?;
+        if value["type"].as_str().is_none() {
+            return Err(ProviderError::InvalidOutput);
+        }
         match value["type"].as_str() {
             Some("response.output_item.added") if value["item"]["type"] == "function_call" => {
                 let item = &value["item"];
                 let id = item["id"]
                     .as_str()
                     .filter(|id| !id.is_empty())
-                    .ok_or(ProviderError::Incomplete)?;
+                    .ok_or(ProviderError::InvalidOutput)?;
                 self.announced_calls.insert(id.to_owned());
                 if item["arguments"]
                     .as_str()
@@ -537,26 +573,33 @@ impl SseParser {
             }
             Some("response.failed" | "error") => {
                 self.terminal = true;
-                let code = value
-                    .pointer("/response/error/code")
-                    .or_else(|| value.pointer("/error/code"))
-                    .or_else(|| value.get("code"))
-                    .and_then(|v| v.as_str());
-                if matches!(
-                    code,
-                    Some("context_length_exceeded" | "context_window_exceeded")
-                ) {
-                    return Err(ProviderError::ContextOverflow);
-                }
-                return Err(ProviderError::Failed);
+                return Err(failure::event_failure(&value));
             }
             Some("response.incomplete") => {
                 self.terminal = true;
-                return Err(ProviderError::ResponseIncomplete);
+                match value
+                    .pointer("/response/incomplete_details/reason")
+                    .and_then(|v| v.as_str())
+                {
+                    Some("max_output_tokens") => {
+                        self.finish = FinishReason::Length;
+                        self.complete_response(&value)?;
+                    }
+                    Some("content_filter") => {
+                        let mut error = failure::classified(None, None, true);
+                        error.kind = FailureKind::ContentPolicy;
+                        return Err(ProviderError::Request(Box::new(error)));
+                    }
+                    _ => return Err(ProviderError::ResponseIncomplete),
+                }
             }
             Some("response.function_call_arguments.delta") => {
-                let id = value["item_id"].as_str().ok_or(ProviderError::Incomplete)?;
-                let delta = value["delta"].as_str().ok_or(ProviderError::Incomplete)?;
+                let id = value["item_id"]
+                    .as_str()
+                    .ok_or(ProviderError::InvalidOutput)?;
+                let delta = value["delta"]
+                    .as_str()
+                    .ok_or(ProviderError::InvalidOutput)?;
                 let size = self.arguments.entry(id.to_owned()).or_default();
                 if size.saturating_add(delta.len()) > ARGUMENT_BYTE_CAP {
                     return Err(ProviderError::ByteLimit("arguments"));
@@ -564,7 +607,7 @@ impl SseParser {
                 *size += delta.len();
             }
             Some("response.output_item.done") => {
-                let item = value.get("item").ok_or(ProviderError::Incomplete)?;
+                let item = value.get("item").ok_or(ProviderError::InvalidOutput)?;
                 validate_output(item)?;
                 let index = value["output_index"]
                     .as_u64()
@@ -572,62 +615,107 @@ impl SseParser {
                 self.output_done.insert(index, item.clone());
             }
             Some("response.completed") => {
-                if let Some(usage) = value.pointer("/response/usage") {
-                    let input = usage["input_tokens"].as_u64().unwrap_or(0);
-                    let output = usage["output_tokens"].as_u64().unwrap_or(0);
-                    let cache_read = usage
-                        .pointer("/input_tokens_details/cached_tokens")
-                        .and_then(|v| v.as_u64())
-                        .unwrap_or(0);
-                    let reasoning = usage
-                        .pointer("/output_tokens_details/reasoning_tokens")
-                        .and_then(|v| v.as_u64())
-                        .unwrap_or(0);
-                    // Responses totals include cached input and reasoning output.
-                    self.compaction_usage = Some(oc_core::compaction::CompactionUsage {
-                        input_tokens: input.saturating_sub(cache_read),
-                        output_tokens: output.saturating_sub(reasoning),
-                        cache_read_tokens: cache_read,
-                        cache_write_tokens: 0,
-                        reasoning_tokens: reasoning,
-                    });
-                }
                 self.terminal = true;
                 match value
                     .pointer("/response/status")
                     .and_then(serde_json::Value::as_str)
                 {
-                    Some("failed") => return Err(ProviderError::Failed),
+                    Some("failed") => return Err(failure::event_failure(&value)),
                     Some("incomplete" | "in_progress" | "cancelled" | "queued") => {
                         return Err(ProviderError::ResponseIncomplete);
                     }
                     Some("completed") | None => {}
-                    _ => return Err(ProviderError::Incomplete),
+                    _ => return Err(ProviderError::InvalidOutput),
                 }
-                if let Some(output) = value.pointer("/response/output") {
-                    let output = output.as_array().ok_or(ProviderError::Incomplete)?;
-                    for item in output {
-                        validate_output(item)?;
-                    }
-                    self.output = Some(output.clone());
-                }
-                for id in self.announced_calls.iter().chain(self.arguments.keys()) {
-                    let complete = |item: &serde_json::Value| {
-                        item["type"] == "function_call" && item["id"].as_str() == Some(id.as_str())
-                    };
-                    let found = match &self.output {
-                        Some(output) => output.iter().any(complete),
-                        None => self.output_done.values().any(complete),
-                    };
-                    if !found {
-                        return Err(ProviderError::ResponseIncomplete);
-                    }
-                }
-                self.completed = true;
+                self.complete_response(&value)?;
             }
             _ => {}
         }
         Ok(map_event(&value))
+    }
+
+    fn complete_response(&mut self, value: &serde_json::Value) -> Result<(), ProviderError> {
+        if let Some(output) = value.pointer("/response/output") {
+            let output = output.as_array().ok_or(ProviderError::InvalidOutput)?;
+            for item in output {
+                // Length admits only genuinely partial assistant messages;
+                // opaque items and failed messages retain ordinary validation.
+                let partial_message = self.finish == FinishReason::Length
+                    && item["type"] == "message"
+                    && item["role"] == "assistant"
+                    && matches!(item["status"].as_str(), Some("in_progress" | "incomplete"));
+                if !partial_message {
+                    validate_output(item)?;
+                }
+                if self.finish == FinishReason::Length && item["type"] == "function_call" {
+                    // Donor recovery is exclusive to response.completed. An
+                    // incomplete finish cannot manufacture a call completion
+                    // or change the body of an actual prior output_item.done.
+                    let observed =
+                        item["id"]
+                            .as_str()
+                            .filter(|id| !id.is_empty())
+                            .is_some_and(|id| {
+                                self.output_done.values().any(|done| {
+                                    done["type"] == "function_call"
+                                        && done["id"].as_str() == Some(id)
+                                        && done == item
+                                })
+                            });
+                    if !observed {
+                        return Err(ProviderError::ResponseIncomplete);
+                    }
+                }
+            }
+            let mut canonical = output.clone();
+            if self.finish == FinishReason::Length {
+                // A call already emitted by output_item.done survives an
+                // incomplete terminal array that only carries partial text.
+                // This preserves observed completion, never terminal recovery.
+                for (index, done) in &self.output_done {
+                    if done["type"] == "function_call" && !output.iter().any(|item| item == done) {
+                        let position = usize::try_from(*index)
+                            .unwrap_or(usize::MAX)
+                            .min(canonical.len());
+                        canonical.insert(position, done.clone());
+                    }
+                }
+            }
+            self.output = Some(canonical);
+        }
+        for id in self.announced_calls.iter().chain(self.arguments.keys()) {
+            let complete = |item: &serde_json::Value| {
+                item["type"] == "function_call" && item["id"].as_str() == Some(id.as_str())
+            };
+            let found = match &self.output {
+                Some(output) => output.iter().any(complete),
+                None => self.output_done.values().any(complete),
+            };
+            if !found {
+                return Err(ProviderError::ResponseIncomplete);
+            }
+        }
+        if let Some(usage) = value.pointer("/response/usage") {
+            let input = usage["input_tokens"].as_u64().unwrap_or(0);
+            let output = usage["output_tokens"].as_u64().unwrap_or(0);
+            let cache_read = usage
+                .pointer("/input_tokens_details/cached_tokens")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+            let reasoning = usage
+                .pointer("/output_tokens_details/reasoning_tokens")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+            self.compaction_usage = Some(oc_core::compaction::CompactionUsage {
+                input_tokens: input.saturating_sub(cache_read),
+                output_tokens: output.saturating_sub(reasoning),
+                cache_read_tokens: cache_read,
+                cache_write_tokens: 0,
+                reasoning_tokens: reasoning,
+            });
+        }
+        self.completed = true;
+        Ok(())
     }
 }
 
@@ -638,7 +726,7 @@ fn validate_output(item: &serde_json::Value) -> Result<(), ProviderError> {
     if item["type"] == "function_call" {
         let arguments = item["arguments"]
             .as_str()
-            .ok_or(ProviderError::Incomplete)?;
+            .ok_or(ProviderError::InvalidOutput)?;
         if arguments.len() > ARGUMENT_BYTE_CAP {
             return Err(ProviderError::ByteLimit("arguments"));
         }
@@ -646,7 +734,7 @@ fn validate_output(item: &serde_json::Value) -> Result<(), ProviderError> {
             || item["name"].as_str().is_none_or(str::is_empty)
             || serde_json::from_str::<serde_json::Value>(arguments).is_err()
         {
-            return Err(ProviderError::Incomplete);
+            return Err(ProviderError::InvalidOutput);
         }
     }
     Ok(())
@@ -732,7 +820,7 @@ fn map_event(value: &serde_json::Value) -> Option<StreamItem> {
                 _ => None,
             }
         }
-        Some("response.completed") => {
+        Some("response.completed" | "response.incomplete") => {
             let usage = value.pointer("/response/usage");
             let input = usage
                 .and_then(|u| u.get("input_tokens"))
@@ -751,7 +839,7 @@ fn map_event(value: &serde_json::Value) -> Option<StreamItem> {
 
 /// Stream one generation: POST → SSE → items.
 ///
-/// Exactly one retry is owned here, and only before the first event commits.
+/// Exactly one physical attempt; no retry or backoff is owned here.
 /// `cancel` interrupts network waits; setting it drops the connection and
 /// reports [`ProviderError::Cancelled`].
 pub async fn stream_generation(
@@ -906,49 +994,26 @@ async fn stream_body(
     }
 
     let builder = reqwest::Client::builder()
+        .retry(reqwest::retry::never())
         .redirect(reqwest::redirect::Policy::none())
         .no_proxy()
         .user_agent(crate::USER_AGENT)
         .connect_timeout(config.connect_timeout);
     // timeout:false (or absent) means no total deadline: never set one.
-    let client = builder.build().map_err(|_| ProviderError::Transport)?;
+    let client = builder.build().map_err(|_| ProviderError::InvalidConfig)?;
 
-    let mut attempts = 0usize;
-    loop {
-        attempts += 1;
-        match stream_attempt(
-            &client,
-            &url,
-            &headers,
-            &body,
-            config.allow_private,
-            cancel,
-            chunk_timeout,
-            observe,
-        )
-        .await
-        {
-            Ok(generation) => return Ok(generation),
-            Err((error, committed)) => {
-                // Retryable pre-commit only: truncated/idle streams are
-                // transient transport faults; nothing executed yet, so a
-                // fresh attempt cannot double-apply tool effects.
-                let retryable = matches!(
-                    error,
-                    ProviderError::RateLimited
-                        | ProviderError::Server
-                        | ProviderError::Transport
-                        | ProviderError::Incomplete
-                        | ProviderError::Deadline
-                        | ProviderError::IdleTimeout
-                );
-                if retryable && !committed && attempts < MAX_ATTEMPTS {
-                    continue;
-                }
-                return Err(error);
-            }
-        }
-    }
+    stream_attempt(
+        &client,
+        &url,
+        &headers,
+        &body,
+        config.allow_private,
+        cancel,
+        chunk_timeout,
+        observe,
+    )
+    .await
+    .map_err(|(error, _)| error)
 }
 
 pub(crate) fn request_headers(
@@ -1041,17 +1106,19 @@ async fn stream_attempt(
     let resp = tokio::select! {
         biased;
         () = wait_cancel(cancel) => return Err((ProviderError::Cancelled, false)),
-        result = tokio::time::timeout(chunk_timeout, request.send()) => result.map_err(|_| (ProviderError::IdleTimeout, false))?,
+        result = tokio::time::timeout(chunk_timeout, request.send()) => result.map_err(|_| {
+            let mut failure = PhysicalFailure::transport(Operation::Request, Delivery::Unknown, None);
+            failure.transport = Some(TransportKind::IdleTimeout);
+            (ProviderError::Request(Box::new(failure)), false)
+        })?,
     }
         .map_err(|e| {
             // Only true timeouts are deadlines; refusals/DNS failures are
             // transport errors (connect_timeout expiry surfaces is_timeout).
-            let error = if e.is_timeout() {
-                ProviderError::Deadline
-            } else {
-                ProviderError::Transport
-            };
-            (error, false)
+            let mut failure = PhysicalFailure::transport(Operation::Request,
+                if e.is_connect() { Delivery::NotSent } else { Delivery::Unknown }, None);
+            if e.is_timeout() { failure.transport = Some(TransportKind::Deadline); }
+            (ProviderError::Request(Box::new(failure)), false)
         })?;
     // Post-dial rebinding guard on the connected peer.
     if let Some(peer) = resp.remote_addr()
@@ -1061,19 +1128,8 @@ async fn stream_attempt(
         return Err((ProviderError::PrivateHost, false));
     }
     let status = resp.status().as_u16();
-    if status == 401 {
-        return Err((ProviderError::Unauthorized, false));
-    }
-    if status == 403 {
-        return Err((ProviderError::Forbidden, false));
-    }
-    if status == 429 {
-        return Err((ProviderError::RateLimited, false));
-    }
-    if status >= 500 {
-        return Err((ProviderError::Server, false));
-    }
-    if status == 400 || status == 413 {
+    let retry_headers = RetryHeaders::observed(resp.headers(), status >= 400);
+    if status != 200 {
         let mut response = resp;
         let mut bytes = Vec::new();
         let deadline = tokio::time::Instant::now() + chunk_timeout;
@@ -1087,39 +1143,65 @@ async fn stream_attempt(
                     bytes.extend_from_slice(&chunk)
                 }
                 Ok(Ok(None)) => break,
-                _ => return Err((ProviderError::HttpStatus(status), false)),
+                // Status remains affirmative even when the bounded diagnostic
+                // body is unavailable. Do not decode a truncated body.
+                _ => {
+                    bytes.clear();
+                    break;
+                }
             }
         }
         let diagnostic = serde_json::from_slice::<serde_json::Value>(&bytes).ok();
-        let known = diagnostic.as_ref().is_some_and(|v| {
-            matches!(
-                v.pointer("/error/code").and_then(|c| c.as_str()),
-                Some("context_length_exceeded" | "context_window_exceeded")
-            )
-        });
-        let message = diagnostic
-            .as_ref()
-            .and_then(|v| v.pointer("/error/message"))
-            .and_then(|v| v.as_str())
-            .and_then(|message| safe_diagnostic(message, headers));
-        return Err((
-            if known {
-                ProviderError::ContextOverflow
-            } else if let Some(message) = message {
-                ProviderError::HttpDiagnostic { status, message }
-            } else {
-                ProviderError::HttpStatus(status)
-            },
-            false,
-        ));
-    }
-    if status != 200 {
-        return Err((ProviderError::HttpStatus(status), false));
+        let mut failure = failure::classified(diagnostic.as_ref(), Some(status), false);
+        failure.headers = retry_headers;
+        if !matches!(
+            failure.kind,
+            FailureKind::RateLimit | FailureKind::ProviderInternal
+        ) {
+            failure.headers.retry_after_ms = None;
+        }
+        if failure.kind == FailureKind::InvalidRequest {
+            failure.message = diagnostic
+                .as_ref()
+                .and_then(|v| v.pointer("/error/message").or_else(|| v.get("message")))
+                .and_then(|v| v.as_str())
+                .and_then(|message| safe_diagnostic(message, headers));
+        }
+        return Err((ProviderError::Request(Box::new(failure)), false));
     }
 
     let mut parser = SseParser::default();
     let mut items: Vec<StreamItem> = Vec::new();
     let mut committed = false;
+    let read_failure = |error, committed| {
+        let mut failure = match error {
+            ProviderError::Request(failure) => *failure,
+            ProviderError::Incomplete | ProviderError::ResponseIncomplete => {
+                let mut failure =
+                    PhysicalFailure::transport(Operation::Read, Delivery::Accepted, Some(status));
+                failure.kind = FailureKind::IncompleteStream;
+                failure.transport = None;
+                failure
+            }
+            ProviderError::Transport | ProviderError::Deadline | ProviderError::IdleTimeout => {
+                let mut failure =
+                    PhysicalFailure::transport(Operation::Read, Delivery::Accepted, Some(status));
+                failure.transport = Some(match error {
+                    ProviderError::Deadline => TransportKind::Deadline,
+                    ProviderError::IdleTimeout => TransportKind::IdleTimeout,
+                    _ => TransportKind::Network,
+                });
+                failure
+            }
+            // Parsing, UTF-8, policy and resource limits are local terminal
+            // errors: never inherit provider override eligibility.
+            local => return (local, committed),
+        };
+        failure.http_status = Some(status);
+        failure.headers = retry_headers;
+        failure.output_committed = committed;
+        (ProviderError::Request(Box::new(failure)), committed)
+    };
     let mut resp = resp;
     loop {
         if cancel.load(Ordering::Relaxed) {
@@ -1133,14 +1215,14 @@ async fn stream_attempt(
             result = tokio::time::timeout(chunk_timeout, resp.chunk()) => result,
         };
         let chunk = match result {
-            Err(_) => return Err((ProviderError::IdleTimeout, committed)),
+            Err(_) => return Err(read_failure(ProviderError::IdleTimeout, committed)),
             Ok(Err(e)) => {
                 let error = if e.is_timeout() {
                     ProviderError::Deadline
                 } else {
-                    ProviderError::Incomplete
+                    ProviderError::Transport
                 };
-                return Err((error, committed));
+                return Err(read_failure(error, committed));
             }
             Ok(Ok(chunk)) => chunk,
         };
@@ -1151,12 +1233,14 @@ async fn stream_attempt(
                     continue;
                 }
                 let mut forward = |item: &StreamItem| {
-                    committed = true;
+                    committed |= !matches!(
+                        item,
+                        StreamItem::Usage { .. } | StreamItem::MessageBoundary { .. }
+                    );
                     observe(item);
                 };
                 let result = parser.push_observed(&bytes, &mut forward);
-                committed |= parser.events > 0 || parser.terminal;
-                let mut fresh = result.map_err(|e| (e, committed))?;
+                let mut fresh = result.map_err(|e| read_failure(e, committed))?;
                 items.append(&mut fresh);
                 if parser.completed {
                     break;
@@ -1164,13 +1248,13 @@ async fn stream_attempt(
             }
         }
     }
-    let tail = parser.finish().map_err(|e| (e, committed))?;
+    let tail = parser.finish().map_err(|e| read_failure(e, committed))?;
     for item in &tail {
         observe(item);
     }
     items.extend(tail);
     if !parser.completed {
-        return Err((ProviderError::Incomplete, committed));
+        return Err(read_failure(ProviderError::Incomplete, committed));
     }
 
     let mut text = String::new();
@@ -1195,6 +1279,7 @@ async fn stream_attempt(
         .output
         .unwrap_or_else(|| parser.output_done.into_values().collect());
     Ok(Generation {
+        finish: parser.finish,
         compaction_usage: parser.compaction_usage,
         output,
         items,
@@ -1223,11 +1308,14 @@ fn safe_diagnostic(message: &str, headers: &reqwest::header::HeaderMap) -> Optio
         "cookie:",
         "api_key=",
         "apikey=",
+        "://",
+        "environment",
+        "env=",
     ]
     .iter()
     .any(|key| lower.contains(key))
     {
-        return Some("provider diagnostic contained credentials (redacted)".into());
+        return Some("provider diagnostic contained private data (redacted)".into());
     }
     Some(
         message
@@ -1257,6 +1345,8 @@ pub fn describe_request(
 
 #[cfg(test)]
 mod tests {
+    mod typed_failures;
+
     use super::{
         CHUNK_TIMEOUT_MS, EVENT_CAP, ProviderError, ResponsesConfig, SseParser, StreamItem,
         ToolDef, prompt_cache_key, request_body, stream_generation,
@@ -1475,7 +1565,7 @@ mod tests {
                     ]
                 );
             } else {
-                assert_eq!(result, Err(ProviderError::ResponseIncomplete));
+                assert!(result.as_ref().unwrap_err().is_incomplete());
             }
             assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
             server.shutdown();
@@ -1484,9 +1574,9 @@ mod tests {
 
     #[tokio::test]
     async fn aud11_terminal_failures_never_retry_and_success_does_not_wait_for_eof() {
-        for (kind, error) in [
-            ("response.failed", ProviderError::Failed),
-            ("response.incomplete", ProviderError::ResponseIncomplete),
+        for (kind, expected) in [
+            ("response.failed", super::FailureKind::UnknownProvider),
+            ("response.incomplete", super::FailureKind::IncompleteStream),
         ] {
             let server = TestServer::spawn(Arc::new(move |_| Action {
                 status: "200 OK",
@@ -1510,7 +1600,9 @@ mod tests {
                 None,
             )
             .await;
-            assert_eq!(result, Err(error));
+            assert!(
+                matches!(&result, Err(ProviderError::Request(error)) if error.kind == expected)
+            );
             assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
             assert!(!format!("{result:?}").contains("SECRET"));
             server.shutdown();
@@ -1678,11 +1770,10 @@ mod tests {
         let mut config = test_config(&server.base);
         config.chunk_timeout_ms = 30;
         let start = std::time::Instant::now();
-        assert_eq!(
-            super::stream_input_observed(&config, "m", None, &[], &[], 5, &NO_CANCEL, &mut |_| {})
-                .await,
-            Err(ProviderError::IdleTimeout)
-        );
+        assert!(matches!(
+            super::stream_input_observed(&config, "m", None, &[], &[], 5, &NO_CANCEL, &mut |_| {}).await,
+            Err(ProviderError::Request(error)) if error.transport == Some(super::TransportKind::IdleTimeout)
+        ));
         assert!(start.elapsed() < Duration::from_millis(500));
         assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
         server.shutdown();
@@ -1694,9 +1785,9 @@ mod tests {
         }))
         .await;
         let mut config = test_config(&server.base);
-        assert_eq!(
-            stream_generation(&config, "m", None, "x", &[], &NO_CANCEL, None).await,
-            Err(ProviderError::HttpStatus(400))
+        assert!(
+            matches!(stream_generation(&config, "m", None, "x", &[], &NO_CANCEL, None).await,
+            Err(ProviderError::Request(error)) if error.kind == super::FailureKind::InvalidRequest && error.http_status == Some(400))
         );
         assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
         config.headers.insert("hOsT".into(), "evil".into());
@@ -1789,7 +1880,7 @@ mod tests {
             None,
         )
         .await;
-        assert_eq!(result, Err(ProviderError::Incomplete));
+        assert!(result.as_ref().unwrap_err().is_incomplete());
         assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
         server.shutdown();
     }
@@ -2004,10 +2095,7 @@ mod tests {
     #[tokio::test]
     async fn prov06_statuses_retry_owner() {
         // 401/403 typed, never retried.
-        for (status, error) in [
-            ("401 Unauthorized", ProviderError::Unauthorized),
-            ("403 Forbidden", ProviderError::Forbidden),
-        ] {
+        for status in ["401 Unauthorized", "403 Forbidden"] {
             let server = TestServer::spawn(Arc::new(move |_| Action {
                 status,
                 headers: vec![],
@@ -2019,11 +2107,13 @@ mod tests {
             let err = stream_generation(&config, "m", None, "x", &[], &NO_CANCEL, None)
                 .await
                 .expect_err("err");
-            assert_eq!(err, error);
+            assert!(
+                matches!(err, ProviderError::Request(error) if error.kind == super::FailureKind::Authentication)
+            );
             assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
             server.shutdown();
         }
-        // 429 then success: exactly one retry owned here.
+        // R1 supersedes T12: a second scripted success must remain unrequested.
         let server = TestServer::spawn(Arc::new(|n| {
             if n == 0 {
                 Action {
@@ -2042,7 +2132,7 @@ mod tests {
             }
         }))
         .await;
-        let generation = stream_generation(
+        let error = stream_generation(
             &test_config(&server.base),
             "m",
             None,
@@ -2052,12 +2142,13 @@ mod tests {
             None,
         )
         .await
-        .expect("retry ok");
-        assert_eq!(generation.text, "ok");
-        assert_eq!(server.attempts.load(Ordering::SeqCst), 2);
+        .expect_err("one physical attempt");
+        assert!(
+            matches!(error, ProviderError::Request(error) if error.kind == super::FailureKind::RateLimit)
+        );
+        assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
         server.shutdown();
-        // Truncated stream (EOF, no events) then success: pre-commit
-        // Incomplete retries once; a committed truncation never retries.
+        // Empty EOF also cannot cause an adapter-owned retry.
         let server = TestServer::spawn(Arc::new(|n| {
             if n == 0 {
                 Action {
@@ -2076,7 +2167,7 @@ mod tests {
             }
         }))
         .await;
-        let generation = stream_generation(
+        let error = stream_generation(
             &test_config(&server.base),
             "m",
             None,
@@ -2086,11 +2177,11 @@ mod tests {
             None,
         )
         .await
-        .expect("incomplete retry ok");
-        assert_eq!(generation.text, "ok");
-        assert_eq!(server.attempts.load(Ordering::SeqCst), 2);
+        .expect_err("incomplete physical result");
+        assert!(error.is_incomplete());
+        assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
         server.shutdown();
-        // Persistent 500: initial + one retry, then Server (never more).
+        // Persistent 500: one observed server failure, no second POST.
         let server = TestServer::spawn(Arc::new(|_| Action {
             status: "500 Internal Error",
             headers: vec![],
@@ -2109,8 +2200,10 @@ mod tests {
         )
         .await
         .expect_err("500");
-        assert_eq!(err, ProviderError::Server);
-        assert_eq!(server.attempts.load(Ordering::SeqCst), 2);
+        assert!(
+            matches!(err, ProviderError::Request(error) if error.kind == super::FailureKind::ProviderInternal)
+        );
+        assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
         server.shutdown();
         // Failure after a committed delta: Incomplete, never retried.
         let server = TestServer::spawn(Arc::new(|_| Action {
@@ -2134,7 +2227,7 @@ mod tests {
         )
         .await
         .expect_err("partial");
-        assert_eq!(err, ProviderError::Incomplete);
+        assert!(err.is_incomplete());
         assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
         server.shutdown();
     }
@@ -2162,7 +2255,9 @@ mod tests {
         )
         .await
         .expect_err("idle");
-        assert_eq!(err, ProviderError::IdleTimeout);
+        assert!(
+            matches!(err, ProviderError::Request(error) if error.transport == Some(super::TransportKind::IdleTimeout))
+        );
         server.shutdown();
 
         // Cancel mid-stream drops the connection and reports Cancelled.
@@ -2200,7 +2295,9 @@ mod tests {
         let err = stream_generation(&closed, "m", None, "x", &[], &NO_CANCEL, None)
             .await
             .expect_err("closed");
-        assert_eq!(err, ProviderError::Transport);
+        assert!(
+            matches!(err, ProviderError::Request(error) if error.kind == super::FailureKind::Transport && error.delivery == super::Delivery::NotSent && error.retry_eligible())
+        );
         assert!(start.elapsed() < Duration::from_secs(10));
         // timeout:true is meaningless: rejected as invalid config.
         let mut bad = test_config("http://127.0.0.1:9");

@@ -1331,7 +1331,7 @@ impl<'a> Runtime<'a> {
                 }
                 Err(error) => {
                     tool_event(&turn_id, &ToolCallEvent::ArgumentStream(oc_core::tool_stream::ToolStreamEvent::Clear { round: rounds + 1 }));
-                    if matches!(error,crate::provider::ProviderError::ContextOverflow) && !overflow_recovered && compaction_config.auto {
+                    if error.is_context_overflow() && !overflow_recovered && compaction_config.auto {
                         overflow_recovered=true;
                         overflow_pending=true;
                         self.queue_compaction(&params.session,oc_core::compaction::CompactionReason::Overflow)?;
@@ -1342,11 +1342,7 @@ impl<'a> Runtime<'a> {
                     streamed += stream_started.elapsed();
                     let status = if params.cancel.load(Ordering::Relaxed) {
                         TurnStatus::Cancelled
-                    } else if matches!(
-                        error,
-                        crate::provider::ProviderError::Incomplete
-                            | crate::provider::ProviderError::ResponseIncomplete
-                    ) {
+                    } else if error.is_incomplete() {
                         TurnStatus::Incomplete
                     } else {
                         TurnStatus::Failed
@@ -1376,6 +1372,9 @@ impl<'a> Runtime<'a> {
             // Pinned runner owns one overflow rebuild per logical LLM step.
             // A successfully settled response starts the next step's allowance.
             overflow_recovered = false;
+            if generation.finish == crate::provider::FinishReason::Length {
+                turn_log.display["finish_reason"] = serde_json::json!("length");
+            }
             for item in &generation.items {
                 turn_log.ingest(item);
             }
@@ -1736,7 +1735,7 @@ impl<'a> Runtime<'a> {
                 );
             }
         }
-        self.commit_turn(
+        let mut report = self.commit_turn(
             &turn_log,
             turn_id,
             &params.session,
@@ -1749,7 +1748,11 @@ impl<'a> Runtime<'a> {
             calls,
             nudge_hint,
             &published,
-        )
+        )?;
+        if turn_log.display["finish_reason"] == "length" {
+            report.diagnostic = Some("provider finish=length (max_output_tokens)".into());
+        }
+        Ok(report)
     }
 
     /// Run one child turn through the inner path, without the single-flight

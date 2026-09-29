@@ -679,7 +679,7 @@ async fn text_turn_completes_and_drains() {
 }
 
 #[tokio::test]
-async fn aud11_text_without_successful_terminal_never_completes() {
+async fn aud11_terminal_semantics_preserve_non_success_and_truthful_length() {
     for (terminal, expected, stored) in [
         ("", TurnStatus::Incomplete, "incomplete"),
         (
@@ -689,8 +689,18 @@ async fn aud11_text_without_successful_terminal_never_completes() {
         ),
         (
             "data: {\"type\":\"response.incomplete\",\"response\":{\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"max_output_tokens\"}}}\n\n",
+            TurnStatus::Completed,
+            "completed",
+        ),
+        (
+            "data: {\"type\":\"response.incomplete\",\"response\":{\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"unknown\"}}}\n\n",
             TurnStatus::Incomplete,
             "incomplete",
+        ),
+        (
+            "data: {\"type\":\"response.incomplete\",\"response\":{\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"content_filter\"}}}\n\n",
+            TurnStatus::Failed,
+            "failed",
         ),
     ] {
         let (harness, generation) = make_harness(allow_all());
@@ -714,11 +724,29 @@ async fn aud11_text_without_successful_terminal_never_completes() {
         assert_eq!(report.status, expected);
         assert!(report.calls.is_empty());
         assert_eq!(harness.db.turn_result(&report.turn_id).unwrap().0, stored);
-        assert_eq!(
-            harness.db.read_history("s").unwrap(),
-            [("user".to_string(), "hello".to_string())],
-            "partial assistant must not be committed as a completed answer"
-        );
+        let history = harness.db.read_history("s").unwrap();
+        if expected == TurnStatus::Completed {
+            assert_eq!(
+                history,
+                [
+                    ("user".into(), "hello".into()),
+                    ("assistant".into(), "partial".into())
+                ]
+            );
+            assert_eq!(
+                report.diagnostic.as_deref(),
+                Some("provider finish=length (max_output_tokens)")
+            );
+            let (_, raw) = harness.db.turn_result(&report.turn_id).unwrap();
+            let log: serde_json::Value = serde_json::from_str(&raw.unwrap()).unwrap();
+            assert_eq!(log["display"]["finish_reason"], "length");
+        } else {
+            assert_eq!(
+                history,
+                [("user".into(), "hello".into())],
+                "failed/incomplete assistant must not become a completed answer"
+            );
+        }
         assert_eq!(*hits.lock().unwrap(), 1, "no hidden generation retry");
     }
 }
@@ -837,6 +865,68 @@ async fn aud11_round_exhaustion_retains_output_without_replaying_effect_after_re
                 && item["id"] == "fc_call_effect"
                 && item["call_id"] == "call_effect")
     );
+}
+
+#[tokio::test]
+async fn aud11_review_length_terminal_only_call_has_no_effect_or_intent() {
+    for prior_done in [false, true] {
+        let (harness, generation) = make_harness(allow_all());
+        let runtime = runtime_of(&harness, generation, Vec::new());
+        runtime.create_session("length-tool").unwrap();
+        let call = serde_json::json!({"type":"function_call","id":"fc","call_id":"c","name":"bash","arguments":serde_json::json!({"argv":["/bin/sh","-c","printf effect >> length-effects"]}).to_string(),"status":"completed"});
+        let terminal_item = if prior_done {
+            serde_json::json!({"type":"message","role":"assistant","status":"in_progress","content":[{"type":"output_text","text":"partial"}]})
+        } else {
+            call.clone()
+        };
+        let terminal = format!(
+            "data: {}\n\n",
+            serde_json::json!({"type":"response.incomplete","response":{"output":[terminal_item],"incomplete_details":{"reason":"max_output_tokens"}}})
+        );
+        let done = if prior_done {
+            format!(
+                "data: {}\n\n",
+                serde_json::json!({"type":"response.output_item.done","output_index":0,"item":call})
+            )
+        } else {
+            String::new()
+        };
+        let (base, hits) = Fake::start(
+            vec![sse_delta("partial") + &done + &terminal],
+            Duration::ZERO,
+        );
+        let mut turn = params(
+            "length-tool",
+            "test",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        );
+        turn.max_rounds = 1;
+        let report = runtime.run_turn(turn).await.unwrap();
+        let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+        let intents: i64 = sql
+            .query_row("SELECT COUNT(*) FROM tool_operations", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(
+            (
+                intents,
+                harness._project.path().join("length-effects").exists()
+            ),
+            (i64::from(prior_done), prior_done),
+            "only prior done may admit an intent and shell effect"
+        );
+        assert_eq!(report.calls.len(), usize::from(prior_done));
+        if prior_done {
+            assert_eq!(
+                std::fs::read_to_string(harness._project.path().join("length-effects")).unwrap(),
+                "effect",
+                "actual completed call dispatches once"
+            );
+        }
+        assert_eq!(report.status, TurnStatus::Incomplete);
+        assert_eq!(*hits.lock().unwrap(), 1, "one physical attempt");
+    }
 }
 
 #[tokio::test]
