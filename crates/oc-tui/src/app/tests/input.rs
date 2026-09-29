@@ -2720,6 +2720,85 @@ async fn panel_enter_returns_selection_intents() {
 }
 
 #[tokio::test]
+async fn r4a_unavailable_primary_row_is_read_only_and_draft_survives_agent_repair() {
+    use oc_core::queries::{
+        SelectionReadiness, ServiceAction, ServiceCode, ServiceDiagnostic, ServiceKind,
+        ServiceStage,
+    };
+    let mut state = fresh_state("r4a-view").await;
+    let mut catalog = snapshot();
+    let requested = "agent-0123456789abcdef".to_string();
+    let diagnostic = ServiceDiagnostic {
+        kind: ServiceKind::Selection,
+        service: "selection".into(),
+        source: "source-02/config".into(),
+        field: vec!["selection".into(), "agent".into()],
+        stage: ServiceStage::Admission,
+        code: ServiceCode::AgentUnavailable,
+        action: ServiceAction::SelectAgent,
+    };
+    catalog.chrome.selection = Some(SelectionReadiness {
+        requested: requested.clone(),
+        diagnostic,
+    });
+    catalog.agent_id = Some(requested.clone());
+    state.apply_catalog(catalog);
+    state.handle_paste("retained draft");
+    let label = format!("{requested} (unavailable)");
+    assert_eq!(state.active_agent(), Some(label.as_str()));
+    state.run_command(crate::commands::CommandAction::OpenAgents);
+    assert_eq!(state.panel(), &TuiPanel::Agents);
+    assert!(state.modal_options()[0].title.contains("unavailable"));
+    assert_eq!(state.handle_panel_key(KeyAction::Enter).intent, None);
+    state.handle_panel_key(KeyAction::Down);
+    assert_eq!(
+        state.handle_panel_key(KeyAction::Enter).intent,
+        Some(PanelIntent::SelectAgent { id: "x".into() })
+    );
+    state.close_panel();
+    assert_eq!(state.input(), "retained draft");
+}
+
+#[tokio::test]
+async fn r4a_disabled_last_variant_still_offers_explicit_default_repair() {
+    let mut state = fresh_state("r4a-variant-view").await;
+    let mut catalog = snapshot();
+    catalog.models[0].variants = vec![oc_core::queries::VariantEntry {
+        name: "fast".into(),
+        disabled: true,
+        reasoning_effort: None,
+    }];
+    catalog.variant = Some("variant-0123456789abcdef".into());
+    catalog.chrome.selection = Some(oc_core::queries::SelectionReadiness {
+        requested: "variant-0123456789abcdef".into(),
+        diagnostic: oc_core::queries::ServiceDiagnostic {
+            kind: oc_core::queries::ServiceKind::Selection,
+            service: "selection".into(),
+            source: "source-02/config".into(),
+            field: vec!["selection".into(), "variant".into()],
+            stage: oc_core::queries::ServiceStage::Admission,
+            code: oc_core::queries::ServiceCode::VariantUnavailable,
+            action: oc_core::queries::ServiceAction::SelectVariant,
+        },
+    });
+    state.apply_catalog(catalog);
+    assert!(
+        state.picker.as_ref().unwrap().has_variants(),
+        "Default repairs a retired overlay"
+    );
+    state.run_command(crate::commands::CommandAction::OpenVariants);
+    assert_eq!(state.panel(), &TuiPanel::Variant);
+    assert!(state.modal_options()[0].footer.contains("unavailable"));
+    assert_eq!(
+        state.handle_panel_key(KeyAction::Enter).intent,
+        Some(PanelIntent::ChooseModel {
+            id: "a".into(),
+            variant: None
+        })
+    );
+}
+
+#[tokio::test]
 async fn sessions_metadata_keeps_owner_order_routes_ids_and_requeries_search_scope() {
     let mut state = fresh_state("current-root").await;
     state.chrome.location = Some("/work/project".into());

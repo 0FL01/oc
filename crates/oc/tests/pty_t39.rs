@@ -2011,6 +2011,8 @@ fn measure_s07(archive: usize) -> S07Run {
 
 #[path = "pty_t39/fatal_diagnostics.rs"]
 mod fatal_diagnostics;
+#[path = "pty_t39/inherited_selection.rs"]
+mod inherited_selection;
 #[path = "pty_t39/interaction.rs"]
 mod interaction;
 #[path = "pty_t39/lifecycle.rs"]

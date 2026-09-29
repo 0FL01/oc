@@ -2849,7 +2849,13 @@ async fn application_home_actions_are_sessionless_and_fresh_turn_pins_current_lo
     app.switch_location(other).await.unwrap();
     app.switch_location(location).await.unwrap();
     let retired = app.home_selection(Action::Current).await.unwrap();
-    assert_eq!(retired.model_id, "other");
+    let issue = retired.chrome.selection.as_ref().expect("saved id retired");
+    assert_eq!(
+        issue.diagnostic.code,
+        oc_core::queries::ServiceCode::ModelUnavailable
+    );
+    assert!(issue.requested.starts_with("model-"));
+    assert_eq!(retired.model_id, issue.requested);
     assert!(!retired.models.iter().any(|model| model.id == "other"));
     let rows_before = app.list_sessions().await.unwrap();
     let pref_before: String = conn
@@ -3209,7 +3215,9 @@ async fn home_draft_hydrates_after_restart_and_retirement_requires_explicit_repl
             current.model_id.as_str(),
             current.variant.as_deref()
         ),
-        (Some("build"), "other", Some("deep"))
+        // An explicitly selected Home agent is now durable per Location. The
+        // old no-agent-choice fallback to the build draft would lose intent.
+        (Some("review"), "main", Some("low"))
     );
     let sid = SessionId::new("restored-home-draft").unwrap();
     let mut events = app.subscribe();
@@ -3227,22 +3235,16 @@ async fn home_draft_hydrates_after_restart_and_retirement_requires_explicit_repl
             _ => {}
         }
     }
-    assert!(
-        requests
-            .lock()
-            .unwrap()
-            .iter()
-            .any(|r| r["model"] == "other"
-                && r["input"].to_string().contains("restored turn")
-                && r["input"].to_string().contains("BUILD_PRIMARY"))
-    );
+    assert!(requests.lock().unwrap().iter().any(|r| r["model"] == "main"
+        && r["input"].to_string().contains("restored turn")
+        && r["input"].to_string().contains("REVIEW_PRIMARY")));
     assert_eq!(
         app.session_selection(sid, false, Action::Current)
             .await
             .unwrap()
             .variant
             .as_deref(),
-        Some("deep")
+        Some("low")
     );
     let review = app
         .home_selection(Action::Agent("review".into()))
@@ -3272,9 +3274,21 @@ async fn home_draft_hydrates_after_restart_and_retirement_requires_explicit_repl
         .await
         .unwrap();
     let retired = app.home_selection(Action::Current).await.unwrap();
+    let issue = retired
+        .chrome
+        .selection
+        .as_ref()
+        .expect("saved draft retired");
     assert_eq!(
-        (retired.model_id.as_str(), retired.variant.as_deref()),
-        ("other", Some("deep"))
+        issue.diagnostic.code,
+        oc_core::queries::ServiceCode::ModelUnavailable
+    );
+    assert_eq!(retired.model_id, issue.requested);
+    assert!(
+        retired
+            .variant
+            .as_ref()
+            .is_some_and(|v| v.starts_with("variant-"))
     );
     assert!(!retired.models.iter().any(|m| m.id == "other"));
     assert!(

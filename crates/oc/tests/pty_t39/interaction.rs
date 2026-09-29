@@ -349,14 +349,19 @@ fn var01_discovery_refresh_reopen_restart_and_retired_identity() {
             format!("Canonical probe {phase}").into();
         std::fs::write(&path, config.to_string()).unwrap();
         pty.send(b"retired draft\x10Reload configuration\r");
-        wait_screen_row(
-            &pty,
-            &format!("Canonical probe {phase} ludka2 · fast (unavailable)"),
-            DEADLINE,
-        );
+        wait_screen_row(&pty, "variant-", DEADLINE);
+        // The opaque retired overlay takes footer width. Verify the refreshed
+        // canonical model name in the actual picker, not a clipped footer.
+        pty.send(b"\x10Switch model\r");
+        wait_screen_row(&pty, "Select model", DEADLINE);
+        wait_screen_row(&pty, &format!("Canonical probe {phase}"), DEADLINE);
+        pty.send(b"\x1b");
+        dismissed(&pty, "Select model");
+        wait_idle(&pty);
         wait_screen_row(&pty, "retired draft", DEADLINE);
         pty.send(b"\x10Switch model variant\r");
-        wait_screen_row(&pty, "fast unavailable", DEADLINE);
+        wait_screen_row(&pty, "Select variant", DEADLINE);
+        wait_screen_row(&pty, "variant-", DEADLINE);
         assert!(
             !render_screen(&pty.snapshot())
                 .rows()
@@ -366,10 +371,11 @@ fn var01_discovery_refresh_reopen_restart_and_retired_identity() {
         pty.send(b"\x1b");
         dismissed(&pty, "Select variant");
         pty.send(b"\r");
-        // The exact retired variant stays in the owner selection/footer, while
-        // its R3 refusal projects only the safe schema field and typed cause.
-        wait_screen_row(&pty, "model_unavailable (retryable=false)", DEADLINE);
-        wait_screen_row(&pty, "variant: select an admitted", DEADLINE);
+        // The exact retired variant stays in the owner selection/preference;
+        // the footer and refusal expose only its opaque identity and safe cause.
+        wait_screen_row(&pty, "variant_unavailable (retryable=false)", DEADLINE);
+        wait_screen_row(&pty, "config variant: select an", DEADLINE);
+        wait_screen_row(&pty, "model variant or Default", DEADLINE);
         wait_screen_row(&pty, "retired draft", DEADLINE);
         assert!(
             fixture.requests.lock().unwrap().is_empty(),
@@ -1579,9 +1585,10 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
         }
         wait_screen_row(&pty, "unavailable", DEADLINE);
         if !retired_model {
-            wait_screen_row(&pty, "fast (unavailable)", DEADLINE);
+            wait_screen_row(&pty, "variant-", DEADLINE);
             pty.send(b"/variants\r");
-            wait_screen_row(&pty, "fast unavailable", DEADLINE);
+            wait_screen_row(&pty, "Select variant", DEADLINE);
+            wait_screen_row(&pty, "variant-", DEADLINE);
             assert!(
                 !render_screen(&pty.snapshot())
                     .rows()
@@ -1599,7 +1606,7 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
             if retired_model {
                 "model_unavailable"
             } else {
-                "select an admitted replacement"
+                "variant_unavailable"
             },
             DEADLINE,
         );

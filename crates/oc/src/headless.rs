@@ -65,8 +65,8 @@ pub async fn run_once_to_writers(
             // An unavailable default must not block an admitted stored choice.
             // Ready defaults retain create_session's existing Location gate;
             // runtime admission still checks the exact scoped request choice.
-            let default_unavailable =
-                default.chrome.provider.as_ref().is_some_and(|provider| {
+            let default_unavailable = default.chrome.selection.is_some()
+                || default.chrome.provider.as_ref().is_some_and(|provider| {
                     provider.status != oc_core::queries::ProviderStatus::Ready
                 });
             let catalog = if default_unavailable
@@ -86,6 +86,9 @@ pub async fn run_once_to_writers(
                 Ok(default)
             }
             .map_err(|error| error.to_string())?;
+            if let Some(issue) = &catalog.chrome.selection {
+                return Err(issue.diagnostic.to_string());
+            }
             if let Some(provider) = catalog.chrome.provider {
                 if provider.status != oc_core::queries::ProviderStatus::Ready {
                     return Err(provider

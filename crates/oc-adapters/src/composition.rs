@@ -1882,11 +1882,17 @@ mod tests {
             )
             .expect("invalid cli");
             let error = load().await.map(|_| ()).expect_err("invalid indicators");
-            assert!(
-                error.contains("tabs.indicators") && error.contains("invalid_config"),
-                "{error}"
+            // A path-derived opaque source hash can legitimately contain `42`;
+            // require the entire safe diagnostic shape, with no raw value slot.
+            assert_eq!(
+                error,
+                format!(
+                    "configuration native config: invalid_config (retryable=false); {} tabs.indicators: review configuration",
+                    crate::config::mcp::safe_source_id(
+                        &project.join(".opencode/cli.jsonc").to_string_lossy()
+                    )
+                )
             );
-            assert!(!error.contains(invalid), "{error}");
         }
     }
 

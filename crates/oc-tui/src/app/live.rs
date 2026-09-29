@@ -363,7 +363,9 @@ impl TuiState {
             picker.load_persisted_raw(Some(&record.to_string()));
             picker.focus_id(&snapshot.model_id);
         }
-        if let Some(provider) = &snapshot.chrome.provider
+        if let Some(selection) = &snapshot.chrome.selection {
+            self.push_note(&selection.to_string());
+        } else if let Some(provider) = &snapshot.chrome.provider
             && provider.status != oc_core::queries::ProviderStatus::Ready
         {
             self.push_note(&provider.to_string());
@@ -373,13 +375,21 @@ impl TuiState {
         self.picker = Some(picker);
         self.commands = snapshot.commands;
         self.command_descriptions = snapshot.command_descriptions;
-        self.active_agent = snapshot.agent_id.clone();
+        self.active_agent = snapshot.agent_id.clone().map(|id| {
+            if snapshot.chrome.selection.as_ref().is_some_and(|issue| {
+                issue.diagnostic.code == oc_core::queries::ServiceCode::AgentUnavailable
+            }) {
+                format!("{id} (unavailable)")
+            } else {
+                id
+            }
+        });
         self.agents = snapshot.agents;
         self.agents_cursor = snapshot
             .agent_id
             .as_ref()
             .and_then(|id| self.agents.iter().position(|agent| &agent.id == id))
-            .unwrap_or(0);
+            .unwrap_or(usize::MAX);
         self.catalog_loaded = true;
         self.sync_modal_cursor();
     }

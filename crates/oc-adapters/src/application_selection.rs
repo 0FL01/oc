@@ -68,6 +68,13 @@ fn draft_key(c: &Composition, agent: Option<&str>) -> String {
     )
 }
 
+fn home_agent_key(c: &Composition) -> String {
+    key(
+        "home_agent",
+        &[&c.project.to_string_lossy(), &c.catalog.provider],
+    )
+}
+
 fn variant_key(c: &Composition, id: &str) -> String {
     key("variant", &[&c.catalog.provider, id])
 }
@@ -95,12 +102,23 @@ fn model(e: &Effective) -> ModelChoice {
 }
 
 fn unavailable(c: &Composition, field: &str) -> CoreError {
+    let (code, action) = match field {
+        "variant" => (
+            oc_core::queries::ServiceCode::VariantUnavailable,
+            oc_core::queries::ServiceAction::SelectVariant,
+        ),
+        "model" => (
+            oc_core::queries::ServiceCode::ModelUnavailable,
+            oc_core::queries::ServiceAction::SelectModel,
+        ),
+        _ => unreachable!("only schema-owned model/variant call sites"),
+    };
     CoreError::Diagnostic(crate::config::diagnostic::failure(
         &c.project.to_string_lossy(),
         &[field],
         oc_core::queries::ServiceStage::Admission,
-        oc_core::queries::ServiceCode::ModelUnavailable,
-        oc_core::queries::ServiceAction::SelectModel,
+        code,
+        action,
     ))
 }
 
@@ -111,6 +129,14 @@ fn set_model(e: &mut Effective, c: &Composition, choice: ModelChoice) -> Result<
         .map_err(|_| unavailable(c, "variant"))?;
     e.model_id = selected.id;
     e.variant = selected.variant.map(|v| v.name);
+    // An explicit admitted model repairs a profile's blocked pin, while an
+    // absent/nonprimary agent still requires a separate agent choice.
+    if e.profile_issue
+        .as_ref()
+        .is_some_and(|issue| issue.code == oc_core::queries::ServiceCode::ModelUnavailable)
+    {
+        e.profile_issue = None;
+    }
     Ok(())
 }
 
@@ -144,7 +170,18 @@ fn base_for_agent(
     // Absent/legacy-null means resolve the generation's default primary, as
     // pinned Agent.select(undefined), not an executable agentless lane.
     if let Some(agent) = agent.or(c.default_agent.as_deref()) {
-        selected.set_agent(c, agent)?;
+        if selected.agent_id.as_deref() != Some(agent) {
+            // Explicitly changing primary cannot inherit the previous agent's
+            // model/variant. Scoped drafts are applied only after this base.
+            selected.model_id = c.model_id.clone();
+            selected.variant = c.variant.clone();
+        }
+        if selected.set_agent(c, agent).is_err() {
+            // Saved references are view state, not execution admission. Preserve
+            // the primary and its invalid pin separately; only a missing or
+            // nonprimary definition is an unavailable agent.
+            selected.retain_invalid_saved_agent(c, agent);
+        }
     } else {
         return Err(app_error("no selectable primary agent"));
     }
@@ -175,6 +212,14 @@ fn resolve(
     };
     // Project a retired choice honestly: only turn acceptance validates it.
     // No replacement model/variant is chosen and no preference is rewritten.
+    if model.id != selected.model_id
+        && selected
+            .profile_issue
+            .as_ref()
+            .is_some_and(|issue| issue.code == oc_core::queries::ServiceCode::ModelUnavailable)
+    {
+        selected.profile_issue = None;
+    }
     selected.model_id = model.id;
     selected.variant = model.variant;
     Ok(selected)
@@ -270,9 +315,8 @@ pub(super) fn fresh(
     Ok((selected, record(session_key(c, session), &session_choice)?))
 }
 
-/// Sessionless Home selection. Only Location/agent drafts and the existing
-/// provider/model variant preference are durable; the Home choice itself is
-/// owned by the application worker and never uses a fabricated session id.
+/// Sessionless Home selection. The admitted agent and model draft are
+/// Location-scoped prefs; Home never uses a fabricated session id.
 fn home_for_agent(
     db: &Db,
     c: &Composition,
@@ -285,6 +329,14 @@ fn home_for_agent(
         None => preferred(db, c, &selected, selected.model_id.clone())?,
     };
     // A retired draft stays visible until the user explicitly replaces it.
+    if choice.id != selected.model_id
+        && selected
+            .profile_issue
+            .as_ref()
+            .is_some_and(|issue| issue.code == oc_core::queries::ServiceCode::ModelUnavailable)
+    {
+        selected.profile_issue = None;
+    }
     selected.model_id = choice.id;
     selected.variant = choice.variant;
     Ok(selected)
@@ -297,7 +349,13 @@ pub(super) fn home_current(
     c: &Composition,
     fallback: &Effective,
 ) -> Result<Effective, CoreError> {
-    home_for_agent(db, c, fallback, fallback.agent_id.as_deref())
+    let agent = load::<String>(db, &home_agent_key(c))?;
+    home_for_agent(
+        db,
+        c,
+        fallback,
+        agent.as_deref().or(fallback.agent_id.as_deref()),
+    )
 }
 
 pub(super) fn home(
@@ -310,9 +368,26 @@ pub(super) fn home(
     match action {
         Action::Current => Ok(current.clone()),
         Action::Agent(agent) | Action::New(Some(agent)) => {
-            home_for_agent(db, c, fallback, Some(&agent))
+            let selected = home_for_agent(db, c, fallback, Some(&agent))?;
+            selected.admit_selection(c)?;
+            db.set_pref(&home_agent_key(c), &record(home_agent_key(c), &agent)?.1)
+                .map_err(|error| CoreError::Diagnostic(storage_diagnostic(db.root(), &error)))?;
+            Ok(selected)
         }
-        Action::New(None) => home_for_agent(db, c, fallback, fallback.agent_id.as_deref()),
+        Action::New(None) => {
+            // An explicit new Home route resets to the configured/persisted
+            // primary's admitted draft, even after another Home agent was
+            // explicitly selected. It also records the user's reset.
+            let selected = home_for_agent(db, c, fallback, fallback.agent_id.as_deref())?;
+            selected.admit_selection(c)?;
+            if let Some(agent) = &selected.agent_id {
+                db.set_pref(&home_agent_key(c), &record(home_agent_key(c), agent)?.1)
+                    .map_err(|error| {
+                        CoreError::Diagnostic(storage_diagnostic(db.root(), &error))
+                    })?;
+            }
+            Ok(selected)
+        }
         Action::Model(id) => {
             // An explicit replacement must work even when the old Home model
             // has retired. Keep a valid same-model choice, otherwise restore
@@ -333,6 +408,7 @@ pub(super) fn home(
             }
             let mut selected = current.clone();
             set_model(&mut selected, c, choice)?;
+            selected.admit_selection(c)?;
             records.push(record(
                 draft_key(c, selected.agent_id.as_deref()),
                 &model(&selected),
@@ -351,6 +427,7 @@ pub(super) fn home(
                     variant: variant.clone(),
                 },
             )?;
+            selected.admit_selection(c)?;
             db.set_prefs(&[
                 record(variant_key(c, &selected.model_id), &variant)?,
                 record(
@@ -407,6 +484,9 @@ pub(super) fn apply(
     } else {
         resolve(db, c, fallback, &choice)?
     };
+    if matches!(action, Action::Agent(_) | Action::New(_)) {
+        selected.admit_selection(c)?;
+    }
     let mut records = Vec::new();
     match &action {
         Action::Model(id) => {
@@ -450,6 +530,7 @@ pub(super) fn apply(
         }
         _ => {}
     }
+    selected.admit_selection(c)?;
     choice
         .models
         .insert(choice.agent.clone().unwrap_or_default(), model(&selected));

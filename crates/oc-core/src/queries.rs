@@ -419,6 +419,8 @@ pub struct TuiChrome {
     pub plugins: PluginInventory,
     /// Owner facts for this exact selection; ready means request-admissible, not connected.
     pub provider: Option<ProviderReadiness>,
+    /// Unavailable saved agent/model/variant; absent when the exact choice is admitted.
+    pub selection: Option<SelectionReadiness>,
     /// Canonical application Location, unknown in mock workers.
     pub location: Option<String>,
     /// Explicit debug.devtools override; absence uses the build channel.
@@ -548,6 +550,7 @@ pub enum ServiceKind {
     Provider,
     Configuration,
     Definition,
+    Selection,
     Storage,
     Runtime,
 }
@@ -607,6 +610,8 @@ pub enum ServiceCode {
     RuntimeFailed,
     QueryFailed,
     InvalidStoredState,
+    AgentUnavailable,
+    VariantUnavailable,
     ApprovalRequired,
     IgnoredSetting,
     UnsupportedPlugin,
@@ -653,6 +658,8 @@ impl ServiceCode {
             Self::RuntimeFailed => "runtime_failed",
             Self::QueryFailed => "query_failed",
             Self::InvalidStoredState => "invalid_stored_state",
+            Self::AgentUnavailable => "agent_unavailable",
+            Self::VariantUnavailable => "variant_unavailable",
             Self::ApprovalRequired => "approval_required",
             Self::IgnoredSetting => "ignored_setting",
             Self::UnsupportedPlugin => "unsupported_plugin",
@@ -693,6 +700,8 @@ pub enum ServiceAction {
     RestartApplication,
     RefreshCatalog,
     SelectModel,
+    SelectAgent,
+    SelectVariant,
     WaitForProvider,
     CloseOtherOwner,
     ReviewDataDirectory,
@@ -712,6 +721,7 @@ impl std::fmt::Display for ServiceDiagnostic {
                 ServiceKind::Provider => "provider",
                 ServiceKind::Configuration => "configuration",
                 ServiceKind::Definition => "definition",
+                ServiceKind::Selection => "selection",
                 ServiceKind::Storage => "storage",
                 ServiceKind::Runtime => "runtime",
             },
@@ -732,6 +742,8 @@ impl std::fmt::Display for ServiceDiagnostic {
                 ServiceAction::RestartApplication => "restart application; retry unsafe",
                 ServiceAction::RefreshCatalog => "reload configuration to refresh catalog",
                 ServiceAction::SelectModel => "select an admitted model",
+                ServiceAction::SelectAgent => "select an admitted primary agent",
+                ServiceAction::SelectVariant => "select an admitted model variant or Default",
                 ServiceAction::WaitForProvider => "wait for catalog; selection remains unchanged",
                 ServiceAction::CloseOtherOwner =>
                     "close the other oc process using this data directory",
@@ -753,6 +765,24 @@ impl ServiceDiagnostic {
     pub fn investigation_draft(&self) -> String {
         format!(
             "Investigate this admitted failure without changing current policy or selection. Explain the recorded cause and allowed next action.\n{self}"
+        )
+    }
+}
+
+/// Opaque presentation identity for an exact owner-held but unavailable choice.
+/// The raw saved value remains in the application/store, never in this view.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SelectionReadiness {
+    pub requested: String,
+    pub diagnostic: ServiceDiagnostic,
+}
+
+impl std::fmt::Display for SelectionReadiness {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Saved selection {} unavailable: {}",
+            self.requested, self.diagnostic
         )
     }
 }

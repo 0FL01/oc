@@ -227,10 +227,20 @@ impl TuiState {
                 .as_ref()
                 .map(|p| p.variant_options())
                 .unwrap_or_default(),
-            TuiPanel::Agents => self
-                .agents
-                .iter()
-                .map(|a| {
+            TuiPanel::Agents => {
+                let mut options = Vec::new();
+                if let Some(saved) = self.chrome.selection.as_ref().filter(|issue| {
+                    issue.diagnostic.code == oc_core::queries::ServiceCode::AgentUnavailable
+                }) {
+                    options.push(item(
+                        "selection:unavailable".into(),
+                        format!("Saved agent {} — unavailable", saved.requested),
+                        "Agents",
+                        saved.diagnostic.to_string(),
+                        true,
+                    ));
+                }
+                options.extend(self.agents.iter().map(|a| {
                     item(
                         a.id.clone(),
                         a.id.clone(),
@@ -238,8 +248,9 @@ impl TuiState {
                         a.description.clone(),
                         self.active_agent.as_ref() == Some(&a.id),
                     )
-                })
-                .collect(),
+                }));
+                options
+            }
             TuiPanel::Sessions => self
                 .sessions
                 .iter()
@@ -669,7 +680,7 @@ impl TuiState {
                     .agents
                     .iter()
                     .position(|a| a.id == option.value)
-                    .unwrap_or(0)
+                    .unwrap_or(usize::MAX)
             }
             TuiPanel::Sessions => {
                 self.sessions_cursor = self

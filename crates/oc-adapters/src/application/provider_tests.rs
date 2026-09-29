@@ -131,7 +131,7 @@ async fn ui07_pending_profile_selection_is_live_and_successful_catalog_retires_l
     std::fs::create_dir_all(&project).unwrap();
     std::fs::create_dir_all(&global).unwrap();
     let config = json!({"model":format!("ludka2/{DYNAMIC}"), "default_agent":"ui07-primary",
-        "agent":{"ui07-primary":{"mode":"primary", "model":format!("ludka2/{DYNAMIC}"), "prompt":"UI07 profile body"}},
+        "agent":{"ui07-primary":{"mode":"primary", "model":format!("ludka2/{DYNAMIC}"), "variant":"fast", "prompt":"UI07 profile body"}},
         "provider":{"ludka2":{"options":{"baseURL":format!("http://{addr}/v1"),"apiKey":"fixture"},
             "models":{"retired-local":{"name":"Retired local override","limit":{"context":32768,"output":4096}}}}}});
     std::fs::write(global.join("opencode.json"), config.to_string()).unwrap();
@@ -150,6 +150,10 @@ async fn ui07_pending_profile_selection_is_live_and_successful_catalog_retires_l
     let initial = app.home_selection(Action::Current).await.unwrap();
     assert_eq!(initial.model_id, DYNAMIC);
     assert_eq!(initial.agent_id.as_deref(), Some("ui07-primary"));
+    assert!(
+        initial.chrome.selection.is_none(),
+        "a variant on a model pending discovery is not yet a disabled variant"
+    );
     assert_eq!(
         initial.chrome.provider.as_ref().unwrap().status,
         ProviderStatus::Pending
@@ -191,7 +195,16 @@ async fn ui07_pending_profile_selection_is_live_and_successful_catalog_retires_l
     .unwrap();
     peer.await.unwrap();
     let completed = app.home_selection(Action::Current).await.unwrap();
-    assert_eq!(completed.model_id, "retired-local");
+    // The owner still holds the exact selected draft; successful discovery
+    // retired only the metadata. The public unavailable identity is opaque.
+    assert_eq!(selected.model_id, "retired-local");
+    assert_eq!(
+        completed.model_id,
+        selection_identity("model", "retired-local")
+    );
+    let saved = completed.chrome.selection.as_ref().unwrap();
+    assert_eq!(saved.requested, completed.model_id);
+    assert_eq!(saved.diagnostic.code, ServiceCode::ModelUnavailable);
     assert_eq!(completed.models.len(), 1);
     assert_eq!(completed.models[0].id, DYNAMIC);
     let readiness = completed.chrome.provider.as_ref().unwrap();

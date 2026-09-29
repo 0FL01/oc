@@ -17,7 +17,8 @@ use oc_core::domain::SessionId;
 use oc_core::queries::{
     AgentEntry, CatalogSnapshot, DcpSnapshot, FileSuggestionsSnapshot, HistoryMessage, HistoryPage,
     HomeLocationSnapshot, LocationSnapshot, ModelEntry, ModelSwitchNotice, ReloadLocationSnapshot,
-    SessionProbe, SkillCard, StartupNotice, ToolOpPage, ToolOpView, VariantEntry,
+    SelectionReadiness, SessionProbe, SkillCard, StartupNotice, ToolOpPage, ToolOpView,
+    VariantEntry,
 };
 use oc_core::session::{CoreError, LocationSwitchFailure, MAX_QUEUE_ITEMS, MessageId, Role};
 use tokio::sync::{broadcast, mpsc, oneshot};
@@ -40,6 +41,9 @@ mod fatal_tests;
 #[cfg(test)]
 #[path = "application_fork_tests.rs"]
 mod fork_tests;
+#[cfg(test)]
+#[path = "application/inherited_tests.rs"]
+mod inherited_tests;
 mod mcp_lookup;
 #[cfg(test)]
 #[path = "application/plugin_tests.rs"]
@@ -591,6 +595,7 @@ struct Effective {
     agent_id: Option<String>,
     agent_prompt: Option<String>,
     agent_digest: Option<String>,
+    profile_issue: Option<oc_core::queries::ServiceDiagnostic>,
     legacy_epoch: u64,
 }
 
@@ -602,6 +607,7 @@ impl Effective {
             agent_id: composition.default_agent.clone(),
             agent_prompt: composition.agent_prompt.clone(),
             agent_digest: composition.agent_digest.clone(),
+            profile_issue: None,
             legacy_epoch: 0,
         }
     }
@@ -680,6 +686,7 @@ impl Effective {
         composition: &Composition,
         registry: &mut WorkspaceRegistry,
     ) -> Result<Vec<String>, SpawnIssue> {
+        let mut saved_id = None;
         if let Some(raw) = db
             .get_pref(oc_core::queries::PREF_PRIMARY_AGENT)
             .map_err(|error| SpawnIssue {
@@ -689,36 +696,158 @@ impl Effective {
         {
             let value: serde_json::Value = serde_json::from_str(&raw)
                 .map_err(|_| saved_selection_issue(db, &["selection", "agent"]))?;
-            if value
+            let id = value
                 .get("id")
                 .and_then(serde_json::Value::as_str)
+                .ok_or_else(|| saved_selection_issue(db, &["selection", "agent"]))?;
+            if value
+                .get("generation")
+                .and_then(serde_json::Value::as_u64)
                 .is_none()
-                || value
-                    .get("generation")
-                    .and_then(serde_json::Value::as_u64)
-                    .is_none()
             {
                 return Err(saved_selection_issue(db, &["selection", "agent"]));
             }
+            saved_id = Some(id.to_string());
         }
         match registry.load_primary(db) {
             Ok(id) => {
-                if let Err(error) = self.set_agent(composition, &id) {
-                    return Ok(vec![error.to_string()]);
+                if self.set_agent(composition, &id).is_err() {
+                    self.retain_invalid_saved_agent(composition, &id);
+                    return Ok(vec![
+                        self.selection_issue(composition)
+                            .unwrap()
+                            .diagnostic
+                            .to_string(),
+                    ]);
                 }
                 Ok(Vec::new())
             }
-            Err(WorkspaceError::NoPrimaryAgent) => Ok(Vec::new()),
-            Err(_) => Ok(vec![
-                crate::config::diagnostic::failure(
-                    &composition.project.to_string_lossy(),
+            Err(WorkspaceError::NoPrimaryAgent) if saved_id.is_none() => Ok(Vec::new()),
+            Err(WorkspaceError::NoPrimaryAgent) => {
+                Err(saved_selection_issue(db, &["selection", "agent"]))
+            }
+            Err(_) => {
+                let id =
+                    saved_id.ok_or_else(|| saved_selection_issue(db, &["selection", "agent"]))?;
+                self.retain_unavailable_agent(composition, &id);
+                Ok(vec![
+                    self.selection_issue(composition)
+                        .unwrap()
+                        .diagnostic
+                        .to_string(),
+                ])
+            }
+        }
+    }
+
+    fn retain_unavailable_agent(&mut self, composition: &Composition, id: &str) {
+        self.agent_id = Some(id.to_string());
+        self.agent_prompt = None;
+        self.agent_digest = None;
+        self.profile_issue = Some(selection_diagnostic(
+            composition,
+            &["selection", "agent"],
+            oc_core::queries::ServiceCode::AgentUnavailable,
+            oc_core::queries::ServiceAction::SelectAgent,
+        ));
+    }
+
+    /// A saved reference to an existing primary with an unresolvable pin is
+    /// a model problem. Keep its exact private identity and admitted profile
+    /// constraints so an explicit scoped model replacement can repair it.
+    fn retain_invalid_saved_agent(&mut self, composition: &Composition, id: &str) {
+        if let Some(agent) = composition
+            .agents
+            .get(id)
+            .filter(|agent| agent.primary_capable())
+            && let Some(model) = agent.model.as_ref()
+        {
+            self.agent_id = Some(id.to_string());
+            self.agent_prompt = Some(agent.body.clone());
+            self.agent_digest = Some(crate::defs::agent_digest(agent));
+            self.model_id = model.clone();
+            self.variant = agent.variant.clone();
+            self.profile_issue = Some(selection_diagnostic(
+                composition,
+                &["selection", "model"],
+                oc_core::queries::ServiceCode::ModelUnavailable,
+                oc_core::queries::ServiceAction::SelectModel,
+            ));
+        } else {
+            self.retain_unavailable_agent(composition, id);
+        }
+    }
+
+    fn selection_issue(&self, composition: &Composition) -> Option<SelectionReadiness> {
+        use oc_core::queries::{ServiceAction as Action, ServiceCode as Code};
+        let (identity, diagnostic) = if let Some(error) = &self.profile_issue {
+            let identity = if error.code == Code::ModelUnavailable {
+                self.model_id.as_str()
+            } else {
+                self.agent_id.as_deref().unwrap_or_default()
+            };
+            (identity, error.clone())
+        } else if let Some(id) = self.agent_id.as_deref().filter(|id| {
+            !composition
+                .agents
+                .get(*id)
+                .is_some_and(|agent| agent.primary_capable())
+        }) {
+            (
+                id,
+                selection_diagnostic(
+                    composition,
                     &["selection", "agent"],
-                    oc_core::queries::ServiceStage::Admission,
-                    oc_core::queries::ServiceCode::InvalidDefinition,
-                    oc_core::queries::ServiceAction::ReviewConfiguration,
-                )
-                .to_string(),
-            ]),
+                    Code::AgentUnavailable,
+                    Action::SelectAgent,
+                ),
+            )
+        } else if !composition.catalog.models.contains_key(&self.model_id)
+            && composition.provider_state.catalog_status == oc_core::queries::ProviderStatus::Ready
+        {
+            (
+                self.model_id.as_str(),
+                selection_diagnostic(
+                    composition,
+                    &["selection", "model"],
+                    Code::ModelUnavailable,
+                    Action::SelectModel,
+                ),
+            )
+        } else if composition.catalog.models.contains_key(&self.model_id)
+            && self.variant.as_deref().is_some_and(|variant| {
+                crate::models::select_model(&composition.catalog, &self.model_id)
+                    .and_then(|base| crate::models::select_variant(&base, Some(variant)))
+                    .is_err()
+            })
+        {
+            (
+                self.variant.as_deref().unwrap(),
+                selection_diagnostic(
+                    composition,
+                    &["selection", "variant"],
+                    Code::VariantUnavailable,
+                    Action::SelectVariant,
+                ),
+            )
+        } else {
+            return None;
+        };
+        let kind = diagnostic
+            .field
+            .last()
+            .map(String::as_str)
+            .unwrap_or("model");
+        Some(SelectionReadiness {
+            requested: selection_identity(kind, identity),
+            diagnostic,
+        })
+    }
+
+    fn admit_selection(&self, composition: &Composition) -> Result<(), CoreError> {
+        match self.selection_issue(composition) {
+            Some(issue) => Err(CoreError::Diagnostic(issue.diagnostic)),
+            None => Ok(()),
         }
     }
 
@@ -744,7 +873,6 @@ impl Effective {
                 (model.to_string(), agent.variant.clone())
             } else if let Some((provider, rest)) = model.split_once('/')
                 && provider == composition.catalog.provider
-                && provider == crate::discovery::PROVIDER_ID
                 && !rest.is_empty()
             {
                 // A cold/retired exact same-provider profile remains an explicit
@@ -761,33 +889,21 @@ impl Effective {
                     .map_err(|_| failed())?;
                 (resolved.id, agent.variant.clone().or(resolved.variant))
             };
-            if composition.catalog.models.contains_key(&model) {
-                let selection = crate::models::select_model(&composition.catalog, &model)
-                    .and_then(|base| crate::models::select_variant(&base, variant.as_deref()))
-                    .map_err(|_| failed())?;
-                self.model_id = selection.id;
-                self.variant = selection.variant.map(|v| v.name);
-            } else {
-                self.model_id = model;
-                self.variant = variant;
-            }
+            self.model_id = model;
+            self.variant = variant;
         } else if agent.variant.is_some() {
-            if composition.catalog.models.contains_key(&self.model_id) {
-                let base = crate::models::select_model(&composition.catalog, &self.model_id)
-                    .map_err(|_| failed())?;
-                crate::models::select_variant(&base, agent.variant.as_deref())
-                    .map_err(|_| failed())?;
-            }
             self.variant = agent.variant.clone();
         }
         self.agent_id = Some(id.to_string());
         self.agent_prompt = Some(agent.body.clone());
         self.agent_digest = Some(crate::defs::agent_digest(agent));
+        self.profile_issue = None;
         Ok(())
     }
 
     /// Catalog plus this effective selection.
     fn snapshot(&self, composition: &Composition) -> CatalogSnapshot {
+        let issue = self.selection_issue(composition);
         let mut models: Vec<ModelEntry> = composition
             .catalog
             .models
@@ -856,12 +972,31 @@ impl Effective {
             .values()
             .enumerate()
             .filter(|(_, agent)| agent.primary_capable())
-            .map(|(color_index, agent)| AgentEntry {
-                id: agent.id.clone(),
-                description: agent.description.clone(),
-                model: agent.model.clone(),
-                variant: agent.variant.clone(),
-                color_index,
+            .map(|(color_index, agent)| {
+                let mut profile = Self::from_composition(composition);
+                let unavailable = profile.set_agent(composition, &agent.id).is_err()
+                    || (composition.provider_state.catalog_status
+                        == oc_core::queries::ProviderStatus::Ready
+                        && profile.selection_issue(composition).is_some());
+                AgentEntry {
+                    id: agent.id.clone(),
+                    description: agent.description.clone(),
+                    model: agent.model.as_deref().map(|model| {
+                        if unavailable {
+                            selection_identity("model", model)
+                        } else {
+                            model.to_string()
+                        }
+                    }),
+                    variant: agent.variant.as_deref().map(|variant| {
+                        if unavailable {
+                            selection_identity("variant", variant)
+                        } else {
+                            variant.to_string()
+                        }
+                    }),
+                    color_index,
+                }
             })
             .collect();
         CatalogSnapshot {
@@ -881,6 +1016,13 @@ impl Effective {
                         .as_ref()
                         .and_then(|provider| provider.diagnostic.clone()),
                 );
+                chrome.selection = issue.clone();
+                chrome
+                    .service_diagnostics
+                    .retain(|d| d.kind != oc_core::queries::ServiceKind::Selection);
+                chrome
+                    .service_diagnostics
+                    .extend(issue.as_ref().map(|s| s.diagnostic.clone()));
                 chrome
             },
             auto_accept: if composition.approval_consumer_mode.load(Ordering::SeqCst) == 2 {
@@ -890,14 +1032,62 @@ impl Effective {
             },
             provider: composition.catalog.provider.clone(),
             models,
-            model_id: self.model_id.clone(),
-            variant: self.variant.clone(),
+            model_id: if issue.as_ref().is_some_and(|s| {
+                s.diagnostic.code == oc_core::queries::ServiceCode::ModelUnavailable
+            }) || (!composition.catalog.models.contains_key(&self.model_id)
+                && composition.provider_state.catalog_status
+                    == oc_core::queries::ProviderStatus::Ready)
+            {
+                selection_identity("model", &self.model_id)
+            } else {
+                self.model_id.clone()
+            },
+            variant: if !composition.catalog.models.contains_key(&self.model_id)
+                || issue
+                    .as_ref()
+                    .is_some_and(|s| s.diagnostic.field.last().is_some_and(|f| f == "variant"))
+            {
+                self.variant
+                    .as_deref()
+                    .map(|variant| selection_identity("variant", variant))
+            } else {
+                self.variant.clone()
+            },
             agents,
-            agent_id: self.agent_id.clone(),
+            agent_id: if issue
+                .as_ref()
+                .is_some_and(|s| s.diagnostic.field.last().is_some_and(|f| f == "agent"))
+            {
+                Some(issue.as_ref().unwrap().requested.clone())
+            } else {
+                self.agent_id.clone()
+            },
             commands: composition.commands.keys().cloned().collect(),
             command_descriptions: composition.command_descriptions.clone(),
         }
     }
+}
+
+fn selection_identity(kind: &str, raw: &str) -> String {
+    use sha2::Digest as _;
+    format!("{kind}-{:x}", sha2::Sha256::digest(raw.as_bytes()))
+}
+
+fn selection_diagnostic(
+    composition: &Composition,
+    field: &[&str],
+    code: oc_core::queries::ServiceCode,
+    action: oc_core::queries::ServiceAction,
+) -> oc_core::queries::ServiceDiagnostic {
+    let mut diagnostic = crate::config::diagnostic::failure(
+        &composition.project.to_string_lossy(),
+        field,
+        oc_core::queries::ServiceStage::Admission,
+        code,
+        action,
+    );
+    diagnostic.kind = oc_core::queries::ServiceKind::Selection;
+    diagnostic
 }
 
 /// Build one complete runtime for a composition (no publication yet).
@@ -1576,6 +1766,9 @@ fn validate_reload_selections(
         let turn = selection::for_turn(db, composition, effective, &session.0)
             .map_err(|_| selection_error())?;
         for selected in [&selected, &turn] {
+            if selected.selection_issue(composition).is_some() {
+                return Err(selection_error());
+            }
             crate::models::select_model(&composition.catalog, &selected.model_id)
                 .and_then(|base| crate::models::select_variant(&base, selected.variant.as_deref()))
                 .map_err(|_| selection_error())?;
@@ -2739,10 +2932,13 @@ fn query(
                 if runtime.turn_active() {
                     return Err(CoreError::TurnBusy);
                 }
+                let mut selected = effective.clone();
+                selected.set_agent(composition, &id)?;
+                selected.admit_selection(composition)?;
                 registry
                     .select_primary(&id, runtime.generation_id(), db)
                     .map_err(|error| app_error(error.to_string()))?;
-                effective.set_agent(composition, &id)?;
+                *effective = selected;
                 let (epoch_key, epoch_value) = selection::next_legacy_epoch(db, composition)?;
                 db.set_pref(&epoch_key, &epoch_value).map_err(app_error)?;
                 effective.legacy_epoch += 1;
@@ -2867,6 +3063,7 @@ fn query(
         InboxMsg::CompactSession { session, ack } => {
             let result =
                 selection::for_turn(db, composition, effective, &session.0).and_then(|selected| {
+                    selected.admit_selection(composition)?;
                     runtime
                         .admit_provider(
                             &composition.catalog,
@@ -3088,6 +3285,7 @@ async fn worker(
                         .map_err(app_error)?
                         .ok_or_else(|| app_error("no user request to title"))?;
                     let selected = selection::for_turn(db, composition, effective, &session.0)?;
+                    selected.admit_selection(composition)?;
                     runtime
                         .admit_provider(
                             &composition.catalog,
@@ -3095,13 +3293,8 @@ async fn worker(
                             &composition.provider,
                         )
                         .map_err(runtime_error)?;
-                    // A retired primary selection is not permission to call an
-                    // unrelated fallback model, even if the title agent pins one.
-                    crate::models::select_model(&composition.catalog, &selected.model_id)
-                        .and_then(|base| {
-                            crate::models::select_variant(&base, selected.variant.as_deref())
-                        })
-                        .map_err(|_| app_error("selected model/variant unavailable"))?;
+                    // The exact primary choice was admitted before this title
+                    // agent may use its own pinned model.
                     let agent = composition.agents.get("title");
                     let (id, variant) = if let Some(raw) = agent.and_then(|a| a.model.as_deref()) {
                         let resolved =
@@ -3339,13 +3532,6 @@ async fn worker(
                     }
                     let (selected, initial_selection) = match fresh {
                         Some(Some(choice)) => {
-                            runtime
-                                .admit_provider(
-                                    &composition.catalog,
-                                    &choice.model_id,
-                                    &composition.provider,
-                                )
-                                .map_err(runtime_error)?;
                             let (selected, record) =
                                 selection::fresh(composition, effective, &session.0, choice)?;
                             (selected, Some(record))
@@ -3360,13 +3546,6 @@ async fn worker(
                                 model_id: home.model_id.clone(),
                                 variant: home.variant.clone(),
                             };
-                            runtime
-                                .admit_provider(
-                                    &composition.catalog,
-                                    &choice.model_id,
-                                    &composition.provider,
-                                )
-                                .map_err(runtime_error)?;
                             let (selected, record) =
                                 selection::fresh(composition, effective, &session.0, choice)?;
                             (selected, Some(record))
@@ -3376,6 +3555,7 @@ async fn worker(
                             None,
                         ),
                     };
+                    selected.admit_selection(composition)?;
                     runtime
                         .admit_provider(
                             &composition.catalog,
@@ -3383,9 +3563,6 @@ async fn worker(
                             &composition.provider,
                         )
                         .map_err(runtime_error)?;
-                    crate::models::select_model(&composition.catalog, &selected.model_id)
-                                .and_then(|base| crate::models::select_variant(&base, selected.variant.as_deref()))
-                                .map_err(|e| app_error(format!("selected model/variant unavailable; select an admitted replacement or Default: {e}")))?;
                     publish_workspace(runtime, composition, &selected).map_err(app_error)?;
                     Ok((selected, initial_selection))
                 })() {

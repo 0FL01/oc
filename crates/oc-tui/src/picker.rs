@@ -114,11 +114,12 @@ impl ModelPicker {
     }
 
     pub fn has_variants(&self) -> bool {
-        self.selected.as_ref().is_some_and(|selection| {
-            models::available_variants(&selection.entry)
-                .next()
-                .is_some()
-        })
+        self.retired_variant().is_some()
+            || self.selected.as_ref().is_some_and(|selection| {
+                models::available_variants(&selection.entry)
+                    .next()
+                    .is_some()
+            })
     }
 
     /// Pinned dialog-variant.tsx: Default clears the overlay; a declared `none`

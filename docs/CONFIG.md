@@ -60,6 +60,21 @@ the previous complete generation, not mixed catalogs/instructions/clients/policy
 Corrupt active stored selections do not fall back to defaults; a broken inactive tab
 preference may only be projected read-only with a visible safe diagnostic.
 
+Syntactically valid saved references to a removed primary agent, retired pinned
+model or disabled variant remain exact in the selection owner. Home and restored
+active/parked tabs show an opaque `SelectionReadiness` and safe cause; history,
+pickers and drafts stay local. No sibling/default selection is executed or silently
+persisted: the next turn or headless request refuses before acceptance and wire/tool
+effects. Explicit admitted agent/model/Default variant choices repair only their
+selected scope through the existing prefs store; a Home agent choice is keyed by
+Location. Deny and the mandatory source/policy admission are unchanged. This
+distinguishes a missing/nonprimary saved agent (`AgentUnavailable`) from an existing
+primary's unresolvable model pin (`ModelUnavailable`): model-only repair retains that
+primary's admitted body and constraints. A malformed mandatory default or permission
+definition stays fatal; it is not permission to borrow built-in authority. This
+offline inherited-source fixture is R4A; the separate real-user HOME/XDG check
+required for E2E06 remains a later R4B gate.
+
 Read-only Settings shows bounded common diagnostics and omitted counts. Enter opens
 safe details; Ctrl+Shift+C copies the selected diagnostic and Ctrl+Shift+I shows an
 unsent investigation note, preserving the ordinary prompt. Fatal native frames retain

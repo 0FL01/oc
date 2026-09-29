@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-29T17:18:43+00:00
+State updated: 2026-09-29T21:25:52+00:00
 Active: T51
 
 Сверить Git status/diff до выполнения команд.
@@ -14,13 +14,13 @@ Owner-approved 2026-09-27 after OC2 RECON: R1/CFG09 isolates unsupported/failed 
 
 # T51
 ## Result
-R3/CFG10 verified: safe typed optional/fatal diagnostics.
+R4A saved selections/refusal/scoped repair verified.
 ## Checks
-Workspace1288 PASS; native25; owner5+2; Python47.
+Workspace1297; Python47; native28; independent owner5/native2 PASS.
 ## Risks
-E2E06 real-user/saved-selection open; T53/T54 separate.
+Real-user E2E06 not yet qualified.
 ## Next
-R4 inherited-config fake-service and existing/fresh-store strace.
+Existing/fresh-store bounded PTY/strace R4B.
 
 
 Ready (до 5): T45, T50, T53, T54
