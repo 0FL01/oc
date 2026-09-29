@@ -713,7 +713,8 @@ async fn scenario(
         malformed.is_err(),
         "malformed explicit title profile must not silently select the built-in default"
     );
-    assert!(malformed.err().unwrap().contains("title"));
+    let failure = malformed.err().unwrap();
+    assert!(failure.contains("invalid_definition") && failure.contains("source-"));
     std::fs::write(config.join("opencode.json"), original.to_string()).unwrap();
     binary_tui_restart(
         &home,

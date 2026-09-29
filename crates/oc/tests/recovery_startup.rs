@@ -2,6 +2,9 @@
 //! carries only a static, non-network provider; no turn is submitted.
 use std::process::Command;
 
+#[path = "recovery_startup/fatal_diagnostics.rs"]
+mod fatal_diagnostics;
+
 #[tokio::test]
 async fn location_switch_carries_safe_category_and_keeps_detailed_api_error() {
     use oc_core::session::{CoreError, LocationSwitchFailure};
@@ -53,9 +56,21 @@ async fn location_switch_carries_safe_category_and_keeps_detailed_api_error() {
             ..
         }
     ));
-    // Existing API callers retain the detailed explanation, while the TUI
-    // matches the category without formatting this error.
-    assert!(error.to_string().contains("LEAKME-MODEL-SECRET"));
+    // Native callers and the TUI retain the typed cause, never unsafe identity.
+    assert!(!format!("{error:?} {error}").contains("LEAKME-MODEL-SECRET"));
+    let CoreError::LocationSwitch {
+        diagnostic: Some(diagnostic),
+        ..
+    } = error
+    else {
+        panic!("expected structured Location refusal");
+    };
+    assert_eq!(
+        diagnostic.code,
+        oc_core::queries::ServiceCode::ModelUnavailable
+    );
+    assert_eq!(diagnostic.field, ["model"]);
+    assert!(diagnostic.source.starts_with("source-"));
     assert_eq!(app.catalog().await.unwrap(), before);
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();

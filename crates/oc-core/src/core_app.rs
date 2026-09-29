@@ -677,7 +677,12 @@ pub struct CoreApp {
 /// resource that could not be closed), so callers can exit non-zero instead
 /// of claiming a clean shutdown.
 pub struct WorkerGuard {
-    handle: Option<tokio::task::JoinHandle<Result<(), String>>>,
+    handle: Option<WorkerTask>,
+}
+
+enum WorkerTask {
+    Legacy(tokio::task::JoinHandle<Result<(), String>>),
+    Diagnostic(tokio::task::JoinHandle<Result<(), crate::queries::ServiceDiagnostic>>),
 }
 
 impl CoreApp {
@@ -863,7 +868,7 @@ impl CoreApp {
         (
             app,
             WorkerGuard {
-                handle: Some(handle),
+                handle: Some(WorkerTask::Legacy(handle)),
             },
         )
     }
@@ -1471,18 +1476,54 @@ impl WorkerGuard {
     /// Own the native application task using the same shutdown/join contract.
     pub fn from_task(handle: tokio::task::JoinHandle<Result<(), String>>) -> Self {
         Self {
-            handle: Some(handle),
+            handle: Some(WorkerTask::Legacy(handle)),
+        }
+    }
+
+    /// Native workers preserve their safe typed cause through shutdown/join.
+    pub fn from_diagnostic_task(
+        handle: tokio::task::JoinHandle<Result<(), crate::queries::ServiceDiagnostic>>,
+    ) -> Self {
+        Self {
+            handle: Some(WorkerTask::Diagnostic(handle)),
         }
     }
 
     /// Wait for the worker task to finish and surface its cleanup result.
-    pub async fn join(mut self) -> Result<(), String> {
-        if let Some(handle) = self.handle.take() {
-            handle
+    pub async fn join(self) -> Result<(), String> {
+        self.join_diagnostic()
+            .await
+            .map_err(|diagnostic| diagnostic.to_string())
+    }
+
+    /// No panic payload or legacy raw error is a diagnostic value.
+    pub async fn join_diagnostic(mut self) -> Result<(), crate::queries::ServiceDiagnostic> {
+        use crate::queries::{
+            ServiceAction, ServiceCode, ServiceDiagnostic, ServiceKind, ServiceStage,
+        };
+        let failed = |cancelled| ServiceDiagnostic {
+            kind: ServiceKind::Runtime,
+            service: "worker".into(),
+            source: "source-native/worker".into(),
+            field: vec!["worker".into()],
+            stage: ServiceStage::Cleanup,
+            code: if cancelled {
+                ServiceCode::Cancelled
+            } else {
+                ServiceCode::RuntimeFailed
+            },
+            action: ServiceAction::RestartApplication,
+        };
+        match self.handle.take() {
+            Some(WorkerTask::Diagnostic(task)) => {
+                task.await.map_err(|error| failed(error.is_cancelled()))?
+            }
+            Some(WorkerTask::Legacy(task)) => task
                 .await
-                .map_err(|error| format!("application worker join: {error}"))??;
+                .map_err(|error| failed(error.is_cancelled()))?
+                .map_err(|_| failed(false)),
+            None => Ok(()),
         }
-        Ok(())
     }
 }
 
@@ -1857,6 +1898,10 @@ mod fork_tests {
 }
 
 #[cfg(test)]
+#[path = "core_app/diagnostic_tests.rs"]
+mod diagnostic_tests;
+
+#[cfg(test)]
 mod tests {
     use super::{
         CoreApp, CoreEvent, FreshSelection, InboxMsg, MAX_SESSION_TITLE_BYTES, MockProvider,
@@ -1915,13 +1960,17 @@ mod tests {
             .join()
             .await
             .expect_err("cleanup failure must not be reported as success");
-        assert_eq!(error, "mcp shutdown failed");
+        assert!(error.contains("cleanup: runtime_failed"), "{error}");
+        assert!(error.contains("source-native/worker"), "{error}");
+        assert!(error.contains("restart application"), "{error}");
+        assert!(!error.contains("mcp shutdown failed"), "{error}");
         let panicked = tokio::spawn(async { panic!("worker panic probe") });
         let error = WorkerGuard::from_task(panicked)
             .join()
             .await
             .expect_err("a panicked worker is a join failure");
-        assert!(error.contains("application worker join"), "{error}");
+        assert!(error.contains("cleanup: runtime_failed"), "{error}");
+        assert!(!error.contains("worker panic probe"), "{error}");
     }
 
     #[test]

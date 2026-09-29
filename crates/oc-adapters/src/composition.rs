@@ -81,31 +81,62 @@ pub struct Composition {
     pub dcp_protected: oc_core::context_plan::ProtectedSpec,
 }
 
-/// Composition detail for CLI callers, with a narrow typed startup cause for
-/// the selected provider. No detail is exposed to the interactive renderer.
+/// Payload-free admission cause, shared by the loader and frontend consumers.
 #[derive(Debug)]
 pub(crate) enum LoadFailure {
-    Configuration(String),
+    Configuration(ServiceDiagnostic),
 }
 
 impl LoadFailure {
     fn into_detail(self) -> String {
         match self {
-            Self::Configuration(detail) => detail,
+            Self::Configuration(diagnostic) => diagnostic.to_string(),
         }
     }
 }
 
-impl From<String> for LoadFailure {
-    fn from(detail: String) -> Self {
-        Self::Configuration(detail)
+impl std::fmt::Display for LoadFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Configuration(diagnostic) => diagnostic.fmt(f),
+        }
     }
 }
 
-impl From<&str> for LoadFailure {
-    fn from(detail: &str) -> Self {
-        detail.to_string().into()
-    }
+fn failure(source: &str, field: &[&str], stage: ServiceStage, code: ServiceCode) -> LoadFailure {
+    LoadFailure::Configuration(config::diagnostic::failure(
+        source,
+        field,
+        stage,
+        code,
+        if code == ServiceCode::CapacityExceeded {
+            ServiceAction::ReduceCapacity
+        } else {
+            ServiceAction::ReviewConfiguration
+        },
+    ))
+}
+
+fn invalid(source: &str, field: &[&str]) -> LoadFailure {
+    failure(
+        source,
+        field,
+        ServiceStage::Config,
+        ServiceCode::InvalidConfig,
+    )
+}
+
+fn document(source: &str) -> LoadFailure {
+    failure(
+        source,
+        &["document"],
+        ServiceStage::Config,
+        ServiceCode::InvalidDocument,
+    )
+}
+
+fn config_error(source: &str, error: &config::ConfigError) -> LoadFailure {
+    LoadFailure::Configuration(config::diagnostic::from_error(source, error))
 }
 
 /// Load ordered user config and resolve an explicitly selected model.
@@ -177,13 +208,24 @@ async fn load_stages(
     project: &Path,
     parent_env: BTreeMap<String, String>,
 ) -> Result<Composition, LoadFailure> {
-    let project = project
-        .canonicalize()
-        .map_err(|e| format!("cannot open project {}: {e}", project.display()))?;
+    let project = project.canonicalize().map_err(|_| {
+        failure(
+            &project.to_string_lossy(),
+            &["location"],
+            ServiceStage::Admission,
+            ServiceCode::SourceUnavailable,
+        )
+    })?;
     if !project.is_dir() {
-        return Err(format!("project {} must be a directory", project.display()).into());
+        return Err(invalid(&project.to_string_lossy(), &["location"]));
     }
-    trace::log("config.project", &format!("path={}", project.display()));
+    trace::log(
+        "config.project",
+        &format!(
+            "source={}",
+            config::mcp::safe_source_id(&project.to_string_lossy())
+        ),
+    );
     for name in ["HOME", "XDG_CONFIG_HOME", "OPENCODE_CONFIG_DIR"] {
         trace::log(
             "env.selector",
@@ -196,12 +238,21 @@ async fn load_stages(
         .or_else(|| nonempty_env("XDG_CONFIG_HOME").map(|p| Path::new(p).join("opencode")))
         .or_else(|| nonempty_env("HOME").map(|p| Path::new(p).join(".config/opencode")));
     match &global {
-        Some(root) => trace::log("config.global", &format!("root={}", root.display())),
+        Some(root) => trace::log(
+            "config.global",
+            &format!(
+                "source={}",
+                config::mcp::safe_source_id(&root.to_string_lossy())
+            ),
+        ),
         None => trace::log("config.global", "root=none"),
     }
     trace::log(
         "config.local",
-        &format!("path={}", project.join(".opencode").display()),
+        &format!(
+            "source={}",
+            config::mcp::safe_source_id(&project.join(".opencode").to_string_lossy())
+        ),
     );
     // CONFIG.md / config-roots.order.json: JSON before JSONC in each root,
     // one global layer, then direct Location config, then .opencode config.
@@ -225,15 +276,18 @@ async fn load_stages(
             let (canonical, text) = match read_source_config(admitted, &path) {
                 Ok(Some(source)) => source,
                 Ok(None) => {
-                    trace::log("source.missing", &format!("path={}", path.display()));
+                    trace::log(
+                        "source.missing",
+                        &format!(
+                            "source={}",
+                            config::mcp::safe_source_id(&path.to_string_lossy())
+                        ),
+                    );
                     continue;
                 }
                 Err(error) => {
-                    trace::log(
-                        "source.parse_fail",
-                        &format!("path={} class=Io", path.display()),
-                    );
-                    return Err(error.into());
+                    trace::log("source.parse_fail", &error.to_string());
+                    return Err(error);
                 }
             };
             if seen.insert(canonical.clone()) {
@@ -246,7 +300,11 @@ async fn load_stages(
                 let source_path = canonical.to_string_lossy().into_owned();
                 trace::log(
                     "source",
-                    &format!("path={source_path} bytes={}", text.len()),
+                    &format!(
+                        "source={} bytes={}",
+                        config::mcp::safe_source_id(&source_path),
+                        text.len()
+                    ),
                 );
                 source_roots.insert(source_path.clone(), (&admitted.dir, directory));
                 sources.push(config::Source {
@@ -258,7 +316,12 @@ async fn load_stages(
         }
     }
     if sources.is_empty() {
-        return Err("no opencode.json/jsonc found; configure a provider and top-level model (provider/model-id) in the project or XDG opencode config directory".into());
+        return Err(failure(
+            &project.to_string_lossy(),
+            &["document"],
+            ServiceStage::Config,
+            ServiceCode::MissingConfiguration,
+        ));
     }
 
     // DCP config is native data, never executable plugin code. Inline `dcp`
@@ -280,15 +343,19 @@ async fn load_stages(
                 Err(error) => {
                     trace::log(
                         "source.parse_fail",
-                        &format!("path={} class={}", source.path, config_class(&error)),
+                        &format!(
+                            "source={} class={}",
+                            config::mcp::safe_source_id(&source.path),
+                            config_class(&error)
+                        ),
                     );
-                    return Err(error.to_string().into());
+                    return Err(document(&source.path));
                 }
             };
             if let Some(fragment) = value.get("dcp") {
-                if let Err(reason) = merge_json_object(&mut dcp_fragment, fragment) {
-                    trace::log("dcp.fail", &format!("category=Merge path={}", source.path));
-                    return Err(format!("{}: invalid dcp config: {reason}", source.path).into());
+                if merge_json_object(&mut dcp_fragment, fragment).is_err() {
+                    trace::log("dcp.fail", &invalid(&source.path, &["dcp"]).to_string());
+                    return Err(invalid(&source.path, &["dcp"]));
                 }
                 dcp_sources.push(source.path.clone());
             }
@@ -299,10 +366,8 @@ async fn load_stages(
                 Ok(Some(text)) => text,
                 Ok(None) => continue,
                 Err(error) => {
-                    trace::log("dcp.fail", &format!("category=Io path={}", path.display()));
-                    return Err(
-                        format!("cannot read dcp config {}: {error}", path.display()).into(),
-                    );
+                    trace::log("dcp.fail", &error.to_string());
+                    return Err(error);
                 }
             };
             let value = match config::parse_jsonc(&text, &path.to_string_lossy()) {
@@ -310,17 +375,21 @@ async fn load_stages(
                 Err(error) => {
                     trace::log(
                         "dcp.fail",
-                        &format!("category={} path={}", config_class(&error), path.display()),
+                        &format!(
+                            "category={} source={}",
+                            config_class(&error),
+                            config::mcp::safe_source_id(&path.to_string_lossy())
+                        ),
                     );
-                    return Err(error.to_string().into());
+                    return Err(document(&path.to_string_lossy()));
                 }
             };
-            if let Err(reason) = merge_json_object(&mut dcp_fragment, &value) {
+            if merge_json_object(&mut dcp_fragment, &value).is_err() {
                 trace::log(
                     "dcp.fail",
-                    &format!("category=Merge path={}", path.display()),
+                    &invalid(&path.to_string_lossy(), &["dcp"]).to_string(),
                 );
-                return Err(format!("{}: invalid dcp config: {reason}", path.display()).into());
+                return Err(invalid(&path.to_string_lossy(), &["dcp"]));
             }
             dcp_sources.push(path.display().to_string());
         }
@@ -328,23 +397,35 @@ async fn load_stages(
     let (dcp_config, dcp_warnings) = match dcp_auto::load_config(&dcp_fragment) {
         Ok(loaded) => loaded,
         Err(error) => {
-            trace::log(
-                "dcp.fail",
-                &format!(
-                    "category=Dcp path={}",
-                    if dcp_sources.is_empty() {
-                        "none".to_string()
-                    } else {
-                        dcp_sources.join(",")
-                    }
-                ),
-            );
-            return Err(if dcp_sources.is_empty() {
-                error.to_string()
+            // A merged-field error has no typed leaf provenance. Qualify the
+            // contributing source set rather than attributing it to the last file.
+            let source = if dcp_sources.is_empty() {
+                "native dcp".into()
             } else {
-                format!("{error} (dcp config sources: {})", dcp_sources.join(", "))
+                dcp_sources.join("\0")
+            };
+            let mut diagnostic = config::diagnostic::failure(
+                &source,
+                &["dcp"],
+                ServiceStage::Config,
+                ServiceCode::InvalidConfig,
+                ServiceAction::ReviewConfiguration,
+            );
+            match error {
+                dcp_auto::DcpAutoError::InvalidConfig { .. } => {}
+                dcp_auto::DcpAutoError::UnsupportedOption { .. } => {
+                    diagnostic.stage = ServiceStage::Capability;
+                    diagnostic.code = ServiceCode::UnsupportedCapability;
+                }
+                dcp_auto::DcpAutoError::UnsupportedPlugin { .. } => {
+                    diagnostic.field = vec!["plugin".into()];
+                    diagnostic.stage = ServiceStage::Capability;
+                    diagnostic.code = ServiceCode::UnsupportedPlugin;
+                }
             }
-            .into());
+            let error = LoadFailure::Configuration(diagnostic);
+            trace::log("dcp.fail", &error.to_string());
+            return Err(error);
         }
     };
     let dcp_protected = oc_core::context_plan::ProtectedSpec {
@@ -355,6 +436,7 @@ async fn load_stages(
     };
 
     let mut selected = None;
+    let mut selected_source = sources.last().expect("nonempty sources").path.clone();
     let mut default_agent = None;
     let mut subagent_depth: u32 = 1;
     let mut enabled = None;
@@ -369,48 +451,46 @@ async fn load_stages(
             Err(error) => {
                 trace::log(
                     "source.parse_fail",
-                    &format!("path={} class={}", source.path, config_class(&error)),
+                    &format!(
+                        "source={} class={}",
+                        config::mcp::safe_source_id(&source.path),
+                        config_class(&error)
+                    ),
                 );
-                return Err(error.to_string().into());
+                return Err(document(&source.path));
             }
         };
         conversation_keybinds
             .merge(&value)
-            .map_err(|error| error.to_string())?;
+            .map_err(|error| config_error(&source.path, &error))?;
         if let Some(model) = value.get("model") {
-            let model = model.as_str().ok_or_else(|| {
-                format!("{}: model must be a provider/model-id string", source.path)
-            })?;
+            let model = model
+                .as_str()
+                .ok_or_else(|| invalid(&source.path, &["model"]))?;
             selected = Some(
                 config::substitute(model, &source.path, false, &parent_env)
-                    .map_err(|e| e.to_string())?,
+                    .map_err(|error| config_error(&source.path, &error))?,
             );
+            selected_source = source.path.clone();
         }
         if let Some(agent) = value.get("default_agent") {
             default_agent = Some(
                 agent
                     .as_str()
                     .filter(|id| !id.trim().is_empty())
-                    .ok_or_else(|| {
-                        format!("{}: default_agent must be a nonempty string", source.path)
-                    })?
+                    .ok_or_else(|| invalid(&source.path, &["default_agent"]))?
                     .to_string(),
             );
         }
         if let Some(experimental) = value.get("experimental") {
             let object = experimental
                 .as_object()
-                .ok_or_else(|| format!("{}: experimental must be an object", source.path))?;
+                .ok_or_else(|| invalid(&source.path, &["experimental"]))?;
             if let Some(depth) = object.get("subagent_depth") {
                 let depth = depth
                     .as_u64()
                     .filter(|depth| *depth <= u64::from(u32::MAX))
-                    .ok_or_else(|| {
-                        format!(
-                            "{}: experimental.subagent_depth must be a non-negative integer",
-                            source.path
-                        )
-                    })?;
+                    .ok_or_else(|| invalid(&source.path, &["experimental", "subagent_depth"]))?;
                 subagent_depth = depth as u32;
             }
         }
@@ -484,11 +564,11 @@ async fn load_stages(
     }
 
     match &selected {
-        Some(model) => trace::log("selected", &format!("model={model}")),
+        Some(_) => trace::log("selected", "configured=true"),
         None => trace::log("selected", "model=none"),
     }
-    if let Some(agent) = &default_agent {
-        trace::log("selected.agent", &format!("override={agent}"));
+    if default_agent.is_some() {
+        trace::log("selected.agent", "override=true");
     }
 
     // Definitions are merged at their exact source precedence points: config
@@ -577,15 +657,8 @@ async fn load_stages(
                     .is_some_and(|stem| stem == "title")
         })
     {
-        trace::log(
-            "defs.fail",
-            &format!("category=Definitions path={}", diagnostic.path),
-        );
-        return Err(format!(
-            "title agent is invalid: {}: {}",
-            diagnostic.path, diagnostic.reason
-        )
-        .into());
+        trace::log("defs.fail", &diagnostic.failure.to_string());
+        return Err(LoadFailure::Configuration(diagnostic.failure.clone()));
     }
     if default_agent.is_none() {
         default_agent = loaded_defs
@@ -610,20 +683,13 @@ async fn load_stages(
             .iter()
             .find(|d| d.field == "agent.build" || d.field.starts_with("agent.build."))
     {
-        return Err(format!(
-            "selected agent build is invalid: {}: {}",
-            diagnostic.path, diagnostic.reason
-        )
-        .into());
+        return Err(LoadFailure::Configuration(diagnostic.failure.clone()));
     }
     let selected_agent = match default_agent.as_deref() {
         Some(id) => match loaded_defs.agents.get(id) {
             Some(agent) if !agent.primary_capable() => {
-                trace::log("defs.fail", &format!("category=Agent path={id}"));
-                return Err(format!(
-                    "selected agent {id} is subagent-only and cannot be a primary agent"
-                )
-                .into());
+                trace::log("defs.fail", "category=Agent code=invalid_definition");
+                return Err(invalid(&agent.origin, &["default_agent", "mode"]));
             }
             Some(agent) => Some(agent.clone()),
             None => {
@@ -633,70 +699,25 @@ async fn load_stages(
                             .file_stem()
                             .is_some_and(|stem| stem == id)
                 });
-                trace::log(
-                    "defs.fail",
-                    &format!(
-                        "category=Agent path={}",
-                        diagnostic
-                            .as_ref()
-                            .map_or("none", |diagnostic| diagnostic.path.as_str())
-                    ),
-                );
-                return Err((match diagnostic {
-                    Some(diagnostic) => format!(
-                        "selected agent {id} is invalid: {}: {}",
-                        diagnostic.path, diagnostic.reason
-                    ),
-                    None => format!("unknown selected agent {id}"),
-                })
-                .into());
+                trace::log("defs.fail", "category=Agent code=invalid_definition");
+                return Err(match diagnostic {
+                    Some(diagnostic) => LoadFailure::Configuration(diagnostic.failure.clone()),
+                    None => invalid(&selected_source, &["default_agent"]),
+                });
             }
         },
-        None => return Err("no selectable primary agent".into()),
+        None => return Err(invalid(&selected_source, &["default_agent"])),
     };
 
     let selected = match selected {
         Some(selected) => selected,
         None => {
-            // Actionable, bounded: name the models the admitted config
-            // declares so the owner can copy one into the top-level `model`.
-            let mut candidates: Vec<String> = Vec::new();
-            for source in &sources {
-                let Ok(value) = config::parse_jsonc(&source.text, &source.path) else {
-                    continue;
-                };
-                let Some(providers) = value.get("provider").and_then(|v| v.as_object()) else {
-                    continue;
-                };
-                for (provider_id, provider) in providers {
-                    let Some(models) = provider.get("models").and_then(|v| v.as_object()) else {
-                        continue;
-                    };
-                    for model_id in models.keys() {
-                        candidates.push(format!("{provider_id}/{model_id}"));
-                    }
-                }
-            }
-            candidates.sort();
-            candidates.dedup();
-            let total = candidates.len();
-            candidates.truncate(12);
-            let listed = if candidates.is_empty() {
-                "no models are declared in the admitted config; add a provider with a models map"
-                    .to_string()
-            } else {
-                let suffix = if total > candidates.len() {
-                    format!(" (and {} more)", total - candidates.len())
-                } else {
-                    String::new()
-                };
-                format!("configured models: {}{suffix}", candidates.join(", "))
-            };
-            return Err(format!(
-                "model required: set top-level `model` to provider/model-id in the Location \
-                 or global opencode.json/jsonc; {listed}"
-            )
-            .into());
+            return Err(failure(
+                &selected_source,
+                &["model"],
+                ServiceStage::Config,
+                ServiceCode::MissingConfiguration,
+            ));
         }
     };
     let selected = selected_agent
@@ -706,70 +727,23 @@ async fn load_stages(
     let (provider_id, model_id) = selected
         .split_once('/')
         .filter(|(p, m)| !p.trim().is_empty() && !m.trim().is_empty())
-        .ok_or_else(|| {
-            "model must be provider/model-id; set an explicit configured model".to_string()
-        })?;
+        .ok_or_else(|| invalid(&selected_source, &["model"]))?;
     if disabled.iter().any(|id| id == provider_id)
         || enabled
             .as_ref()
             .is_some_and(|ids| !ids.iter().any(|id| id == provider_id))
     {
-        return Err(
-            format!("selected provider {provider_id} is disabled by provider selection").into(),
-        );
+        return Err(invalid(&selected_source, &["enabled_providers"]));
     }
     let selected_providers = HashSet::from([provider_id.to_string()]);
-    let raw_provider = raw_provider_fragment(&sources, provider_id);
-    trace::log("provider.selected", &format!("id={provider_id}"));
-    let api_key_template = raw_provider
-        .as_ref()
-        .and_then(|raw| raw.pointer("/options/apiKey"))
-        .and_then(|value| value.as_str())
-        .unwrap_or("");
-    match env_token(api_key_template) {
-        Some(name) => trace::log(
-            "provider.api_key",
-            &format!(
-                "env={name} {}",
-                trace::env_fact(name, parent_env.get(name).map(String::as_str))
-            ),
-        ),
-        None => trace::log("provider.api_key", "source=inline"),
-    }
-    let mut env_names: Vec<String> = Vec::new();
-    let mut collect_env_refs = |template: &str| {
-        for name in env_refs(template) {
-            if !env_names.contains(&name) {
-                env_names.push(name);
-            }
-        }
-    };
-    if let Some(raw) = &raw_provider {
-        if let Some(template) = raw.pointer("/options/baseURL").and_then(|v| v.as_str()) {
-            collect_env_refs(template);
-        }
-        collect_env_refs(api_key_template);
-        if let Some(headers) = raw.pointer("/options/headers").and_then(|v| v.as_object()) {
-            for value in headers.values() {
-                if let Some(template) = value.as_str() {
-                    collect_env_refs(template);
-                }
-            }
-        }
-    }
-    for name in &env_names {
-        trace::log(
-            "env.ref",
-            &trace::env_fact(name, parent_env.get(name).map(String::as_str)),
-        );
-    }
+    trace::log("provider.selected", "configured=true");
     let (mut generation, terminal_copy) = config::assemble_admitted_with_terminal_copy(
         &sources,
         &parent_env,
         Some(&selected_providers),
         &source_roots,
     )
-    .map_err(|error| LoadFailure::Configuration(error.to_string()))?;
+    .map_err(LoadFailure::Configuration)?;
     admit_local_mcp(
         &mut generation,
         &project,
@@ -797,9 +771,14 @@ async fn load_stages(
             "native dcp config".to_string(),
         );
     }
-    let entry = generation.providers.get(provider_id).ok_or_else(|| {
-        format!("selected provider {provider_id} is not configured; add provider.{provider_id}")
-    })?;
+    let entry = generation
+        .providers
+        .get(provider_id)
+        .ok_or_else(|| invalid(&selected_source, &["model", "provider"]))?;
+    let provider_source = generation
+        .provenance
+        .get(&format!("provider.{provider_id}"))
+        .expect("provider provenance");
     let provider = provider::ResponsesConfig {
         headers: entry.options.headers.clone(),
         set_cache_key: entry.options.set_cache_key.unwrap_or(false),
@@ -813,8 +792,12 @@ async fn load_stages(
         connect_timeout: Duration::from_secs(10),
         allow_private: parent_env.get("OC_TEST_ALLOW_LOOPBACK").map(String::as_str) == Some("1"),
     };
-    let url = reqwest::Url::parse(&provider.base_url)
-        .map_err(|_| format!("provider.{provider_id}.options.baseURL must be an HTTP(S) URL"))?;
+    let url = reqwest::Url::parse(&provider.base_url).map_err(|_| {
+        invalid(
+            provider_source,
+            &["provider", "entry", "options", "baseURL"],
+        )
+    })?;
     if !matches!(url.scheme(), "http" | "https")
         || url.host_str().is_none()
         || !url.username().is_empty()
@@ -822,13 +805,20 @@ async fn load_stages(
         || url.query().is_some()
         || url.fragment().is_some()
     {
-        return Err(format!(
-            "provider.{provider_id}.options.baseURL must be an HTTP(S) prefix without credentials, query or fragment"
-        ).into());
+        return Err(invalid(
+            provider_source,
+            &["provider", "entry", "options", "baseURL"],
+        ));
     }
     // Mandatory transport shape/security remains admission, even with no key.
-    provider::request_headers(&provider)
-        .map_err(|_| "provider.options.headers or apiKey has invalid HTTP syntax")?;
+    provider::request_headers(&provider).map_err(|_| {
+        failure(
+            provider_source,
+            &["provider", "entry", "options", "headers"],
+            ServiceStage::Config,
+            ServiceCode::InvalidHeader,
+        )
+    })?;
     trace::log(
         "provider.base_url",
         &format!("scheme={} configured=true", url.scheme()),
@@ -842,11 +832,13 @@ async fn load_stages(
         models: entry.models.clone(),
     };
     if provider_id != discovery::PROVIDER_ID {
-        models::select_model(&catalog, model_id).map_err(|error| {
-            LoadFailure::Configuration(format!(
-                "{error}; configure provider.{provider_id}.models or check native discovery. {}",
-                generation.warnings.join(" ")
-            ))
+        models::select_model(&catalog, model_id).map_err(|_| {
+            failure(
+                &selected_source,
+                &["model"],
+                ServiceStage::Admission,
+                ServiceCode::ModelUnavailable,
+            )
         })?;
     }
     let provider_state = ProviderState::new(
@@ -905,15 +897,53 @@ async fn load_stages(
     if !instruction_diagnostics.is_empty() {
         startup_notices.push(StartupNotice::Instructions);
     }
+    // This owner returns only ignored optional-setting notes. No warning prose
+    // is classified or retained in the public diagnostic projection.
+    let dcp_source = if dcp_sources.is_empty() {
+        "native dcp".into()
+    } else {
+        dcp_sources.join("\0")
+    };
+    let dcp_notes: Vec<_> = dcp_warnings
+        .iter()
+        .take(64)
+        .map(|_| {
+            config::diagnostic::failure(
+                &dcp_source,
+                &["dcp"],
+                ServiceStage::Config,
+                ServiceCode::IgnoredSetting,
+                ServiceAction::ReviewConfiguration,
+            )
+        })
+        .collect();
+    let config_notes: Vec<_> = generation
+        .config_diagnostics
+        .iter()
+        .take(64)
+        .map(|note| {
+            let code = if note.kind == oc_core::queries::ConfigDiagnosticKind::Invalid {
+                ServiceCode::InvalidConfig
+            } else {
+                ServiceCode::IgnoredSetting
+            };
+            let mut diagnostic = config::diagnostic::failure(
+                "native compaction",
+                &[],
+                ServiceStage::Config,
+                code,
+                ServiceAction::ReviewConfiguration,
+            );
+            diagnostic.source = note.source.clone();
+            diagnostic.field = note.field.clone();
+            diagnostic
+        })
+        .collect();
     let mut diagnostics: Vec<String> = loaded_defs
         .diagnostics
         .iter()
-        .map(|diagnostic| {
-            format!(
-                "{}: {}: {}",
-                diagnostic.path, diagnostic.field, diagnostic.reason
-            )
-        })
+        .take(64)
+        .map(|diagnostic| diagnostic.failure.to_string())
         .collect();
     diagnostics.extend(plugins.entries.iter().map(ToString::to_string));
     if plugins.omitted > 0 {
@@ -927,37 +957,41 @@ async fn load_stages(
             .mcp
             .values()
             .filter_map(|entry| entry.failure.as_ref())
+            .take(64)
             .map(ToString::to_string),
     );
     diagnostics.extend(
-        generation
-            .config_diagnostics
+        config_notes
             .iter()
-            .map(ToString::to_string),
+            .zip(&generation.config_diagnostics)
+            .map(|(diagnostic, note)| format!("{diagnostic}; {}", note.message())),
     );
+    diagnostics.extend(dcp_notes.iter().map(ToString::to_string));
     diagnostics.extend(
-        dcp_warnings
-            .into_iter()
-            .map(|warning| format!("dcp: {warning}")),
+        instruction_diagnostics
+            .iter()
+            .take(64)
+            .map(|diagnostic| diagnostic.failure.to_string()),
     );
-    diagnostics.extend(instruction_diagnostics.iter().map(|diagnostic| {
-        format!(
-            "{}: {}: {}",
-            diagnostic.path, diagnostic.field, diagnostic.reason
-        )
-    }));
+    let service_diagnostics_omitted = loaded_defs.diagnostics.len().saturating_sub(64)
+        + instruction_diagnostics.len().saturating_sub(64)
+        + generation.config_diagnostics.len().saturating_sub(64)
+        + dcp_warnings.len().saturating_sub(64)
+        + generation
+            .mcp
+            .values()
+            .filter(|entry| entry.failure.is_some())
+            .count()
+            .saturating_sub(64);
+    if service_diagnostics_omitted > 0 {
+        diagnostics.push(format!("diagnostic inventory: {service_diagnostics_omitted} additional failures/notes omitted from presentation"));
+    }
     let mut skill_errors = BTreeMap::new();
     for diagnostic in &loaded_defs.diagnostics {
         if diagnostic.field == "skill"
             && let Some(id) = skill_diagnostic_id(&diagnostic.path)
         {
-            skill_errors.insert(
-                id.to_string(),
-                format!(
-                    "malformed skill {id}: {}: {}",
-                    diagnostic.path, diagnostic.reason
-                ),
-            );
+            skill_errors.insert(id.to_string(), diagnostic.failure.to_string());
         }
     }
     // A missing global directory is not an admitted write boundary. Fall back
@@ -967,13 +1001,25 @@ async fn load_stages(
     } else {
         usize::from(global.is_some())
     };
-    let admitted = admitted_roots[default_root]
-        .as_ref()
-        .ok_or("Location config root unavailable")?;
+    let admitted = admitted_roots[default_root].as_ref().ok_or_else(|| {
+        failure(
+            &project.to_string_lossy(),
+            &["location"],
+            ServiceStage::Admission,
+            ServiceCode::SourceUnavailable,
+        )
+    })?;
     let mut permission_mode_source = roots[default_root].join("cli.json");
     let mut permission_mode_root = AdmittedRoot {
         path: admitted.path.clone(),
-        dir: admitted.dir.try_clone().map_err(|e| e.to_string())?,
+        dir: admitted.dir.try_clone().map_err(|_| {
+            failure(
+                &admitted.path.to_string_lossy(),
+                &["root"],
+                ServiceStage::Admission,
+                ServiceCode::SourceUnavailable,
+            )
+        })?,
     };
     let mut tui_chrome = oc_core::queries::TuiChrome {
         dcp: oc_core::dcp_view::DcpDisplayConfig {
@@ -985,19 +1031,41 @@ async fn load_stages(
             },
             show_compression: dcp_config.show_compression,
         },
-        config_diagnostics: generation.config_diagnostics.clone(),
+        config_diagnostics: generation
+            .config_diagnostics
+            .iter()
+            .take(64)
+            .cloned()
+            .collect(),
         provider: Some(provider_state.for_model(model_id, catalog.models.contains_key(model_id))),
         service_diagnostics: generation
             .mcp
             .values()
             .filter_map(|entry| entry.failure.clone())
+            .take(64)
             .chain(
                 plugins
                     .entries
                     .iter()
                     .filter_map(|entry| entry.diagnostic.clone()),
             )
+            .chain(
+                loaded_defs
+                    .diagnostics
+                    .iter()
+                    .take(64)
+                    .map(|diagnostic| diagnostic.failure.clone()),
+            )
+            .chain(
+                instruction_diagnostics
+                    .iter()
+                    .take(64)
+                    .map(|diagnostic| diagnostic.failure.clone()),
+            )
+            .chain(dcp_notes)
+            .chain(config_notes)
             .collect(),
+        service_diagnostics_omitted,
         plugins,
         location: Some(project.to_string_lossy().into_owned()),
         terminal_copy,
@@ -1017,33 +1085,54 @@ async fn load_stages(
                 continue;
             };
             let value = config::parse_jsonc(&text, &root.join(name).to_string_lossy())
-                .map_err(|e| e.to_string())?;
+                .map_err(|_| document(&root.join(name).to_string_lossy()))?;
             conversation_keybinds
                 .merge(&value)
-                .map_err(|error| error.to_string())?;
+                .map_err(|error| config_error(&root.join(name).to_string_lossy(), &error))?;
             if let Some(v) = value.pointer("/debug/devtools") {
-                tui_chrome.devtools = Some(v.as_bool().ok_or("debug.devtools must be boolean")?);
+                tui_chrome.devtools = Some(v.as_bool().ok_or_else(|| {
+                    invalid(&root.join(name).to_string_lossy(), &["debug", "devtools"])
+                })?);
             }
             if let Some(v) = value.pointer("/session/sidebar") {
                 tui_chrome.sidebar_hidden = match v.as_str() {
                     Some("auto") => false,
                     Some("hide") => true,
-                    _ => return Err("session.sidebar must be auto or hide".into()),
+                    _ => {
+                        return Err(invalid(
+                            &root.join(name).to_string_lossy(),
+                            &["session", "sidebar"],
+                        ));
+                    }
                 };
             }
             if let Some(v) = value.pointer("/session/tps") {
-                tui_chrome.session_tps = Some(v.as_bool().ok_or("session.tps must be boolean")?);
+                tui_chrome.session_tps = Some(v.as_bool().ok_or_else(|| {
+                    invalid(&root.join(name).to_string_lossy(), &["session", "tps"])
+                })?);
             }
             if let Some(v) = value.pointer("/session/permissions") {
                 permission_mode_source = root.join(name);
                 permission_mode_root = AdmittedRoot {
                     path: admitted.path.clone(),
-                    dir: admitted.dir.try_clone().map_err(|e| e.to_string())?,
+                    dir: admitted.dir.try_clone().map_err(|_| {
+                        failure(
+                            &root.join(name).to_string_lossy(),
+                            &["root"],
+                            ServiceStage::Admission,
+                            ServiceCode::SourceUnavailable,
+                        )
+                    })?,
                 };
                 tui_chrome.permissions_auto = match v.as_str() {
                     Some("prompt") => false,
                     Some("autoaccept") => true,
-                    _ => return Err("session.permissions must be prompt or autoaccept".into()),
+                    _ => {
+                        return Err(invalid(
+                            &root.join(name).to_string_lossy(),
+                            &["session", "permissions"],
+                        ));
+                    }
                 };
             }
             if let Some(v) = value.pointer("/diffs/view") {
@@ -1051,35 +1140,60 @@ async fn load_stages(
                     Some("auto") => oc_core::queries::DiffView::Auto,
                     Some("unified") => oc_core::queries::DiffView::Unified,
                     Some("split") => oc_core::queries::DiffView::Split,
-                    _ => return Err("diffs.view must be auto, unified or split".into()),
+                    _ => {
+                        return Err(invalid(
+                            &root.join(name).to_string_lossy(),
+                            &["diffs", "view"],
+                        ));
+                    }
                 };
             }
             if let Some(v) = value.pointer("/diffs/wrap") {
                 tui_chrome.diffs.wrap = match v.as_str() {
                     Some("word") => oc_core::queries::DiffWrap::Word,
                     Some("none") => oc_core::queries::DiffWrap::None,
-                    _ => return Err("diffs.wrap must be word or none".into()),
+                    _ => {
+                        return Err(invalid(
+                            &root.join(name).to_string_lossy(),
+                            &["diffs", "wrap"],
+                        ));
+                    }
                 };
             }
             if let Some(v) = value.pointer("/tabs/layout") {
                 tui_chrome.vertical_tabs_width = match v.as_str() {
                     Some("horizontal") => 0,
                     Some("vertical") => 42,
-                    _ => return Err("tabs.layout must be horizontal or vertical".into()),
+                    _ => {
+                        return Err(invalid(
+                            &root.join(name).to_string_lossy(),
+                            &["tabs", "layout"],
+                        ));
+                    }
                 };
             }
             if let Some(v) = value.pointer("/tabs/scope") {
                 tui_chrome.sessions_all_projects = match v.as_str() {
                     Some("global") => true,
                     Some("cwd") => false,
-                    _ => return Err("tabs.scope must be global or cwd".into()),
+                    _ => {
+                        return Err(invalid(
+                            &root.join(name).to_string_lossy(),
+                            &["tabs", "scope"],
+                        ));
+                    }
                 };
             }
             if let Some(v) = value.pointer("/tabs/indicators") {
                 tui_chrome.tab_indicators = match v.as_str() {
                     Some("status") => oc_core::queries::TabIndicators::Status,
                     Some("numbers") => oc_core::queries::TabIndicators::Numbers,
-                    _ => return Err("tabs.indicators must be status or numbers".into()),
+                    _ => {
+                        return Err(invalid(
+                            &root.join(name).to_string_lossy(),
+                            &["tabs", "indicators"],
+                        ));
+                    }
                 };
             }
         }
@@ -1099,7 +1213,14 @@ async fn load_stages(
                         .map(|root| (source.clone(), (root, directory.clone())))
                 })
                 .collect::<Result<_, _>>()
-                .map_err(|_| "MCP source authority unavailable")?,
+                .map_err(|_| {
+                    failure(
+                        &project.to_string_lossy(),
+                        &["mcp", "source"],
+                        ServiceStage::Admission,
+                        ServiceCode::SourceUnavailable,
+                    )
+                })?,
         }),
         approval_consumer_mode: std::sync::atomic::AtomicU8::new(0),
         permission_preference: AtomicBool::new(tui_chrome.permissions_auto),
@@ -1141,7 +1262,7 @@ fn admit_local_mcp(
     global: Option<&Path>,
     env: &BTreeMap<String, String>,
     sources: &[config::Source],
-) -> Result<(), String> {
+) -> Result<(), LoadFailure> {
     let global = global.and_then(|root| root.canonicalize().ok());
     let global_source = |source: &str| {
         global
@@ -1152,7 +1273,7 @@ fn admit_local_mcp(
     for source in sources.iter().filter(|source| global_source(&source.path)) {
         global_credentials.extend(
             config::mcp::source_credential_values(source, env)
-                .map_err(|_| "global MCP credential-domain admission failed")?,
+                .map_err(|error| config_error(&source.path, &error))?,
         );
     }
     for (id, provider) in &generation.providers {
@@ -1208,10 +1329,12 @@ fn admit_local_mcp(
                         .any(|secret| !secret.is_empty() && value.contains(secret))
                 })
             {
-                return Err(
-                    "Untrusted: local MCP command cannot use a higher-trust credential domain"
-                        .into(),
-                );
+                return Err(failure(
+                    source,
+                    &["mcp", "entry", "command"],
+                    ServiceStage::Admission,
+                    ServiceCode::TrustRefused,
+                ));
             }
         }
         let configured = entry.cwd.as_deref().unwrap_or(".");
@@ -1239,7 +1362,12 @@ fn admit_local_mcp(
                 &cwd.to_string_lossy(),
             );
             if effect != config::Permission::Allow {
-                return Err("Untrusted: MCP cwd escapes the admitted Location".into());
+                return Err(failure(
+                    source,
+                    &["mcp", "entry", "cwd"],
+                    ServiceStage::Admission,
+                    ServiceCode::TrustRefused,
+                ));
             }
         }
         entry.cwd = Some(cwd.to_string_lossy().into_owned());
@@ -1295,7 +1423,8 @@ impl McpActivation {
             self.global.as_deref(),
             env,
             &self.sources,
-        )?;
+        )
+        .map_err(|error| error.to_string())?;
         Ok(generation.mcp.remove(id).expect("activated entry"))
     }
 }
@@ -1334,38 +1463,60 @@ struct AdmittedRoot {
     dir: File,
 }
 
-fn admit_root(root: &Path, project: &Path, local: bool) -> Result<Option<AdmittedRoot>, String> {
+fn admit_root(
+    root: &Path,
+    project: &Path,
+    local: bool,
+) -> Result<Option<AdmittedRoot>, LoadFailure> {
     let canonical = match root.canonicalize() {
         Ok(path) => path,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(e) => {
-            return Err(format!(
-                "cannot resolve config root {}: {e}",
-                root.display()
+        Err(_) => {
+            return Err(failure(
+                &root.to_string_lossy(),
+                &["root"],
+                ServiceStage::Admission,
+                ServiceCode::SourceUnavailable,
             ));
         }
     };
     if local && !canonical.starts_with(project) {
-        return Err(format!(
-            "refusing {}: resolves outside the Location root {} ({})",
-            root.display(),
-            project.display(),
-            canonical.display()
+        return Err(failure(
+            &root.to_string_lossy(),
+            &["root"],
+            ServiceStage::Admission,
+            ServiceCode::TrustRefused,
         ));
     }
     let dir = OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
         .open(&canonical)
-        .map_err(|e| format!("cannot open config root {}: {e}", root.display()))?;
+        .map_err(|_| {
+            failure(
+                &root.to_string_lossy(),
+                &["root"],
+                ServiceStage::Admission,
+                ServiceCode::SourceUnavailable,
+            )
+        })?;
     // If an ancestor was swapped during admission, the opened directory, not
     // the earlier pathname resolution, decides whether it is still admitted.
-    let opened = std::fs::canonicalize(format!("/proc/self/fd/{}", dir.as_raw_fd()))
-        .map_err(|e| format!("cannot verify config root {}: {e}", root.display()))?;
+    let opened =
+        std::fs::canonicalize(format!("/proc/self/fd/{}", dir.as_raw_fd())).map_err(|_| {
+            failure(
+                &root.to_string_lossy(),
+                &["root"],
+                ServiceStage::Admission,
+                ServiceCode::SourceUnavailable,
+            )
+        })?;
     if opened != canonical || (local && !opened.starts_with(project)) {
-        return Err(format!(
-            "refusing config root {}: changed during admission",
-            root.display()
+        return Err(failure(
+            &root.to_string_lossy(),
+            &["root"],
+            ServiceStage::Admission,
+            ServiceCode::TrustRefused,
         ));
     }
     Ok(Some(AdmittedRoot {
@@ -1374,56 +1525,93 @@ fn admit_root(root: &Path, project: &Path, local: bool) -> Result<Option<Admitte
     }))
 }
 
-fn read_bounded(mut file: File, cap: usize) -> Result<String, String> {
-    let metadata = file.metadata().map_err(|e| e.to_string())?;
+fn read_bounded(mut file: File, cap: usize) -> Result<String, ServiceCode> {
+    let metadata = file
+        .metadata()
+        .map_err(|_| ServiceCode::SourceUnavailable)?;
     if !metadata.is_file() {
-        return Err("not a regular file".to_string());
+        return Err(ServiceCode::InvalidDocument);
     }
     if metadata.len() > cap as u64 {
-        return Err(format!("exceeds {} MiB config budget", cap / 1024 / 1024));
+        return Err(ServiceCode::CapacityExceeded);
     }
     let mut bytes = Vec::new();
     file.by_ref()
         .take(cap as u64 + 1)
         .read_to_end(&mut bytes)
-        .map_err(|e| e.to_string())?;
+        .map_err(|_| ServiceCode::SourceUnavailable)?;
     if bytes.len() > cap {
-        return Err(format!("exceeds {} MiB config budget", cap / 1024 / 1024));
+        return Err(ServiceCode::CapacityExceeded);
     }
-    String::from_utf8(bytes).map_err(|_| "not UTF-8".to_string())
+    String::from_utf8(bytes).map_err(|_| ServiceCode::InvalidDocument)
 }
 
 fn read_source_config(
     root: &AdmittedRoot,
     path: &Path,
-) -> Result<Option<(PathBuf, String)>, String> {
+) -> Result<Option<(PathBuf, String)>, LoadFailure> {
     let canonical = match path.canonicalize() {
         Ok(path) => path,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(e) => return Err(format!("cannot resolve config {}: {e}", path.display())),
+        Err(_) => {
+            return Err(failure(
+                &path.to_string_lossy(),
+                &["document"],
+                ServiceStage::Admission,
+                ServiceCode::SourceUnavailable,
+            ));
+        }
     };
     let relative = canonical.strip_prefix(&root.path).map_err(|_| {
-        format!(
-            "refusing config {}: resolves outside its admitted root {} ({})",
-            path.display(),
-            root.path.display(),
-            canonical.display()
+        failure(
+            &path.to_string_lossy(),
+            &["document"],
+            ServiceStage::Admission,
+            ServiceCode::TrustRefused,
         )
     })?;
-    let file = admitted_fs::open_beneath(&root.dir, relative, libc::O_RDONLY)
-        .map_err(|e| format!("cannot open admitted config {}: {e}", path.display()))?;
-    let text = read_bounded(file, SOURCE_CONFIG_CAP)
-        .map_err(|e| format!("cannot read config {}: {e}", path.display()))?;
+    let file = admitted_fs::open_beneath(&root.dir, relative, libc::O_RDONLY).map_err(|_| {
+        failure(
+            &path.to_string_lossy(),
+            &["document"],
+            ServiceStage::Admission,
+            ServiceCode::TrustRefused,
+        )
+    })?;
+    let text = read_bounded(file, SOURCE_CONFIG_CAP).map_err(|code| {
+        failure(
+            &path.to_string_lossy(),
+            &["document"],
+            ServiceStage::Config,
+            code,
+        )
+    })?;
     Ok(Some((canonical, text)))
 }
 
-fn read_native_config(root: &AdmittedRoot, name: &str) -> Result<Option<String>, String> {
+fn read_native_config(root: &AdmittedRoot, name: &str) -> Result<Option<String>, LoadFailure> {
     let file = match admitted_fs::open_beneath(&root.dir, Path::new(name), libc::O_RDONLY) {
         Ok(file) => file,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(error) => return Err(error.to_string()),
+        Err(_) => {
+            return Err(failure(
+                &root.path.join(name).to_string_lossy(),
+                &["document"],
+                ServiceStage::Admission,
+                ServiceCode::TrustRefused,
+            ));
+        }
     };
-    read_bounded(file, NATIVE_CONFIG_CAP).map(Some)
+    read_bounded(file, NATIVE_CONFIG_CAP)
+        .map(Some)
+        .map_err(|code| {
+            failure(
+                &root.path.join(name).to_string_lossy(),
+                &["document"],
+                ServiceStage::Config,
+                code,
+            )
+        })
 }
 
 /// Persist one supported Settings value through the same admitted config boundary.
@@ -1444,7 +1632,7 @@ pub(crate) fn save_permission_mode(
         .file_name()
         .and_then(|n| n.to_str())
         .ok_or("invalid configuration name")?;
-    let original = read_native_config(root, name)?;
+    let original = read_native_config(root, name).map_err(|error| error.to_string())?;
     let bytes = crate::cli_permissions::update(original.as_deref().unwrap_or("{}\n"), auto_once)?
         .into_bytes();
     if bytes.len() > NATIVE_CONFIG_CAP {
@@ -1470,7 +1658,7 @@ pub(crate) fn save_permission_mode(
         file.write_all(&bytes)
             .and_then(|()| file.sync_all())
             .map_err(|e| e.to_string())?;
-        if read_native_config(root, name)? != original {
+        if read_native_config(root, name).map_err(|error| error.to_string())? != original {
             return Err("CLI settings changed while saving; retry".into());
         }
         std::fs::rename(&temporary, pinned.join(name)).map_err(|e| e.to_string())?;
@@ -1527,33 +1715,37 @@ fn skill_diagnostic_id(path: &str) -> Option<&str> {
 ///
 /// Returns the canonical path when the file exists inside `root`, `None`
 /// when it is absent, and fails closed when a symlink resolves outside.
-fn admit_instruction(file: &Path, root: &Path) -> Result<Option<PathBuf>, String> {
+fn admit_instruction(file: &Path, root: &Path) -> Result<Option<PathBuf>, LoadFailure> {
     let canonical_root = match root.canonicalize() {
         Ok(canonical) => canonical,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(e) => {
-            return Err(format!(
-                "cannot resolve config root {}: {e}",
-                root.display()
+        Err(_) => {
+            return Err(failure(
+                &root.to_string_lossy(),
+                &["instructions"],
+                ServiceStage::Admission,
+                ServiceCode::SourceUnavailable,
             ));
         }
     };
     let canonical = match file.canonicalize() {
         Ok(canonical) => canonical,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(e) => {
-            return Err(format!(
-                "cannot resolve instructions {}: {e}",
-                file.display()
+        Err(_) => {
+            return Err(failure(
+                &file.to_string_lossy(),
+                &["instructions"],
+                ServiceStage::Admission,
+                ServiceCode::SourceUnavailable,
             ));
         }
     };
     if !canonical.starts_with(&canonical_root) {
-        return Err(format!(
-            "refusing instructions {}: resolves outside its admitted root {} ({})",
-            file.display(),
-            root.display(),
-            canonical.display()
+        return Err(failure(
+            &file.to_string_lossy(),
+            &["instructions"],
+            ServiceStage::Admission,
+            ServiceCode::TrustRefused,
         ));
     }
     Ok(Some(canonical))
@@ -1563,11 +1755,11 @@ fn merge_config_sources(
     definitions: &mut defs::LoadedDefs,
     sources: &[config::Source],
     parent: &Path,
-) -> Result<(), String> {
+) -> Result<(), LoadFailure> {
     for source in sources {
         if Path::new(&source.path).parent() == Some(parent) {
             let value = config::parse_jsonc(&source.text, &source.path)
-                .map_err(|error| error.to_string())?;
+                .map_err(|_| document(&source.path))?;
             defs::merge_config_definitions(definitions, &value, &source.path);
         }
     }
@@ -1578,56 +1770,8 @@ fn provider_ids(
     value: &serde_json::Value,
     field: &str,
     source: &str,
-) -> Result<Vec<String>, String> {
-    serde_json::from_value(value.clone())
-        .map_err(|_| format!("{source}: {field} must be an array of strings"))
-}
-
-/// Winning raw provider fragment (last source defining the id wins whole).
-fn raw_provider_fragment(
-    sources: &[config::Source],
-    provider_id: &str,
-) -> Option<serde_json::Value> {
-    let mut winner = None;
-    for source in sources {
-        let Ok(value) = config::parse_jsonc(&source.text, &source.path) else {
-            continue;
-        };
-        if let Some(raw) = value
-            .get("provider")
-            .and_then(|providers| providers.get(provider_id))
-        {
-            winner = Some(raw.clone());
-        }
-    }
-    winner
-}
-
-/// A template that is exactly one `{env:NAME}` token, if any.
-fn env_token(template: &str) -> Option<&str> {
-    let template = template.trim();
-    let inner = template.strip_prefix("{env:")?.strip_suffix('}')?;
-    (!inner.is_empty() && !inner.contains('{') && !inner.contains('}')).then_some(inner)
-}
-
-/// Every distinct `{env:NAME}` reference in a template, in first-seen order.
-fn env_refs(template: &str) -> Vec<String> {
-    let mut names: Vec<String> = Vec::new();
-    let mut rest = template;
-    while let Some(start) = rest.find('{') {
-        let tail = &rest[start..];
-        let Some(end) = tail.find('}') else {
-            break;
-        };
-        if let Some(name) = tail[1..end].strip_prefix("env:")
-            && !name.is_empty()
-            && !names.iter().any(|seen| seen == name)
-        {
-            names.push(name.to_string());
-        }
-        rest = &tail[end + 1..];
-    }
-    names
+) -> Result<Vec<String>, LoadFailure> {
+    serde_json::from_value(value.clone()).map_err(|_| invalid(source, &[field]))
 }
 
 #[cfg(test)]
@@ -1739,7 +1883,7 @@ mod tests {
             .expect("invalid cli");
             let error = load().await.map(|_| ()).expect_err("invalid indicators");
             assert!(
-                error.contains("tabs.indicators must be status or numbers"),
+                error.contains("tabs.indicators") && error.contains("invalid_config"),
                 "{error}"
             );
             assert!(!error.contains(invalid), "{error}");
@@ -1783,7 +1927,7 @@ mod tests {
                     .await
                     .err()
                     .unwrap()
-                    .contains("session.tps must be boolean")
+                    .contains("session.tps: review configuration")
             );
         }
         std::fs::remove_file(project.join("cli.jsonc")).unwrap();
@@ -1810,7 +1954,7 @@ mod tests {
                 .await
                 .err()
                 .unwrap()
-                .contains("default_agent must be a nonempty string")
+                .contains("default_agent: review configuration")
         );
     }
 
@@ -1867,7 +2011,7 @@ mod tests {
                     .await
                     .err()
                     .unwrap()
-                    .contains(&format!("diffs.{field} must be"))
+                    .contains(&format!("diffs.{field}: review configuration"))
             );
         }
     }
@@ -1891,7 +2035,10 @@ mod tests {
             .map(|_| ())
             .expect_err("discovered root cannot trust outside config");
         assert!(
-            error.contains(".opencode") && error.contains("outside"),
+            error.contains("trust_refused")
+                && error.contains(&crate::config::mcp::safe_source_id(
+                    &project.join(".opencode").to_string_lossy()
+                )),
             "{error}"
         );
         assert!(!error.contains("external-key"), "{error}");
@@ -1972,7 +2119,8 @@ mod tests {
             &roots,
         );
         let error = generation.expect_err("replaced ancestor must fail closed");
-        assert!(matches!(error, config::ConfigError::Untrusted { .. }));
+        assert_eq!(error.code, oc_core::queries::ServiceCode::TrustRefused);
+        assert_eq!(error.stage, oc_core::queries::ServiceStage::Admission);
         assert!(!error.to_string().contains("EXTERNAL_V07C_SECRET_734a"));
         // The same root capability can still serve a valid nested reference.
         std::fs::remove_file(project.join("branch")).unwrap();
@@ -2208,7 +2356,13 @@ mod tests {
             .await
             .map(|_| ())
             .expect_err("symlink escape must fail closed");
-        assert!(error.contains("outside"), "{error}");
+        assert!(
+            error.contains("trust_refused")
+                && error.contains(&crate::config::mcp::safe_source_id(
+                    &project.join("opencode.json").to_string_lossy()
+                )),
+            "{error}"
+        );
     }
 
     /// The admitted `.opencode` root must stay inside the Location root:
@@ -2237,7 +2391,13 @@ mod tests {
             .await
             .map(|_| ())
             .expect_err("symlinked local root must fail closed");
-        assert!(error.contains("outside"), "{error}");
+        assert!(
+            error.contains("trust_refused")
+                && error.contains(&crate::config::mcp::safe_source_id(
+                    &project.join(".opencode").to_string_lossy()
+                )),
+            "{error}"
+        );
     }
 
     /// Containment, not a blanket symlink ban: a config symlinked inside its
@@ -2287,7 +2447,10 @@ mod tests {
             .map(|_| ())
             .expect_err("unsupported option must fail closed");
         assert!(
-            error.contains("customPrompts") && error.contains("dcp.jsonc"),
+            error.contains("unsupported_capability")
+                && error.contains(&crate::config::mcp::safe_source_id(
+                    &project.join("dcp.jsonc").to_string_lossy()
+                )),
             "the diagnostic must name the source file: {error}"
         );
 
@@ -2305,7 +2468,8 @@ mod tests {
             loaded
                 .diagnostics
                 .iter()
-                .any(|diagnostic| diagnostic.contains("allowSubAgents")),
+                .any(|diagnostic| diagnostic.contains("ignored_setting")
+                    && diagnostic.contains("dcp")),
             "the ignored option is reported: {:?}",
             loaded.diagnostics
         );
@@ -2318,13 +2482,13 @@ mod tests {
             .await
             .map(|_| ())
             .expect_err("missing config");
-        assert!(error.contains("no opencode.json/jsonc"));
+        assert!(error.contains("missing_configuration") && error.contains("document"));
         std::fs::write(dir.path().join("opencode.json"), "{}").expect("config");
         let error = load_with_env(dir.path(), BTreeMap::new())
             .await
             .map(|_| ())
             .expect_err("missing model");
-        assert!(error.contains("model required"));
+        assert!(error.contains("missing_configuration") && error.contains("model"));
     }
 
     /// Subagent S3: every admitted agent stays in the catalog, the depth knob
@@ -2397,8 +2561,11 @@ mod tests {
             .await
             .map(|_| ())
             .expect_err("subagent-only default agent");
-        assert!(error.contains("helper"), "{error}");
-        assert!(error.contains("subagent-only"), "{error}");
+        assert!(
+            error.contains("invalid_config") && error.contains("default_agent.mode"),
+            "{error}"
+        );
+        assert!(!error.contains("helper"), "{error}");
     }
 
     #[tokio::test]

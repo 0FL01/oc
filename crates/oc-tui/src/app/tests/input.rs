@@ -1,6 +1,51 @@
 use super::*;
 
 #[tokio::test]
+async fn cfg10_diagnostic_details_copy_and_investigation_never_touch_prompt_or_submit() {
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    use oc_core::queries::{
+        ServiceAction, ServiceCode, ServiceDiagnostic, ServiceKind, ServiceStage,
+    };
+    let mut state = fresh_state("cfg10-details").await;
+    state.handle_paste("keep the unsent local prompt");
+    let diagnostic = ServiceDiagnostic {
+        kind: ServiceKind::Definition,
+        service: "definition-opaque-fixture".into(),
+        source: "source-123/config".into(),
+        field: vec!["command".into(), "entry".into()],
+        stage: ServiceStage::Config,
+        code: ServiceCode::InvalidDefinition,
+        action: ServiceAction::ReviewConfiguration,
+    };
+    let mut catalog = snapshot();
+    catalog.chrome.service_diagnostics.push(diagnostic.clone());
+    state.apply_catalog(catalog);
+    state.panel = TuiPanel::Settings;
+    state.handle_panel_key(KeyAction::Down);
+    assert!(state.handle_panel_key(KeyAction::Right).intent.is_none());
+    let details = state.handle_panel_key(KeyAction::Enter);
+    assert_eq!(details.note, Some(diagnostic.to_string()));
+    assert!(details.intent.is_none());
+    let modifiers = KeyModifiers::CONTROL | KeyModifiers::SHIFT;
+    assert_eq!(
+        state.terminal_key(KeyEvent::new(KeyCode::Char('c'), modifiers)),
+        None
+    );
+    assert_eq!(state.take_copy_request(), Some(diagnostic.to_string()));
+    assert_eq!(
+        state.terminal_key(KeyEvent::new(KeyCode::Char('i'), modifiers)),
+        None
+    );
+    assert_eq!(
+        state.note(),
+        Some(diagnostic.investigation_draft().as_str())
+    );
+    assert_eq!(state.input, "keep the unsent local prompt");
+    assert_eq!(state.status(), &TuiStatus::Idle);
+    assert!(!state.has_pending_submission());
+}
+
+#[tokio::test]
 async fn ui07_provider_settings_are_read_only_owner_facts_and_preserve_draft() {
     use oc_core::queries::{
         ProviderReadiness, ProviderStatus, ServiceAction, ServiceCode, ServiceDiagnostic,

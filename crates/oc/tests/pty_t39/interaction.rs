@@ -366,8 +366,10 @@ fn var01_discovery_refresh_reopen_restart_and_retired_identity() {
         pty.send(b"\x1b");
         dismissed(&pty, "Select variant");
         pty.send(b"\r");
-        wait_screen_row(&pty, "unavailable variant fast", DEADLINE);
-        wait_screen_row(&pty, "enabled: none, minimal, quick, xhigh", DEADLINE);
+        // The exact retired variant stays in the owner selection/footer, while
+        // its R3 refusal projects only the safe schema field and typed cause.
+        wait_screen_row(&pty, "model_unavailable (retryable=false)", DEADLINE);
+        wait_screen_row(&pty, "variant: select an admitted", DEADLINE);
         wait_screen_row(&pty, "retired draft", DEADLINE);
         assert!(
             fixture.requests.lock().unwrap().is_empty(),

@@ -35,6 +35,9 @@ use crate::tui_workspace::{AgentEntry as WorkspaceAgent, WorkspaceError, Workspa
 #[path = "application_conversation_tests.rs"]
 mod conversation_tests;
 #[cfg(test)]
+#[path = "application/fatal_tests.rs"]
+mod fatal_tests;
+#[cfg(test)]
 #[path = "application_fork_tests.rs"]
 mod fork_tests;
 mod mcp_lookup;
@@ -121,7 +124,9 @@ fn commit_automatic_title(
     }
 }
 
-async fn stop_automatic_titles(work: &Mutex<AutomaticTitles>) {
+async fn stop_automatic_titles(
+    work: &Mutex<AutomaticTitles>,
+) -> Result<(), oc_core::queries::ServiceDiagnostic> {
     let tasks = {
         let mut work = work.lock().expect("title work mutex");
         work.pending.clear();
@@ -130,9 +135,29 @@ async fn stop_automatic_titles(work: &Mutex<AutomaticTitles>) {
     for (_, task) in &tasks {
         task.abort();
     }
+    let mut failed = false;
     for (_, task) in tasks {
-        let _ = task.await;
+        if let Err(error) = task.await {
+            failed |= !error.is_cancelled();
+        }
     }
+    if failed {
+        Err(title_cleanup_failure())
+    } else {
+        Ok(())
+    }
+}
+
+fn title_cleanup_failure() -> oc_core::queries::ServiceDiagnostic {
+    let mut diagnostic = crate::config::diagnostic::failure(
+        "native title worker",
+        &["title"],
+        oc_core::queries::ServiceStage::Cleanup,
+        oc_core::queries::ServiceCode::CleanupFailed,
+        oc_core::queries::ServiceAction::RestartApplication,
+    );
+    diagnostic.kind = oc_core::queries::ServiceKind::Runtime;
+    diagnostic
 }
 
 async fn drain_automatic_titles(
@@ -140,7 +165,7 @@ async fn drain_automatic_titles(
     events: &broadcast::Sender<CoreEvent>,
     work: &Mutex<AutomaticTitles>,
     rx: &mut mpsc::Receiver<AutomaticTitleResult>,
-) {
+) -> Result<(), oc_core::queries::ServiceDiagnostic> {
     let deadline = tokio::time::Instant::now() + TITLE_SHUTDOWN_GRACE;
     while !work.lock().expect("title work mutex").pending.is_empty() {
         match tokio::time::timeout_at(deadline, rx.recv()).await {
@@ -150,7 +175,7 @@ async fn drain_automatic_titles(
     }
     // Cancel all remaining provider work and join it before the owner releases
     // the database. A canceled title never becomes a late title update.
-    stop_automatic_titles(work).await;
+    stop_automatic_titles(work).await
 }
 
 /// Allowlisted stage/category for an interactive startup failure. No paths,
@@ -191,17 +216,71 @@ pub enum SpawnFailure {
     Runtime,
 }
 
-#[derive(Debug)]
-struct SpawnIssue {
-    category: SpawnFailure,
-    // Only the legacy headless route may consume this detail. TUI uses the
-    // category alone, never Display/Debug of this issue.
-    detail: String,
+/// Safe native startup cause. Category is retained for compatible coarse callers.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SpawnDiagnostic {
+    pub category: SpawnFailure,
+    pub diagnostic: oc_core::queries::ServiceDiagnostic,
+}
+
+type SpawnIssue = SpawnDiagnostic;
+
+impl std::fmt::Display for SpawnDiagnostic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.diagnostic.fmt(f)
+    }
 }
 
 impl SpawnIssue {
-    fn new(category: SpawnFailure, detail: String) -> Self {
-        Self { category, detail }
+    fn configuration(failure: composition::LoadFailure) -> Self {
+        match failure {
+            composition::LoadFailure::Configuration(diagnostic) => Self {
+                category: SpawnFailure::Configuration,
+                diagnostic,
+            },
+        }
+    }
+
+    fn new(
+        category: SpawnFailure,
+        source: &str,
+        field: &[&str],
+        code: oc_core::queries::ServiceCode,
+    ) -> Self {
+        use oc_core::queries::{ServiceAction, ServiceKind, ServiceStage};
+        let (kind, stage, action) = match category {
+            SpawnFailure::DataRootBusy => (
+                ServiceKind::Storage,
+                ServiceStage::Storage,
+                ServiceAction::CloseOtherOwner,
+            ),
+            SpawnFailure::UnsafeDataRoot | SpawnFailure::DataRootUnavailable => (
+                ServiceKind::Storage,
+                ServiceStage::Admission,
+                ServiceAction::ReviewDataDirectory,
+            ),
+            SpawnFailure::Storage => (
+                ServiceKind::Storage,
+                ServiceStage::Storage,
+                ServiceAction::ReviewStorage,
+            ),
+            SpawnFailure::Recovery => (
+                ServiceKind::Storage,
+                ServiceStage::Recovery,
+                ServiceAction::ReviewRecovery,
+            ),
+            _ => (
+                ServiceKind::Runtime,
+                ServiceStage::Initialize,
+                ServiceAction::ReviewConfiguration,
+            ),
+        };
+        let mut diagnostic = crate::config::diagnostic::failure(source, field, stage, code, action);
+        diagnostic.kind = kind;
+        Self {
+            category,
+            diagnostic,
+        }
     }
 }
 
@@ -212,6 +291,108 @@ fn storage_failure(error: &StorageError) -> SpawnFailure {
         StorageError::Io(_) => SpawnFailure::DataRootUnavailable,
         _ => SpawnFailure::Storage,
     }
+}
+
+fn storage_code(error: &StorageError) -> oc_core::queries::ServiceCode {
+    use oc_core::queries::ServiceCode;
+    match error {
+        StorageError::DataRootBusy => ServiceCode::DataRootBusy,
+        StorageError::UnsafeRoot(_) => ServiceCode::UnsafeDataRoot,
+        StorageError::StorageFull => ServiceCode::CapacityExceeded,
+        _ => ServiceCode::StorageUnavailable,
+    }
+}
+
+fn saved_selection_issue(db: &Db, field: &[&str]) -> SpawnIssue {
+    let mut issue = SpawnIssue::new(
+        SpawnFailure::Storage,
+        &db.root().to_string_lossy(),
+        field,
+        oc_core::queries::ServiceCode::InvalidStoredState,
+    );
+    issue.diagnostic.stage = oc_core::queries::ServiceStage::Query;
+    issue
+}
+
+/// Shared safe storage projection for application startup and the sessions CLI.
+pub fn storage_diagnostic(
+    source: &Path,
+    error: &StorageError,
+) -> oc_core::queries::ServiceDiagnostic {
+    SpawnIssue::new(
+        storage_failure(error),
+        &source.to_string_lossy(),
+        if matches!(error, StorageError::Sqlite(_)) {
+            &["database"]
+        } else {
+            &["data_root"]
+        },
+        storage_code(error),
+    )
+    .diagnostic
+}
+
+fn runtime_issue(source: &str, field: &[&str], error: &RuntimeError) -> SpawnIssue {
+    use oc_core::queries::{ServiceAction, ServiceCode, ServiceStage};
+    if matches!(error, RuntimeError::McpAttach { .. }) {
+        return SpawnIssue {
+            category: SpawnFailure::Runtime,
+            diagnostic: crate::runtime::mcp_diagnostic(source, error),
+        };
+    }
+    let code = match error {
+        RuntimeError::McpShutdown => ServiceCode::CleanupFailed,
+        RuntimeError::Storage => ServiceCode::StorageUnavailable,
+        RuntimeError::ContextOverflow { .. } | RuntimeError::McpCatalogLimit => {
+            ServiceCode::CapacityExceeded
+        }
+        RuntimeError::Cancelled => ServiceCode::Cancelled,
+        RuntimeError::ApprovalRequired { .. } => ServiceCode::ApprovalRequired,
+        RuntimeError::LocationMismatch { .. } | RuntimeError::PermissionDenied { .. } => {
+            ServiceCode::TrustRefused
+        }
+        RuntimeError::InvalidArgs(_) => ServiceCode::InvalidConfig,
+        _ => ServiceCode::RuntimeFailed,
+    };
+    let mut issue = SpawnIssue::new(
+        if matches!(error, RuntimeError::Storage) {
+            SpawnFailure::Storage
+        } else {
+            SpawnFailure::Runtime
+        },
+        source,
+        field,
+        code,
+    );
+    match error {
+        RuntimeError::McpShutdown => {
+            issue.diagnostic.kind = oc_core::queries::ServiceKind::Mcp;
+            issue.diagnostic.field = vec!["mcp".into()];
+            issue.diagnostic.stage = ServiceStage::Cleanup;
+            issue.diagnostic.action = ServiceAction::RestartApplication;
+        }
+        RuntimeError::ContextOverflow { .. } => {
+            issue.diagnostic.stage = ServiceStage::Admission;
+            issue.diagnostic.action = ServiceAction::ReduceCapacity;
+        }
+        RuntimeError::McpCatalogLimit => {
+            issue.diagnostic.kind = oc_core::queries::ServiceKind::Mcp;
+            issue.diagnostic.service = "native-mcp".into();
+            issue.diagnostic.field = vec!["mcp".into(), "catalog".into()];
+            issue.diagnostic.stage = ServiceStage::Admission;
+            issue.diagnostic.action = ServiceAction::ReduceCapacity;
+        }
+        RuntimeError::Cancelled => issue.diagnostic.stage = ServiceStage::Call,
+        RuntimeError::ApprovalRequired { .. } => {
+            issue.diagnostic.field = vec!["permissions".into(), "approval".into()];
+            issue.diagnostic.stage = ServiceStage::Admission;
+        }
+        RuntimeError::LocationMismatch { .. } | RuntimeError::PermissionDenied { .. } => {
+            issue.diagnostic.stage = ServiceStage::Admission
+        }
+        _ => {}
+    }
+    issue
 }
 
 fn storage_class(error: &StorageError) -> &'static str {
@@ -234,10 +415,22 @@ pub async fn spawn(
     project: &Path,
     data: &Path,
 ) -> Result<(CoreApp, WorkerGuard, Vec<String>), String> {
+    spawn_with_diagnostic(project, data)
+        .await
+        .map_err(|issue| issue.to_string())
+}
+
+/// Warm headless/embedded startup with the same safe cause as interactive startup.
+pub async fn spawn_with_diagnostic(
+    project: &Path,
+    data: &Path,
+) -> Result<(CoreApp, WorkerGuard, Vec<String>), SpawnDiagnostic> {
     let env = std::env::vars_os()
         .filter_map(|(key, value)| Some((key.into_string().ok()?, value.into_string().ok()?)))
         .collect();
-    spawn_with_env(project, data, env).await
+    spawn_inner(project, data, env, false)
+        .await
+        .map(|(app, guard, diagnostics, _)| (app, guard, diagnostics))
 }
 
 /// Same as [`spawn`] with an explicit environment for config composition.
@@ -252,7 +445,7 @@ pub async fn spawn_with_env(
     spawn_inner(project, data, env, false)
         .await
         .map(|(app, guard, diagnostics, _)| (app, guard, diagnostics))
-        .map_err(|issue| issue.detail)
+        .map_err(|issue| issue.to_string())
 }
 
 /// Start the same application for a TUI, exposing only a static category on
@@ -261,13 +454,22 @@ pub async fn spawn_diagnostic(
     project: &Path,
     data: &Path,
 ) -> Result<(CoreApp, WorkerGuard, Vec<StartupNotice>), SpawnFailure> {
+    spawn_with_startup_diagnostic(project, data)
+        .await
+        .map_err(|issue| issue.category)
+}
+
+/// Structured fatal preflight for interactive callers. No raw error detail crosses it.
+pub async fn spawn_with_startup_diagnostic(
+    project: &Path,
+    data: &Path,
+) -> Result<(CoreApp, WorkerGuard, Vec<StartupNotice>), SpawnDiagnostic> {
     let env = std::env::vars_os()
         .filter_map(|(key, value)| Some((key.into_string().ok()?, value.into_string().ok()?)))
         .collect();
     spawn_inner(project, data, env, true)
         .await
         .map(|(app, guard, _, notices)| (app, guard, notices))
-        .map_err(|issue| issue.category)
 }
 
 async fn spawn_inner(
@@ -280,8 +482,8 @@ async fn spawn_inner(
         "spawn.begin",
         &format!(
             "project={} data={} env={}",
-            project.display(),
-            data.display(),
+            crate::config::mcp::safe_source_id(&project.to_string_lossy()),
+            crate::config::mcp::safe_source_id(&data.to_string_lossy()),
             env.len()
         ),
     );
@@ -300,26 +502,24 @@ async fn spawn_stages(
 ) -> Result<(CoreApp, WorkerGuard, Vec<String>, Vec<StartupNotice>), SpawnIssue> {
     let mut composition = composition::load_local_with_env(project, env)
         .await
-        .map_err(|failure| match failure {
-            composition::LoadFailure::Configuration(detail) => {
-                SpawnIssue::new(SpawnFailure::Configuration, detail)
-            }
-        })?;
+        .map_err(SpawnIssue::configuration)?;
     if !defer_provider {
         composition
             .refresh_provider()
             .await
-            .map_err(|failure| match failure {
-                composition::LoadFailure::Configuration(detail) => {
-                    SpawnIssue::new(SpawnFailure::Configuration, detail)
-                }
-            })?;
+            .map_err(SpawnIssue::configuration)?;
     }
     let mut diagnostics = composition.diagnostics.clone();
     let mut notices = composition.startup_notices.clone();
     let db = match Db::open(data) {
         Ok(db) => {
-            trace::log("storage.open", &format!("data_root={} ok", data.display()));
+            trace::log(
+                "storage.open",
+                &format!(
+                    "data_root={} ok",
+                    crate::config::mcp::safe_source_id(&data.to_string_lossy())
+                ),
+            );
             db
         }
         Err(error) => {
@@ -327,22 +527,30 @@ async fn spawn_stages(
                 "storage.open",
                 &format!(
                     "data_root={} fail class={}",
-                    data.display(),
+                    crate::config::mcp::safe_source_id(&data.to_string_lossy()),
                     storage_class(&error)
                 ),
             );
             return Err(SpawnIssue::new(
                 storage_failure(&error),
-                format!("storage: {error}"),
+                &data.to_string_lossy(),
+                &["data_root"],
+                storage_code(&error),
             ));
         }
     };
-    db.recover_interrupted_tools()
-        .map_err(|e| SpawnIssue::new(SpawnFailure::Recovery, format!("recovery: {e}")))?;
+    db.recover_interrupted_tools().map_err(|_| {
+        SpawnIssue::new(
+            SpawnFailure::Recovery,
+            &data.to_string_lossy(),
+            &["operations"],
+            oc_core::queries::ServiceCode::RecoveryFailed,
+        )
+    })?;
     let (app, inbox, events) = CoreApp::channel(MAX_QUEUE_ITEMS);
     let (ready, ready_rx) = oneshot::channel();
     let handle = tokio::spawn(start_worker(db, composition, inbox, events, ready));
-    let guard = WorkerGuard::from_task(handle);
+    let guard = WorkerGuard::from_diagnostic_task(handle);
     match ready_rx.await {
         Ok(Ok(worker_diagnostics)) => {
             trace::log(
@@ -356,12 +564,19 @@ async fn spawn_stages(
             Ok((app, guard, diagnostics, notices))
         }
         result => {
-            let _ = guard.join().await;
+            if let Err(diagnostic) = guard.join_diagnostic().await {
+                return Err(SpawnIssue {
+                    category: SpawnFailure::Runtime,
+                    diagnostic,
+                });
+            }
             Err(match result {
                 Ok(Err(issue)) => issue,
                 _ => SpawnIssue::new(
                     SpawnFailure::Runtime,
-                    "application worker closed".to_string(),
+                    "native application",
+                    &["worker"],
+                    oc_core::queries::ServiceCode::RuntimeFailed,
                 ),
             })
         }
@@ -393,23 +608,43 @@ impl Effective {
 
     /// Apply the persisted frontend model choice; retired ids stay visible
     /// and never silently fall back.
-    fn apply_persisted_model(&mut self, db: &Db, composition: &Composition) -> Vec<String> {
+    fn apply_persisted_model(
+        &mut self,
+        db: &Db,
+        composition: &Composition,
+    ) -> Result<Vec<String>, SpawnIssue> {
         let raw = match db.get_pref(oc_core::queries::PREF_MODEL_SELECTION) {
             Ok(Some(raw)) => raw,
-            Ok(None) => return Vec::new(),
-            Err(error) => return vec![format!("model selection unreadable: {error}")],
+            Ok(None) => return Ok(Vec::new()),
+            Err(error) => {
+                let mut diagnostic = storage_diagnostic(db.root(), &error);
+                diagnostic.stage = oc_core::queries::ServiceStage::Query;
+                diagnostic.field = vec!["selection".into(), "model".into()];
+                return Err(SpawnIssue {
+                    category: storage_failure(&error),
+                    diagnostic,
+                });
+            }
         };
         let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else {
-            return vec!["model selection record is malformed".to_string()];
+            return Err(saved_selection_issue(db, &["selection", "model"]));
         };
-        if value.get("provider").and_then(|v| v.as_str())
-            != Some(composition.catalog.provider.as_str())
-        {
-            return Vec::new();
+        let provider = value
+            .get("provider")
+            .and_then(|value| value.as_str())
+            .ok_or_else(|| saved_selection_issue(db, &["selection", "provider"]))?;
+        if provider != composition.catalog.provider {
+            return Ok(Vec::new());
         }
         let Some(id) = value.get("id").and_then(|v| v.as_str()) else {
-            return vec!["model selection record has no id".to_string()];
+            return Err(saved_selection_issue(db, &["selection", "model"]));
         };
+        if value
+            .get("variant")
+            .is_some_and(|value| !value.is_null() && !value.is_string())
+        {
+            return Err(saved_selection_issue(db, &["selection", "variant"]));
+        }
         let variant = value.get("variant").and_then(|v| v.as_str());
         match crate::models::select_model(&composition.catalog, id)
             .and_then(|base| crate::models::select_variant(&base, variant))
@@ -417,14 +652,23 @@ impl Effective {
             Ok(selection) => {
                 self.model_id = selection.id.clone();
                 self.variant = selection.variant.map(|variant| variant.name);
-                Vec::new()
+                Ok(Vec::new())
             }
-            Err(error) => {
+            Err(_) => {
                 // Preserve the exact retired choice. A stale global preference
                 // must not silently authorize the configured fallback either.
                 self.model_id = id.to_string();
                 self.variant = variant.map(str::to_string);
-                vec![format!("selected model {id} is unavailable: {error}")]
+                Ok(vec![
+                    crate::config::diagnostic::failure(
+                        &composition.project.to_string_lossy(),
+                        &["selection", "model"],
+                        oc_core::queries::ServiceStage::Admission,
+                        oc_core::queries::ServiceCode::ModelUnavailable,
+                        oc_core::queries::ServiceAction::SelectModel,
+                    )
+                    .to_string(),
+                ])
             }
         }
     }
@@ -435,37 +679,63 @@ impl Effective {
         db: &Db,
         composition: &Composition,
         registry: &mut WorkspaceRegistry,
-    ) -> Vec<String> {
+    ) -> Result<Vec<String>, SpawnIssue> {
+        if let Some(raw) = db
+            .get_pref(oc_core::queries::PREF_PRIMARY_AGENT)
+            .map_err(|error| SpawnIssue {
+                category: storage_failure(&error),
+                diagnostic: storage_diagnostic(db.root(), &error),
+            })?
+        {
+            let value: serde_json::Value = serde_json::from_str(&raw)
+                .map_err(|_| saved_selection_issue(db, &["selection", "agent"]))?;
+            if value
+                .get("id")
+                .and_then(serde_json::Value::as_str)
+                .is_none()
+                || value
+                    .get("generation")
+                    .and_then(serde_json::Value::as_u64)
+                    .is_none()
+            {
+                return Err(saved_selection_issue(db, &["selection", "agent"]));
+            }
+        }
         match registry.load_primary(db) {
             Ok(id) => {
                 if let Err(error) = self.set_agent(composition, &id) {
-                    return vec![error.to_string()];
+                    return Ok(vec![error.to_string()]);
                 }
-                Vec::new()
+                Ok(Vec::new())
             }
-            Err(WorkspaceError::NoPrimaryAgent) => Vec::new(),
-            Err(error) => vec![format!("primary agent: {error}")],
+            Err(WorkspaceError::NoPrimaryAgent) => Ok(Vec::new()),
+            Err(_) => Ok(vec![
+                crate::config::diagnostic::failure(
+                    &composition.project.to_string_lossy(),
+                    &["selection", "agent"],
+                    oc_core::queries::ServiceStage::Admission,
+                    oc_core::queries::ServiceCode::InvalidDefinition,
+                    oc_core::queries::ServiceAction::ReviewConfiguration,
+                )
+                .to_string(),
+            ]),
         }
     }
 
     /// Switch the effective agent; a pinned model must resolve exactly.
     fn set_agent(&mut self, composition: &Composition, id: &str) -> Result<(), CoreError> {
-        let agent = composition.agents.get(id).ok_or_else(|| {
-            app_error(format!(
-                "unknown agent {id}; available: {}",
-                composition
-                    .agents
-                    .values()
-                    .filter(|agent| agent.primary_capable())
-                    .map(|agent| agent.id.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", ")
+        let failed = || {
+            CoreError::Diagnostic(crate::config::diagnostic::failure(
+                &composition.project.to_string_lossy(),
+                &["agent", "entry", "model"],
+                oc_core::queries::ServiceStage::Admission,
+                oc_core::queries::ServiceCode::InvalidDefinition,
+                oc_core::queries::ServiceAction::ReviewConfiguration,
             ))
-        })?;
+        };
+        let agent = composition.agents.get(id).ok_or_else(failed)?;
         if !agent.primary_capable() {
-            return Err(app_error(format!(
-                "agent {id} is subagent-only and cannot be a primary agent"
-            )));
+            return Err(failed());
         }
         if let Some(model) = agent.model.as_deref() {
             // Retain the existing exact bare-ID alias; full profile references
@@ -483,18 +753,18 @@ impl Effective {
                     (id, Some(variant.to_string()))
                 });
                 if id.is_empty() {
-                    return Err(app_error("agent model reference is malformed"));
+                    return Err(failed());
                 }
                 (id.to_string(), agent.variant.clone().or(variant))
             } else {
                 let resolved = crate::runtime::resolve_subagent_model(&composition.catalog, model)
-                    .map_err(|error| app_error(format!("agent {id}: {error}")))?;
+                    .map_err(|_| failed())?;
                 (resolved.id, agent.variant.clone().or(resolved.variant))
             };
             if composition.catalog.models.contains_key(&model) {
                 let selection = crate::models::select_model(&composition.catalog, &model)
                     .and_then(|base| crate::models::select_variant(&base, variant.as_deref()))
-                    .map_err(|error| app_error(format!("agent {id}: {error}")))?;
+                    .map_err(|_| failed())?;
                 self.model_id = selection.id;
                 self.variant = selection.variant.map(|v| v.name);
             } else {
@@ -504,9 +774,9 @@ impl Effective {
         } else if agent.variant.is_some() {
             if composition.catalog.models.contains_key(&self.model_id) {
                 let base = crate::models::select_model(&composition.catalog, &self.model_id)
-                    .map_err(app_error)?;
+                    .map_err(|_| failed())?;
                 crate::models::select_variant(&base, agent.variant.as_deref())
-                    .map_err(app_error)?;
+                    .map_err(|_| failed())?;
             }
             self.variant = agent.variant.clone();
         }
@@ -631,11 +901,24 @@ impl Effective {
 }
 
 /// Build one complete runtime for a composition (no publication yet).
-fn build_runtime<'a>(db: &'a Db, composition: &Composition) -> Result<Runtime<'a>, String> {
-    let files = crate::files::Files::new(&composition.project, db.root())
-        .map_err(|e| format!("files: {e}"))?;
-    let shell =
-        crate::shell::Shell::new(&composition.project).map_err(|e| format!("shell: {e}"))?;
+fn build_runtime<'a>(db: &'a Db, composition: &Composition) -> Result<Runtime<'a>, SpawnIssue> {
+    let source = composition.project.to_string_lossy();
+    let files = crate::files::Files::new(&composition.project, db.root()).map_err(|_| {
+        SpawnIssue::new(
+            SpawnFailure::Runtime,
+            &source,
+            &["files"],
+            oc_core::queries::ServiceCode::TrustRefused,
+        )
+    })?;
+    let shell = crate::shell::Shell::new(&composition.project).map_err(|_| {
+        SpawnIssue::new(
+            SpawnFailure::Runtime,
+            &source,
+            &["shell"],
+            oc_core::queries::ServiceCode::RuntimeFailed,
+        )
+    })?;
     let runtime = Runtime::new(
         db,
         &composition.project.to_string_lossy(),
@@ -654,17 +937,17 @@ fn build_runtime<'a>(db: &'a Db, composition: &Composition) -> Result<Runtime<'a
         false,
         composition.dcp_config.clone(),
     )
-    .map_err(|error| error.to_string())?;
+    .map_err(|error| runtime_issue(&source, &["runtime"], &error))?;
     runtime.set_mcp_activation(composition.mcp_activation.clone());
     runtime
         .publish_provider_state(composition.provider_state.clone())
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| runtime_issue(&source, &["provider"], &error))?;
     runtime
         .publish_dcp_protection(composition.dcp_protected.clone())
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| runtime_issue(&source, &["dcp"], &error))?;
     runtime
         .publish_subagents(subagent_catalog(composition))
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| runtime_issue(&source, &["agent"], &error))?;
     Ok(runtime)
 }
 
@@ -709,7 +992,9 @@ fn subagent_catalog(composition: &Composition) -> Option<SubagentCatalog> {
 enum WorkerOutcome {
     /// Inbox closed or an explicit shutdown was requested.
     Stop,
-    ProviderCatalog(Result<crate::discovery::DiscoveryOutcome, String>),
+    ProviderCatalog(
+        Result<crate::discovery::DiscoveryOutcome, oc_core::queries::ServiceDiagnostic>,
+    ),
     PickerOpen {
         path: String,
         session: SessionId,
@@ -743,11 +1028,11 @@ async fn start_worker(
     mut inbox: mpsc::Receiver<InboxMsg>,
     events: broadcast::Sender<CoreEvent>,
     ready: oneshot::Sender<Result<Vec<String>, SpawnIssue>>,
-) -> Result<(), String> {
+) -> Result<(), oc_core::queries::ServiceDiagnostic> {
     let mut runtime = match build_runtime(&db, &composition) {
         Ok(runtime) => runtime,
         Err(error) => {
-            let _ = ready.send(Err(SpawnIssue::new(SpawnFailure::Runtime, error)));
+            let _ = ready.send(Err(error));
             return Ok(());
         }
     };
@@ -755,10 +1040,11 @@ async fn start_worker(
     effective.legacy_epoch = match selection::legacy_epoch(&db, &composition) {
         Ok(epoch) => epoch,
         Err(error) => {
-            let _ = ready.send(Err(SpawnIssue::new(
-                SpawnFailure::Storage,
-                error.to_string(),
-            )));
+            let mut issue = saved_selection_issue(&db, &["selection"]);
+            if let CoreError::Diagnostic(diagnostic) = error {
+                issue.diagnostic = diagnostic;
+            }
+            let _ = ready.send(Err(issue));
             return Ok(());
         }
     };
@@ -771,25 +1057,51 @@ async fn start_worker(
     );
     let mut sessions: BTreeMap<String, String> = BTreeMap::new();
     let mut home_choices: BTreeMap<String, Effective> = BTreeMap::new();
-    let mut diagnostics = effective.apply_persisted_model(&db, &composition);
-    diagnostics.extend(effective.apply_persisted_agent(&db, &composition, &mut registry));
+    let diagnostics =
+        match effective
+            .apply_persisted_model(&db, &composition)
+            .and_then(|mut diagnostics| {
+                diagnostics.extend(effective.apply_persisted_agent(
+                    &db,
+                    &composition,
+                    &mut registry,
+                )?);
+                Ok(diagnostics)
+            }) {
+            Ok(diagnostics) => diagnostics,
+            Err(issue) => {
+                let _ = ready.send(Err(issue));
+                return Ok(());
+            }
+        };
     if let Err(error) = publish_workspace(&runtime, &composition, &effective) {
-        let _ = ready.send(Err(SpawnIssue::new(
-            SpawnFailure::Runtime,
-            error.to_string(),
+        let _ = ready.send(Err(runtime_issue(
+            runtime.location(),
+            &["workspace"],
+            &error,
         )));
         return Ok(());
     }
     runtime.set_approval_events(&events);
     if let Err(error) = runtime.start_mcp() {
-        let _ = ready.send(Err(SpawnIssue::new(
-            SpawnFailure::Runtime,
-            error.to_string(),
-        )));
+        let mut issue = runtime_issue(runtime.location(), &["mcp"], &error);
+        if composition
+            .generation
+            .mcp
+            .values()
+            .filter(|entry| entry.enabled)
+            .count()
+            > crate::runtime::MAX_MCP_SERVERS
+        {
+            issue.diagnostic.code = oc_core::queries::ServiceCode::CapacityExceeded;
+            issue.diagnostic.stage = oc_core::queries::ServiceStage::Admission;
+            issue.diagnostic.action = oc_core::queries::ServiceAction::ReduceCapacity;
+        }
+        let _ = ready.send(Err(issue));
         runtime
             .shutdown_mcp()
             .await
-            .map_err(|error| error.to_string())?;
+            .map_err(|error| runtime_issue(runtime.location(), &["mcp"], &error).diagnostic)?;
         return Ok(());
     }
     let mut provider_work = provider_catalog::ProviderWork::start(&composition);
@@ -798,7 +1110,7 @@ async fn start_worker(
         runtime
             .shutdown_mcp()
             .await
-            .map_err(|error| error.to_string())?;
+            .map_err(|error| runtime_issue(runtime.location(), &["mcp"], &error).diagnostic)?;
         provider_stop?;
         return Ok(());
     }
@@ -836,11 +1148,11 @@ async fn start_worker(
             Ok(outcome) => outcome,
             Err(error) => {
                 let provider_stop = provider_work.stop().await;
-                stop_automatic_titles(&title_work).await;
-                runtime
-                    .shutdown_mcp()
-                    .await
-                    .map_err(|error| error.to_string())?;
+                let title_stop = stop_automatic_titles(&title_work).await;
+                runtime.shutdown_mcp().await.map_err(|error| {
+                    runtime_issue(runtime.location(), &["mcp"], &error).diagnostic
+                })?;
+                title_stop?;
                 provider_stop?;
                 return Err(error);
             }
@@ -850,18 +1162,20 @@ async fn start_worker(
                 let outcome = match outcome {
                     Ok(outcome) => outcome,
                     Err(error) => {
-                        stop_automatic_titles(&title_work).await;
-                        runtime
-                            .shutdown_mcp()
-                            .await
-                            .map_err(|error| error.to_string())?;
+                        let title_stop = stop_automatic_titles(&title_work).await;
+                        runtime.shutdown_mcp().await.map_err(|error| {
+                            runtime_issue(runtime.location(), &["mcp"], &error).diagnostic
+                        })?;
+                        title_stop?;
                         return Err(error);
                     }
                 };
                 composition.accept_provider_catalog(outcome);
                 runtime
                     .publish_provider_state(composition.provider_state.clone())
-                    .map_err(|error| error.to_string())?;
+                    .map_err(|error| {
+                        runtime_issue(runtime.location(), &["provider"], &error).diagnostic
+                    })?;
                 let _ = events.send(CoreEvent::ProviderChanged);
             }
             WorkerOutcome::PickerOpen {
@@ -909,7 +1223,8 @@ async fn start_worker(
                                     SpawnFailure::Storage => LocationSwitchFailure::Storage,
                                     _ => LocationSwitchFailure::Runtime,
                                 },
-                                detail: issue.detail,
+                                detail: issue.to_string(),
+                                diagnostic: Some(issue.diagnostic),
                             }));
                             continue;
                         }
@@ -938,7 +1253,9 @@ async fn start_worker(
                 let receipt = match receipt {
                     Ok(receipt) => receipt,
                     Err(error) => {
-                        let _ = next.shutdown_mcp().await;
+                        next.shutdown_mcp().await.map_err(|error| {
+                            runtime_issue(next.location(), &["mcp"], &error).diagnostic
+                        })?;
                         let _ = ack.send(Err(error));
                         continue;
                     }
@@ -946,18 +1263,23 @@ async fn start_worker(
                 // The route and both decks have committed. Cleanup cannot turn
                 // that accepted route back into a refusal or an old view.
                 let provider_stop = provider_work.stop().await;
-                let _ = runtime.shutdown_mcp().await;
+                let mcp_stop = runtime.shutdown_mcp().await.map_err(|error| {
+                    runtime_issue(runtime.location(), &["mcp"], &error).diagnostic
+                });
                 while let Ok(result) = title_rx.try_recv() {
                     commit_automatic_title(&db, &events, &title_work, result);
                 }
-                stop_automatic_titles(&title_work).await;
+                let title_stop = stop_automatic_titles(&title_work).await;
+                mcp_stop?;
+                title_stop?;
                 provider_stop?;
                 remote_retry_quarantined |= runtime.remote_retry_quarantined();
                 if remote_retry_quarantined {
                     next.quarantine_remote_retries();
                 }
                 next.set_approval_events(&events);
-                next.start_mcp().map_err(|error| error.to_string())?;
+                next.start_mcp()
+                    .map_err(|error| runtime_issue(next.location(), &["mcp"], &error).diagnostic)?;
                 runtime = next;
                 composition = next_composition;
                 effective = next_effective;
@@ -968,11 +1290,12 @@ async fn start_worker(
             }
             WorkerOutcome::Stop => {
                 let provider_stop = provider_work.stop().await;
-                drain_automatic_titles(&db, &events, &title_work, &mut title_rx).await;
-                runtime
-                    .shutdown_mcp()
-                    .await
-                    .map_err(|error| error.to_string())?;
+                let title_stop =
+                    drain_automatic_titles(&db, &events, &title_work, &mut title_rx).await;
+                runtime.shutdown_mcp().await.map_err(|error| {
+                    runtime_issue(runtime.location(), &["mcp"], &error).diagnostic
+                })?;
+                title_stop?;
                 provider_stop?;
                 break;
             }
@@ -997,9 +1320,9 @@ async fn start_worker(
                                 .for_model(&next_composition.model_id, false)
                                 .diagnostic
                                 .expect("failed refresh has a cause");
-                            next.shutdown_mcp()
-                                .await
-                                .map_err(|error| error.to_string())?;
+                            next.shutdown_mcp().await.map_err(|error| {
+                                runtime_issue(next.location(), &["mcp"], &error).diagnostic
+                            })?;
                             if next_composition.catalog.provider == composition.catalog.provider {
                                 // Keep the complete healthy catalog/policy/credentials. Only the
                                 // transient latest-attempt fact changes, as with MCP status.
@@ -1007,8 +1330,13 @@ async fn start_worker(
                                     .provider
                                     .same_request_binding(&next_composition.provider)
                                     .map_err(|_| {
-                                        "native provider binding has invalid HTTP syntax"
-                                            .to_string()
+                                        crate::config::diagnostic::failure(
+                                            "native provider binding",
+                                            &["provider", "options", "headers"],
+                                            oc_core::queries::ServiceStage::Config,
+                                            oc_core::queries::ServiceCode::InvalidHeader,
+                                            oc_core::queries::ServiceAction::ReviewConfiguration,
+                                        )
                                     })?;
                                 composition.provider_state.retain_failed_attempt(
                                     &next_composition.provider_state,
@@ -1016,7 +1344,10 @@ async fn start_worker(
                                 );
                                 runtime
                                     .publish_provider_state(composition.provider_state.clone())
-                                    .map_err(|error| error.to_string())?;
+                                    .map_err(|error| {
+                                        runtime_issue(runtime.location(), &["provider"], &error)
+                                            .diagnostic
+                                    })?;
                                 let _ = events.send(CoreEvent::ProviderChanged);
                             }
                             if let SwitchAck::Reload(ack) = ack {
@@ -1034,7 +1365,9 @@ async fn start_worker(
                                 &sessions,
                             );
                             if let Err(error) = validation {
-                                let _ = next.shutdown_mcp().await;
+                                next.shutdown_mcp().await.map_err(|error| {
+                                    runtime_issue(next.location(), &["mcp"], &error).diagnostic
+                                })?;
                                 if let SwitchAck::Reload(ack) = ack {
                                     let _ = ack.send(Err(error));
                                 }
@@ -1055,11 +1388,14 @@ async fn start_worker(
                             match selected {
                                 Ok(selected) => Some(selected.snapshot(&next_composition)),
                                 Err(error) => {
-                                    let _ = next.shutdown_mcp().await;
+                                    next.shutdown_mcp().await.map_err(|error| {
+                                        runtime_issue(next.location(), &["mcp"], &error).diagnostic
+                                    })?;
                                     if let SwitchAck::Home(ack) = ack {
                                         let _ = ack.send(Err(CoreError::LocationSwitch {
                                             category: LocationSwitchFailure::Storage,
                                             detail: error.to_string(),
+                                            diagnostic: Some(SpawnIssue::new(SpawnFailure::Storage, &db.root().to_string_lossy(), &["selection"], oc_core::queries::ServiceCode::StorageUnavailable).diagnostic),
                                         }));
                                     }
                                     continue;
@@ -1071,10 +1407,9 @@ async fn start_worker(
                         // The target generation is complete: only now drop the
                         // old Location's MCP resources and swap the state.
                         let provider_stop = provider_work.stop().await;
-                        runtime
-                            .shutdown_mcp()
-                            .await
-                            .map_err(|error| error.to_string())?;
+                        let mcp_stop = runtime.shutdown_mcp().await.map_err(|error| {
+                            runtime_issue(runtime.location(), &["mcp"], &error).diagnostic
+                        });
                         // A title that actually completed while target
                         // validation was in progress still belongs to the old
                         // accepted prompt. Commit it before retiring that
@@ -1085,14 +1420,18 @@ async fn start_worker(
                         // All target validation has succeeded. Retire and join
                         // old provider work before publishing the new Location;
                         // queued results lose their pending stamp as well.
-                        stop_automatic_titles(&title_work).await;
+                        let title_stop = stop_automatic_titles(&title_work).await;
+                        mcp_stop?;
+                        title_stop?;
                         provider_stop?;
                         remote_retry_quarantined |= runtime.remote_retry_quarantined();
                         if remote_retry_quarantined {
                             next.quarantine_remote_retries();
                         }
                         next.set_approval_events(&events);
-                        next.start_mcp().map_err(|error| error.to_string())?;
+                        next.start_mcp().map_err(|error| {
+                            runtime_issue(next.location(), &["mcp"], &error).diagnostic
+                        })?;
                         let mode = composition.approval_consumer_mode.load(Ordering::SeqCst);
                         if mode > 0 {
                             next.register_approval_consumer(mode == 2);
@@ -1153,7 +1492,8 @@ async fn start_worker(
                         };
                         let error = CoreError::LocationSwitch {
                             category,
-                            detail: issue.detail,
+                            detail: issue.to_string(),
+                            diagnostic: Some(issue.diagnostic),
                         };
                         match ack {
                             SwitchAck::Session(ack) => {
@@ -1189,10 +1529,26 @@ fn validate_reload_selections(
     let storage_error = || CoreError::LocationSwitch {
         category: LocationSwitchFailure::Storage,
         detail: "retained tab deck unavailable".into(),
+        diagnostic: Some(
+            SpawnIssue::new(
+                SpawnFailure::Storage,
+                &db.root().to_string_lossy(),
+                &["tab_deck"],
+                oc_core::queries::ServiceCode::StorageUnavailable,
+            )
+            .diagnostic,
+        ),
     };
     let selection_error = || CoreError::LocationSwitch {
         category: LocationSwitchFailure::Configuration,
         detail: "retained session selection unavailable in reloaded configuration".into(),
+        diagnostic: Some(crate::config::diagnostic::failure(
+            &composition.project.to_string_lossy(),
+            &["selection"],
+            oc_core::queries::ServiceStage::Admission,
+            oc_core::queries::ServiceCode::ModelUnavailable,
+            oc_core::queries::ServiceAction::SelectModel,
+        )),
     };
     let old_deck = tab_deck::load(db, old).map_err(|_| storage_error())?;
     let next_deck = tab_deck::load(db, next).map_err(|_| storage_error())?;
@@ -1250,14 +1606,19 @@ async fn switch_target<'a>(
     ),
     SpawnIssue,
 > {
-    let composition = composition::load_with_env(Path::new(path), env)
+    let composition = composition::load_with_env_diagnostic(Path::new(path), env)
         .await
-        .map_err(|detail| SpawnIssue::new(SpawnFailure::Configuration, detail))?;
-    let runtime = build_runtime(db, &composition)
-        .map_err(|detail| SpawnIssue::new(SpawnFailure::Runtime, detail))?;
+        .map_err(SpawnIssue::configuration)?;
+    let runtime = build_runtime(db, &composition)?;
     let mut effective = Effective::from_composition(&composition);
-    effective.legacy_epoch = selection::legacy_epoch(db, &composition)
-        .map_err(|e| SpawnIssue::new(SpawnFailure::Storage, e.to_string()))?;
+    effective.legacy_epoch = selection::legacy_epoch(db, &composition).map_err(|_| {
+        SpawnIssue::new(
+            SpawnFailure::Storage,
+            &db.root().to_string_lossy(),
+            &["selection"],
+            oc_core::queries::ServiceCode::StorageUnavailable,
+        )
+    })?;
     let mut registry = WorkspaceRegistry::bind(
         runtime.generation_id(),
         runtime.location(),
@@ -1266,10 +1627,10 @@ async fn switch_target<'a>(
         skill_metas(&composition),
     );
     let mut notes = composition.diagnostics.clone();
-    notes.extend(effective.apply_persisted_model(db, &composition));
-    notes.extend(effective.apply_persisted_agent(db, &composition, &mut registry));
+    notes.extend(effective.apply_persisted_model(db, &composition)?);
+    notes.extend(effective.apply_persisted_agent(db, &composition, &mut registry)?);
     publish_workspace(&runtime, &composition, &effective)
-        .map_err(|error| SpawnIssue::new(SpawnFailure::Runtime, error.to_string()))?;
+        .map_err(|error| runtime_issue(path, &["workspace"], &error))?;
     // Home publishes only the target generation. Attached switches retain
     // their existing Location-bound reopen/create behavior.
     let location = runtime.location().to_string();
@@ -1278,16 +1639,16 @@ async fn switch_target<'a>(
     } else {
         Some(match sessions.get(&location).cloned() {
             Some(id) => {
-                runtime
-                    .open_session(&id)
-                    .map_err(|error| SpawnIssue::new(SpawnFailure::Storage, error.to_string()))?;
+                runtime.open_session(&id).map_err(|error| {
+                    runtime_issue(&db.root().to_string_lossy(), &["session"], &error)
+                })?;
                 SessionId(id)
             }
             None => {
                 let id = format!("s-loc-{}", nanos());
-                runtime
-                    .create_session(&id)
-                    .map_err(|error| SpawnIssue::new(SpawnFailure::Storage, error.to_string()))?;
+                runtime.create_session(&id).map_err(|error| {
+                    runtime_issue(&db.root().to_string_lossy(), &["session"], &error)
+                })?;
                 sessions.insert(location, id.clone());
                 SessionId(id)
             }
@@ -1373,8 +1734,34 @@ fn app_error(error: impl std::fmt::Display) -> CoreError {
 fn runtime_error(error: RuntimeError) -> CoreError {
     match error {
         RuntimeError::ProviderUnavailable(diagnostic) => CoreError::ProviderUnavailable(diagnostic),
-        other => app_error(other),
+        other => {
+            CoreError::Diagnostic(runtime_issue("native runtime", &["request"], &other).diagnostic)
+        }
     }
+}
+
+fn query_storage_error(db: &Db, error: StorageError) -> CoreError {
+    let mut diagnostic = storage_diagnostic(db.root(), &error);
+    diagnostic.stage = oc_core::queries::ServiceStage::Query;
+    diagnostic.field = vec!["database".into()];
+    CoreError::Diagnostic(diagnostic)
+}
+
+fn runtime_query_error(db: &Db, error: RuntimeError) -> CoreError {
+    if let RuntimeError::ProviderUnavailable(diagnostic) = error {
+        return CoreError::ProviderUnavailable(diagnostic);
+    }
+    let mut issue = runtime_issue(&db.root().to_string_lossy(), &["session"], &error);
+    if !matches!(
+        error,
+        RuntimeError::LocationMismatch { .. } | RuntimeError::PermissionDenied { .. }
+    ) {
+        issue.diagnostic.stage = oc_core::queries::ServiceStage::Query;
+    }
+    if matches!(error, RuntimeError::SessionNotFound) {
+        issue.diagnostic.code = oc_core::queries::ServiceCode::SourceUnavailable;
+    }
+    CoreError::Diagnostic(issue.diagnostic)
 }
 
 fn file_suggestion_error(error: crate::files::FileToolError) -> CoreError {
@@ -1781,7 +2168,9 @@ fn query(
             let _ = ack.send(result);
         }
         InboxMsg::Create { id, ack } => {
-            let result = runtime.create_session(&id.0).map_err(app_error);
+            let result = runtime
+                .create_session(&id.0)
+                .map_err(|error| runtime_query_error(db, error));
             if result.is_ok() {
                 sessions.insert(runtime.location().to_string(), id.0.clone());
             }
@@ -1928,7 +2317,7 @@ fn query(
             let _ = ack.send(
                 db.list_sessions()
                     .map(|ids| ids.into_iter().map(SessionId).collect())
-                    .map_err(app_error),
+                    .map_err(|error| query_storage_error(db, error)),
             );
         }
         InboxMsg::SessionList {
@@ -1938,7 +2327,7 @@ fn query(
         } => {
             let _ = ack.send(
                 db.session_list(&search, (!all_projects).then_some(runtime.location()))
-                    .map_err(app_error),
+                    .map_err(|error| query_storage_error(db, error)),
             );
         }
         InboxMsg::SessionPickerContext { all_projects, ack } => {
@@ -1948,11 +2337,11 @@ fn query(
                         "tui.session-list.allProjects",
                         if value { "true" } else { "false" },
                     )
-                    .map_err(app_error)?;
+                    .map_err(|error| query_storage_error(db, error))?;
                 }
                 let all_projects = match db
                     .get_pref("tui.session-list.allProjects")
-                    .map_err(app_error)?
+                    .map_err(|error| query_storage_error(db, error))?
                     .as_deref()
                 {
                     Some("true") => true,
@@ -1987,32 +2376,50 @@ fn query(
                             SessionProbe::Root
                         }
                     })
-                    .map_err(app_error),
+                    .map_err(|error| query_storage_error(db, error)),
                 Err(RuntimeError::SessionNotFound) => match db.session_meta(&id.0) {
                     Err(StorageError::SessionNotFound) => Ok(SessionProbe::Absent),
-                    Ok(_) => Err(app_error("session has no Location binding")),
-                    Err(error) => Err(app_error(error)),
+                    Ok(_) => Err(CoreError::Diagnostic(
+                        saved_selection_issue(db, &["session", "binding"]).diagnostic,
+                    )),
+                    Err(error) => Err(query_storage_error(db, error)),
                 },
-                Err(RuntimeError::LocationMismatch { .. }) => {
-                    Err(app_error("session belongs to another Location"))
-                }
-                Err(error) => Err(app_error(error)),
+                Err(error) => Err(runtime_query_error(db, error)),
             };
             let _ = ack.send(result);
         }
         InboxMsg::TabDeck { ack } => {
-            let _ = ack.send(tab_deck::load(db, runtime));
+            let _ = ack.send(tab_deck::load(db, runtime).map_err(|error| match error {
+                CoreError::TabDeckStorage => {
+                    let mut issue = saved_selection_issue(db, &["tab_deck"]);
+                    issue.diagnostic.code = oc_core::queries::ServiceCode::StorageUnavailable;
+                    CoreError::Diagnostic(issue.diagnostic)
+                }
+                other => other,
+            }));
         }
         InboxMsg::SaveTabDeck { deck, ack } => {
-            let _ = ack.send(tab_deck::save(db, runtime, &deck));
+            let result = tab_deck::save(db, runtime, &deck).map_err(|error| match error {
+                CoreError::TabDeckStorage => CoreError::Diagnostic(
+                    SpawnIssue::new(
+                        SpawnFailure::Storage,
+                        &db.root().to_string_lossy(),
+                        &["tab_deck"],
+                        oc_core::queries::ServiceCode::StorageUnavailable,
+                    )
+                    .diagnostic,
+                ),
+                other => other,
+            });
+            let _ = ack.send(result);
         }
         InboxMsg::Read { session, ack } => {
             let result = runtime
                 .open_session(&session.0)
-                .map_err(app_error)
+                .map_err(|error| runtime_query_error(db, error))
                 .and_then(|()| {
                     db.conversation_history_full(&session.0)
-                        .map_err(app_error)
+                        .map_err(|error| query_storage_error(db, error))
                         .map(|rows| {
                             rows.into_iter()
                                 .map(|(id, role, text)| oc_core::session::Message {
@@ -2037,19 +2444,25 @@ fn query(
             ack,
         } => {
             let result = (|| -> Result<HistoryPage, CoreError> {
-                runtime.open_session(&session.0).map_err(app_error)?;
-                let (min, max) = db.history_bounds(&session.0).map_err(app_error)?;
-                let total = db.history_len(&session.0).map_err(app_error)?;
+                runtime
+                    .open_session(&session.0)
+                    .map_err(|error| runtime_query_error(db, error))?;
+                let (min, max) = db
+                    .history_bounds(&session.0)
+                    .map_err(|error| query_storage_error(db, error))?;
+                let total = db
+                    .history_len(&session.0)
+                    .map_err(|error| query_storage_error(db, error))?;
                 let limit = limit.min(HISTORY_PAGE_LIMIT);
                 let (mut page, ascending) = match after_seq {
                     Some(after) => (
                         db.read_history_after_typed(&session.0, limit, after)
-                            .map_err(app_error)?,
+                            .map_err(|error| query_storage_error(db, error))?,
                         true,
                     ),
                     None => (
                         db.read_history_page_typed(&session.0, limit, before_seq)
-                            .map_err(app_error)?,
+                            .map_err(|error| query_storage_error(db, error))?,
                         false,
                     ),
                 };
@@ -2076,8 +2489,11 @@ fn query(
                              text,
                          }| {
                             let model_switch = if role == "model_switch" {
-                                let notice = serde_json::from_str(&text)
-                                    .map_err(|_| app_error("invalid model switch notice"))?;
+                                let notice = serde_json::from_str(&text).map_err(|_| {
+                                    CoreError::Diagnostic(
+                                        saved_selection_issue(db, &["history", "model"]).diagnostic,
+                                    )
+                                })?;
                                 Some(project_model_switch(notice, &composition.catalog))
                             } else {
                                 None
@@ -2088,7 +2504,7 @@ fn query(
                                     None
                                 } else {
                                     db.history_turn(&session.0, seq)
-                                        .map_err(app_error)?
+                                        .map_err(|error| query_storage_error(db, error))?
                                         .or_else(|| {
                                             (role == "assistant").then(|| {
                                                 oc_core::queries::HistoryTurn {
@@ -2115,9 +2531,17 @@ fn query(
                     )
                     .collect::<Result<Vec<_>, CoreError>>()?;
                 Ok(HistoryPage {
-                    reverted: db.reverted_conversation(&session.0).map_err(app_error)?,
-                    parent_id: db.session_meta(&session.0).map_err(app_error)?.parent_id,
-                    title: db.session_meta(&session.0).map_err(app_error)?.title,
+                    reverted: db
+                        .reverted_conversation(&session.0)
+                        .map_err(|error| query_storage_error(db, error))?,
+                    parent_id: db
+                        .session_meta(&session.0)
+                        .map_err(|error| query_storage_error(db, error))?
+                        .parent_id,
+                    title: db
+                        .session_meta(&session.0)
+                        .map_err(|error| query_storage_error(db, error))?
+                        .title,
                     rows,
                     total,
                     has_older,
@@ -2133,14 +2557,20 @@ fn query(
             ack,
         } => {
             let result = (|| -> Result<ToolOpPage, CoreError> {
-                runtime.open_session(&session.0).map_err(app_error)?;
-                let total = db.tool_ops_len(&session.0).map_err(app_error)?;
+                runtime
+                    .open_session(&session.0)
+                    .map_err(|error| runtime_query_error(db, error))?;
+                let total = db
+                    .tool_ops_len(&session.0)
+                    .map_err(|error| query_storage_error(db, error))?;
                 let page = db
                     .list_tool_ops_page(&session.0, limit.min(TOOL_OPS_PAGE_LIMIT), before_rowid)
-                    .map_err(app_error)?;
+                    .map_err(|error| query_storage_error(db, error))?;
                 let has_older = match (
                     page.last(),
-                    db.tool_ops_bounds(&session.0).map_err(app_error)?.0,
+                    db.tool_ops_bounds(&session.0)
+                        .map_err(|error| query_storage_error(db, error))?
+                        .0,
                 ) {
                     (Some(row), Some(min)) => row.rowid > min,
                     _ => false,
@@ -2179,10 +2609,10 @@ fn query(
         } => {
             let result = runtime
                 .open_session(&session.0)
-                .map_err(app_error)
+                .map_err(|error| runtime_query_error(db, error))
                 .and_then(|_| {
                     db.dcp_summary_page(&session.0, &op, block_index, offset, limit)
-                        .map_err(app_error)
+                        .map_err(|error| query_storage_error(db, error))
                 });
             let _ = ack.send(result);
         }
@@ -2195,7 +2625,7 @@ fn query(
         } => {
             let result = runtime
                 .open_session(&session.0)
-                .map_err(app_error)
+                .map_err(|error| runtime_query_error(db, error))
                 .and_then(|_| {
                     db.read_session_tool_output(&session.0, &op, offset, limit)
                         .map(
@@ -2205,7 +2635,7 @@ fn query(
                                 next_offset,
                             },
                         )
-                        .map_err(app_error)
+                        .map_err(|error| query_storage_error(db, error))
                 });
             let _ = ack.send(result);
         }
@@ -2222,7 +2652,9 @@ fn query(
                 if runtime.turn_active() {
                     return Err(CoreError::TurnBusy);
                 }
-                runtime.open_session(&session.0).map_err(app_error)?;
+                runtime
+                    .open_session(&session.0)
+                    .map_err(|error| runtime_query_error(db, error))?;
                 selection::apply(db, composition, effective, &session.0, home, action)
                     .map(|selected| selected.snapshot(composition))
             })();
@@ -2332,9 +2764,15 @@ fn query(
         }
         InboxMsg::Dcp { session, ack } => {
             let result = (|| -> Result<DcpSnapshot, CoreError> {
-                runtime.open_session(&session.0).map_err(app_error)?;
-                let accounting = db.dcp_accounting(&session.0).map_err(app_error)?;
-                let blocks = db.dcp_block_count(&session.0).map_err(app_error)?;
+                runtime
+                    .open_session(&session.0)
+                    .map_err(|error| runtime_query_error(db, error))?;
+                let accounting = db
+                    .dcp_accounting(&session.0)
+                    .map_err(|error| query_storage_error(db, error))?;
+                let blocks = db
+                    .dcp_block_count(&session.0)
+                    .map_err(|error| query_storage_error(db, error))?;
                 let turns_since_compress = runtime
                     .dcp_turn_state(&session.0)
                     .map(|state| state.turns_since_compress)
@@ -2343,12 +2781,12 @@ fn query(
                 // DCP panel must not materialise pruned/covered history.
                 let after_seq = db
                     .prune_bound(&session.0)
-                    .map_err(app_error)?
+                    .map_err(|error| query_storage_error(db, error))?
                     .map(|(_, seq)| seq)
                     .unwrap_or(0)
                     .max(
                         db.session_checkpoint(&session.0)
-                            .map_err(app_error)?
+                            .map_err(|error| query_storage_error(db, error))?
                             .map(|(seq, _)| seq)
                             .unwrap_or(0),
                     );
@@ -2358,26 +2796,30 @@ fn query(
                         after_seq,
                         crate::runtime::ACTIVE_CONTEXT_BYTES_CAP,
                     )
-                    .map_err(app_error)?;
+                    .map_err(|error| query_storage_error(db, error))?;
                 let estimated_tokens = if active.overflow {
                     None
                 } else {
                     let positions = db
                         .block_positions(&session.0, after_seq)
-                        .map_err(app_error)?;
+                        .map_err(|error| query_storage_error(db, error))?;
                     let saved_blocks = db
                         .active_compression_graph(&session.0, after_seq)
-                        .map_err(app_error)?;
+                        .map_err(|error| query_storage_error(db, error))?;
                     let projected =
                         crate::dcp::project_active_rows(&active.rows, &saved_blocks, &positions)
-                            .map_err(app_error)?;
+                            .map_err(|_| {
+                                CoreError::Diagnostic(
+                                    saved_selection_issue(db, &["history", "dcp"]).diagnostic,
+                                )
+                            })?;
                     runtime
                         .dcp_projection_estimate(&session.0, &projected, &saved_blocks, after_seq)
-                        .map_err(app_error)?
+                        .map_err(|error| runtime_query_error(db, error))?
                 };
                 let checkpoint_tokens = db
                     .session_checkpoint(&session.0)
-                    .map_err(app_error)?
+                    .map_err(|error| query_storage_error(db, error))?
                     .map(|(_, summary)| oc_core::dcp_view::estimate_content(&summary))
                     .unwrap_or(0);
                 let estimated_tokens =
@@ -2402,7 +2844,9 @@ fn query(
                     turns_since_compress,
                     blocks,
                     compressions: accounting.as_ref().map_or(0, |a| a.compressions),
-                    nudges: db.dcp_nudges(&session.0).map_err(app_error)?,
+                    nudges: db
+                        .dcp_nudges(&session.0)
+                        .map_err(|error| query_storage_error(db, error))?,
                     prunes: accounting.as_ref().map_or(0, |a| a.prunes),
                 })
             })();
@@ -2432,7 +2876,7 @@ fn query(
                         .map_err(runtime_error)?;
                     runtime
                         .queue_compaction(&session.0, oc_core::compaction::CompactionReason::Manual)
-                        .map_err(app_error)
+                        .map_err(|error| runtime_query_error(db, error))
                 });
             let _ = ack.send(result);
         }
@@ -2440,14 +2884,17 @@ fn query(
             let result = runtime
                 .open_session(&session.0)
                 .and_then(|_| runtime.cancel_compaction(&session.0))
-                .map_err(app_error);
+                .map_err(|error| runtime_query_error(db, error));
             let _ = ack.send(result);
         }
         InboxMsg::CompactionHistory { session, ack } => {
             let result = runtime
                 .open_session(&session.0)
-                .map_err(app_error)
-                .and_then(|_| db.compaction_history(&session.0).map_err(app_error));
+                .map_err(|error| runtime_query_error(db, error))
+                .and_then(|_| {
+                    db.compaction_history(&session.0)
+                        .map_err(|error| query_storage_error(db, error))
+                });
             let _ = ack.send(result);
         }
         InboxMsg::Shutdown => {}
@@ -2471,7 +2918,7 @@ async fn worker(
     title_rx: &mut mpsc::Receiver<AutomaticTitleResult>,
     title_work: &Mutex<AutomaticTitles>,
     provider_work: &mut provider_catalog::ProviderWork,
-) -> Result<WorkerOutcome, String> {
+) -> Result<WorkerOutcome, oc_core::queries::ServiceDiagnostic> {
     runtime.set_compaction_events(events);
     let mut pending_inputs = std::collections::VecDeque::new();
     'worker: loop {
@@ -2479,9 +2926,9 @@ async fn worker(
             let selected = match selection::for_turn(db, composition, effective, &session) {
                 Ok(selected) => selected,
                 Err(_) => {
-                    runtime
-                        .refuse_compaction(&session)
-                        .map_err(|error| error.to_string())?;
+                    runtime.refuse_compaction(&session).map_err(|error| {
+                        runtime_issue(runtime.location(), &["compaction"], &error).diagnostic
+                    })?;
                     continue;
                 }
             };
@@ -2503,9 +2950,9 @@ async fn worker(
                             // publication errors and releases ownership. Keep the
                             // owner serving queries/new work only with that proof.
                             let failed = db.compaction_history(&session)
-                                .map_err(|storage| storage.to_string())?
+                                .map_err(|error| storage_diagnostic(db.root(), &error))?
                                 .first().is_some_and(|snapshot| snapshot.state == oc_core::compaction::CompactionState::Failed);
-                            if !failed { return Err(error.to_string()); }
+                            if !failed { return Err(runtime_issue(runtime.location(), &["compaction"], &error).diagnostic); }
                         }
                         break;
                     },
@@ -2546,7 +2993,7 @@ async fn worker(
         } else {
             tokio::select! {
                 biased;
-                error = runtime.wait_mcp_failure() => return Err(error.to_string()),
+                error = runtime.wait_mcp_failure() => return Err(runtime_issue(runtime.location(), &["mcp"], &error).diagnostic),
                 Some(result) = title_rx.recv() => {
                     commit_automatic_title(db, events, title_work, result);
                     continue;
@@ -3396,7 +3843,7 @@ async fn worker(
                         Err(error) => CoreEvent::TurnFailed {
                             session: session.clone(),
                             turn,
-                            error: app_error(error),
+                            error: runtime_error(error),
                             warnings,
                         },
                     };

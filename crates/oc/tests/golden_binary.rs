@@ -865,7 +865,10 @@ fn aud35_binary_golden_workflow() {
         "wrong location",
         "golden-5",
     );
-    let refusal = !run.status.success() && run.stderr.contains("belongs to location");
+    let refusal = !run.status.success()
+        && run.stderr.contains("admission: trust_refused")
+        && run.stderr.contains("session:")
+        && run.stderr.contains("source-");
     summary.push((
         "cross-location".to_string(),
         if refusal { "passed" } else { "failed" }.to_string(),

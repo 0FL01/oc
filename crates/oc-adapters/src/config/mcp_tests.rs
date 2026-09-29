@@ -251,7 +251,9 @@ fn mcp09_failed_recognized_matrix_keeps_healthy_and_disabled_entries() {
         }}))], &BTreeMap::new(), None).unwrap();
         assert_eq!(generation.mcp.len(), 3);
         let issue = generation.mcp["broken"].failure.as_ref().unwrap();
-        assert_eq!(issue.service, "broken");
+        assert!(issue.service.starts_with("server-") && issue.service.len() <= 64);
+        assert!(!issue.service.contains("broken"));
+        assert_eq!(issue.field[..2], ["mcp", "entry"]);
         assert_eq!(issue.field[2..].join("."), field);
         assert_eq!(issue.code, code);
         assert!(!generation.mcp["disabled"].enabled);

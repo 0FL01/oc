@@ -172,6 +172,54 @@ impl TuiState {
                         false,
                     ));
                 }
+                options.extend(
+                    self.chrome
+                        .service_diagnostics
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(index, diagnostic)| {
+                            use oc_core::queries::ServiceKind;
+                            matches!(
+                                diagnostic.kind,
+                                ServiceKind::Configuration
+                                    | ServiceKind::Definition
+                                    | ServiceKind::Storage
+                                    | ServiceKind::Runtime
+                            )
+                            .then(|| {
+                                item(
+                                    format!("diagnostic:{index}"),
+                                    format!(
+                                        "{} — {}",
+                                        diagnostic.code.as_str(),
+                                        if diagnostic.code
+                                            == oc_core::queries::ServiceCode::IgnoredSetting
+                                        {
+                                            "ignored"
+                                        } else {
+                                            "failed"
+                                        }
+                                    ),
+                                    "Configuration diagnostics",
+                                    diagnostic.to_string(),
+                                    false,
+                                )
+                            })
+                        }),
+                );
+                if self.chrome.service_diagnostics_omitted > 0 {
+                    options.push(item(
+                        "diagnostic:omitted".into(),
+                        format!(
+                            "{} additional diagnostics",
+                            self.chrome.service_diagnostics_omitted
+                        ),
+                        "Configuration diagnostics",
+                        "Bounded presentation; effective admitted configuration is unchanged"
+                            .into(),
+                        false,
+                    ));
+                }
                 options
             }
             TuiPanel::Variant => self
@@ -505,6 +553,23 @@ impl TuiState {
                 .approvals
                 .terminal_key(event, &self.chrome.permission_shortcuts);
         }
+        use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
+        if self.panel == TuiPanel::Settings
+            && event.kind == KeyEventKind::Press
+            && event.modifiers == (KeyModifiers::CONTROL | KeyModifiers::SHIFT)
+            && matches!(event.code, KeyCode::Char('c' | 'C' | 'i' | 'I'))
+            && let Some(diagnostic) = self.selected_diagnostic()
+        {
+            if matches!(event.code, KeyCode::Char('c' | 'C')) {
+                if let Err(error) = self.copy_message_text(diagnostic.to_string()) {
+                    self.push_note(&error);
+                }
+            } else {
+                // The draft is a read-only detail, never injected into the ordinary composer.
+                self.push_note(&diagnostic.investigation_draft());
+            }
+            return None;
+        }
         self.conversation_key(event).or_else(|| {
             crate::events::map_key(event).filter(|action| {
                 *action != KeyAction::Leader
@@ -513,6 +578,22 @@ impl TuiState {
                         && self.chrome.command_palette_shortcut.is_some())
             })
         })
+    }
+
+    fn selected_diagnostic(&self) -> Option<oc_core::queries::ServiceDiagnostic> {
+        let options = self.modal_options();
+        let value = &options.get(self.select.cursor)?.value;
+        if value == "provider" {
+            return self.chrome.provider.as_ref()?.diagnostic.clone();
+        }
+        if let Some(index) = value
+            .strip_prefix("plugin:")
+            .and_then(|index| index.parse::<usize>().ok())
+        {
+            return self.chrome.plugins.entries.get(index)?.diagnostic.clone();
+        }
+        let index = value.strip_prefix("diagnostic:")?.parse::<usize>().ok()?;
+        self.chrome.service_diagnostics.get(index).cloned()
     }
 
     /// Called only after a successful application selection. The original applies

@@ -13,5 +13,14 @@ async fn ui07_completed_catalog_join_failure_is_not_suppressed_on_stop() {
     .unwrap();
     let mut work = ProviderWork { task: Some(task) };
     let result = work.stop().await;
-    assert_eq!(result, Err("native catalog worker failed".into()));
+    let diagnostic = result.unwrap_err();
+    assert_eq!(
+        diagnostic.code,
+        oc_core::queries::ServiceCode::RuntimeFailed
+    );
+    assert_eq!(diagnostic.stage, oc_core::queries::ServiceStage::Cleanup);
+    assert_eq!(
+        diagnostic.action,
+        oc_core::queries::ServiceAction::RestartApplication
+    );
 }

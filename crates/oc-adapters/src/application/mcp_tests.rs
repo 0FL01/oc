@@ -82,7 +82,7 @@ fn control(snapshot: &McpSnapshot, name: &str, action: McpAction) -> McpControl 
         server: snapshot
             .servers
             .iter()
-            .find(|row| row.name == name)
+            .find(|row| row.name == crate::config::mcp::safe_identity(name))
             .unwrap()
             .id
             .clone(),
@@ -104,7 +104,7 @@ async fn wait_status(
         let row = snapshot
             .servers
             .iter()
-            .find(|row| row.name == name)
+            .find(|row| row.name == crate::config::mcp::safe_identity(name))
             .unwrap();
         if row.status == status {
             return (snapshot.clone(), row.clone());
@@ -280,7 +280,7 @@ async fn mcp08_disabled_project_activation_cannot_reintroduce_orphan_product_cre
         after
             .servers
             .iter()
-            .find(|r| r.name == "healthy")
+            .find(|r| r.name == crate::config::mcp::safe_identity("healthy"))
             .unwrap()
             .status,
         McpStatus::Connected

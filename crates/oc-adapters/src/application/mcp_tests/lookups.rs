@@ -23,7 +23,7 @@ fn query(snapshot: &McpSnapshot, server: &str, session: &str, operation: McpLook
         server: snapshot
             .servers
             .iter()
-            .find(|r| r.name == server)
+            .find(|r| r.name == crate::config::mcp::safe_identity(server))
             .unwrap()
             .id
             .clone(),
@@ -462,12 +462,18 @@ async fn mcp11_core_combined_generation_metadata_cap_is_fatal_and_all_clients_re
         .expect("fatal cap lookup reply"),
         Err(McpLookupError::CatalogLimit)
     );
-    assert!(
-        tokio::time::timeout(Duration::from_secs(12), guard.join())
-            .await
-            .expect("fatal owner cleanup/join")
-            .is_err(),
-        "generation cap must terminate non-success"
+    let failure = tokio::time::timeout(Duration::from_secs(12), guard.join_diagnostic())
+        .await
+        .expect("fatal owner cleanup/join")
+        .expect_err("generation cap must terminate non-success");
+    assert_eq!(
+        failure.code,
+        oc_core::queries::ServiceCode::CapacityExceeded
+    );
+    assert_eq!(failure.stage, oc_core::queries::ServiceStage::Admission);
+    assert_eq!(
+        failure.action,
+        oc_core::queries::ServiceAction::ReduceCapacity
     );
     gone(pid(&first));
     gone(pid(&second));

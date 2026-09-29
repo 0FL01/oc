@@ -37,6 +37,11 @@ async fn provider_request(
     (socket, request)
 }
 
+pub(super) fn diagnostic_name(name: &str) -> String {
+    use sha2::Digest as _;
+    format!("server-{:x}", sha2::Sha256::digest(name.as_bytes()))[..63].into()
+}
+
 async fn wait_mcp_state(runtime: &Runtime<'_>, name: &str, state: oc_core::queries::McpStatus) {
     tokio::time::timeout(Duration::from_secs(5), async {
         loop {
@@ -44,7 +49,7 @@ async fn wait_mcp_state(runtime: &Runtime<'_>, name: &str, state: oc_core::queri
                 .mcp_status()
                 .servers
                 .iter()
-                .any(|row| row.name == name && row.status == state)
+                .any(|row| row.name == diagnostic_name(name) && row.status == state)
             {
                 return;
             }
@@ -166,12 +171,13 @@ async fn mcp_late_failure_reaches_completed_existing_and_fresh_turn_without_star
                 snapshot
                     .servers
                     .iter()
-                    .any(|row| row.name == "slow" && row.status == McpStatus::Pending)
+                    .any(|row| row.name == diagnostic_name("slow")
+                        && row.status == McpStatus::Pending)
             );
             let failed = snapshot
                 .servers
                 .iter()
-                .find(|row| row.name == "unavailable")
+                .find(|row| row.name == diagnostic_name("unavailable"))
                 .unwrap();
             assert_eq!(failed.tools, 0);
             assert_eq!(
@@ -227,10 +233,13 @@ async fn mcp_late_failure_reaches_completed_existing_and_fresh_turn_without_star
         }
         assert_eq!(report.status, TurnStatus::Completed);
         assert_eq!(next.status, TurnStatus::Completed);
-        let expected = "mcp unavailable initialize: transport (retryable=true)";
+        let expected = format!(
+            "mcp {} initialize: transport (retryable=true)",
+            diagnostic_name("unavailable")
+        );
         assert_eq!(
-            report.warnings,
-            [expected],
+            report.warnings.as_slice(),
+            std::slice::from_ref(&expected),
             "fresh={fresh}: late typed degradation lost"
         );
         assert_eq!(next.warnings, [expected]);
@@ -298,7 +307,10 @@ for line in sys.stdin:
         if prompt == "old retained" {
             assert_eq!(
                 report.warnings,
-                ["mcp refresh tools-list: transport (retryable=true)"]
+                [format!(
+                    "mcp {} tools-list: transport (retryable=true)",
+                    diagnostic_name("refresh")
+                )]
             );
             let row = &runtime.mcp_status().servers[0];
             assert_eq!(row.status, oc_core::queries::McpStatus::Connected);
@@ -402,10 +414,7 @@ for line in sys.stdin:
                 &NO_CANCEL
             ))
             .await,
-        Err(RuntimeError::McpAttach {
-            safe_code: "catalog_limit",
-            ..
-        })
+        Err(RuntimeError::McpCatalogLimit)
     ));
     assert!(
         runtime.shutdown_mcp().await.is_err(),

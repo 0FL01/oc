@@ -47,17 +47,14 @@ pub async fn run_once_to_writers(
         let session = SessionId::new(session_opt.unwrap_or_else(|| format!("s-{}", nanos())))
             .ok_or_else(|| "invalid session id".to_string())?;
         let (app, guard, diagnostics) =
-            match oc_adapters::application::spawn(&project, data_dir).await {
+            match oc_adapters::application::spawn_with_diagnostic(&project, data_dir).await {
                 Ok(spawned) => {
                     oc_adapters::trace::log("spawn.ok", "");
                     spawned
                 }
-                Err(message) => {
-                    // The detailed text already goes to stderr; the trace file
-                    // records only its size so a malformed typed config value
-                    // cannot be duplicated into a second surface.
-                    oc_adapters::trace::log("spawn.fail", &format!("detail_len={}", message.len()));
-                    return Err(message);
+                Err(issue) => {
+                    oc_adapters::trace::log("spawn.fail", &issue.to_string());
+                    return Err(issue.to_string());
                 }
             };
         for diagnostic in diagnostics {
@@ -183,11 +180,12 @@ pub async fn run_once_to_writers(
             }
         }
         .await;
-        let _ = app.shutdown().await;
+        let shutdown = app.shutdown().await;
         guard
-            .join()
+            .join_diagnostic()
             .await
             .map_err(|e| format!("application worker: {e}"))?;
+        shutdown.map_err(|error| error.to_string())?;
         outcome
     }
     .await;
@@ -227,7 +225,11 @@ pub fn list_to_writers(
             ExitCode::SUCCESS
         }
         Err(e) => {
-            let _ = writeln!(err, "error: storage: {e}");
+            let _ = writeln!(
+                err,
+                "error: {}",
+                oc_adapters::application::storage_diagnostic(data_dir, &e)
+            );
             ExitCode::from(1)
         }
     }

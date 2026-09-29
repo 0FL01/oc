@@ -82,7 +82,10 @@ fn vis34_compaction_prune_normalization_headless_and_tui_entry() {
         assert!(headless.wait().success(), "{}", headless.diagnostics());
         let stderr = fs::read_to_string(&headless.stderr).unwrap();
         assert!(stderr.contains("compaction.prune"), "{stderr}");
-        assert!(stderr.contains("Unsupported/Skip"), "{stderr}");
+        assert!(
+            stderr.contains("ignored_setting") && stderr.contains("source-"),
+            "{stderr}"
+        );
         assert!(
             stderr.contains("omitted unsupported legacy setting"),
             "{stderr}"
@@ -1169,7 +1172,10 @@ fn aud22_binary_rejects_conflicting_authorization_duplicates_before_network() {
     );
     let diagnostic = process.diagnostics().to_ascii_lowercase();
     assert!(
-        diagnostic.contains("warning: mcp codex_web config: authorization_header_conflict"),
+        diagnostic.contains(&format!(
+            "warning: mcp {} config: authorization_header_conflict",
+            diagnostic_name("codex_web")
+        )),
         "actionable duplicate diagnostic: {diagnostic}"
     );
     assert!(mcp.records().is_empty(), "conflict reached MCP network");
@@ -1211,13 +1217,13 @@ fn aud24_binary_rejects_oversized_catalog_without_partial_provider_tools() {
         process.child.try_wait().unwrap().is_none(),
         "degraded catalog aborted the application"
     );
-    process.wait_screen("mcp oversized tools-list: catalog_limit", TIMEOUT);
+    process.wait_screen("catalog_limit", TIMEOUT);
     process.send_line("exercise configured MCP");
     process.wait_screen("answer:exercise configured MCP", TIMEOUT);
-    process.wait_screen("mcp oversized tools-list: catalog_limit", TIMEOUT);
+    process.wait_screen("catalog_limit", TIMEOUT);
     let diagnostic = String::from_utf8_lossy(&process.output.lock().unwrap()).to_ascii_lowercase();
     assert!(
-        diagnostic.contains("mcp oversized tools-list: catalog_limit"),
+        diagnostic.contains(&diagnostic_name("oversized")) && diagnostic.contains("catalog_limit"),
         "visible catalog diagnostic: {diagnostic}"
     );
     std::thread::sleep(Duration::from_millis(300));
@@ -1637,6 +1643,26 @@ fn dup_fd(fd: &OwnedFd) -> OwnedFd {
     assert!(duplicated >= 0, "dup PTY fd");
     // SAFETY: fcntl returned a new owned descriptor.
     unsafe { OwnedFd::from_raw_fd(duplicated) }
+}
+
+// Obtain the display identity from the real typed producer, without loader IO.
+fn diagnostic_name(name: &str) -> String {
+    let generation = oc_adapters::config::assemble(
+        &[oc_adapters::config::Source {
+            path: "native-identity-fixture".into(),
+            text: json!({"mcp": {"servers": {name: null}}}).to_string(),
+            trusted: true,
+        }],
+        &std::collections::BTreeMap::new(),
+        None,
+    )
+    .unwrap();
+    generation.mcp[name]
+        .failure
+        .as_ref()
+        .unwrap()
+        .service
+        .clone()
 }
 
 struct PtyProcess {
@@ -2830,11 +2856,14 @@ fn v01_anonymous_remote_and_codex_required_auth() {
     );
     let diagnostic = process.diagnostics();
     assert!(
-        diagnostic.contains("warning: mcp codex_web config: missing_credential (retryable=false)"),
+        diagnostic.contains(&format!(
+            "warning: mcp {} config: missing_credential (retryable=false)",
+            diagnostic_name("codex_web")
+        )),
         "{diagnostic}"
     );
     assert!(
-        diagnostic.contains("mcp.codex_web.headers.authorization"),
+        diagnostic.contains("mcp.entry.headers.entry"),
         "R6 safe field details"
     );
     assert_eq!(
@@ -2865,7 +2894,10 @@ fn v01_degraded_remote_diagnostic_is_staged_and_redacted_in_tui() {
     tui.send_line("retained prompt");
     // The failed server degrades: the warning row is visible and the turn
     // still reaches the provider and answers.
-    tui.wait_screen("warning: mcp required initialize:", IO_TIMEOUT);
+    tui.wait_screen(
+        &format!("warning: mcp {} initialize:", diagnostic_name("required")),
+        IO_TIMEOUT,
+    );
     tui.wait_screen("unauthorized (retryable=false)", IO_TIMEOUT);
     tui.wait_screen("answer:retained prompt", IO_TIMEOUT);
     assert!(
@@ -2909,16 +2941,14 @@ fn v07_s05_disabled_and_failed_mcp_only_retry_after_explicit_repair() {
     lifecycle::close_mcps(&mut first);
     first.send_line("exercise configured MCP");
     first.wait_screen("answer:exercise configured MCP", TIMEOUT);
-    first.wait_screen(
-        "warning: mcp required initialize: unauthorized (retryable=false)",
-        TIMEOUT,
-    );
+    first.wait_screen("unauthorized (retryable=false)", TIMEOUT);
     std::thread::sleep(Duration::from_millis(300));
     first.send_line("/quit");
     assert!(first.wait_exit().success());
     let failure = String::from_utf8_lossy(&first.output.lock().unwrap()).to_string();
     assert!(
-        failure.contains("warning: mcp required initialize: unauthorized (retryable=false)"),
+        failure.contains(&diagnostic_name("required"))
+            && failure.contains("unauthorized (retryable=false)"),
         "missing explicit degraded-server diagnostic: {failure}"
     );
     for private in [
@@ -3450,7 +3480,7 @@ fn v07b_remote_cancel_notification_failure_is_safe_and_poisoned() {
         std::thread::sleep(POLL);
     }
     tui.raw(b"\x1b");
-    tui.wait_screen("mcp shutdown failed", TIMEOUT);
+    tui.wait_screen("cleanup_failed", TIMEOUT);
     let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
     assert_eq!(
         db.query_row("SELECT state FROM tool_operations", [], |r| r
@@ -3459,7 +3489,7 @@ fn v07b_remote_cancel_notification_failure_is_safe_and_poisoned() {
         "unknown"
     );
     tui.send_line("explicit retry");
-    tui.wait_screen("mcp shutdown failed", TIMEOUT);
+    tui.wait_screen("cleanup_failed", TIMEOUT);
     assert_eq!(
         mcp.records()
             .iter()

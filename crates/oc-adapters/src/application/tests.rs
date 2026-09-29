@@ -1155,6 +1155,13 @@ mod reload_tests {
             Err(CoreError::LocationSwitch {
                 category: LocationSwitchFailure::Configuration,
                 detail: "retained session selection unavailable in reloaded configuration".into(),
+                diagnostic: Some(crate::config::diagnostic::failure(
+                    &project.to_string_lossy(),
+                    &["selection"],
+                    oc_core::queries::ServiceStage::Admission,
+                    oc_core::queries::ServiceCode::ModelUnavailable,
+                    oc_core::queries::ServiceAction::SelectModel,
+                )),
             })
         );
         assert_eq!(app.catalog().await.unwrap(), catalog);

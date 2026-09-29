@@ -271,6 +271,7 @@ impl Drop for Fixture {
 
 /// One scripted peer response, including bounded multi-round tool fixtures.
 enum Script {
+    Cfg10DeniedRead,
     Text(String),
     HighRateBurst,
     WheelHeldRows,
@@ -291,6 +292,9 @@ fn script(body: &serde_json::Value) -> Script {
         return Script::Text("answer:compressed".to_string());
     }
     let prompt = last_user_text(body).unwrap_or_default();
+    if prompt == fatal_diagnostics::POLICY_PROMPT {
+        return Script::Cfg10DeniedRead;
+    }
     if prompt == "vis31 provider burst" {
         return Script::HighRateBurst;
     }
@@ -525,6 +529,9 @@ fn respond(
             finish_completed(socket, &answer)
         }
         Script::Compress(arguments) => finish_call(socket, "compress", arguments),
+        Script::Cfg10DeniedRead => {
+            finish_call(socket, "read", r#"{"path":"cfg10-denied-note.txt"}"#)
+        }
         Script::S07Read => {
             let reasoning = serde_json::json!({"type": "response.reasoning_summary_text.delta",
                 "delta": S07_REASONING});
@@ -2002,6 +2009,8 @@ fn measure_s07(archive: usize) -> S07Run {
     }
 }
 
+#[path = "pty_t39/fatal_diagnostics.rs"]
+mod fatal_diagnostics;
 #[path = "pty_t39/interaction.rs"]
 mod interaction;
 #[path = "pty_t39/lifecycle.rs"]

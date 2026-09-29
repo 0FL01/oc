@@ -413,6 +413,8 @@ pub struct TuiChrome {
     /// Ordered, value-free diagnostics from admitted configuration sources.
     pub config_diagnostics: Vec<ConfigDiagnostic>,
     pub service_diagnostics: Vec<ServiceDiagnostic>,
+    /// Additional admitted failures/notes omitted only from the bounded view.
+    pub service_diagnostics_omitted: usize,
     /// Current generation's compiled-plugin requests; contains no executable identities.
     pub plugins: PluginInventory,
     /// Owner facts for this exact selection; ready means request-admissible, not connected.
@@ -523,7 +525,7 @@ impl std::fmt::Display for ConfigDiagnostic {
     }
 }
 
-/// Payload-free optional-service admission failure, shared with startup consumers.
+/// Payload-free service or fatal admission failure, shared with startup consumers.
 /// Producers bound/sanitize identities; no remote exceptions or expanded values.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ServiceDiagnostic {
@@ -544,6 +546,10 @@ pub enum ServiceKind {
     Mcp,
     Plugin,
     Provider,
+    Configuration,
+    Definition,
+    Storage,
+    Runtime,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -559,6 +565,9 @@ pub enum ServiceStage {
     ModelCatalog,
     Cleanup,
     Call,
+    Storage,
+    Recovery,
+    Query,
 }
 
 impl ServiceStage {
@@ -574,6 +583,9 @@ impl ServiceStage {
             Self::ModelCatalog => "models-list",
             Self::Cleanup => "cleanup",
             Self::Call => "call",
+            Self::Storage => "storage",
+            Self::Recovery => "recovery",
+            Self::Query => "query",
         }
     }
 }
@@ -582,6 +594,21 @@ impl ServiceStage {
 #[serde(rename_all = "snake_case")]
 pub enum ServiceCode {
     InvalidConfig,
+    InvalidDocument,
+    InvalidDefinition,
+    MissingConfiguration,
+    TrustRefused,
+    SourceUnavailable,
+    CapacityExceeded,
+    DataRootBusy,
+    UnsafeDataRoot,
+    StorageUnavailable,
+    RecoveryFailed,
+    RuntimeFailed,
+    QueryFailed,
+    InvalidStoredState,
+    ApprovalRequired,
+    IgnoredSetting,
     UnsupportedPlugin,
     UnsupportedCapability,
     UnsupportedProtocol,
@@ -613,6 +640,21 @@ impl ServiceCode {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::InvalidConfig => "invalid_config",
+            Self::InvalidDocument => "invalid_document",
+            Self::InvalidDefinition => "invalid_definition",
+            Self::MissingConfiguration => "missing_configuration",
+            Self::TrustRefused => "trust_refused",
+            Self::SourceUnavailable => "source_unavailable",
+            Self::CapacityExceeded => "capacity_exceeded",
+            Self::DataRootBusy => "data_root_busy",
+            Self::UnsafeDataRoot => "unsafe_data_root",
+            Self::StorageUnavailable => "storage_unavailable",
+            Self::RecoveryFailed => "recovery_failed",
+            Self::RuntimeFailed => "runtime_failed",
+            Self::QueryFailed => "query_failed",
+            Self::InvalidStoredState => "invalid_stored_state",
+            Self::ApprovalRequired => "approval_required",
+            Self::IgnoredSetting => "ignored_setting",
             Self::UnsupportedPlugin => "unsupported_plugin",
             Self::UnsupportedCapability => "unsupported_capability",
             Self::UnsupportedProtocol => "unsupported_protocol",
@@ -652,6 +694,11 @@ pub enum ServiceAction {
     RefreshCatalog,
     SelectModel,
     WaitForProvider,
+    CloseOtherOwner,
+    ReviewDataDirectory,
+    ReviewStorage,
+    ReviewRecovery,
+    ReduceCapacity,
 }
 
 impl std::fmt::Display for ServiceDiagnostic {
@@ -663,6 +710,10 @@ impl std::fmt::Display for ServiceDiagnostic {
                 ServiceKind::Mcp => "mcp",
                 ServiceKind::Plugin => "plugin",
                 ServiceKind::Provider => "provider",
+                ServiceKind::Configuration => "configuration",
+                ServiceKind::Definition => "definition",
+                ServiceKind::Storage => "storage",
+                ServiceKind::Runtime => "runtime",
             },
             self.service,
             self.stage.as_str(),
@@ -682,7 +733,26 @@ impl std::fmt::Display for ServiceDiagnostic {
                 ServiceAction::RefreshCatalog => "reload configuration to refresh catalog",
                 ServiceAction::SelectModel => "select an admitted model",
                 ServiceAction::WaitForProvider => "wait for catalog; selection remains unchanged",
+                ServiceAction::CloseOtherOwner =>
+                    "close the other oc process using this data directory",
+                ServiceAction::ReviewDataDirectory =>
+                    "choose a private, owned data directory; check access",
+                ServiceAction::ReviewStorage =>
+                    "check storage integrity, access and available space",
+                ServiceAction::ReviewRecovery =>
+                    "repair interrupted-operation storage before restarting; do not replay unknown effects",
+                ServiceAction::ReduceCapacity =>
+                    "reduce the admitted input or resource size; limits remain enforced",
             }
+        )
+    }
+}
+
+impl ServiceDiagnostic {
+    /// An unsent investigation payload built only from the safe owner DTO.
+    pub fn investigation_draft(&self) -> String {
+        format!(
+            "Investigate this admitted failure without changing current policy or selection. Explain the recorded cause and allowed next action.\n{self}"
         )
     }
 }

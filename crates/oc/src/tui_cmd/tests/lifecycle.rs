@@ -552,7 +552,8 @@ async fn initial_mcp_owner_query_failure_is_not_usable_empty_inventory() {
     });
     assert!(matches!(
         initial_state(&app, None).await,
-        Err(StartupFailure::Query)
+        Err(StartupFailure::QueryDiagnostic(diagnostic))
+            if diagnostic.code == oc_core::queries::ServiceCode::QueryFailed
     ));
     worker.await.unwrap();
 }
@@ -755,7 +756,8 @@ async fn explicit_failed_view_is_a_startup_error() {
     });
     assert!(matches!(
         restore_initial(&app, Some(SessionId::new("broken").unwrap())).await,
-        Err(StartupFailure::Query)
+        Err(StartupFailure::QueryDiagnostic(diagnostic))
+            if diagnostic.code == oc_core::queries::ServiceCode::QueryFailed
     ));
     worker.await.unwrap();
 }

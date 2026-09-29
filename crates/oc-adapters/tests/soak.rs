@@ -530,9 +530,14 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
         .await
         .expect("a degraded server must not abort the turn");
     assert_eq!(degraded.status, TurnStatus::Completed);
+    let identity = bad_runtime.mcp_status().servers[0].name.clone();
+    assert!(identity.starts_with("server-"));
+    assert_ne!(identity, "codex");
     assert_eq!(
         degraded.warnings,
-        vec!["mcp codex DNS: private_host (retryable=false)"]
+        vec![format!(
+            "mcp {identity} DNS: private_host (retryable=false)"
+        )]
     );
     bad_runtime
         .shutdown_mcp()

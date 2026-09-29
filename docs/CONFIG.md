@@ -20,11 +20,11 @@ Cold TUI discovery выполняется асинхронно существу�
 
 Admitted `/reload` повторяет только существующий bounded discovery. Failed refresh сохраняет предыдущую complete generation/catalog/selection и безопасный latest-attempt cause; success не сохраняет удалённые remote IDs через local overrides. Mandatory config syntax/type/security и retained-selection validation остаются atomic gates. Public embedded/headless spawn ждёт bounded catalog result; TUI запускает local owner до завершения optional discovery. Headless preflight существующего root читает его scoped Current selection; недоступный config default не заменяет и не блокирует другую явно сохранённую admitted session choice.
 
-JSONC comments/trailing commas и source locations сохраняются для diagnostics. Unsupported arbitrary plugin/provider package даёт имя config field и capability, которой не хватает. Не «поддерживать» настройку только тем, что Serde её проглотил. Security-relevant invalid candidate не публикуется; malformed отдельная definition исключается с path/field/reason. Explicit selected-reference failure остаётся явным; configured default eligibility/fallback governed by approved R6, not the old blanket default-reference hard error.
+JSONC comments/trailing commas принимаются; диагностика показывает qualified opaque source и schema-only field, не исходный parser payload/path. Unsupported arbitrary plugin/provider package даёт safe field и capability code. Не «поддерживать» настройку только тем, что Serde её проглотил. Security-relevant invalid candidate не публикуется; malformed отдельная definition исключается с typed cause. Explicit selected-reference failure остаётся явным; configured default eligibility/fallback governed by approved R6, not the old blanket default-reference hard error.
 
 DCP domains, provider model metadata/variants, MCP entries, skills, agents, commands и permissions имеют отдельные merge rules. Native own settings не переопределяют смысл известных upstream fields. Источник и shadowed origins доступны в `oc config explain`, secrets и sensitive absolute paths redacted.
 
-## Service config/startup — approved target (T46/T51, pending)
+## Service config/startup — native diagnostic contract
 
 [T46 R6 matrix](goals/2026-09-22-mcp-attach-parity.md#r6-fieldcapability-matrix--approved-target-not-supported-claim)
 defines legacy `mcp.<name>` and canonical `mcp.servers.<name>`, global/server stage
@@ -42,15 +42,35 @@ admission before launch; untrusted/lower-trust commands do not inherit higher-tr
 secrets. Ordinary shell keeps its minimal env; remote MCP gets no arbitrary local env.
 New env values/inherited secrets join redaction; never dump expanded effective config.
 
-[T51](goals/2026-09-27-startup-fault-isolation.md) adds typed source/field/service/stage/
-safe-code/retryability/action diagnostics shared by TUI/headless. Optional malformed
-document may be rejected only when complete mandatory effective config/policy remains
-admitted; donor syntax skipping is not permission to fall back to less restrictive
-policy. Fatal unsafe config/storage/recovery/cleanup remains non-success with a concrete
-safe cause. Selected-model/provider readiness is separate from local UI availability;
-discovery deadlines/retries/metadata and last-healthy-catalog publication remain intact.
-Async MCP startup/status/control uses existing owner and safe request boundaries.
-These targets are pending; current strict loader/lazy attach is not a support claim.
+[T51](goals/2026-09-27-startup-fault-isolation.md) uses the existing `ServiceDiagnostic`
+for typed source/field/service/stage/safe-code/retryability/allowed-action facts across
+loader, application, TUI and headless. Source qualifiers are stable opaque IDs with an
+allowlisted config filename; entry identities are opaque, schema fields never retain
+provider/MCP/definition/env names. Remote exceptions, expanded values and parser/panic
+payloads are not diagnostic values. Public strict config assembly keeps its legacy
+error API; native application boundaries expose the safe projection.
+
+Standalone definition files and admitted inline definition namespaces are the narrow
+optional authority: invalid siblings have bounded failed inventory while healthy
+definitions and completely admitted policy survive. Whole malformed/unreadable JSONC
+cannot prove that it contains no policy and stays fatal, even above healthy global
+policy. Selected mandatory definitions, trust/security, storage/recovery, cleanup and
+resource caps remain non-success; cancellation remains cancelled. Failed reload keeps
+the previous complete generation, not mixed catalogs/instructions/clients/policy.
+Corrupt active stored selections do not fall back to defaults; a broken inactive tab
+preference may only be projected read-only with a visible safe diagnostic.
+
+Read-only Settings shows bounded common diagnostics and omitted counts. Enter opens
+safe details; Ctrl+Shift+C copies the selected diagnostic and Ctrl+Shift+I shows an
+unsent investigation note, preserving the ordinary prompt. Fatal native frames retain
+the category plus precise Stage/code, Source, Field and action; this is a declared
+native presentation difference, not donor pixel qualification. Headless diagnostics
+stay on stderr, errors are nonzero, and successful `--json` stdout stays NDJSON only.
+
+Selected-model/provider readiness is separate from local availability. Discovery
+deadlines/retries/metadata and last-healthy publication remain intact. Async MCP
+startup/status/control and cleanup use the existing T46 resource owner. Native worker
+joins preserve typed cleanup/cap causes and discard unsafe legacy/panic payloads.
 
 ## DCP configuration — approved target
 
@@ -139,8 +159,8 @@ read-only facts before the first prompt and after reload/reopen; headless diagno
 stay on stderr. All requests are classified even beyond the presentation window.
 Known native aliases and definitions survive; the ignored authoring marker has no
 current module. The exact classifier remains the pre-resolution gate. Compiled binding
-is independent of the typed provider readiness above. General fatal-source diagnostics
-remain a separate T51 slice.
+is independent of the typed provider readiness above; shared fatal diagnostics use the
+same safe source/field contract without converting trust/storage failure to plugin status.
 
 ## Generation и limits
 

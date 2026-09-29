@@ -198,61 +198,88 @@ async fn run_stages(
         );
     }
     let project = std::env::current_dir().map_err(|e| e.to_string())?;
-    oc_adapters::trace::log("tui.begin", &format!("project={}", project.display()));
+    oc_adapters::trace::log("tui.begin", "project=configured");
     let session = session_opt
         .map(|raw| SessionId::new(raw).ok_or_else(|| "invalid session id".to_string()))
         .transpose()?;
-    let (app, guard, notices) = match oc_adapters::application::spawn_diagnostic(&project, data_dir)
-        .await
-    {
-        Ok(runtime) => {
-            oc_adapters::trace::log("spawn.ok", "");
-            runtime
-        }
-        Err(category) => {
-            oc_adapters::trace::log("spawn.fail", &format!("category={category:?}"));
-            let _term = enter()?;
-            let mut terminal = Terminal::new(CrosstermBackend::new(std::io::stdout()))
-                .map_err(|e| format!("terminal: {e}"))?;
-            return startup_failure(&mut terminal, StartupFailure::Preflight(category)).map(|_| 1);
-        }
-    };
+    let (app, guard, notices) =
+        match oc_adapters::application::spawn_with_startup_diagnostic(&project, data_dir).await {
+            Ok(runtime) => {
+                oc_adapters::trace::log("spawn.ok", "");
+                runtime
+            }
+            Err(issue) => {
+                oc_adapters::trace::log("spawn.fail", &issue.to_string());
+                eprintln!("error: {issue}");
+                let _term = enter()?;
+                let mut terminal = Terminal::new(CrosstermBackend::new(std::io::stdout()))
+                    .map_err(|e| format!("terminal: {e}"))?;
+                return startup_failure(&mut terminal, StartupFailure::Diagnostic(issue))
+                    .map(|_| 1);
+            }
+        };
     for notice in notices {
         eprintln!("warning: {}", startup_notice(notice));
     }
-    let catalog = app.catalog().await.map_err(|e| e.to_string())?;
-    for diagnostic in catalog
-        .chrome
-        .service_diagnostics
-        .iter()
-        .filter(|diagnostic| diagnostic.kind == oc_core::queries::ServiceKind::Mcp)
-    {
-        eprintln!("warning: {diagnostic}");
-    }
-    for plugin in &catalog.chrome.plugins.entries {
-        eprintln!("info: {plugin}");
-    }
-    app.register_approval_consumer(auto_once || catalog.chrome.permissions_auto)
-        .await
-        .map_err(|e| e.to_string())?;
-    let result = if let Some(id) = session.as_ref().filter(|id| !valid_tab_id(&id.0)) {
-        match app.probe_session(id.clone()).await {
-            Ok(SessionProbe::Absent) => Err(
-                "invalid --session id: use a trimmed, non-control ID of at most 128 bytes"
-                    .to_string(),
-            ),
-            Err(_) => Err("session lookup failed; check the data directory".to_string()),
-            _ => drive_ui(&app, session, auto_once).await,
+    let result = async {
+        let catalog = match app.catalog().await {
+            Ok(catalog) => catalog,
+            Err(error) => return startup_query_frame(error),
+        };
+        for diagnostic in catalog
+            .chrome
+            .service_diagnostics
+            .iter()
+            .filter(|diagnostic| {
+                !matches!(
+                    diagnostic.kind,
+                    oc_core::queries::ServiceKind::Plugin | oc_core::queries::ServiceKind::Provider
+                )
+            })
+        {
+            eprintln!("warning: {diagnostic}");
         }
-    } else {
-        drive_ui(&app, session, auto_once).await
-    };
-    let _ = app.shutdown().await;
+        for plugin in &catalog.chrome.plugins.entries {
+            eprintln!("info: {plugin}");
+        }
+        if let Err(error) = app
+            .register_approval_consumer(auto_once || catalog.chrome.permissions_auto)
+            .await
+        {
+            return startup_query_frame(error);
+        }
+        if let Some(id) = session.as_ref().filter(|id| !valid_tab_id(&id.0)) {
+            match app.probe_session(id.clone()).await {
+                Ok(SessionProbe::Absent) => Err(
+                    "invalid --session id: use a trimmed, non-control ID of at most 128 bytes"
+                        .to_string(),
+                ),
+                Err(error) => startup_query_frame(error),
+                _ => drive_ui(&app, session, auto_once).await,
+            }
+        } else {
+            drive_ui(&app, session, auto_once).await
+        }
+    }
+    .await;
+    let shutdown = app.shutdown().await;
     guard
-        .join()
+        .join_diagnostic()
         .await
         .map_err(|e| format!("application worker: {e}"))?;
+    shutdown.map_err(|error| error.to_string())?;
     result
+}
+
+fn startup_query_frame(error: CoreError) -> Result<u8, String> {
+    let failure = startup_query(error);
+    if let StartupFailure::QueryDiagnostic(diagnostic) = &failure {
+        eprintln!("error: {diagnostic}");
+    }
+    let _term = enter()?;
+    let mut terminal = Terminal::new(CrosstermBackend::new(std::io::stdout()))
+        .map_err(|error| format!("terminal: {error}"))?;
+    startup_failure(&mut terminal, failure).map(|_| 1)
 }
 
 /// Owner receipt plus the slash-editor revision; palette admission has no revision.
@@ -1408,11 +1435,12 @@ fn startup_notice(source: StartupNotice) -> &'static str {
 }
 
 fn service_warnings(state: &mut TuiState, chrome: &oc_core::queries::TuiChrome) {
-    for diagnostic in chrome
-        .service_diagnostics
-        .iter()
-        .filter(|diagnostic| diagnostic.kind == oc_core::queries::ServiceKind::Mcp)
-    {
+    for diagnostic in chrome.service_diagnostics.iter().filter(|diagnostic| {
+        !matches!(
+            diagnostic.kind,
+            oc_core::queries::ServiceKind::Plugin | oc_core::queries::ServiceKind::Provider
+        )
+    }) {
         state.push_warning(&diagnostic.to_string());
     }
     for plugin in &chrome.plugins.entries {
@@ -1451,6 +1479,27 @@ async fn refresh_provider_views(app: &CoreApp, state: &mut TuiState, deck: &mut 
     }
 }
 
+fn startup_query(error: CoreError) -> StartupFailure {
+    match error {
+        CoreError::Diagnostic(diagnostic) | CoreError::ProviderUnavailable(diagnostic) => {
+            StartupFailure::QueryDiagnostic(diagnostic)
+        }
+        CoreError::LocationSwitch {
+            diagnostic: Some(diagnostic),
+            ..
+        } => StartupFailure::QueryDiagnostic(diagnostic),
+        _ => StartupFailure::QueryDiagnostic(oc_core::queries::ServiceDiagnostic {
+            kind: oc_core::queries::ServiceKind::Runtime,
+            service: "worker".into(),
+            source: "source-native/worker".into(),
+            field: vec!["query".into()],
+            stage: oc_core::queries::ServiceStage::Query,
+            code: oc_core::queries::ServiceCode::QueryFailed,
+            action: oc_core::queries::ServiceAction::RestartApplication,
+        }),
+    }
+}
+
 async fn initial_state(
     app: &CoreApp,
     session: Option<SessionId>,
@@ -1459,34 +1508,34 @@ async fn initial_state(
         let snapshot = app
             .home_selection(SelectionAction::Current)
             .await
-            .map_err(|_| StartupFailure::Query)?;
+            .map_err(startup_query)?;
         let mut state = TuiState::new_home(app.clone());
         service_warnings(&mut state, &snapshot.chrome);
         state.apply_catalog(snapshot);
-        state.apply_mcp_snapshot(app.mcp_status().await.map_err(|_| StartupFailure::Query)?);
+        state.apply_mcp_snapshot(app.mcp_status().await.map_err(startup_query)?);
         return Ok(state);
     };
     app.create_session(session.clone())
         .await
-        .map_err(|_| StartupFailure::Query)?;
+        .map_err(startup_query)?;
     let page = app
         .history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
         .await
-        .map_err(|_| StartupFailure::Query)?;
+        .map_err(startup_query)?;
     let mut state = TuiState::new(app.clone(), session);
     state.attach_page(&page);
     // A failed catalog is an initialization error, never a usable empty snapshot.
     let snapshot = app
         .session_selection(state.session().clone(), false, SelectionAction::Current)
         .await
-        .map_err(|_| StartupFailure::Query)?;
+        .map_err(startup_query)?;
     service_warnings(&mut state, &snapshot.chrome);
     state.apply_catalog(snapshot);
-    state.apply_mcp_snapshot(app.mcp_status().await.map_err(|_| StartupFailure::Query)?);
+    state.apply_mcp_snapshot(app.mcp_status().await.map_err(startup_query)?);
     state.apply_compaction_history(
         app.compaction_history(state.session().clone())
             .await
-            .map_err(|_| StartupFailure::Query)?,
+            .map_err(startup_query)?,
     );
     refresh_dcp_summaries(app, &mut state).await;
     Ok(state)
@@ -1504,7 +1553,7 @@ async fn standalone_explicit(
     id: SessionId,
     child: bool,
 ) -> Result<TuiState, StartupFailure> {
-    let mut state = load_tab(app, id).await.map_err(|_| StartupFailure::Query)?;
+    let mut state = load_tab(app, id).await.map_err(startup_query)?;
     deck.active_tab = Some(0);
     deck.tabs.push(None);
     deck.tab_cards_before.push(None);
@@ -1530,11 +1579,28 @@ async fn restore_views(
     prefer_home_when_space: bool,
 ) -> Result<TuiState, StartupFailure> {
     let mut views = Vec::with_capacity(ids.len());
+    let mut unavailable = Vec::new();
     for id in ids {
         match load_tab(app, id.clone()).await {
             Ok(view) => views.push((id, view)),
-            Err(_) if explicit == Some(&id) => return Err(StartupFailure::Query),
-            Err(_) => deck.save_disabled = true,
+            Err(error)
+                if explicit == Some(&id)
+                    || (matches!(&error, CoreError::Diagnostic(_) | CoreError::TabDeckStorage)
+                        && !(active.as_ref() != Some(&id)
+                            && matches!(&error, CoreError::Diagnostic(diagnostic)
+                                if diagnostic.code == oc_core::queries::ServiceCode::InvalidStoredState
+                                    && diagnostic.field == ["selection"]))) =>
+            {
+                return Err(startup_query(error));
+            }
+            Err(error) => {
+                // A parked selection preference is optional view metadata.
+                // Query/storage failures and the selected root still fail closed.
+                if let CoreError::Diagnostic(diagnostic) = error {
+                    unavailable.push(diagnostic);
+                }
+                deck.save_disabled = true;
+            }
         }
     }
     let active_index = if prefer_home_when_space && views.len() < MAX_TABS {
@@ -1561,6 +1627,7 @@ async fn restore_views(
     }
     deck.tab_cards_before.resize(deck.tabs.len(), None);
     if deck.save_disabled {
+        state.chrome.service_diagnostics.extend(unavailable);
         state.push_note("saved tabs partially unavailable; review saved tabs");
     }
     Ok(state)
@@ -1575,22 +1642,22 @@ async fn restore_initial(
     let mut deck = LoopState::default();
     let stored = match app.tab_deck().await {
         Ok(snapshot) => snapshot,
+        Err(error @ (CoreError::Diagnostic(_) | CoreError::TabDeckStorage)) => {
+            return Err(startup_query(error));
+        }
         Err(_) => {
             // An unreadable/malformed preference is never repaired on read.
             // Obtain the Location from the owner's catalog, but keep an empty
             // expected revision: CAS prevents overwriting the broken record.
             let mut state = if let Some(id) = explicit {
-                let kind = app
-                    .probe_session(id.clone())
-                    .await
-                    .map_err(|_| StartupFailure::Query)?;
+                let kind = app.probe_session(id.clone()).await.map_err(startup_query)?;
                 if kind == SessionProbe::Absent {
                     if !valid_tab_id(&id.0) {
                         return Err(StartupFailure::Query);
                     }
                     app.create_session(id.clone())
                         .await
-                        .map_err(|_| StartupFailure::Query)?;
+                        .map_err(startup_query)?;
                 }
                 standalone_explicit(app, &mut deck, id, kind == SessionProbe::Child).await?
             } else {
@@ -1629,10 +1696,7 @@ async fn restore_initial(
     let mut save_explicit = false;
     if let Some(id) = explicit.as_ref() {
         if !ids.contains(id) {
-            let kind = app
-                .probe_session(id.clone())
-                .await
-                .map_err(|_| StartupFailure::Query)?;
+            let kind = app.probe_session(id.clone()).await.map_err(startup_query)?;
             if kind == SessionProbe::Child || (kind == SessionProbe::Root && !valid_tab_id(&id.0)) {
                 let state =
                     standalone_explicit(app, &mut deck, id.clone(), kind == SessionProbe::Child)
@@ -1648,7 +1712,7 @@ async fn restore_initial(
                 }
                 app.create_session(id.clone())
                     .await
-                    .map_err(|_| StartupFailure::Query)?;
+                    .map_err(startup_query)?;
             }
             ids.push(id.clone());
         }
@@ -1706,7 +1770,7 @@ fn startup_failure<W: Write>(
     use crossterm::event::{KeyCode, KeyModifiers};
     loop {
         terminal
-            .draw(|frame| render_startup_failure(frame, failure))
+            .draw(|frame| render_startup_failure(frame, failure.clone()))
             .map_err(|e| format!("draw: {e}"))?;
         if event::poll(Duration::from_millis(100)).map_err(|e| format!("input: {e}"))?
             && let CEvent::Key(key) = event::read().map_err(|e| format!("input: {e}"))?
@@ -2654,6 +2718,9 @@ async fn apply_intent_with_origin(
 
 fn switch_error(error: CoreError) -> String {
     match error {
+        CoreError::LocationSwitch { category, diagnostic: Some(diagnostic), .. } => format!("Location {} failed; {diagnostic}", match category {
+            LocationSwitchFailure::Configuration => "configuration", LocationSwitchFailure::Storage => "storage", LocationSwitchFailure::Runtime => "runtime",
+        }),
         CoreError::LocationSwitch { category, .. } => match category {
             LocationSwitchFailure::Configuration =>
                 "Location configuration failed; check the target directory, opencode.json/jsonc and selected model".to_string(),
@@ -2669,6 +2736,10 @@ fn switch_error(error: CoreError) -> String {
 
 fn reload_error(error: CoreError) -> String {
     match error {
+        CoreError::LocationSwitch {
+            diagnostic: Some(diagnostic),
+            ..
+        } => format!("Configuration reload failed; {diagnostic}"),
         CoreError::TurnBusy => "turn active; configuration reload refused".into(),
         CoreError::ProviderUnavailable(diagnostic) => {
             format!("Configuration reload failed; {diagnostic}")
@@ -3280,8 +3351,9 @@ async fn refresh_dcp_summaries(app: &CoreApp, state: &mut TuiState) {
 
 /// Refresh the DCP snapshot for the attached session.
 async fn refresh_dcp(app: &CoreApp, state: &mut TuiState, session: &SessionId) {
-    if let Ok(snapshot) = app.dcp_snapshot(session.clone()).await {
-        state.apply_dcp_snapshot(snapshot);
+    match app.dcp_snapshot(session.clone()).await {
+        Ok(snapshot) => state.apply_dcp_snapshot(snapshot),
+        Err(error) => state.push_note(&format!("DCP query failed: {error}")),
     }
 }
 

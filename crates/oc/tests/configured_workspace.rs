@@ -469,9 +469,14 @@ fn aud14_aud15_aud17_binary_loads_isolated_a_b_workspace_and_pins_skill() {
     let status = cross.wait();
     assert!(!status.success());
     let diagnostic = cross.diagnostics();
-    assert!(diagnostic.contains("s-aud14-a"), "{diagnostic}");
-    assert!(diagnostic.contains("belongs to location"), "{diagnostic}");
-    assert!(diagnostic.contains(&fixture.project_a.to_string_lossy().to_string()));
+    assert!(
+        diagnostic.contains("admission: trust_refused") && diagnostic.contains(" session:"),
+        "{diagnostic}"
+    );
+    assert!(
+        diagnostic.contains("source-")
+            && !diagnostic.contains(&fixture.project_a.to_string_lossy().to_string())
+    );
     fixture.assert_no_request();
     fixture.assert_no_loader_execution();
 }
@@ -584,9 +589,14 @@ fn aud17_binary_selected_malformed_agent_is_hard_error_not_sibling_fallback() {
     assert!(!fixture.wait_for_preflight_failure(&mut process).success());
     assert!(process.output().is_empty());
     let diagnostic = process.diagnostics();
-    assert!(diagnostic.contains("broken"), "{diagnostic}");
-    assert!(diagnostic.contains("unknown agent mode"), "{diagnostic}");
-    assert!(diagnostic.contains(&broken.to_string_lossy().to_string()));
+    assert!(
+        diagnostic.contains("invalid_definition") && diagnostic.contains(" agent:"),
+        "{diagnostic}"
+    );
+    assert!(
+        diagnostic.contains("source-")
+            && !diagnostic.contains(&broken.to_string_lossy().to_string())
+    );
     fixture.assert_no_request();
 }
 
@@ -620,17 +630,20 @@ fn aud17_binary_malformed_selected_skill_is_visible_and_valid_sibling_survives()
     );
     let (mut socket, second) = fixture.accept(&mut process);
     let result = function_output(&second, "aud17-broken-skill");
-    assert!(result.contains("broken"), "{result}");
+    assert!(result.contains("source-"), "{result}");
     assert!(
-        result.contains("frontmatter") || result.contains("malformed"),
+        result.contains("invalid_definition") && result.contains(" skill:"),
         "selected malformed skill was silently treated as unknown: {result}"
     );
     respond_text(&mut socket, "malformed skill handled");
     fixture.respond_title(&mut process);
     assert!(process.wait().success(), "{}", process.diagnostics());
     let diagnostic = process.diagnostics();
-    assert!(diagnostic.contains(&malformed.to_string_lossy().to_string()));
-    assert!(diagnostic.contains("frontmatter"), "{diagnostic}");
+    assert!(
+        diagnostic.contains("source-")
+            && !diagnostic.contains(&malformed.to_string_lossy().to_string())
+    );
+    assert!(diagnostic.contains("invalid_definition"), "{diagnostic}");
 }
 
 #[test]
@@ -655,7 +668,9 @@ fn v07a_binary_refuses_discovered_external_root_before_any_effect() {
     assert!(!fixture.wait_for_preflight_failure(&mut process).success());
     let error = process.diagnostics();
     assert!(
-        error.contains(".opencode") && error.contains("outside"),
+        error.contains("admission: trust_refused")
+            && error.contains("source-")
+            && error.contains(" root:"),
         "{error}"
     );
     assert!(!error.contains("external-key"), "{error}");
@@ -693,7 +708,9 @@ fn v07a_binary_discovered_external_root_is_refused_even_with_fifo_config() {
     assert!(!fixture.wait_for_preflight_failure(&mut process).success());
     let error = process.diagnostics();
     assert!(
-        error.contains(".opencode") && error.contains("outside"),
+        error.contains("admission: trust_refused")
+            && error.contains("source-")
+            && error.contains(" root:"),
         "{error}"
     );
     assert!(!fixture.home.join("data/oc").exists());
@@ -726,7 +743,7 @@ fn v07a_binary_rejects_fifo_device_and_oversize_before_reading() {
         assert!(error.contains("opencode.json"), "{kind}: {error}");
         if kind == "oversize" {
             assert!(
-                error.contains("exceeds") || error.contains("too large"),
+                error.contains("capacity_exceeded") && error.contains("document:"),
                 "{error}"
             );
         }
@@ -842,12 +859,17 @@ fn v07a_binary_external_definition_subdirectories_never_reach_provider() {
     assert!(!diagnostics.contains("V07A_EXTERNAL_BODY_2810"));
     for kind in ["skills", "agents", "commands"] {
         assert!(
-            diagnostics.contains(&local.join(kind).to_string_lossy().to_string()),
+            diagnostics.contains(match kind {
+                "skills" => " skill:",
+                "agents" => " agent:",
+                _ => " command:",
+            }) && diagnostics.contains("source-")
+                && !diagnostics.contains(&local.join(kind).to_string_lossy().to_string()),
             "{diagnostics}"
         );
     }
     assert!(
-        diagnostics.contains("outside admitted root"),
+        diagnostics.contains("admission: trust_refused"),
         "{diagnostics}"
     );
     fixture.assert_no_loader_execution();
@@ -870,7 +892,10 @@ fn v07a_binary_external_agent_subdirectory_cannot_select_primary() {
     let mut process = fixture.spawn(&fixture.project_a, "s-v07a-agent", "hello", "agent-escape");
     assert!(!fixture.wait_for_preflight_failure(&mut process).success());
     let error = process.diagnostics();
-    assert!(error.contains("outsider"), "{error}");
+    assert!(
+        error.contains("invalid_config") && error.contains("default_agent:"),
+        "{error}"
+    );
     assert!(!error.contains("V07A_UNTRUSTED_PROMPT_54de"), "{error}");
     fixture.assert_no_request();
     assert!(!fixture.home.join("data/oc").exists());

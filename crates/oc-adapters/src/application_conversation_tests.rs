@@ -212,7 +212,9 @@ async fn compaction_owner_measured_23000_context_survives_restart_and_history_co
             assert_eq!(typed.len(), 1);
             assert_eq!(
                 typed[0].source,
-                project.join("opencode.json").to_string_lossy()
+                crate::config::mcp::safe_source_id(
+                    &project.join("opencode.json").to_string_lossy()
+                )
             );
             assert_eq!(typed[0].field, vec!["compaction", "prune"]);
             assert_eq!(

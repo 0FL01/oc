@@ -1146,11 +1146,29 @@ fn drain_observed(
             Ok(n) => {
                 *count = count.saturating_add(n as u64);
                 if let Some(warning) = warning {
-                    const MARKER: &[u8] = b"warning: mcp unavailable ";
+                    let generation = oc_adapters::config::assemble(
+                        &[oc_adapters::config::Source {
+                            path: "native-identity-fixture".into(),
+                            text: "{\"mcp\":{\"unavailable\":null}}".into(),
+                            trusted: true,
+                        }],
+                        &std::collections::BTreeMap::new(),
+                        None,
+                    )
+                    .unwrap();
+                    let marker = format!(
+                        "warning: mcp {} ",
+                        generation.mcp["unavailable"]
+                            .failure
+                            .as_ref()
+                            .unwrap()
+                            .service
+                    );
+                    let marker = marker.as_bytes();
                     tail.extend_from_slice(&bytes[..n]);
-                    let count = tail.windows(MARKER.len()).filter(|s| *s == MARKER).count();
+                    let count = tail.windows(marker.len()).filter(|s| *s == marker).count();
                     warning.fetch_add(count, Ordering::Relaxed);
-                    let keep = tail.len().saturating_sub(MARKER.len() - 1);
+                    let keep = tail.len().saturating_sub(marker.len() - 1);
                     tail.drain(..keep);
                 }
             }
@@ -1789,7 +1807,24 @@ fn bounded_pipes_redact_output_drain_and_reap_on_timeout() {
     let mut diagnostic = Command::new("sh");
     diagnostic.args([
         "-c",
-        "printf 'warning: mcp unavailable initialize: connection_failed (retryable=true)\n' >&2",
+        &format!(
+            "printf 'warning: mcp {} initialize: connection_failed (retryable=true)\n' >&2",
+            oc_adapters::config::assemble(
+                &[oc_adapters::config::Source {
+                    path: "native-identity-fixture".into(),
+                    text: "{\"mcp\":{\"unavailable\":null}}".into(),
+                    trusted: true
+                }],
+                &std::collections::BTreeMap::new(),
+                None
+            )
+            .unwrap()
+            .mcp["unavailable"]
+                .failure
+                .as_ref()
+                .unwrap()
+                .service
+        ),
     ]);
     let (ok, detail) =
         run_bounded_observed(&mut diagnostic, Duration::from_secs(3), Some(&warning));

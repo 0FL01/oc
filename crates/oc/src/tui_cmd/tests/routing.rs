@@ -1544,6 +1544,7 @@ async fn picker_open_refusal_keeps_old_view_and_accepted_foreign_receipt_survive
         ack.send(Err(CoreError::LocationSwitch {
             category: LocationSwitchFailure::Configuration,
             detail: "invalid target".into(),
+            diagnostic: None,
         }))
         .unwrap();
         let Some(InboxMsg::OpenPickerSession {
@@ -1836,7 +1837,10 @@ async fn v03_catalog_failure_is_not_an_empty_usable_session() {
             .unwrap();
     });
     let result = initial_state(&app, Some(SessionId::new("catalog-failure").unwrap())).await;
-    assert!(matches!(result, Err(StartupFailure::Query)));
+    assert!(
+        matches!(result, Err(StartupFailure::QueryDiagnostic(diagnostic))
+        if diagnostic.code == oc_core::queries::ServiceCode::QueryFailed)
+    );
     worker.await.unwrap();
 }
 
@@ -1854,7 +1858,8 @@ async fn bare_home_queries_selection_without_creating_or_reading_history() {
     });
     assert!(matches!(
         initial_state(&app, None).await,
-        Err(StartupFailure::Query)
+        Err(StartupFailure::QueryDiagnostic(diagnostic))
+            if diagnostic.code == oc_core::queries::ServiceCode::QueryFailed
     ));
     worker.await.unwrap();
 }

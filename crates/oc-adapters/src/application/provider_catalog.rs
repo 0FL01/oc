@@ -28,17 +28,19 @@ impl ProviderWork {
         self.task.is_some()
     }
 
-    pub(super) async fn wait(&mut self) -> Result<crate::discovery::DiscoveryOutcome, String> {
+    pub(super) async fn wait(
+        &mut self,
+    ) -> Result<crate::discovery::DiscoveryOutcome, oc_core::queries::ServiceDiagnostic> {
         let result = self.task.as_mut().expect("pending provider work").await;
         self.task.take();
         result
-            .map_err(|_| "native catalog worker failed".to_string())?
+            .map_err(|_| worker_failure(oc_core::queries::ServiceStage::ModelCatalog))?
             .map_err(|failure| match failure {
-                composition::LoadFailure::Configuration(detail) => detail,
+                composition::LoadFailure::Configuration(diagnostic) => diagnostic,
             })
     }
 
-    pub(super) async fn stop(&mut self) -> Result<(), String> {
+    pub(super) async fn stop(&mut self) -> Result<(), oc_core::queries::ServiceDiagnostic> {
         if let Some(task) = self.task.take() {
             task.abort();
             match task.await {
@@ -46,12 +48,26 @@ impl ProviderWork {
                 // the explicit abort's cancellation is successful cleanup.
                 Ok(Ok(_)) => {}
                 Err(error) if error.is_cancelled() => {}
-                Err(_) => return Err("native catalog worker failed".into()),
-                Ok(Err(composition::LoadFailure::Configuration(detail))) => return Err(detail),
+                Err(_) => return Err(worker_failure(oc_core::queries::ServiceStage::Cleanup)),
+                Ok(Err(composition::LoadFailure::Configuration(diagnostic))) => {
+                    return Err(diagnostic);
+                }
             }
         }
         Ok(())
     }
+}
+
+fn worker_failure(stage: oc_core::queries::ServiceStage) -> oc_core::queries::ServiceDiagnostic {
+    let mut diagnostic = crate::config::diagnostic::failure(
+        "native provider worker",
+        &["provider", "models"],
+        stage,
+        oc_core::queries::ServiceCode::RuntimeFailed,
+        oc_core::queries::ServiceAction::RestartApplication,
+    );
+    diagnostic.kind = oc_core::queries::ServiceKind::Runtime;
+    diagnostic
 }
 
 impl Drop for ProviderWork {

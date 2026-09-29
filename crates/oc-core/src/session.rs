@@ -101,6 +101,9 @@ pub enum CoreError {
     /// Typed pre-acceptance refusal, without an underlying provider exception.
     #[error("{0}")]
     ProviderUnavailable(crate::queries::ServiceDiagnostic),
+    /// Fatal admission/operation cause shared with startup and service diagnostics.
+    #[error("{0}")]
+    Diagnostic(crate::queries::ServiceDiagnostic),
     /// Native application/storage error; no secrets or provider payloads.
     #[error("application: {0}")]
     Application(String),
@@ -116,14 +119,16 @@ pub enum CoreError {
     /// Location changed or another writer changed the tab preference.
     #[error("tab deck changed; reload before saving")]
     TabDeckConflict,
-    /// Application-owned Location-switch stage; detailed text is retained for
-    /// existing non-TUI callers, while interactive UIs use only `category`.
+    /// Application-owned Location refusal. Native producers share a safe cause;
+    /// the legacy detail remains for callers without structured diagnostics.
     #[error("application: {detail}")]
     LocationSwitch {
         /// Bounded, allowlisted failure category.
         category: LocationSwitchFailure,
         /// Existing detailed diagnostic for non-TUI API consumers.
         detail: String,
+        /// Safe source/field/stage/cause/action, never underlying error text.
+        diagnostic: Option<crate::queries::ServiceDiagnostic>,
     },
 }
 

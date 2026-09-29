@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use oc_adapters::application;
 use oc_core::core_app::CoreEvent;
 use oc_core::domain::SessionId;
-use oc_core::queries::TabDeckSnapshot;
+use oc_core::queries::{ServiceAction, ServiceCode, ServiceKind, ServiceStage, TabDeckSnapshot};
 use oc_core::session::CoreError;
 use rusqlite::{Connection, params};
 
@@ -247,9 +247,10 @@ async fn late_adoption_cannot_be_overwritten_by_old_snapshot_or_conflicting_cas(
     // A write failure must roll back the marker retirement as well as the
     // preference update; the same snapshot remains usable afterward.
     conn.execute_batch("CREATE TRIGGER fail_pending_save BEFORE UPDATE ON prefs WHEN NEW.key LIKE 'tui.selection.tab_deck:%' BEGIN SELECT RAISE(ABORT, 'injected'); END;").unwrap();
-    assert_eq!(
+    assert_storage_refusal(
         app.save_tab_deck(loaded.clone()).await,
-        Err(CoreError::TabDeckStorage)
+        ServiceStage::Storage,
+        "tab_deck",
     );
     assert_eq!(stored(&conn, &saved.location), old_pref);
     assert_eq!(
@@ -364,6 +365,18 @@ fn assert_no_fresh_rows(conn: &Connection, location: &str, root: &str) {
     );
 }
 
+fn assert_storage_refusal<T>(result: Result<T, CoreError>, stage: ServiceStage, field: &str) {
+    let Err(CoreError::Diagnostic(diagnostic)) = result else {
+        panic!("expected a safe storage refusal");
+    };
+    assert_eq!(diagnostic.kind, ServiceKind::Storage);
+    assert_eq!(diagnostic.code, ServiceCode::StorageUnavailable);
+    assert_eq!(diagnostic.stage, stage);
+    assert_eq!(diagnostic.field, [field]);
+    assert_eq!(diagnostic.action, ServiceAction::ReviewStorage);
+    assert!(diagnostic.source.starts_with("source-"));
+}
+
 #[tokio::test]
 async fn fresh_root_admission_counts_saved_tabs_and_preserves_deck_on_restart() {
     let (a, _, data, env) = setup();
@@ -392,18 +405,20 @@ async fn fresh_root_admission_counts_saved_tabs_and_preserves_deck_on_restart() 
         stored(&conn, &fifteen.location),
         stored(&conn, &empty.location)
     );
-    assert_eq!(
+    assert_storage_refusal(
         app.submit_fresh(id("seventeenth"), "draft".into(), None)
             .await,
-        Err(CoreError::Application("storage error".into()))
+        ServiceStage::Storage,
+        "request",
     );
     assert_no_fresh_rows(&conn, &empty.location, "seventeenth");
     assert_eq!(count(&conn, "turns", "sixteenth"), 1);
     let full = app.save_tab_deck(restored).await.unwrap();
-    assert_eq!(
+    assert_storage_refusal(
         app.submit_fresh(id("still-full"), "draft".into(), None)
             .await,
-        Err(CoreError::Application("storage error".into()))
+        ServiceStage::Storage,
+        "request",
     );
     assert_no_fresh_rows(&conn, &empty.location, "still-full");
     app.shutdown().await.unwrap();
@@ -441,9 +456,10 @@ async fn invalid_saved_deck_refuses_fresh_without_marker_or_input() {
     {
         inject(&conn, &saved.location, &bad);
         let root = format!("blocked-{i}");
-        assert_eq!(
+        assert_storage_refusal(
             app.submit_fresh(id(&root), "draft".into(), None).await,
-            Err(CoreError::Application("storage error".into()))
+            ServiceStage::Storage,
+            "request",
         );
         assert_no_fresh_rows(&conn, &saved.location, &root);
         assert_eq!(stored(&conn, &saved.location), Some(bad));
@@ -714,10 +730,11 @@ async fn hostile_restore_prunes_without_rewriting_and_invalid_saves_are_atomic()
     // Failed SQL update must roll back the preference and leave the caller's
     // revision usable after the failure is repaired.
     conn.execute_batch("CREATE TRIGGER fail_deck BEFORE UPDATE ON prefs WHEN NEW.key LIKE 'tui.selection.tab_deck:%' BEGIN SELECT RAISE(ABORT, 'test failure'); END;").unwrap();
-    assert_eq!(
+    assert_storage_refusal(
         app.save_tab_deck(deck(&updated, &["real"], Some("real")))
             .await,
-        Err(CoreError::TabDeckStorage)
+        ServiceStage::Storage,
+        "tab_deck",
     );
     assert_eq!(stored(&conn, &location), Some(original));
     conn.execute_batch("DROP TRIGGER fail_deck").unwrap();
@@ -789,10 +806,11 @@ async fn hostile_restore_prunes_without_rewriting_and_invalid_saves_are_atomic()
         assert_eq!(stored(&conn, &location).as_deref(), Some(invalid));
     }
     conn.execute("DROP TABLE prefs", []).unwrap();
-    assert_eq!(app.tab_deck().await, Err(CoreError::TabDeckStorage));
-    assert_eq!(
+    assert_storage_refusal(app.tab_deck().await, ServiceStage::Query, "tab_deck");
+    assert_storage_refusal(
         app.save_tab_deck(deck(&updated, &[], None)).await,
-        Err(CoreError::TabDeckStorage)
+        ServiceStage::Storage,
+        "tab_deck",
     );
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();

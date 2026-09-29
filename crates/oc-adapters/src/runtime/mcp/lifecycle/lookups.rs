@@ -270,10 +270,7 @@ impl Scope {
             if self.lookup_catalog_budget().is_err() {
                 self.nodes.get_mut(server).expect("lookup scope").catalogs[slot] = old;
                 result = Err(McpLookupError::CatalogLimit);
-                self.fatal = Some(remote_attach_error(
-                    "generation",
-                    mcp_remote::McpError::CatalogLimited,
-                ));
+                self.fatal = Some(RuntimeError::McpCatalogLimit);
                 self.begin_stop();
             }
         }

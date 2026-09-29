@@ -88,11 +88,10 @@ fn mcp09_withheld_credential_path_cannot_reenter_executable_resolution() {
         stderr,
     };
     assert!(process.wait().success());
-    assert!(
-        process
-            .diagnostics()
-            .contains("mcp trap spawn: spawn_failed")
-    );
+    assert!(process.diagnostics().contains(&format!(
+        "mcp {} spawn: spawn_failed",
+        diagnostic_name("trap")
+    )));
     assert!(
         !counter.exists(),
         "withheld PATH was re-read for executable resolution"
@@ -271,12 +270,13 @@ fn mcp09_failed_inventory_before_prompt_and_healthy_sibling_actual_call() {
     let before = fs::read(&path).unwrap();
     let mut tui = PtyProcess::spawn(&fixture, "mcp09-inventory");
     tui.wait_visible(READY);
-    for text in [
-        "malformed config: invalid_config",
-        "oauth capability: unsupported_capability",
-        "modern capability: unsupported_protocol",
+    for (name, code) in [
+        ("malformed", "invalid_config"),
+        ("oauth", "unsupported_capability"),
+        ("modern", "unsupported_protocol"),
     ] {
-        tui.wait_visible(text);
+        tui.wait_screen(&diagnostic_name(name), TIMEOUT);
+        tui.wait_screen(code, TIMEOUT);
     }
     assert!(responses.requests().is_empty());
     assert!(!trap_counter.exists());

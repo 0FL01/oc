@@ -37,24 +37,15 @@ pub(super) fn legacy_protocol() -> String {
     "legacy".into()
 }
 
-/// An identity is presentation, never a path or free-text error channel.
+/// An identity is presentation, never a path, secret or free-text channel.
+/// Even a syntactically ordinary name can equal configured credential material.
 pub(crate) fn safe_identity(id: &str) -> String {
-    if !id.is_empty()
-        && id.len() <= 128
-        && id
-            .bytes()
-            .all(|b| b.is_ascii_alphanumeric() || b"_-./".contains(&b))
-        && !id.contains('/')
-    {
-        id.to_string()
-    } else {
-        "invalid-server".into()
-    }
+    let digest = format!("{:x}", Sha256::digest(id.as_bytes()));
+    format!("server-{}", &digest[..56])
 }
 
 pub(crate) fn failure(id: &str, source: &str, field: &str, code: ServiceCode) -> ServiceDiagnostic {
-    let mut fields = vec!["mcp".into(), safe_identity(id)];
-    fields.extend(field.split('.').map(str::to_string));
+    let fields = super::diagnostic::schema_field(&format!("mcp.entry.{field}"));
     ServiceDiagnostic {
         kind: ServiceKind::Mcp,
         service: safe_identity(id),

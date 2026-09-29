@@ -48,12 +48,15 @@ fn wait_counter(fixture: &Fixture, label: &str, field: &str, value: i64) -> Valu
 }
 
 pub(super) fn wait_row(tui: &PtyProcess, name: &str, status: &str) {
+    // The table bounds the opaque label; the owner/control/wire ID is unchanged.
+    let identity = diagnostic_name(name);
+    let label = &identity[..20];
     let deadline = Instant::now() + TIMEOUT;
     loop {
         if tui
             .screen()
             .iter()
-            .any(|row| row.contains(name) && row.contains(status))
+            .any(|row| row.contains(label) && row.contains(status))
         {
             return;
         }
@@ -97,11 +100,14 @@ fn mcp10_initial_connections_run_before_any_prompt_and_slow_neighbor_does_not_bl
     let mut tui = PtyProcess::spawn(&fixture, "mcp10-initial");
     tui.wait_visible(READY);
     let deadline = Instant::now() + Duration::from_secs(1);
+    // One completed peer does not order another independently scheduled start.
+    // Observe both real requests within the same original startup deadline.
     while Instant::now() < deadline
-        && !healthy
+        && !(healthy
             .records()
             .iter()
             .any(|r| r.rpc_method == "tools/list")
+            && slow.records().iter().any(|r| r.rpc_method == "initialize"))
     {
         std::thread::sleep(POLL);
     }
@@ -454,7 +460,10 @@ fn mcp_late_failure_published_during_held_native_turn_is_visible_scoped_and_reap
     close_mcps(&mut tui);
     release.store(true, Ordering::SeqCst);
     tui.wait_screen("answer:held late warning", TIMEOUT);
-    tui.wait_screen("warning: mcp unavailable", TIMEOUT);
+    tui.wait_screen(
+        &format!("warning: mcp {}", diagnostic_name("unavailable")),
+        TIMEOUT,
+    );
     tui.send_line("next healthy");
     tui.wait_screen("answer:next healthy", TIMEOUT);
     let next = responses

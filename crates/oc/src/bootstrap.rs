@@ -12,26 +12,17 @@ pub async fn run(args: Args) -> ExitCode {
         return legacy_smoke();
     }
     oc_adapters::trace::init_default();
-    let bin = std::env::args()
-        .next()
-        .map(|arg| {
-            std::path::Path::new(&arg)
-                .file_name()
-                .map(|name| name.to_string_lossy().into_owned())
-                .unwrap_or(arg)
-        })
-        .unwrap_or_default();
     oc_adapters::trace::log(
         "startup.begin",
         &format!(
-            "bin={bin} args={} subcommand={}",
+            "bin=oc args={} subcommand={}",
             std::env::args().count(),
             subcommand_kind(&args.command)
         ),
     );
     match std::env::current_dir() {
-        Ok(cwd) => oc_adapters::trace::log("startup.cwd", &format!("path={}", cwd.display())),
-        Err(error) => oc_adapters::trace::log("startup.cwd", &format!("error={error}")),
+        Ok(_) => oc_adapters::trace::log("startup.cwd", "available=true"),
+        Err(_) => oc_adapters::trace::log("startup.cwd", "available=false"),
     }
     {
         use std::io::IsTerminal as _;
@@ -60,7 +51,7 @@ pub async fn run(args: Args) -> ExitCode {
         .unwrap_or_else(headless::default_data_dir)
     {
         Ok(path) => {
-            oc_adapters::trace::log("startup.data_dir", &format!("path={}", path.display()));
+            oc_adapters::trace::log("startup.data_dir", "configured=true");
             path
         }
         Err(error) => {

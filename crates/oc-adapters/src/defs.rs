@@ -25,6 +25,7 @@ use crate::admitted_fs;
 use crate::config::{
     Permission, legacy_key, normalize_permission, parse_skill, split_frontmatter_value,
 };
+use sha2::Digest as _;
 use thiserror::Error;
 
 /// Max admitted definition roots per load.
@@ -55,7 +56,7 @@ pub struct DefRoot {
 }
 
 /// Path/field/reason diagnostic; never carries file bodies or secrets.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Diagnostic {
     /// File path.
     pub path: String,
@@ -63,6 +64,14 @@ pub struct Diagnostic {
     pub field: String,
     /// Human reason.
     pub reason: String,
+    /// Typed safe projection. Raw parsing context stays inside the definition owner.
+    pub failure: oc_core::queries::ServiceDiagnostic,
+}
+
+impl std::fmt::Debug for Diagnostic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.failure.fmt(f)
+    }
 }
 
 /// Loaded skill (body pinned for the snapshot, never projected).
@@ -195,10 +204,46 @@ pub enum DefError {
 }
 
 fn diag(path: &Path, field: &str, reason: &str) -> Diagnostic {
+    diag_code(
+        path,
+        field,
+        reason,
+        oc_core::queries::ServiceCode::InvalidDefinition,
+    )
+}
+
+fn diag_code(
+    path: &Path,
+    field: &str,
+    reason: &str,
+    code: oc_core::queries::ServiceCode,
+) -> Diagnostic {
+    let mut failure = crate::config::diagnostic::failure(
+        &path.to_string_lossy(),
+        &[],
+        if code == oc_core::queries::ServiceCode::TrustRefused {
+            oc_core::queries::ServiceStage::Admission
+        } else {
+            oc_core::queries::ServiceStage::Config
+        },
+        code,
+        if code == oc_core::queries::ServiceCode::CapacityExceeded {
+            oc_core::queries::ServiceAction::ReduceCapacity
+        } else {
+            oc_core::queries::ServiceAction::ReviewConfiguration
+        },
+    );
+    failure.kind = oc_core::queries::ServiceKind::Definition;
+    failure.service = format!(
+        "definition-{:x}",
+        sha2::Sha256::digest(format!("{}\0{field}", path.to_string_lossy()).as_bytes())
+    );
+    failure.field = crate::config::diagnostic::schema_field(field);
     Diagnostic {
         path: path.to_string_lossy().to_string(),
         field: field.to_string(),
         reason: reason.to_string(),
+        failure,
     }
 }
 
@@ -212,23 +257,32 @@ fn valid_id(id: &str) -> bool {
 
 /// Read only an already-opened, admitted regular file. The same 4 MiB total
 /// policy also bounds each transient read, even if the file grows after fstat.
-fn read_plain(mut file: File) -> Result<String, String> {
-    let meta = file.metadata().map_err(|_| "unreadable".to_string())?;
+fn read_plain(mut file: File) -> Result<String, (String, oc_core::queries::ServiceCode)> {
+    use oc_core::queries::ServiceCode;
+    let meta = file
+        .metadata()
+        .map_err(|_| ("unreadable".to_string(), ServiceCode::SourceUnavailable))?;
     if !meta.is_file() {
-        return Err("not a file".to_string());
+        return Err(("not a file".to_string(), ServiceCode::InvalidDefinition));
     }
     if meta.len() > MAX_TOTAL_BYTES as u64 {
-        return Err("total definitions budget exceeded".to_string());
+        return Err((
+            "total definitions budget exceeded".to_string(),
+            ServiceCode::CapacityExceeded,
+        ));
     }
     let mut bytes = Vec::new();
     file.by_ref()
         .take(MAX_TOTAL_BYTES as u64 + 1)
         .read_to_end(&mut bytes)
-        .map_err(|_| "unreadable".to_string())?;
+        .map_err(|_| ("unreadable".to_string(), ServiceCode::SourceUnavailable))?;
     if bytes.len() > MAX_TOTAL_BYTES {
-        return Err("total definitions budget exceeded".to_string());
+        return Err((
+            "total definitions budget exceeded".to_string(),
+            ServiceCode::CapacityExceeded,
+        ));
     }
-    String::from_utf8(bytes).map_err(|_| "not UTF-8".to_string())
+    String::from_utf8(bytes).map_err(|_| ("not UTF-8".to_string(), ServiceCode::InvalidDefinition))
 }
 
 /// Parsed Markdown frontmatter (scalar and nested values).
@@ -361,11 +415,12 @@ pub fn load_definitions(roots: &[DefRoot]) -> LoadedDefs {
         merge_definition_root(&mut defs, root);
     }
     if roots.len() > MAX_DEF_ROOTS {
-        defs.diagnostics.push(Diagnostic {
-            path: String::new(),
-            field: "roots".to_string(),
-            reason: format!("too many roots (max {MAX_DEF_ROOTS})"),
-        });
+        defs.diagnostics.push(diag_code(
+            Path::new("native definitions"),
+            "roots",
+            "too many roots",
+            oc_core::queries::ServiceCode::CapacityExceeded,
+        ));
     }
     defs
 }
@@ -376,8 +431,12 @@ pub fn merge_definition_root(defs: &mut LoadedDefs, root: &DefRoot) {
         Ok(path) => path,
         Err(error) if error.kind() == io::ErrorKind::NotFound => return,
         Err(_) => {
-            defs.diagnostics
-                .push(diag(&root.dir, "definitions", "unreadable root"));
+            defs.diagnostics.push(diag_code(
+                &root.dir,
+                "definitions",
+                "unreadable root",
+                oc_core::queries::ServiceCode::SourceUnavailable,
+            ));
             return;
         }
     };
@@ -388,18 +447,23 @@ pub fn merge_definition_root(defs: &mut LoadedDefs, root: &DefRoot) {
     {
         Ok(dir) => dir,
         Err(_) => {
-            defs.diagnostics
-                .push(diag(&root.dir, "definitions", "unreadable root"));
+            defs.diagnostics.push(diag_code(
+                &root.dir,
+                "definitions",
+                "unreadable root",
+                oc_core::queries::ServiceCode::SourceUnavailable,
+            ));
             return;
         }
     };
     if !std::fs::canonicalize(format!("/proc/self/fd/{}", dir.as_raw_fd()))
         .is_ok_and(|opened| opened == canonical)
     {
-        defs.diagnostics.push(diag(
+        defs.diagnostics.push(diag_code(
             &root.dir,
             "definitions",
             "root changed during admission",
+            oc_core::queries::ServiceCode::TrustRefused,
         ));
         return;
     }
@@ -781,9 +845,16 @@ fn load_kind(out: &mut Collector, root: &DefRoot, admitted: &File, kind: &str, s
             Ok(pinned) => pinned,
             Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
             Err(error) => {
-                out.defs
-                    .diagnostics
-                    .push(diag(&dir, kind, &error.to_string()));
+                out.defs.diagnostics.push(diag_code(
+                    &dir,
+                    kind,
+                    &error.to_string(),
+                    if error.kind() == io::ErrorKind::PermissionDenied {
+                        oc_core::queries::ServiceCode::TrustRefused
+                    } else {
+                        oc_core::queries::ServiceCode::SourceUnavailable
+                    },
+                ));
                 continue;
             }
         };
@@ -792,9 +863,12 @@ fn load_kind(out: &mut Collector, root: &DefRoot, admitted: &File, kind: &str, s
         let entries = match std::fs::read_dir(format!("/proc/self/fd/{}", pinned.as_raw_fd())) {
             Ok(entries) => entries,
             Err(_) => {
-                out.defs
-                    .diagnostics
-                    .push(diag(&dir, kind, "unreadable directory"));
+                out.defs.diagnostics.push(diag_code(
+                    &dir,
+                    kind,
+                    "unreadable directory",
+                    oc_core::queries::ServiceCode::SourceUnavailable,
+                ));
                 continue;
             }
         };
@@ -806,18 +880,24 @@ fn load_kind(out: &mut Collector, root: &DefRoot, admitted: &File, kind: &str, s
             .map(|e| e.file_name().to_string_lossy().to_string())
             .collect();
         if names.len() > 4096 {
-            out.defs
-                .diagnostics
-                .push(diag(&dir, kind, "too many directory entries"));
+            out.defs.diagnostics.push(diag_code(
+                &dir,
+                kind,
+                "too many directory entries",
+                oc_core::queries::ServiceCode::CapacityExceeded,
+            ));
             continue;
         }
         let mut names = names;
         names.sort();
         for name in names {
             if out.total_bytes > MAX_TOTAL_BYTES {
-                out.defs
-                    .diagnostics
-                    .push(diag(&dir, kind, "total definitions budget exceeded"));
+                out.defs.diagnostics.push(diag_code(
+                    &dir,
+                    kind,
+                    "total definitions budget exceeded",
+                    oc_core::queries::ServiceCode::CapacityExceeded,
+                ));
                 return;
             }
             load_entry(out, root, admitted, kind, &dir, &name);
@@ -834,9 +914,12 @@ fn insert_skill_text(
     path: &Path,
 ) {
     if out.defs.skills.len() >= MAX_DEFS_PER_KIND {
-        out.defs
-            .diagnostics
-            .push(diag(path, "skill", "too many skills"));
+        out.defs.diagnostics.push(diag_code(
+            path,
+            "skill",
+            "too many skills",
+            oc_core::queries::ServiceCode::CapacityExceeded,
+        ));
         return;
     }
     let previous = out.defs.skills.get(&id).map_or(0, |def| def.body.len());
@@ -845,9 +928,12 @@ fn insert_skill_text(
         .saturating_sub(previous)
         .saturating_add(text.len());
     if next_total > MAX_TOTAL_BYTES {
-        out.defs
-            .diagnostics
-            .push(diag(path, "skill", "total definitions budget exceeded"));
+        out.defs.diagnostics.push(diag_code(
+            path,
+            "skill",
+            "total definitions budget exceeded",
+            oc_core::queries::ServiceCode::CapacityExceeded,
+        ));
         return;
     }
     match parse_skill(&id, &text) {
@@ -912,9 +998,12 @@ fn insert_agent(out: &mut Collector, root: &DefRoot, input: AgentInput, path: &P
         .saturating_sub(previous)
         .saturating_add(input.body.len());
     if next_total > MAX_TOTAL_BYTES {
-        out.defs
-            .diagnostics
-            .push(diag(path, "agent", "total definitions budget exceeded"));
+        out.defs.diagnostics.push(diag_code(
+            path,
+            "agent",
+            "total definitions budget exceeded",
+            oc_core::queries::ServiceCode::CapacityExceeded,
+        ));
         return;
     }
     out.total_bytes = next_total;
@@ -969,9 +1058,12 @@ fn insert_command(out: &mut Collector, root: &DefRoot, input: CommandInput, path
         .saturating_sub(previous)
         .saturating_add(input.body.len());
     if next_total > MAX_TOTAL_BYTES {
-        out.defs
-            .diagnostics
-            .push(diag(path, "command", "total definitions budget exceeded"));
+        out.defs.diagnostics.push(diag_code(
+            path,
+            "command",
+            "total definitions budget exceeded",
+            oc_core::queries::ServiceCode::CapacityExceeded,
+        ));
         return;
     }
     out.total_bytes = next_total;
@@ -1047,8 +1139,10 @@ fn load_entry(
                 }
                 let text = match read_plain(entry) {
                     Ok(text) => text,
-                    Err(reason) => {
-                        out.defs.diagnostics.push(diag(&path, kind, &reason));
+                    Err((reason, code)) => {
+                        out.defs
+                            .diagnostics
+                            .push(diag_code(&path, kind, &reason, code));
                         return;
                     }
                 };
@@ -1077,8 +1171,10 @@ fn load_entry(
             };
             let text = match read_plain(admitted_file) {
                 Ok(text) => text,
-                Err(reason) => {
-                    out.defs.diagnostics.push(diag(&file, kind, &reason));
+                Err((reason, code)) => {
+                    out.defs
+                        .diagnostics
+                        .push(diag_code(&file, kind, &reason, code));
                     return;
                 }
             };
@@ -1104,8 +1200,10 @@ fn load_entry(
             };
             let text = match read_plain(admitted_file) {
                 Ok(text) => text,
-                Err(reason) => {
-                    out.defs.diagnostics.push(diag(&path, kind, &reason));
+                Err((reason, code)) => {
+                    out.defs
+                        .diagnostics
+                        .push(diag_code(&path, kind, &reason, code));
                     return;
                 }
             };
@@ -1337,20 +1435,17 @@ pub(crate) fn load_instruction_texts(
         let text = match result {
             Ok(text) => text,
             Err(reason) => {
-                diagnostics.push(Diagnostic {
-                    path: display.clone(),
-                    field: "instructions".to_string(),
-                    reason: reason.clone(),
-                });
+                diagnostics.push(diag(Path::new(display), "instructions", reason));
                 continue;
             }
         };
         if total + text.len() > MAX_INSTRUCTIONS_TOTAL {
-            diagnostics.push(Diagnostic {
-                path: display.clone(),
-                field: "instructions".to_string(),
-                reason: "instructions budget exceeded".to_string(),
-            });
+            diagnostics.push(diag_code(
+                Path::new(display),
+                "instructions",
+                "instructions budget exceeded",
+                oc_core::queries::ServiceCode::CapacityExceeded,
+            ));
             continue;
         }
         total += text.len();

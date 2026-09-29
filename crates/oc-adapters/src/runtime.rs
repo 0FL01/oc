@@ -100,6 +100,8 @@ pub enum RuntimeError {
     },
     /// One or more owned MCP resources could not confirm shutdown/reap.
     McpShutdown,
+    /// Combined generation-owned MCP metadata exceeded its independent cap.
+    McpCatalogLimit,
     /// Provider failure (kind only).
     Provider,
     /// Typed credential/catalog refusal before durable turn/effect acceptance.
@@ -119,6 +121,18 @@ pub enum RuntimeError {
     InvalidArgs(String),
     /// Explicit cancellation drained to durable records.
     Cancelled,
+}
+
+pub(crate) fn mcp_diagnostic(
+    source: &str,
+    error: &RuntimeError,
+) -> oc_core::queries::ServiceDiagnostic {
+    // Preserve the existing typed MCP tag/stage/action projection. This is the
+    // request-level native service; per-entry identity remains in MCP inventory.
+    let mut diagnostic = mcp::connection_diagnostic("native-mcp", source, error);
+    diagnostic.service = "native-mcp".into();
+    diagnostic.field = vec!["mcp".into()];
+    diagnostic
 }
 
 impl std::fmt::Display for RuntimeError {
@@ -146,6 +160,7 @@ impl std::fmt::Display for RuntimeError {
                 "mcp {server} {stage}: {safe_code} (retryable={retryable})"
             ),
             Self::McpShutdown => write!(f, "mcp shutdown failed"),
+            Self::McpCatalogLimit => write!(f, "mcp generation catalog capacity exceeded"),
             Self::Provider => write!(f, "provider error"),
             Self::ProviderUnavailable(diagnostic) => write!(f, "{diagnostic}"),
             Self::Storage => write!(f, "storage error"),

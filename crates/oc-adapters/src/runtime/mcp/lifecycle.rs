@@ -344,10 +344,11 @@ impl McpOwner {
             fatal: None,
             stopping: false,
         };
-        for node in scope.nodes.values() {
+        for (server, node) in &scope.nodes {
             if let Some(failure) = &node.row.diagnostic {
                 record_degradation(
                     &mut scope.generation.degraded,
+                    server,
                     RuntimeError::McpAttach {
                         server: failure.service.clone(),
                         stage: failure.stage.as_str(),
@@ -578,9 +579,12 @@ impl Scope {
                 .map(|server| server.registry.clone())
                 .collect(),
         )
-        .map_err(|error| remote_attach_error("generation", error))?;
+        .map_err(|error| match error {
+            mcp_remote::McpError::CatalogLimited => RuntimeError::McpCatalogLimit,
+            other => remote_attach_error("generation", other),
+        })?;
         self.lookup_catalog_budget()
-            .map_err(|_| remote_attach_error("generation", mcp_remote::McpError::CatalogLimited))?;
+            .map_err(|_| RuntimeError::McpCatalogLimit)?;
         let mut publication = self.shared.publication.write().expect("MCP publication");
         publication.status.revision += 1;
         for (name, node) in &mut self.nodes {
@@ -826,7 +830,7 @@ impl Scope {
                 }
                 node.row.pending_action = None;
                 if matches!(error, RuntimeError::McpAttach { .. }) {
-                    record_degradation(&mut self.generation.degraded, error);
+                    record_degradation(&mut self.generation.degraded, &server, error);
                 }
             }
         }
@@ -1012,7 +1016,11 @@ impl Scope {
     }
 }
 
-fn connection_diagnostic(server: &str, source: &str, error: &RuntimeError) -> ServiceDiagnostic {
+pub(in crate::runtime) fn connection_diagnostic(
+    server: &str,
+    source: &str,
+    error: &RuntimeError,
+) -> ServiceDiagnostic {
     // These are typed native error tags, never remote text/status regexes.
     let (stage, code, retryable) = match error {
         RuntimeError::McpAttach {

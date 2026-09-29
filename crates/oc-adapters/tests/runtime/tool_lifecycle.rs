@@ -963,7 +963,10 @@ for line in sys.stdin:
     );
     assert_eq!(
         report.warnings,
-        ["mcp broken tools-list: transport (retryable=true)"]
+        [format!(
+            "mcp {} tools-list: transport (retryable=true)",
+            super::mcp_lifecycle::diagnostic_name("broken")
+        )]
     );
     let captured = requests.lock().unwrap().clone();
     assert_eq!(captured.len(), 2);
@@ -1402,7 +1405,10 @@ for line in sys.stdin:
     assert_eq!(report.status, TurnStatus::Completed);
     assert_eq!(
         report.warnings,
-        vec!["mcp b-bad DNS: private_host (retryable=false)"]
+        vec![format!(
+            "mcp {} DNS: private_host (retryable=false)",
+            super::mcp_lifecycle::diagnostic_name("b-bad")
+        )]
     );
     let pid = std::fs::read_to_string(&pid_file)
         .unwrap()
@@ -1454,7 +1460,10 @@ async fn mcp_attach_failure_degrades_the_server() {
     assert_eq!(report.status, TurnStatus::Completed);
     assert_eq!(
         report.warnings,
-        vec!["mcp codex DNS: private_host (retryable=false)"]
+        vec![format!(
+            "mcp {} DNS: private_host (retryable=false)",
+            super::mcp_lifecycle::diagnostic_name("codex")
+        )]
     );
     assert!(
         report.calls.is_empty(),

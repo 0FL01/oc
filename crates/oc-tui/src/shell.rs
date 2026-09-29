@@ -56,12 +56,15 @@ pub const TOAST_RIGHT_MARGIN: u16 = 2;
 const TAB_TITLE_FADE_WIDTH: usize = 4;
 
 /// Safe startup capability states. Never carry raw configuration/provider errors.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StartupFailure {
     /// Native application preflight stage/category (no raw error text).
     Preflight(oc_adapters::application::SpawnFailure),
+    /// Actual native preflight, sharing the common safe cause projection.
+    Diagnostic(oc_adapters::application::SpawnDiagnostic),
     /// The native application's session/history/catalog query failed.
     Query,
+    QueryDiagnostic(oc_core::queries::ServiceDiagnostic),
 }
 
 /// Distinct native error route; upstream service attach is not a native capability.
@@ -72,7 +75,17 @@ pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
         Block::default().style(Style::default().bg(theme.background())),
         area,
     );
-    let (reason, action) = match failure {
+    let diagnostic = match &failure {
+        StartupFailure::Diagnostic(issue) => Some(issue.diagnostic.clone()),
+        StartupFailure::QueryDiagnostic(diagnostic) => Some(diagnostic.clone()),
+        _ => None,
+    };
+    let category = match failure {
+        StartupFailure::Diagnostic(issue) => StartupFailure::Preflight(issue.category),
+        StartupFailure::QueryDiagnostic(_) => StartupFailure::Query,
+        other => other,
+    };
+    let (reason, action) = match category {
         StartupFailure::Preflight(category) => match category {
             oc_adapters::application::SpawnFailure::Configuration => (
                 "Configuration load failed",
@@ -143,8 +156,11 @@ pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
             "Session / catalog query failed",
             "Check the session's Location and data-directory access, then restart.",
         ),
+        StartupFailure::Diagnostic(_) | StartupFailure::QueryDiagnostic(_) => {
+            unreachable!("diagnostic category projected above")
+        }
     };
-    let text = vec![
+    let mut text = vec![
         Line::from("Native startup error").style(Style::default().add_modifier(Modifier::BOLD)),
         Line::from(""),
         Line::from(reason),
@@ -155,6 +171,22 @@ pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
         Line::from(""),
         Line::from("esc / q / ctrl+c  exit"),
     ];
+    if let Some(diagnostic) = diagnostic {
+        text.insert(
+            4,
+            Line::from(format!(
+                "Stage: {}; code: {}",
+                diagnostic.stage.as_str(),
+                diagnostic.code.as_str()
+            )),
+        );
+        text.insert(5, Line::from(format!("Source: {}", diagnostic.source)));
+        text.insert(
+            6,
+            Line::from(format!("Field: {}", diagnostic.field.join("."))),
+        );
+        text.insert(7, Line::from(diagnostic.to_string()));
+    }
     frame.render_widget(
         Paragraph::new(text)
             .style(Style::default().fg(theme.text()).bg(theme.background()))

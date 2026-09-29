@@ -5,6 +5,7 @@ use super::*;
 
 mod lifecycle;
 pub(super) use lifecycle::McpOwner;
+pub(super) use lifecycle::connection_diagnostic;
 
 enum AttachedServer {
     Remote(CodexWebClient),
@@ -83,10 +84,12 @@ impl Drop for McpCallLease<'_> {
     }
 }
 
-fn record_degradation(degraded: &mut Vec<RuntimeError>, mut error: RuntimeError) {
+fn record_degradation(degraded: &mut Vec<RuntimeError>, identity: &str, mut error: RuntimeError) {
     if let RuntimeError::McpAttach { server, .. } = &mut error {
-        *server = safe_server_id(server);
-        clear_degradation(degraded, server);
+        // The admitted registry key is authority; never rehash a presentation
+        // string or accept a factory error's claimed identity as that key.
+        *server = safe_server_id(identity);
+        degraded.retain(|existing| !matches!(existing, RuntimeError::McpAttach { server: known, .. } if known == server));
     }
     degraded.push(error);
 }
@@ -209,29 +212,8 @@ fn stdio_attach_error(server: &str, error: StdioError) -> RuntimeError {
 }
 
 fn safe_server_id(server: &str) -> String {
-    if server.len() <= 64
-        && server
-            .bytes()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'_' | b'-' | b'.'))
-    {
-        return server.into();
-    }
-    // Distinct configured identities must not share warning bookkeeping merely
-    // because their display-safe prefixes truncate or replace the same bytes.
-    use sha2::{Digest, Sha256};
-    let suffix = format!("__{:x}", Sha256::digest(server.as_bytes()));
-    let prefix: String = server
-        .chars()
-        .take(48)
-        .map(|c| {
-            if c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.') {
-                c
-            } else {
-                '_'
-            }
-        })
-        .collect();
-    format!("{prefix}{}", &suffix[..16])
+    // Shared presentation only: registry/control/wire keys remain owner-local.
+    crate::config::mcp::safe_identity(server)
 }
 
 fn remote_attach_error_at(server: &str, stage: &'static str, error: McpError) -> RuntimeError {

@@ -14,6 +14,7 @@ use std::path::{Component, Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+pub(crate) mod diagnostic;
 pub(crate) mod mcp;
 pub use mcp::McpTimeouts;
 
@@ -716,7 +717,10 @@ pub(crate) fn assemble_admitted_with_terminal_copy(
     env: &BTreeMap<String, String>,
     enabled_providers: Option<&HashSet<String>>,
     roots: &BTreeMap<String, (&File, PathBuf)>,
-) -> Result<(Generation, Option<oc_core::queries::TerminalCopyMode>), ConfigError> {
+) -> Result<
+    (Generation, Option<oc_core::queries::TerminalCopyMode>),
+    oc_core::queries::ServiceDiagnostic,
+> {
     assemble_with_admission(
         sources,
         env,
@@ -727,6 +731,7 @@ pub(crate) fn assemble_admitted_with_terminal_copy(
         },
         false,
     )
+    .map_err(|error| error.diagnostic)
 }
 
 fn assemble_with_reader(
@@ -736,6 +741,7 @@ fn assemble_with_reader(
     reader: &impl Fn(&str, &str) -> Result<String, ConfigError>,
 ) -> Result<(Generation, Option<oc_core::queries::TerminalCopyMode>), ConfigError> {
     assemble_with_admission(sources, env, enabled_providers, reader, true)
+        .map_err(|error| *error.error)
 }
 
 fn assemble_with_admission(
@@ -744,7 +750,7 @@ fn assemble_with_admission(
     enabled_providers: Option<&HashSet<String>>,
     reader: &impl Fn(&str, &str) -> Result<String, ConfigError>,
     require_credential: bool,
-) -> Result<(Generation, Option<oc_core::queries::TerminalCopyMode>), ConfigError> {
+) -> Result<(Generation, Option<oc_core::queries::TerminalCopyMode>), diagnostic::LocatedError> {
     let mut providers: BTreeMap<String, (ProviderEntry, String)> = BTreeMap::new();
     // Unknown provider option keys: visible warnings, never a hard failure.
     let mut unknown_options: Vec<String> = Vec::new();
@@ -763,7 +769,18 @@ fn assemble_with_admission(
     let mut compaction_provenance = BTreeMap::new();
 
     for source in sources {
-        let value = parse_jsonc(&source.text, &source.path)?;
+        let value =
+            parse_jsonc(&source.text, &source.path).map_err(|error| diagnostic::LocatedError {
+                error: Box::new(error),
+                diagnostic: diagnostic::failure(
+                    &source.path,
+                    &["document"],
+                    oc_core::queries::ServiceStage::Config,
+                    oc_core::queries::ServiceCode::InvalidDocument,
+                    oc_core::queries::ServiceAction::ReviewConfiguration,
+                ),
+            })?;
+        (|| -> Result<(), ConfigError> {
         let obj = value.as_object().ok_or_else(|| ConfigError::Invalid {
             field: source.path.clone(),
             reason: "root must be an object".to_string(),
@@ -795,7 +812,10 @@ fn assemble_with_admission(
             animations_source = Some(source.path.clone());
         }
         if let Some(value) = obj.get("compaction") {
-            let (normalized, notes) = compaction.merge_from(&source.path, value);
+            let (normalized, mut notes) = compaction.merge_from(&source.path, value);
+            if !require_credential {
+                for note in &mut notes { note.source = mcp::safe_source_id(&note.source); }
+            }
             config_diagnostics.extend(notes);
             if let Some(normalized) = normalized {
                 compaction_source = Some(source.path.clone());
@@ -824,10 +844,12 @@ fn assemble_with_admission(
                         reason: format!("shape: {e}"),
                     })?;
                 for key in unknown_option_keys(raw.get("options")) {
-                    unknown_options.push(format!(
+                    unknown_options.push(if require_credential { format!(
                         "provider.{id}.options.{key} is not supported by the native \
                          profile; the option is ignored"
-                    ));
+                    ) } else {
+                        diagnostic::failure(&source.path, &["provider", "entry", "options", "entry"], oc_core::queries::ServiceStage::Config, oc_core::queries::ServiceCode::IgnoredSetting, oc_core::queries::ServiceAction::ReviewConfiguration).to_string()
+                    });
                 }
                 providers.insert(id.clone(), (entry, source.path.clone()));
             }
@@ -863,6 +885,8 @@ fn assemble_with_admission(
         if let Some(dcp) = obj.get("dcp") {
             validate_dcp(dcp)?;
         }
+        Ok(())
+        })().map_err(|error| diagnostic::LocatedError::new(&source.path, error))?;
     }
 
     // Substitute + selected-only credential check (no network/process here).
@@ -876,25 +900,29 @@ fn assemble_with_admission(
         }
         let trusted = sources.iter().any(|s| s.path == *path && s.trusted);
         let mut entry = entry.clone();
-        entry.options.base_url =
-            substitute_with(&entry.options.base_url, path, trusted, env, reader)?;
-        entry.options.api_key =
-            substitute_with(&entry.options.api_key, path, trusted, env, reader)?;
-        for value in entry.options.headers.values_mut() {
-            *value = substitute_with(value, path, trusted, env, reader)?;
-        }
-        let selected = enabled_providers.is_none_or(|only| only.contains(id));
-        // Only the provider that will actually be used must be on the native
-        // family: an unselected provider with a foreign package (another
-        // frontend's entry) must not block the application.
-        if selected {
-            validate_provider(id, &entry)?;
-        }
-        if require_credential && selected && entry.options.api_key.trim().is_empty() {
-            return Err(ConfigError::MissingCredential {
-                field: format!("provider.{id}.options.apiKey"),
-            });
-        }
+        (|| -> Result<(), ConfigError> {
+            entry.options.base_url =
+                substitute_with(&entry.options.base_url, path, trusted, env, reader)?;
+            entry.options.api_key =
+                substitute_with(&entry.options.api_key, path, trusted, env, reader)?;
+            for value in entry.options.headers.values_mut() {
+                *value = substitute_with(value, path, trusted, env, reader)?;
+            }
+            let selected = enabled_providers.is_none_or(|only| only.contains(id));
+            // Only the provider that will actually be used must be on the native
+            // family: an unselected provider with a foreign package (another
+            // frontend's entry) must not block the application.
+            if selected {
+                validate_provider(id, &entry)?;
+            }
+            if require_credential && selected && entry.options.api_key.trim().is_empty() {
+                return Err(ConfigError::MissingCredential {
+                    field: format!("provider.{id}.options.apiKey"),
+                });
+            }
+            Ok(())
+        })()
+        .map_err(|error| diagnostic::LocatedError::new(path, error))?;
         out_providers.insert(id.clone(), entry);
         provenance.insert(format!("provider.{id}"), path.clone());
     }
@@ -905,7 +933,8 @@ fn assemble_with_admission(
         let mut entry = entry.clone();
         entry.timeouts = mcp_timeout.overlay(entry.timeouts);
         if entry.enabled && entry.failure.is_none() {
-            activate_mcp_entry(id, path, trusted, &mut entry, env, reader)?;
+            activate_mcp_entry(id, path, trusted, &mut entry, env, reader)
+                .map_err(|error| diagnostic::LocatedError::new(path, error))?;
         }
         // Disabled entries keep inert templates: no secret/file read and no launch.
         out_mcp.insert(id.clone(), entry);

@@ -59,11 +59,12 @@ fn completion_warning_union_is_typed_and_exact_binding_scoped() {
 
 #[test]
 fn successful_retry_clears_the_exact_sanitized_failure_identity() {
-    assert_eq!(safe_server_id("known-peer.example"), "known-peer.example");
+    assert!(!safe_server_id("known-peer.example").contains("known-peer"));
     for server in ["peer_日本語", &"long_peer_".repeat(12)] {
         let mut degraded = Vec::new();
         record_degradation(
             &mut degraded,
+            server,
             stdio_attach_error_at(server, "initialize", StdioError::Spawn),
         );
         assert_eq!(degraded.len(), 1);
@@ -80,6 +81,7 @@ fn successful_retry_clears_the_exact_sanitized_failure_identity() {
         for server in [&one, &two] {
             record_degradation(
                 &mut degraded,
+                server,
                 stdio_attach_error_at(server, "initialize", StdioError::Spawn),
             );
             assert!(safe_server_id(server).len() <= 64);

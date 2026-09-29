@@ -74,10 +74,11 @@ fn variant_key(c: &Composition, id: &str) -> String {
 
 fn load<T: serde::de::DeserializeOwned>(db: &Db, key: &str) -> Result<Option<T>, CoreError> {
     db.get_pref(key)
-        .map_err(app_error)?
+        .map_err(|error| query_storage_error(db, error))?
         .map(|raw| {
-            serde_json::from_str(&raw)
-                .map_err(|_| app_error("malformed scoped selection preference"))
+            serde_json::from_str(&raw).map_err(|_| {
+                CoreError::Diagnostic(saved_selection_issue(db, &["selection"]).diagnostic)
+            })
         })
         .transpose()
 }
@@ -93,10 +94,21 @@ fn model(e: &Effective) -> ModelChoice {
     }
 }
 
+fn unavailable(c: &Composition, field: &str) -> CoreError {
+    CoreError::Diagnostic(crate::config::diagnostic::failure(
+        &c.project.to_string_lossy(),
+        &[field],
+        oc_core::queries::ServiceStage::Admission,
+        oc_core::queries::ServiceCode::ModelUnavailable,
+        oc_core::queries::ServiceAction::SelectModel,
+    ))
+}
+
 fn set_model(e: &mut Effective, c: &Composition, choice: ModelChoice) -> Result<(), CoreError> {
-    let selected = crate::models::select_model(&c.catalog, &choice.id)
-        .and_then(|base| crate::models::select_variant(&base, choice.variant.as_deref()))
-        .map_err(app_error)?;
+    let selected =
+        crate::models::select_model(&c.catalog, &choice.id).map_err(|_| unavailable(c, "model"))?;
+    let selected = crate::models::select_variant(&selected, choice.variant.as_deref())
+        .map_err(|_| unavailable(c, "variant"))?;
     e.model_id = selected.id;
     e.variant = selected.variant.map(|v| v.name);
     Ok(())
@@ -191,15 +203,21 @@ pub(super) fn fork_choice(
 ) -> Result<String, CoreError> {
     let mut choice = match db
         .get_pref_bounded(&session_key(c, session), 64 * 1024)
-        .map_err(app_error)?
+        .map_err(|error| query_storage_error(db, error))?
     {
         crate::storage::BoundedPref::Missing => SessionChoice::default(),
         crate::storage::BoundedPref::TooLarge => {
-            return Err(app_error("fork selection budget exceeded"));
+            return Err(CoreError::Diagnostic(crate::config::diagnostic::failure(
+                &db.root().to_string_lossy(),
+                &["selection"],
+                oc_core::queries::ServiceStage::Admission,
+                oc_core::queries::ServiceCode::CapacityExceeded,
+                oc_core::queries::ServiceAction::ReduceCapacity,
+            )));
         }
-        crate::storage::BoundedPref::Value(raw) => {
-            serde_json::from_str(&raw).map_err(|_| app_error("malformed fork selection"))?
-        }
+        crate::storage::BoundedPref::Value(raw) => serde_json::from_str(&raw).map_err(|_| {
+            CoreError::Diagnostic(saved_selection_issue(db, &["selection"]).diagnostic)
+        })?,
     };
     let selected = if choice.epoch >= fallback.legacy_epoch && !choice.models.is_empty() {
         resolve(db, c, fallback, &choice)?
@@ -306,7 +324,8 @@ pub(super) fn home(
             };
             let mut records = Vec::new();
             if let Some(variant) = choice.variant.as_deref() {
-                let base = crate::models::select_model(&c.catalog, &id).map_err(app_error)?;
+                let base = crate::models::select_model(&c.catalog, &id)
+                    .map_err(|_| unavailable(c, "model"))?;
                 if crate::models::select_variant(&base, Some(variant)).is_err() {
                     choice.variant = None;
                     records.push(record(variant_key(c, &id), &Option::<String>::None)?);
@@ -318,7 +337,8 @@ pub(super) fn home(
                 draft_key(c, selected.agent_id.as_deref()),
                 &model(&selected),
             )?);
-            db.set_prefs(&records).map_err(app_error)?;
+            db.set_prefs(&records)
+                .map_err(|error| CoreError::Diagnostic(storage_diagnostic(db.root(), &error)))?;
             Ok(selected)
         }
         Action::Variant(variant) => {
@@ -338,7 +358,7 @@ pub(super) fn home(
                     &model(&selected),
                 )?,
             ])
-            .map_err(app_error)?;
+            .map_err(|error| CoreError::Diagnostic(storage_diagnostic(db.root(), &error)))?;
             Ok(selected)
         }
     }
@@ -405,7 +425,8 @@ pub(super) fn apply(
                 )?
             };
             if let Some(variant) = preferred.variant.as_deref() {
-                let base = crate::models::select_model(&c.catalog, id).map_err(app_error)?;
+                let base = crate::models::select_model(&c.catalog, id)
+                    .map_err(|_| unavailable(c, "model"))?;
                 if crate::models::select_variant(&base, Some(variant)).is_err() {
                     // The explicit model choice accepts Default for a retired
                     // variant; persist that remediation, not an implicit fallback.
@@ -440,6 +461,7 @@ pub(super) fn apply(
         )?);
     }
     records.push(record(key, &choice)?);
-    db.set_prefs(&records).map_err(app_error)?;
+    db.set_prefs(&records)
+        .map_err(|error| CoreError::Diagnostic(storage_diagnostic(db.root(), &error)))?;
     Ok(selected)
 }

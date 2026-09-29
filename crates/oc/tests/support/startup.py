@@ -224,7 +224,7 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
           forbidden=('Native runtime initialization failed',))
     headless = subprocess.run([binary, 'run', 'no network call'], cwd=project, env=env,
                               capture_output=True, timeout=5)
-    assert headless.returncode == 1 and b'malformed scoped selection preference' in headless.stderr
+    assert headless.returncode == 1 and b'invalid_stored_state' in headless.stderr and b'source-' in headless.stderr
     assert b'CORRUPT-PREF-SECRET' not in headless.stderr
     print('selection corrupt headless: detailed error, exit 1, no provider call')
     with sqlite3.connect(data / 'oc.sqlite') as db:
