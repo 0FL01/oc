@@ -7,6 +7,10 @@
 //! SQLite happens here; persistence/resume arrive in T04/T05.
 
 use std::collections::HashMap;
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 use std::time::Duration;
 
 use tokio::sync::{broadcast, mpsc, oneshot};
@@ -337,6 +341,12 @@ pub enum InboxMsg {
     McpControl {
         control: crate::queries::McpControl,
         ack: oneshot::Sender<Result<crate::queries::McpSnapshot, CoreError>>,
+    },
+    McpLookup {
+        query: crate::queries::McpLookup,
+        cancel: Arc<AtomicBool>,
+        ack:
+            oneshot::Sender<Result<crate::queries::McpLookupReply, crate::queries::McpLookupError>>,
     },
     PendingApprovals {
         ack: oneshot::Sender<Result<Vec<crate::approval::ApprovalRequest>, CoreError>>,
@@ -676,6 +686,29 @@ impl CoreApp {
             .await
             .map_err(|_| CoreError::Shutdown)?;
         reply.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Caller-only lookup; dropping this future cancels its owned request.
+    pub async fn mcp_lookup(
+        &self,
+        query: crate::queries::McpLookup,
+    ) -> Result<crate::queries::McpLookupReply, crate::queries::McpLookupError> {
+        struct CancelOnDrop(Arc<AtomicBool>);
+        impl Drop for CancelOnDrop {
+            fn drop(&mut self) {
+                self.0.store(true, Ordering::SeqCst);
+            }
+        }
+        let cancel = Arc::new(AtomicBool::new(false));
+        let _guard = CancelOnDrop(cancel.clone());
+        let (ack, reply) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::McpLookup { query, cancel, ack })
+            .await
+            .map_err(|_| crate::queries::McpLookupError::Unavailable)?;
+        reply
+            .await
+            .map_err(|_| crate::queries::McpLookupError::Unavailable)?
     }
 
     /// Acknowledges the owner's admitted/coalesced action, not its eventual
@@ -1690,6 +1723,9 @@ fn elapsed_ms(started: std::time::Instant) -> u64 {
 fn scripted_unsupported(message: InboxMsg) {
     let error = || CoreError::Application("query unsupported by scripted worker".to_string());
     match message {
+        InboxMsg::McpLookup { ack, .. } => {
+            let _ = ack.send(Err(crate::queries::McpLookupError::Unavailable));
+        }
         InboxMsg::McpStatus { ack } | InboxMsg::McpControl { ack, .. } => {
             let _ = ack.send(Err(error()));
         }

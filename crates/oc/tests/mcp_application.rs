@@ -43,6 +43,9 @@ mod config_admission;
 #[path = "mcp_application/lifecycle.rs"]
 mod lifecycle;
 
+#[path = "mcp_application/lookups.rs"]
+mod lookups;
+
 #[test]
 fn pending_edit_screen_accepts_fragmented_cursor_updates_not_raw_substrings() {
     let bytes = concat!(
@@ -225,6 +228,10 @@ impl FakeMcp {
     }
 
     fn stalled_call_with_cancel_failure(reject_cancel: bool) -> Self {
+        Self::stalled_request("tools/call", reject_cancel)
+    }
+
+    fn stalled_request(held_method: &'static str, reject_cancel: bool) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         listener.set_nonblocking(true).unwrap();
         let url = format!("http://{}/strict/v1/mcp", listener.local_addr().unwrap());
@@ -272,7 +279,7 @@ impl FakeMcp {
                         &mut socket,
                         id,
                         json!({
-                        "protocolVersion":"2025-11-25", "capabilities":{"tools":{}},
+                         "protocolVersion":"2025-11-25", "capabilities":if held_method == "resources/read" {json!({"tools":{},"resources":{}})} else {json!({"tools":{}})},
                         "serverInfo":{"name":"stall","version":"1"}}),
                     ),
                     "notifications/cancelled" if reject_cancel => {
@@ -288,7 +295,7 @@ impl FakeMcp {
                             "name":"ping","inputSchema":{"type":"object","properties":{}}
                         }]}),
                     ),
-                    "tools/call" => {
+                    method if method == held_method => {
                         socket.set_nonblocking(true).unwrap();
                         stalled.push(socket); // ignores cancellation; remote effect may continue
                     }

@@ -20,6 +20,9 @@ type CatalogVersion = Arc<std::sync::atomic::AtomicUsize>;
 #[path = "mcp_remote/config_admission.rs"]
 mod config_admission;
 
+#[path = "mcp_remote/lookups.rs"]
+mod lookups;
+
 #[tokio::test]
 async fn dns_and_connect_failures_are_distinct_from_private_host() {
     use oc_adapters::webfetch::{FetchError, check_host};
@@ -145,6 +148,7 @@ enum Mode {
     OversizedSchema,
     SlowInitialize,
     SlowCatalog,
+    Lookups,
 }
 
 #[derive(Clone)]
@@ -289,6 +293,14 @@ impl Fake {
                 Some("application/json"),
             )
         };
+        if self.mode == Mode::Lookups {
+            if rpc_method == "resources/read" && parsed["params"]["uri"] == "fixture://held" {
+                std::thread::sleep(self.slow);
+            }
+            if let Some(result) = lookups::response(&parsed, self.version.load(Ordering::SeqCst)) {
+                return reply(result);
+            }
+        }
         match rpc_method {
             "server/discover" => (404, Vec::new(), None),
             "initialize" => {
@@ -302,7 +314,8 @@ impl Fake {
                 };
                 reply(json!({
                     "protocolVersion": version,
-                    "capabilities": {"tools": {"listChanged": true}},
+                    "capabilities": if self.mode == Mode::Lookups { json!({"tools":{"listChanged":true},"prompts":{},"resources":{}}) }
+                        else { json!({"tools":{"listChanged":true}}) },
                     "serverInfo": {"name": "fake-codex-web", "version": "test"},
                     "instructions": format!("Search guidance test-key HEADER-CANARY {}", "界".repeat(4000)),
                 }))

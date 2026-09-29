@@ -18,6 +18,9 @@ const TEST_TIMEOUT: Duration = Duration::from_secs(5);
 #[path = "mcp_stdio/config_admission.rs"]
 mod config_admission;
 
+#[path = "mcp_stdio/lookups.rs"]
+mod lookups;
+
 #[tokio::test]
 async fn cancelled_initialize_reaps_before_return_even_after_stderr_eof() {
     let dir = tempfile::tempdir().unwrap();

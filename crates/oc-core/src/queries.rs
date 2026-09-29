@@ -9,6 +9,9 @@ use std::collections::BTreeMap;
 use crate::domain::SessionId;
 use crate::session::Role;
 
+mod mcp_lookup;
+pub use mcp_lookup::*;
+
 /// Bounded root-session picker projection; IDs remain routing keys.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SessionListEntry {

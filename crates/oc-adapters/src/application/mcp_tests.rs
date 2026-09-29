@@ -8,6 +8,9 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[path = "mcp_tests/lookups.rs"]
+mod lookups;
+
 struct Fixture {
     _root: tempfile::TempDir,
     project: PathBuf,

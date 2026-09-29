@@ -37,6 +37,7 @@ mod conversation_tests;
 #[cfg(test)]
 #[path = "application_fork_tests.rs"]
 mod fork_tests;
+mod mcp_lookup;
 #[path = "application_selection.rs"]
 mod selection;
 #[path = "application_tab_deck.rs"]
@@ -1576,6 +1577,14 @@ fn query(
     message: InboxMsg,
 ) {
     match message {
+        InboxMsg::McpLookup { query, cancel, ack } => {
+            match mcp_lookup::admit(db, runtime, composition, effective, &query) {
+                Ok(()) => runtime.enqueue_mcp_lookup(query, cancel, ack),
+                Err(error) => {
+                    let _ = ack.send(Err(error));
+                }
+            }
+        }
         InboxMsg::McpStatus { ack } => {
             let _ = ack.send(Ok(runtime.mcp_status()));
         }

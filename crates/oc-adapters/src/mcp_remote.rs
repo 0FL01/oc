@@ -626,6 +626,41 @@ impl CodexWebClient {
         self.instructions.as_deref()
     }
 
+    /// Explicit bounded lookup on this same owned connection, outside model tools.
+    pub async fn lookup(
+        &self,
+        operation: &oc_core::queries::McpLookupOp,
+        cancel: &AtomicBool,
+    ) -> Result<oc_core::queries::McpLookupData, oc_core::queries::McpLookupError> {
+        crate::mcp_lookup::lookup(
+            &self.peer,
+            operation,
+            self.catalog_timeout,
+            self.timeout,
+            (&self.secrets, &self.secrets),
+            cancel,
+            None,
+        )
+        .await
+    }
+    pub(crate) async fn lookup_owned(
+        &self,
+        operation: &oc_core::queries::McpLookupOp,
+        cancel: &AtomicBool,
+        dispatched: &AtomicBool,
+    ) -> Result<oc_core::queries::McpLookupData, oc_core::queries::McpLookupError> {
+        crate::mcp_lookup::lookup(
+            &self.peer,
+            operation,
+            self.catalog_timeout,
+            self.timeout,
+            (&self.secrets, &self.secrets),
+            cancel,
+            Some(dispatched),
+        )
+        .await
+    }
+
     /// Atomically claim a pending tools/list refresh. A notification that
     /// arrives during the relist stays claimed for the next turn.
     pub fn claim_catalog_changed(&self) -> bool {

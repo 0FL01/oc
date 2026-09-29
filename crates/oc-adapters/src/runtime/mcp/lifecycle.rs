@@ -9,6 +9,9 @@ use oc_core::queries::{
 use tokio::sync::{Notify, mpsc, oneshot};
 use tokio::task::{JoinHandle, JoinSet};
 
+mod lookups;
+use lookups::{LookupAck, LookupActive, LookupCompleted};
+
 type StatusAck = oneshot::Sender<Result<McpSnapshot, oc_core::session::CoreError>>;
 type RequestAck = oneshot::Sender<Result<Arc<McpGeneration>, RuntimeError>>;
 
@@ -57,8 +60,16 @@ impl Drop for RequestWait<'_> {
 }
 
 enum Command {
-    Control { control: McpControl, ack: StatusAck },
+    Control {
+        control: McpControl,
+        ack: StatusAck,
+    },
     Request(RequestAck),
+    Lookup {
+        query: oc_core::queries::McpLookup,
+        cancel: Arc<AtomicBool>,
+        ack: LookupAck,
+    },
 }
 
 struct Node {
@@ -67,12 +78,15 @@ struct Node {
     desired: bool,
     cancel: Option<Arc<AtomicBool>>,
     closing: bool,
+    catalogs: [Option<oc_core::queries::McpLookupData>; 3],
+    catalog_pending: [bool; 3],
 }
 
 enum WorkResult {
     Connected(AttachedMcp),
     Refreshed(Vec<mcp_remote::RegistryEntry>),
     Closed,
+    Lookup(Box<LookupCompleted>),
 }
 
 struct Completed {
@@ -93,6 +107,7 @@ struct Scope {
     work: JoinSet<Completed>,
     retiring: Vec<(String, Arc<AttachedServer>)>,
     requests: Vec<RequestAck>,
+    lookups: Vec<LookupActive>,
     fatal: Option<RuntimeError>,
     stopping: bool,
 }
@@ -156,6 +171,14 @@ impl McpOwner {
         let publication = self.shared.publication.read().expect("MCP publication");
         if let Some(error) = &publication.fatal {
             return Err(error.clone());
+        }
+        if publication.request.remote_unknown.load(Ordering::SeqCst) {
+            return Err(RuntimeError::McpAttach {
+                server: "generation".into(),
+                stage: "call",
+                safe_code: "unsafe_retry",
+                retryable: false,
+            });
         }
         Ok(publication.request.clone())
     }
@@ -270,6 +293,8 @@ impl McpOwner {
                     desired: entry.enabled && entry.failure.is_none(),
                     cancel: None,
                     closing: false,
+                    catalogs: [None, None, None],
+                    catalog_pending: [false; 3],
                 },
             );
         }
@@ -290,6 +315,7 @@ impl McpOwner {
             work: JoinSet::new(),
             retiring: Vec::new(),
             requests: Vec::new(),
+            lookups: Vec::new(),
             fatal: None,
             stopping: false,
         };
@@ -528,6 +554,8 @@ impl Scope {
                 .collect(),
         )
         .map_err(|error| remote_attach_error("generation", error))?;
+        self.lookup_catalog_budget()
+            .map_err(|_| remote_attach_error("generation", mcp_remote::McpError::CatalogLimited))?;
         let mut publication = self.shared.publication.write().expect("MCP publication");
         publication.status.revision += 1;
         for (name, node) in &mut self.nodes {
@@ -579,6 +607,11 @@ impl Scope {
     }
 
     fn stop_server(&mut self, server: &str) {
+        for lookup in &self.lookups {
+            if lookup.server == server {
+                lookup.cancel.store(true, Ordering::SeqCst);
+            }
+        }
         let node = self.nodes.get_mut(server).expect("MCP node");
         node.desired = false;
         node.row.pending_action = Some(McpAction::Disconnect);
@@ -627,7 +660,14 @@ impl Scope {
         if self.stopping {
             // A later cleanup/job failure must wake application monitors even
             // when retirement was already requested by cancel or shutdown.
-            if self.fatal.is_some() {
+            let published = self
+                .shared
+                .publication
+                .read()
+                .expect("MCP publication")
+                .fatal
+                .clone();
+            if self.fatal.is_some() && self.fatal != published {
                 let _ = self.publish();
             }
             return;
@@ -647,6 +687,17 @@ impl Scope {
     }
 
     fn complete(&mut self, completed: Completed) {
+        let completed = match completed {
+            Completed {
+                server,
+                result: Ok(WorkResult::Lookup(lookup)),
+                ..
+            } => {
+                self.complete_lookup(&server, *lookup);
+                return;
+            }
+            other => other,
+        };
         let server = completed.server;
         let node = self.nodes.get_mut(&server).expect("MCP completion scope");
         node.cancel = None;
@@ -671,6 +722,8 @@ impl Scope {
         }
         match completed.result {
             Ok(WorkResult::Connected(client)) if node.desired && !self.stopping => {
+                node.catalogs = [None, None, None];
+                node.catalog_pending = [false; 3];
                 node.row.status = McpStatus::Connected;
                 node.row.pending_action = None;
                 node.row.diagnostic = None;
@@ -697,12 +750,15 @@ impl Scope {
                 }
             }
             Ok(WorkResult::Closed) => {
+                node.catalogs = [None, None, None];
+                node.catalog_pending = [false; 3];
                 node.closing = false;
                 node.row.status = McpStatus::Disabled;
                 node.row.pending_action = None;
                 node.row.diagnostic = None;
                 clear_degradation(&mut self.generation.degraded, &server);
             }
+            Ok(WorkResult::Lookup(_)) => unreachable!("lookup completed above"),
             Err(RuntimeError::Cancelled) if !node.desired || self.stopping => {
                 if !node.closing {
                     node.row.status = McpStatus::Disabled;
@@ -922,6 +978,7 @@ impl Scope {
                 command = controls.recv(), if !self.stopping => match command {
                     Some(Command::Control { control, ack }) => self.control(control, ack),
                     Some(Command::Request(ack)) => self.request(ack),
+                    Some(Command::Lookup { query, cancel, ack }) => self.lookup(query, cancel, ack),
                     None => self.begin_stop(),
                 },
             }

@@ -322,6 +322,14 @@ impl Runtime<'_> {
                 format!("error: unknown mcp server {}", entry.server),
             );
         };
+        if matches!(server.client.as_ref(), AttachedServer::Remote(_))
+            && attached.remote_unknown.load(Ordering::SeqCst)
+        {
+            return (
+                "failed",
+                "error: mcp outcome unknown; remote retry unsafe".into(),
+            );
+        }
         let mut lease = McpCallLease {
             generation: attached,
             db: self.db,

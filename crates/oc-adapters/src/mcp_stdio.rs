@@ -564,6 +564,8 @@ pub struct StdioClient {
     tools_changed: Arc<std::sync::atomic::AtomicBool>,
     instructions: Option<String>,
     redactions: Vec<String>,
+    /// Protected config/environment values, without ordinary argv words.
+    identity_secrets: Vec<String>,
 }
 
 impl StdioClient {
@@ -604,6 +606,12 @@ impl StdioClient {
         generation: u64,
         cancel: &std::sync::atomic::AtomicBool,
     ) -> Result<Self, StdioError> {
+        let identity_secrets = config
+            .secrets
+            .iter()
+            .cloned()
+            .chain(config.extra_env.iter().map(|(_, value)| value.clone()))
+            .collect();
         let mut retained = config.clone();
         retained
             .secrets
@@ -652,6 +660,7 @@ impl StdioClient {
             tools_changed,
             instructions,
             redactions,
+            identity_secrets,
         };
         if !legacy {
             client
@@ -670,6 +679,41 @@ impl StdioClient {
     /// Bounded, configured-value-redacted server guidance from initialize.
     pub fn instructions(&self) -> Option<&str> {
         self.instructions.as_deref()
+    }
+
+    /// Explicit bounded lookup on this same owned connection, outside model tools.
+    pub async fn lookup(
+        &self,
+        operation: &oc_core::queries::McpLookupOp,
+        cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<oc_core::queries::McpLookupData, oc_core::queries::McpLookupError> {
+        crate::mcp_lookup::lookup(
+            &self.peer,
+            operation,
+            self.config.catalog_timeout.unwrap_or(self.config.timeout),
+            self.config.timeout,
+            (&self.redactions, &self.identity_secrets),
+            cancel,
+            None,
+        )
+        .await
+    }
+    pub(crate) async fn lookup_owned(
+        &self,
+        operation: &oc_core::queries::McpLookupOp,
+        cancel: &std::sync::atomic::AtomicBool,
+        dispatched: &std::sync::atomic::AtomicBool,
+    ) -> Result<oc_core::queries::McpLookupData, oc_core::queries::McpLookupError> {
+        crate::mcp_lookup::lookup(
+            &self.peer,
+            operation,
+            self.config.catalog_timeout.unwrap_or(self.config.timeout),
+            self.config.timeout,
+            (&self.redactions, &self.identity_secrets),
+            cancel,
+            Some(dispatched),
+        )
+        .await
     }
 
     /// Atomically claim a pending tools/list refresh. A notification that

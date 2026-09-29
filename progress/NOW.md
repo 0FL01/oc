@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-29T00:01:14+00:00
+State updated: 2026-09-29T02:39:04+00:00
 Active: T46
 
 Сверить Git status/diff до выполнения команд.
@@ -14,13 +14,13 @@ D13 attach degradation/warnings/UA delivered 3ce5e03/b7ab06d; historical evidenc
 
 # T46
 ## Result
-R5/R7 PASS; lifecycle.md.
+Prompt/resource lookup PASS; lookups.md.
 ## Checks
-1232/0; actual controls/leases/reap; parent repairs verified.
+1246/0; 14 targeted; parent privacy repair verified.
 ## Risks
-Live/media/prompts/resources and V09/READY open.
+Media/live, V09/READY open.
 ## Next
-Existing MCP typed media and resource/prompt APIs.
+Native MCP media tool-output bridge.
 
 
 Ready (до 5): T45, T50, T51

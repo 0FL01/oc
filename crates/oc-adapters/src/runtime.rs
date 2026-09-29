@@ -1132,6 +1132,11 @@ impl<'a> Runtime<'a> {
             self.mcp_cleanup_failed.store(true, Ordering::SeqCst);
             return Err(error);
         }
+        // Cancellation of an owned lookup during retirement can discover an
+        // unknown remote outcome; transfer it after every job was joined.
+        if owner.remote_unknown() {
+            self.mcp_unsafe_retry.store(true, Ordering::SeqCst);
+        }
         if self.mcp_cleanup_failed.load(Ordering::SeqCst) {
             Err(RuntimeError::McpShutdown)
         } else {
@@ -1224,6 +1229,23 @@ impl<'a> Runtime<'a> {
         self.mcp_owner().control(control, ack);
     }
 
+    pub(crate) fn mcp_lookup_server(
+        &self,
+        query: &oc_core::queries::McpLookup,
+    ) -> Result<String, oc_core::queries::McpLookupError> {
+        self.mcp_owner().lookup_server(query)
+    }
+    pub(crate) fn enqueue_mcp_lookup(
+        &self,
+        query: oc_core::queries::McpLookup,
+        cancel: Arc<AtomicBool>,
+        ack: tokio::sync::oneshot::Sender<
+            Result<oc_core::queries::McpLookupReply, oc_core::queries::McpLookupError>,
+        >,
+    ) {
+        self.mcp_owner().enqueue_lookup(query, cancel, ack);
+    }
+
     pub(crate) fn set_mcp_activation(&self, activation: Arc<crate::composition::McpActivation>) {
         *self.mcp_activation.write().expect("MCP activation") = Some(activation);
     }
@@ -1241,6 +1263,15 @@ impl<'a> Runtime<'a> {
     }
 
     async fn request_mcp(&self, cancel: &AtomicBool) -> Result<Arc<McpGeneration>, RuntimeError> {
+        if self.mcp_owner().remote_unknown() {
+            self.mcp_unsafe_retry.store(true, Ordering::SeqCst);
+            return Err(RuntimeError::McpAttach {
+                server: "generation".into(),
+                stage: "call",
+                safe_code: "unsafe_retry",
+                retryable: false,
+            });
+        }
         self.retire_poisoned_mcp().await?;
         self.start_mcp()?;
         if self.mcp_unsafe_retry.load(Ordering::SeqCst)
