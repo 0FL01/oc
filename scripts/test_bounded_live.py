@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import signal
 import socket
+import ssl
 import subprocess
 import tempfile
 import threading
@@ -27,7 +28,7 @@ CALL = {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "s
 
 
 class Peer:
-    def __init__(self, hold=False, chunked=False, stream_hold=False, oversize_header=False):
+    def __init__(self, hold=False, chunked=False, stream_hold=False, oversize_header=False, status=200, secret_response=False):
         self.hits, self.entered, self.release = [], threading.Event(), threading.Event()
         owner = self
         class Handler(BaseHTTPRequestHandler):
@@ -40,10 +41,12 @@ class Peer:
                 owner.entered.set()
                 if hold:
                     owner.release.wait(5)
-                self.send_response(200)
+                self.send_response(status)
                 self.send_header("content-type", "text/event-stream")
                 self.send_header("mcp-session-id", "owned-session")
-                body = b"data: offline\n\n"
+                if secret_response:
+                    self.send_header("x-private-fixture", SECRET)
+                body = SECRET.encode() if secret_response else b"data: offline\n\n"
                 if oversize_header:
                     self.send_header("content-length", str(envelope.RESPONSE_CAP + 1))
                 elif not stream_hold:
@@ -370,6 +373,138 @@ class EnvelopeTests(unittest.TestCase):
             self.assertEqual(len(peer.hits), 1)
             self.assertEqual(self.ledger.snapshot()["counts"]["generation"], 2)
             self.assertEqual(self.ledger.snapshot()["attempts"][-1]["outcome"], "uncertain")
+
+    def test_actual_http_status_receipts_are_additive_to_old_used_schema(self):
+        # An owned old-format used journal, not the parent's actual campaign.
+        # These two legacy consumed reservations intentionally have no receipt.
+        for _ in range(2):
+            seq = self.ledger.reserve("generation", "provider", 1)
+            self.ledger.finish(seq, "complete")
+        original = Path(self.root, "attempts.jsonl").read_bytes()
+        identity = self.ledger.snapshot()["id"]
+        actual = 0
+        for status in (401, 400, 200, 500):
+            with self.guarded(status=status, secret_response=True) as (peer, runner):
+                reply = request(runner.ready["provider_base"] + "/responses", GEN)
+                self.assertEqual(reply[0], status)
+                self.assertTrue(reply[2] == SECRET.encode())
+                self.assertTrue(any(k == "x-private-fixture" and v == SECRET for k, v in reply[1]))
+                self.assertEqual(len(peer.hits), 1)
+                actual += len(peer.hits)
+        resumed = envelope.Ledger(self.campaign).snapshot()
+        self.assertEqual(resumed["id"], identity)
+        self.assertEqual(resumed["counts"]["generation"], 2 + actual)
+        self.assertEqual([a.get("http_status") for a in resumed["attempts"]], [None, None, 401, 400, 200, 500])
+        self.assertTrue(all(a["outcome"] == "complete" and "failure" not in a for a in resumed["attempts"]))
+        journal = Path(self.root, "attempts.jsonl").read_bytes()
+        self.assertTrue(journal.startswith(original), "resume may only append")
+        inspected = subprocess.run([sys_executable(), "-B", SCRIPT, "inspect", "--campaign", self.campaign], capture_output=True, timeout=3)
+        self.assertEqual(inspected.returncode, 0)
+        self.assertEqual(json.loads(inspected.stdout), resumed)
+        self.assertTrue(SECRET.encode() not in journal + inspected.stdout + inspected.stderr)
+        with self.assertRaises(FileExistsError):
+            envelope.Ledger.create(self.root)
+
+    def test_malformed_or_unexpected_receipts_refuse_before_upstream(self):
+        with self.guarded() as (peer, runner):
+            url = runner.ready["provider_base"] + "/responses"
+            self.assertEqual(request(url, GEN)[0], 200)
+            path = Path(self.root, "attempts.jsonl")
+            original = path.read_bytes()
+            rows = [json.loads(line) for line in original.splitlines()]
+            for fields in ({"http_status": True}, {"http_status": None}, {"http_status": 99}, {"http_status": 600}, {"http_status": "401"}, {"http_status": []},
+                           {"outcome": "uncertain", "failure": SECRET, "failure_stage": "connect"},
+                           {"outcome": "uncertain", "failure": {}, "failure_stage": "connect"},
+                           {"outcome": "uncertain", "failure": "dns"},
+                           {"failure_stage": "connect"}, {"outcome": "uncertain", "failure": "dns", "failure_stage": "unknown"},
+                           {"failure": "dns", "failure_stage": "connect"},
+                           {"url": SECRET}, {"headers": {"authorization": SECRET}}):
+                with self.subTest(fields=tuple(fields)):
+                    rows[-1] = {"attempt": 1, "outcome": "complete", **fields}
+                    path.write_bytes(b"".join(json.dumps(row).encode() + b"\n" for row in rows))
+                    self.assertEqual(request(url, GEN)[0], 403)
+                    self.assertEqual(len(peer.hits), 1)
+            path.write_bytes(original)
+            self.assertEqual(self.ledger.snapshot()["counts"]["generation"], 1)
+
+    def test_typed_transport_receipts_and_pre_dispatch_refusal_are_secret_free(self):
+        peer = Peer()
+        try:
+            routes = envelope.targets(manifest(peer), True)
+            def exchange(body=GEN):
+                a, b = socket.socketpair()
+                try:
+                    raw = json.dumps(body).encode()
+                    b.sendall(b"POST /provider/responses HTTP/1.1\r\nhost: fixture\r\ncontent-length: " + str(len(raw)).encode() + b"\r\n\r\n" + raw)
+                    envelope.forward(a, self.ledger, routes)
+                    a.close()
+                    return b.recv(4096)
+                finally:
+                    a.close()
+                    b.close()
+            errors = [(socket.gaierror(SECRET), "dns"), (ssl.SSLError(SECRET), "tls"),
+                      (ConnectionRefusedError(SECRET), "connection"), (TimeoutError(SECRET), "timeout"),
+                      (OSError(SECRET), "io"), (RuntimeError(SECRET), "io"),
+                      (envelope.Closed(SECRET), "envelope_refused")]
+            for error, category in errors:
+                with patch.object(envelope.Target, "connect", side_effect=error):
+                    reply = exchange()
+                self.assertTrue(reply.startswith(b"HTTP/1.1 403") and SECRET.encode() not in reply)
+                attempt = self.ledger.snapshot()["attempts"][-1]
+                self.assertEqual((attempt.get("failure"), attempt.get("failure_stage"), attempt["outcome"]), (category, "connect", "uncertain"))
+                self.assertNotIn("http_status", attempt)
+            private = [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.0.123", 443))]
+            with patch.object(envelope.socket, "getaddrinfo", return_value=private):
+                reply = exchange()
+            self.assertTrue(SECRET.encode() not in reply)
+            self.assertEqual(self.ledger.snapshot()["attempts"][-1].get("failure"), "address_refused")
+            # Unknown protocol text is classified by exception type, never parsed.
+            with patch.object(envelope.Target, "connect", side_effect=http.client.BadStatusLine(SECRET)):
+                reply = exchange()
+            self.assertTrue(SECRET.encode() not in reply)
+            self.assertEqual(self.ledger.snapshot()["attempts"][-1].get("failure"), "http_protocol")
+            before = self.ledger.snapshot()["counts"]["generation"]
+            refused = exchange({**GEN, "max_output_tokens": 2049})
+            metadata = json.loads(refused.split(b"\r\n\r\n", 1)[1])
+            self.assertEqual((metadata.get("failure"), metadata.get("failure_stage")), ("envelope_refused", "pre_dispatch"))
+            state = self.ledger.snapshot()
+            self.assertEqual(state["counts"]["generation"], before)
+            self.assertEqual(len(peer.hits), 0)
+            self.assertTrue(SECRET not in json.dumps(state) and SECRET.encode() not in Path(self.root, "attempts.jsonl").read_bytes())
+        finally:
+            peer.close()
+
+    def test_receipt_write_or_fsync_failure_never_refunds_or_redispatches(self):
+        peer = Peer()
+        try:
+            routes = envelope.targets(manifest(peer), True)
+            finish = self.ledger.finish
+            for operation in ("write", "fsync"):
+                def fail_finish(seq, outcome, receipt):
+                    with patch.object(envelope.os, operation, side_effect=OSError(SECRET)):
+                        finish(seq, outcome, receipt)
+                a, b = socket.socketpair()
+                try:
+                    raw = json.dumps(GEN).encode()
+                    b.sendall(b"POST /provider/responses HTTP/1.1\r\nhost: fixture\r\ncontent-length: " + str(len(raw)).encode() + b"\r\n\r\n" + raw)
+                    with patch.object(self.ledger, "finish", side_effect=fail_finish):
+                        envelope.forward(a, self.ledger, routes)
+                    a.close()
+                    reply = b.recv(4096)
+                    self.assertTrue(reply.startswith(b"HTTP/1.1 200") and SECRET.encode() not in reply)
+                finally:
+                    a.close()
+                    b.close()
+                state = envelope.Ledger(self.campaign).snapshot()
+                self.assertEqual(state["counts"]["generation"], len(peer.hits))
+            state = self.ledger.snapshot()
+            self.assertEqual((len(peer.hits), state["counts"]["generation"]), (2, 2))
+            self.assertEqual(state["attempts"][0]["outcome"], "reserved")
+            # Failed fsync may leave a full receipt readable, but the independently
+            # fsynced reservation is consumed regardless of receipt durability.
+            self.assertTrue(SECRET not in json.dumps(state))
+        finally:
+            peer.close()
 
 
 if __name__ == "__main__":

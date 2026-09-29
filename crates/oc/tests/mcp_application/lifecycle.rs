@@ -517,6 +517,13 @@ fn mcp08_actual_retry_and_reload_location_retire_pending_scope_without_late_effe
     tui.raw(b"   ");
     tui.resize(140, 44);
     wait_row(&tui, "repair", "Connecting");
+    // A previously painted Connecting row does not acknowledge the queued
+    // spaces. Observe the following Enter and return while catalog stays held,
+    // so none of those pending connects becomes a post-release disconnect.
+    tui.raw(b"\r");
+    tui.wait_screen("enter/esc back", TIMEOUT);
+    tui.raw(b"\r");
+    tui.wait_screen("connection pending", TIMEOUT);
     assert_eq!(event_count(&fixture, "repair", "spawn"), 1);
     fs::write(&catalog, "release").unwrap();
     wait_row(&tui, "repair", "Connected");

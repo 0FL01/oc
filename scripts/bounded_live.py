@@ -4,7 +4,7 @@
 init ROOT creates a NEW 0700 root exclusively and prints its inode-bound ID.
 serve --campaign ID reads one explicit target manifest from stdin, then keeps
 stdin as its ownership pipe. EOF/signal stops and reaps all request workers.
-inspect --campaign ID prints counts/attempt outcomes only. Resume MUST reuse ID.
+inspect --campaign ID prints counts/outcomes and safe receipts. Resume MUST reuse ID.
 The journal is append-only, flock-serialized, fsynced BEFORE any upstream dial.
 An interrupted/uncertain reservation is consumed permanently. No reset command.
 """
@@ -41,10 +41,28 @@ PLACEHOLDER = "bounded-envelope-placeholder"
 SAFE_ID = re.compile(r"[a-z][a-z0-9_-]{0,63}\Z")
 HEADER_NAME = re.compile(r"[!#$%&'*+.^_`|~0-9a-z-]+\Z")
 HOP_HEADERS = {"host", "connection", "transfer-encoding", "te", "trailer", "upgrade", "proxy-authorization", "proxy-connection", "keep-alive"}
+FAILURES = {"dns", "tls", "timeout", "connection", "http_protocol", "io", "address_refused", "address_limit", "response_limit", "response_header_limit", "envelope_refused"}
+FAILURE_STAGES = {"connect", "request", "response", "relay"}
+CLOSED_CODES = frozenset("""
+    duplicate_json_key invalid_json invalid_root untrusted_ancestor untrusted_state
+    journal_limit journal_write root_refused invalid_identity identity_mismatch
+    journal_busy corrupt_journal invalid_reservation exhausted_generation
+    exhausted_mcp exhausted_control input_limit invalid_catalog_ids invalid_outcome
+    invalid_receipt invalid_target invalid_target_headers address_limit
+    target_address_refused invalid_headers duplicate_header header_limit
+    invalid_manifest invalid_request unsupported_framing invalid_length
+    request_limit incomplete_request unexpected_body invalid_generation output_limit
+    invalid_discovery rpc_limit unsupported_rpc invalid_call short_search_required
+    unknown_route header_source_mismatch unconfigured_auth response_status
+    response_header_limit response_limit explicit_opt_in_required exhausted_campaign
+    manifest_limit unexpected_control_input envelope_refused
+""".split())
 
 
 class Closed(Exception):
     """Fixed safe codes only; never exception/URL/header/payload interpolation."""
+    def __init__(self, code):
+        super().__init__(code if isinstance(code, str) and code in CLOSED_CODES else "envelope_refused")
 
 
 def require(ok, code):
@@ -106,6 +124,38 @@ def identity_binding(identity):
     # for a renamed root or replacement file must not create fresh authority.
     raw = json.dumps(identity, separators=(",", ":"), sort_keys=True).encode()
     return hashlib.sha256(raw).hexdigest()
+
+
+def checked_receipt(value, outcome, code):
+    """Additive finish metadata only; missing legacy fields stay unknown."""
+    require(isinstance(value, dict) and set(value) <= {"http_status", "failure", "failure_stage"}, code)
+    if "http_status" in value:
+        require(type(value["http_status"]) is int and 100 <= value["http_status"] <= 599, code)
+    require(("failure" in value) == ("failure_stage" in value), code)
+    if "failure" in value:
+        require(outcome == "uncertain" and isinstance(value["failure"], str) and value["failure"] in FAILURES
+                and isinstance(value["failure_stage"], str) and value["failure_stage"] in FAILURE_STAGES, code)
+    return value
+
+
+def failure_category(error):
+    # Never inspect exception messages, bodies, addresses or header values.
+    if isinstance(error, socket.gaierror):
+        return "dns"
+    if isinstance(error, ssl.SSLError):
+        return "tls"
+    if isinstance(error, TimeoutError):
+        return "timeout"
+    if isinstance(error, ConnectionError):
+        return "connection"
+    if isinstance(error, http.client.HTTPException):
+        return "http_protocol"
+    if isinstance(error, Closed):
+        fixed = {"target_address_refused": "address_refused", "address_limit": "address_limit",
+                 "response_limit": "response_limit", "response_header_limit": "response_header_limit",
+                 "response_status": "http_protocol"}
+        return fixed.get(error.args[0], "envelope_refused")
+    return "io"
 
 
 class Ledger:
@@ -199,10 +249,12 @@ class Ledger:
                     total += row["bytes"]
                     attempts.append({**row, "outcome": "reserved"})
                 else:
-                    require(set(row) == {"attempt", "outcome"} and type(row["attempt"]) is int and 1 <= row["attempt"] <= len(attempts), "corrupt_journal")
+                    require({"attempt", "outcome"} <= set(row) and type(row["attempt"]) is int and 1 <= row["attempt"] <= len(attempts), "corrupt_journal")
                     attempt = attempts[row["attempt"] - 1]
                     require(attempt["outcome"] == "reserved" and row["outcome"] in ("complete", "uncertain"), "corrupt_journal")
+                    receipt = checked_receipt({k: v for k, v in row.items() if k not in ("attempt", "outcome")}, row["outcome"], "corrupt_journal")
                     attempt["outcome"] = row["outcome"]
+                    attempt.update(receipt)
             require(all(counts[k] <= LIMITS[k] for k in LIMITS) and total <= TOTAL_INPUT_CAP, "corrupt_journal")
             yield fd, {"id": i["id"], "counts": counts, "input_bytes": total, "attempts": attempts}
         finally:
@@ -224,10 +276,11 @@ class Ledger:
             append(fd, {"reserve": seq, "kind": kind, "target": target, "bytes": size, "catalog_ids": list(catalog_ids)})
             return seq
 
-    def finish(self, seq, outcome):
+    def finish(self, seq, outcome, receipt=None):
+        receipt = checked_receipt({} if receipt is None else receipt, outcome, "invalid_receipt")
         with self.locked() as (fd, state):
-            require(1 <= seq <= len(state["attempts"]) and state["attempts"][seq - 1]["outcome"] == "reserved" and outcome in ("complete", "uncertain"), "invalid_outcome")
-            append(fd, {"attempt": seq, "outcome": outcome})
+            require(type(seq) is int and 1 <= seq <= len(state["attempts"]) and state["attempts"][seq - 1]["outcome"] == "reserved" and outcome in ("complete", "uncertain"), "invalid_outcome")
+            append(fd, {"attempt": seq, "outcome": outcome, **receipt})
 
 
 class Target:
@@ -365,13 +418,14 @@ def classify(method, route_kind, body):
     return "control"
 
 
-def local_error(client, code):
-    raw = json.dumps({"error": "bounded_envelope", "code": code}).encode()
+def local_error(client, code, failure, stage):
+    raw = json.dumps({"error": "bounded_envelope", "code": code, "failure": failure, "failure_stage": stage}).encode()
     client.sendall(b"HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\nconnection: close\r\ncontent-length: " + str(len(raw)).encode() + b"\r\n\r\n" + raw)
 
 
 def forward(client, ledger, routes):
     attempt, conn, outcome, sent = None, None, "uncertain", False
+    receipt, stage = {}, "pre_dispatch"
     try:
         client.settimeout(DEADLINE)
         method, path, headers, body = read_request(client)
@@ -392,7 +446,9 @@ def forward(client, ledger, routes):
             catalog_ids = sorted({name for name, route, _ in routes.values() if route == "mcp" and any(tool.startswith(name + "__") for tool in names)})
         attempt = ledger.reserve(kind, target_id, len(body), catalog_ids)
         # NOTHING external (including DNS) occurs before reserve + successful fsync.
+        stage = "connect"
         conn = target.connect()
+        stage = "request"
         conn.putrequest(method, target.path, skip_host=True, skip_accept_encoding=True)
         conn.putheader("host", target.url.netloc)
         for name, value in headers.items():
@@ -400,7 +456,10 @@ def forward(client, ledger, routes):
                 conn.putheader(name, value)
         conn.putheader("connection", "close")
         conn.endheaders(body if body else None)
+        stage = "response"
         response = conn.getresponse()
+        require(type(response.status) is int and 100 <= response.status <= 599, "response_status")
+        receipt["http_status"] = response.status
         response_headers = response.getheaders()
         require(sum(len(k) + len(v) + 4 for k, v in response_headers) <= HEADER_CAP, "response_header_limit")
         require(len(response_headers) <= 64, "response_header_limit")
@@ -408,6 +467,7 @@ def forward(client, ledger, routes):
         require(length is None or (length.isdigit() and int(length) <= RESPONSE_CAP), "response_limit")
         # Preserve status, end-to-end headers and entity bytes. Transfer framing
         # is decoded incrementally and re-framed as connection-close HTTP/1.1.
+        stage = "relay"
         client.sendall(f"HTTP/1.1 {response.status} Upstream\r\n".encode())
         for name, value in response_headers:
             if name.lower() not in HOP_HEADERS and name.lower() != "content-length":
@@ -423,9 +483,10 @@ def forward(client, ledger, routes):
             client.sendall(chunk)
         outcome = "complete"
     except Exception as error:
+        receipt.update(failure=failure_category(error), failure_stage=stage)
         if not sent:
             try:
-                local_error(client, str(error) if isinstance(error, Closed) else "io_failure")
+                local_error(client, str(error) if isinstance(error, Closed) else "io_failure", receipt["failure"], stage)
             except OSError:
                 pass
     finally:
@@ -433,7 +494,7 @@ def forward(client, ledger, routes):
             conn.close()
         if attempt is not None:
             try:
-                ledger.finish(attempt, outcome)
+                ledger.finish(attempt, outcome, receipt)
             except Exception:
                 pass  # reserved is consumed; corrupt/IO failure cannot reset it.
 

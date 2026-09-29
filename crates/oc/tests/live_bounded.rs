@@ -365,14 +365,19 @@ impl Peer {
     }
 
     fn with_catalog(catalog: Value) -> Self {
-        Self::with_policy(catalog, false)
+        Self::with_policy(catalog, false, None)
     }
 
     fn with_retry() -> Self {
-        Self::with_policy(json!({"data": []}), true)
+        Self::with_policy(json!({"data": []}), true, None)
     }
 
-    fn with_policy(catalog: Value, retry_once: bool) -> Self {
+    fn with_status(status: u16) -> Self {
+        assert!((100..=599).contains(&status));
+        Self::with_policy(json!({"data": []}), false, Some(status))
+    }
+
+    fn with_policy(catalog: Value, retry_once: bool, status: Option<u16>) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
         let url = format!(
             "http://127.0.0.1:{}/v1",
@@ -410,6 +415,15 @@ impl Peer {
                             "is_title": texts(&body).iter().any(|s| s.contains("Generate a short session title"))
                         }));
                         let index = hits.fetch_add(1, Ordering::Relaxed);
+                        if let Some(status) = status {
+                            let body = r#"{"error":"PRIVATE_DIAGNOSTIC_CANARY"}"#;
+                            let _ = write!(
+                                socket,
+                                "HTTP/1.1 {status} Offline\r\ncontent-type: application/json\r\nx-private-fixture: PRIVATE_DIAGNOSTIC_CANARY\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+                                body.len()
+                            );
+                            continue;
+                        }
                         if retry_once && index == 0 {
                             let _ = socket.write_all(b"HTTP/1.1 500 Offline\r\ncontent-length: 0\r\nconnection: close\r\n\r\n");
                             continue;
@@ -1859,6 +1873,7 @@ fn r4_report(fixture: &Fixture) -> Value {
     json!({"harness":"live_bounded_r4", "live_envelope_verified":true,
         "status": if ok && catalog_ok && search_ok && warning {"passed"} else {"non-success"},
         "native_run_ok":ok, "native_catalogs_advertised":catalog_ok, "completed_short_codex_search":search_ok,
+        "native_error_code":if ok {Value::Null} else {json!("unknown")},
         "visible_unavailable_warning":warning, "visible_unavailable_warning_count":warning_count,
         "process":detail, "durable_envelope":state})
 }

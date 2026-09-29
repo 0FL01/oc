@@ -295,7 +295,18 @@ fn bounded_native_restart_and_helper_restart_share_real_attempts() {
             .iter()
             .any(|v| v["is_title"] == true)
     );
-    assert_eq!(inspect(&id).unwrap()["counts"]["generation"], before);
+    let initial = inspect(&id).unwrap();
+    assert_eq!(initial["counts"]["generation"], before);
+    assert_eq!(
+        initial["attempts"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|a| a["kind"] == "generation" && a["http_status"] == 500)
+            .count(),
+        1,
+        "actual automatic retry's HTTP 500 is a consumed complete exchange"
+    );
     drop(fixture.envelope.take());
     let guard = Envelope::start(id.clone(), &targets, true).unwrap();
     fixture.route_guard(guard);
@@ -406,5 +417,49 @@ fn bounded_native_r4_complete_path_uses_same_trusted_envelope() {
     println!(
         "owned_native_r4 generation={} mcp=1 catalogs=true unavailable_initialize=1 warning=true completed=true",
         report["durable_envelope"]["counts"]["generation"]
+    );
+}
+
+#[test]
+fn bounded_native_r4_http_failure_reports_safe_actual_receipts() {
+    let peer = Peer::with_status(400);
+    let codex = Mcp::start();
+    let crw = Mcp::start();
+    let unavailable = Mcp::unavailable();
+    let root = tempfile::tempdir().unwrap();
+    let id = Envelope::initialize(&root.path().join("campaign"));
+    let mut targets: Value = serde_json::from_str(&manifest(&peer, &codex)).unwrap();
+    targets["mcp"]["crw"] = json!({"url":crw.url, "headers":{}});
+    targets["mcp"]["unavailable"] = json!({"url":unavailable.url, "headers":{}});
+    let guard = Envelope::start(id.clone(), &targets.to_string(), true).unwrap();
+    let fixture = Fixture::guarded("fixture/dry-run-model".into(), None, guard);
+    fixture.restrict_r4();
+    let report = r4_report(&fixture);
+    assert_eq!(report["status"], "non-success");
+    assert_eq!(report["native_run_ok"], false);
+    assert_eq!(report["native_error_code"], "unknown");
+    assert_eq!(report["completed_short_codex_search"], false);
+    let generations: Vec<_> = report["durable_envelope"]["attempts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|attempt| attempt["kind"] == "generation")
+        .collect();
+    let actual = peer.requests.lock().unwrap().len();
+    assert!(actual > 0);
+    assert_eq!(generations.len(), actual);
+    assert_eq!(report["durable_envelope"]["counts"]["generation"], actual);
+    assert!(
+        generations
+            .iter()
+            .all(|a| a["http_status"] == 400 && a["outcome"] == "complete")
+    );
+    assert_eq!(report["durable_envelope"]["counts"]["mcp"], 0);
+    assert!(codex.calls().is_empty() && crw.calls().is_empty() && unavailable.calls().is_empty());
+    let metadata = report.to_string();
+    assert!(!metadata.contains("PRIVATE_DIAGNOSTIC_CANARY"));
+    assert!(!metadata.contains("dry-run-key") && !metadata.contains(&peer.url));
+    println!(
+        "owned_native_r4_non_success generation={actual} mcp=0 upstream_status=400 native_error_code=unknown"
     );
 }

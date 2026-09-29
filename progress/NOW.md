@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-29T06:53:49+00:00
+State updated: 2026-09-29T07:33:10+00:00
 Active: T46
 
 Сверить Git status/diff до выполнения команд.
@@ -14,13 +14,13 @@ D13 attach degradation/warnings/UA delivered 3ce5e03/b7ab06d; historical evidenc
 
 # T46
 ## Result
-Durable envelope and late-warning fix verified.
+Live attempt non-success; safe receipt diagnostics ready.
 ## Checks
-1262/0; native R4 offline 5gen/1search/1warning.
+Original campaign 2gen/0search; offline13/15/native4 PASS.
 ## Risks
-Live NOT_RUN; full T46/V09/READY open.
+Live cause unknown; no R4/READY claim.
 ## Next
-Execute R4 with one persistent campaign/journal.
+Same campaign, bounded diagnostic experiment.
 
 
 Ready (до 5): T45, T50, T51
