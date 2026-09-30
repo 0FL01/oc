@@ -262,6 +262,35 @@ is BLOCKED_REFERENCE; preserve provenance/failed attempts, no crop/mask/toleranc
 baseline rewrite. VIS41 NOT_RUN/evidence empty and full VIS39 still open until real
 qualification; approval leaves previous task statuses/evidence unchanged.
 
+## Middle Click tab close — VIS44 (approved 2026-09-30; pending)
+
+Only T44/R5/V04 owns VIS44 in `tui-recovery/ACCEPTANCE.json`; follow the dedicated
+[amendment](../tui-recovery/T44_CONTRACT_AMENDMENT.md#middle-click-tab-close--vis44)
+and pinned U74/U75. It is not covered by VIS39 spinner or VIS41 hover-marquee.
+
+Extend the nearest `oc-tui/src/app/tests/tabs.rs` input regression: Middle Down
+in the body of an inactive eligible painted tab returns its CloseTab without
+activation or cross hit; Middle Up after the deck changes cannot close a survivor.
+Use existing geometry/guard tests for vertical/compact and non-tab targets; reuse
+left-cross/keyboard/palette, busy and save-failure owner assertions, not a duplicate
+negative matrix. Middle Down must not engage the Left-cross five-second close hold.
+
+Extend the existing actual-binary `oc/tests/pty_t42.rs` close/reopen fixture or
+nearest retained PTY scenario with real SGR Middle Down/Up, inactive→active→last-tab
+closure, survivor draft/focus, live Home, committed deck on restart and real history
+reopen. Session/raw history is retained; fake-provider counters show zero new
+generation/tool effects. Closing uses the existing native CloseTab owner/guards.
+
+Then compare running pinned-original/native full before/hover/after styled cells,
+PNG and cursor under identical idle fixture/state/profile, representative existing
+80x24/120x40/160x48 and horizontal/vertical/compact layouts without a Cartesian
+product. Independently verify target session identity and reopen. Busy-close is
+a disclosed donor/native difference: this slice cannot bypass native guards or
+claim full busy/navigation parity. No crop/mask/native-golden substitute, paid API
+calls or new test framework; missing runnable reference is BLOCKED_REFERENCE.
+VIS44 mandatory NOT_RUN/evidence empty; plan approval does not resume PAUSED T44,
+switch active T50, change historical evidence or imply runtime PASS.
+
 ## MCP modal prerequisite and qualification — MCP08 / VIS40 (approved 2026-09-27; pending)
 
 MCP08 in planning/acceptance.json belongs only to T46/R5; VIS40 is T44-owned in its

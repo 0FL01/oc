@@ -1077,6 +1077,125 @@ VIS43 mandatory NOT_RUN/evidence empty until actual paired qualification.
 Neither a plan commit nor RET01 PASS resumes/finishes T44 or proves full
 provider-retry visual parity; no new task/progress engine or historical PASS.
 
+## Middle Click tab close — VIS44
+
+**Owner-approved 2026-09-30; T44 / R5 / V04; implementation pending.** Источник —
+сообщение владельца: «нельзя закрыть вкладку в TUI наведясь курсором на вкладку
+и нажав Middle Click (при этом в оригинале TS 2 — вкладка закрывается)», затем
+«Вноси в план работ развернуто и коммит пуш в текущую ветку». Это отдельный
+проверяемый bug-fix slice существующей T44, не новая задача или tab framework.
+VIS39 spinner и VIS41 hover-marquee не доказывают обработку средней кнопки.
+
+### RECON и pinned источники
+
+Reference — OC2 v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:
+
+- **U74**, `packages/tui/src/component/session-tabs.tsx:81–83,869–877,1630–1639`:
+  `MIDDLE_MOUSE_BUTTON = 1`; vertical и horizontal tab box на `onMouseDown`
+  сбрасывают drag и вызывают `tabs.close(sessionID)`, затем `preventDefault`/
+  `stopPropagation`. Horizontal Middle Click также освобождает close hold;
+  для `NEW_SESSION_TAB` передаёт `undefined`. Отпускания кнопки или крестика
+  обработчик не ждёт; compact vertical rail проходит тот же tab-box путь.
+- **U75**, `packages/tui/src/context/session-tabs.tsx:315–344,398–423`:
+  close убирает вкладку из persisted deck и сохраняет её для reopen, но не
+  удаляет durable session. При закрытии неактивной вкладки route не меняется;
+  при активной выбирается survivor, а без него Home. Busy-запрета здесь нет.
+  Это source-derived semantics, не выполненная проверка оригинала/native.
+
+Native RECON на `4ac332f109dc06e21e930b9bf5c07340268b23c4`:
+`crates/oc-tui/src/app/input.rs::handle_mouse` возвращает tab intents только
+через Left down/up; `MouseButton::Middle` не обрабатывается. `app/tabs.rs::tab_hit`
+различает тело/крестик/Add, а `tab_close_cell` отвечает одновременно за hover
+крестика и close eligibility. В compact rail крестика нет: это не основание
+запретить Middle Click. `crates/oc/src/tui_cmd.rs::apply_mouse_outcome` и
+`PanelIntent::CloseTab` уже ведут к `LoopState::close_tab`, checked saved deck
+и replacement view; новый путь должен переиспользовать именно этого владельца.
+Ближайшие tests: `app/tests/tabs.rs` и `tui_cmd/tests/{routing,lifecycle}.rs`;
+actual-binary close/reopen case уже есть в `oc/tests/pty_t42.rs`.
+
+### Обязательное поведение и границы
+
+1. **Whole-tab target.** Обычный Middle Click без modifiers внутри видимой
+   нарисованной вкладки возвращает CloseTab для этой вкладки на mouse-down.
+   Предварительный Left Click, активность вкладки, отдельный mouse-move и
+   попадание в крестик не требуются. Title/ordinal/blank fill принадлежат той
+   же вкладке. Использовать actual painted/clipped hit test для horizontal,
+   vertical и compact rail; скрытые вкладки, overflow markers, Add и transcript
+   не становятся close targets. Synthetic Home/New session следует существующей
+   native CloseTab доступности: bare Home без real tabs не закрывает приложение.
+2. **One gesture, one action.** Consume среднее нажатие в tab routing, сбросив
+   старое tab press/drag намерение. Последующие Middle Up/Drag не закрывают
+   следующую вкладку и не запускают ActivateTab/NewSession/left-release action.
+   Middle Close не включает пятисекундный cross-close hold, даже если нажатие
+   пришлось на крестик; U74 освобождает его. Не менять left-cross down/up,
+   keyboard/palette/slash close, wheel и modal/composer routing ради нового пути.
+3. **Existing close owner.** Неактивная вкладка закрывается без её предварительной
+   активации и без потери draft/cursor/scroll текущей. Активная использует
+   существующий native выбор replacement view; последняя real tab ведёт в Home,
+   не завершает процесс. Reuse checked deck saves и существующую диагностику:
+   отказ не должен локально убрать вкладку или потерять draft. Сессия, raw
+   messages/turns и DCP history остаются; реальный history reopen доступен,
+   restart восстанавливает committed deck без самовольного возврата closed tab.
+   Закрытие не отправляет prompt, не генерирует ответ и не переисполняет tools.
+4. **Busy boundary — явное отличие, не скрытый parity claim.** Original U74/U75
+   допускает busy-close; native `LoopState::close_tab`/tab guards запрещают его.
+   Запрос добавляет отсутствующий mouse gesture, **не разрешает снять existing
+   busy/permission/Location/read-only/lifecycle guards или автоматически отменять
+   работающий turn**. Проверять доступность отдельно от видимости hover крестика;
+   не bypass через Middle Click. Полный busy-close parity остаётся вне этого
+   узкого среза до отдельного утверждения owner-backed execution/cancel/navigation
+   семантики. Не заявлять full donor behavior по успешному закрытию idle tab.
+
+### Ordered implementation slice после explicit resume
+
+1. Сверить актуальный Git/runtime путь и минимально расширить существующий
+   `app/tests/tabs.rs` regression: Middle Down в теле неактивной eligible tab
+   должен дать её CloseTab, Middle Up после обновления deck — никакого intent.
+   RED на прежнем коде фиксирует именно reported failure; не создавать новый
+   test target/helper или копию tab renderer.
+2. В `app/input.rs` добавить отдельную Middle Down ветку и переиспользовать
+   `shell::tab_strip`/`layout` painted hit test. В `app/tabs.rs` отделить close
+   eligibility от glyph/hover/compact visibility только насколько нужно этому
+   пути. Сохранить existing stable session/deck mapping и owner revalidation;
+   не выбирать вкладку по title и не удалять state из input handler.
+3. Проверить `tui_cmd.rs::apply_mouse_outcome` и `mouse_close_snapshot`:
+   Middle Down на glyph не должен ошибочно включить Left-cross hold. При
+   необходимости различить origin минимально в существующей маршрутизации;
+   обычный `PanelIntent::CloseTab` и `LoopState::close_tab` остаются общим путём.
+   Не добавлять второй API/store, MRU navigation, migration, middle-button
+   setting или новую worker/cancel/background-tab систему.
+4. Проверить ближайшие regressions и actual rebuilt binary под bounded PTY,
+   затем парные pinned-original/native frames и effects. Срез независим от
+   завершения T45/T50, не требует paid provider вызовов. После успешных
+   targeted checks — affected-crate и обязательные gates T44 по runbook;
+   reviewed implementation/evidence commit и delivery отдельно от plan commit.
+
+### Минимальная квалификация VIS44
+
+- **Input regression:** один nearest scenario показывает прежний сбой, правильный
+  inactive target и отсутствие второго действия на release. Расширить ближайшие
+  existing geometry/guard assertions лишь для materially distinct vertical/compact,
+  outside/Add/overflow/modal и busy ветвей; не делать Cartesian test matrix.
+- **Actual binary:** existing `pty_t42` close/reopen fixture либо nearest retained
+  PTY scenario получает реальную SGR Middle Down/Up последовательность. Закрыть
+  inactive и active tab, затем last real tab; проверить focus/draft survivors,
+  Home/живой процесс, committed saved deck после restart и actual history reopen.
+  Fake-provider counters подтверждают отсутствие generation/tool effects. Existing
+  left-cross/keyboard/palette, save-failure и busy tests переиспользуются, не копируются.
+- **Paired reference:** одинаковые idle sessions/state/profile и real Middle Click
+  на запущенных pinned original/native. Full before/hover/after styled cells, PNG
+  и cursor в existing 80x24/120x40/160x48 profiles, с representative horizontal,
+  vertical/compact и clipped geometry, не полный width×state product. Подтвердить
+  фактический closed session identity/reopen независимо от картинки. Native-only
+  goldens и crop/mask не закрывают gate; missing reference — BLOCKED_REFERENCE.
+  Busy refusal и существующие native replacement-view отличия фиксировать отдельно,
+  не подменять ими matched idle fixture и не маркировать universal donor parity.
+
+VIS44 **mandatory, NOT_RUN, evidence empty** до фактической квалификации.
+Этот план не меняет historical PASS/baselines, execution statuses или active T50
+и не снимает **PAUSED T44**. После explicit resume выполнять slice по обычному
+one-active-task workflow; plan commit/push не является implementation/evidence PASS.
+
 ## Обязательные результаты нового прохода
 
 V00–V09 из IMPLEMENTATION_GUIDE.md и все mandatory сценарии из актуального ACCEPTANCE.json:

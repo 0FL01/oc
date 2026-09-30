@@ -636,6 +636,16 @@
       "mandatory": true,
       "execution_status": "NOT_RUN",
       "evidence": []
+    },
+    {
+      "id": "VIS44",
+      "step": "V04",
+      "title": "Middle Click closes the targeted session tab without deleting history",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md Middle Click tab close — VIS44. Ordinary unmodified Middle Down anywhere in a visible eligible tab emits its CloseTab without prior activation, pointer move or hover-cross hit; horizontal/vertical/compact painted geometry, inactive/active/last-tab and existing synthetic Home semantics apply. Middle Up/Drag emits no second action; do not create the Left-cross close hold or leak a stale left release. Reuse native CloseTab checked deck persistence, replacement view and failure behavior. Inactive close retains current draft/focus/scroll; last real tab goes Home without quitting. Session/raw history/DCP retained, actual history reopen available and restart keeps committed closed deck. Preserve busy/permission/Location/read-only/lifecycle guards: donor busy-close versus native refusal is explicitly disclosed, not full parity or permission to weaken safety. Extend nearest tab-input regression for the reported failure and reuse existing geometry/guard/left-cross/keyboard/palette/save-failure tests. Rebuilt actual-binary bounded PTY sends real SGR Middle Down/Up and proves correct target, one closure, survivors, Home, restart/reopen and zero generation/tool effects; then running pinned-original/native full matched idle before/hover/after styled-cell/PNG/cursor captures at representative existing profiles/layouts independently confirm identity/effects. No Cartesian matrix, crop/mask, native-only golden parity, new owner/store/API/framework or paid calls. Only T44 owns VIS44; independent of whole T45/T50, distinct from VIS39/VIS41. Plan pending, T44 PAUSED until explicit resume, historical evidence/statuses unchanged.",
+      "sources": ["U74", "U75"],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
     }
   ]
 }

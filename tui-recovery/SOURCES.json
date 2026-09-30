@@ -858,6 +858,24 @@
       "locator": "298–313 getCurrentAssistant returns only most recent unfinished assistant",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/projector.ts#L298-L313",
       "purpose": "VIS43 preserve completed partial-failure assistant retry history while next span succeeds"
+    },
+    {
+      "id": "U74",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/session-tabs.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "81–83 middle button=1; 869–877 vertical/compact whole-tab onMouseDown; 1630–1639 horizontal close/drag reset/hold release and New session",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/session-tabs.tsx#L1630-L1639",
+      "purpose": "VIS44 Middle Down closes targeted tab without hover-cross or activation; does not wait for Up and consumes propagation"
+    },
+    {
+      "id": "U75",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/context/session-tabs.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "315–344 deletion event separate from remove/active-route replacement; 398–423 close/reopen and Home fallback",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/session-tabs.tsx#L398-L423",
+      "purpose": "VIS44 closes persisted tab view, not durable session; inactive route preserved, actual reopen, no donor busy guard (native difference disclosed)"
     }
   ],
   "external_primary_sources": [

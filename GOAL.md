@@ -283,6 +283,24 @@ replay не ослабляются. T51 readiness refresh, discovery и MCP retr
 являются paid generation retry. План pending/NOT_RUN, historical PASS и
 execution statuses не переписываются; A01–A13/mandatory gates сохраняются.
 
+## Owner scope amendment (2026-09-30 — Middle Click закрытие вкладки)
+
+Владелец сообщил, что в Rust TUI вкладка не закрывается средней кнопкой мыши,
+в отличие от OpenCode TS 2, и потребовал внести подробное исправление в план.
+[T44 / R5 / VIS44](tui-recovery/T44_CONTRACT_AMENDMENT.md#middle-click-tab-close--vis44)
+добавляет обычный Middle Click по всей видимой области доступной вкладки:
+закрытие на mouse-down, без предварительного выбора или попадания в крестик,
+в горизонтальном и вертикальном layout, включая compact rail. Это закрытие
+вкладки через существующий native CloseTab owner, не удаление сессии/истории;
+нужны actual-binary PTY, reopen/restart и парное доказательство с pinned OC2.
+
+Pinned original допускает закрытие busy-вкладок; существующий native контракт
+его запрещает. Этот срез не разрешает снять busy/permission/Location/lifecycle
+защиты: различие фиксируется явно, полный busy-close parity требует отдельного
+утверждения безопасной семантики. VIS44 принадлежит только T44 и не дублирует
+VIS39/VIS41. План pending/NOT_RUN; T44 остаётся PAUSED до explicit resume,
+активная T50, historical evidence и execution statuses не меняются.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.
