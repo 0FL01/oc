@@ -22,6 +22,8 @@ use oc_adapters::storage::Db;
 use oc_core::context_plan::ProtectedSpec;
 #[path = "fixtures/approval_lifecycle.rs"]
 mod approval_lifecycle;
+#[path = "fixtures/background_lifecycle.rs"]
+mod background_lifecycle;
 
 fn sse_delta(text: &str) -> String {
     format!(
@@ -856,6 +858,7 @@ async fn check_application_patch_replay(line: &str, count: usize) {
             CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             CoreEvent::McpChanged(snapshot) => assert!(snapshot.servers.is_empty()),
             CoreEvent::ProviderChanged => panic!("unexpected native discovery in static fixture"),
+            CoreEvent::ShellNotice(_) => panic!("unexpected shell in patch-only fixture"),
             CoreEvent::TurnPresentation { projection, .. } => checkpoints.push(projection),
             CoreEvent::TurnStarted { .. }
             | CoreEvent::SessionTitleUpdated { .. }

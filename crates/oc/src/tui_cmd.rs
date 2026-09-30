@@ -2361,10 +2361,17 @@ async fn apply_intent_with_origin(
         }
         PanelIntent::LoadCardOutput { op, offset } => {
             let session = require_session(state)?;
-            let page = app
-                .tool_output_page(session, op.clone(), offset, 240)
+            let page = match app
+                .shell_output(session.clone(), op.clone(), offset, 240)
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|error| error.to_string())?
+            {
+                Some(page) => page,
+                None => app
+                    .tool_output_page(session, op.clone(), offset, 240)
+                    .await
+                    .map_err(|error| error.to_string())?,
+            };
             state.apply_card_output(op, offset, page);
         }
         PanelIntent::SelectModel { id } => {
@@ -3104,6 +3111,7 @@ async fn handle_worker_event(
         return Ok(());
     }
     let owner = match &event {
+        CoreEvent::ShellNotice(notice) => &notice.session,
         CoreEvent::SessionTitleUpdated { session, .. }
         | CoreEvent::RetryScheduled { session, .. }
         | CoreEvent::TurnStarted { session, .. }
@@ -3129,6 +3137,17 @@ async fn handle_worker_event(
         return Ok(());
     }
     match event {
+        CoreEvent::ShellNotice(notice) => {
+            if state.is_busy() {
+                state.push_note(&notice.text);
+            } else {
+                let page = app
+                    .history_page(notice.session, None, None, HISTORY_PAGE_LIMIT)
+                    .await
+                    .map_err(|error| error.to_string())?;
+                state.refresh_completed_page(&page);
+            }
+        }
         CoreEvent::Compaction(_) | CoreEvent::McpChanged(_) | CoreEvent::ProviderChanged => {
             unreachable!("handled above")
         }

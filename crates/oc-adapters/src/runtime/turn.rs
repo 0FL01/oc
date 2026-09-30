@@ -954,6 +954,11 @@ impl<'a> Runtime<'a> {
             "agent_color_index":lane.agent_color_index,
         });
         turn_log.agent_digest = lane.agent_digest.clone();
+        let mut shell_notice_seq = projected
+            .iter()
+            .filter_map(|(id, _, _)| id.strip_prefix('m')?.parse::<i64>().ok())
+            .max()
+            .unwrap_or(0);
         turn_log.user_message = Some(user_message);
         turn_log
             .input
@@ -967,6 +972,27 @@ impl<'a> Runtime<'a> {
         let mut last_compacted_round = None;
         let mut retry_policy = retry::RetryPolicy::default();
         'step: loop {
+            if let Some(events) = self
+                .compaction_events
+                .lock()
+                .expect("event publisher")
+                .as_ref()
+            {
+                self.shell_jobs.deliver(events)?;
+            }
+            for (id, notice) in self
+                .db
+                .shell_notices_after(&params.session, shell_notice_seq)?
+            {
+                shell_notice_seq = id
+                    .strip_prefix('m')
+                    .and_then(|value| value.parse().ok())
+                    .ok_or(RuntimeError::Storage)?;
+                turn_log.shell_notice_messages.push(id);
+                turn_log
+                    .input
+                    .push(InputItem::message(InputRole::User, notice));
+            }
             if params.cancel.load(Ordering::Relaxed) {
                 return self.commit_turn(
                     &turn_log,
@@ -2014,7 +2040,10 @@ impl<'a> Runtime<'a> {
                 // and compress call/output in the actual continuation request.
                 let prior = projected
                     .iter()
-                    .filter(|row| turn_log.user_message.as_deref() != Some(row.0.as_str()))
+                    .filter(|row| {
+                        turn_log.user_message.as_deref() != Some(row.0.as_str())
+                            && !turn_log.shell_notice_messages.contains(&row.0)
+                    })
                     .cloned()
                     .collect::<Vec<_>>();
                 history = self.wire_history(
@@ -2308,7 +2337,7 @@ impl<'a> Runtime<'a> {
                 roots: ctx.roots.clone(),
             };
             let ctx = &invocation_ctx;
-            let rejection = match &guarded {
+            let mut rejection = match &guarded {
                 Assembled::Failed(failure) => Some(("failed", format!("error: {}", failure.error))),
                 Assembled::Call(call)
                     if is_builtin(&call.name) && crate::tools::validate_call(call).is_err() =>
@@ -2374,6 +2403,18 @@ impl<'a> Runtime<'a> {
                 }
                 _ => None,
             };
+            let mut shell_slot = None;
+            if rejection.is_none()
+                && matches!(&guarded,Assembled::Call(call) if call.name=="shell" && call.arguments["background"]==true)
+            {
+                shell_slot = self.shell_jobs.reserve();
+                if shell_slot.is_none() {
+                    rejection = Some((
+                        "failed",
+                        "error: active background shell resource ceiling (8 jobs)".into(),
+                    ));
+                }
+            }
             permission_rejected |= matches!(&admission, Err(AdmissionFailure::Rejected(None)));
             // Fail closed. No built-in or MCP dispatch can precede this commit.
             let position = call_positions[i]
@@ -2672,7 +2713,43 @@ impl<'a> Runtime<'a> {
                         (output_state(&output), output)
                     }
                     Assembled::Call(call) if matches!(call.name.as_str(), "shell" | "bash") => {
-                        crate::tools::execute_shell_typed(ctx, call).await
+                        let invocation = crate::tools::shell_call::invocation(call, ctx.parent_env)
+                            .map_err(|error| RuntimeError::InvalidArgs(error.to_string()))?;
+                        if invocation.background {
+                            let pinned =
+                                invocation_policy.approved_shell_cwd().ok_or_else(|| {
+                                    RuntimeError::InvalidArgs(
+                                        "background shell cwd not pinned".into(),
+                                    )
+                                })?;
+                            let provenance = crate::shell::jobs::Provenance {
+                                version: 1,
+                                session: session.into(),
+                                turn: turn_id.into(),
+                                operation: op.clone(),
+                                location: self.location.clone(),
+                                generation: self.generation_id(),
+                                agent: turn_log.display["agent"].as_str().map(str::to_owned),
+                                agent_digest: turn_log.agent_digest.clone(),
+                                model: turn_log.model.clone(),
+                                provider: turn_log.provider.clone(),
+                                command: call.arguments["command"]
+                                    .as_str()
+                                    .expect("validated command")
+                                    .into(),
+                                cwd: pinned.path.to_string_lossy().into(),
+                                selected_shell: invocation.argv[0].clone(),
+                            };
+                            match self.shell_jobs.launch(self.shell.clone(), self.parent_env.clone(),
+                                invocation.argv, invocation.cwd, invocation.timeout, pinned, provenance,
+                                shell_slot.take().expect("background reservation before intent")).await {
+                                Ok(shell_id) => ("completed", serde_json::json!({"status":"running", "shellID":shell_id,
+                                    "truncated":false,"output":"Background command launched. You will be notified automatically when it completes. DO NOT poll; continue independent work or end your response."}).to_string()),
+                                Err(_) => ("failed", "error: background shell admission or launch failed".into()),
+                            }
+                        } else {
+                            crate::tools::execute_shell_typed(ctx, call).await
+                        }
                     }
                     Assembled::Call(call) if is_builtin(&call.name) => {
                         let output = execute_batch(ctx, vec![guarded]).await.remove(0).output;

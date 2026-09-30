@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-30T05:02:15+00:00
+State updated: 2026-09-30T09:18:20+00:00
 Active: T50
 
 Сверить Git status/diff до выполнения команд.
@@ -14,13 +14,13 @@ Owner-approved 2026-09-27 tool RECON: built-in websearch/provider integrations �
 
 # T50
 ## Result
-Canonical foreground shell and hidden argv compatibility verified.
+Owned background shell, notices/recovery and review repairs verified.
 ## Checks
-Workspace1328; Python47; native21 per ELF; alias RED/GREEN.
+Workspace1334; Python47; native26+21+9 per ELF; independent join/Revert/Fork.
 ## Risks
-Full TOOL12/13 and T44 remain open.
+Full T50/V09/READY open; T44 PAUSED.
 ## Next
-Owned background jobs, durable notices and recovery.
+Safe T55 handoff, then remaining T50 R1/R3–R8.
 
 
 Ready (до 5): T45, T53, T55

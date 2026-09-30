@@ -111,6 +111,11 @@ impl ScriptDriver {
                         state.session_title = Some(title);
                     }
                 }
+                Ok(Ok(CoreEvent::ShellNotice(notice))) => {
+                    if state.attached_session() == Some(&notice.session) {
+                        state.push_note(&notice.text);
+                    }
+                }
                 Err(_) => return PumpOutcome::Timeout,
                 Ok(Err(_)) => return PumpOutcome::Closed,
                 Ok(Ok(CoreEvent::TurnStarted {

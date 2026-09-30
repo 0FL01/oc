@@ -554,14 +554,16 @@ async fn spawn_stages(
             ));
         }
     };
-    db.recover_interrupted_tools().map_err(|_| {
-        SpawnIssue::new(
-            SpawnFailure::Recovery,
-            &data.to_string_lossy(),
-            &["operations"],
-            oc_core::queries::ServiceCode::RecoveryFailed,
-        )
-    })?;
+    db.recover_shell_jobs()
+        .and_then(|_| db.recover_interrupted_tools())
+        .map_err(|_| {
+            SpawnIssue::new(
+                SpawnFailure::Recovery,
+                &data.to_string_lossy(),
+                &["operations"],
+                oc_core::queries::ServiceCode::RecoveryFailed,
+            )
+        })?;
     let (app, inbox, events) = CoreApp::channel(MAX_QUEUE_ITEMS);
     let (ready, ready_rx) = oneshot::channel();
     let handle = tokio::spawn(start_worker(db, composition, inbox, events, ready));
@@ -1481,6 +1483,8 @@ async fn start_worker(
                 next.set_approval_events(&events);
                 next.start_mcp()
                     .map_err(|error| runtime_issue(next.location(), &["mcp"], &error).diagnostic)?;
+                let mut next = next;
+                next.shell_jobs = runtime.shell_jobs.clone();
                 runtime = next;
                 composition = next_composition;
                 effective = next_effective;
@@ -1490,6 +1494,22 @@ async fn start_worker(
                 let _ = ack.send(Ok(receipt));
             }
             WorkerOutcome::Stop => {
+                runtime.shell_jobs.shutdown().await.map_err(|_| {
+                    runtime_issue(
+                        runtime.location(),
+                        &["shell", "cleanup"],
+                        &RuntimeError::Storage,
+                    )
+                    .diagnostic
+                })?;
+                runtime.shell_jobs.deliver(&events).map_err(|_| {
+                    runtime_issue(
+                        runtime.location(),
+                        &["shell", "delivery"],
+                        &RuntimeError::Storage,
+                    )
+                    .diagnostic
+                })?;
                 let provider_stop = provider_work.stop().await;
                 let title_stop =
                     drain_automatic_titles(&db, &events, &title_work, &mut title_rx).await;
@@ -1637,6 +1657,8 @@ async fn start_worker(
                         if mode > 0 {
                             next.register_approval_consumer(mode == 2);
                         }
+                        let mut next = next;
+                        next.shell_jobs = runtime.shell_jobs.clone();
                         runtime = next;
                         location_epoch.fetch_add(1, Ordering::SeqCst);
                         let location = runtime.location().to_string();
@@ -3059,8 +3081,46 @@ fn query(
             })();
             let _ = ack.send(result);
         }
-        InboxMsg::Cancel { ack, .. } => {
-            let _ = ack.send(Err(CoreError::TurnNotActive));
+        InboxMsg::ShellOutput {
+            session,
+            shell_id,
+            offset,
+            limit,
+            ack,
+        } => {
+            let result = db
+                .shell_output(&session.0, &shell_id, offset, limit)
+                .map(|result| {
+                    result.map(
+                        |(text, bytes, next_offset)| oc_core::queries::ToolOutputPage {
+                            text,
+                            total_bytes: bytes,
+                            next_offset,
+                        },
+                    )
+                })
+                .map_err(|error| query_storage_error(db, error));
+            let _ = ack.send(result);
+        }
+        InboxMsg::CancelShell {
+            session,
+            shell_id,
+            ack,
+        } => {
+            let result = if runtime.shell_jobs.cancel_job(&session.0, &shell_id) {
+                Ok(())
+            } else {
+                Err(CoreError::TurnNotActive)
+            };
+            let _ = ack.send(result);
+        }
+        InboxMsg::Cancel { session, ack } => {
+            let result = if runtime.shell_jobs.cancel_session(&session.0) {
+                Ok(())
+            } else {
+                Err(CoreError::TurnNotActive)
+            };
+            let _ = ack.send(result);
         }
         InboxMsg::Submit { ack, .. } => {
             let _ = ack.send(Err(CoreError::TurnBusy));
@@ -3130,6 +3190,14 @@ async fn worker(
     runtime.set_compaction_events(events);
     let mut pending_inputs = std::collections::VecDeque::new();
     'worker: loop {
+        runtime.shell_jobs.deliver(events).map_err(|_| {
+            runtime_issue(
+                runtime.location(),
+                &["shell", "delivery"],
+                &RuntimeError::Storage,
+            )
+            .diagnostic
+        })?;
         if let Some(session) = runtime.pending_compaction() {
             let selected = match selection::for_turn(db, composition, effective, &session) {
                 Ok(selected) => selected,
@@ -3202,6 +3270,7 @@ async fn worker(
             tokio::select! {
                 biased;
                 error = runtime.wait_mcp_failure() => return Err(runtime_issue(runtime.location(), &["mcp"], &error).diagnostic),
+                () = runtime.shell_jobs.changed() => { continue; }
                 Some(result) = title_rx.recv() => {
                     commit_automatic_title(db, events, title_work, result);
                     continue;
@@ -3921,6 +3990,9 @@ async fn worker(
                     result = loop {
                         tokio::select! {
                             result = &mut operation => break result,
+                            () = runtime.shell_jobs.changed() => {
+                                runtime.shell_jobs.deliver(events).map_err(|_| runtime_issue(runtime.location(), &["shell", "delivery"], &RuntimeError::Storage).diagnostic)?;
+                            }
                             _ = runtime.wait_mcp_failure(), if !shutdown => {
                                 shutdown = true;
                                 cancel.store(true, Ordering::Relaxed);
@@ -3948,6 +4020,7 @@ async fn worker(
                                 Some(InboxMsg::Cancel { session: target, ack }) if target == session => {
                                     cancel.store(true, Ordering::Relaxed);
                                     runtime.cancel_pending_approvals();
+                                    runtime.shell_jobs.cancel_session(&target.0);
                                     let _ = ack.send(Ok(()));
                                 }
                                 Some(command @ InboxMsg::ChangeConversation { .. }) => {

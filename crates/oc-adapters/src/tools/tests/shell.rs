@@ -1,5 +1,5 @@
 use super::*;
-use crate::tools::{ToolError, shell_call::invocation};
+use crate::tools::shell_call::invocation;
 
 fn call(name: &str, arguments: serde_json::Value) -> ToolCall {
     ToolCall {
@@ -52,16 +52,18 @@ fn tool13_source_defaults_zero_and_native_resource_ceiling() {
     ] {
         assert!(invocation(&call("shell", args), &env).is_err());
     }
-    assert!(matches!(
-        invocation(
-            &call(
-                "shell",
-                serde_json::json!({"command":"true","background":true})
-            ),
-            &env
-        ),
-        Err(ToolError::Unsupported { .. })
-    ));
+    for timeout in [None, Some(0), Some(123)] {
+        let mut args = serde_json::json!({"command":"true","background":true});
+        if let Some(timeout) = timeout {
+            args["timeout"] = timeout.into();
+        }
+        let admitted = invocation(&call("shell", args), &env).unwrap();
+        assert!(admitted.background);
+        assert_eq!(
+            admitted.timeout,
+            Duration::from_millis(timeout.unwrap_or(0))
+        );
+    }
 }
 
 #[tokio::test]

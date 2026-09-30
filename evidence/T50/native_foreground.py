@@ -11,6 +11,7 @@ import sqlite3
 import subprocess
 import tempfile
 import threading
+BACKGROUND_SUPPORTED = False
 import time
 
 
@@ -140,11 +141,16 @@ def run(binary, name, tool, args, permission, expected, *, auto=False, shell=Non
         else:
             definition = next(t for t in tools if t["name"] == "shell")
             assert definition["parameters"]["required"] == ["command"]
-            assert set(definition["parameters"]["properties"]) == {"command", "workdir", "timeout"}
-            assert definition["parameters"]["properties"]["timeout"] == {"type":"integer", "minimum":0, "maximum":600000, "default":120000}
+            assert set(definition["parameters"]["properties"]) == ({"command", "workdir", "timeout", "background"} if BACKGROUND_SUPPORTED else {"command", "workdir", "timeout"})
+            expected_timeout = {"type":"integer", "minimum":0, "maximum":600000}
+            if not BACKGROUND_SUPPORTED:
+                expected_timeout["default"] = 120000
+            assert definition["parameters"]["properties"]["timeout"] == expected_timeout
         db = sqlite3.connect(data / "oc.sqlite")
         operations = db.execute("SELECT name,state,output FROM tool_operations").fetchall()
         grants = db.execute("SELECT count(*) FROM permission_grants").fetchone()[0]
+        if BACKGROUND_SUPPORTED:
+            assert db.execute("SELECT count(*) FROM shell_jobs").fetchone()[0] == 0
         assert grants == 0, "direct --auto must remain Once"
         assert len(operations) == (2 if child else 1), (name, operations, result.stderr.decode())
         operation = next(op for op in operations if op[0] == tool)
@@ -192,9 +198,12 @@ def run(binary, name, tool, args, permission, expected, *, auto=False, shell=Non
 
 
 def main():
+    global BACKGROUND_SUPPORTED
     parser = argparse.ArgumentParser()
     parser.add_argument("binary", type=Path)
+    parser.add_argument("--background-supported", action="store_true", help="current background slice schema; historical mode remains the default")
     options = parser.parse_args()
+    BACKGROUND_SUPPORTED = options.background_supported
     binary = options.binary.resolve()
     print(json.dumps({"binary": str(binary), "sha256": hashlib.sha256(binary.read_bytes()).hexdigest()}))
     run(binary, "selected-operators", "shell", {"command":
@@ -217,8 +226,8 @@ def main():
     run(binary, "deny-reverse-split-keys", "bash", {"argv": ["/usr/bin/touch", "marker"]},
         {"shell": "deny"}, "denied", plural={"bash": "allow"})
     run(binary, "ask-once", "shell", {"command": "printf approved"}, {"bash": "ask"}, "approved", auto=True)
-    run(binary, "background", "shell", {"command": "touch marker", "background": True},
-        {"shell": "allow"}, "unsupported")
+    run(binary, "background", "shell", {"command": "touch marker", "background": "yes" if BACKGROUND_SUPPORTED else True},
+        {"shell": "allow"}, "invalid" if BACKGROUND_SUPPORTED else "unsupported")
     run(binary, "invalid-timeout", "shell", {"command": "touch marker", "timeout": -1},
         {"shell": "allow"}, "invalid")
     run(binary, "invalid-workdir", "shell", {"command": "touch marker", "workdir": "../"},

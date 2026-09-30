@@ -3,6 +3,120 @@ use crate::storage::compaction::dcp_lifecycle_fixture as fixture;
 use oc_core::queries::ConversationAction::{Redo, Undo};
 
 #[test]
+fn tool13_notice_references_follow_visible_prefix_nested_fork_and_dcp_projection() {
+    let tmp = tempfile::tempdir().unwrap();
+    let db = Db::open(tmp.path()).unwrap();
+    db.create_bound_session("source", "/project").unwrap();
+    db.apply_dcp_schema().unwrap();
+    fixture::complete(&db, "source", "first", false);
+    let visible = db
+        .append_message("source", "user", "retained native notice")
+        .unwrap();
+    let hidden = db
+        .append_message("source", "user", "excluded native notice")
+        .unwrap();
+    let boundary = fixture::complete(&db, "source", "boundary", false);
+    let outside = db
+        .append_message("source", "user", "outside prefix notice")
+        .unwrap();
+    let original = db.turn_result("first").unwrap().1.unwrap();
+    let mut log: serde_json::Value = serde_json::from_str(&original).unwrap();
+    log["shell_notice_messages"] = serde_json::json!([visible, hidden, outside]);
+    {
+        let conn = db.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE turns SET result=?1 WHERE id='first'",
+            [log.to_string()],
+        )
+        .unwrap();
+        conn.execute("INSERT INTO conversation_exclusions SELECT 'source',seq-1,seq FROM messages WHERE id=?1",[&hidden]).unwrap();
+    }
+    let fork = db
+        .fork_session("source", &boundary, "/project", "fixture", "{}")
+        .unwrap()
+        .session
+        .0;
+    let copied = db.read_history_full(&fork).unwrap();
+    let copied_notice = &copied
+        .iter()
+        .find(|r| r.2 == "retained native notice")
+        .unwrap()
+        .0;
+    let copied_first = &copied
+        .iter()
+        .find(|r| r.0 != *copied_notice && r.1 == "user")
+        .unwrap()
+        .0;
+    let refs: String = db
+        .conn
+        .lock()
+        .unwrap()
+        .query_row(
+            "SELECT json_extract(result,'$.shell_notice_messages') FROM turns WHERE session_id=?1",
+            [&fork],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        serde_json::from_str::<Vec<String>>(&refs).unwrap(),
+        std::slice::from_ref(copied_notice)
+    );
+    assert_ne!(copied_notice, &visible);
+    let next = fixture::complete(&db, &fork, "fork-boundary", false);
+    let nested = db
+        .fork_session(&fork, &next, "/project", "fixture", "{}")
+        .unwrap()
+        .session
+        .0;
+    let nested_rows = db.read_history_full(&nested).unwrap();
+    let nested_notice = &nested_rows
+        .iter()
+        .find(|r| r.2 == "retained native notice")
+        .unwrap()
+        .0;
+    let refs: String = db
+        .conn
+        .lock()
+        .unwrap()
+        .query_row(
+            "SELECT json_extract(result,'$.shell_notice_messages') FROM turns WHERE session_id=?1",
+            [&nested],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        serde_json::from_str::<Vec<String>>(&refs).unwrap(),
+        std::slice::from_ref(nested_notice)
+    );
+    assert_ne!(nested_notice, copied_notice);
+    // Cover the copied anchor/notice in the existing DCP projection. That
+    // owner must remove ordinary captured-message identities with their input.
+    let block = db
+        .save_compression_block(
+            &fork,
+            "compressed",
+            "summary",
+            copied_first,
+            copied_notice,
+            &[copied_first.clone(), copied_notice.clone()],
+        )
+        .unwrap();
+    let blocks = db.active_compression_graph(&fork, 0).unwrap();
+    assert_eq!(blocks[0].id, block);
+    let projected = db.active_history(&fork, 0, 1_048_576).unwrap();
+    let wire = db
+        .presentation_wire_logs(&fork, 0, &projected.rows, &blocks)
+        .unwrap()
+        .unwrap();
+    assert!(
+        wire.iter().all(|raw| !raw.contains(copied_notice)),
+        "compressed input must not retain represented raw notice identities"
+    );
+    assert_eq!(db.turn_result("first").unwrap().1.unwrap(), log.to_string());
+    assert_eq!(db.list_sessions().unwrap().len(), 3);
+}
+
+#[test]
 fn standalone_new_turn_fork_undo_redo_rebases_scoped_metadata_without_source_collisions() {
     let tmp = tempfile::tempdir().unwrap();
     let db = Db::open(tmp.path()).unwrap();

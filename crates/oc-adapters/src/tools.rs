@@ -946,11 +946,21 @@ pub(crate) async fn execute_shell_typed(
     if let Err(error) = ctx.policy.check_call(call) {
         return ("failed", format!("error: {error}"));
     }
-    let shell_call::ShellInvocation { argv, cwd, timeout } =
-        match shell_call::invocation(call, ctx.parent_env) {
-            Ok(invocation) => invocation,
-            Err(error) => return ("failed", format!("error: {error}")),
-        };
+    let shell_call::ShellInvocation {
+        argv,
+        cwd,
+        timeout,
+        background,
+    } = match shell_call::invocation(call, ctx.parent_env) {
+        Ok(invocation) => invocation,
+        Err(error) => return ("failed", format!("error: {error}")),
+    };
+    if background {
+        return (
+            "failed",
+            "error: background shell requires application ownership".into(),
+        );
+    }
     let limits = ShellLimits {
         timeout,
         kill_grace: Duration::from_millis(500),
@@ -1205,6 +1215,8 @@ pub struct TurnLog {
     pub user_message: Option<String>,
     /// Completed Responses items and durable tool results, never UI text parsing.
     pub input: Vec<crate::provider::InputItem>,
+    /// Automatic history notices represented in this turn's captured input.
+    pub shell_notice_messages: Vec<String>,
     /// Primary-agent behavior digest pinned for this turn.
     pub agent_digest: Option<String>,
 }
@@ -1225,6 +1237,7 @@ impl TurnLog {
             usage: None,
             user_message: None,
             input: Vec::new(),
+            shell_notice_messages: Vec::new(),
             agent_digest: None,
         }
     }
@@ -1259,6 +1272,7 @@ impl TurnLog {
             "usage": self.usage.map(|(i, o)| serde_json::json!([i, o])),
             "user_message": self.user_message,
             "input": input,
+            "shell_notice_messages": self.shell_notice_messages,
             "agent_digest": self.agent_digest,
         });
         if !native_mcp.is_empty() {
@@ -1290,6 +1304,12 @@ impl TurnLog {
                 .and_then(|v| v.as_str())
                 .map(str::to_owned),
             input: Self::decode_mcp_input(value)?,
+            shell_notice_messages: value
+                .get("shell_notice_messages")
+                .map(|v| serde_json::from_value(v.clone()))
+                .transpose()
+                .map_err(|_| "invalid shell notice references")?
+                .unwrap_or_default(),
             agent_digest: value
                 .get("agent_digest")
                 .and_then(|value| value.as_str())

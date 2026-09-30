@@ -473,13 +473,14 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "shell".to_string(),
-            description: "Execute a foreground Linux shell command using the compatible inherited SHELL (fallback PATH bash, then /bin/sh), with -c semantics. Quote paths containing spaces; prefer dedicated tools. `workdir` is relative to the admitted project root (default root). `timeout` is milliseconds (default 120000, 0 disables execution timeout; native positive ceiling 600000). Output is bounded; cancellation and process-group teardown remain active. Background execution is not supported yet. The child receives a minimal credential-free environment."
+            description: "Execute a Linux shell command using the compatible inherited SHELL (fallback PATH bash, then /bin/sh), with -c semantics. Quote paths containing spaces; prefer dedicated tools. `workdir` is relative to the admitted project root (default root). `timeout` is milliseconds (foreground default 120000, background default 0; 0 disables only execution timeout; native positive ceiling 600000). Background returns running/shellID after launch; you will be notified automatically when it completes. DO NOT poll; continue independent work or end your response. Output is bounded; cancellation and process-group teardown remain active. The child receives a minimal credential-free environment."
                 .to_string(),
             parameters: serde_json::json!({
                 "type": "object", "properties": {
                     "command": {"type": "string", "minLength": 1, "maxLength": crate::shell::ARG_BYTES_CAP},
                     "workdir": {"type": "string"},
-                    "timeout": {"type": "integer", "minimum": 0, "maximum": crate::tools::BASH_TIMEOUT_CAP_MS, "default": 120000},
+                    "timeout": {"type": "integer", "minimum": 0, "maximum": crate::tools::BASH_TIMEOUT_CAP_MS},
+                    "background": {"type": "boolean", "default": false},
                 }, "required": ["command"], "additionalProperties": false,
             }),
         },
@@ -819,6 +820,7 @@ struct ActiveContext {
 /// Single-flight: one active turn at a time (mirrors the single-turn
 /// worker); reload and DCP config changes only land between turns.
 pub struct Runtime<'a> {
+    pub(crate) shell_jobs: Arc<crate::shell::jobs::Jobs>,
     approvals: Arc<oc_core::approval::ApprovalQueue>,
     compactions: Mutex<BTreeMap<String, compaction::Work>>,
     compaction_events: Mutex<Option<tokio::sync::broadcast::Sender<oc_core::core_app::CoreEvent>>>,
@@ -938,6 +940,7 @@ impl<'a> Runtime<'a> {
         crate::dcp::apply_dcp_schema(db).map_err(|_| RuntimeError::Storage)?;
         db.grants_schema()?;
         Ok(Self {
+            shell_jobs: crate::shell::jobs::Jobs::new(db),
             approvals: Arc::new(oc_core::approval::ApprovalQueue::default()),
             compactions: Mutex::new(BTreeMap::new()),
             compaction_events: Mutex::new(None),

@@ -1268,3 +1268,19 @@ pub struct ToolOpPage {
     /// Older operations exist before the last row of this page.
     pub has_older: bool,
 }
+/// Committed automatic result, addressed to its immutable source session.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShellNotice {
+    /// Owning session, independent of the current UI Location/tab.
+    pub session: crate::domain::SessionId,
+    /// Existing operation identity also identifies the owned shell job.
+    pub shell_id: String,
+    /// Stable deduplication identity.
+    pub delivery_id: String,
+    /// Immutable history message committed with delivery.
+    pub message_id: String,
+    /// Durable terminal state.
+    pub state: String,
+    /// Bounded readable facts identical to provider/history input.
+    pub text: String,
+}

@@ -329,14 +329,14 @@ async fn tool12_command_always_reopen_does_not_inherit_argv_glob_or_widen_alias_
 }
 
 #[tokio::test]
-async fn tool13_invalid_or_background_shell_never_commits_execution_intent() {
+async fn tool13_invalid_shell_never_commits_execution_intent() {
     let (harness, generation) = make_harness(allow_all());
     let runtime = runtime_of(&harness, generation, vec![]);
     runtime.create_session("invalid-shell").unwrap();
     let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
     conn.execute_batch("CREATE TRIGGER no_invalid_shell_intent BEFORE INSERT ON tool_operations WHEN NEW.state='started' BEGIN SELECT RAISE(FAIL,'invalid shell execution intent'); END;").unwrap();
     for args in [
-        serde_json::json!({"command":"touch marker","background":true}),
+        serde_json::json!({"command":"touch marker","background":"yes"}),
         serde_json::json!({"command":"touch marker","timeout":-1}),
         serde_json::json!({"command":"touch marker","workdir":"../"}),
         serde_json::json!({"command":"touch marker","timeout":600001}),

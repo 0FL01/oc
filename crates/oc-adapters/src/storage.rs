@@ -14,7 +14,7 @@ use std::fs::{self, File, OpenOptions};
 use std::io::Write as _;
 use std::os::unix::fs::PermissionsExt as _;
 use std::path::{Component, Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
 
 use fs2::FileExt as _;
@@ -33,6 +33,8 @@ mod dcp_view;
 mod fork;
 #[path = "storage_grants.rs"]
 mod grants;
+#[path = "storage_shell_jobs.rs"]
+mod shell_jobs;
 
 /// Bounded page projection retaining the exact persisted message identity.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -282,9 +284,9 @@ pub struct Db {
     root: PathBuf,
     blob_dir: PathBuf,
     quota_bytes: u64,
-    conn: Mutex<Connection>,
+    conn: Arc<Mutex<Connection>>,
     // Fields drop in declaration order: release ownership after SQLite closes.
-    _lock: RootLock,
+    _lock: Arc<RootLock>,
 }
 
 /// Exact result of the committed acceptance transaction, without a second
@@ -488,6 +490,7 @@ impl Db {
         Self::compaction_schema(&conn)?;
         Self::conversation_schema(&conn)?;
         Self::session_list_schema(&conn)?;
+        Self::shell_jobs_schema(&conn)?;
         // Same journal, indexed anchor lookup: history paging must not parse
         // every archived turn. Legacy non-JSON results are excluded safely.
         conn.execute_batch("CREATE INDEX IF NOT EXISTS turns_display_anchor ON turns(session_id, COALESCE(json_extract(result,'$.assistant_message'),json_extract(result,'$.user_message'))) WHERE json_valid(result)")?;
@@ -496,9 +499,21 @@ impl Db {
             root,
             blob_dir,
             quota_bytes,
-            conn: Mutex::new(conn),
-            _lock: lock,
+            conn: Arc::new(Mutex::new(conn)),
+            _lock: Arc::new(lock),
         })
+    }
+
+    // Completion workers retain this same connection and flock. This cannot open
+    // a second database or release ownership while a process is still supervised.
+    pub(crate) fn shared_handle(&self) -> Self {
+        Self {
+            root: self.root.clone(),
+            blob_dir: self.blob_dir.clone(),
+            quota_bytes: self.quota_bytes,
+            conn: self.conn.clone(),
+            _lock: self._lock.clone(),
+        }
     }
 
     /// Data-root path (owned).
@@ -892,7 +907,7 @@ impl Db {
         }
         tx.execute_batch("CREATE TEMP TABLE IF NOT EXISTS deleting_family(id TEXT PRIMARY KEY); DELETE FROM deleting_family;")?;
         tx.execute("INSERT INTO deleting_family WITH RECURSIVE family(id) AS (SELECT ?1 UNION SELECT s.id FROM sessions s JOIN family f ON s.parent_id=f.id) SELECT id FROM family", [session])?;
-        let busy: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM turns WHERE session_id IN deleting_family AND status='started')", [], |r| r.get(0))?;
+        let busy: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM turns WHERE session_id IN deleting_family AND status='started') OR EXISTS(SELECT 1 FROM shell_jobs WHERE session_id IN deleting_family AND (phase!='terminal' OR message_id IS NULL))", [], |r| r.get(0))?;
         if busy {
             return Err(StorageError::Io(std::io::Error::other(
                 "session family active",
@@ -968,6 +983,7 @@ impl Db {
             "conversation_exclusions",
             "conversation_state",
             "turn_acceptances",
+            "shell_jobs",
             "tool_operations",
             "events",
             "messages",

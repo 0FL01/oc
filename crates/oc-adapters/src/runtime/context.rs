@@ -921,6 +921,7 @@ impl<'a> Runtime<'a> {
             if let Some(id) = value["assistant_message"].as_str() {
                 represented.insert(id.to_string());
             }
+            represented.extend(log.shell_notice_messages.iter().cloned());
             // Unknown operations cannot be replayed or assigned invented results.
             // Retain every committed pair; omit only unanswered function calls.
             let answered: std::collections::BTreeSet<String> = log

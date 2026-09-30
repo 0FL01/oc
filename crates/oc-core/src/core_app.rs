@@ -133,6 +133,8 @@ impl SubmissionReceipt {
 /// Typed application events (live hints + durable outcomes for T03).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CoreEvent {
+    /// Automatic shell result; history delivery is already committed.
+    ShellNotice(crate::queries::ShellNotice),
     /// Persisted before the cancellable runtime wait; addressed to one span.
     RetryScheduled {
         session: SessionId,
@@ -534,6 +536,20 @@ pub enum InboxMsg {
         offset: usize,
         limit: usize,
         ack: oneshot::Sender<Result<crate::queries::ToolOutputPage, CoreError>>,
+    },
+    /// Read retained background output without changing the original call result.
+    ShellOutput {
+        session: SessionId,
+        shell_id: String,
+        offset: usize,
+        limit: usize,
+        ack: oneshot::Sender<Result<Option<crate::queries::ToolOutputPage>, CoreError>>,
+    },
+    /// Explicit cancellation of one job owned by this exact source session.
+    CancelShell {
+        session: SessionId,
+        shell_id: String,
+        ack: oneshot::Sender<Result<(), CoreError>>,
     },
     /// Bounded real saved DCP summary, identified by operation and range index.
     DcpSummary {
@@ -1109,7 +1125,7 @@ impl CoreApp {
         receipt.await.map_err(|_| CoreError::Shutdown)?
     }
 
-    /// Cancel the active turn for a session.
+    /// Cancel the active turn and owned background work for this session.
     pub async fn cancel(&self, session: SessionId) -> Result<(), CoreError> {
         let (ack_tx, ack_rx) = oneshot::channel();
         self.inbox
@@ -1120,6 +1136,47 @@ impl CoreApp {
             .await
             .map_err(|_| CoreError::Shutdown)?;
         ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Cancel one owned background shell; a foreign session/job pairing is refused.
+    pub async fn cancel_shell(
+        &self,
+        session: SessionId,
+        shell_id: String,
+    ) -> Result<(), CoreError> {
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::CancelShell {
+                session,
+                shell_id,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        receipt.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Bounded readable continuation of a committed background result. `None`
+    /// means this owned operation has no terminal background result yet.
+    pub async fn shell_output(
+        &self,
+        session: SessionId,
+        shell_id: String,
+        offset: usize,
+        limit: usize,
+    ) -> Result<Option<crate::queries::ToolOutputPage>, CoreError> {
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ShellOutput {
+                session,
+                shell_id,
+                offset,
+                limit,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        receipt.await.map_err(|_| CoreError::Shutdown)?
     }
 
     /// List known sessions.
@@ -1811,6 +1868,12 @@ fn scripted_unsupported(message: InboxMsg) {
         InboxMsg::ToolOutput { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
+        InboxMsg::ShellOutput { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::CancelShell { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::DcpSummary { ack, .. } => {
             let _ = ack.send(Err(CoreError::Shutdown));
         }
@@ -1949,6 +2012,7 @@ mod tests {
                 | CoreEvent::ToolArgumentStream { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
+                CoreEvent::ShellNotice(_) => panic!("unexpected shell in scripted runtime"),
                 CoreEvent::McpChanged(_) => panic!("unexpected MCP in scripted runtime"),
                 CoreEvent::ProviderChanged => {
                     panic!("unexpected native provider in scripted runtime")
@@ -2262,6 +2326,7 @@ mod tests {
                 | CoreEvent::ToolArgumentStream { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
+                CoreEvent::ShellNotice(_) => panic!("unexpected shell in scripted runtime"),
                 CoreEvent::McpChanged(_) => panic!("unexpected MCP in scripted runtime"),
                 CoreEvent::ProviderChanged => {
                     panic!("unexpected native provider in scripted runtime")

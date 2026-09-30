@@ -347,6 +347,19 @@ impl Db {
                     .clone()
                     .into();
             }
+            // These are local message identities, unlike provider call IDs.
+            // Retain only exact copied-prefix pairs, including nested forks;
+            // hidden/outside-prefix references confer no represented identity.
+            if let Some(notices) = log["shell_notice_messages"].as_array_mut() {
+                *notices = notices
+                    .iter()
+                    .filter_map(|id| {
+                        ids.get(id.as_str()?)
+                            .cloned()
+                            .map(serde_json::Value::String)
+                    })
+                    .collect();
+            }
             let ops = tx.prepare("SELECT id,name,state,input,output FROM tool_operations WHERE session_id=?1 AND turn_id=?2 ORDER BY rowid")?
                 .query_map(params![source,old], |r| Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,Option<String>>(3)?,r.get::<_,Option<String>>(4)?)))?
                 .collect::<Result<Vec<_>,_>>()?;

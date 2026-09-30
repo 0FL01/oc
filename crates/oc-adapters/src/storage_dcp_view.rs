@@ -55,6 +55,7 @@ impl Db {
           ), visible AS (
             SELECT json_object('turn_id',result->>'$.turn_id','model',result->>'$.model','provider',result->>'$.provider',
               'agent_digest',result->>'$.agent_digest','user_message',id,'assistant_message',result->>'$.assistant_message',
+              'shell_notice_messages',json(CASE WHEN logs.id IN (SELECT value FROM json_each(?3)) THEN COALESCE(result->>'$.shell_notice_messages','[]') ELSE '[]' END),
               '_dcp_block',CASE WHEN id IN (SELECT value FROM json_each(?3)) THEN NULL ELSE block_id END,
               '_dcp_prompt',CASE WHEN id IN (SELECT value FROM json_each(?3)) THEN prompt END,
               'display_parts',json(COALESCE((SELECT json_group_array(json(p.value)) FROM json_each(result,'$.display_parts') p WHERE p.value->>'$.tool' IS NOT NULL),'[]')),

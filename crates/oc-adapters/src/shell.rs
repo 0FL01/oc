@@ -24,6 +24,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+pub(crate) mod jobs;
+
 use thiserror::Error;
 
 /// Retained stdout/stderr bytes per stream (truncation flagged, never grown).
@@ -44,7 +46,7 @@ pub enum ShellError {
         /// Human reason.
         reason: String,
     },
-    /// `sh -c` script shape rejected (pipes/chains/background).
+    /// Legacy shell argv shape rejected.
     #[error("command shape refused: {reason}")]
     ShapeRefused {
         /// Human reason.
@@ -59,6 +61,9 @@ pub enum ShellError {
     /// Wait/reap failure.
     #[error("reap failed")]
     Reap,
+    /// The process launched but its durable identity could not be frozen.
+    #[error("durable launch admission failed; execution unknown")]
+    AdmissionFailed,
 }
 
 /// Terminal outcome of one supervised call.
@@ -226,6 +231,34 @@ impl Shell {
         cancel: &AtomicBool,
         approved: Option<&PinnedCwd>,
     ) -> Result<ShellOutcome, ShellError> {
+        self.execute_pinned_started(
+            parent_env,
+            argv,
+            cwd,
+            stdin,
+            limits,
+            cancel,
+            approved,
+            false,
+            |_| Ok(()),
+        )
+    }
+
+    /// The lifecycle owner freezes OS identity before acknowledging launch.
+    /// Failure in that durable callback tears down the group before returning.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn execute_pinned_started(
+        &self,
+        parent_env: &BTreeMap<String, String>,
+        argv: &[String],
+        cwd: &str,
+        stdin: Option<&[u8]>,
+        limits: ShellLimits,
+        cancel: &AtomicBool,
+        approved: Option<&PinnedCwd>,
+        finish_group: bool,
+        started: impl FnOnce(i32) -> Result<(), ShellError>,
+    ) -> Result<ShellOutcome, ShellError> {
         validate_argv(argv)?;
         let stdin = stdin.unwrap_or_default();
         if stdin.len() > STDIN_CAP_BYTES {
@@ -275,10 +308,16 @@ impl Shell {
         // New session => process group leader; group kills stay contained.
         // The OS error is kept (kind only, no payload) so a refused exec is
         // diagnosable instead of a bare `Reap`.
-        let mut child = cmd.spawn().map_err(|error| ShellError::SpawnRefused {
+        let child = cmd.spawn().map_err(|error| ShellError::SpawnRefused {
             reason: format!("exec: {error}"),
         })?;
-        let pid = child.id() as i32;
+        let mut child = OwnedChild {
+            process: child,
+            grace: limits.kill_grace,
+            reaped: false,
+        };
+        let pid = child.process.id() as i32;
+        started(pid)?;
 
         // stdin runs on its own thread: a child that never reads cannot block
         // the supervisor (the writer is released by pipe close or group kill).
@@ -286,6 +325,7 @@ impl Shell {
             None
         } else {
             child
+                .process
                 .stdin
                 .take()
                 .map(|pipe| spawn_stdin(pipe, stdin.to_vec()))
@@ -294,8 +334,8 @@ impl Shell {
         // Concurrent drains: one thread per pipe so interleaved floods can
         // never deadlock a full pipe buffer while we wait below.
         let cap = limits.retain_cap;
-        let out = spawn_drain(child.stdout.take(), cap);
-        let err = spawn_drain(child.stderr.take(), cap);
+        let out = spawn_drain(child.process.stdout.take(), cap);
+        let err = spawn_drain(child.process.stderr.take(), cap);
 
         let mut outcome_kind = OutcomeKind::Exited;
         loop {
@@ -303,9 +343,9 @@ impl Shell {
                 outcome_kind = OutcomeKind::Cancelled;
                 break;
             }
-            match child.try_wait().map_err(|_| ShellError::Reap)? {
-                Some(_) => break,
-                None => {
+            match exited_without_reap(pid)? {
+                true => break,
+                false => {
                     if !limits.timeout.is_zero() && start.elapsed() >= limits.timeout {
                         outcome_kind = OutcomeKind::TimedOut;
                         break;
@@ -319,9 +359,6 @@ impl Shell {
         if outcome_kind != OutcomeKind::Exited {
             kill_group(pid, limits.kill_grace);
         }
-        // Leader status (cached by `try_wait` above when it exited).
-        let status = child.wait().map_err(|_| ShellError::Reap)?;
-
         // Leader exit is not group completion: a descendant may still hold
         // the pipes open. A normal exit first gets a bounded drain window,
         // then the owned group is removed so the reader threads can finish.
@@ -332,10 +369,14 @@ impl Shell {
                 stdin_done.as_ref(),
                 Instant::now() + limits.kill_grace,
             );
-            if !drains_finished(&out, &err, stdin_done.as_ref()) {
+            if finish_group || !drains_finished(&out, &err, stdin_done.as_ref()) {
                 kill_group(pid, limits.kill_grace);
             }
         }
+        // Keep the exited leader unreaped through group disposal. Its PID/PGID
+        // cannot be recycled while we still have authority to signal the group.
+        let status = child.process.wait().map_err(|_| ShellError::Reap)?;
+        child.reaped = true;
         // Bounded completion wait: a reader blocked on a pipe held outside
         // our group must never hang the call; partial output is still
         // returned instead of joining a possibly infinite reader thread.
@@ -414,6 +455,42 @@ impl Shell {
             return Err(ShellError::BadCwd);
         }
         Ok(canonical)
+    }
+}
+
+fn exited_without_reap(pid: i32) -> Result<bool, ShellError> {
+    // SAFETY: Linux siginfo_t accepts the all-zero empty WNOHANG result.
+    let mut info: libc::siginfo_t = unsafe { std::mem::zeroed() };
+    // SAFETY: pid identifies this supervisor's live/unreaped child; info is a
+    // writable siginfo_t. WNOWAIT reserves identity until explicit child.wait.
+    let result = unsafe {
+        libc::waitid(
+            libc::P_PID,
+            pid as u32,
+            &mut info,
+            libc::WEXITED | libc::WNOHANG | libc::WNOWAIT,
+        )
+    };
+    if result != 0 {
+        return Err(ShellError::Reap);
+    }
+    // SAFETY: successful waitid initialized the SIGCHLD pid member (or zero).
+    Ok(unsafe { info.si_pid() } != 0)
+}
+
+struct OwnedChild {
+    process: std::process::Child,
+    grace: Duration,
+    reaped: bool,
+}
+
+impl Drop for OwnedChild {
+    fn drop(&mut self) {
+        let pid = self.process.id() as i32;
+        if !self.reaped && exited_without_reap(pid).is_ok() {
+            kill_group(pid, self.grace);
+            let _ = self.process.wait();
+        }
     }
 }
 

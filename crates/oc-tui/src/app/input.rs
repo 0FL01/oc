@@ -2245,6 +2245,23 @@ impl TuiState {
                         },
                     }
                 } else {
+                    if let Some(session) = self.session.clone() {
+                        match self.app.cancel(session).await {
+                            Ok(()) => {
+                                return KeyOutcome {
+                                    note: Some("background shell cancellation requested".into()),
+                                    ..KeyOutcome::default()
+                                };
+                            }
+                            Err(CoreError::TurnNotActive) => {}
+                            Err(error) => {
+                                return KeyOutcome {
+                                    note: Some(format!("cancel: {error}")),
+                                    ..KeyOutcome::default()
+                                };
+                            }
+                        }
+                    }
                     self.status = TuiStatus::Quit;
                     KeyOutcome::default()
                 }

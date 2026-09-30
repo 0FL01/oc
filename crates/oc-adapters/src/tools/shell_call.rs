@@ -30,6 +30,7 @@ pub(crate) struct ShellInvocation {
     pub argv: Vec<String>,
     pub cwd: String,
     pub timeout: Duration,
+    pub background: bool,
 }
 
 /// Shared by pre-intent admission/approval and the execution owner.
@@ -41,7 +42,7 @@ pub(crate) fn invocation(
         tool: call.name.clone(),
         reason: reason.into(),
     };
-    let (argv, cwd, timeout) = match call.name.as_str() {
+    let (argv, cwd, timeout, background) = match call.name.as_str() {
         "shell" => {
             if ["workdir", "timeout", "background"].iter().any(|key| {
                 call.arguments
@@ -56,16 +57,14 @@ pub(crate) fn invocation(
                 serde_json::from_value(call.arguments.clone()).map_err(|_| {
                     invalid("expected command, optional workdir and nonnegative timeout")
                 })?;
-            if input.background == Some(true) {
-                return Err(ToolError::Unsupported {
-                    tool: call.name.clone(),
-                    feature: "background execution".into(),
-                });
-            }
             if input.command.is_empty() || input.command.contains('\0') {
                 return Err(invalid("command must be nonempty and NUL-free"));
             }
-            let timeout = input.timeout.unwrap_or(FOREGROUND_TIMEOUT_MS);
+            let background = input.background.unwrap_or(false);
+            let timeout =
+                input
+                    .timeout
+                    .unwrap_or(if background { 0 } else { FOREGROUND_TIMEOUT_MS });
             if timeout > BASH_TIMEOUT_CAP_MS {
                 return Err(invalid(
                     "timeout exceeds native execution resource ceiling (600000 ms)",
@@ -77,6 +76,7 @@ pub(crate) fn invocation(
                 argv,
                 input.workdir.unwrap_or_else(|| ".".into()),
                 Duration::from_millis(timeout),
+                background,
             )
         }
         "bash" => {
@@ -93,6 +93,7 @@ pub(crate) fn invocation(
                 } else {
                     Duration::from_millis(timeout)
                 },
+                false,
             )
         }
         _ => return Err(invalid("not a shell invocation")),
@@ -101,5 +102,10 @@ pub(crate) fn invocation(
     if cwd.contains('\0') {
         return Err(invalid("workdir must be NUL-free"));
     }
-    Ok(ShellInvocation { argv, cwd, timeout })
+    Ok(ShellInvocation {
+        argv,
+        cwd,
+        timeout,
+        background,
+    })
 }
