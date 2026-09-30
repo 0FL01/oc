@@ -2712,6 +2712,54 @@ impl<'a> Runtime<'a> {
                         patch_effects = effects;
                         (output_state(&output), output)
                     }
+                    Assembled::Call(call) if matches!(call.name.as_str(), "glob" | "grep") => {
+                        // Same bounded spawn_blocking/join strategy as foreground
+                        // shell. Capture this invocation's immutable authority,
+                        // not a reloaded generation or another session's token.
+                        let files = ctx.files.clone();
+                        let call = call.clone();
+                        let permissions = invocation_policy.permissions.clone();
+                        let rules = invocation_policy.rules.cloned();
+                        let root = invocation_policy.root.map(std::path::Path::to_path_buf);
+                        let permit = invocation_policy.permit.clone();
+                        let worker_cancel =
+                            Arc::new(AtomicBool::new(ctx.cancel.load(Ordering::Acquire)));
+                        struct CancelOnDrop(Arc<AtomicBool>);
+                        impl Drop for CancelOnDrop {
+                            fn drop(&mut self) {
+                                self.0.store(true, Ordering::Release);
+                            }
+                        }
+                        let _cleanup = CancelOnDrop(worker_cancel.clone());
+                        let token = worker_cancel.clone();
+                        let mut task = tokio::task::spawn_blocking(move || {
+                            let policy = RuntimePolicy {
+                                permissions: &permissions,
+                                rules: rules.as_ref(),
+                                root: root.as_deref(),
+                                mcp: &[],
+                                permit,
+                            };
+                            crate::tools::execute_search(&files, &policy, &token, &call)
+                        });
+                        let result = loop {
+                            tokio::select! {
+                                result = &mut task => break result,
+                                () = tokio::time::sleep(Duration::from_millis(5)) => {
+                                    if ctx.cancel.load(Ordering::Acquire) { worker_cancel.store(true, Ordering::Release); }
+                                }
+                            }
+                        };
+                        // A cancellation racing the final worker checkpoint must
+                        // also discard its result. Join precedes durable finish.
+                        if ctx.cancel.load(Ordering::Acquire) {
+                            ("cancelled", "error: cancelled".into())
+                        } else {
+                            result.unwrap_or_else(|_| {
+                                ("failed", "error: search worker failed".into())
+                            })
+                        }
+                    }
                     Assembled::Call(call) if matches!(call.name.as_str(), "shell" | "bash") => {
                         let invocation = crate::tools::shell_call::invocation(call, ctx.parent_env)
                             .map_err(|error| RuntimeError::InvalidArgs(error.to_string()))?;

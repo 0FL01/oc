@@ -1,24 +1,17 @@
-//! Model-facing read/search tools for T08 (TOOL01).
-//!
-//! Bounded `read` (path/offset/limit with truncated/next cursor), stable
-//! sorted paginated `glob`/`grep`, binary/large diagnostics, and a hard
-//! refusal of the own data root by direct path, `..` recursion and symlink
-//! escape. Plain literal and regex modes are explicit; no custom regex
-//! engine is written — a small bounded matcher covers `*`/`?`/`**` for glob
-//! and substring search for literal grep, while `regex` grep uses the
-//! `regex-lite`-free hand matcher limited to `.`/`*`/`[]` classes? No:
-//! regex mode is refused until a vetted engine is pinned (see below).
+//! Bounded file tools, suggestions and no-follow native search.
+//! Search uses pinned ripgrep-compatible regex/ignore engines in `search`;
+//! `glob_match` remains the legacy protected-patch matcher, not search syntax.
 
-use std::collections::BTreeMap;
 use std::ffi::{CStr, CString, OsString};
 use std::fs::File;
 use std::io::Read as _;
 use std::os::fd::{AsRawFd, FromRawFd};
 use std::os::unix::ffi::OsStrExt as _;
-use std::os::unix::fs::OpenOptionsExt as _;
 use std::path::{Component, Path, PathBuf};
 
 use thiserror::Error;
+
+pub(crate) mod search;
 
 /// Per-call read byte cap (mirrors `preview_bytes` 65536).
 pub const READ_BYTES_CAP: usize = 65536;
@@ -37,7 +30,7 @@ pub const GLOB_SEGMENTS_CAP: usize = 64;
 /// Maximum text bytes retained in one grep hit.
 pub const GREP_HIT_BYTES_CAP: usize = 2048;
 /// Default page size for glob/grep.
-pub const DEFAULT_PAGE_LIMIT: usize = 50;
+pub const DEFAULT_PAGE_LIMIT: usize = 100;
 /// Maximum directory entries inspected for one file suggestion query.
 pub const SUGGEST_ENTRIES_CAP: usize = 2048;
 /// Maximum paths returned by one file suggestion query.
@@ -70,6 +63,9 @@ pub enum FileToolError {
     /// Walk/scan budget exhausted.
     #[error("search budget exhausted")]
     BudgetExhausted,
+    /// Current invocation was cancelled; partial search results are discarded.
+    #[error("cancelled")]
+    Cancelled,
     /// Underlying I/O failure (kind only).
     #[error("io error")]
     Io,
@@ -97,6 +93,8 @@ pub struct GrepHit {
     pub line: u64,
     /// Line text (without trailing newline).
     pub text: String,
+    /// True when the matching line preview reached the native byte cap.
+    pub text_truncated: bool,
 }
 
 /// Location-relative file suggestions; `truncated` indicates more matches or an incomplete scan.
@@ -113,6 +111,19 @@ pub struct FileSuggestionResult {
 pub struct Files {
     root: PathBuf,
     data_root: PathBuf,
+    #[cfg(test)]
+    scan_barrier: Option<std::sync::Arc<ScanBarrier>>,
+}
+
+// Private, one-shot barrier at a real scan checkpoint; never in normal ELFs.
+#[cfg(test)]
+#[derive(Debug)]
+struct ScanBarrier {
+    phase: &'static str,
+    entered: std::sync::Mutex<Option<tokio::sync::oneshot::Sender<()>>>,
+    cancel_seen: std::sync::Mutex<Option<tokio::sync::oneshot::Sender<()>>>,
+    release: std::sync::Mutex<std::sync::mpsc::Receiver<()>>,
+    released: std::sync::atomic::AtomicBool,
 }
 
 fn normalize_suggest_root(path: &Path) -> PathBuf {
@@ -182,7 +193,10 @@ fn suggest_dir_names(
     dir: &File,
     inspected: &mut usize,
     truncated: &mut bool,
+    entries_cap: usize,
+    mut check: impl FnMut() -> Result<(), FileToolError>,
 ) -> Result<Vec<OsString>, FileToolError> {
+    check()?;
     // fdopendir consumes its fd; duplicate so the caller keeps its pinned directory.
     // SAFETY: dir owns a live directory descriptor during this call.
     let fd = unsafe { libc::fcntl(dir.as_raw_fd(), libc::F_DUPFD_CLOEXEC, 0) };
@@ -201,6 +215,7 @@ fn suggest_dir_names(
     let reader = SuggestDir(raw);
     let mut names = Vec::new();
     loop {
+        check()?;
         // SAFETY: errno is thread-local and this thread is the only writer here.
         let errno = unsafe { libc::__errno_location() };
         // SAFETY: errno points to this thread's live error slot.
@@ -223,7 +238,7 @@ fn suggest_dir_names(
         if name == b"." || name == b".." {
             continue;
         }
-        if *inspected >= SUGGEST_ENTRIES_CAP {
+        if *inspected >= entries_cap {
             *truncated = true;
             break;
         }
@@ -243,6 +258,8 @@ impl Files {
         Ok(Self {
             root: project_root.to_path_buf(),
             data_root: data_root.to_path_buf(),
+            #[cfg(test)]
+            scan_barrier: None,
         })
     }
 
@@ -290,20 +307,17 @@ impl Files {
         offset: usize,
         limit: usize,
     ) -> Result<Vec<String>, FileToolError> {
-        if pattern.is_empty()
-            || pattern.contains('\0')
-            || pattern.len() > SEARCH_PATTERN_BYTES_CAP
-            || pattern.split('/').count() > GLOB_SEGMENTS_CAP
-        {
-            return Err(FileToolError::InvalidPattern("empty pattern".to_string()));
-        }
-        let mut all = Vec::new();
-        let mut walked = 0usize;
-        self.walk("".to_string(), &mut walked, &mut all)?;
-        let mut hits: Vec<String> = all.into_iter().filter(|p| glob_match(pattern, p)).collect();
-        hits.sort();
-        let limit = limit.clamp(1, 1000);
-        Ok(hits.into_iter().skip(offset).take(limit).collect())
+        self.glob_search(
+            &search::GlobOptions {
+                pattern,
+                path: ".",
+                hidden: false,
+                offset,
+                limit: limit.clamp(1, 1000),
+            },
+            |_| true,
+            None,
+        )
     }
 
     /// Suggest files under this Location without reading file contents.
@@ -362,7 +376,13 @@ impl Files {
         result: &mut FileSuggestionResult,
     ) -> Result<(), FileToolError> {
         let (root, data_root) = roots;
-        let mut names = suggest_dir_names(dir, inspected, &mut result.truncated)?;
+        let mut names = suggest_dir_names(
+            dir,
+            inspected,
+            &mut result.truncated,
+            SUGGEST_ENTRIES_CAP,
+            || Ok(()),
+        )?;
         names.sort();
         for name in names {
             let Some(name_str) = name.to_str() else {
@@ -446,11 +466,7 @@ impl Files {
         Ok(())
     }
 
-    /// Stable sorted paginated grep (literal substring or `regex:` prefix).
-    ///
-    /// Regex mode is intentionally unsupported in T08: patterns starting
-    /// with `regex:` return `InvalidPattern` until a vetted engine is pinned.
-    /// Callers use literal mode; a future task wires the pinned engine.
+    /// Stable sorted paginated grep; boolean selects literal versus Rust regex.
     pub fn grep(
         &self,
         pattern: &str,
@@ -458,91 +474,19 @@ impl Files {
         offset: usize,
         limit: usize,
     ) -> Result<Vec<GrepHit>, FileToolError> {
-        if pattern.is_empty() || pattern.len() > SEARCH_PATTERN_BYTES_CAP {
-            return Err(FileToolError::InvalidPattern("empty pattern".to_string()));
-        }
-        if !literal {
-            return Err(FileToolError::InvalidPattern(
-                "regex mode unsupported in T08; pass literal=true".to_string(),
-            ));
-        }
-        let mut files = Vec::new();
-        let mut walked = 0usize;
-        self.walk("".to_string(), &mut walked, &mut files)?;
-        files.sort();
-        let limit = limit.clamp(1, 1000);
-        let mut hits = Vec::new();
-        let mut skipped = 0usize;
-        let mut scanned = 0u64;
-        for rel in files {
-            if hits.len() >= limit {
-                break;
-            }
-            let abs = self.root.join(&rel);
-            let meta = std::fs::symlink_metadata(&abs).map_err(|_| FileToolError::Io)?;
-            if meta.len() > GREP_FILE_BYTES_CAP {
-                continue;
-            }
-            let remaining = GREP_SCAN_BYTES_CAP.saturating_sub(scanned);
-            if remaining == 0 {
-                return Err(FileToolError::BudgetExhausted);
-            }
-            let mut file = std::fs::OpenOptions::new()
-                .read(true)
-                .custom_flags(libc::O_CLOEXEC | libc::O_NOFOLLOW | libc::O_NONBLOCK)
-                .open(&abs)
-                .map_err(|_| FileToolError::Io)?;
-            if !file
-                .metadata()
-                .map_err(|_| FileToolError::Io)?
-                .file_type()
-                .is_file()
-            {
-                continue;
-            }
-            let read_cap = GREP_FILE_BYTES_CAP.min(remaining).saturating_add(1);
-            let mut bytes = Vec::new();
-            file.by_ref()
-                .take(read_cap)
-                .read_to_end(&mut bytes)
-                .map_err(|_| FileToolError::Io)?;
-            if bytes.len() as u64 > remaining {
-                return Err(FileToolError::BudgetExhausted);
-            }
-            scanned = scanned.saturating_add(bytes.len() as u64);
-            if bytes.len() as u64 > GREP_FILE_BYTES_CAP {
-                continue;
-            }
-            if bytes.contains(&0) {
-                continue;
-            }
-            let text = String::from_utf8_lossy(&bytes);
-            for (idx, line) in text.lines().enumerate() {
-                if line.contains(pattern) {
-                    if skipped < offset {
-                        skipped += 1;
-                        continue;
-                    }
-                    let mut text = line.to_string();
-                    if text.len() > GREP_HIT_BYTES_CAP {
-                        let mut end = GREP_HIT_BYTES_CAP;
-                        while !text.is_char_boundary(end) {
-                            end -= 1;
-                        }
-                        text.truncate(end);
-                    }
-                    hits.push(GrepHit {
-                        path: rel.clone(),
-                        line: idx as u64 + 1,
-                        text,
-                    });
-                    if hits.len() >= limit {
-                        break;
-                    }
-                }
-            }
-        }
-        Ok(hits)
+        self.grep_search(
+            &search::GrepOptions {
+                pattern,
+                path: ".",
+                include: None,
+                literal,
+                case_sensitive: true,
+                offset,
+                limit: limit.clamp(1, 1000),
+            },
+            |_| true,
+            None,
+        )
     }
 
     /// Public path resolution for sibling tools (e.g. `apply_patch`).
@@ -617,63 +561,6 @@ impl Files {
             return Err(FileToolError::OutsideRoot);
         }
         Ok(abs)
-    }
-
-    fn walk(
-        &self,
-        rel: String,
-        walked: &mut usize,
-        out: &mut Vec<String>,
-    ) -> Result<(), FileToolError> {
-        if *walked > WALK_FILES_CAP {
-            return Err(FileToolError::BudgetExhausted);
-        }
-        let abs = if rel.is_empty() {
-            self.root.clone()
-        } else {
-            self.root.join(&rel)
-        };
-        let entries = std::fs::read_dir(&abs).map_err(|_| FileToolError::Io)?;
-        let mut names: BTreeMap<String, PathBuf> = BTreeMap::new();
-        for entry in entries {
-            let entry = entry.map_err(|_| FileToolError::Io)?;
-            *walked += 1;
-            if *walked > WALK_FILES_CAP {
-                return Err(FileToolError::BudgetExhausted);
-            }
-            let name = entry.file_name().to_string_lossy().into_owned();
-            names.insert(name, entry.path());
-        }
-        for (name, path) in names {
-            // Never descend into the own data root or follow symlinks.
-            if path.starts_with(&self.data_root) {
-                continue;
-            }
-            if let Ok(meta) = std::fs::symlink_metadata(&path) {
-                if meta.file_type().is_symlink() {
-                    continue;
-                }
-                if meta.file_type().is_dir() {
-                    let child = if rel.is_empty() {
-                        name
-                    } else {
-                        format!("{rel}/{name}")
-                    };
-                    self.walk(child, walked, out)?;
-                    continue;
-                }
-                if !meta.file_type().is_file() {
-                    continue;
-                }
-            }
-            let rel_path = if rel.is_empty() {
-                name
-            } else {
-                format!("{rel}/{name}")
-            };
-            out.push(rel_path);
-        }
-        Ok(())
     }
 }
 
@@ -804,7 +691,7 @@ mod tests {
         let page1 = files.glob("*.txt", 0, 2).expect("glob");
         assert_eq!(page1, vec!["a.txt".to_string(), "b.txt".to_string()]);
         let page2 = files.glob("*.txt", 2, 2).expect("glob2");
-        assert_eq!(page2, vec!["c.txt".to_string()]);
+        assert_eq!(page2, vec!["c.txt".to_string(), "sub/d.txt".to_string()]);
         let deep = files.glob("**/*.txt", 0, DEFAULT_PAGE_LIMIT).expect("deep");
         assert_eq!(deep.len(), 4);
         assert_eq!(deep[0], "a.txt");
@@ -844,8 +731,8 @@ mod tests {
             ["src/alpha.rs", "src/beta.rs", "src/note.txt"]
         );
         assert_eq!(files.suggest(".rs", 20).unwrap().paths.len(), 3);
-        // The suggestion-specific excludes must not alter the existing glob.
-        assert_eq!(files.glob(".git/*.rs", 0, 20).unwrap(), [".git/private.rs"]);
+        // T50 donor search excludes .git independently of suggestion excludes.
+        assert!(files.glob(".git/*.rs", 0, 20).unwrap().is_empty());
     }
 
     #[test]
@@ -1036,11 +923,8 @@ mod tests {
         assert_eq!(found[2].path, "two.txt");
         let page = files.grep("foo", true, 2, 10).expect("page");
         assert_eq!(page.len(), 1);
-        // Regex mode is refused until a vetted engine is pinned.
-        assert!(matches!(
-            files.grep("f.o", false, 0, 10),
-            Err(FileToolError::InvalidPattern(_))
-        ));
+        // T50 pins the donor's Rust regex family; regex and literal agree here.
+        assert_eq!(files.grep("f.o", false, 0, 10).unwrap(), found);
     }
 
     #[test]
@@ -1061,6 +945,7 @@ mod tests {
         )
         .unwrap();
         let hit = files.grep("needle", true, 0, 1).unwrap().remove(0);
+        assert!(hit.text_truncated);
         assert!(hit.text.len() <= super::GREP_HIT_BYTES_CAP);
         assert!(hit.text.is_char_boundary(hit.text.len()));
 

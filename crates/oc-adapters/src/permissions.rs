@@ -190,6 +190,27 @@ impl PermissionRules {
         effect
     }
 
+    /// Explicit cross-action ceiling for search. Missing read authority neither
+    /// grants read nor denies independently authorized search.
+    pub(crate) fn denied_by_rule(
+        &self,
+        fallback: &BTreeMap<String, Permission>,
+        action: &str,
+        resource: &str,
+    ) -> bool {
+        let actions = [legacy_key(action)];
+        let scalar = scalar_rules(fallback);
+        let authorities = if self.authorities.is_empty() {
+            std::slice::from_ref(&scalar)
+        } else {
+            &self.authorities
+        };
+        authorities
+            .iter()
+            .chain(&self.constraints)
+            .any(|layer| evaluate_layer(layer, &actions, resource) == Some(Permission::Deny))
+    }
+
     /// Catalog visibility is conservative for resource rules, but a whole-action
     /// denial at any authority boundary removes the definition. Execution still
     /// evaluates every actual resource; visibility never grants a call.

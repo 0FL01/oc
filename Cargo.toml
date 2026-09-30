@@ -34,6 +34,8 @@ tempfile = { version = "3" }
 libc = { version = "0.2" }
 toml = { version = "0.8" }
 base64 = { version = "0.22" }
+regex = { version = "=1.12.2" }
+ignore = { version = "=0.4.24" }
 
 [profile.release]
 lto = true

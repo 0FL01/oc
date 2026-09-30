@@ -235,6 +235,8 @@ pub(crate) async fn prepare(
             }
         }
         "glob" | "grep" => {
+            let scope = crate::tools::search_preflight(ctx, call)?;
+            hash.update(scope.as_os_str().as_encoded_bytes());
             let pattern = call.arguments["pattern"]
                 .as_str()
                 .ok_or("missing pattern")?;
@@ -244,12 +246,9 @@ pub(crate) async fn prepare(
             {
                 return Err("invalid search pattern".into());
             }
-            if call.name == "grep" && call.arguments["literal"].as_bool() == Some(false) {
-                return Err("regex mode unsupported; pass literal=true".into());
-            }
             ApprovalPreview::Search {
                 pattern: pattern.into(),
-                cwd: roots.project.display().to_string(),
+                cwd: scope.display().to_string(),
                 include: call.arguments["include"].as_str().map(str::to_string),
             }
         }

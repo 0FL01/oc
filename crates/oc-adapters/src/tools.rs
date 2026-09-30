@@ -132,6 +132,13 @@ pub trait ToolPolicy: Sync {
     fn check_resource(&self, tool: &str, _resource: &str) -> Result<(), ToolError> {
         self.check(tool)
     }
+    /// Search is independently authorized, bounded by explicit read Deny rules.
+    fn search_path_denied(&self, resource: &str) -> bool {
+        matches!(
+            self.check_resource("read", resource),
+            Err(ToolError::Denied { .. })
+        )
+    }
     /// Every resource must pass before any invocation side effect.
     fn check_call(&self, call: &ToolCall) -> Result<(), ToolError> {
         for resource in permission_resources(call)? {
@@ -581,8 +588,7 @@ async fn execute_call(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
     }
     match call.name.as_str() {
         "read" => tool_read(ctx, call),
-        "glob" => tool_glob(ctx, call),
-        "grep" => tool_grep(ctx, call),
+        "glob" | "grep" => execute_search(ctx.files, ctx.policy, ctx.cancel, call).1,
         "apply_patch" => tool_patch(ctx, call),
         "shell" | "bash" => execute_shell_typed(ctx, call).await.1,
         "webfetch" => tool_webfetch(ctx, call).await,
@@ -603,8 +609,16 @@ pub(crate) fn validate_call(call: &ToolCall) -> Result<(), String> {
     };
     let valid = match call.name.as_str() {
         "read" => nonempty("path"),
-        "glob" => parse_glob_args(call).is_ok(),
-        "grep" => parse_grep_args(call).is_ok(),
+        "glob" => {
+            return parse_glob_args(call)
+                .map(|_| ())
+                .map_err(|reason| format!("invalid arguments for glob: {reason}"));
+        }
+        "grep" => {
+            return parse_grep_args(call)
+                .map(|_| ())
+                .map_err(|reason| format!("invalid arguments for grep: {reason}"));
+        }
         "apply_patch" => args.as_object().is_some_and(|a| a.len() == 1) && nonempty("patchText"),
         "shell" | "bash" => {
             return shell_call::invocation(call, &BTreeMap::new())
@@ -668,15 +682,17 @@ fn validate_subagent_args(args: &serde_json::Value) -> Result<(), String> {
     Ok(())
 }
 
-fn parse_glob_args(call: &ToolCall) -> Result<(&str, usize, usize), String> {
+fn parse_glob_args(call: &ToolCall) -> Result<crate::files::search::GlobOptions<'_>, String> {
     let args = call
         .arguments
         .as_object()
         .ok_or_else(|| "expected an object".to_string())?;
-    if args
-        .keys()
-        .any(|key| !matches!(key.as_str(), "pattern" | "offset" | "limit"))
-    {
+    if args.keys().any(|key| {
+        !matches!(
+            key.as_str(),
+            "pattern" | "path" | "hidden" | "offset" | "limit"
+        )
+    }) {
         return Err("unexpected property".to_string());
     }
     let pattern = args
@@ -689,18 +705,28 @@ fn parse_glob_args(call: &ToolCall) -> Result<(&str, usize, usize), String> {
         })
         .ok_or_else(|| "missing pattern".to_string())?;
     let (offset, limit) = parse_search_page(args)?;
-    Ok((pattern, offset, limit))
+    let options = crate::files::search::GlobOptions {
+        pattern,
+        path: search_string(args, "path")?.unwrap_or("."),
+        hidden: search_bool(args, "hidden", false)?,
+        offset,
+        limit,
+    };
+    options.validate().map_err(|error| error.to_string())?;
+    Ok(options)
 }
 
-fn parse_grep_args(call: &ToolCall) -> Result<(&str, bool, usize, usize), String> {
+fn parse_grep_args(call: &ToolCall) -> Result<crate::files::search::GrepOptions<'_>, String> {
     let args = call
         .arguments
         .as_object()
         .ok_or_else(|| "expected an object".to_string())?;
-    if args
-        .keys()
-        .any(|key| !matches!(key.as_str(), "pattern" | "literal" | "offset" | "limit"))
-    {
+    if args.keys().any(|key| {
+        !matches!(
+            key.as_str(),
+            "pattern" | "path" | "include" | "caseSensitive" | "literal" | "offset" | "limit"
+        )
+    }) {
         return Err("unexpected property".to_string());
     }
     let pattern = args
@@ -710,14 +736,74 @@ fn parse_grep_args(call: &ToolCall) -> Result<(&str, bool, usize, usize), String
             !pattern.is_empty() && pattern.len() <= crate::files::SEARCH_PATTERN_BYTES_CAP
         })
         .ok_or_else(|| "missing pattern".to_string())?;
-    let literal = match args.get("literal") {
-        Some(value) => value
-            .as_bool()
-            .ok_or_else(|| "literal must be a boolean".to_string())?,
-        None => true,
-    };
     let (offset, limit) = parse_search_page(args)?;
-    Ok((pattern, literal, offset, limit))
+    let options = crate::files::search::GrepOptions {
+        pattern,
+        path: search_string(args, "path")?.unwrap_or("."),
+        include: search_string(args, "include")?,
+        literal: search_bool(args, "literal", false)?,
+        case_sensitive: search_bool(args, "caseSensitive", true)?,
+        offset,
+        limit,
+    };
+    options.validate().map_err(|error| error.to_string())?;
+    Ok(options)
+}
+
+fn search_string<'a>(
+    args: &'a serde_json::Map<String, serde_json::Value>,
+    key: &str,
+) -> Result<Option<&'a str>, String> {
+    args.get(key)
+        .map(|value| {
+            value
+                .as_str()
+                .filter(|text| {
+                    !text.is_empty()
+                        && !text.contains('\0')
+                        && text.len() <= crate::files::SEARCH_PATTERN_BYTES_CAP
+                })
+                .ok_or_else(|| format!("{key} must be a nonempty bounded string"))
+        })
+        .transpose()
+}
+
+fn search_bool(
+    args: &serde_json::Map<String, serde_json::Value>,
+    key: &str,
+    default: bool,
+) -> Result<bool, String> {
+    args.get(key).map_or(Ok(default), |value| {
+        value
+            .as_bool()
+            .ok_or_else(|| format!("{key} must be a boolean"))
+    })
+}
+
+pub(crate) fn search_preflight(
+    ctx: &ToolContext<'_>,
+    call: &ToolCall,
+) -> Result<std::path::PathBuf, String> {
+    search_preflight_for(ctx.files, ctx.policy, call)
+}
+
+fn search_preflight_for(
+    files: &Files,
+    policy: &dyn ToolPolicy,
+    call: &ToolCall,
+) -> Result<std::path::PathBuf, String> {
+    let path = if call.name == "glob" {
+        parse_glob_args(call)?.path
+    } else {
+        parse_grep_args(call)?.path
+    };
+    let scope = files
+        .search_scope(path)
+        .map_err(|error| error.to_string())?;
+    if !search_path_allowed(policy, &scope) {
+        return Err(format!("denied {}: read scope", call.name));
+    }
+    Ok(scope)
 }
 
 fn parse_search_page(
@@ -777,22 +863,57 @@ fn tool_read(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
     }
 }
 
-fn tool_glob(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
-    let (pattern, offset, limit) = match parse_glob_args(call) {
+/// The same typed search path is used by direct batches and the runtime's
+/// owned blocking dispatch. Its cancellation token is never inferred from policy.
+pub(crate) fn execute_search(
+    files: &Files,
+    policy: &dyn ToolPolicy,
+    cancel: &AtomicBool,
+    call: &ToolCall,
+) -> (&'static str, String) {
+    if let Err(error) = policy.check_call(call) {
+        return ("failed", format!("error: {error}"));
+    }
+    if cancel.load(std::sync::atomic::Ordering::Acquire) {
+        return ("cancelled", "error: cancelled".into());
+    }
+    let output = if call.name == "glob" {
+        tool_glob(files, policy, cancel, call)
+    } else {
+        tool_grep(files, policy, cancel, call)
+    };
+    if cancel.load(std::sync::atomic::Ordering::Acquire) || output == "error: cancelled" {
+        ("cancelled", "error: cancelled".into())
+    } else if output.starts_with("error:") {
+        ("failed", output)
+    } else {
+        ("completed", output)
+    }
+}
+
+fn tool_glob(
+    files: &Files,
+    policy: &dyn ToolPolicy,
+    cancel: &AtomicBool,
+    call: &ToolCall,
+) -> String {
+    let mut options = match parse_glob_args(call) {
         Ok(args) => args,
         Err(reason) => return format!("error: invalid arguments for glob: {reason}"),
     };
-    let fetch_limit = limit.saturating_add(1).min(SEARCH_LIMIT_CAP as usize);
-    match ctx.files.glob(pattern, offset, fetch_limit) {
+    if let Err(error) = search_preflight_for(files, policy, call) {
+        return format!("error: {error}");
+    }
+    let (offset, limit) = (options.offset, options.limit);
+    options.limit = limit + 1;
+    match files.glob_search(
+        &options,
+        |path| search_path_allowed(policy, path),
+        Some(cancel),
+    ) {
         Ok(mut items) => {
-            let mut truncated = items.len() > limit;
+            let truncated = items.len() > limit;
             items.truncate(limit);
-            if !truncated && items.len() == limit && limit == SEARCH_LIMIT_CAP as usize {
-                truncated = match ctx.files.glob(pattern, offset + items.len(), 1) {
-                    Ok(next) => !next.is_empty(),
-                    Err(error) => return format!("error: {error}"),
-                };
-            }
             let returned = items.len();
             serde_json::json!({
                 "items": items,
@@ -804,23 +925,31 @@ fn tool_glob(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
     }
 }
 
-fn tool_grep(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
-    let (pattern, literal, offset, limit) = match parse_grep_args(call) {
+fn tool_grep(
+    files: &Files,
+    policy: &dyn ToolPolicy,
+    cancel: &AtomicBool,
+    call: &ToolCall,
+) -> String {
+    let mut options = match parse_grep_args(call) {
         Ok(args) => args,
         Err(reason) => return format!("error: invalid arguments for grep: {reason}"),
     };
-    let fetch_limit = limit.saturating_add(1).min(SEARCH_LIMIT_CAP as usize);
-    match ctx.files.grep(pattern, literal, offset, fetch_limit) {
+    if let Err(error) = search_preflight_for(files, policy, call) {
+        return format!("error: {error}");
+    }
+    let (offset, limit) = (options.offset, options.limit);
+    options.limit = limit + 1;
+    match files.grep_search(
+        &options,
+        |path| search_path_allowed(policy, path),
+        Some(cancel),
+    ) {
         Ok(mut hits) => {
-            let mut truncated = hits.len() > limit;
+            let truncated = hits.len() > limit;
             hits.truncate(limit);
-            if !truncated && hits.len() == limit && limit == SEARCH_LIMIT_CAP as usize {
-                truncated = match ctx.files.grep(pattern, literal, offset + hits.len(), 1) {
-                    Ok(next) => !next.is_empty(),
-                    Err(error) => return format!("error: {error}"),
-                };
-            }
             let returned = hits.len();
+            let truncated_line_previews = hits.iter().filter(|hit| hit.text_truncated).count();
             let matches = hits
                 .into_iter()
                 .map(|hit| {
@@ -833,12 +962,18 @@ fn tool_grep(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
                 .collect::<Vec<_>>();
             serde_json::json!({
                 "matches": matches,
+                "diagnostics": {"truncated_line_previews": truncated_line_previews},
                 "pagination": pagination(offset, limit, returned, truncated),
             })
             .to_string()
         }
         Err(error) => format!("error: {error}"),
     }
+}
+
+fn search_path_allowed(policy: &dyn ToolPolicy, path: &std::path::Path) -> bool {
+    // A search grant cannot undo an explicit read Deny from central/child policy.
+    !policy.search_path_denied(&path.to_string_lossy())
 }
 
 fn pagination(offset: usize, limit: usize, returned: usize, truncated: bool) -> serde_json::Value {
@@ -1386,6 +1521,8 @@ impl TurnLog {
 mod tests {
     #[path = "shell.rs"]
     mod foreground;
+    #[path = "search.rs"]
+    mod search;
     use super::{
         AllowAllPolicy, Assembled, BatchError, DenyListPolicy, MODEL_TOOL_NAMES, SkillSnapshot,
         ToolCall, ToolContext, ToolRoots, TurnLog, assemble_calls, execute_batch, to_input_items,

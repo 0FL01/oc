@@ -2000,6 +2000,7 @@ fn file_suggestion_error(error: crate::files::FileToolError) -> CoreError {
         FileToolError::SymlinkEscape => "file suggestion root unavailable",
         FileToolError::OutsideRoot | FileToolError::OwnDataRoot => "file suggestions refused",
         FileToolError::BudgetExhausted => "file suggestion budget exhausted",
+        FileToolError::Cancelled => "file suggestions cancelled",
         FileToolError::NotFound | FileToolError::Binary => "file suggestions unavailable",
     };
     app_error(category)

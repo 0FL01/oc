@@ -325,6 +325,13 @@ impl<'a> RuntimePolicy<'a> {
 }
 
 impl ToolPolicy for RuntimePolicy<'_> {
+    fn search_path_denied(&self, resource: &str) -> bool {
+        let resource = permission_path(self.root, resource);
+        self.rules.map_or(
+            self.permissions.get("read") == Some(&Permission::Deny),
+            |rules| rules.denied_by_rule(self.permissions, "read", &resource),
+        )
+    }
     fn approved_shell_cwd(&self) -> Option<Arc<crate::shell::PinnedCwd>> {
         self.permit.as_ref().and_then(|p| p.shell_cwd.clone())
     }
@@ -437,28 +444,27 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "glob".to_string(),
-            description: "List project paths matching a bounded glob. Results are sorted and paginated.".to_string(),
-            parameters: schema(
-                serde_json::json!({
+            description: "Search file paths using ripgrep glob syntax. `path` is an admitted project directory (default root); `hidden` defaults false. Positive patterns override ignore files; .git is excluded. Results are Location-relative, lexicographically sorted and paginated; default limit 100. Native trust/no-follow/data-root and entry/byte/30-second budgets apply.".to_string(),
+            parameters: serde_json::json!({"type":"object", "properties": {
                     "pattern": {"type": "string"},
+                    "path": {"type": "string"},
+                    "hidden": {"type": "boolean", "default": false},
                     "offset": {"type": "integer", "minimum": 0},
-                    "limit": {"type": "integer", "minimum": 1, "maximum": 1000}
-                }),
-                &["pattern"],
-            ),
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100}
+                }, "required":["pattern"], "additionalProperties":false}),
         },
         ToolDef {
             name: "grep".to_string(),
-            description: "Search project text with a bounded literal pattern. Results are sorted and paginated; regex mode is unsupported.".to_string(),
-            parameters: schema(
-                serde_json::json!({
+            description: "Search text with ripgrep's default Rust regex syntax (no look-around/backreferences); `literal:true` searches exact text. `path` scopes an admitted project file/directory; `include` is a ripgrep glob filter. caseSensitive defaults true; hidden files are searched, .git excluded, positive include overrides ignore files. Results are Location-relative, sorted by path/line and paginated; default limit 100. Native trust/no-follow/data-root and compile/entry/byte/30-second budgets apply.".to_string(),
+            parameters: serde_json::json!({"type":"object", "properties": {
                     "pattern": {"type": "string"},
-                    "literal": {"type": "boolean"},
+                    "path": {"type": "string"},
+                    "include": {"type": "string"},
+                    "literal": {"type": "boolean", "default": false},
+                    "caseSensitive": {"type": "boolean", "default": true},
                     "offset": {"type": "integer", "minimum": 0},
-                    "limit": {"type": "integer", "minimum": 1, "maximum": 1000}
-                }),
-                &["pattern"],
-            ),
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100}
+                }, "required":["pattern"], "additionalProperties":false}),
         },
         ToolDef {
             name: "apply_patch".to_string(),
