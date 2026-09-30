@@ -1,12 +1,12 @@
 # Goal: LLM-provider retry и безопасное продолжение как в OC2
 
-Status: active
+Status: complete (assigned Responses/common-runtime backend; GO03/VIS43 separate)
 Source: требование владельца о полном parity provider-error retry (лимиты и 5xx)
 и его TUI-представления; утверждение исправленного после RECON/параллельного аудита
 плана 2026-09-29. Reference: `opencode` v2.0.12,
 `2670273ff17da96f85c5826ced57aa1b368754fa`.
 Last updated: 2026-09-29
-Task: T54 (todo; документ — план, не execution PASS).
+Task: T54; current qualification — evidence/T54/report.md.
 
 ## Objective
 
@@ -38,8 +38,8 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: fake HTTP/SSE fixtures для 429 throttle и quota, 402,
     408/409/5xx, 400/401/403/413, ошибок внутри HTTP 200 SSE, EOF после
     partial output и наблюдаемых retry headers.
-  - Status: pending
-  - Evidence: pending — evidence/T54/report.md.
+  - Status: verified
+  - Evidence: evidence/T54/report.md; evidence/T54/typed-failures.md and current provider tests.
 
 - R2: конечное ожидание и истинное продолжение одного логического шага.
   - Source: pinned `packages/core/src/session/runner/{retry,step,llm}.ts`;
@@ -53,8 +53,8 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: deterministic clock/RNG fake provider: mixed
     pre-output/partial failures, exhaustion, terminal auth/quota, retry override,
     interrupted read после output, cancel during backoff, persisted tool outcomes.
-  - Status: pending
-  - Evidence: pending — evidence/T54/report.md.
+  - Status: verified
+  - Evidence: evidence/T54/report.md; evidence/T54/runtime-retry.md and owner/native mixed-continuation gates.
 
 - R3: durable assistant-span факт и адресная presentation без второго владельца.
   - Source: pinned `session/message-updater.ts:213–255,402–409`,
@@ -71,8 +71,8 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: owner journal/query и actual-binary fake-provider
     headless/PTY: reschedule, due, partial→continue→success→reopen, tab park,
     restart/cancel и ordering snapshot/events без ложного нового запроса.
-  - Status: pending
-  - Evidence: pending — evidence/T54/report.md.
+  - Status: verified
+  - Evidence: evidence/T54/report.md; durable journal/query, scoped ordering and native reopen/restart gates.
 
 - R4: сохранить лимиты, другие LLM lanes и существующие gates.
   - Source: pinned `session/compaction.ts`, `session/title.ts`; GOAL.md
@@ -90,8 +90,8 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: owner regressions + actual rebuilt binary fake
     Responses/headless/PTY и affected crate/workspace gates по TEST_PLAN;
     отдельные T53/GO03 и T44/VIS43 evidence без подмены результатов.
-  - Status: pending
-  - Evidence: pending — evidence/T54/report.md.
+  - Status: verified
+  - Evidence: evidence/T54/report.md; operation dispatch/socket accounting and current workspace gates.
 
 ### Source-derived decision table
 
@@ -166,7 +166,7 @@ Expected consumers: `runtime/turn.rs`, `runtime_compaction.rs`,
 называть новые файлы по фактическим seams, не по типам. Один mutation owner;
 перед execution сверить активную T51 dirty работу и qualified readiness seam.
 
-## Current Checkpoint / State
+## Historical planning checkpoint / state
 
 - 2026-09-29: RECON и независимый аудит completed; docs-only контракт
   утверждён, implementation RET01/VIS43/GO03 NOT_RUN. T51 active;
@@ -185,6 +185,12 @@ Expected consumers: `runtime/turn.rs`, `runtime_compaction.rs`,
 - Blocker: нет для планирования; исполнение не начинается этой правкой.
 
 ## Evidence / Completion
+
+Assigned R1–R4/RET01 backend verified at implementation commits `a7ddde9f8` and
+`2d0dea21a`: current workspace 1321 passed, 0 failed, 10 unchanged opt-in ignored;
+normal debug/release nine native scenarios per ELF, deterministic owner matrix,
+safe span/recovery/operation accounting and strict quality gates PASS. Full report:
+`evidence/T54/report.md`. No GO03/VIS43 or whole-product completion claim.
 
 RET01 имеет только T54 как owner; подробные cases и команды —
 `planning/acceptance.json`, `docs/TEST_PLAN.md`. Отчёт:

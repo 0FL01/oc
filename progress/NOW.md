@@ -1,27 +1,24 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-30T02:56:47+00:00
-Active: T54
+State updated: 2026-09-30T02:59:01+00:00
+Active: нет
 
 Сверить Git status/diff до выполнения команд.
-Task: T54 — Provider-error retry and safe continuation parity (OC2 v2.0.12)
-Spec: docs/goals/2026-09-29-provider-retry-parity.md
-Evidence target: evidence/T54/report.md
 
-Owner-approved 2026-09-29 provider-error retry plan: typed HTTP/Responses SSE errors, quota versus transient throttle, one cancellable finite per-logical-step policy and one physical attempt per adapter call; truthful pre-output retry versus post-output durable continuation, no tool/effect replay or failed-attempt success. Main/child/compaction auxiliary lanes, pinned bindings, physical dispatch accounting and actual-binary headless/PTY qualification in spec. T53/GO03 reuses the policy on future Chat/Messages wires; T44/VIS43 owns paired retry visuals after explicit resume. Consume minimal qualified T51 seam, no whole-task T51/T53/T44 dependency, daemon, JS hooks or new retry framework. Plan only: pending/NOT_RUN, historical statuses/PASS unchanged.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
+Последний срез: T54 [done]; сверить незакоммиченный diff.
 
 # T54
 ## Result
-R2–R4 verified: finite retry, durable spans and lane counts.
+R1–R4/RET01 backend verified; implementation 2d0dea21a.
 ## Checks
-Workspace1321; owner17+4+3; native9 per ELF; Python47 PASS.
+Workspace1321; Python47; native9 per ELF; fmt/clippy/build PASS.
 ## Risks
-VIS43/GO03 separate; no full product claim.
+GO03/VIS43 and whole goal separate; T44 PAUSED.
 ## Next
-Task closeout, then independent ready backend task.
+Independent ready backend task T45/T50/T53.
 
+
+Следующий шаг: проверить зависимости и начать первую ready-задачу.
 
 Ready (до 5): T45, T50, T53
 Blocked: T27, T43, T44
