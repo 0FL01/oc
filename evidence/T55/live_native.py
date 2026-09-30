@@ -4,6 +4,7 @@
 Only --run authorizes catalog/native external dispatch. Private native histories
 stay in the owned cache; this program prints structural aggregates only.
 """
+import argparse
 import hashlib
 import http.client
 import http.server
@@ -84,14 +85,16 @@ def identity():
     return campaign, ledger, prefix
 
 
-def preflight():
+def preflight(retained_source=HEAD, retained_sha=ELF_SHA):
     check(os.getuid() != 0, 'non_root')
-    check(subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() == HEAD,
+    check(len(retained_source) == 40 and all(c in '0123456789abcdef' for c in retained_source)
+          and len(retained_sha) == 64 and all(c in '0123456789abcdef' for c in retained_sha), 'artifact_association_shape')
+    check(subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() == retained_source,
           'source_head_changed')
-    check(digest(ELF) == ELF_SHA and ELF.open('rb').read(4) == b'\x7fELF', 'retained_elf')
+    check(digest(ELF) == retained_sha and ELF.open('rb').read(4) == b'\x7fELF', 'retained_elf')
     campaign, ledger, prefix = identity()
     state = ledger.snapshot()
-    emit({'preflight': 'PASS', 'source_head': HEAD, 'release_sha256': ELF_SHA,
+    emit({'preflight': 'PASS', 'source_head': retained_source, 'release_sha256': retained_sha,
           'campaign_id': state['id'], 'before_counts': state['counts'],
           'input_bytes': state['input_bytes'], 'remaining_generation': 24-state['counts']['generation'],
           'journal_prefix_bytes': len(prefix), 'network_requests': 0})
@@ -413,6 +416,14 @@ def qualify(relay, selection, prompt=PROMPT):
         check(result['initial_process']['exit'] == 0 and len(turns) == 1 and turns[0][1] == 'completed', 'initial_final_success')
         check([(name, state) for _, name, state in operations] == [('apply_patch', 'completed'), ('read', 'completed')], 'durable_tools')
         check((project/'proof.txt').read_bytes() == EXPECTED and sorted(p.name for p in project.iterdir()) == ['proof.txt'], 'independent_file_bytes')
+        with database(root) as db:
+            patch_effects = db.execute('SELECT count(*) FROM patch_effects').fetchone()[0]
+            tool_results = list(db.execute('SELECT name,input,output FROM tool_operations ORDER BY rowid'))
+        check(patch_effects == 1 and all(not (output or '').startswith('error:') for _, _, output in tool_results),
+              'durable_successful_effects')
+        read_results = [(json.loads(raw), output or '') for name, raw, output in tool_results if name == 'read']
+        check(len(read_results) == 1 and read_results[0][0].get('path') == 'proof.txt'
+              and EXPECTED.decode().strip() in read_results[0][1], 'read_expected_file_result')
         graph = pairs(logs[0].get('input', []))
         check([name for name, _ in graph] == ['apply_patch', 'read'], 'durable_pair_names')
         check(all(op.endswith('-'+call) for (op, _, _), (_, call) in zip(operations, graph)), 'operation_call_id_pairing')
@@ -436,7 +447,9 @@ def qualify(relay, selection, prompt=PROMPT):
                       reopen_graph=True, settled_rows_unchanged=True, file_bytes=len(EXPECTED),
                       file_sha256=hashlib.sha256(EXPECTED).hexdigest(), final_finish='stop', reopen_finish='stop',
                       message_roles=messages, retry_events=events.get('retry_scheduled', 0),
-                      generation_dispatches=events.get('generation_dispatched', 0))
+                      generation_dispatches=events.get('generation_dispatched', 0),
+                      patch_effect_rows=patch_effects, read_expected_file_result=True,
+                      session_id=sessions[0][0], turn_ids=[turn_id for turn_id, _, _ in turns])
     except Exception as error:
         result.update(status='FAIL', code=error.args[0] if isinstance(error, Refused) else 'operator_fact_or_io')
     finally:
@@ -453,8 +466,20 @@ def qualify(relay, selection, prompt=PROMPT):
 
 
 def main():
-    campaign, ledger, prefix, before = preflight()
-    if '--offline-relay' in sys.argv:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--retained-source', default=None)
+    parser.add_argument('--retained-sha', default=None)
+    parser.add_argument('--run', action='store_true')
+    parser.add_argument('--configured-experiment', action='store_true')
+    offline = parser.add_mutually_exclusive_group()
+    offline.add_argument('--offline-relay', action='store_true')
+    offline.add_argument('--offline-operator', action='store_true')
+    offline.add_argument('--offline-operator-high', action='store_true')
+    args = parser.parse_args()
+    check((args.retained_source is None) == (args.retained_sha is None), 'artifact_association_pair_required')
+    retained_source, retained_sha = args.retained_source or HEAD, args.retained_sha or ELF_SHA
+    campaign, ledger, prefix, before = preflight(retained_source, retained_sha)
+    if args.offline_relay:
         fixture = Fixture(ELF, 'relay')
         try:
             emit({'offline_reuse': 'PASS', **fixture.relay_case()})
@@ -462,7 +487,7 @@ def main():
             fixture.close()
         check(ledger.snapshot() == before, 'offline_touched_live_campaign')
         return 0
-    if '--offline-operator' in sys.argv or '--offline-operator-high' in sys.argv:
+    if args.offline_operator or args.offline_operator_high:
         fixture = Fixture(ELF, 'headless')
         def response(number, request):
             if number == 1:
@@ -482,7 +507,7 @@ def main():
                             'mcp': {'unused': {'url': upstream+'/unused', 'headers': {}}}}
         fixture.relay = Relay(fixture.campaign, fixture.manifest)
         try:
-            high = '--offline-operator-high' in sys.argv
+            high = args.offline_operator_high
             entry = {'limit': {'context': 65536, 'output': 2048}}
             if high:
                 entry['variants'] = {'high': {'reasoningEffort': 'high'}}
@@ -493,7 +518,7 @@ def main():
         finally:
             fixture.close()
         return 0
-    if '--run' not in sys.argv:
+    if not args.run:
         return 0
     configured, manifest = product_manifest()
     relay = Relay(campaign, manifest, offline=False)
@@ -501,24 +526,25 @@ def main():
     results = []
     try:
         selections = catalog(relay, configured)
-        if '--configured-experiment' in sys.argv:
+        if args.configured_experiment:
             selections = [s for s in selections if s[0] == 'configured']
         for selection in selections:
-            results.append(qualify(relay, selection, EXPLICIT_PROMPT if '--configured-experiment' in sys.argv else PROMPT))
+            results.append(qualify(relay, selection, EXPLICIT_PROMPT if args.configured_experiment else PROMPT))
     finally:
         relay.close()
         after = ledger.snapshot()
         with ledger.locked() as (fd, _):
             os.lseek(fd, 0, os.SEEK_SET)
             check(os.read(fd, len(prefix)) == prefix, 'prior_journal_bytes_changed')
-        check(digest(ELF) == ELF_SHA, 'binary_changed_after_live')
+        check(digest(ELF) == retained_sha, 'binary_changed_after_live')
         emit({'campaign_after': after['counts'], 'input_bytes': after['input_bytes'],
               'remaining_generation': 24-after['counts']['generation'], 'prior_journal_prefix_unchanged': True,
               'relay_joined': True, 'binary_hash_unchanged': True,
+              'source_head': retained_source, 'release_sha256': retained_sha,
               'relay_pid': relay.process.pid, 'relay_startticks': relay_starttick,
               'new_receipts': [{k: a[k] for k in ('reserve', 'kind', 'outcome', 'http_status', 'failure', 'failure_stage') if k in a}
                                for a in after['attempts'][len(before['attempts']):]]})
-    expected = 1 if '--configured-experiment' in sys.argv else 2
+    expected = 1 if args.configured_experiment else 2
     return 0 if len(results) == expected and all(r['status'] == 'PASS' for r in results) else 1
 
 

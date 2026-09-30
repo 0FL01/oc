@@ -1,10 +1,10 @@
 # Goal: completed Responses tool calls survive sparse terminal output
 
-Status: active (frozen repair plan; implementation NOT_STARTED)
+Status: complete (assigned R1–R4 verified; T27/full goal remain separate)
 Source: owner request 2026-09-30: diagnose non-working native application,
 collect repair context, ensure an assigned fix and real-API E2E plan.
 Last updated: 2026-09-30
-Task: T55 (todo); diagnostic evidence: `evidence/T55/diagnosis.md`.
+Task: T55; current qualification: `evidence/T55/report.md`; original diagnostic evidence: `evidence/T55/diagnosis.md`.
 
 ## Objective
 
@@ -41,8 +41,8 @@ existing seeded coding finish line; do not claim it from a wire-only smoke.
     call solely from partial deltas or manufacture terminal success.
   - Primary evidence: PROV09 owner tests using normalized fixture, empty/omitted/
     full/partially repeated terminal output, and direct Generation assertions.
-  - Status: pending
-  - Evidence: current binary reproduces failure; no fix implemented.
+   - Status: verified
+   - Evidence: `evidence/T55/reconciliation.md`, `reasoning-replay.md`, current `report.md`.
 
 - **R2 — validation and diagnostics remain honest.**
   - Source: GOAL A04/A07/A08/A10; T54 typed failure contract and no unknown-effect
@@ -58,8 +58,8 @@ existing seeded coding finish line; do not claim it from a wire-only smoke.
     opaque isolation/replay, permission/trust and unknown-effect quarantine.
   - Primary evidence: PROV09 negative owner fixtures + existing PROV03/04/06,
     RET01 and affected safety tests; inspect safe diagnostics for canary leakage.
-  - Status: pending
-  - Evidence: `provider.rs::read_failure` currently conflates local rejection/EOF.
+   - Status: verified
+   - Evidence: current `evidence/T55/report.md`, typed local negative fixtures and native zero-effect receipts.
 
 - **R3 — prove the actual shipped runtime, not only parser success.**
   - Source: owner non-working application; GOAL A04/A07/A08 and TEST_PLAN.
@@ -72,9 +72,8 @@ existing seeded coding finish line; do not claim it from a wire-only smoke.
     unclosed/conflicting streams execute zero tools. Affected quality gates pass.
   - Primary evidence: PROV09 actual-binary request/file/SQLite/PTY receipts, affected
     crate tests, workspace fmt/clippy/tests/build as required by TEST_PLAN.
-  - Status: pending
-  - Evidence: diagnostic existing-ELF RED/full/omitted differential only; not a
-    rebuilt/fixed qualification or visual T44 PASS.
+   - Status: verified
+   - Evidence: `evidence/T55/native-qualification.md`, `reasoning-replay.md`; current debug/release headless/PTY/recovery proof, not T44 visual PASS.
 
 - **R4 — current bounded real-API qualification and coding handoff.**
   - Source: explicit owner request for real-API E2E; GOAL A04/A09; PROV08/E2E02
@@ -93,9 +92,8 @@ existing seeded coding finish line; do not claim it from a wire-only smoke.
     T27's workflow must pass before full product readiness; T55 cannot close it.
   - Primary evidence: PROV10 safe native relay/request/operation/file/reopen report,
     continuing durable ledger; T27 separately produces E2E02 evidence.
-  - Status: pending
-  - Evidence: 4 direct generation probes diagnosed wire; native real-API tool
-    execution NOT_RUN and E2E02 remains unresolved.
+   - Status: verified
+   - Evidence: `evidence/T55/live-qualification.md`, `configured-qualified.md`, current `report.md`; both native tool/final/reopen receipts. T27 E2E02 remains separate.
 
 ### Constraints
 
@@ -161,7 +159,7 @@ and this diagnostic delivery are documentation/evidence only. Keep old reports a
 checkpoint leaves unchanged; existing detailed IDs retain owners. New detailed
 IDs PROV09/PROV10 have only T55 as owner.
 
-## Current Checkpoint / State
+## Historical planning checkpoint / state
 
 - Verified: reproducible live sparse-terminal topology twice, existing release
   offline RED versus full/omitted GREEN, exact owner source seam, missing plan owner.
@@ -179,5 +177,9 @@ IDs PROV09/PROV10 have only T55 as owner.
 - 2026-09-30: owner-requested bounded read-only user-state inspection, direct
   live structural capture and synthetic existing-ELF differential completed.
   Registered repair/E2E ownership; diagnostic delivery does not close R1–R4.
-- Completion pending: implementation NOT_STARTED, PROV09/PROV10 NOT_RUN as
-  post-fix gates, T27 E2E02 and T44 visual qualification separate/unresolved.
+- Historical plan delivery above did not claim implementation or post-fix PASS.
+- 2026-09-30 completion: R1–R4/PROV09/PROV10 verified in `evidence/T55/report.md`,
+  implementation commits `19b224ef…` / `5e523a0df…`; workspace1349 and both
+  required actual native live tool/reopen receipts PASS. Same diagnosis campaign
+  now18G/8C/0MCP; six generations remain, no reset/refund. T27 E2E02/A09 and
+  T44 visual/full product qualification remain separate and unresolved.
