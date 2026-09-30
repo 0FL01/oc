@@ -876,6 +876,24 @@
       "locator": "315–344 deletion event separate from remove/active-route replacement; 398–423 close/reopen and Home fallback",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/session-tabs.tsx#L398-L423",
       "purpose": "VIS44 closes persisted tab view, not durable session; inactive route preserved, actual reopen, no donor busy guard (native difference disclosed)"
+    },
+    {
+      "id": "U76",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/config/keybind.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "169–171 list/forward/reverse defaults; config/v1/keybind.ts:141–143,345–347 legacy aliases/new defaults; test/keybind.test.ts:4–6",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/config/keybind.ts#L169-L171",
+      "purpose": "VIS06/VIS10 separate agent picker from Shift+Tab forward cycle; reverse unbound and legacy alias mapping, not OC1 default or runtime dispatch proof"
+    },
+    {
+      "id": "U77",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/prompt/traits.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "16–24 prompt Tab capture; app.tsx:1207–1214 action/binding layers; component/prompt/autocomplete.tsx:96–100,667–735 mode/layer; test/prompt/traits.test.ts:5–10",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/prompt/traits.ts#L16-L24",
+      "purpose": "VIS06/VIS10 focused prompt/autocomplete ownership; configured Tab dispatch needs actual pinned-reference qualification, not an assumed global fallthrough"
     }
   ],
   "external_primary_sources": [

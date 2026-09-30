@@ -274,6 +274,135 @@ Pinned sources U25–U30 in `SOURCES.json`; UI source U29. No new task tracker.
    and prompt states plus owner/runtime evidence. T45 backend and T44 visual results
    remain separate; no circular task-completion dependency or PASS by approval.
 
+### Agent-cycle keybindings — уточнение 2026-09-30
+
+**Owner-approved; T44/R5 + T45/R6; implementation pending.** Владелец сообщил,
+что Shift+Tab в Rust открывает выбор профиля, тогда как OC2 переключает его сразу,
+и попросил выяснить назначение Tab относительно OC1. После RECON утверждено:
+«Вноси в план работ развернуто и коммит пуш в текущую ветку». Это детализация
+существующих VIS06/VIS10/VIS17, не новый VIS45, задача или keyboard framework.
+
+#### RECON: неправильный action, отсутствующий cycle и назначение Tab
+
+Native на `26ef8ab92e46ddb8f41d97d670e374c98d9433bc`:
+
+- `oc-tui/src/commands.rs:159–181,289–295` назначает `shift+tab` команде
+  `agent.list`/`OpenAgents`; `events.rs:120–151` маппит BackTab+Shift в
+  `KeyAction::Agents`, а plain Tab — в `KeyAction::Tab`.
+- `app/input.rs::handle_key` вызывает `run_command(OpenAgents)`, который открывает
+  `TuiPanel::Agents`. Plain Tab завершает slash/mention suggestion; без неё no-op.
+  Forward/reverse agent-cycle action отсутствует: заменить текст hint недостаточно.
+- `oc-adapters/src/config.rs::ConversationKeybinds::merge` не читает agent list/
+  cycle/reverse ни с dotted, ни с legacy names. Поэтому добавление `agent_cycle`
+  или `agent.cycle` в нынешний пользовательский config само по себе не исправляет UI.
+- `application.rs::Selection::catalog` фильтрует `primary_capable()`, но
+  `defs.rs::AgentDef::primary_capable` проверяет только mode != subagent, не hidden.
+  `AgentEntry` уже отфильтрован у владельца; TUI не имеет hidden/disabled facts.
+  Нужен минимальный R6 catalog slice, не угадывание eligibility по ID/description.
+- Existing Enter в picker возвращает `PanelIntent::SelectAgent`; бинарный
+  `tui_cmd.rs::apply_intent` использует общий `selection(..., SelectionAction::Agent)`
+  для session и Home. Owner validation, persistence, effective model/variant,
+  no-success-toast и error handling уже доступны; переиспользовать этот путь.
+
+Pinned OC2 v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:
+
+- **U29/U76:** `agent.list` = `<leader>a`, `agent.cycle` = `shift+tab`,
+  `agent.cycle.reverse` = `none`. `app.tsx` разделяет picker и `local.agent.move(1|-1)`;
+  `context/local.tsx:56–123` исключает hidden/subagent-only, сохраняет supplied order
+  и оборачивает цикл. `test/keybind.test.ts:4–6` проверяет эти defaults.
+- **U76:** legacy names `agent_list`, `agent_cycle`, `agent_cycle_reverse` маппятся
+  в dotted names. `config/v1/keybind.ts` внутри OC2 уже имеет новые defaults:
+  это compatibility importer, не самостоятельное доказательство defaults OC1.
+- Историческая привычка владельца подтверждается [официальной OC1 keybind docs](https://opencode.ai/docs/keybinds/)
+  (просмотрено 2026-09-30): Tab = next, Shift+Tab = previous, `<leader>a` = picker.
+  Это контекст explicit override, не frozen native default или pinned OC1 runtime.
+- **U77:** normal prompt объявляет capture `tab`, autocomplete имеет собственный
+  mode/layer. Таблица config и этот source-derived capture не доказывают весь
+  OpenTUI dispatch. Как работает configured Tab при idle/autocomplete, проверить
+  на запущенном pinned OC2; не обещать глобальный fallthrough по одному имени bind.
+
+#### Frozen behavior и узкая граница
+
+1. **Defaults OC2, picker отдельно.** Обычный Shift+Tab в idle root composer
+   выбирает следующий eligible primary/all profile на один шаг с wraparound,
+   без открытия модального окна. Reverse default unbound; /agents, palette и
+   `<leader>a` продолжают открывать picker. Plain Tab default остаётся completion
+   для slash/mention, без suggestions — no-op; не менять defaults на OC1 молча.
+2. **Explicit overrides.** Existing admitted config composition поддерживает
+   `agent.list`/`agent.cycle`/`agent.cycle.reverse` и соответствующие legacy aliases.
+   Reuse string shortcuts, comma alternatives, leader resolution и none/false
+   disabling из текущего механизма; preserve source precedence/Location generation
+   и actionable invalid-binding diagnostics. Не вводить новый config file/store,
+   generic keymap engine или весь расширенный OpenTUI binding-object API.
+   Пользователь может явно получить OC1-style navigation:
+
+   ```json
+   {"keybinds":{"agent.cycle":"tab","agent.cycle.reverse":"shift+tab"}}
+   ```
+
+   Для native override plain Tab в composer без активной completion переключает
+   агента; активные approval/question, modal и slash/@ autocomplete владеют клавишами
+   первыми. Ни одно нажатие не выполняет и completion, и profile change. Actual
+   pinned-reference capture квалифицировать отдельно; подтверждённое отличие
+   этого native override раскрывается без masking или universal keymap parity claim.
+3. **Catalog и selection — один owner.** Цикл использует ordered eligible IDs
+   текущего catalog, не hard-coded Build/Plan pair, alphabetical re-sort в TUI,
+   picker search/cursor или synthetic unavailable row. Empty/single eligibility
+   не создаёт новый выбор. Удалённый/недоступный saved profile не подменяется default
+   при загрузке или failed cycle; сохранить явную диагностику и ручной picker repair
+   по T51. Owner revalidates target/current generation; отказ сохраняет прежний
+   выбор и draft. Минимальный hidden/disabled/subagent-only catalog fix — T45/R6;
+   explicit addressing вне automatic surfaces сохраняет отдельные правила.
+4. **State и guards.** Direct cycle возвращает existing SelectAgent intent, не
+   локально меняет active_agent. Полные draft/chips/cursor/focus/scroll сохраняются;
+   effective model/variant/profile instructions и persistence обновляет existing
+   owner. Успех не добавляет agent-selection toast; отказ остаётся видимой ошибкой.
+   Busy/read-only/child/Location guards не обходятся, in-flight request не меняется.
+   Само переключение не submit, generation или tool execution; последующий request
+   действительно получает выбранный профиль. Reopen/restart сохраняют committed
+   выбор; Plan reminders/permissions проверяются существующим R6, не новым UI owner.
+5. **Hints соответствуют action.** Footer и palette используют effective list/cycle
+   shortcuts из той же admitted projection, не нынешний фиксированный AGENTS_HINT.
+   Проверять Press/Release и реальные BackTab/Shift+Tab encodings на terminal path;
+   Repeat semantics согласовать с pinned reference, не изобретать auto-repeat policy.
+
+#### Ordered slice и достаточная квалификация
+
+1. После safe scheduling handoff и **explicit resume T44** сверить Git/runtime;
+   расширить ближайший `oc-tui/src/app/tests/input.rs` regression: terminal Shift+Tab
+   даёт следующий SelectAgent, panel None и unchanged draft, тогда как старый код
+   открывает Agents. Не обходить raw mapping синтетическим новым action в RED.
+2. Минимально расширить existing `config.rs::ConversationKeybinds`/composition и
+   `oc-core::queries::TuiChrome` projection для трёх agent shortcuts; переиспользовать
+   существующий resolver/Location reload. Supply R6 catalog eligibility/order,
+   не требовать all-T45 или полного Plan runtime для самой input маршрутизации.
+3. Разделить OpenAgents и forward/reverse в existing commands/events/input; выбирать
+   adjacent catalog ID и выдавать SelectAgent. Проверить прямых consumers shared
+   enum/DTO и `tui_cmd.rs::apply_intent`; никаких новых selection API/schema/store.
+4. Сохранить focus priority до global cycle, особенно configured Tab при slash/@,
+   pending mention, dialogs и approval/question. Подключить effective footer/palette
+   hints. Extend nearest keymap/config/focus tests только для отличающихся contracts:
+   default cycle, explicit forward/reverse override, wrap/empty и focused completion.
+   Reuse existing busy/read-only/unavailable/owner-failure assertions без новой matrix.
+5. Расширить `tui_cmd/tests/routing.rs::selecting_agent_updates_owner_and_draft_without_selection_toast`
+   либо ближайший owner test, затем existing `oc/tests/pty_t39/{interaction,lifecycle}.rs`:
+   реальный `ESC[Z` для Shift+Tab и `HT` для explicit Tab, Home/session, cycle/wrap,
+   picker всё ещё доступен, completion priority и полный draft/focus, persisted choice
+   после restart. Fake-provider counters до submit остаются нулевыми; последующий
+   captured request подтверждает profile instructions/model/variant. Reuse R6 Plan/
+   policy/reminder/replay evidence, не новую paid campaign или дублирующий E2E harness.
+6. Для VIS06/VIS10/VIS17 сравнить full styled cells/PNG/cursor running pinned-original/
+   native до/после default cycle и явного picker, с representative existing profiles,
+   затем replay/reopen. Independently check actual selected ID/effects. Configured Tab
+   и autocomplete capture отдельно зафиксировать на reference; native-only goldens,
+   crop/mask и таблица binds не квалифицируют parity. Missing reference —
+   BLOCKED_REFERENCE, не runtime PASS. Затем affected-crate и обязательные T44/R6
+   gates по runbook, reviewed implementation/evidence commit и delivery.
+
+План не запускает T45, не снимает **PAUSED T44** и не переключает active T50.
+VIS06/VIS10/VIS17 остаются mandatory **NOT_RUN/evidence empty**; R6 pending,
+historical evidence/statuses сохранены. Doc commit/push не является implementation PASS.
+
 ## Compaction parity — VIS34
 
 1. Проверить и переиспользовать session compaction runtime. Проследить `/compact`

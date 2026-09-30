@@ -104,6 +104,15 @@ JS/CodeMode/cloud host. Donor recovery at-least-once не является exact
 T45 владеет новыми scenarios; T44 UI qualification отдельна, без done-dependency.
 Утверждён только план: execution statuses/evidence не становятся PASS.
 
+Уточнение владельца 2026-09-30: [agent-cycle slice T44/T45](tui-recovery/T44_CONTRACT_AMENDMENT.md#agent-cycle-keybindings--уточнение-2026-09-30)
+планирует исправление ошибочного Shift+Tab → agent picker. Дефолты остаются OC2:
+Shift+Tab → следующий профиль, /agents и `<leader>a` → picker; обычный Tab обслуживает
+автодополнение. Настраиваемые forward/reverse/list bindings позволяют явно вернуть
+Tab/Shift+Tab из OC1 без перехвата активных forms/dialogs/autocomplete. Один selection
+owner сохраняет выбор/draft и guards; eligibility — T45/R6, UI — существующие
+VIS06/VIS10/VIS17, не новый gate. Реальное поведение configured Tab у pinned OC2
+квалифицируется отдельно от native override; T44 PAUSED, active T50 и statuses intact.
+
 ## Owner scope amendment (2026-09-30 — infinite hot context / optional cold path)
 
 Владелец уточнил Long Horizon: бесконечное продолжение достигается намеренным

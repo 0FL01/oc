@@ -75,7 +75,7 @@
       "id": "VIS06",
       "step": "V02",
       "title": "Data-driven chrome",
-      "expected": "Session title, model/provider display names, agent color, usage and known/unknown pricing come from actual DTOs, not renderer constants. Prompt metadata uses pinned Locale.titlecase for the active agent display label: build → Build, build-yolo → Build-Yolo, preserving separators and existing casing elsewhere. Preserve the original agent ID, selection and color; model/provider/variant labels remain unchanged. Width fitting/truncation uses the painted label. Extend the existing prompt-metadata regression test and verify paired original/native full styled-cell/PNG frames for simple and hyphenated profile names. Owner-approved 2026-09-27 primary-profile contract in T44_CONTRACT_AMENDMENT.md: Build/Plan/custom metadata and admitted profile color come from T45 R6 owner-backed definitions; verify actual selection/model/variant, not only display labels. Pinned U25/U27/U28/U29 are authoritative; backend and paired UI qualification remain separate.",
+      "expected": "Session title, model/provider display names, agent color, usage and known/unknown pricing come from actual DTOs, not renderer constants. Prompt metadata uses pinned Locale.titlecase for the active agent display label: build → Build, build-yolo → Build-Yolo, preserving separators and existing casing elsewhere. Preserve the original agent ID, selection and color; model/provider/variant labels remain unchanged. Width fitting/truncation uses the painted label. Extend the existing prompt-metadata regression test and verify paired original/native full styled-cell/PNG frames for simple and hyphenated profile names. Owner-approved 2026-09-27 primary-profile contract in T44_CONTRACT_AMENDMENT.md: Build/Plan/custom metadata and admitted profile color come from T45 R6 owner-backed definitions; verify actual selection/model/variant, not only display labels. Pinned U25/U27/U28/U29 are authoritative; backend and paired UI qualification remain separate. Follow the 2026-09-30 Agent-cycle keybindings clarification: default Shift+Tab cycles directly without a modal, picker remains on /agents and <leader>a, and footer/palette show effective canonical/legacy list/forward/reverse overrides. Explicit Tab-forward/Shift+Tab-reverse preserves focused completion/forms/dialogs, ordered eligible wraparound, draft/cursor/focus, guards and unavailable-choice diagnostics through the existing SelectAgent owner. Qualify actual binary effects and configured Tab capture against pinned OC2 separately from declared defaults; disclose deliberate native override differences. Reuse VIS10/VIS17 and T45 R6; approval is not runtime PASS.",
       "sources": [
         "P05",
         "P10",
@@ -83,7 +83,9 @@
         "U25",
         "U27",
         "U28",
-        "U29"
+        "U29",
+        "U76",
+        "U77"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",
@@ -146,7 +148,9 @@
         "U26",
         "U27",
         "U28",
-        "U29"
+        "U29",
+        "U76",
+        "U77"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",
@@ -237,14 +241,15 @@
       "id": "VIS17",
       "step": "V06",
       "title": "Durable replay parity",
-      "expected": "Same session parts/cards/metadata render equivalently after page reload, session switch and process restart, with one durable owner. For a fresh session with a non-default profile and no explicit profile switch, the first user stripe matches pinned upstream during streaming, after completion/durable page replacement and after reopen. Both actual user and assistant message IDs retain the correct turn association and agent/color metadata; verify a real completed turn and history query, not synthetic rows or a renderer fallback. Paired full styled-cell/PNG frames and two sequential outgoing provider requests must show unchanged selected agent ID/digest (owner selection/log evidence) and that profile's instruction input, with no silent default-Build substitution under unchanged profile/config. No hard-coded profile/color or new immutable historical-color rule across explicit profile switches. UI color and stable profile instructions do not establish provider KV-cache reuse; do not publish credentials or raw live responses. Owner-approved 2026-09-27 primary-profile contract in T44_CONTRACT_AMENDMENT.md: profile selection/instructions/model/variant survive reopen/reload; Plan reminders reconcile after compaction/Revert without inventing a profile switch. Reuse T45 R6 runtime/headless evidence (run --agent switches before prompting; omission retains existing selection), with pinned U26/U28/U30. Backend behavior does not substitute for paired visual replay qualification.",
+      "expected": "Same session parts/cards/metadata render equivalently after page reload, session switch and process restart, with one durable owner. For a fresh session with a non-default profile and no explicit profile switch, the first user stripe matches pinned upstream during streaming, after completion/durable page replacement and after reopen. Both actual user and assistant message IDs retain the correct turn association and agent/color metadata; verify a real completed turn and history query, not synthetic rows or a renderer fallback. Paired full styled-cell/PNG frames and two sequential outgoing provider requests must show unchanged selected agent ID/digest (owner selection/log evidence) and that profile's instruction input, with no silent default-Build substitution under unchanged profile/config. No hard-coded profile/color or new immutable historical-color rule across explicit profile switches. UI color and stable profile instructions do not establish provider KV-cache reuse; do not publish credentials or raw live responses. Owner-approved 2026-09-27 primary-profile contract in T44_CONTRACT_AMENDMENT.md: profile selection/instructions/model/variant survive reopen/reload; Plan reminders reconcile after compaction/Revert without inventing a profile switch. Reuse T45 R6 runtime/headless evidence (run --agent switches before prompting; omission retains existing selection), with pinned U26/U28/U30. Backend behavior does not substitute for paired visual replay qualification. The 2026-09-30 direct-cycle slice commits selection through the same owner: actual Shift+Tab or explicit Tab override preserves draft/focus and survives restart; a subsequent captured request receives the selected profile instructions/model/variant, without generation/tool effects from cycling itself. Reuse existing owner/PTY/R6 evidence and keep unavailable saved selections explicit.",
       "sources": [
         "P01",
         "P06",
         "P10",
         "U26",
         "U28",
-        "U30"
+        "U30",
+        "U29"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",

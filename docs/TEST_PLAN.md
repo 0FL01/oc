@@ -262,6 +262,38 @@ is BLOCKED_REFERENCE; preserve provenance/failed attempts, no crop/mask/toleranc
 baseline rewrite. VIS41 NOT_RUN/evidence empty and full VIS39 still open until real
 qualification; approval leaves previous task statuses/evidence unchanged.
 
+## Agent cycle and Tab bindings — VIS06 / VIS10 / VIS17 (approved 2026-09-30; pending)
+
+Follow the [detailed primary-profile slice](../tui-recovery/T44_CONTRACT_AMENDMENT.md#agent-cycle-keybindings--уточнение-2026-09-30)
+and U29/U76/U77. This extends existing T44 cases and T45/R6, not a new VIS45/gate.
+Default OC2 Shift+Tab cycles forward, reverse is unbound, /agents and `<leader>a`
+open the picker; plain Tab retains autocomplete. Explicit list/forward/reverse
+canonical/legacy overrides use the existing config-generation/selection owners.
+
+Extend the nearest app/input regression through terminal_key: Shift+Tab produces
+the adjacent eligible SelectAgent with no modal and unchanged draft/cursor/focus.
+Nearest events/config tests cover defaults, alias/leader/none handling and explicit
+Tab-forward/Shift+Tab-reverse; focused slash/@ completion and forms/dialogs own input
+before cycle. Use ordered owner catalog IDs with wraparound and empty/single no-op,
+not hidden/subagent-only/synthetic-unavailable entries or hard-coded profile names.
+Reuse busy/read-only/retired-choice and owner rejection assertions. Extend
+selecting_agent_updates_owner_and_draft_without_selection_toast, not a second
+selection/persistence engine or duplicate safety matrix.
+
+Existing pty_t39 interaction/lifecycle fixtures send actual ESC[Z and configured HT
+to the rebuilt binary under bounded fake-provider control: Home/session cycle,
+wrap, /agents picker, completion priority, survivor draft/focus and restart choice.
+Cycle alone sends zero generation/tool effects; a later request confirms the chosen
+profile instructions/model/variant. Reuse T45/R6 Plan policy/reminder/replay evidence.
+
+Then pair full running-original/native styled-cell/PNG/cursor default-cycle/picker/
+reopen states at representative existing terminal profiles, independently checking
+selected ID. U77 declares prompt Tab capture: measure actual configured Tab dispatch
+on pinned OC2 before parity claims; document any deliberate native override difference
+unmasked. No source-table/native-golden substitute, crop/mask, Cartesian matrix or
+paid campaign. Missing reference is BLOCKED_REFERENCE. Existing cases remain mandatory
+NOT_RUN/evidence empty; approval does not resume PAUSED T44 or switch active T50.
+
 ## Middle Click tab close — VIS44 (approved 2026-09-30; pending)
 
 Only T44/R5/V04 owns VIS44 in `tui-recovery/ACCEPTANCE.json`; follow the dedicated
