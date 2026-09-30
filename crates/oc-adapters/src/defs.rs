@@ -975,7 +975,7 @@ struct AgentInput {
     mode: Option<String>,
 }
 
-fn insert_agent(out: &mut Collector, root: &DefRoot, input: AgentInput, path: &Path) {
+fn insert_agent(out: &mut Collector, root: &DefRoot, mut input: AgentInput, path: &Path) {
     if input.disabled {
         if let Some(previous) = out.defs.agents.remove(&input.id) {
             out.total_bytes = out.total_bytes.saturating_sub(previous.body.len());
@@ -1007,6 +1007,18 @@ fn insert_agent(out: &mut Collector, root: &DefRoot, input: AgentInput, path: &P
         return;
     }
     out.total_bytes = next_total;
+    // Pinned core/plugin/agent.ts: these profiles never ask the user.
+    if matches!(input.id.as_str(), "general" | "explore") {
+        input
+            .permissions
+            .insert("question".into(), crate::config::Permission::Deny);
+        input.permission_rules.extend(
+            crate::permissions::PermissionRules::from_config(
+                &serde_json::json!({"tools":{"question":false}}),
+            )
+            .expect("builtin question constraint"),
+        );
+    }
     out.put_agent(
         AgentDef {
             id: input.id.clone(),

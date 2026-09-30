@@ -576,6 +576,7 @@ async fn vis38_dcp_metadata_freezes_through_commit_replay_controls_and_session_s
         false,
         None,
         Some(run.clone()),
+        None,
     );
     assert!(state.compaction_at.is_none());
     assert!(
@@ -596,6 +597,7 @@ async fn vis38_dcp_metadata_freezes_through_commit_replay_controls_and_session_s
         false,
         None,
         Some(rewritten),
+        None,
     );
     state.apply_tool_started(&turn, "op", "compress", "late duplicate");
     assert_eq!(
@@ -609,6 +611,7 @@ async fn vis38_dcp_metadata_freezes_through_commit_replay_controls_and_session_s
         id: turn.0.clone(),
         agent_color_index: Some(2),
         parts: vec![TranscriptPart::Tool(ToolOpView {
+            question: None,
             rowid: 1,
             op: "op".into(),
             name: "compress".into(),
@@ -722,6 +725,7 @@ async fn vis38_dcp_toast_uses_existing_expiry_once_and_off_preserves_failures() 
         false,
         None,
         Some(run.clone()),
+        None,
     );
     assert_eq!(
         state.note(),
@@ -750,6 +754,7 @@ async fn vis38_dcp_toast_uses_existing_expiry_once_and_off_preserves_failures() 
         false,
         None,
         Some(run),
+        None,
     );
     assert!(
         state.note().is_none(),
@@ -774,6 +779,7 @@ async fn vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects() 
     state.status = TuiStatus::Streaming;
     let effects = crate::patch_view::tests::effects();
     let operation = ToolOpView {
+        question: None,
         rowid: 1,
         op: "patch-op".into(),
         name: "apply_patch".into(),

@@ -459,6 +459,7 @@ fn emit_tool_finish_with_metadata(
     tool_event(
         turn_id,
         &ToolCallEvent::Finished {
+            question: oc_core::question::QuestionResult::from_output(name, state, Some(output)),
             dcp,
             patch_effects,
             op: op.to_string(),
@@ -2707,6 +2708,88 @@ impl<'a> Runtime<'a> {
                 rejection
             } else {
                 match unit {
+                    Assembled::Call(call) if call.name == "question" => {
+                        use oc_core::question::*;
+                        use sha2::{Digest as _, Sha256};
+                        let input =
+                            QuestionInput::parse(&call.arguments).expect("validated question");
+                        let events = self.compaction_events.lock().expect("events lock").clone();
+                        let decision = if let Some(events) = events {
+                            let request = QuestionRequest {
+                                id: 0,
+                                binding: oc_core::approval::ApprovalBinding {
+                                    session: session.into(),
+                                    turn: turn_id.into(),
+                                    call: call.id.clone(),
+                                    operation: op.clone(),
+                                    input_digest: format!(
+                                        "{:x}",
+                                        Sha256::digest(call.arguments.to_string())
+                                    ),
+                                    location: self.location.clone(),
+                                    generation: self.generation_id(),
+                                    agent: turn_log.display["agent"].as_str().map(str::to_owned),
+                                    agent_digest: turn_log.agent_digest.clone(),
+                                },
+                                input: input.clone(),
+                            };
+                            let waiting = self.questions.wait(request, &events);
+                            tokio::pin!(waiting);
+                            loop {
+                                tokio::select! {
+                                    value = &mut waiting => break value,
+                                    () = tokio::time::sleep(Duration::from_millis(5)) => {
+                                        if cancel.load(Ordering::Acquire) { break Ok(QuestionDecision::Cancelled); }
+                                    }
+                                }
+                            }
+                        } else {
+                            Err(QuestionWaitError::NoConsumer)
+                        };
+                        match decision {
+                            Ok(QuestionDecision::Answers(answers))
+                                if !cancel.load(Ordering::Acquire) =>
+                            {
+                                (
+                                    "completed",
+                                    serde_json::to_string(&QuestionResult {
+                                        questions: input.questions,
+                                        answers,
+                                    })
+                                    .expect("typed question result"),
+                                )
+                            }
+                            Ok(_) => {
+                                cancel.store(true, Ordering::Release);
+                                permission_rejected = true;
+                                ("cancelled", "error: question dismissed".into())
+                            }
+                            Err(error) => {
+                                let error = match error {
+                                    QuestionWaitError::NoConsumer => RuntimeError::QuestionRequired,
+                                    QuestionWaitError::InvalidInput => {
+                                        RuntimeError::InvalidArgs("invalid question binding".into())
+                                    }
+                                    QuestionWaitError::Capacity => RuntimeError::InvalidArgs(
+                                        "question capacity exceeded".into(),
+                                    ),
+                                    QuestionWaitError::OwnerClosed => {
+                                        RuntimeError::InvalidArgs("question owner closed".into())
+                                    }
+                                };
+                                let output = format!("error: {error}");
+                                turn_log.input.push(InputItem::FunctionCallOutput {
+                                    call_id: id.clone(),
+                                    output: output.clone(),
+                                });
+                                record_tool_finish(
+                                    self.db, tool_event, &op, name, "failed", &output, turn_id,
+                                    turn_log,
+                                )?;
+                                return Err(error);
+                            }
+                        }
+                    }
                     Assembled::Call(call) if call.name == "apply_patch" => {
                         let (output, effects) = crate::tools::tool_patch_typed(ctx, call);
                         patch_effects = effects;

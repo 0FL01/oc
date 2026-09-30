@@ -290,6 +290,7 @@ type CompactionAdmission = tokio::task::JoinHandle<
 /// Loop-local application state that is not part of the view-model.
 #[derive(Default)]
 struct LoopState {
+    questions: oc_tui::question_view::QuestionView,
     cli_auto: bool,
     permission_auto: Option<bool>,
     approvals_checked: Option<(Option<SessionId>, Instant)>,
@@ -940,6 +941,39 @@ async fn refresh_approvals(app: &CoreApp, state: &mut TuiState) -> Result<(), St
     });
     state.approval_roots = roots;
     state.approvals.reconcile(visible);
+    let all = app.pending_questions().await.map_err(|e| e.to_string())?;
+    let mut visible = Vec::new();
+    for request in &all {
+        let mut current = SessionId(request.binding.session.clone());
+        let mut belongs = false;
+        let mut seen = std::collections::BTreeSet::new();
+        for _ in 0..64 {
+            if !seen.insert(current.0.clone()) {
+                break;
+            }
+            if Some(&current) == attached.as_ref() {
+                belongs = true;
+            }
+            let page = app
+                .history_page(current.clone(), None, None, 1)
+                .await
+                .map_err(|e| e.to_string())?;
+            let Some(parent) = page.parent_id else {
+                break;
+            };
+            current = SessionId(parent);
+        }
+        if belongs {
+            visible.push(request.clone());
+        }
+    }
+    visible.sort_by_key(|r| {
+        (
+            Some(&SessionId(r.binding.session.clone())) != attached.as_ref(),
+            r.id,
+        )
+    });
+    state.questions.reconcile(&all, visible);
     Ok(())
 }
 
@@ -963,6 +997,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         Err(failure) => return startup_failure(&mut terminal, failure).map(|_| 1),
     };
     loop_state.cli_auto = cli_auto;
+    app.register_question_consumer()
+        .await
+        .map_err(|e| e.to_string())?;
     loop_state.permission_auto = Some(
         app.catalog().await.map_err(|e| e.to_string())?.auto_accept
             == oc_core::queries::AutoAcceptState::Enabled,
@@ -982,6 +1019,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
 
     loop {
         let had_pending = state.has_pending_submission();
+        state.questions.share_drafts(&loop_state.questions);
         let job_lanes = loop_state.job_lanes();
         let job_ready = loop_state.ready_job();
         dirty |= state.tick_ui(Instant::now());
@@ -995,11 +1033,13 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             })
         {
             let before = state.approvals.active().cloned();
+            let question_before = state.questions.active().cloned();
             let roots_before = state.approval_roots.clone();
             if let Err(error) = refresh_approvals(app, &mut state).await {
                 state.approvals.error = Some(error);
             }
             dirty |= before.as_ref() != state.approvals.active();
+            dirty |= question_before.as_ref() != state.questions.active();
             dirty |= roots_before != state.approval_roots;
             loop_state.sync_tabs(&mut state);
             loop_state.approvals_checked =
@@ -2079,6 +2119,15 @@ async fn apply_intent_with_origin(
                 return Err(error.to_string());
             }
         },
+        PanelIntent::ReplyQuestion(reply) => {
+            let result = app.reply_question(reply.clone()).await;
+            state
+                .questions
+                .reply_result(&reply, result.as_ref().err().map(ToString::to_string));
+            if result.is_ok() {
+                refresh_approvals(app, state).await?;
+            }
+        }
         PanelIntent::CompactSession => {
             if loop_state.compaction_job.is_some() {
                 return Err("compaction admission pending".into());
@@ -3096,7 +3145,10 @@ async fn handle_worker_event(
 ) -> Result<(), String> {
     if matches!(
         &event,
-        CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. }
+        CoreEvent::PermissionAsked(_)
+            | CoreEvent::PermissionResolved { .. }
+            | CoreEvent::QuestionAsked(_)
+            | CoreEvent::QuestionResolved { .. }
     ) {
         refresh_approvals(app, state).await?;
         _loop_state.approvals_checked = None;
@@ -3129,7 +3181,10 @@ async fn handle_worker_event(
         CoreEvent::Compaction(_) | CoreEvent::McpChanged(_) | CoreEvent::ProviderChanged => {
             unreachable!("handled above")
         }
-        CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {
+        CoreEvent::PermissionAsked(_)
+        | CoreEvent::PermissionResolved { .. }
+        | CoreEvent::QuestionAsked(_)
+        | CoreEvent::QuestionResolved { .. } => {
             unreachable!("handled above")
         }
     };
@@ -3151,7 +3206,10 @@ async fn handle_worker_event(
         CoreEvent::Compaction(_) | CoreEvent::McpChanged(_) | CoreEvent::ProviderChanged => {
             unreachable!("handled above")
         }
-        CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {
+        CoreEvent::PermissionAsked(_)
+        | CoreEvent::PermissionResolved { .. }
+        | CoreEvent::QuestionAsked(_)
+        | CoreEvent::QuestionResolved { .. } => {
             unreachable!("handled above")
         }
         CoreEvent::SessionTitleUpdated { title, .. } => state.session_title = Some(title),
@@ -3196,6 +3254,7 @@ async fn handle_worker_event(
             output_truncated,
             patch_effects,
             dcp,
+            question,
             ..
         } => {
             state.apply_tool_finished_with_presentation(
@@ -3208,6 +3267,7 @@ async fn handle_worker_event(
                 output_truncated,
                 patch_effects,
                 dcp,
+                question,
             );
             if name == "compress" && state.active_turn() == Some(&turn) {
                 refresh_dcp(app, state, session).await;

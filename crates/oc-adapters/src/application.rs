@@ -363,6 +363,7 @@ fn runtime_issue(source: &str, field: &[&str], error: &RuntimeError) -> SpawnIss
         }
         RuntimeError::Cancelled => ServiceCode::Cancelled,
         RuntimeError::ApprovalRequired { .. } => ServiceCode::ApprovalRequired,
+        RuntimeError::QuestionRequired => ServiceCode::QuestionRequired,
         RuntimeError::LocationMismatch { .. } | RuntimeError::PermissionDenied { .. } => {
             ServiceCode::TrustRefused
         }
@@ -401,6 +402,11 @@ fn runtime_issue(source: &str, field: &[&str], error: &RuntimeError) -> SpawnIss
         RuntimeError::ApprovalRequired { .. } => {
             issue.diagnostic.field = vec!["permissions".into(), "approval".into()];
             issue.diagnostic.stage = ServiceStage::Admission;
+        }
+        RuntimeError::QuestionRequired => {
+            issue.diagnostic.field = vec!["question".into()];
+            issue.diagnostic.stage = ServiceStage::Call;
+            issue.diagnostic.action = ServiceAction::UseInteractiveTui;
         }
         RuntimeError::LocationMismatch { .. } | RuntimeError::PermissionDenied { .. } => {
             issue.diagnostic.stage = ServiceStage::Admission
@@ -1439,6 +1445,13 @@ async fn start_worker(
                 if mode > 0 {
                     next.register_approval_consumer(mode == 2);
                 }
+                let consumer = composition.question_consumer.load(Ordering::SeqCst);
+                next_composition
+                    .question_consumer
+                    .store(consumer, Ordering::SeqCst);
+                if consumer {
+                    next.register_question_consumer();
+                }
                 let receipt = prepare_picker_open(
                     &db,
                     &next,
@@ -1599,6 +1612,13 @@ async fn start_worker(
                             composition.approval_consumer_mode.load(Ordering::SeqCst),
                             Ordering::SeqCst,
                         );
+                        next_composition.question_consumer.store(
+                            composition.question_consumer.load(Ordering::SeqCst),
+                            Ordering::SeqCst,
+                        );
+                        if next_composition.question_consumer.load(Ordering::SeqCst) {
+                            next.register_question_consumer();
+                        }
                         let home_catalog = if matches!(ack, SwitchAck::Home(_)) {
                             let selected = match home_choices.get(next.location()) {
                                 Some(selected) => Ok(selected.clone()),
@@ -2313,6 +2333,17 @@ fn query(
         InboxMsg::PendingApprovals { ack } => {
             let _ = ack.send(Ok(runtime.pending_approvals()));
         }
+        InboxMsg::PendingQuestions { ack } => {
+            let _ = ack.send(Ok(runtime.pending_questions()));
+        }
+        InboxMsg::ReplyQuestion { reply, ack } => {
+            let _ = ack.send(runtime.reply_question(reply));
+        }
+        InboxMsg::RegisterQuestionConsumer { ack } => {
+            runtime.register_question_consumer();
+            composition.question_consumer.store(true, Ordering::SeqCst);
+            let _ = ack.send(Ok(()));
+        }
         InboxMsg::ReplyApproval { reply, ack } => {
             let _ = ack.send(runtime.reply_approval(reply).map_err(app_error));
         }
@@ -2805,6 +2836,7 @@ fn query(
                 let rows = page
                     .into_iter()
                     .map(|row| ToolOpView {
+                        question: row.question,
                         dcp_topic: row.dcp_topic,
                         dcp: row.dcp,
                         patch_effects: row.patch_effects,
@@ -3918,6 +3950,7 @@ async fn worker(
                                     input: input.clone(),
                                 },
                                 ToolCallEvent::Finished {
+                                    question,
                                     dcp,
                                     patch_effects,
                                     op,
@@ -3927,6 +3960,7 @@ async fn worker(
                                     output_bytes,
                                     output_truncated,
                                 } => CoreEvent::ToolCallFinished {
+                                    question: question.clone(),
                                     dcp: dcp.clone(),
                                     patch_effects: patch_effects.clone(),
                                     session: session.clone(),

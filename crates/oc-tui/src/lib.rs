@@ -21,6 +21,7 @@ pub mod layout;
 pub mod messages;
 mod patch_view;
 pub mod picker;
+pub mod question_view;
 mod scanner;
 pub mod shell;
 pub mod smoke;

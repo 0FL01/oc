@@ -147,6 +147,11 @@ pub enum CoreEvent {
     /// Actual resource-owner publication, independent of an active turn.
     McpChanged(crate::queries::McpSnapshot),
     PermissionAsked(crate::approval::ApprovalRequest),
+    QuestionAsked(crate::question::QuestionRequest),
+    QuestionResolved {
+        request: crate::question::QuestionRequest,
+        decision: crate::question::QuestionDecision,
+    },
     PermissionResolved {
         request: crate::approval::ApprovalRequest,
         decision: crate::approval::ApprovalDecision,
@@ -247,6 +252,7 @@ pub enum CoreEvent {
     /// One tool call reached a terminal state (durable outcome recorded);
     /// the transcript updates the card in place.
     ToolCallFinished {
+        question: Option<crate::question::QuestionResult>,
         /// Frozen successful DCP commit, shared with durable history projection.
         dcp: Option<crate::dcp_view::DcpRunSnapshot>,
         /// Bounded confirmed mutation metadata, shared with history replay.
@@ -361,6 +367,16 @@ pub enum InboxMsg {
     },
     PendingApprovals {
         ack: oneshot::Sender<Result<Vec<crate::approval::ApprovalRequest>, CoreError>>,
+    },
+    PendingQuestions {
+        ack: oneshot::Sender<Result<Vec<crate::question::QuestionRequest>, CoreError>>,
+    },
+    ReplyQuestion {
+        reply: crate::question::QuestionReply,
+        ack: oneshot::Sender<Result<(), crate::question::QuestionReplyError>>,
+    },
+    RegisterQuestionConsumer {
+        ack: oneshot::Sender<Result<(), CoreError>>,
     },
     ReplyApproval {
         reply: crate::approval::ApprovalReply,
@@ -760,6 +776,37 @@ impl CoreApp {
         let (ack, rx) = oneshot::channel();
         self.inbox
             .send(InboxMsg::PendingApprovals { ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    pub async fn pending_questions(
+        &self,
+    ) -> Result<Vec<crate::question::QuestionRequest>, CoreError> {
+        let (ack, rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::PendingQuestions { ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+    pub async fn reply_question(
+        &self,
+        reply: crate::question::QuestionReply,
+    ) -> Result<(), crate::question::QuestionReplyError> {
+        let (ack, rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ReplyQuestion { reply, ack })
+            .await
+            .map_err(|_| crate::question::QuestionReplyError::Unavailable)?;
+        rx.await
+            .map_err(|_| crate::question::QuestionReplyError::Unavailable)?
+    }
+    pub async fn register_question_consumer(&self) -> Result<(), CoreError> {
+        let (ack, rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::RegisterQuestionConsumer { ack })
             .await
             .map_err(|_| CoreError::Shutdown)?;
         rx.await.map_err(|_| CoreError::Shutdown)?
@@ -1839,6 +1886,15 @@ fn scripted_unsupported(message: InboxMsg) {
         InboxMsg::PendingApprovals { ack } => {
             let _ = ack.send(Ok(Vec::new()));
         }
+        InboxMsg::PendingQuestions { ack } => {
+            let _ = ack.send(Ok(Vec::new()));
+        }
+        InboxMsg::ReplyQuestion { ack, .. } => {
+            let _ = ack.send(Err(crate::question::QuestionReplyError::Unavailable));
+        }
+        InboxMsg::RegisterQuestionConsumer { ack } => {
+            let _ = ack.send(Ok(()));
+        }
         InboxMsg::ReplyApproval { ack, .. } | InboxMsg::RegisterApprovalConsumer { ack, .. } => {
             let _ = ack.send(Err(CoreError::Application(
                 "approval unavailable in scripted runtime".into(),
@@ -2019,6 +2075,9 @@ mod tests {
                 }
                 CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {
                     panic!("unexpected permission request")
+                }
+                CoreEvent::QuestionAsked(_) | CoreEvent::QuestionResolved { .. } => {
+                    panic!("unexpected question request")
                 }
                 CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             }
@@ -2314,6 +2373,9 @@ mod tests {
                 }
                 CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {
                     panic!("unexpected permission request")
+                }
+                CoreEvent::QuestionAsked(_) | CoreEvent::QuestionResolved { .. } => {
+                    panic!("unexpected question request")
                 }
                 CoreEvent::TextDelta { .. }
                 | CoreEvent::SessionTitleUpdated { .. }

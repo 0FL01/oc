@@ -516,6 +516,7 @@ mod tests {
                         status: "completed".into(),
                         parts: vec![
                             TranscriptPart::Tool(ToolOpView {
+                                question: None,
                                 op: "tool".into(),
                                 rowid: 1,
                                 name: "read".into(),

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-30T17:40:58+00:00
+State updated: 2026-09-30T22:16:29+00:00
 Active: T50
 
 Сверить Git status/diff до выполнения команд.
@@ -14,13 +14,13 @@ Owner-approved 2026-09-27 tool RECON: built-in websearch/provider integrations �
 
 # T50
 ## Result
-R3/TOOL14 search and active cancellation verified.
+R4/TOOL15 question behavior verified; question.md.
 ## Checks
-Workspace1355; native14 each ELF; owner20; Python47 PASS.
+Workspace1364; Core4/TUI4/runtime1; native14 each; Python47 PASS.
 ## Risks
-T27 allowance exhausted; T44 paused; R4–R8 open.
+VIS37 paused; T27 allowance exhausted; R5–R8 open.
 ## Next
-Typed question admission, owner lifecycle and actual answer consumer.
+Typed read text/directories/images and native replay/effect proof.
 
 
 Ready (до 5): T45, T53

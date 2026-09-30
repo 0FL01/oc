@@ -551,6 +551,7 @@ pub struct ToolCard {
     pub diff: Option<oc_adapters::patch::DiffSummary>,
     /// Owner-confirmed effects, independent of request previews and workspace state.
     pub patch_effects: Option<oc_core::patch::PatchEffects>,
+    pub question: Option<oc_core::question::QuestionResult>,
     pub diff_settings: oc_core::queries::DiffSettings,
     /// Presentation data parsed once from the recorded input/output
     /// (bounded); the transcript renders the card from it.
@@ -567,6 +568,26 @@ impl ToolCard {
             + self.output_preview.len()
             + self.files.iter().map(String::len).sum::<usize>()
             + self.render.retained_bytes()
+            + self.question.as_ref().map_or(0, |result| {
+                result
+                    .questions
+                    .iter()
+                    .map(|q| {
+                        q.question.len()
+                            + q.header.len()
+                            + q.options
+                                .iter()
+                                .map(|o| o.label.len() + o.description.len())
+                                .sum::<usize>()
+                    })
+                    .sum::<usize>()
+                    + result
+                        .answers
+                        .iter()
+                        .flatten()
+                        .map(String::len)
+                        .sum::<usize>()
+            })
             + self.patch_effects.as_ref().map_or(0, |effects| {
                 effects
                     .files
@@ -648,6 +669,7 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
         files_truncated,
         diff,
         patch_effects: row.patch_effects.clone(),
+        question: row.question.clone(),
         diff_settings: Default::default(),
         render,
     }
@@ -1193,6 +1215,7 @@ mod tests {
                 reason("**One**\n\nbody 1"),
                 reason("**Two**\n\nbody 2"),
                 TranscriptPart::Tool(ToolOpView {
+                    question: None,
                     rowid: 0,
                     op: "op-1".into(),
                     name: "bash".into(),
@@ -1433,6 +1456,7 @@ mod tests {
     fn card_from_row_bounds_previews_and_parses_patch_text_only() {
         let patch = "*** Begin Patch\n*** Add File: added.txt\n+hello\n*** Update File: old.txt\n*** Move to: new.txt\n@@\n-old\n+new\n*** End Patch\n";
         let card = card_from_row(&ToolOpView {
+            question: None,
             rowid: 0,
             op: "op1".to_string(),
             name: "apply_patch".to_string(),
@@ -1454,6 +1478,7 @@ mod tests {
         // Alias keys are never consulted, parse failures invent nothing.
         for alias in ["patch", "text"] {
             let card = card_from_row(&ToolOpView {
+                question: None,
                 rowid: 0,
                 op: "op".to_string(),
                 name: "apply_patch".to_string(),
@@ -1469,6 +1494,7 @@ mod tests {
             assert!(card.files.is_empty(), "alias {alias} must be ignored");
         }
         let card = card_from_row(&ToolOpView {
+            question: None,
             rowid: 0,
             op: "op".to_string(),
             name: "apply_patch".to_string(),
@@ -1487,6 +1513,7 @@ mod tests {
         // Non-apply_patch ops never list files, long fields are bounded.
         let long = "z".repeat(CARD_PREVIEW * 4);
         let card = card_from_row(&ToolOpView {
+            question: None,
             rowid: 0,
             op: "op".to_string(),
             name: "read".to_string(),
@@ -1510,6 +1537,7 @@ mod tests {
         }
         let patch = format!("*** Begin Patch\n{files}*** End Patch\n");
         let card = card_from_row(&ToolOpView {
+            question: None,
             rowid: 0,
             op: "op".to_string(),
             name: "apply_patch".to_string(),
@@ -1530,6 +1558,7 @@ mod tests {
     fn cards_from_rows_maps_every_row() {
         let rows = vec![
             ToolOpView {
+                question: None,
                 rowid: 0,
                 op: "a".to_string(),
                 name: "read".to_string(),
@@ -1543,6 +1572,7 @@ mod tests {
                 dcp_topic: None,
             },
             ToolOpView {
+                question: None,
                 rowid: 0,
                 op: "b".to_string(),
                 name: "bash".to_string(),

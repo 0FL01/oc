@@ -951,6 +951,7 @@ fn exploration_tool(name: &str, state: &str, truncated: bool) -> HistoryRow {
         _ => serde_json::json!({"pattern": "*.rs"}),
     };
     let card = card_from_row(&ToolOpView {
+        question: None,
         rowid: 1,
         op: name.to_string(),
         name: name.to_string(),
@@ -1473,6 +1474,7 @@ fn clipped_thought_hit_requires_generated_styles_and_painted_cells() {
     }
     let mut tool = exploration_tool("read", "error", false);
     tool.tool = Some(card_from_row(&ToolOpView {
+        question: None,
         rowid: 1,
         op: "read".into(),
         name: "read".into(),
@@ -2552,6 +2554,7 @@ fn v06a_provider_controls_are_inert_outside_markdown() {
         );
     }
     let operation = oc_core::queries::ToolOpView {
+        question: None,
         op: "op".into(),
         rowid: 1,
         name: "bash".into(),

@@ -240,6 +240,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     }
     render_session(frame, state, theme, main);
     crate::approval_view::render(frame, state, main);
+    crate::question_view::render(frame, state, main);
     render_devtools(frame, theme, regions.devtools);
     render_toast(frame, state, theme, area);
     crate::dialog::render(frame, state);
@@ -346,6 +347,18 @@ fn session_regions(state: &TuiState, area: Rect, terminal_height: u16) -> layout
         return regions;
     }
     let input = prompt_lines(state, area.width);
+    if state.questions.active().is_some() {
+        let mut regions = layout::dynamic_session_regions(area, 0, 0);
+        regions.transcript.height =
+            regions
+                .content
+                .height
+                .saturating_sub(crate::question_view::height(
+                    state,
+                    area.width.saturating_sub(2),
+                ));
+        return regions;
+    }
     let input_height = (input.len() as u16)
         .min((terminal_height / 3).max(6))
         .max(1);
@@ -978,7 +991,7 @@ fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: 
     }
     let regions = session_regions(state, area, frame.area().height);
     render_transcript(frame, state, regions.transcript, frame.area().width);
-    if state.approvals.active().is_some() {
+    if state.approvals.active().is_some() || state.questions.active().is_some() {
         return;
     }
     render_status(frame, state, theme, regions.status);

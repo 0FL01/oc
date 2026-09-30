@@ -41,6 +41,7 @@ pub const MODEL_TOOL_NAMES: &[&str] = &[
     "shell",
     "webfetch",
     "skill",
+    "question",
     "compress",
 ];
 /// Subagent tool name, advertised only when the runtime published a
@@ -632,6 +633,11 @@ pub(crate) fn validate_call(call: &ToolCall) -> Result<(), String> {
                     .any(|key| args.get(key).is_some())
         }
         "skill" => nonempty("id"),
+        "question" => {
+            return oc_core::question::QuestionInput::parse(args)
+                .map(|_| ())
+                .map_err(str::to_string);
+        }
         "compress" => crate::dcp::validate_range_args(args).is_ok(),
         "subagent" => validate_subagent_args(args).is_ok(),
         _ => false,
@@ -1619,6 +1625,7 @@ mod tests {
                 "shell",
                 "webfetch",
                 "skill",
+                "question",
                 "compress"
             ]
         );

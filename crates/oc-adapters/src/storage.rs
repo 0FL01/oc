@@ -341,6 +341,7 @@ pub(crate) enum BoundedPref {
 /// One tool operation row for TUI tool cards (T22).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolOpRow {
+    pub question: Option<oc_core::question::QuestionResult>,
     /// Canonical parsed compression arguments, independent of raw UI input.
     pub dcp_topic: Option<String>,
     /// Frozen DCP commit; absent for other tools and legacy operations.
@@ -1233,7 +1234,8 @@ impl Db {
                     CASE WHEN length(CAST(output AS BLOB)) > ?4
                          THEN substr(output, 1, ?4) ELSE output END,
                     length(CAST(output AS BLOB)), archive_rowid,
-                    (SELECT metadata FROM patch_effects WHERE op_id=conversation_tools.id)
+                    (SELECT metadata FROM patch_effects WHERE op_id=conversation_tools.id),
+                    CASE WHEN name='question' THEN substr(output,1,131136) ELSE NULL END
                FROM conversation_tools
               WHERE session_id = ?1 AND (?2 IS NULL OR archive_rowid < ?2)
               ORDER BY archive_rowid DESC LIMIT ?3",
@@ -1256,6 +1258,11 @@ impl Db {
                     None
                 };
                 Ok(ToolOpRow {
+                    question: oc_core::question::QuestionResult::from_output(
+                        &name,
+                        &row.get::<_, String>(3)?,
+                        row.get::<_, Option<String>>(9)?.as_deref(),
+                    ),
                     dcp_topic,
                     dcp,
                     patch_effects: decode_patch_effects(row.get(8)?),
@@ -1424,7 +1431,8 @@ impl Db {
                     CASE WHEN length(CAST(output AS BLOB)) > ?3
                          THEN substr(output, 1, ?3) ELSE output END,
                     length(CAST(output AS BLOB)), rowid,
-                    (SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id)
+                    (SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id),
+                    CASE WHEN name='question' THEN substr(output,1,131136) ELSE NULL END
                FROM tool_operations
               WHERE session_id = ?1 ORDER BY rowid ASC LIMIT ?2",
         )?;
@@ -1446,6 +1454,11 @@ impl Db {
                     None
                 };
                 Ok(ToolOpRow {
+                    question: oc_core::question::QuestionResult::from_output(
+                        &name,
+                        &row.get::<_, String>(3)?,
+                        row.get::<_, Option<String>>(9)?.as_deref(),
+                    ),
                     dcp_topic,
                     dcp,
                     patch_effects: decode_patch_effects(row.get(8)?),
@@ -2476,16 +2489,28 @@ impl Db {
                 // Input is structured JSON: cutting it at the output-preview
                 // boundary destroys patch/path metadata. Serve complete admitted
                 // input within the turn budget, otherwise honestly omit it.
-                let view=conn.query_row("SELECT rowid,name,state,CASE WHEN length(CAST(input AS BLOB))<=?4 THEN input ELSE NULL END,substr(output,1,?3),length(CAST(output AS BLOB)),(SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id) FROM tool_operations WHERE id=?1 AND turn_id=?2",params![op,id,TOOL_OP_PREVIEW_BYTES as i64,budget.saturating_sub(TOOL_OP_PREVIEW_BYTES) as i64],|r| {
+                let view=conn.query_row("SELECT rowid,name,state,CASE WHEN length(CAST(input AS BLOB))<=?4 THEN input ELSE NULL END,substr(output,1,?3),length(CAST(output AS BLOB)),(SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id),CASE WHEN name='question' THEN substr(output,1,131136) ELSE NULL END FROM tool_operations WHERE id=?1 AND turn_id=?2",params![op,id,TOOL_OP_PREVIEW_BYTES as i64,budget.saturating_sub(TOOL_OP_PREVIEW_BYTES) as i64],|r| {
                     let bytes=r.get::<_,Option<i64>>(5)?.unwrap_or(0);
                     let (output,output_truncated)=bound_preview(r.get(4)?,bytes);
                     let dcp = Self::dcp_run_in(&conn,session,op).map_err(|_| rusqlite::Error::InvalidQuery)?;
                     let name: String = r.get(1)?;
                     let input: Option<String> = r.get(3)?;
                     let dcp_topic = if name == "compress" { dcp.as_ref().map(|run|run.topic.clone()).or_else(||crate::dcp::presentation_topic(&name,input.as_deref())) } else { None };
-                    Ok(ToolOpView{dcp_topic,dcp,patch_effects:decode_patch_effects(r.get(6)?),op:op.to_string(),rowid:r.get(0)?,name,state:r.get(2)?,input,output,output_bytes:bytes,output_truncated})
+                    let raw: Option<String> = r.get(7)?;
+                    let state: String = r.get(2)?;
+                    let question = oc_core::question::QuestionResult::from_output(&name, &state, raw.as_deref());
+                    Ok(ToolOpView{question,dcp_topic,dcp,patch_effects:decode_patch_effects(r.get(6)?),op:op.to_string(),rowid:r.get(0)?,name,state,input,output,output_bytes:bytes,output_truncated})
                 }).optional()?;
                 if let Some(mut view) = view {
+                    if let Some(question) = &view.question {
+                        let bytes = serde_json::to_vec(question)
+                            .expect("question metadata")
+                            .len();
+                        if bytes > effects_budget {
+                            continue;
+                        }
+                        effects_budget -= bytes;
+                    }
                     if let Some(effects) = &view.patch_effects {
                         let bytes = serde_json::to_vec(effects).expect("effects").len();
                         if bytes > effects_budget {

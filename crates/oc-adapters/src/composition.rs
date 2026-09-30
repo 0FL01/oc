@@ -24,6 +24,7 @@ pub(crate) use provider_readiness::ProviderState;
 pub struct Composition {
     /// Consumer state projected by the application owner, independent of selection.
     pub(crate) approval_consumer_mode: std::sync::atomic::AtomicU8,
+    pub(crate) question_consumer: AtomicBool,
     pub(crate) permission_preference: AtomicBool,
     /// Owner-selected CLI configuration file for permission mode persistence.
     pub permission_mode_source: PathBuf,
@@ -752,6 +753,13 @@ async fn load_stages(
         &sources,
     )?;
     // Keep central authority independent of the startup primary selection.
+    generation
+        .permission_rules
+        .module_permission("question", config::Permission::Allow);
+    generation
+        .permissions
+        .entry("question".into())
+        .or_insert(config::Permission::Allow);
     // The effective primary's constraints are snapshotted with its workspace.
     if let Some(level) = dcp_config.compress_permission {
         generation
@@ -1223,6 +1231,7 @@ async fn load_stages(
                 })?,
         }),
         approval_consumer_mode: std::sync::atomic::AtomicU8::new(0),
+        question_consumer: AtomicBool::new(false),
         permission_preference: AtomicBool::new(tui_chrome.permissions_auto),
         permission_mode_source,
         permission_mode_root,

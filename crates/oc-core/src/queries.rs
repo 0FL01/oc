@@ -642,6 +642,7 @@ pub enum ServiceCode {
     AgentUnavailable,
     VariantUnavailable,
     ApprovalRequired,
+    QuestionRequired,
     IgnoredSetting,
     UnsupportedPlugin,
     UnsupportedCapability,
@@ -690,6 +691,7 @@ impl ServiceCode {
             Self::AgentUnavailable => "agent_unavailable",
             Self::VariantUnavailable => "variant_unavailable",
             Self::ApprovalRequired => "approval_required",
+            Self::QuestionRequired => "question_required",
             Self::IgnoredSetting => "ignored_setting",
             Self::UnsupportedPlugin => "unsupported_plugin",
             Self::UnsupportedCapability => "unsupported_capability",
@@ -737,6 +739,7 @@ pub enum ServiceAction {
     ReviewStorage,
     ReviewRecovery,
     ReduceCapacity,
+    UseInteractiveTui,
 }
 
 impl std::fmt::Display for ServiceDiagnostic {
@@ -784,6 +787,8 @@ impl std::fmt::Display for ServiceDiagnostic {
                     "repair interrupted-operation storage before restarting; do not replay unknown effects",
                 ServiceAction::ReduceCapacity =>
                     "reduce the admitted input or resource size; limits remain enforced",
+                ServiceAction::UseInteractiveTui =>
+                    "use the interactive TUI to answer; --auto only accepts permissions",
             }
         )
     }
@@ -1233,6 +1238,8 @@ pub struct DcpSnapshot {
 /// One tool operation as recorded durably.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolOpView {
+    /// Bounded, terminal question presentation. Never restores an active form.
+    pub question: Option<crate::question::QuestionResult>,
     /// Owner-validated compression topic; never extracted from raw JSON text.
     /// Pending streams/unavailable arguments and other tools have no topic.
     pub dcp_topic: Option<String>,

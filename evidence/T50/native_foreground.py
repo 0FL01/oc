@@ -12,6 +12,7 @@ import subprocess
 import tempfile
 import threading
 BACKGROUND_SUPPORTED = False
+QUESTION_SUPPORTED = False
 import time
 
 
@@ -25,6 +26,10 @@ def run(binary, name, tool, args, permission, expected, *, auto=False, shell=Non
         requests = []
 
         class Peer(http.server.BaseHTTPRequestHandler):
+            def setup(self):
+                super().setup()
+                self.connection.settimeout(2)
+
             def log_message(self, *_):
                 pass
 
@@ -68,7 +73,7 @@ def run(binary, name, tool, args, permission, expected, *, auto=False, shell=Non
                 self.wfile.write(body)
 
         server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Peer)
-        server.daemon_threads = True
+        server.daemon_threads = False
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         data = root / "data"
@@ -123,15 +128,22 @@ def run(binary, name, tool, args, permission, expected, *, auto=False, shell=Non
             server.shutdown()
             server.server_close()
             thread.join(timeout=2)
+            assert not thread.is_alive(), "owned fake HTTP worker did not join"
         assert requests, (name, result.stderr.decode())
         tools = requests[0]["tools"]
         names = [t["name"] for t in tools]
         assert "bash" not in names, (name, "legacy bash advertised", names)
-        assert not set(names) & {"question", "websearch", "execute", "write", "edit",
+        assert not set(names) & {"websearch", "execute", "write", "edit",
                                   "opencode_models", "opencode_session_rename", "opencode_session_move"}
+        if not QUESTION_SUPPORTED or (profile in {"general", "explore"} and not child):
+            assert "question" not in names
+        else:
+            assert "question" in names
         active_tools = requests[1]["tools"] if child else tools
         active_names = [t["name"] for t in active_tools]
         assert "bash" not in active_names
+        if profile in {"general", "explore"}:
+            assert "question" not in active_names
         if profile:
             assert "shell" not in active_names and "apply_patch" not in active_names and "subagent" not in active_names
             assert f"T50_{profile.upper()}_READ_ONLY" in json.dumps(requests[1 if child else 0]["input"])
@@ -198,12 +210,14 @@ def run(binary, name, tool, args, permission, expected, *, auto=False, shell=Non
 
 
 def main():
-    global BACKGROUND_SUPPORTED
+    global BACKGROUND_SUPPORTED, QUESTION_SUPPORTED
     parser = argparse.ArgumentParser()
     parser.add_argument("binary", type=Path)
     parser.add_argument("--background-supported", action="store_true", help="current background slice schema; historical mode remains the default")
+    parser.add_argument("--question-supported", action="store_true", help="current question slice catalog; historical mode remains the default")
     options = parser.parse_args()
     BACKGROUND_SUPPORTED = options.background_supported
+    QUESTION_SUPPORTED = options.question_supported
     binary = options.binary.resolve()
     print(json.dumps({"binary": str(binary), "sha256": hashlib.sha256(binary.read_bytes()).hexdigest()}))
     run(binary, "selected-operators", "shell", {"command":

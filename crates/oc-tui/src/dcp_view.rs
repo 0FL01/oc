@@ -411,6 +411,7 @@ mod tests {
         use oc_core::queries::ToolOpView;
         use std::cell::RefCell;
         let operation = |dcp| ToolOpView {
+            question: None,
             rowid: 1,
             op: "op".into(),
             name: "compress".into(),

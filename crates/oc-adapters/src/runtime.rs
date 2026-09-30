@@ -62,6 +62,7 @@ pub const COMPRESS_TOOL: &str = "compress";
 /// Typed runtime errors (kinds and ids only, no secrets or payloads).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RuntimeError {
+    QuestionRequired,
     ApprovalRequired {
         tool: String,
     },
@@ -139,6 +140,10 @@ pub(crate) fn mcp_diagnostic(
 impl std::fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::QuestionRequired => write!(
+                f,
+                "question required: use the interactive TUI to answer; --auto only accepts permissions"
+            ),
             Self::ApprovalRequired { tool } => {
                 write!(f, "approval required for {tool}: no consumer")
             }
@@ -501,6 +506,19 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
             parameters: schema(serde_json::json!({"id": {"type": "string"}}), &["id"]),
         },
         ToolDef {
+            name: "question".into(),
+            description: "Ask the user questions during execution and wait for their answers. A Type your own answer option is added automatically; do not include it in options. multiple defaults false; set true for multiple choices. Put a recommended choice first with (Recommended) in its label. Interactive TUI required; permission autoaccept never answers. Native limits: 16 questions, 16 options each, 64KiB input/reply.".into(),
+            parameters: serde_json::json!({"type":"object", "additionalProperties":false, "required":["questions"], "properties":{
+                "questions":{"type":"array","minItems":1,"maxItems":16,"items":{
+                    "type":"object","additionalProperties":false,"required":["question","header","options"],"properties":{
+                        "question":{"type":"string","minLength":1,"maxLength":4096},
+                        "header":{"type":"string","minLength":1,"maxLength":30},
+                        "options":{"type":"array","maxItems":16,"items":{"type":"object","additionalProperties":false,"required":["label","description"],"properties":{
+                            "label":{"type":"string","minLength":1,"maxLength":256},"description":{"type":"string","maxLength":4096}}}},
+                        "multiple":{"type":"boolean","default":false}
+                    }}}}}),
+        },
+        ToolDef {
             name: COMPRESS_TOOL.to_string(),
             description: "Replace one or more closed transcript ranges with durable summaries. Use only stable startId/endId anchors from the DCP context lane; never include the unfinished final anchor.".to_string(),
             parameters: serde_json::json!({
@@ -647,6 +665,7 @@ pub enum ToolCallEvent {
     },
     /// Terminal outcome durably recorded.
     Finished {
+        question: Option<oc_core::question::QuestionResult>,
         /// Frozen successful DCP presentation; independent of model output.
         dcp: Option<oc_core::dcp_view::DcpRunSnapshot>,
         /// Confirmed public mutation preview; never part of provider output.
@@ -828,6 +847,7 @@ struct ActiveContext {
 pub struct Runtime<'a> {
     pub(crate) shell_jobs: Arc<crate::shell::jobs::Jobs>,
     approvals: Arc<oc_core::approval::ApprovalQueue>,
+    questions: Arc<oc_core::question::QuestionQueue>,
     compactions: Mutex<BTreeMap<String, compaction::Work>>,
     compaction_events: Mutex<Option<tokio::sync::broadcast::Sender<oc_core::core_app::CoreEvent>>>,
     native_compaction: RwLock<Option<Arc<dyn crate::compaction::NativeCompaction>>>,
@@ -948,6 +968,7 @@ impl<'a> Runtime<'a> {
         Ok(Self {
             shell_jobs: crate::shell::jobs::Jobs::new(db),
             approvals: Arc::new(oc_core::approval::ApprovalQueue::default()),
+            questions: Arc::new(oc_core::question::QuestionQueue::default()),
             compactions: Mutex::new(BTreeMap::new()),
             compaction_events: Mutex::new(None),
             native_compaction: RwLock::new(None),
@@ -1075,9 +1096,34 @@ impl<'a> Runtime<'a> {
     pub fn pending_approvals(&self) -> Vec<oc_core::approval::ApprovalRequest> {
         self.approvals.pending()
     }
+    pub fn register_question_consumer(&self) {
+        self.questions.register_consumer();
+    }
+    pub fn pending_questions(&self) -> Vec<oc_core::question::QuestionRequest> {
+        self.questions.pending()
+    }
+    pub fn reply_question(
+        &self,
+        reply: oc_core::question::QuestionReply,
+    ) -> Result<(), oc_core::question::QuestionReplyError> {
+        use oc_core::question::QuestionReplyError;
+        if reply.binding.generation != self.generation_id()
+            || reply.binding.location != self.location
+        {
+            return Err(QuestionReplyError::BindingMismatch);
+        }
+        let events = self
+            .compaction_events
+            .lock()
+            .expect("events lock")
+            .clone()
+            .ok_or(QuestionReplyError::Unavailable)?;
+        self.questions.resolve(reply, &events)
+    }
     pub(crate) fn cancel_pending_approvals(&self) {
         if let Some(events) = self.compaction_events.lock().expect("events lock").as_ref() {
             self.approvals.cancel(None, events);
+            self.questions.cancel(None, events);
         }
     }
     /// Bind live hints to the same owner event bus used by application queries.
@@ -1229,6 +1275,7 @@ impl<'a> Runtime<'a> {
     pub async fn shutdown_mcp(&self) -> Result<(), RuntimeError> {
         if let Some(events) = self.compaction_events.lock().expect("events lock").clone() {
             self.approvals.cancel(None, &events);
+            self.questions.cancel(None, &events);
         }
         let owner = self.mcp_owner();
         if owner.remote_unknown() {

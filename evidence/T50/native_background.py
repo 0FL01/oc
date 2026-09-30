@@ -18,6 +18,8 @@ import signal
 import struct
 import termios
 import time
+
+QUESTION_SUPPORTED = False
 import re
 import unicodedata
 
@@ -32,6 +34,10 @@ def launch(binary):
         requests = []
 
         class Peer(http.server.BaseHTTPRequestHandler):
+            def setup(self):
+                super().setup()
+                self.connection.settimeout(2)
+
             def log_message(self, *_):
                 pass
 
@@ -61,7 +67,7 @@ def launch(binary):
                 self.wfile.write(body)
 
         server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Peer)
-        server.daemon_threads = True
+        server.daemon_threads = False
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         config.joinpath("opencode.json").write_text(json.dumps({
@@ -80,6 +86,7 @@ def launch(binary):
             server.shutdown()
             server.server_close()
             thread.join(timeout=2)
+            assert not thread.is_alive(), "owned fake HTTP worker did not join"
         assert requests, result.stderr.decode()
         assert result.returncode == 0, "headless owned shutdown failed"
         shell = next(t for t in requests[0]["tools"] if t["name"] == "shell")
@@ -138,6 +145,10 @@ class Native:
         owner = self
 
         class Peer(http.server.BaseHTTPRequestHandler):
+            def setup(self):
+                super().setup()
+                self.connection.settimeout(2)
+
             def log_message(self, *_):
                 pass
 
@@ -164,7 +175,7 @@ class Native:
                     owner.errors.append(repr(error))
 
         self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Peer)
-        self.server.daemon_threads = True
+        self.server.daemon_threads = False
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         config.joinpath("opencode.json").write_text(json.dumps({
@@ -189,6 +200,7 @@ class Native:
         self.server.shutdown()
         self.server.server_close()
         self.thread.join(timeout=2)
+        assert not self.thread.is_alive(), "owned fake HTTP worker did not join"
         self.temp.cleanup()
 
     def start(self):
@@ -229,6 +241,7 @@ class Native:
                 self.process.wait(timeout=3)
                 raise AssertionError("owned native application did not stop")
         self.reader.join(timeout=1)
+        assert not self.reader.is_alive(), "owned PTY reader did not join"
         if not crash:
             assert self.process.returncode == expected_exit, "native application cleanup status mismatch"
         os.close(self.fd)
@@ -262,13 +275,22 @@ class Native:
                         col += 2 if unicodedata.east_asian_width(ch) in "WF" else 1
             for y, line in enumerate(grid):
                 x = "".join(line).find(text)
-                if x >= 0: return x+1, y+1
+                if x >= 0:
+                    after = "\n".join("".join(row) for row in grid[y+1:])
+                    if re.search(r"Build\s*·\s*(?:fixture/)?m\s*·\s*\d", after):
+                        return x+1, y+1
             return None
         x, y = until(position, "painted user block not found: " + text)
         self.tail.clear()
         self.send(f"\x1b[<0;{x};{y}M\x1b[<0;{x};{y}m".encode())
         until(lambda: b"Jump to" in self.tail and b"Fork" in self.tail, "real message action panel did not open")
         self.send(b"\x1b[B" * index + b"\r")
+
+    def completed_frame(self):
+        # A durable completed-turn footer is painted only after the consumer
+        # reconciles its finished turn. DB settlement alone is not a key ACK.
+        text = re.sub(rb"\x1b\[[0-9;?]*[ -/]*[@-~]", b"", bytes(self.tail)).decode("utf-8", "replace")
+        return re.search(r"Build\s*·\s*(?:fixture/)?m\s*·\s*\d", text)
 
     def rows(self, sql, args=()):
         if not self.data.joinpath("oc.sqlite").exists():
@@ -360,6 +382,7 @@ def terminal_cases(binary):
             native.send(b"launch\r")
             until(native.settled, "calling turn not complete")
             if state == "cancelled":
+                until(native.completed_frame, "foreground consumer did not paint its completed-turn footer")
                 until(lambda: native.project.joinpath("leader").exists(), "zero job not launched")
                 until(lambda: native.project.joinpath("pressure-ready").exists(), "both bounded output readers did not drain producer pressure")
                 # Output pressure is measured by the producer's writes, not a time assertion.
@@ -478,7 +501,10 @@ def parked_source(binary):
         native.start()
         native.send(b"launch\r")
         until(native.settled,"calling turn not complete before parking")
+        until(native.completed_frame,"calling turn consumer not complete before parking")
+        native.tail.clear()
         native.send(b"/new\r")
+        until(lambda:b"Ask anything" in native.tail,"actual /new Home route not acknowledged")
         # The next prompt creates a genuinely different source session.
         native.send(b"other\r")
         until(lambda:native.settled(2),"parked source prevented another session turn")
@@ -574,6 +600,7 @@ def admission_and_ceiling(binary):
 def child_ceilings(binary):
     import native_foreground as foreground
     foreground.BACKGROUND_SUPPORTED = True
+    foreground.QUESTION_SUPPORTED = QUESTION_SUPPORTED
     for profile in ["plan","general","explore"]:
         foreground.run(binary,f"{profile}-background-ceiling","shell",{"command":"touch marker","background":True},
             {"shell":"allow","subagent":"allow","read":"allow","glob":"allow","grep":"allow","compress":"allow"},
@@ -753,7 +780,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("binary", type=Path)
     parser.add_argument("--review-only",nargs="?",const="both",choices=["both","revert","fork","capacity"])
+    parser.add_argument("--question-supported",action="store_true",help="current question catalog for the shared foreground checker; historical mode remains the default")
     args = parser.parse_args()
+    QUESTION_SUPPORTED = args.question_supported
     binary = args.binary.resolve()
     print(json.dumps({"binary": str(binary), "sha256": hashlib.sha256(binary.read_bytes()).hexdigest()}))
     if args.review_only:

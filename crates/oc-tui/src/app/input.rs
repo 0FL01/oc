@@ -565,6 +565,9 @@ impl TuiState {
                 .terminal_key(event, &self.chrome.permission_shortcuts);
         }
         use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
+        if self.questions.active().is_some() {
+            return self.questions.terminal_key(event);
+        }
         if self.panel == TuiPanel::Settings
             && event.kind == KeyEventKind::Press
             && event.modifiers == (KeyModifiers::CONTROL | KeyModifiers::SHIFT)
@@ -1091,6 +1094,11 @@ impl TuiState {
             }
             self.approvals.cancel_pointer();
         }
+        if self.questions.active().is_some()
+            && !crate::shell::tab_region(self, area).contains((event.column, event.row).into())
+        {
+            return KeyOutcome::default();
+        }
         use crate::dialog::DialogHit;
         if matches!(
             event.kind,
@@ -1614,6 +1622,10 @@ impl TuiState {
             self.approvals.paste(text);
             return KeyOutcome::default();
         }
+        if self.questions.active().is_some() {
+            self.questions.paste(text);
+            return KeyOutcome::default();
+        }
         use unicode_segmentation::UnicodeSegmentation as _;
         if self.status == TuiStatus::Quit {
             return KeyOutcome::default();
@@ -1844,6 +1856,9 @@ impl TuiState {
         let mut action = action;
         if self.approvals.active().is_some() {
             return self.approvals.key(action);
+        }
+        if self.questions.active().is_some() {
+            return self.questions.key(action);
         }
         self.poll_submission();
         if self
@@ -2583,6 +2598,9 @@ impl TuiState {
     pub fn handle_panel_key(&mut self, action: KeyAction) -> KeyOutcome {
         if self.approvals.active().is_some() {
             return self.approvals.key(action);
+        }
+        if self.questions.active().is_some() {
+            return self.questions.key(action);
         }
         if self.panel == TuiPanel::Settings
             && action == KeyAction::Cancel

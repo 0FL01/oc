@@ -23,6 +23,7 @@ async fn vis38_late_dcp_other_session_child_and_old_turn_never_touch_parent_view
         (parent.clone(), WorkerTurnId("obsolete-generation".into())),
     ] {
         let event = CoreEvent::ToolCallFinished {
+            question: None,
             session: owner.clone(),
             turn,
             op: "late-operation".into(),

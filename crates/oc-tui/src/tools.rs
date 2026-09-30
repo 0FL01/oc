@@ -577,6 +577,19 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
             frame.row(&[]),
         ];
     }
+    if let Some(result) = &card.question {
+        let frame = BlockFrame::new(theme, width);
+        let mut rows = vec![frame.row(&[Span::styled("✓ Questions answered", frame.body_style())])];
+        for (question, answers) in result.questions.iter().zip(&result.answers) {
+            let text = format!("{}: {}", question.question, answers.join(", "));
+            let safe: String = text
+                .chars()
+                .map(|c| if c.is_control() { ' ' } else { c })
+                .collect();
+            rows.push(frame.row(&[Span::styled(safe, frame.body_style())]));
+        }
+        return rows;
+    }
     match &card.render {
         ToolRender::Shell(shell) => shell_block(shell, card, theme, width),
         ToolRender::Patch(patch) => {
@@ -1274,6 +1287,7 @@ mod tests {
         output: Option<&str>,
     ) -> ToolCard {
         card_from_row(&ToolOpView {
+            question: None,
             rowid: 0,
             op: "op-1".to_string(),
             name: name.to_string(),

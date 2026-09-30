@@ -848,6 +848,7 @@ async fn vis38_public_multi_range_event_query_replay_and_bounded_summary_agree()
                 output_truncated,
                 patch_effects,
                 dcp,
+                question,
             } => {
                 assert_eq!(
                     (owner, id.clone(), outcome.as_str()),
@@ -877,6 +878,7 @@ async fn vis38_public_multi_range_event_query_replay_and_bounded_summary_agree()
                     output_truncated,
                     patch_effects,
                     dcp,
+                    question,
                 );
                 assert_eq!(
                     state
@@ -991,6 +993,7 @@ async fn vis38_public_multi_range_event_query_replay_and_bounded_summary_agree()
         false,
         None,
         Some(run.clone()),
+        None,
     );
     assert!(!state.transcript_rows().iter().any(|r| r.tool.is_some()));
     assert!(

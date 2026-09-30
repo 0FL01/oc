@@ -24,6 +24,8 @@ use oc_core::context_plan::ProtectedSpec;
 mod approval_lifecycle;
 #[path = "fixtures/background_lifecycle.rs"]
 mod background_lifecycle;
+#[path = "fixtures/question_lifecycle.rs"]
+mod question_lifecycle;
 
 fn sse_delta(text: &str) -> String {
     format!(
@@ -870,6 +872,7 @@ async fn check_application_patch_replay(line: &str, count: usize) {
             | CoreEvent::Compaction(_) => {}
             CoreEvent::ToolArgumentStream { event, .. } => argument_events.push(event),
             CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {}
+            CoreEvent::QuestionAsked(_) | CoreEvent::QuestionResolved { .. } => {}
         }
     }
     let (started_op, started_name, started_input) = started.expect("tool call started event");
