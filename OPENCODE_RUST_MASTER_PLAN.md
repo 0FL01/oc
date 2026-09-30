@@ -128,6 +128,105 @@ Upstream execute — не JS-плагин, а интерпретатор JavaScr
 
 Выход: пользователь может работать весь день в Rust TUI; API поддерживает опубликованный набор операций; local и remote transports не расходятся в domain invariants. Полный API-паритет оценивается отдельно, не по одному работающему экрану.
 
+### Приоритетный follow-up: idle Esc не закрывает TUI (RECON 2026-09-30)
+
+Запрос владельца: устранить дивергенцию, при которой `Esc` во время idle агента
+закрывает Rust OpenCode; сначала внести RECON и план правок. **Статус: план внесён;
+реализация и runtime qualification pending/NOT_RUN.** Это конкретный behavioral
+bugfix этапа 5, а не разрешение расширить backend scope или объявить полный TUI parity.
+
+#### Проверенная база и место в плане
+
+Основная ветка `master` на момент RECON содержит глобальный план; Rust workspace и
+детальные task/spec registries находятся в `agent/oc-rust-port`. Исследован code
+commit [`19b224ef065496eb7de9e4c8ef8384bf46a84e3f`](https://github.com/0FL01/oc/commit/19b224ef065496eb7de9e4c8ef8384bf46a84e3f).
+Незакоммиченный provider/reasoning/storage/harness diff T55 не относится к idle-Esc
+и не входит в эту доставку. Не сливать всю development-ветку ради изменения плана.
+
+В детальном плане уже есть общий keymap parity: **T44 → R5 / V05 / VIS11**, но нет
+явной idle-Esc регрессии. Дополнить этот existing slice, не создавать второго owner
+или нового acceptance ID. T44 остаётся PAUSED; внесение плана не снимает паузу,
+не переключает активную T55 и не меняет execution statuses/исторические PASS.
+Исполнение — после явного resume и безопасного single-writer scheduling handoff.
+
+#### RECON: причина и эталон
+
+- Native `crates/oc-tui/src/events.rs:99,146` описывает idle quit и переводит `Esc`
+  в `KeyAction::Cancel`. `app/input.rs::TuiState::handle_key:2198–2266` при busy
+  обрабатывает отмену; idle-ветка пытается вызвать `app.cancel(session)` и при
+  `TurnNotActive` либо отсутствии session выставляет `TuiStatus::Quit`.
+  `crates/oc/src/tui_cmd.rs:1109–1110,1150–1164` завершает TUI-loop по этому статусу.
+  Это явный fallback обработчика, не установленный сбой terminal decoding.
+- Для этого follow-up эталон — pinned **OC2 v2.0.12**, commit
+  `2670273ff17da96f85c5826ced57aa1b368754fa`, уже используемый T44. Это уточнение
+  именно данного bugfix, не подмена исторического v2.0.10 recon выше.
+- [Keybindings](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/config/keybind.ts#L48):
+  `app.exit` defaults — `ctrl+c,ctrl+d,<leader>q`; `session.interrupt` — `escape`
+  (line 126), `prompt.clear` — `ctrl+c` (line 202).
+- [Prompt interrupt](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/index.tsx#L500-L528)
+  включён только при `status() === "running"`, требует focused prompt и скрытого
+  autocomplete; второе нажатие в пятисекундном окне вызывает interrupt.
+  Поэтому обычный idle Home/session prompt не выходит и не очищает draft по Esc.
+- [App exit layer](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/app.tsx#L1233-L1240)
+  отделён от interrupt и выключен для focused непустого prompt. Явный пользовательский
+  remap `app.exit` на Esc отличать от стандартной привязки. Dialog/autocomplete/leader,
+  формы и shell mode имеют собственные handlers; mini footer не является oracle
+  обычного Home/session prompt.
+- Ближайшие existing tests: `oc-tui/src/app/tests/lifecycle.rs::cancel_releases_turn`
+  проверяет busy double-Esc/expiry; `app/tests/input.rs` — leader/draft и modal dismissal;
+  `oc/tests/pty_t39/interaction.rs::v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant`
+  проверяет настоящий Esc в modal. Они не доказывают idle-root поведение.
+
+#### Контракт исправления
+
+При стандартных bindings один или несколько Esc в обычном idle Home/session prompt
+не завершают приложение, не очищают draft и не создают submission/provider request.
+Сохраняются cursor, paste chips, focus, session и agent/model/variant selection.
+После Esc можно продолжить редактирование и отправить ровно один обычный запрос.
+Это действует и после завершения/прерывания turn, а не только до первого prompt.
+
+Сохранить ownership события: modal, autocomplete, pending leader и permission/question
+UI сначала выполняют собственную state-specific обработку; событие не проходит затем
+в root quit. Busy interrupt сохраняет double-Esc и пятисекундное окно; pending input,
+compaction и shutdown/cancel/cleanup guarantees не ослабляются. Явный выход, включая
+Ctrl+C clear-nonempty/exit-empty, Ctrl+D и leader quit, остаётся отдельным действием.
+Существующую native отмену background shell из T50 не удалять заодно: её обработанная
+отмена или отсутствие активной операции не должны превращаться в выход из TUI.
+
+#### Порядок правок и done
+
+1. На implementation HEAD повторно сверить Git/diff и routing. Добавить focused
+   failing regression к `crates/oc-tui/src/app/tests/input.rs` для Home/session,
+   empty/nonempty draft и повторного idle Esc. Проверять состояние редактора и отсутствие
+   submit, не только enum mapping. Пользоваться existing fixtures, без нового keymap engine.
+2. В `app/input.rs::handle_key` убрать idle `Cancel → Quit` fallback; в `events.rs`
+   исправить комментарий. Сохранить существующие focus consumers, background-shell
+   cancellation и busy/pending/compaction guards. Не менять provider routing или runtime.
+3. В existing `oc` target `pty_t39`, pack `interaction.rs`, добавить raw `0x1b` сценарий:
+   idle Home и открытая session, empty/nonempty prompt, repeated Esc и idle после turn;
+   процесс жив, следующий edit/Enter даёт fake provider ровно один запрос с точным
+   draft. Закончить явным exit и проверить terminal restoration. Escape parser timeout
+   учитывать bounded ожиданием реального следующего действия, не мгновенным `try_wait`.
+4. Переиспользовать nearest modal/autocomplete/leader, busy double-Esc/expiry и T50
+   background-cancel tests. Выполнить targeted `cargo test -p oc-tui --lib app::`,
+   `cargo test -p oc --bin oc tui_cmd::` и
+   `cargo test -p oc --test pty_t39 --locked -- --test-threads=1`, затем applicable
+   fmt/clippy/workspace tests/build на итоговом code commit. Никаких paid API calls.
+5. Выполнить paired pinned-original/native PTY idle before/after Esc под одинаковыми
+   fixtures/profile; подтвердить process/draft/selection/next-request effects и full
+   styled-cell/PNG/cursor frames. Native-only green не закрывает visual VIS11; bugfix
+   qualification и полный T44 parity отчёт имеют отдельные результаты.
+6. При синхронизации детального development-плана внести это дополнение в
+   `tui-recovery/T44_CONTRACT_AMENDMENT.md`, existing VIS11 в `ACCEPTANCE.json`, V05 в
+   `IMPLEMENTATION_GUIDE.md`, R5 в `docs/goals/2026-09-21-tui-pixel-parity.md`,
+   `roadmap/M9.md`, T44 `work` в `planning/tasks.json` и методику `docs/TEST_PLAN.md`.
+   Эти пути принадлежат development-ветке и не являются отсутствующими local links
+   в `master`. Existing statuses/evidence не переписывать ради plan delivery.
+
+**Done для исправления:** default idle Esc не закрывает TUI, сценарий следующего ввода
+проходит, затронутые lifecycle/focus/exit regressions зелёные, actual-binary evidence
+приложено. RECON здесь source-derived; новых runtime/PTY PASS этим документом не заявлено.
+
 ## Этап 6 — долгие сессии, миграция и поставка
 
 Прогнать одинаковую воспроизводимую нагрузку на upstream и Rust: большие outputs, tool bursts, compaction, отмены, много завершённых сессий, смена Location, reconnect, медленный клиент, ошибки и завершение MCP. Добавить отдельно TUI scrolling/resize и headless soak.
