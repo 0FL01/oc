@@ -488,3 +488,34 @@ generations; RET01 обязан измерить выдачу всех запр�
 с logical step/round пределами без магического нового потолка. T30 FINAL
 ссылается на RET01, GO03 при допуске Chat/Messages и VIS43; никакого
 history-PASS или NOT_RUN→PASS по обновлению registry.
+
+## Completed Responses compatibility — T55/PROV09/PROV10 (2026-09-30; pending)
+
+[Frozen repair contract](goals/2026-09-30-responses-tool-compatibility.md),
+[current diagnosis](../evidence/T55/diagnosis.md). Detailed owners: PROV09/PROV10
+only T55; existing PROV03/PROV04/PROV06/PROV08/RET01 and E2E02 keep their owners.
+Historical fake retry PASS cannot replace current native real-API tool evidence.
+
+| Gate | Required direct evidence |
+| --- | --- |
+| PROV09 reconciliation | Normalized completed done call + terminal completed `output:[]`, omitted field, full and partially repeated terminal output. Valid completed items survive once in stable order. Compare item id/call_id/name/args/index; conflicting duplicates, malformed output, partial JSON/delta-only call, announced unfinished call and unclosed stream never dispatch tools. Actual EOF, provider failed/incomplete, length/content_filter and local validation produce distinguishable safe typed outcomes; no blanket retry or synthesized completion. Existing length/opaque/caps/RET01 safety tests remain. |
+| PROV09 native | Rebuilt retained debug/release binaries, deterministic fake server headless and PTY. Actual apply_patch → read → final, exactly paired function_call_output, file bytes + durable operations, no retry on valid sparse completion; negative stream has zero tool effects. Reopen/restart preserves history and never replays settled/unknown effects. PTY proves backend behavior, not T44 pixel parity. |
+| PROV10 live | After offline gates, same actual native tool cycle on real OpenProxy in isolated fixture, first catalog-admitted incident `cx/gpt-6-luna`/`high`, then explicitly configured `.local/live.env` model/provider default (or explicit OC_TEST_VARIANT). Exact choices/deployment class/build commit and measured counters recorded safely. Verify tool intent/outcome + bytes + outbound result pairing + final + reopen; direct SSE/prose/mocked tools are not PASS. |
+
+Use the existing durable diagnosis campaign: **4/24 generation**, **0/4 MCP**,
+5 control requests consumed at the diagnostic checkpoint. Carry its identity and
+ledger across restarts and into T27; never create a fresh ID to replenish allowance.
+The envelope must reserve+fsync each upstream request before connect, including
+title/compaction/children/retries; uncertain reservations remain spent. Explicit
+test credentials only from gitignored `.local/live.env`; no auth/body/env dumps,
+authoring-agent credentials or generation in the user's working repository.
+Existing max output 2048 smoke / 8192 coding and bounded fixture input/time/watchdog
+remain. All fake negatives are offline. Envelope unit PASS alone is not native
+relay integration PASS: verify the actual binary cannot bypass it before live.
+
+T55 PROV10 is a current wire/tool-cycle prerequisite, **not** seeded coding PASS.
+T27 retains E2E02/A09: seeded Rust bug, real read/apply_patch/bash, tests green,
+only expected paths/API changes, same-session reopen and next command. Complete
+that workflow with current bounded evidence before product readiness. T44 stays
+PAUSED and owns visual qualification after explicit resume. Apply affected crate
+and final workspace gates from this document; document checks are planning only.

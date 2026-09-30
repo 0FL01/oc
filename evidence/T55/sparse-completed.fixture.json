@@ -1,0 +1,48 @@
+{
+  "provenance": "2026-09-30 live structural topology, synthetic values; not a raw response",
+  "normalization": "Lifecycle events omitted; 22 argument deltas condensed into one. All IDs and arguments replaced.",
+  "events": [
+    {
+      "type": "response.output_item.added",
+      "output_index": 0,
+      "item": {
+        "type": "function_call",
+        "id": "fc_probe",
+        "call_id": "call_probe",
+        "name": "apply_patch",
+        "arguments": "",
+        "status": "in_progress"
+      }
+    },
+    {
+      "type": "response.function_call_arguments.delta",
+      "item_id": "fc_probe",
+      "delta": "{\"patchText\":\"*** Begin Patch\\n*** Add File: probe.txt\\n+hello\\n*** End Patch\"}"
+    },
+    {
+      "type": "response.function_call_arguments.done",
+      "item_id": "fc_probe",
+      "arguments": "{\"patchText\":\"*** Begin Patch\\n*** Add File: probe.txt\\n+hello\\n*** End Patch\"}"
+    },
+    {
+      "type": "response.output_item.done",
+      "output_index": 0,
+      "item": {
+        "type": "function_call",
+        "id": "fc_probe",
+        "call_id": "call_probe",
+        "name": "apply_patch",
+        "arguments": "{\"patchText\":\"*** Begin Patch\\n*** Add File: probe.txt\\n+hello\\n*** End Patch\"}",
+        "status": "completed"
+      }
+    },
+    {
+      "type": "response.completed",
+      "response": {
+        "status": "completed",
+        "output": [],
+        "usage": {"input_tokens": 100, "output_tokens": 40}
+      }
+    }
+  ]
+}

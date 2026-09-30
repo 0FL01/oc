@@ -23,7 +23,7 @@ Full TOOL12/13 and T44 remain open.
 Owned background jobs, durable notices and recovery.
 
 
-Ready (до 5): T45, T53
+Ready (до 5): T45, T53, T55
 Blocked: T27, T43, T44
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.

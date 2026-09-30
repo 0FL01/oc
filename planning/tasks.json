@@ -444,7 +444,8 @@
         "T16",
         "T25",
         "T26",
-        "T42"
+        "T42",
+        "T55"
       ],
       "tests": [
         "E2E02",
@@ -853,6 +854,16 @@
       "work": "Owner-approved 2026-09-29 provider-error retry plan: typed HTTP/Responses SSE errors, quota versus transient throttle, one cancellable finite per-logical-step policy and one physical attempt per adapter call; truthful pre-output retry versus post-output durable continuation, no tool/effect replay or failed-attempt success. Main/child/compaction auxiliary lanes, pinned bindings, physical dispatch accounting and actual-binary headless/PTY qualification in spec. T53/GO03 reuses the policy on future Chat/Messages wires; T44/VIS43 owns paired retry visuals after explicit resume. Consume minimal qualified T51 seam, no whole-task T51/T53/T44 dependency, daemon, JS hooks or new retry framework. Plan only: pending/NOT_RUN, historical statuses/PASS unchanged.",
       "evidence": "evidence/T54/report.md",
       "spec": "docs/goals/2026-09-29-provider-retry-parity.md"
+    },
+    {
+      "id": "T55",
+      "phase": "M8",
+      "title": "Responses completed-output compatibility and current real tool E2E",
+      "depends_on": ["T12", "T13", "T54"],
+      "tests": ["A04", "A07", "A08", "A09", "A10", "A13", "PROV09", "PROV10"],
+      "work": "Owner-requested 2026-09-30 diagnostic follow-up: real cx/gpt-6-luna/high output_item.done completed function call followed by response.completed/output:[] is rejected by current native adapter before tool admission. Reconcile genuinely completed streamed items with sparse terminal output without weakening terminal/argument/identity/effect validation; distinguish local reconciliation failures from actual truncated streams. Frozen R1-R4, synthetic RED/GREEN differential and bounded live receipts in spec/evidence. Rebuilt debug/release headless/PTY then actual real-API apply_patch->read->function_call_output->final/reopen qualification, continuing the existing durable <=24-request campaign (4 consumed at diagnosis). No model hardcoding/fallback, retry framework, partial tool execution or unknown-effect replay. Priority: next safe T50 scheduling handoff before T53/T45 and T27; do not interrupt dirty T50 or resume PAUSED T44. PROV09/PROV10 only T55; PROV03/PROV08/RET01/E2E02 keep existing owners. Planning registered todo; implementation/live native E2E NOT_RUN.",
+      "evidence": "evidence/T55/report.md",
+      "spec": "docs/goals/2026-09-30-responses-tool-compatibility.md"
     }
   ]
 }
