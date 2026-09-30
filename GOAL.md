@@ -104,6 +104,42 @@ JS/CodeMode/cloud host. Donor recovery at-least-once не является exact
 T45 владеет новыми scenarios; T44 UI qualification отдельна, без done-dependency.
 Утверждён только план: execution statuses/evidence не становятся PASS.
 
+## Owner scope amendment (2026-09-30 — infinite hot context / optional cold path)
+
+Владелец уточнил Long Horizon: бесконечное продолжение достигается намеренным
+забыванием ненужного контекста, а не сохранением всей истории во вложенных summaries.
+Hot path — текущее окно модели: выбранный закрытый диапазон заменяется самостоятельным
+рабочим summary; не выбранные для сохранения данные уходят из provider input и resident
+active state. Старые summaries разрешено сокращать заново и забывать. Число/возраст
+прошлых compressions, historical depth, покрытые member IDs и старые tool payloads не
+становятся обязательным грузом следующего request. Flatten без реального забывания
+этот контракт не закрывает.
+
+Cold path — пользовательские `.md`-файлы/Git-история — полностью опционален. Compress
+не требует журналирования, не пишет файлы/commits автоматически и не восстанавливает
+забытое из архива. Existing native persistence/history/Undo остаются отдельными от
+модельной памяти; это не разрешение удалять raw records или выполнять файловый rollback.
+Restart восстанавливает последнее committed hot-представление. Явный read/context
+selection или Undo могут вернуть выбранную пользователем информацию; обычное
+продолжение, recompression и `/compact` не воскрешают её сами.
+
+Ручной `/compact` совместим с DCP: новый самостоятельный checkpoint заменяет прежний,
+сохраняет актуальную задачу/выбранные факты/свежий хвост и может забывать устаревшее.
+Закрытые tool-call/result/reasoning группы могут уходить из hot path целиком; in-flight
+batch не разрывается и tools не переисполняются. Runtime task/pack protection действует
+в своём актуальном scope; завершённая работа не получает пожизненного наследования.
+Явные effective user protections/permissions не обходятся молча.
+
+Это уточняет только hot-retention смысл A07 и T45/R9/DCP11, не ослабляет A10, raw-history
+immutability, trust/security или no unknown-effect replay. Самостоятельный hot state и
+доступный bounded recovery проверяются без cold path; прежние failed/no-gain попытки
+не исчерпывают способность выбрать более широкий диапазон/меньший replacement.
+Подробный контракт — [DCP hot/cold](docs/DCP.md#infinite-hot-context--optional-cold-path--t45r9dcp11-pending),
+порядок работ — [M8](roadmap/M8.md#infinite-hot-context--optional-cold-path--t45r9dcp11-approved-2026-09-30-pending).
+Новых tasks/store/framework/paid campaign нет; T44 остаётся PAUSED, активная задача
+не переключается plan patch. Реализация и qualification pending; historical PASS
+и source baseline неизменны.
+
 ## Owner scope amendment (2026-09-27 — selected native tools)
 
 Утверждён [T50 tool contract](docs/goals/2026-09-27-native-tool-parity.md) и срезы

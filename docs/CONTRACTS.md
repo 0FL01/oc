@@ -142,8 +142,17 @@ Child DCP defaults allowed by allowSubAgents=true, gated by global/manual/policy
 own-session identity. Protect active task/pack while admitted work is pending/running;
 terminal packs become normally compressible, safe recovery restores active protection.
 No lifetime compress-call/block quota; keep per-call/graph/protected/model/active-memory
-bounds. Repeated compression must use bounded live dependencies instead of an aging
-chain or full-archive loads. See R9 and docs/DCP.md; this is pending, not executed PASS.
+bounds. Owner amendment 2026-09-30 requires standalone hot replacement/intentional
+forgetting, not flattening all previous summary/tool content. Fully covered old blocks
+and unneeded closed call/result/reasoning groups leave hot context; retained groups and
+current explicit protections stay intact. Release obsolete runtime task/pack ancestry.
+Stable raw history/provenance/Undo is separate from provider memory; ordinary restart
+and `/compact` restore latest committed hot state, never forgotten archive implicitly.
+User `.md`/Git cold memory is entirely optional, with no automatic writes/commits/recall.
+No full-archive/covered-member/mark loading is needed to renew hot context. Detailed
+replacement, manual compact/recovery and qualification contract:
+[R9/DCP11](DCP.md#infinite-hot-context--optional-cold-path--t45r9dcp11-pending).
+This is approved work, pending implementation/evidence, not executed PASS.
 
 ## Canonical effort ordering — T47/VAR01 (approved 2026-09-27; pending)
 
@@ -229,4 +238,16 @@ reasoning overlay; an explicitly selected variant must be enabled.
 
 Универсального точного токенизатора для всех aliases не предполагается. Использовать доступный validated tokenizer или conservative estimate с отметкой estimated, затем калибровку по usage. В estimate входят instructions, tool schemas, summaries, opaque items и attachments (для неизвестной image token cost — дополнительный reserve, не нулевой учёт). Provider остаётся окончательным арбитром context error.
 
-DCP soft nudges не равны hard admission. При превышении hard cap разрешён максимум один явный recovery/compress attempt только с context, который можно отправить; если неприменимо, ContextLimit и сохранённая история. Нельзя пытаться послать уже переполненный запрос бесконечно или тайно truncate protected messages.
+DCP soft nudges не равны hard admission. Existing one-rebuild/recovery guard относится
+к одному provider logical step, не к сроку жизни сессии и не запрещает последующие
+явные операции сокращения. По owner amendment 2026-09-30 user-reachable `/compact`
+может подготовить bounded eligible hot prefix/replacement по metadata, даже если
+полный before не проходит host/model admission; summary request проходит собственный
+бюджет, а забывание целой допустимой закрытой группы не требует чтения её payload.
+Проверять реальный wire gain/partial progress и возможность продолжения той же сессии;
+не требовать full overflowing before для measurement и не предлагать недоступный
+compress как единственный выход. Current irreducible input/policy даёт явный outcome,
+а bad/no-gain attempt оставляет возможность другого eligible selection/replacement.
+Нельзя бесконечно отправлять тот же переполненный запрос, добавлять hidden chunk-summary
+loop или тайно truncate protected/current messages. Намеренное admitted hot forgetting
+закрытых диапазонов по R9/DCP11 не является таким несанкционированным truncation.

@@ -101,12 +101,15 @@ owner assignment to earlier T24/T36/T40 or to T44 visual scenarios.
   lanes and initial/nested/changed/removed/restart/compaction/Revert lifecycle within
   immutable-generation/trust boundaries. Existing R6/R7 profile/host fixtures remain.
 - DCP10 checks child default true/false/off/manual/deny/Explore, parallel-session state
-  isolation and active task/pack protection/release/safe recovery. DCP11 repeatedly
-  recompresses and restarts using fixed equal active data over small/large inactive
-  archives, measuring loaded rows/depth and peak/retained process state. No lifetime
-  call/block quota; keep payload/cycle/no-gain/model/memory/turn guards. Freeze workload
-  before qualification, never raise A10 regression caps or make a finite cycle count
-  a product lifespan. Do not infer sustainability from the single-compression E2E.
+  isolation and active task/pack protection/release/safe recovery. Runtime protection
+  does not outlive its task; current explicit user protections are not silently bypassed.
+  DCP11 follows the [2026-09-30 hot/cold contract](DCP.md#infinite-hot-context--optional-cold-path--t45r9dcp11-pending):
+  standalone replacement and deliberate forgetting, not lossless flattening. Freeze
+  the mixed workload and its kept/forgotten control facts before qualification. No
+  lifetime call/block quota; keep operation safety/revision/cycle/permissions/turn
+  guards without making forgotten history mandatory resident context. Never raise
+  A10 caps or make a finite cycle count the product lifespan; one-compression E2E is
+  not qualification of this outcome. Detailed minimum evidence follows below.
 - DCP12 proves native omitted-field defaults 40%/55%/summaryBuffer=false, not only
   an example/local override. Freeze known synthetic context sizes and compare
   just-below/at-min, at/above-max with cadence due/not-due, iteration escalation and
@@ -130,6 +133,61 @@ owner assignment to earlier T24/T36/T40 or to T44 visual scenarios.
 Use source-derived fixtures/captured fake-provider requests/actual binary and existing
 bounded live envelope, not days of paid prompts. Plan-only checks prove structure,
 not these runtime outcomes; executed historical reports remain unchanged.
+
+### DCP11 hot replacement / optional cold / manual compact (approved 2026-09-30; pending)
+
+Use one frozen fake-provider campaign on the rebuilt actual binary, reusing
+`dcp_atomic`, `context_bounds`, runtime context/compaction fixtures and
+`oc/tests/dcp_runtime.rs`; a minimal PTY smoke proves existing `/compact` control
+reachability. No new task/test IDs, cold-memory service or duplicated paid campaign.
+
+1. **Kept versus forgotten.** Add bounded closed work between iterations and run
+   `compress → continue → recompress → compact → continue → compress → restart
+   → compact → continue`. Keep the current objective, changed requirement, chosen
+   path/result and next action. Deliberately omit sentinels in a prior summary,
+   superseded requirement, pointless investigation, large closed tool/media/opaque
+   group and released runtime task/pack. A useful disproof reason can remain concise;
+   there is no requirement to preserve every dead end forever.
+2. **No resurrection.** Inspect captured provider requests and committed hot
+   projections: omitted content is absent after each relevant transition, not merely
+   hidden in the TUI or omitted from estimates. Retained call/result/reasoning groups
+   are intact; forgotten closed groups are absent as whole groups. No archival logs,
+   inherited suffixes or old checkpoints silently restore them. Restart uses the
+   exact latest committed hot state. Explicit authorized read/context selection and
+   conversation Undo/Redo/fork restoration are separate cases, not automatic recall.
+3. **Cold path absent.** Run without user `.md` journals/checkpoint files or Git
+   history, and assert no automatic journal/commit/export actions. Missing cold refs
+   do not block compression or continuation. Native app persistence/history remains
+   available but is not automatically attached to model input. Optional explicit
+   note retrieval does not create a mandatory second soak or a fallback dependency.
+4. **Repeated boundedness.** Cross the former dependency-depth pattern and more
+   than 4096 historically covered messages with a small standalone live state.
+   Compare identical hot wire for small/large inactive block/member/mark archives;
+   measure loaded rows/bytes, live depth, peak/retained RAM, processes/tasks/queues,
+   cleanup, DB/WAL deltas and I/O/copy amplification. Do not credit SQL-side transfer
+   as constant-memory proof without actual measurements; raw durable disk growth is
+   distinct from resident history growth and accidental superlinear metadata copying.
+5. **Compact correctness and recovery.** Check resolvable active anchors, equal
+   unchanged checkpoint/fixed/current lanes in gain measurement, fresh reminder with
+   one cadence evaluation, straddling block followed by an advancing compaction, and
+   reused `call_id` with different hidden/purged occurrences. Exercise host-memory
+   overflow separately from model-budget overflow through the real `/compact`, then
+   same-session primary continuation. Internal `run_compress` success or an admitted
+   `/dcp-compress` turn does not substitute for the user-reachable escape path.
+6. **Safety/outcomes.** Reuse nearest stale/cancel/cycle/foreign/revision/permission,
+   active task/pack lifecycle and no-gain regressions. Invalid/no-gain does not mutate
+   hot state or spend lifetime capacity; a broader eligible span/smaller replacement
+   remains possible. A forgotten whole historical group need not be loaded first.
+   Distinguish measured recovery/partial progress/current-state failure; no unavailable
+   compress instruction, forced silent clipping or hidden multi-request summary loop.
+   Raw records/known-effect journals remain immutable and unknown tools never replay.
+
+Assertions use structured items/IDs/state and predefined fixture payloads, not
+keyword interpretation of arbitrary LLM summaries. Report actual continuation and
+reviewed code commit plus affected targeted/required workspace/resource gates.
+Existing source fixtures remain donor evidence; intentional hot forgetting is an
+approved native difference, not retroactive parity/PASS. DCP11 completion does not
+close DCP10/DCP12, all T45, PAUSED T44 visual qualification or product READY.
 
 ## T44 DCP display qualification — VIS38 (approved 2026-09-27; pending)
 

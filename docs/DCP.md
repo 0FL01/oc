@@ -15,7 +15,7 @@ auto-generated upstream config не выполняются; native code обно
 
 ## Архитектурная граница
 
-Raw session messages/parts не удаляются и не перезаписываются. DCP policy принимает bounded conversation view и выдаёт `ProjectionDelta`. Core валидирует anchors/generation/protections/call-result graph и транзакционно сохраняет план. Provider serializer работает над projection; TUI history показывает исходные данные с отметками compression. Fixed runtime/agent/AGENTS lanes собираются отдельно и не сжимаются/дублируются DCP. Loaded skill сохраняется как обычная call/result group. Не хранить вторую history в DCP JSON file/глобальном cache.
+Raw session messages/parts не удаляются и не перезаписываются. DCP policy принимает bounded conversation view и выдаёт `ProjectionDelta`. Core валидирует anchors/generation/protections/call-result graph и транзакционно сохраняет план. Provider serializer работает над committed hot projection, не над архивом; TUI history показывает исходные данные с отметками compression. Fixed runtime/agent/AGENTS lanes собираются отдельно и не сжимаются/дублируются DCP. Loaded skill — обычная call/result group, не пожизненная hot lane. По owner amendment 2026-09-30 закрытые группы могут уходить из hot path целиком вместе с заменённым диапазоном. Не хранить вторую history в DCP JSON file/глобальном cache и не превращать native history в обязательную модельную память.
 
 Summary — model-authored payload инструмента, не автоматически вызванная вторая модель. Никаких скрытых платных summarizer requests. Процесс DCP не управляет compaction authoring-agent; его продолжение обеспечивает `progress/`.
 
@@ -34,16 +34,18 @@ Range contract из upstream types [D3]:
 
 `topic`/`summary` — непустые bounded strings; `content` — непустой bounded массив. Public shape не заменять произвольным `{text:...}`. Syntax/format реальных raw/block references и placeholder expansion взять из pinned source+tests, а не только примера выше. В первом task DCP сохранить schema и fixture IDs с provenance. Shape message mode не подмешивать в range.
 
-Нельзя сжимать active незавершённый provider/tool batch; нельзя рвать связи call/result/reasoning. Invalid/stale/cross-session IDs, backwards range, конфликтующие spans и отсутствующие required nested references дают no-mutation error. Допустимые upstream overlap/embedding случаи переносить по fixtures, а не запрещать вообще ради удобства.
+Нельзя сжимать active незавершённый provider/tool batch; нельзя рвать связи внутри retained call/result/reasoning группы. Закрытая группа может быть забыта целиком, без повторного исполнения tool. Invalid/stale/cross-session IDs, backwards range, конфликтующие spans и неразрешимые явно authored references дают no-mutation error. Полностью покрытый старый блок не требует обязательного placeholder/append, если replacement намеренно забывает его незащищённое содержимое. Upstream overlap/embedding fixtures и owner-approved native forgetting difference квалифицировать раздельно, не запрещать все случаи ради удобства.
 
-Compression планируется для всего batch до commit. Summary может включать ссылку на старый block; nested content раскрывается/связывается по upstream semantics с цикло/размерными limits. Пределы depth/bytes срабатывают до allocation blow-up; не recursively materialize неограниченную историю. Сложный вложенный block не заменяется заглушкой, скрывающей данные.
+Compression планируется для всего batch до commit. Summary может явно включать ссылку на старый block; выбранное nested content раскрывается faithfully при bounded подготовке. Новый hot replacement самостоятелен и не требует persistent обхода всех предков. Пределы cycle/bytes срабатывают до allocation blow-up; не recursively materialize неограниченную историю. Ошибку явно запрошенного раскрытия не скрывать заглушкой. Намеренно не включённое в replacement старое содержимое — разрешённое забывание, а не failed expansion.
 
-T45/R9 supplements this guard: valid repeated shrinking recompression must not
+T45/R9 supplements this guard: valid repeated replacement/forgetting must not
 inevitably exhaust depth merely because previous summaries form an aging chain.
-Normalize/flatten live dependencies or an equivalent bounded representation,
-transactionally preserving placeholder semantics/stable IDs/provenance/replay.
-Historical depth/byte bounds remain safety guards for malformed or oversized
-expansion; increasing them is not the long-horizon solution.
+Flatten alone is insufficient if it copies all old content. Preserve explicitly
+chosen placeholder expansion/current protected bytes faithfully; keep stable IDs,
+provenance and replay in durable metadata, not obligatory live dependencies.
+Historical depth/byte bounds remain safety guards for legacy/malformed expansion;
+increasing them is not the long-horizon solution. The detailed 2026-09-30 contract
+is [infinite hot / optional cold](#infinite-hot-context--optional-cold-path--t45r9dcp11-pending).
 
 Token saving фиксируется как measured/estimated; сохранность смысла не следует из меньшего размера. При summary, не уменьшающем проекцию, не создавать бесконечный compression loop: visible no-gain outcome, сохранить исходную projection и разрешить другой selection. Этот anti-loop guard — наш safety difference.
 
@@ -51,7 +53,7 @@ Token saving фиксируется как measured/estimated; сохранно�
 
 Upstream protects tool/file content и умеет preserve user messages/tags [D1]. Перенести required config и exact behavior из fixtures. В новом toolset добавлять `apply_patch` к защите, эквивалентной protected write/edit. У patch вычислять `affected_paths` из распарсенного patch до исполнения; protected glob проверяет все пути, а не отсутствующий параметр `filePath`.
 
-Summary хранит concise mutation outcome/важные protected outputs и references на большие blobs. Нельзя подменить требуемый verbatim protected content ссылкой, когда policy требует verbatim; слишком большой protected payload может сделать compression невозможной, это явный outcome. Не append всей истории/огромного patch к каждой summary «для сохранности».
+Summary хранит выбранные useful mutation outcomes/outputs; references на большие blobs только когда они нужны продолжению. Нельзя подменить currently required verbatim content ссылкой, когда effective policy требует verbatim. Runtime task/pack protection снимается по завершении своего scope; historical suffix не получает защиту только из-за происхождения. Явные пользовательские protections остаются пользовательским выбором; их изменение/release учитывается на admitted generation, не обходится молча. Не append всей истории/огромного patch/старой защиты к каждой summary «для сохранности».
 
 Permissions `compress:allow|ask|deny` независимы от file mutations. DCP summaries/теги не могут расширить privileges. Labels/IDs выдаёт runtime, не доверенный user text — экранировать collisions и prompt-injection содержимое.
 
@@ -224,14 +226,16 @@ remains unverified. Do not invent a cap removal or blame nudge counters for it.
   counters. Invalid/no-gain calls do not spend a lifetime attempt. Per-call ranges/
   payload limits, cycle/ID/protection/tool-graph checks and active-memory/model/turn
   budgets remain; unlimited operation count is not unlimited RAM/disk/provider use.
-- Planning/projection reads only active/addressed blocks and required dependencies,
-  not every superseded block. Retain immutable raw history and reachable archive;
-  use bounded traversal and do not delete referenced summaries to get green tests.
-  Recovery/compress must not demand an over-budget read of the entire archive.
-- Summary guidance preserves facts/paths/decisions/open questions/next step and
-  repository journal/checkpoint references. No automatic journal writes/Git commits,
-  no hidden summarizer model or regex extraction of free model text. Compression is
-  optional context management, not a mandatory call after each read.
+- Planning/projection reads bounded active/addressed descriptors and selected payload,
+  not every superseded block or every historically covered member ID. Retain raw
+  history for native durability/history, but do not require it as live context ancestry.
+  Recovery/compress must not demand an over-budget full-before/archive read.
+- Summary guidance preserves selected useful facts/paths/current decisions/open
+  questions/next step, not all previous summaries. User `.md`/Git cold memory and its
+  references are optional; no automatic journal writes/Git commits, hidden recall,
+  paid DCP summarizer or regex extraction of free model text. Compression is optional
+  context management, not a mandatory call after each read. The following amendment
+  defines intentional forgetting and manual `/compact` compatibility.
 
 DCP10 covers defaults/gates/parallel-session isolation/active-pack lifecycle.
 DCP11 repeats compress/continue/recompress/restart and compares equal active context
@@ -239,13 +243,184 @@ over growing inactive block archives with row/depth/peak/retained-state measurem
 Keep A07/A10 thresholds and actual-binary cleanup. A finite frozen workload is
 evidence, not a product session-lifespan quota or proof of infinite resources.
 
+## Infinite hot context / optional cold path — T45/R9/DCP11 (pending)
+
+**Source/finish line (owner-approved 2026-09-30):** hot path is the current model
+context window; long-horizon work continues indefinitely by repeatedly throwing
+away useless context. Cold path in user `.md` files/Git history is entirely optional.
+The objective is renewable working memory, not a lossless summary archive. This
+amends R9/DCP11 hot-retention semantics; implementation and qualification are pending.
+
+### Replacement and forgetting
+
+An admitted `compress` replaces the selected closed hot span with a standalone
+summary of chosen working facts. The resulting hot projection contains the current
+task/state, chosen summaries and unchanged fresh tail; content outside the selected
+span and fixed lanes is neither discarded nor copied into every new summary.
+Compression does not add a summary while retaining the same old range as a hidden
+model-input obligation. Prior summaries may themselves be
+rewritten, reduced or forgotten. A useless span need not leave useful semantic
+content behind; the existing bounded nonempty summary shape can use a concise
+closed-work marker rather than introduce a second forget tool or alternate schema.
+
+- Consume all fully covered old blocks in the selected span, not only blocks whose
+  placeholders happen to appear in the new summary. Omitted unprotected old content
+  is intentionally absent, not automatically appended as a missing-block fallback.
+- Explicit authored placeholders retain their meaning while preparing the new
+  payload. Resolve them once into chosen hot content; the committed replacement
+  does not depend on an aging parent graph. Literal placeholders in protected text
+  must not be reinterpreted after insertion, and protection headings must not absorb
+  unrelated later text. Use structured existing block/offset metadata, not semantic
+  keyword extraction from LLM prose.
+- Keep stable IDs/provenance/raw records in existing durable history. They do not
+  force loading old content or serializing every covered message ID into a candidate.
+  Use bounded endpoints/span/consumption descriptors and SQL validation/transfer;
+  candidate placement, wire measurement and commit must agree on the same coverage.
+- Legacy valid stored chains need a bounded, addressed transition to the new live
+  representation when used/reopened, not eager normalization of the whole archive.
+  Any minimal persisted representation change joins existing context versioning,
+  Undo/Redo/fork and revision checks. Do not delete raw records/reachable history or
+  silently accept a failed expansion to obtain green tests.
+
+### Real wire and resident-memory removal
+
+Forgetting applies to the actual provider continuation, not only the ordinary
+message-text projection. Closed tool-call/result/reasoning groups, obsolete media,
+opaque items and associated hot marks leave as complete groups when their span is
+replaced and they are not selected/currently required. Preserve the needed outcome
+in the new working summary, not every historical argument/output. The currently
+executing batch remains intact; durable known/unknown operation state is not replayed
+or erased by hot forgetting.
+
+Runtime-added task/pack protection has an owner and an active lifecycle. Preserve
+the admitted pending/running task, reinstate it before safe recovery requests, and
+release extra protection on terminal completion. Replaced tasks/requirements and
+completed packs do not survive through inherited fixed lanes/protected suffixes.
+Re-evaluate applicable effective user protections on the admitted scope/generation;
+do not carry obsolete protection solely because its bytes occur in an old summary,
+and do not silently override a still-explicit user policy. Default hot renewal does
+not enable blanket lifetime verbatim protection of all past user/tool data.
+
+Release superseded live objects, expansion buffers and inactive tool decisions;
+select only marks needed for the chosen wire. Occurrence identity includes reused
+`call_id` occurrences, not a prefix-local renumbering that changes their decisions.
+SQL-side storage is not permission for unbounded Rust materialization or repeated
+full-archive copying. Inspect DB/WAL/I/O amplification as well as process RAM.
+
+### Optional cold memory and restoration
+
+Compression/continuation/restart must work with no user journal files, checkpoint
+Markdown or Git repository/history. DCP neither writes such artifacts automatically
+nor creates a cold exporter/index/RAG service. If the user chooses cold notes, normal
+authorized file/shell operations remain available independently of compression.
+Missing cold references are not an admission dependency for current hot state.
+
+Existing native persistence and UI/Undo history are separate from model memory;
+this amendment does not introduce raw-DB retention/deletion policy or disable
+durability. Restore exactly the latest committed hot representation after restart.
+Ordinary continuation, DCP and compaction do not fetch forgotten text from raw
+history, an old block or a cold file. Explicit admitted read/context-message
+selection or conversation Undo may deliberately reintroduce selected information;
+that is not automatic resurrection. R8 quotation/trust checks and conversation-only
+Undo/Redo remain authoritative, with no file/Git rollback.
+
+### Manual `/compact` and admission/recovery
+
+Manual `/compact` is a wider rebuild of the same working memory. It consolidates
+the previous checkpoint, chosen current facts and eligible work into one standalone
+replacement checkpoint plus fresh tail. Obsolete checkpoint contents can be forgotten;
+there is no mandatory chain of old checkpoints or archival DCP re-expansion. Existing
+native-capability/auxiliary compaction routes consume admitted hot input, never raw
+archive to recover omitted facts. Model-authored DCP still has no hidden second call.
+
+- Advertise only DCP-resolvable anchors, not the synthetic `session-checkpoint` ID.
+  Archived addressability for explicit user selection is distinct from active anchors.
+- Before/after measurement includes the same unchanged checkpoint, fixed and current
+  lanes and counts real retained call/result/media wire. Do not credit an unchanged
+  checkpoint as removed or claim savings from dropped accounting only.
+- Form reminders from the final projection after any compaction. Stateful cadence
+  advances/evaluates once per logical iteration; no stale hard nudge, double emission
+  or indiscriminate reset of IDs/archive/session state.
+- Load only relevant tool marks and align selection/application/checkpoint retirement
+  by occurrence identity at one context revision. Qualify reused IDs and a block
+  straddling cutoff, then a later advancing compaction, before changing the boundary
+  algorithm. Straddling alone is not an established dead end.
+- Acquire floor/revision/closed-group metadata before content. Planning and measurement
+  do not require full successful admission/materialization of overflowing `before`.
+  Forgetting an entire eligible historical group need not load its huge payload.
+  Count actual wire without a full oversized serialization copy; raw text size alone
+  is not wire/model cost. Keep currently required task/input/protocol groups intact.
+- Qualify the user's existing `/compact` control after host-memory overflow as well
+  as model-budget overflow. `/dcp-compress` is an ordinary admitted model turn and
+  direct `run_compress` alone cannot prove that escape path. Show measured recovery,
+  honest partial progress or current-state/policy failure, not an unavailable
+  "compress to proceed" instruction. No hidden multi-request chunk-summary loop.
+- Invalid/no-gain replacement leaves the prior hot state intact and does not consume
+  lifetime capacity/reset cadence. A wider eligible span or smaller chosen replacement
+  remains available; no persistent retry trap or successful-block counter as a gate.
+  Operation safety checks are not an obligation to retain intentionally forgotten
+  closed history. Unadmitted clipping/error truncation is not legitimate forgetting.
+
+### Work slices, minimum evidence and done
+
+Use the existing T45/R9 owner and DCP10/DCP11/DCP12 IDs. The ordered, independently
+checkable slices are in [M8](../roadmap/M8.md#infinite-hot-context--optional-cold-path--t45r9dcp11-approved-2026-09-30-pending):
+standalone replacement; full-wire/protection release; compact/recovery seam; one mixed
+qualification. Reproduce a kept fact and an intentionally forgotten sentinel before
+each affected change. No new memory framework/store/worker/cold tool/paid campaign;
+T44 remains PAUSED and has its own presentation qualification. A plan-only delivery
+does not interrupt active T50 or mark implementation evidence PASS.
+
+Freeze one actual-binary fake-provider workload before qualification:
+
+```text
+compress → continue → recompress → compact → continue
+→ compress → restart → compact → continue
+```
+
+Each cycle adds bounded closed work, so there is real scope for renewed shrinking;
+do not demand infinitely shrinking an unchanged finite string. Keep control facts
+for the current objective, changed requirement, selected path/result and next action.
+Forget sentinels in a prior summary, superseded requirement, pointless investigation,
+large closed tool/media group and released runtime task/pack. A concise disproof reason
+is kept only if still useful; no obligation to remember every failed experiment.
+
+Capture outbound requests and committed projections, not only a UI estimate or
+successful tool report. Assert kept facts and deliberate absence from all following
+hot requests through recompression/compact/restart; explicit Undo/read is a separate
+case. Exercise root/parallel-child isolation by reusing DCP10 lifecycle fixtures.
+Run with cold memory absent; an explicitly read cold note is opt-in, not a second
+mandatory workload or automated archive fallback.
+
+Cross the former depth pattern and more than 4096 historically covered IDs while
+keeping the same small live state; include unrelated inactive tool marks. Compare
+small/large inactive archives with equal hot wire. Measure loaded rows/bytes/live
+dependency depth, peak/retained RAM, task/process/queue cleanup and DB/WAL/I/O growth.
+Reuse `dcp_atomic`, `context_bounds`, runtime/context/compaction tests and actual-binary
+`oc/tests/dcp_runtime.rs`; a minimal PTY smoke proves real `/compact` plus continuation,
+not T44 visual parity. Host/model overflow, reused IDs, stale/cancel/no-gain/cycle and
+current protections use the nearest existing targets without a duplicate full matrix.
+
+**Done:** the replacement really removes selected useless data from hot wire and
+resident state; selected current facts remain usable; no ordinary compact/restart
+resurrection or age/depth/member/mark exhaustion; the same session demonstrably
+continues after repeated mixed cycles and reachable recovery with no cold files.
+Relevant targeted, actual-binary and existing required workspace/resource gates pass
+without raising thresholds. This closes the qualified DCP11 outcome, not all T45,
+DCP10/DCP12, T44 or product READY. Historical evidence and donor baseline stay factual;
+a finite cycle count measures the invariant, never defines the product lifespan.
+
 ## Acceptance и source trace
 
 Нужны upstream-derived fixture groups: range boundaries/nested IDs/protections, strategy timing, nudges/counters, config merge, cancelled/failed compress, restart projection и compression-before-tools continuation. Test method фиксируется: source-derived / differential executed / synthetic, никогда один под видом другого.
 
-Fake-model scenario заставляет вызвать compress на большом закрытом span, затем потребовать fact из summary и выполнить patch/test. Assert immutable raw history checksum, stable IDs после restart, уменьшенную serialized projection, preserved facts/полные tool-call-result groups/protected bytes, отсутствие config/provider credentials, valid tool graph и restart consistency. Live regression проверяет реальный endpoint, но не обещает универсальную semantic losslessness.
+Fake-model scenario заставляет вызвать compress на большом закрытом span, затем потребовать выбранный fact из summary и выполнить patch/test. Assert immutable raw history checksum, stable IDs после restart, уменьшенную real wire projection, выбранные facts/current protected bytes, целостность retained tool groups и deliberate absence забытых закрытых групп, отсутствие config/provider credentials и restart consistency. Дополнительно квалифицировать no-resurrection mixed workload DCP11; один прежний E2E его не заменяет. Live regression проверяет реальный endpoint, но не обещает универсальную semantic losslessness.
 
 ## Квалифицированный native path (T36)
+
+Следующий раздел описывает historical T36 implementation/evidence, не новый hot/cold
+target. В частности, прежнее сохранение tool payload/protected ancestry и nested
+consumed blocks не квалифицирует approved 2026-09-30 replacement/forgetting.
 
 Normal `oc run`/TUI runtime публикует `compress` как ordinary function tool рядом
 с `glob`/`grep`; все три проходят общий validation → permission → durable intent →
