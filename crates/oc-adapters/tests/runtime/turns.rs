@@ -1177,8 +1177,8 @@ async fn aud11_review_length_terminal_only_call_has_no_effect_or_intent() {
         );
         assert_eq!(
             *hits.lock().unwrap(),
-            if prior_done { 1 } else { 2 },
-            "prior done dispatches; incomplete tools continue without any intent"
+            1,
+            "prior done dispatches; terminal-only length rejection is local with no retry or intent"
         );
     }
 }

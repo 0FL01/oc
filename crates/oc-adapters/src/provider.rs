@@ -54,6 +54,12 @@ pub enum ProviderError {
     /// Invalid local protocol decoding/validation, never generic provider retry.
     #[error("invalid provider output")]
     InvalidOutput,
+    /// Bounded local reconciliation facts, never provider/transport retry facts.
+    #[error("invalid provider output ({stage:?}/{code:?})")]
+    OutputStructure {
+        stage: OutputStage,
+        code: OutputCode,
+    },
     /// 401: key rejected; never retried, never logged with the key.
     #[error("unauthorized")]
     Unauthorized,
@@ -114,6 +120,30 @@ pub enum ProviderError {
     /// An explicit provider context-window error, eligible for one checkpoint rebuild.
     #[error("context window exceeded")]
     ContextOverflow,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OutputStage {
+    Decode,
+    Added,
+    Done,
+    Completion,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OutputCode {
+    InvalidJson,
+    InvalidField,
+    InvalidIndex,
+    InvalidStatus,
+    InvalidArguments,
+    IdentityConflict,
+    IndexConflict,
+    MissingDone,
+}
+
+fn structural(stage: OutputStage, code: OutputCode) -> ProviderError {
+    ProviderError::OutputStructure { stage, code }
 }
 
 impl ProviderError {
@@ -427,6 +457,13 @@ pub fn request_body(
 }
 
 /// Incremental SSE decoder over an arbitrary byte stream.
+#[derive(Debug)]
+struct CompletedItem {
+    item: serde_json::Value,
+    /// A real done/added index, as opposed to the legacy arrival-order fallback.
+    indexed: bool,
+}
+
 #[derive(Debug, Default)]
 pub struct SseParser {
     finish: FinishReason,
@@ -442,9 +479,9 @@ pub struct SseParser {
     completed: bool,
     terminal: bool,
     retained: usize,
-    arguments: BTreeMap<String, usize>,
-    announced_calls: std::collections::BTreeSet<String>,
-    output_done: BTreeMap<u64, serde_json::Value>,
+    arguments: BTreeMap<String, (usize, Option<serde_json::Value>)>,
+    announced_calls: BTreeMap<String, (Option<u64>, String, String)>,
+    output_done: BTreeMap<u64, CompletedItem>,
     output: Option<Vec<serde_json::Value>>,
 }
 
@@ -554,19 +591,50 @@ impl SseParser {
             return Err(ProviderError::ByteLimit("generation"));
         }
         self.retained += cost;
-        let value: serde_json::Value =
-            serde_json::from_str(&payload).map_err(|_| ProviderError::InvalidOutput)?;
+        let value: serde_json::Value = serde_json::from_str(&payload)
+            .map_err(|_| structural(OutputStage::Decode, OutputCode::InvalidJson))?;
         if value["type"].as_str().is_none() {
-            return Err(ProviderError::InvalidOutput);
+            return Err(structural(OutputStage::Decode, OutputCode::InvalidField));
         }
         match value["type"].as_str() {
             Some("response.output_item.added") if value["item"]["type"] == "function_call" => {
                 let item = &value["item"];
-                let id = item["id"]
-                    .as_str()
-                    .filter(|id| !id.is_empty())
-                    .ok_or(ProviderError::InvalidOutput)?;
-                self.announced_calls.insert(id.to_owned());
+                let id = required_identity(item, "id", OutputStage::Added)?;
+                let call = (
+                    output_index(&value, OutputStage::Added)?,
+                    required_identity(item, "call_id", OutputStage::Added)?.to_owned(),
+                    required_identity(item, "name", OutputStage::Added)?.to_owned(),
+                );
+                if let Some(previous) = self.announced_calls.get(id) {
+                    if previous.1 != call.1
+                        || previous.2 != call.2
+                        || (previous.0.is_some() && call.0.is_some() && previous.0 != call.0)
+                        || self.output_done.iter().any(|(index, done)| {
+                            same_identity(&done.item, item)
+                                && call.0.is_some_and(|observed| observed != *index)
+                        })
+                    {
+                        return Err(structural(OutputStage::Added, OutputCode::IdentityConflict));
+                    }
+                    if previous.0.is_none() && call.0.is_some() {
+                        if self
+                            .announced_calls
+                            .iter()
+                            .any(|(other, prior)| other != id && prior.0 == call.0)
+                        {
+                            return Err(structural(OutputStage::Added, OutputCode::IndexConflict));
+                        }
+                        self.announced_calls.get_mut(id).expect("observed call").0 = call.0;
+                    }
+                    return Ok(None);
+                }
+                if self.announced_calls.iter().any(|(other, prior)| {
+                    other != id && (prior.1 == call.1 || (call.0.is_some() && prior.0 == call.0))
+                }) {
+                    return Err(structural(OutputStage::Added, OutputCode::IdentityConflict));
+                }
+                self.check_observation(item, call.0, OutputStage::Added)?;
+                self.announced_calls.insert(id.to_owned(), call);
                 if item["arguments"]
                     .as_str()
                     .is_some_and(|args| args.len() > ARGUMENT_BYTE_CAP)
@@ -597,28 +665,79 @@ impl SseParser {
                 }
             }
             Some("response.function_call_arguments.delta") => {
-                let id = value["item_id"]
-                    .as_str()
-                    .ok_or(ProviderError::InvalidOutput)?;
+                let id = required_identity(&value, "item_id", OutputStage::Decode)?;
                 let delta = value["delta"]
                     .as_str()
-                    .ok_or(ProviderError::InvalidOutput)?;
-                let size = self.arguments.entry(id.to_owned()).or_default();
+                    .ok_or_else(|| structural(OutputStage::Decode, OutputCode::InvalidField))?;
+                if self
+                    .output_done
+                    .values()
+                    .any(|done| done.item["id"].as_str() == Some(id))
+                {
+                    return Err(structural(
+                        OutputStage::Decode,
+                        OutputCode::IdentityConflict,
+                    ));
+                }
+                let (size, final_arguments) = self.arguments.entry(id.to_owned()).or_default();
+                if final_arguments.is_some() {
+                    return Err(structural(
+                        OutputStage::Decode,
+                        OutputCode::IdentityConflict,
+                    ));
+                }
                 if size.saturating_add(delta.len()) > ARGUMENT_BYTE_CAP {
                     return Err(ProviderError::ByteLimit("arguments"));
                 }
                 *size += delta.len();
             }
+            Some("response.function_call_arguments.done") => {
+                let id = required_identity(&value, "item_id", OutputStage::Done)?;
+                let arguments = parsed_arguments(&value, OutputStage::Done)?;
+                if let Some((_, Some(previous))) = self.arguments.get(id)
+                    && previous != &arguments
+                {
+                    return Err(structural(OutputStage::Done, OutputCode::IdentityConflict));
+                }
+                if let Some(done) = self
+                    .output_done
+                    .values()
+                    .find(|done| done.item["id"].as_str() == Some(id))
+                    && parsed_arguments(&done.item, OutputStage::Done)? != arguments
+                {
+                    return Err(structural(OutputStage::Done, OutputCode::IdentityConflict));
+                }
+                self.arguments.entry(id.to_owned()).or_default().1 = Some(arguments);
+            }
             Some("response.output_item.done") => {
                 let item = value.get("item").ok_or(ProviderError::InvalidOutput)?;
-                validate_output(item)?;
-                let index = value["output_index"]
-                    .as_u64()
-                    .unwrap_or(self.output_done.len() as u64);
-                self.output_done.insert(index, item.clone());
+                validate_output(item, OutputStage::Done)?;
+                let explicit_index = output_index(&value, OutputStage::Done)?;
+                let indexed = explicit_index.is_some()
+                    || item["id"].as_str().is_some_and(|id| {
+                        self.announced_calls
+                            .get(id)
+                            .is_some_and(|call| call.0.is_some())
+                    });
+                let index = explicit_index
+                    .or_else(|| self.observed_index(item))
+                    .unwrap_or_else(|| self.output_done.last_key_value().map_or(0, |(n, _)| n + 1));
+                self.check_observation(item, Some(index), OutputStage::Done)?;
+                if !self.retain_completed(index, item, indexed, OutputStage::Done)? {
+                    return Ok(None);
+                }
             }
             Some("response.completed") => {
                 self.terminal = true;
+                if value
+                    .pointer("/response/status")
+                    .is_some_and(|s| !s.is_string())
+                {
+                    return Err(structural(
+                        OutputStage::Completion,
+                        OutputCode::InvalidStatus,
+                    ));
+                }
                 match value
                     .pointer("/response/status")
                     .and_then(serde_json::Value::as_str)
@@ -628,7 +747,12 @@ impl SseParser {
                         return Err(ProviderError::ResponseIncomplete);
                     }
                     Some("completed") | None => {}
-                    _ => return Err(ProviderError::InvalidOutput),
+                    _ => {
+                        return Err(structural(
+                            OutputStage::Completion,
+                            OutputCode::InvalidStatus,
+                        ));
+                    }
                 }
                 self.complete_response(&value)?;
             }
@@ -639,7 +763,45 @@ impl SseParser {
 
     fn complete_response(&mut self, value: &serde_json::Value) -> Result<(), ProviderError> {
         if let Some(output) = value.pointer("/response/output") {
-            let output = output.as_array().ok_or(ProviderError::InvalidOutput)?;
+            let output = output
+                .as_array()
+                .ok_or_else(|| structural(OutputStage::Completion, OutputCode::InvalidField))?;
+            // An index-less done event only supplied arrival order. When the
+            // snapshot covers the observations it can insert previously unseen
+            // items between them. Real observed indices are never relocated.
+            if self.output_done.values().all(|done| {
+                output
+                    .iter()
+                    .any(|item| done.item == *item || same_identity(&done.item, item))
+            }) {
+                let mut identities = Vec::<&serde_json::Value>::new();
+                for item in output {
+                    if !identities
+                        .iter()
+                        .any(|prior| **prior == *item || same_identity(prior, item))
+                    {
+                        identities.push(item);
+                    }
+                }
+                let inferred: Vec<_> = self
+                    .output_done
+                    .iter()
+                    .filter_map(|(index, done)| (!done.indexed).then_some(*index))
+                    .collect();
+                let moved: Vec<_> = inferred
+                    .into_iter()
+                    .map(|index| self.output_done.remove(&index).expect("inferred item"))
+                    .collect();
+                for done in moved {
+                    let index = identities
+                        .iter()
+                        .position(|item| **item == done.item || same_identity(&done.item, item))
+                        .expect("covered item") as u64;
+                    self.retain_completed(index, &done.item, false, OutputStage::Completion)?;
+                }
+            }
+            let mut previous_index = None;
+            let mut terminal_indices = std::collections::BTreeSet::new();
             for item in output {
                 // Length admits only genuinely partial assistant messages;
                 // opaque items and failed messages retain ordinary validation.
@@ -648,7 +810,7 @@ impl SseParser {
                     && item["role"] == "assistant"
                     && matches!(item["status"].as_str(), Some("in_progress" | "incomplete"));
                 if !partial_message {
-                    validate_output(item)?;
+                    validate_output(item, OutputStage::Completion)?;
                 }
                 if self.finish == FinishReason::Length && item["type"] == "function_call" {
                     // Donor recovery is exclusive to response.completed. An
@@ -660,44 +822,72 @@ impl SseParser {
                             .filter(|id| !id.is_empty())
                             .is_some_and(|id| {
                                 self.output_done.values().any(|done| {
-                                    done["type"] == "function_call"
-                                        && done["id"].as_str() == Some(id)
-                                        && done == item
+                                    done.item["type"] == "function_call"
+                                        && done.item["id"].as_str() == Some(id)
+                                        && done.item == *item
                                 })
                             });
                     if !observed {
-                        return Err(ProviderError::ResponseIncomplete);
+                        return Err(structural(OutputStage::Completion, OutputCode::MissingDone));
                     }
                 }
-            }
-            let mut canonical = output.clone();
-            if self.finish == FinishReason::Length {
-                // A call already emitted by output_item.done survives an
-                // incomplete terminal array that only carries partial text.
-                // This preserves observed completion, never terminal recovery.
-                for (index, done) in &self.output_done {
-                    if done["type"] == "function_call" && !output.iter().any(|item| item == done) {
-                        let position = usize::try_from(*index)
-                            .unwrap_or(usize::MAX)
-                            .min(canonical.len());
-                        canonical.insert(position, done.clone());
+                // A sparse snapshot's array position may be compacted. Actual
+                // observed identity/index takes precedence over that position.
+                let position = previous_index.map_or(0, |n| n + 1);
+                let index = self.observed_index(item).unwrap_or_else(|| {
+                    if partial_message && self.output_done.contains_key(&position) {
+                        return self.output_done.last_key_value().map_or(0, |(n, _)| n + 1);
                     }
+                    // A terminal-only item has no observed index. Its compacted
+                    // position cannot overwrite an omitted completed prefix.
+                    // Keep every observed slot and fill the next vacant one;
+                    // identity/announcement and ordering checks stay strict.
+                    let mut index = position;
+                    while self.output_done.contains_key(&index) {
+                        index += 1;
+                    }
+                    index
+                });
+                if previous_index.is_some_and(|previous| index < previous)
+                    && !terminal_indices.contains(&index)
+                {
+                    return Err(structural(
+                        OutputStage::Completion,
+                        OutputCode::IndexConflict,
+                    ));
+                }
+                self.check_observation(item, Some(index), OutputStage::Completion)?;
+                self.retain_completed(index, item, true, OutputStage::Completion)?;
+                if terminal_indices.insert(index) {
+                    previous_index = Some(index);
                 }
             }
-            self.output = Some(canonical);
         }
-        for id in self.announced_calls.iter().chain(self.arguments.keys()) {
+        for id in self.announced_calls.keys().chain(self.arguments.keys()) {
             let complete = |item: &serde_json::Value| {
                 item["type"] == "function_call" && item["id"].as_str() == Some(id.as_str())
             };
-            let found = match &self.output {
-                Some(output) => output.iter().any(complete),
-                None => self.output_done.values().any(complete),
-            };
+            let found = self.output_done.values().any(|done| complete(&done.item));
             if !found {
-                return Err(ProviderError::ResponseIncomplete);
+                return Err(structural(OutputStage::Completion, OutputCode::MissingDone));
             }
         }
+        if self.finish == FinishReason::Length
+            && self.output_done.values().any(|done| {
+                done.item["type"] == "function_call"
+                    && done.item["id"].as_str().is_none_or(str::is_empty)
+            })
+        {
+            return Err(structural(OutputStage::Completion, OutputCode::MissingDone));
+        }
+        // Move, rather than duplicate, the single completed-item owner after all
+        // evidence has been checked. The HTTP owner still closes before return.
+        self.output = Some(
+            std::mem::take(&mut self.output_done)
+                .into_values()
+                .map(|done| done.item)
+                .collect(),
+        );
         if let Some(usage) = value.pointer("/response/usage") {
             let input = usage["input_tokens"].as_u64().unwrap_or(0);
             let output = usage["output_tokens"].as_u64().unwrap_or(0);
@@ -720,25 +910,184 @@ impl SseParser {
         self.completed = true;
         Ok(())
     }
+
+    fn observed_index(&self, item: &serde_json::Value) -> Option<u64> {
+        self.output_done
+            .iter()
+            .find_map(|(index, done)| {
+                (done.item == *item || same_identity(&done.item, item)).then_some(*index)
+            })
+            .or_else(|| {
+                item["id"]
+                    .as_str()
+                    .and_then(|id| self.announced_calls.get(id)?.0)
+            })
+    }
+
+    fn check_observation(
+        &self,
+        item: &serde_json::Value,
+        index: Option<u64>,
+        stage: OutputStage,
+    ) -> Result<(), ProviderError> {
+        if stage == OutputStage::Added {
+            for (prior_index, done) in &self.output_done {
+                if same_identity(&done.item, item)
+                    && (item["id"] != done.item["id"]
+                        || item["type"] != done.item["type"]
+                        || item["call_id"] != done.item["call_id"]
+                        || item["name"] != done.item["name"]
+                        || index.is_some_and(|index| index != *prior_index))
+                {
+                    return Err(structural(stage, OutputCode::IdentityConflict));
+                }
+                if index == Some(*prior_index) && !same_identity(&done.item, item) {
+                    return Err(structural(stage, OutputCode::IndexConflict));
+                }
+            }
+        }
+        if let Some(id) = item["id"].as_str() {
+            if let Some((announced_index, call_id, name)) = self.announced_calls.get(id)
+                && (item["type"] != "function_call"
+                    || item["call_id"].as_str() != Some(call_id)
+                    || item["name"].as_str() != Some(name)
+                    || (index.is_some() && announced_index.is_some() && index != *announced_index))
+            {
+                return Err(structural(stage, OutputCode::IdentityConflict));
+            }
+            if item["type"] == "function_call"
+                && let Some((_, Some(arguments))) = self.arguments.get(id)
+                && parsed_arguments(item, stage)? != *arguments
+            {
+                return Err(structural(stage, OutputCode::IdentityConflict));
+            }
+        }
+        if self
+            .announced_calls
+            .iter()
+            .any(|(id, (announced_index, call_id, _))| {
+                item["id"].as_str() != Some(id.as_str())
+                    && (item["call_id"].as_str() == Some(call_id.as_str())
+                        || (index.is_some()
+                            && announced_index.is_some()
+                            && index == *announced_index))
+            })
+        {
+            return Err(structural(stage, OutputCode::IdentityConflict));
+        }
+        Ok(())
+    }
+
+    fn retain_completed(
+        &mut self,
+        index: u64,
+        item: &serde_json::Value,
+        indexed: bool,
+        stage: OutputStage,
+    ) -> Result<bool, ProviderError> {
+        for (prior_index, prior) in &mut self.output_done {
+            if *prior_index == index {
+                // Independent snapshots may omit optional fields. Preserve the
+                // union only when all jointly observed fields agree; identities
+                // cannot be replaced by an unrelated item at the same index.
+                if prior.item == *item
+                    || (same_identity(&prior.item, item)
+                        && (item["type"] != "function_call" || item["id"] == prior.item["id"])
+                        && item.as_object().is_some_and(|fields| {
+                            fields.iter().all(|(key, value)| {
+                                prior.item.get(key).is_none_or(|previous| previous == value)
+                            })
+                        }))
+                {
+                    prior
+                        .item
+                        .as_object_mut()
+                        .expect("validated item")
+                        .extend(item.as_object().expect("validated item").clone());
+                    prior.indexed |= indexed;
+                    return Ok(false);
+                }
+                return Err(structural(stage, OutputCode::IndexConflict));
+            }
+            if same_identity(&prior.item, item) {
+                return Err(structural(stage, OutputCode::IdentityConflict));
+            }
+        }
+        self.output_done.insert(
+            index,
+            CompletedItem {
+                item: item.clone(),
+                indexed,
+            },
+        );
+        Ok(true)
+    }
 }
 
-fn validate_output(item: &serde_json::Value) -> Result<(), ProviderError> {
-    if item["status"].as_str().is_some_and(|s| s != "completed") {
-        return Err(ProviderError::ResponseIncomplete);
+fn output_index(
+    value: &serde_json::Value,
+    stage: OutputStage,
+) -> Result<Option<u64>, ProviderError> {
+    value
+        .get("output_index")
+        .map(|index| {
+            index
+                .as_u64()
+                .filter(|index| *index < EVENT_CAP as u64)
+                .ok_or_else(|| structural(stage, OutputCode::InvalidIndex))
+        })
+        .transpose()
+}
+
+fn required_identity<'a>(
+    item: &'a serde_json::Value,
+    field: &str,
+    stage: OutputStage,
+) -> Result<&'a str, ProviderError> {
+    item[field]
+        .as_str()
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| structural(stage, OutputCode::InvalidField))
+}
+
+fn same_identity(a: &serde_json::Value, b: &serde_json::Value) -> bool {
+    a["id"]
+        .as_str()
+        .filter(|id| !id.is_empty())
+        .is_some_and(|id| b["id"].as_str() == Some(id))
+        || (a["type"] == "function_call"
+            && b["type"] == "function_call"
+            && a["call_id"]
+                .as_str()
+                .is_some_and(|id| b["call_id"].as_str() == Some(id)))
+}
+
+fn parsed_arguments(
+    item: &serde_json::Value,
+    stage: OutputStage,
+) -> Result<serde_json::Value, ProviderError> {
+    let arguments = required_identity(item, "arguments", stage)?;
+    if arguments.len() > ARGUMENT_BYTE_CAP {
+        return Err(ProviderError::ByteLimit("arguments"));
+    }
+    serde_json::from_str(arguments).map_err(|_| structural(stage, OutputCode::InvalidArguments))
+}
+
+fn validate_output(item: &serde_json::Value, stage: OutputStage) -> Result<(), ProviderError> {
+    required_identity(item, "type", stage)?;
+    if item.get("id").is_some() && (item["type"] == "function_call" || !item["id"].is_string()) {
+        required_identity(item, "id", stage)?;
+    }
+    if item
+        .get("status")
+        .is_some_and(|s| s.as_str() != Some("completed"))
+    {
+        return Err(structural(stage, OutputCode::InvalidStatus));
     }
     if item["type"] == "function_call" {
-        let arguments = item["arguments"]
-            .as_str()
-            .ok_or(ProviderError::InvalidOutput)?;
-        if arguments.len() > ARGUMENT_BYTE_CAP {
-            return Err(ProviderError::ByteLimit("arguments"));
-        }
-        if item["call_id"].as_str().is_none_or(str::is_empty)
-            || item["name"].as_str().is_none_or(str::is_empty)
-            || serde_json::from_str::<serde_json::Value>(arguments).is_err()
-        {
-            return Err(ProviderError::InvalidOutput);
-        }
+        required_identity(item, "call_id", stage)?;
+        required_identity(item, "name", stage)?;
+        parsed_arguments(item, stage)?;
     }
     Ok(())
 }
@@ -1332,9 +1681,13 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
             _ => {}
         }
     }
-    let output = parser
-        .output
-        .unwrap_or_else(|| parser.output_done.into_values().collect());
+    let output = parser.output.unwrap_or_else(|| {
+        parser
+            .output_done
+            .into_values()
+            .map(|done| done.item)
+            .collect()
+    });
     Ok(Generation {
         finish: parser.finish,
         compaction_usage: parser.compaction_usage,
@@ -1402,6 +1755,7 @@ pub fn describe_request(
 
 #[cfg(test)]
 mod tests {
+    mod reconciliation;
     mod typed_failures;
 
     use super::{
@@ -1622,7 +1976,13 @@ mod tests {
                     ]
                 );
             } else {
-                assert!(result.as_ref().unwrap_err().is_incomplete());
+                assert!(matches!(
+                    result,
+                    Err(ProviderError::OutputStructure {
+                        stage: super::OutputStage::Completion,
+                        code: super::OutputCode::MissingDone,
+                    })
+                ));
             }
             assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
             server.shutdown();

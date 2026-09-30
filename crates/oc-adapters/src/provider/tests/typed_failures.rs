@@ -370,19 +370,30 @@ async fn ret01_incomplete_length_filter_eof_and_tools() {
             if let Some(reason) = finish {chunks.push((event(serde_json::json!({"type":"response.incomplete","response":{"incomplete_details":{"reason":reason}}})),0));}
             Action {status:"200 OK",headers:vec![("x-should-retry","false".into())],chunks,abort_after:None}
         })).await;
-        let error = facts(
-            stream_generation(
-                &test_config(&server.base),
-                "m",
-                None,
-                "x",
-                &[],
-                &NO_CANCEL,
-                None,
-            )
-            .await
-            .unwrap_err(),
-        );
+        let error = stream_generation(
+            &test_config(&server.base),
+            "m",
+            None,
+            "x",
+            &[],
+            &NO_CANCEL,
+            None,
+        )
+        .await
+        .unwrap_err();
+        if finish.is_some() {
+            assert!(matches!(
+                error,
+                ProviderError::OutputStructure {
+                    stage: crate::provider::OutputStage::Completion,
+                    code: crate::provider::OutputCode::MissingDone,
+                }
+            ));
+            assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
+            server.shutdown();
+            continue;
+        }
+        let error = facts(error);
         assert_eq!(error.kind, FailureKind::IncompleteStream);
         assert_eq!(error.delivery, Delivery::Accepted);
         assert!(error.output_committed);
@@ -440,7 +451,7 @@ async fn ret01_local_parser_and_validation_never_provider_override() {
         .unwrap_err();
         assert!(matches!(
             error,
-            ProviderError::InvalidOutput | ProviderError::InvalidUtf8
+            ProviderError::OutputStructure { .. } | ProviderError::InvalidUtf8
         ));
         assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
         server.shutdown();

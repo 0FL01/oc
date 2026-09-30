@@ -515,8 +515,8 @@ async fn aud11_incomplete_call_never_executes() {
         );
         assert_eq!(
             *hits.lock().unwrap(),
-            2,
-            "one continuation, then terminal quota; incomplete arguments never admit tools"
+            if terminal == sse_completed() { 1 } else { 2 },
+            "real incomplete failures continue; completed-with-unfulfilled-call is local and never admits tools"
         );
     }
 }
@@ -1502,7 +1502,7 @@ async fn canonical_tool_cards_keep_output_order_and_durable_read_pairing_after_r
         let second = serde_json::json!({"type":"message", "id":"msg_second", "role":"assistant",
             "status":"completed", "content":[{"type":"output_text", "text":"after"}]});
         let reasoning = serde_json::json!({"type":"reasoning", "id":"rs_ordered",
-            "encrypted_content":"private-ordered", "status":"completed"});
+            "encrypted_content":"private-ordered", "summary":[], "status":"completed"});
         let (stream, output) = if before_text {
             (
                 sse_reasoning("Checking")
@@ -1755,7 +1755,10 @@ async fn unidentifiable_calls_append_only_at_intent_and_duplicate_call_ids_fail_
         .await
         .unwrap();
     assert_eq!(report.status, TurnStatus::Failed);
-    assert_eq!(report.rounds, 1);
+    assert_eq!(
+        report.rounds, 0,
+        "duplicate identity rejected before successful Generation"
+    );
     assert_eq!(*hits.lock().unwrap(), 1);
     assert!(
         harness

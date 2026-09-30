@@ -978,6 +978,8 @@ mod context;
 mod mcp_lifecycle;
 #[path = "runtime/provider_readiness.rs"]
 mod provider_readiness;
+#[path = "runtime/reconciliation.rs"]
+mod reconciliation;
 #[path = "runtime/tool_lifecycle.rs"]
 mod tool_lifecycle;
 #[path = "runtime/turns.rs"]
