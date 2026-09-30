@@ -244,6 +244,11 @@ impl std::fmt::Display for AdmissionFailure {
 }
 
 impl<'a> RuntimePolicy<'a> {
+    fn tool_visible(&self, tool: &str) -> bool {
+        self.rules
+            .unwrap_or(&crate::permissions::PermissionRules::default())
+            .action_visible(self.permissions, tool)
+    }
     /// Bridge one permission map.
     pub fn new(permissions: &'a BTreeMap<String, Permission>) -> Self {
         Self {
@@ -302,7 +307,7 @@ impl<'a> RuntimePolicy<'a> {
                 };
                 format!("{}_{}", sanitize(&entry.server), sanitize(&entry.tool))
             });
-        let mut actions = vec![tool];
+        let mut actions = vec![crate::config::legacy_key(tool)];
         if let Some(alias) = &alias {
             actions.push(alias);
         }
@@ -467,17 +472,16 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
             }),
         },
         ToolDef {
-            name: "bash".to_string(),
-            description: "Run a supervised command. `argv` is the exact executable plus args (no shell); omit `cwd` to run in the project root — any `cwd` must stay inside the project root. `timeout_ms` caps the run (default 30000)."
+            name: "shell".to_string(),
+            description: "Execute a foreground Linux shell command using the compatible inherited SHELL (fallback PATH bash, then /bin/sh), with -c semantics. Quote paths containing spaces; prefer dedicated tools. `workdir` is relative to the admitted project root (default root). `timeout` is milliseconds (default 120000, 0 disables execution timeout; native positive ceiling 600000). Output is bounded; cancellation and process-group teardown remain active. Background execution is not supported yet. The child receives a minimal credential-free environment."
                 .to_string(),
-            parameters: schema(
-                serde_json::json!({
-                    "argv": {"type": "array", "items": {"type": "string"}},
-                    "cwd": {"type": "string"},
-                    "timeout_ms": {"type": "integer"},
-                }),
-                &["argv"],
-            ),
+            parameters: serde_json::json!({
+                "type": "object", "properties": {
+                    "command": {"type": "string", "minLength": 1, "maxLength": crate::shell::ARG_BYTES_CAP},
+                    "workdir": {"type": "string"},
+                    "timeout": {"type": "integer", "minimum": 0, "maximum": crate::tools::BASH_TIMEOUT_CAP_MS, "default": 120000},
+                }, "required": ["command"], "additionalProperties": false,
+            }),
         },
         ToolDef {
             name: "webfetch".to_string(),

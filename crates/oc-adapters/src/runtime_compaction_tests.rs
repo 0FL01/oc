@@ -471,6 +471,9 @@ async fn compaction_auto_threshold_and_known_overflow_keep_tool_effect_once() {
             let reopened = Db::open(data.path()).unwrap();
             let mut generation = Generation::default();
             generation.compaction.buffer = 499_999; // without the checkpoint guard always due
+            generation
+                .permissions
+                .insert("read".into(), Permission::Allow);
             let runtime = self::runtime(&reopened, project.path(), generation);
             let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
             let provider = config(&listener);

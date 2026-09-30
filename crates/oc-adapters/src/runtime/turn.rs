@@ -393,7 +393,7 @@ impl TurnSubagent<'_, '_> {
 }
 
 fn is_builtin(name: &str) -> bool {
-    crate::tools::MODEL_TOOL_NAMES.contains(&name) || name == SUBAGENT_TOOL
+    crate::tools::MODEL_TOOL_NAMES.contains(&name) || name == "bash" || name == SUBAGENT_TOOL
 }
 
 fn units_have_calls(units: &[Assembled]) -> bool {
@@ -537,8 +537,8 @@ impl<'a> Runtime<'a> {
             .iter()
             .all(|r| policy.effect(&call.name, r) == Permission::Allow)
         {
-            if call.name == "bash" || compression_plan.is_some() {
-                let shell_cwd = if call.name == "bash" {
+            if matches!(call.name.as_str(), "shell" | "bash") || compression_plan.is_some() {
+                let shell_cwd = if matches!(call.name.as_str(), "shell" | "bash") {
                     crate::approval::prepare(ctx, call, &resources).await?.3
                 } else {
                     None
@@ -561,7 +561,11 @@ impl<'a> Runtime<'a> {
             if policy.effect(&call.name, resource) != Permission::Allow
                 && !self
                     .db
-                    .permission_grant_matches(&project, &call.name, granted)
+                    .permission_grant_matches(
+                        &project,
+                        crate::config::legacy_key(&call.name),
+                        granted,
+                    )
                     .map_err(|_| "grant storage unavailable")?
             {
                 saved = false;
@@ -591,7 +595,7 @@ impl<'a> Runtime<'a> {
                     agent_digest,
                 },
                 project: project.clone(),
-                action: call.name.clone(),
+                action: crate::config::legacy_key(&call.name).into(),
                 resources: resources.clone(),
                 save_patterns: crate::approval::save_patterns(&call.name, &grant_resources),
                 preview,
@@ -805,11 +809,14 @@ impl<'a> Runtime<'a> {
         let mut fixed_input = lane.fixed_input.clone();
         fixed_input.extend(mcp_instruction_input(attached, &policy));
         let mut tool_defs = builtin_tool_defs();
+        tool_defs.retain(|tool| policy.tool_visible(&tool.name));
         if !compress_available {
             tool_defs.retain(|tool| tool.name != COMPRESS_TOOL);
         }
         let subagents = workspace.subagents.clone();
-        if let Some(catalog) = &subagents {
+        if let Some(catalog) = &subagents
+            && policy.tool_visible(SUBAGENT_TOOL)
+        {
             tool_defs.push(subagent_tool_def(catalog, &policy));
         }
         for entry in &attached.entries {
@@ -993,10 +1000,13 @@ impl<'a> Runtime<'a> {
             let mut fixed_input = lane.fixed_input.clone();
             fixed_input.extend(mcp_instruction_input(attached, &policy));
             let mut tool_defs = builtin_tool_defs();
+            tool_defs.retain(|tool| policy.tool_visible(&tool.name));
             if !compress_available {
                 tool_defs.retain(|tool| tool.name != COMPRESS_TOOL);
             }
-            if let Some(catalog) = &subagents {
+            if let Some(catalog) = &subagents
+                && policy.tool_visible(SUBAGENT_TOOL)
+            {
                 tool_defs.push(subagent_tool_def(catalog, &policy));
             }
             for entry in &attached.entries {
@@ -2305,7 +2315,10 @@ impl<'a> Runtime<'a> {
                 {
                     Some((
                         "failed",
-                        format!("error: invalid arguments for {}", call.name),
+                        format!(
+                            "error: {}",
+                            crate::tools::validate_call(call).expect_err("invalid shape")
+                        ),
                     ))
                 }
                 Assembled::Call(call)
@@ -2658,8 +2671,8 @@ impl<'a> Runtime<'a> {
                         patch_effects = effects;
                         (output_state(&output), output)
                     }
-                    Assembled::Call(call) if call.name == "bash" => {
-                        crate::tools::execute_bash_typed(ctx, call).await
+                    Assembled::Call(call) if matches!(call.name.as_str(), "shell" | "bash") => {
+                        crate::tools::execute_shell_typed(ctx, call).await
                     }
                     Assembled::Call(call) if is_builtin(&call.name) => {
                         let output = execute_batch(ctx, vec![guarded]).await.remove(0).output;

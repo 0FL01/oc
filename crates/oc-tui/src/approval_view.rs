@@ -601,7 +601,14 @@ fn body_lines(state: &TuiState, width: u16, terminal_width: u16) -> Vec<Line<'st
         "This will always allow the following patterns for this project.",
         muted,
     )];
-    for pattern in &request.save_patterns {
+    // Shell grants have an internal representation domain tag. Show the exact
+    // source/argv resource being approved, not its storage-only encoding.
+    let patterns = if matches!(&request.preview, ApprovalPreview::Shell { .. }) {
+        &request.resources
+    } else {
+        &request.save_patterns
+    };
+    for pattern in patterns {
         lines.push(Line::default());
         lines.push(Line::raw(format!("- {pattern}")));
     }
@@ -1046,6 +1053,34 @@ mod tests {
             panic!("reply intent")
         };
         reply.decision
+    }
+    #[tokio::test]
+    async fn shell_always_displays_approved_source_without_storage_encoding() {
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, SessionId("root".into()));
+        let mut request = request(1, true);
+        let command = "printf '%s' 'a b' && true";
+        request.action = "bash".into();
+        request.resources = vec![command.into()];
+        request.save_patterns = vec![format!("\0shell-command:v1:{command}")];
+        request.preview = ApprovalPreview::Shell {
+            command: command.into(),
+            cwd: "/fixture".into(),
+        };
+        state.approvals.reconcile(vec![(request, true)]);
+        state.approvals.selected = state
+            .approvals
+            .options()
+            .iter()
+            .position(|(_, decision)| *decision == ApprovalDecision::Always)
+            .unwrap();
+        let text = body_lines(&state, 100, 100)
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(text.contains(command));
+        assert!(!text.contains('\0') && !text.contains("shell-command:v1:"));
     }
     #[test]
     fn permission_resource_wrapping_is_grapheme_safe_and_bounded() {

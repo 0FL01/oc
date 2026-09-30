@@ -532,7 +532,8 @@ fn aud17_binary_unknown_plugin_is_isolated_without_loader_side_effect() {
         "http://{}/plugins/not-native.js",
         fixture.listener.local_addr().expect("listener address")
     );
-    let config = fixture.write_base_config(json!({"plugin": [plugin.clone()]}));
+    let config = fixture
+        .write_base_config(json!({"plugin": [plugin.clone()], "permissions":{"skill":"allow"}}));
     let before = fs::read(&config).expect("config before");
     let mut process = fixture.spawn(
         &fixture.project_a,
@@ -904,7 +905,7 @@ fn v07a_binary_external_agent_subdirectory_cannot_select_primary() {
 fn run_denied_patch(fixture: &Fixture, project: &Path, session: &str, target: &str, label: &str) {
     let mut process = fixture.spawn(project, session, "attempt a denied patch", label);
     let (mut socket, request) = fixture.accept(&mut process);
-    assert_eq!(count_tool(&request, "apply_patch"), 1);
+    assert_eq!(count_tool(&request, "apply_patch"), 0);
     let call_id = format!("aud16-{label}");
     respond_tool(
         &mut socket,

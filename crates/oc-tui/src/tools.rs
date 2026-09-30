@@ -63,7 +63,7 @@ pub const PATCH_FAILED: &str = "# Patch failed";
 /// input/output so rendering never re-parses a large payload.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ToolRender {
-    /// `bash` command card.
+    /// Canonical `shell` or compatible legacy `bash` command card.
     Shell(ShellRender),
     /// `apply_patch` diff card.
     Patch(PatchRender),
@@ -75,10 +75,10 @@ pub enum ToolRender {
     Inline(InlineRender),
 }
 
-/// `bash` card fields parsed from the recorded argv/cwd and output.
+/// Shell card fields parsed from recorded command/workdir or legacy argv/cwd.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ShellRender {
-    /// Command as recorded (`argv` joined by spaces).
+    /// Command source as recorded (legacy display joins argv only for rendering).
     pub command: String,
     /// `cd <cwd> && ` prefix when the call pinned a working directory.
     pub cwd: Option<String>,
@@ -231,7 +231,7 @@ impl ToolRender {
         }
         let value = input.and_then(|raw| serde_json::from_str::<serde_json::Value>(raw).ok());
         match name {
-            "bash" => ToolRender::Shell(shell_render(value.as_ref(), output)),
+            "shell" | "bash" => ToolRender::Shell(shell_render(name, value.as_ref(), output)),
             "apply_patch" => ToolRender::Patch(patch_render(value.as_ref(), output, state)),
             "subagent" => ToolRender::Subagent(subagent_render(value.as_ref(), output)),
             "read" => ToolRender::Inline(InlineRender::Read {
@@ -310,19 +310,27 @@ fn generic_args(value: Option<&serde_json::Value>) -> Vec<(String, String)> {
         .collect()
 }
 
-fn shell_render(value: Option<&serde_json::Value>, output: Option<&str>) -> ShellRender {
-    let command = value
-        .and_then(|value| value.get("argv"))
-        .and_then(|value| value.as_array())
-        .map(|argv| {
-            argv.iter()
-                .filter_map(|item| item.as_str())
-                .collect::<Vec<_>>()
-                .join(" ")
-        })
-        .unwrap_or_default();
+fn shell_render(
+    name: &str,
+    value: Option<&serde_json::Value>,
+    output: Option<&str>,
+) -> ShellRender {
+    let command = if name == "shell" {
+        string_arg(value, "command")
+    } else {
+        value
+            .and_then(|value| value.get("argv"))
+            .and_then(|value| value.as_array())
+            .map(|argv| {
+                argv.iter()
+                    .filter_map(|item| item.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            })
+            .unwrap_or_default()
+    };
     let cwd = value
-        .and_then(|value| value.get("cwd"))
+        .and_then(|value| value.get(if name == "shell" { "workdir" } else { "cwd" }))
         .and_then(|value| value.as_str())
         .filter(|cwd| !cwd.is_empty() && *cwd != ".")
         .map(str::to_string);

@@ -40,8 +40,32 @@ impl PermissionRules {
     pub fn from_config(value: &serde_json::Value) -> Result<Self, ConfigError> {
         let mut result = Self::default();
         let mut rules = Vec::new();
+        let has_object_alias = |action: &str| {
+            ["permission", "permissions"].iter().any(|key| {
+                value
+                    .get(key)
+                    .and_then(serde_json::Value::as_object)
+                    .is_some_and(|map| map.contains_key(action))
+            })
+        };
+        let intersect_shell_aliases = has_object_alias("bash") && has_object_alias("shell");
         for key in ["permission", "permissions"] {
             if let Some(raw) = value.get(key) {
+                // Object aliases are one policy identity, not an alternate
+                // route around the stricter legacy rule. Ordered rule arrays
+                // retain their existing explicit last-match semantics.
+                if let Some(map) = raw
+                    .as_object()
+                    .filter(|map| intersect_shell_aliases && map.contains_key("shell"))
+                {
+                    let mut rest = map.clone();
+                    let shell = rest.remove("shell").expect("present alias");
+                    rules.extend(parse(&serde_json::Value::Object(rest), key)?);
+                    result
+                        .constraints
+                        .push(parse(&serde_json::json!({"shell": shell}), key)?);
+                    continue;
+                }
                 rules.extend(parse(raw, key)?);
             }
         }
@@ -145,6 +169,8 @@ impl PermissionRules {
         actions: &[&str],
         resource: &str,
     ) -> Permission {
+        let actions: Vec<_> = actions.iter().map(|action| legacy_key(action)).collect();
+        let actions = actions.as_slice();
         let mut effect = None;
         if self.authorities.is_empty() {
             effect = evaluate_layer(&scalar_rules(fallback), actions, resource);
@@ -163,14 +189,60 @@ impl PermissionRules {
         }
         effect
     }
+
+    /// Catalog visibility is conservative for resource rules, but a whole-action
+    /// denial at any authority boundary removes the definition. Execution still
+    /// evaluates every actual resource; visibility never grants a call.
+    pub(crate) fn action_visible(
+        &self,
+        fallback: &BTreeMap<String, Permission>,
+        action: &str,
+    ) -> bool {
+        let actions = [legacy_key(action)];
+        let scalar = scalar_rules(fallback);
+        let authorities = if self.authorities.is_empty() {
+            std::slice::from_ref(&scalar)
+        } else {
+            &self.authorities
+        };
+        let admitted = authorities
+            .iter()
+            .flatten()
+            .any(|rule| wildcard(actions[0], legacy_key(&rule.action)));
+        for layer in authorities.iter().chain(&self.constraints) {
+            let matching: Vec<_> = layer
+                .iter()
+                .filter(|rule| wildcard(actions[0], legacy_key(&rule.action)))
+                .collect();
+            if matching.is_empty() {
+                continue;
+            }
+            if evaluate_layer(layer, &actions, "*") == Some(Permission::Deny)
+                && matching.iter().all(|rule| {
+                    evaluate_layer(layer, &actions, &rule.resource) == Some(Permission::Deny)
+                })
+            {
+                return false;
+            }
+        }
+        admitted
+    }
 }
 
 fn scalar_rules(map: &BTreeMap<String, Permission>) -> Vec<Rule> {
-    map.iter()
+    let mut normalized = BTreeMap::new();
+    for (action, effect) in map {
+        normalized
+            .entry(legacy_key(action))
+            .and_modify(|old| *old = strictest(*old, *effect))
+            .or_insert(*effect);
+    }
+    normalized
+        .into_iter()
         .map(|(action, effect)| Rule {
-            action: action.clone(),
+            action: action.into(),
             resource: "*".into(),
-            effect: *effect,
+            effect,
         })
         .collect()
 }
@@ -178,7 +250,10 @@ fn scalar_rules(map: &BTreeMap<String, Permission>) -> Vec<Rule> {
 fn evaluate_layer(rules: &[Rule], actions: &[&str], resource: &str) -> Option<Permission> {
     let mut effect = None;
     for rule in rules {
-        if actions.iter().any(|action| wildcard(action, &rule.action)) {
+        if actions
+            .iter()
+            .any(|action| wildcard(action, legacy_key(&rule.action)))
+        {
             effect.get_or_insert(Permission::Ask);
             if wildcard(resource, &rule.resource) {
                 effect = Some(rule.effect);

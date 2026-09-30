@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-30T02:59:01+00:00",
-  "current": null,
+  "updated_at": "2026-09-30T05:02:15+00:00",
+  "current": "T50",
   "tasks": {
     "T00": {
       "status": "done",
@@ -347,9 +347,9 @@
       "reopen_reason": null
     },
     "T50": {
-      "status": "todo",
-      "last_seq": 0,
-      "latest": null,
+      "status": "active",
+      "last_seq": 1,
+      "latest": "progress/M8/T50/0001.md",
       "evidence": null,
       "reopen_reason": null
     },
@@ -382,5 +382,5 @@
       "reopen_reason": null
     }
   },
-  "last_checkpoint_task": "T54"
+  "last_checkpoint_task": "T50"
 }

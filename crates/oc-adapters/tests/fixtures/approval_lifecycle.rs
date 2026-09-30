@@ -84,7 +84,9 @@ async fn approval_webfetch_hostname_does_not_resolve_before_owner_reply_or_witho
 
 #[tokio::test]
 async fn approval_shell_started_rename_executes_only_in_opened_cwd() {
-    for symlink_replacement in [false, true] {
+    for (symlink_replacement, canonical) in
+        [(false, false), (true, false), (false, true), (true, true)]
+    {
         let mut permissions = allow_all();
         permissions.insert("bash".into(), Permission::Ask);
         let (harness, generation) = make_harness(permissions);
@@ -99,8 +101,12 @@ async fn approval_shell_started_rename_executes_only_in_opened_cwd() {
             vec![
                 sse_tool_call(
                     "cwd",
-                    "bash",
-                    &serde_json::json!({"argv":["/usr/bin/touch","marker"],"cwd":"cwd"}),
+                    if canonical { "shell" } else { "bash" },
+                    &if canonical {
+                        serde_json::json!({"command":"touch marker", "workdir":"cwd"})
+                    } else {
+                        serde_json::json!({"argv":["/usr/bin/touch","marker"],"cwd":"cwd"})
+                    },
                 ) + &sse_completed(),
                 sse_delta("done") + &sse_completed(),
             ],
@@ -113,7 +119,7 @@ async fn approval_shell_started_rename_executes_only_in_opened_cwd() {
             |_, _| {},
             |_, _| {},
             |_, event| {
-                if matches!(event, ToolCallEvent::Started { name, .. } if name == "bash") {
+                if matches!(event, ToolCallEvent::Started { name, .. } if name == if canonical { "shell" } else { "bash" }) {
                     assert!(!started);
                     started = true;
                     std::fs::rename(&cwd, &retained).unwrap();
@@ -138,6 +144,223 @@ async fn approval_shell_started_rename_executes_only_in_opened_cwd() {
         assert!(retained.join("marker").exists());
         assert!(!cwd.join("marker").exists());
         assert!(!outside.path().join("marker").exists());
+    }
+}
+
+#[tokio::test]
+async fn tool12_command_always_reopen_does_not_inherit_argv_glob_or_widen_alias_deny() {
+    let mut permissions = allow_all();
+    permissions.insert("bash".into(), Permission::Ask);
+    let (harness, generation) = make_harness(permissions);
+    let runtime = runtime_of(&harness, generation.clone(), vec![]);
+    let _events = consumer(&runtime);
+    runtime.create_session("command-grant").unwrap();
+    let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    // Simulate an existing donor-compatible argv wildcard grant, retained in
+    // the real native store. It cannot silently authorize command source text.
+    conn.execute(
+        "INSERT INTO permission_grants VALUES(?1,'bash','*')",
+        ["irrelevant-project"],
+    )
+    .unwrap();
+    let command = "printf approved >> marker";
+    let (base, _) = Fake::start(
+        vec![
+            sse_tool_call("command", "shell", &serde_json::json!({"command":command}))
+                + &sse_tool_call(
+                    "exact",
+                    "shell",
+                    &serde_json::json!({"command":"touch approved-exact"}),
+                )
+                + &sse_completed(),
+            sse_delta("done") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let reply = async {
+        let request = next_request(&runtime).await;
+        assert_eq!(request.action, "bash");
+        assert_eq!(request.resources, [command]);
+        assert!(
+            matches!(&request.preview, ApprovalPreview::Shell { command: preview, .. } if preview == command)
+        );
+        assert!(
+            harness
+                .db
+                .list_tool_ops("command-grant")
+                .unwrap()
+                .is_empty()
+        );
+        answer(&runtime, request, ApprovalDecision::Always);
+        let request = next_request(&runtime).await;
+        assert_eq!(request.resources, ["touch approved-exact"]);
+        answer(&runtime, request, ApprovalDecision::Always);
+    };
+    let (report, ()) = tokio::join!(
+        runtime.run_turn(params(
+            "command-grant",
+            "invoke",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL
+        )),
+        reply
+    );
+    assert_eq!(report.unwrap().calls[0].state, "completed");
+    let project: String = conn
+        .query_row(
+            "SELECT project FROM permission_grants WHERE project != 'irrelevant-project'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    drop(runtime);
+    let runtime = runtime_of(&harness, generation.clone(), vec![]);
+    // Exactly the same resource spelling remains a different interpretation
+    // domain: canonical Always cannot authorize literal argv.
+    std::fs::remove_file(harness._project.path().join("approved-exact")).unwrap();
+    let (base, _) = Fake::start(
+        vec![
+            sse_tool_call(
+                "argv-exact",
+                "bash",
+                &serde_json::json!({"argv":["touch","approved-exact"]}),
+            ) + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    assert!(matches!(
+        runtime
+            .run_turn(params(
+                "command-grant",
+                "legacy",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL
+            ))
+            .await,
+        Err(RuntimeError::ApprovalRequired { .. })
+    ));
+    assert!(!harness._project.path().join("approved-exact").exists());
+    conn.execute(
+        "INSERT INTO permission_grants VALUES(?1,'bash','*')",
+        [&project],
+    )
+    .unwrap();
+    // Reopened owner has no approval consumer. Exact saved command succeeds.
+    let (base, _) = Fake::start(
+        vec![
+            sse_tool_call("same", "shell", &serde_json::json!({"command":command}))
+                + &sse_completed(),
+            sse_delta("done") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    assert_eq!(
+        runtime
+            .run_turn(params(
+                "command-grant",
+                "same",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL
+            ))
+            .await
+            .unwrap()
+            .calls[0]
+            .state,
+        "completed"
+    );
+    // Legacy glob still cannot grant a different shell source command.
+    let (base, _) = Fake::start(
+        vec![
+            sse_tool_call(
+                "different",
+                "shell",
+                &serde_json::json!({"command":"touch wrong-marker"}),
+            ) + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    assert!(matches!(
+        runtime
+            .run_turn(params(
+                "command-grant",
+                "different",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL
+            ))
+            .await,
+        Err(RuntimeError::ApprovalRequired { .. })
+    ));
+    assert!(!harness._project.path().join("wrong-marker").exists());
+    drop(runtime);
+    let mut denied = generation;
+    denied.permissions.insert("shell".into(), Permission::Deny);
+    let runtime = runtime_of(&harness, denied, vec![]);
+    let (base, _) = Fake::start(
+        vec![
+            sse_tool_call("denied", "shell", &serde_json::json!({"command":command}))
+                + &sse_completed(),
+            sse_delta("done") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    assert!(
+        runtime
+            .run_turn(params(
+                "command-grant",
+                "denied",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL
+            ))
+            .await
+            .unwrap()
+            .calls[0]
+            .output
+            .contains("denied")
+    );
+    assert_eq!(
+        std::fs::read_to_string(harness._project.path().join("marker")).unwrap(),
+        "approvedapproved"
+    );
+}
+
+#[tokio::test]
+async fn tool13_invalid_or_background_shell_never_commits_execution_intent() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, vec![]);
+    runtime.create_session("invalid-shell").unwrap();
+    let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    conn.execute_batch("CREATE TRIGGER no_invalid_shell_intent BEFORE INSERT ON tool_operations WHEN NEW.state='started' BEGIN SELECT RAISE(FAIL,'invalid shell execution intent'); END;").unwrap();
+    for args in [
+        serde_json::json!({"command":"touch marker","background":true}),
+        serde_json::json!({"command":"touch marker","timeout":-1}),
+        serde_json::json!({"command":"touch marker","workdir":"../"}),
+        serde_json::json!({"command":"touch marker","timeout":600001}),
+        serde_json::json!({"command":"touch marker","argv":["true"]}),
+    ] {
+        let (base, _) = Fake::start(
+            vec![
+                sse_tool_call("invalid", "shell", &args) + &sse_completed(),
+                sse_delta("done") + &sse_completed(),
+            ],
+            Duration::ZERO,
+        );
+        let report = runtime
+            .run_turn(params(
+                "invalid-shell",
+                "invalid",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(report.calls[0].state, "failed");
+        assert!(!harness._project.path().join("marker").exists());
     }
 }
 

@@ -5,7 +5,8 @@
 //! supervisor forks a fresh session (`setsid`), pins `cwd` inside the trusted
 //! root, exposes only an allowlisted non-credential child environment,
 //! services stdin/stdout/stderr concurrently into bounded buffers, and
-//! enforces one deadline that starts before spawn. Leader exit is not group
+//! enforces an optional execution deadline that starts before spawn. Zero
+//! disables only that deadline. Leader exit is not group
 //! completion: drains get a bounded window, then the owned session group is
 //! TERM→grace→KILLed so a descendant holding a pipe can never hang the call.
 //! Timeout kills report `Unknown`, explicit cancellation reports `Cancelled`;
@@ -86,7 +87,7 @@ pub struct ShellOutcome {
 /// Per-call limits (tests shrink these; product uses larger values).
 #[derive(Debug, Clone, Copy)]
 pub struct ShellLimits {
-    /// Total deadline for the call.
+    /// Execution deadline for the call; zero disables only this deadline.
     pub timeout: Duration,
     /// Grace between `TERM` and `KILL` to the group.
     pub kill_grace: Duration,
@@ -200,7 +201,7 @@ impl Shell {
     ///
     /// `parent_env` is the caller-observed environment (production passes
     /// `std::env::vars`); only allowlisted non-credential names reach the
-    /// child. `cancel` is polled alongside the deadline, which starts before
+    /// child. `cancel` is polled alongside the optional deadline, which starts before
     /// spawn so a slow spawn or a blocked stdin write cannot extend it.
     pub fn execute(
         &self,
@@ -239,8 +240,8 @@ impl Shell {
             }
         };
         let cwd_fd = pinned.cwd.as_raw_fd();
-        // The single deadline covers spawn, stdin write, execution and the
-        // bounded drain/teardown window.
+        // The optional execution deadline covers spawn, stdin and execution.
+        // Drain/teardown windows remain independently bounded when it is zero.
         let start = Instant::now();
         let mut cmd = Command::new(&argv[0]);
         cmd.args(&argv[1..]);
@@ -305,7 +306,7 @@ impl Shell {
             match child.try_wait().map_err(|_| ShellError::Reap)? {
                 Some(_) => break,
                 None => {
-                    if start.elapsed() >= limits.timeout {
+                    if !limits.timeout.is_zero() && start.elapsed() >= limits.timeout {
                         outcome_kind = OutcomeKind::TimedOut;
                         break;
                     }
@@ -414,6 +415,59 @@ impl Shell {
         }
         Ok(canonical)
     }
+}
+
+/// Donor compatible Linux selection (shell/select.ts): inherited SHELL,
+/// excluding fish/nu, then PATH bash, then /bin/sh. No login startup files.
+pub(crate) fn command_argv(
+    parent: &BTreeMap<String, String>,
+    command: &str,
+) -> Result<Vec<String>, ShellError> {
+    let env = child_env(parent);
+    let executable = |candidate: &str| -> Option<PathBuf> {
+        if candidate.is_empty() || candidate.contains('\0') {
+            return None;
+        }
+        let usable = |path: &Path| {
+            use std::os::unix::fs::PermissionsExt as _;
+            path.metadata()
+                .is_ok_and(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
+        };
+        let path = Path::new(candidate);
+        if path.is_absolute() {
+            return usable(path).then(|| path.to_path_buf());
+        }
+        // Relative executable paths must not depend on the author's cwd.
+        if path.components().count() != 1 {
+            return None;
+        }
+        std::env::split_paths(std::ffi::OsStr::new(&env["PATH"]))
+            .filter(|directory| directory.is_absolute())
+            .map(|directory| directory.join(candidate))
+            .find(|path| usable(path))
+    };
+    let selected = parent.get("SHELL").and_then(|candidate| {
+        let name = Path::new(candidate)
+            .file_name()?
+            .to_str()?
+            .to_ascii_lowercase();
+        (!matches!(name.as_str(), "fish" | "nu"))
+            .then(|| executable(candidate))
+            .flatten()
+    });
+    let shell = selected
+        .or_else(|| executable("bash"))
+        .or_else(|| executable("/bin/sh"))
+        .ok_or_else(|| ShellError::SpawnRefused {
+            reason: "no executable Linux shell".into(),
+        })?;
+    let argv = vec![
+        shell.to_string_lossy().into_owned(),
+        "-c".into(),
+        command.into(),
+    ];
+    validate_argv(&argv)?;
+    Ok(argv)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -588,7 +642,7 @@ pub fn child_env(parent: &BTreeMap<String, String>) -> BTreeMap<String, String> 
     out
 }
 
-fn validate_argv(argv: &[String]) -> Result<(), ShellError> {
+pub(crate) fn validate_argv(argv: &[String]) -> Result<(), ShellError> {
     if argv.is_empty() || argv.len() > ARGV_CAP {
         return Err(ShellError::SpawnRefused {
             reason: "argv arity".to_string(),

@@ -79,7 +79,14 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
             .as_array()
             .expect("tools")
             .iter()
-            .any(|tool| { tool["name"] == "bash" })
+            .any(|tool| { tool["name"] == "shell" })
+    );
+    assert!(
+        request["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|tool| tool["name"] != "bash")
     );
     respond(
         &mut socket,

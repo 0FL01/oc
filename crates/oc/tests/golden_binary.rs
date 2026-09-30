@@ -629,7 +629,7 @@ fn aud35_binary_golden_workflow() {
                     return Err("project A rule missing from the input".to_string());
                 }
                 let tools = tool_names(body);
-                for expected in ["apply_patch", "bash", "read", "codex_web__search"] {
+                for expected in ["apply_patch", "shell", "read", "codex_web__search"] {
                     if !tools.iter().any(|name| name == expected) {
                         return Err(format!("tool {expected} missing from {tools:?}"));
                     }

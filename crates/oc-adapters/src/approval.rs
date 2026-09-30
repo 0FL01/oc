@@ -133,6 +133,12 @@ pub(crate) fn normalize_origin(value: &str) -> Option<String> {
 /// Paths in saved grants are checkout-root relative, even when Location is a
 /// subdirectory. Each linked worktree/clone has its own checkout prefix removed.
 pub(crate) fn grant_resources(project: &Path, action: &str, resources: &[String]) -> Vec<String> {
+    if action == "shell" {
+        return resources
+            .iter()
+            .map(|r| format!("{}{r}", crate::tools::shell_call::COMMAND_GRANT_PREFIX))
+            .collect();
+    }
     if !matches!(action, "read" | "apply_patch") {
         return resources.to_vec();
     }
@@ -209,15 +215,14 @@ pub(crate) async fn prepare(
                 values: resources.to_vec(),
             }
         }
-        "bash" => {
-            let cwd = call.arguments["cwd"].as_str().unwrap_or(".");
-            let argv = call.arguments["argv"]
-                .as_array()
-                .ok_or("missing argv")?
-                .iter()
-                .map(|v| v.as_str().map(str::to_string).ok_or("invalid argv"))
-                .collect::<Result<Vec<_>, _>>()?;
-            let pinned = ctx.shell.pin_cwd(&argv, cwd).map_err(|e| e.to_string())?;
+        "shell" | "bash" => {
+            let invocation = crate::tools::shell_call::invocation(call, ctx.parent_env)
+                .map_err(|e| e.to_string())?;
+            hash.update(serde_json::to_vec(&invocation.argv).map_err(|_| "invalid shell argv")?);
+            let pinned = ctx
+                .shell
+                .pin_cwd(&invocation.argv, &invocation.cwd)
+                .map_err(|e| e.to_string())?;
             for value in pinned.identity().map_err(|e| e.to_string())? {
                 hash.update(value.to_le_bytes());
             }
@@ -290,7 +295,7 @@ pub(crate) async fn prepare(
 pub(crate) fn save_patterns(action: &str, resources: &[String]) -> Vec<String> {
     if !matches!(
         action,
-        "read" | "apply_patch" | "bash" | "skill" | "subagent"
+        "read" | "apply_patch" | "shell" | "bash" | "skill" | "subagent"
     ) {
         return vec!["*".into()];
     }

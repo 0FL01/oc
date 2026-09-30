@@ -7,8 +7,9 @@
 //! tools, invalid JSON and replayed terminals never execute; duplicates
 //! refuse the whole batch before any side effect.
 //!
-//! Registry (and only registry): `read`, `glob`, `grep`, `apply_patch`, `bash`,
-//! `webfetch`, `skill`, `compress`, plus the per-lane `subagent` tool. No
+//! Registry (and only registry): `read`, `glob`, `grep`, `apply_patch`, `shell`,
+//! `webfetch`, `skill`, `compress`, plus hidden `bash(argv)` compatibility and
+//! the per-lane `subagent` tool. No
 //! `write`/`edit` entries exist. Reasoning/opaque
 //! provider items accumulate in [`TurnLog`] (durable JSON,
 //! same-model/provider replay boundary) and are stripped from the UI
@@ -29,13 +30,15 @@ use crate::provider::StreamItem;
 use crate::shell::{Shell, ShellLimits};
 use crate::storage::Db;
 
+pub(crate) mod shell_call;
+
 /// Model-visible tool names; `write`/`edit` must never appear here.
 pub const MODEL_TOOL_NAMES: &[&str] = &[
     "read",
     "glob",
     "grep",
     "apply_patch",
-    "bash",
+    "shell",
     "webfetch",
     "skill",
     "compress",
@@ -51,7 +54,7 @@ pub const SUBAGENT_NO_TEXT: &str = "Subagent completed without a text response."
 /// truncate real SKILL.md files. Kept as a generous snapshot bound (audited
 /// contract: oversized bodies are skipped with a visible warning).
 pub const SKILL_BODY_CAP: usize = 1024 * 1024;
-/// Bash per-call timeout cap (ms).
+/// Native positive execution-timeout resource ceiling for both shell forms (ms).
 pub const BASH_TIMEOUT_CAP_MS: u64 = 600_000;
 /// Highest accepted zero-based search cursor.
 const SEARCH_OFFSET_CAP: u64 = 1_000_000;
@@ -61,6 +64,9 @@ const SEARCH_LIMIT_CAP: u64 = 1_000;
 /// Typed tool errors (no argument contents, no secrets).
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum ToolError {
+    /// Known capability not implemented; refused before execution intent.
+    #[error("tool {tool} unsupported: {feature}")]
+    Unsupported { tool: String, feature: String },
     /// Tool name is not in the registry.
     #[error("unknown tool {tool}")]
     UnknownTool {
@@ -135,7 +141,7 @@ pub trait ToolPolicy: Sync {
     }
 }
 
-/// v2.0.12 resource semantics, adapted to the native argv-only shell API.
+/// Canonical command text and the preserved legacy argv resource spelling.
 pub(crate) fn permission_resources(call: &ToolCall) -> Result<Vec<String>, ToolError> {
     let invalid = || ToolError::InvalidArgs {
         tool: call.name.clone(),
@@ -157,6 +163,7 @@ pub(crate) fn permission_resources(call: &ToolCall) -> Result<Vec<String>, ToolE
         "webfetch" => vec![string("url")?],
         "skill" => vec![string("id")?],
         "subagent" => vec![string("agent")?],
+        "shell" => vec![string("command")?],
         "apply_patch" => {
             crate::patch::affected_paths(&string("patchText")?).map_err(|_| invalid())?
         }
@@ -216,7 +223,11 @@ pub struct DenyListPolicy {
 
 impl ToolPolicy for DenyListPolicy {
     fn check(&self, tool: &str) -> Result<(), ToolError> {
-        if self.denied.iter().any(|d| d == tool) {
+        if self
+            .denied
+            .iter()
+            .any(|d| crate::config::legacy_key(d) == crate::config::legacy_key(tool))
+        {
             return Err(ToolError::Denied {
                 tool: tool.to_string(),
             });
@@ -497,7 +508,7 @@ pub struct ToolContext<'a> {
     pub subagent: Option<&'a dyn SubagentRunner>,
     /// Pinned skill snapshot.
     pub snapshot: &'a SkillSnapshot,
-    /// Cancellation flag (checked between calls and inside `bash`).
+    /// Cancellation flag (checked between calls and inside the shell supervisor).
     pub cancel: &'a AtomicBool,
     /// Patch roots (always `Some` in production; `None` only in narrow tests).
     pub roots: Option<ToolRoots>,
@@ -573,7 +584,7 @@ async fn execute_call(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
         "glob" => tool_glob(ctx, call),
         "grep" => tool_grep(ctx, call),
         "apply_patch" => tool_patch(ctx, call),
-        "bash" => tool_bash(ctx, call).await,
+        "shell" | "bash" => execute_shell_typed(ctx, call).await.1,
         "webfetch" => tool_webfetch(ctx, call).await,
         "skill" => tool_skill(ctx, call),
         "subagent" => tool_subagent(ctx, call).await,
@@ -595,10 +606,11 @@ pub(crate) fn validate_call(call: &ToolCall) -> Result<(), String> {
         "glob" => parse_glob_args(call).is_ok(),
         "grep" => parse_grep_args(call).is_ok(),
         "apply_patch" => args.as_object().is_some_and(|a| a.len() == 1) && nonempty("patchText"),
-        "bash" => args
-            .get("argv")
-            .and_then(|v| v.as_array())
-            .is_some_and(|a| !a.is_empty() && a.iter().all(|v| v.is_string())),
+        "shell" | "bash" => {
+            return shell_call::invocation(call, &BTreeMap::new())
+                .map(|_| ())
+                .map_err(|error| error.to_string());
+        }
         "webfetch" => {
             nonempty("url")
                 && !["auth", "authorization", "headers", "apiKey", "api_key"]
@@ -926,48 +938,21 @@ fn patch_file_result(file: &FileResult) -> String {
     )
 }
 
-async fn tool_bash(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
-    execute_bash_typed(ctx, call).await.1
-}
-
 /// Preserve supervised process semantics independently of formatted output.
-pub(crate) async fn execute_bash_typed(
+pub(crate) async fn execute_shell_typed(
     ctx: &ToolContext<'_>,
     call: &ToolCall,
 ) -> (&'static str, String) {
     if let Err(error) = ctx.policy.check_call(call) {
         return ("failed", format!("error: {error}"));
     }
-    let argv: Vec<String> = call
-        .arguments
-        .get("argv")
-        .and_then(|v| v.as_array())
-        .map(|a| {
-            a.iter()
-                .filter_map(|v| v.as_str().map(String::from))
-                .collect()
-        })
-        .unwrap_or_default();
-    if argv.is_empty() {
-        return (
-            "failed",
-            "error: invalid arguments for bash: missing argv".to_string(),
-        );
-    }
-    let cwd = call
-        .arguments
-        .get("cwd")
-        .and_then(|v| v.as_str())
-        .unwrap_or(".")
-        .to_string();
-    let timeout_ms = call
-        .arguments
-        .get("timeout_ms")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(30_000)
-        .min(BASH_TIMEOUT_CAP_MS);
+    let shell_call::ShellInvocation { argv, cwd, timeout } =
+        match shell_call::invocation(call, ctx.parent_env) {
+            Ok(invocation) => invocation,
+            Err(error) => return ("failed", format!("error: {error}")),
+        };
     let limits = ShellLimits {
-        timeout: Duration::from_millis(timeout_ms),
+        timeout,
         kill_grace: Duration::from_millis(500),
         retain_cap: crate::shell::RETAIN_CAP_BYTES,
     };
@@ -1379,6 +1364,8 @@ impl TurnLog {
 
 #[cfg(test)]
 mod tests {
+    #[path = "shell.rs"]
+    mod foreground;
     use super::{
         AllowAllPolicy, Assembled, BatchError, DenyListPolicy, MODEL_TOOL_NAMES, SkillSnapshot,
         ToolCall, ToolContext, ToolRoots, TurnLog, assemble_calls, execute_batch, to_input_items,
@@ -1472,7 +1459,7 @@ mod tests {
                 "glob",
                 "grep",
                 "apply_patch",
-                "bash",
+                "shell",
                 "webfetch",
                 "skill",
                 "compress"

@@ -48,7 +48,12 @@ impl Db {
         let mut rows = stmt.query(params![project, action])?;
         while let Some(row) = rows.next()? {
             let pattern: String = row.get(0)?;
-            if crate::permissions::wildcard_preserving_identity(resource, &pattern) {
+            // Command source text is not the legacy argv display domain. Old
+            // wildcard grants never acquire command interpretation authority.
+            let prefix = crate::tools::shell_call::COMMAND_GRANT_PREFIX;
+            if (action != "bash" || resource.starts_with(prefix) == pattern.starts_with(prefix))
+                && crate::permissions::wildcard_preserving_identity(resource, &pattern)
+            {
                 return Ok(true);
             }
         }
