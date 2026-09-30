@@ -462,6 +462,9 @@ struct CompletedItem {
     item: serde_json::Value,
     /// A real done/added index, as opposed to the legacy arrival-order fallback.
     indexed: bool,
+    /// String ciphertext from a validated reasoning output_item.done, not
+    /// optional fields filled by terminal-only recovery.
+    emitted_reasoning: bool,
 }
 
 #[derive(Debug, Default)]
@@ -798,6 +801,10 @@ impl SseParser {
                         .position(|item| **item == done.item || same_identity(&done.item, item))
                         .expect("covered item") as u64;
                     self.retain_completed(index, &done.item, false, OutputStage::Completion)?;
+                    self.output_done
+                        .get_mut(&index)
+                        .expect("relocated item")
+                        .emitted_reasoning |= done.emitted_reasoning;
                 }
             }
             let mut previous_index = None;
@@ -985,8 +992,23 @@ impl SseParser {
         indexed: bool,
         stage: OutputStage,
     ) -> Result<bool, ProviderError> {
+        let emitted_reasoning = stage == OutputStage::Done
+            && item["type"] == "reasoning"
+            && item["encrypted_content"].is_string();
         for (prior_index, prior) in &mut self.output_done {
             if *prior_index == index {
+                // Pinned continuation.ts:193–200: successful completion may
+                // re-encrypt reasoning, but replay owns the actual emitted
+                // bytes. Every other jointly observed field remains strict.
+                let preserve_ciphertext = stage == OutputStage::Completion
+                    && self.finish == FinishReason::Stop
+                    && prior.emitted_reasoning
+                    && prior.item["type"] == "reasoning"
+                    && item["type"] == "reasoning"
+                    && item["id"].as_str().is_some_and(|id| !id.is_empty())
+                    && item["id"] == prior.item["id"]
+                    && prior.item["encrypted_content"].is_string()
+                    && item["encrypted_content"].is_string();
                 // Independent snapshots may omit optional fields. Preserve the
                 // union only when all jointly observed fields agree; identities
                 // cannot be replaced by an unrelated item at the same index.
@@ -995,16 +1017,20 @@ impl SseParser {
                         && (item["type"] != "function_call" || item["id"] == prior.item["id"])
                         && item.as_object().is_some_and(|fields| {
                             fields.iter().all(|(key, value)| {
-                                prior.item.get(key).is_none_or(|previous| previous == value)
+                                (preserve_ciphertext && key == "encrypted_content")
+                                    || prior.item.get(key).is_none_or(|previous| previous == value)
                             })
                         }))
                 {
-                    prior
-                        .item
-                        .as_object_mut()
-                        .expect("validated item")
-                        .extend(item.as_object().expect("validated item").clone());
+                    prior.item.as_object_mut().expect("validated item").extend(
+                        item.as_object()
+                            .expect("validated item")
+                            .iter()
+                            .filter(|(key, _)| !preserve_ciphertext || *key != "encrypted_content")
+                            .map(|(key, value)| (key.clone(), value.clone())),
+                    );
                     prior.indexed |= indexed;
+                    prior.emitted_reasoning |= emitted_reasoning;
                     return Ok(false);
                 }
                 return Err(structural(stage, OutputCode::IndexConflict));
@@ -1018,6 +1044,7 @@ impl SseParser {
             CompletedItem {
                 item: item.clone(),
                 indexed,
+                emitted_reasoning,
             },
         );
         Ok(true)

@@ -284,10 +284,140 @@ async fn prov09_done_and_terminal_conflicts_are_local_and_safe() {
     let mut changed = opaque.clone();
     changed["encrypted_content"] = serde_json::json!("CHANGED-CANARY");
     local(
-        generation(vec![done(0, &opaque), terminal(Some(vec![changed]))])
+        generation(vec![done(0, &opaque), done(0, &changed), terminal(None)])
             .await
             .unwrap_err(),
     );
+    changed = opaque.clone();
+    changed["summary"] = serde_json::json!([{"type":"summary_text","text":"SUMMARY-CANARY"}]);
+    let mut summarized = opaque.clone();
+    summarized["summary"] = serde_json::json!([]);
+    local(
+        generation(vec![done(0, &summarized), terminal(Some(vec![changed]))])
+            .await
+            .unwrap_err(),
+    );
+}
+
+#[tokio::test]
+async fn prov09_completed_reencrypts_reasoning_but_replays_actual_done() {
+    // Pinned continuation.ts:193–200 and openai-responses.test.ts:733–782.
+    let reasoning = serde_json::json!({"type":"reasoning","id":"reasoning","status":"completed","summary":[],"encrypted_content":"DONE-CANARY"});
+    let mut completion = reasoning.clone();
+    completion["encrypted_content"] = serde_json::json!("TERMINAL-CANARY");
+    let call = call();
+    let result = generation(vec![
+        done(0, &reasoning),
+        done(1, &call),
+        terminal(Some(vec![completion, call.clone()])),
+    ])
+    .await
+    .unwrap();
+    assert_eq!(result.output, vec![reasoning, call]);
+    assert_eq!(result.finish, crate::provider::FinishReason::Stop);
+    assert_eq!(result.usage, Some((100, 40)));
+}
+
+#[tokio::test]
+async fn prov09_reasoning_replay_exception_requires_emitted_ciphertext_and_stop() {
+    let reasoning = serde_json::json!({"type":"reasoning","id":"reasoning","status":"completed","summary":[],"encrypted_content":"DONE-CANARY"});
+    let mut changed = reasoning.clone();
+    changed["encrypted_content"] = serde_json::json!("TERMINAL-CANARY");
+    assert_eq!(
+        generation(vec![terminal(Some(vec![changed.clone()]))])
+            .await
+            .unwrap()
+            .output,
+        vec![changed.clone()],
+        "terminal-only reasoning retains its actual bytes"
+    );
+    let mut without_ciphertext = reasoning.clone();
+    without_ciphertext
+        .as_object_mut()
+        .unwrap()
+        .remove("encrypted_content");
+    assert_eq!(
+        generation(vec![
+            done(0, &reasoning),
+            terminal(Some(vec![without_ciphertext.clone()]))
+        ])
+        .await
+        .unwrap()
+        .output,
+        vec![reasoning.clone()],
+        "omitted optional ciphertext never erases actual done bytes"
+    );
+    // Inferred arrival slots are relocated when a full terminal inserts a
+    // message. Relocation must retain actual done provenance and bytes.
+    let mut observed = done(0, &reasoning);
+    observed.as_object_mut().unwrap().remove("output_index");
+    let message =
+        serde_json::json!({"type":"message","role":"assistant","status":"completed","content":[]});
+    let result = generation(vec![
+        observed,
+        terminal(Some(vec![message.clone(), changed.clone()])),
+    ])
+    .await
+    .unwrap();
+    assert_eq!(result.output, vec![message, reasoning.clone()]);
+    // Terminal-only recovery is not actual emitted ciphertext. Neither a
+    // repeated snapshot nor filling an absent optional field creates that fact.
+    local(
+        generation(vec![terminal(Some(vec![
+            reasoning.clone(),
+            changed.clone(),
+        ]))])
+        .await
+        .unwrap_err(),
+    );
+    local(
+        generation(vec![
+            done(0, &without_ciphertext),
+            terminal(Some(vec![reasoning.clone(), changed.clone()])),
+        ])
+        .await
+        .unwrap_err(),
+    );
+    let mut length = terminal(Some(vec![changed.clone()]));
+    length["type"] = serde_json::json!("response.incomplete");
+    length["response"]["incomplete_details"] = serde_json::json!({"reason":"max_output_tokens"});
+    local(
+        generation(vec![done(0, &reasoning), length])
+            .await
+            .unwrap_err(),
+    );
+    for kind in ["compaction", "message"] {
+        let mut prior = reasoning.clone();
+        prior["type"] = serde_json::json!(kind);
+        let mut terminal_item = prior.clone();
+        terminal_item["encrypted_content"] = changed["encrypted_content"].clone();
+        local(
+            generation(vec![done(0, &prior), terminal(Some(vec![terminal_item]))])
+                .await
+                .unwrap_err(),
+        );
+    }
+    // Other shared reasoning fields retain ordinary validation/conflict rules.
+    for (field, value) in [
+        ("status", serde_json::json!("in_progress")),
+        ("type", serde_json::json!("compaction")),
+        (
+            "summary",
+            serde_json::json!([{"type":"summary_text","text":"SUMMARY-CANARY"}]),
+        ),
+        ("encrypted_content", serde_json::Value::Null),
+    ] {
+        let mut terminal_item = changed.clone();
+        terminal_item[field] = value;
+        local(
+            generation(vec![
+                done(0, &reasoning),
+                terminal(Some(vec![terminal_item])),
+            ])
+            .await
+            .unwrap_err(),
+        );
+    }
 }
 
 #[tokio::test]

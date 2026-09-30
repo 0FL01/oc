@@ -11,4 +11,4 @@ Plan: ../../roadmap/M8.md
 - [T51](T51/INDEX.md) [done] — Startup fault isolation: plugins/provider readiness и typed actionable diagnostics; latest: 0005.md.
 - [T53](T53/INDEX.md) [todo] — OpenCode Go: единые credentials, native wires и connect/model TUI; latest: нет.
 - [T54](T54/INDEX.md) [done] — Provider-error retry and safe continuation parity (OC2 v2.0.12); latest: 0003.md.
-- [T55](T55/INDEX.md) [active] — Responses completed-output compatibility and current real tool E2E; latest: 0001.md.
+- [T55](T55/INDEX.md) [active] — Responses completed-output compatibility and current real tool E2E; latest: 0002.md.

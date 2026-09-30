@@ -58,7 +58,7 @@ def wait_for(predicate, timeout=10):
 
 
 def safe(text):
-    assert all(value not in text for value in ('synthetic-canary', 'BODY-CANARY', 'PRIVATE-CANARY', 'private.invalid')), 'unsafe_diagnostic'
+    assert all(value not in text for value in ('synthetic-canary', 'BODY-CANARY', 'PRIVATE-CANARY', 'private.invalid', 'DONE-REPLAY-CANARY', 'TERMINAL-REPLAY-CANARY')), 'unsafe_diagnostic'
 
 
 def reap(process):
@@ -118,8 +118,9 @@ class Relay:
 
 
 class Fixture:
-    def __init__(self, binary, mode):
+    def __init__(self, binary, mode, reasoning_replay=False):
         self.binary, self.mode = binary, mode
+        self.reasoning_replay = reasoning_replay
         self.temp = tempfile.TemporaryDirectory(prefix='t55-native-', dir=TMP)
         self.root = Path(self.temp.name)
         self.home, self.project = self.root/'home', self.root/'project'
@@ -211,13 +212,21 @@ class Fixture:
             self.assert_result(request, 'call_probe')
             call = {'type': 'function_call', 'id': 'fc_read', 'call_id': 'call_read', 'name': 'read', 'arguments': json.dumps({'path': 'probe.txt'}), 'status': 'completed'}
             opaque = {'type': 'reasoning', 'id': 'reasoning', 'status': 'completed', 'encrypted_content': 'OPAQUE-FIXTURE'}
+            if self.reasoning_replay:
+                opaque.update(summary=[], encrypted_content='DONE-REPLAY-CANARY')
             body = event({'type': 'response.output_item.done', 'output_index': 0, 'item': opaque})
-            if self.mode == 'pty':
+            if self.reasoning_replay or self.mode == 'pty':
                 body += event({'type': 'response.output_item.done', 'output_index': 1, 'item': call})
+            if self.reasoning_replay:
+                return 200, body+terminal([dict(opaque, encrypted_content='TERMINAL-REPLAY-CANARY'), call]), False
             return 200, body+terminal(None if self.mode == 'pty' else [call]), False
         assert step in (3, 4), 'unexpected_main_post'
         self.assert_result(request, 'call_probe')
         self.assert_result(request, 'call_read')
+        if self.reasoning_replay:
+            items = [item for item in request['input'] if item.get('type') == 'reasoning' and item.get('id') == 'reasoning']
+            assert items == [{'type': 'reasoning', 'id': 'reasoning', 'status': 'completed', 'summary': [], 'encrypted_content': 'DONE-REPLAY-CANARY'}], 'actual_done_reasoning_replay'
+            assert 'TERMINAL-REPLAY-CANARY' not in json.dumps(request), 'terminal_ciphertext_replayed'
         return 200, terminal([message('Final fixture response' if step == 3 else 'Reopened fixture response')]), False
 
     @staticmethod
@@ -286,6 +295,14 @@ class Fixture:
         assert facts['retry_events'] == (1 if self.mode == 'relay' else 0)
         assert (self.project/'probe.txt').read_bytes() == EXPECTED, 'independent_file_bytes'
         assert facts['dispatches'] == facts['main_posts']+facts['title_posts']
+        if self.reasoning_replay:
+            with self.db() as db:
+                logs = [json.loads(raw) for (raw,) in db.execute('SELECT result FROM turns WHERE result IS NOT NULL')]
+            opaque = [item for log in logs for item in log.get('input', []) if item.get('type') == 'reasoning' and item.get('id') == 'reasoning']
+            assert len(opaque) == 1 and opaque[0]['encrypted_content'] == 'DONE-REPLAY-CANARY', 'durable_done_reasoning'
+            assert 'TERMINAL-REPLAY-CANARY' not in json.dumps(logs), 'terminal_ciphertext_stored'
+            for log in logs:
+                safe(json.dumps(log.get('display_parts', [])))
 
     def pty(self):
         master, slave = pty.openpty()
@@ -464,11 +481,13 @@ class Fixture:
 
 def main():
     assert os.getuid() != 0
+    assert not sys.argv[2:] or sys.argv[2:] == ['--reasoning-replay']
+    reasoning_replay = '--reasoning-replay' in sys.argv[2:]
     binary = (ROOT/(sys.argv[1] if len(sys.argv) > 1 else 'target/debug/oc')).resolve()
     digest = hashlib.sha256(binary.read_bytes()).hexdigest()
     cases = []
     for mode in ('headless', 'pty', 'conflict', 'unclosed', 'eof', 'unknown', 'relay'):
-        fixture = Fixture(binary, mode)
+        fixture = Fixture(binary, mode, reasoning_replay=reasoning_replay)
         try:
             result = fixture.positive() if mode == 'headless' else getattr(fixture, 'relay_case' if mode == 'relay' else ('negative' if mode in ('conflict', 'unclosed', 'eof') else mode))()
             cases.append({'case': mode, **result})
@@ -476,7 +495,8 @@ def main():
             fixture.close()
     assert hashlib.sha256(binary.read_bytes()).hexdigest() == digest
     print(json.dumps({'binary': str(binary.relative_to(ROOT)), 'sha256': digest, 'source_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
-                      'source_dirty': True, 'network': 'synthetic loopback only', 'owned_processes_and_servers_joined': True,
+                       'source_dirty': True, 'network': 'synthetic loopback only', 'owned_processes_and_servers_joined': True,
+                       'reasoning_replay': reasoning_replay,
                       'cases': cases, 'scope': 'T55 R3 offline; R4 live remains parent-only'}, indent=2))
 
 

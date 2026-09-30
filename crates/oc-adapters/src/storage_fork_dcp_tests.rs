@@ -3,6 +3,74 @@ use crate::storage::compaction::dcp_lifecycle_fixture as fixture;
 use oc_core::queries::ConversationAction::{Redo, Undo};
 
 #[test]
+fn prov09_fork_and_reopen_preserve_canonical_done_reasoning_and_binding() {
+    let tmp = tempfile::tempdir().unwrap();
+    let db = Db::open(tmp.path()).unwrap();
+    db.create_bound_session("source", "/project").unwrap();
+    fixture::complete(&db, "source", "first", true);
+    // Canonical post-parser journal, including one fulfilled call. The parser
+    // and real runtime tests separately prove how these done bytes are selected.
+    let reasoning = serde_json::json!({"type":"reasoning","id":"reasoning","status":"completed","summary":[],"encrypted_content":"DONE-CANARY"});
+    let mut log: serde_json::Value =
+        serde_json::from_str(&db.turn_result("first").unwrap().1.unwrap()).unwrap();
+    log["input"]
+        .as_array_mut()
+        .unwrap()
+        .insert(1, reasoning.clone());
+    for part in log["display_parts"].as_array_mut().unwrap() {
+        if let Some(index) = part["message"].as_u64() {
+            part["message"] = (index + 1).into();
+        }
+    }
+    db.conn
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE turns SET result=?1 WHERE id='first'",
+            [log.to_string()],
+        )
+        .unwrap();
+    let boundary = fixture::complete(&db, "source", "boundary", false);
+    let fork = db
+        .fork_session("source", &boundary, "/project", "fixture", "{}")
+        .unwrap()
+        .session
+        .0;
+    drop(db);
+    let db = Db::open(tmp.path()).unwrap();
+    let logs = db.wire_logs_for_window(&fork, 0, 8).unwrap();
+    assert_eq!(logs.len(), 1);
+    let copied: serde_json::Value = serde_json::from_str(&logs[0].0).unwrap();
+    assert_eq!(copied["provider"], "fixture");
+    assert_eq!(copied["model"], "m");
+    let input = copied["input"].as_array().unwrap();
+    assert_eq!(
+        input
+            .iter()
+            .filter(|item| item["id"] == "reasoning")
+            .collect::<Vec<_>>(),
+        vec![&reasoning]
+    );
+    assert_eq!(
+        input
+            .iter()
+            .filter(|item| item["type"] == "function_call" && item["call_id"] == "reused")
+            .count(),
+        1
+    );
+    assert_eq!(
+        input
+            .iter()
+            .filter(|item| item["type"] == "function_call_output" && item["call_id"] == "reused")
+            .count(),
+        1
+    );
+    assert_eq!(db.list_tool_ops(&fork).unwrap().len(), 1);
+    assert_eq!(db.list_tool_ops("source").unwrap().len(), 1);
+    assert!(!copied["display_parts"].to_string().contains("CANARY"));
+}
+
+#[test]
 fn tool13_notice_references_follow_visible_prefix_nested_fork_and_dcp_projection() {
     let tmp = tempfile::tempdir().unwrap();
     let db = Db::open(tmp.path()).unwrap();
