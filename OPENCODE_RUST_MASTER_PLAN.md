@@ -227,6 +227,120 @@ Ctrl+C clear-nonempty/exit-empty, Ctrl+D и leader quit, остаётся отд
 проходит, затронутые lifecycle/focus/exit regressions зелёные, actual-binary evidence
 приложено. RECON здесь source-derived; новых runtime/PTY PASS этим документом не заявлено.
 
+### Приоритетный follow-up: мигание курсора ввода (RECON 2026-09-30)
+
+Запрос владельца: в Rust-порте курсор в окне запроса — вертикальная «палка», похожая
+на I/L — не мигает, хотя в оригинале мигает; явно запланировать исправление этой
+дивергенции. **Статус: план внесён; реализация и runtime/visual qualification
+pending/NOT_RUN.** Это caret терминального редактора, не полоска профиля, scanner
+работающего агента, spinner сообщения или вкладки.
+
+#### Проверенная база и место в плане
+
+Основная ветка `master` содержит глобальный план; Rust workspace и детальные T44
+registries находятся в `agent/oc-rust-port`. RECON сверён с code commit
+[`9cbb5f2080e71b580682af142b27ade9154198f9`](https://github.com/0FL01/oc/commit/9cbb5f2080e71b580682af142b27ade9154198f9)
+и актуальным незакоммиченным T50 search diff: он не меняет terminal/prompt cursor
+owners и не входит в эту доставку. Не сливать development-ветку целиком и не менять
+её активную задачу ради plan delivery.
+
+В T44 уже требуется общий cursor parity, но явного контракта мигания нет. Закрепить
+**T44 → R5 / V05 / VIS44 — Prompt cursor shape and blinking parity**; VIS44 свободен
+в проверенном registry. При дальнейшей синхронизации повторно проверить ID, не
+перезаписывать чужой case. Один existing T44 owner, без новой backend task/store
+или animation framework. T44 остаётся PAUSED до явного resume и безопасного
+single-writer scheduling handoff; approval не меняет execution statuses/evidence/PASS.
+
+Для данного follow-up эталон — **OC2 v2.0.12**, commit
+`2670273ff17da96f85c5826ced57aa1b368754fa`, уже используемый T44, не исторический
+v2.0.10 кандидат глобального recon выше.
+
+#### RECON: реализация и слепая зона проверки
+
+- [Donor Cursor config](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/config/index.tsx#L57-L64)
+  допускает `block`, `underline`, `line`, `default` и boolean `blinking`.
+  В `:297–302` объект cursor нормализуется с defaults `block`/`true`; без объекта
+  передаётся undefined. При `style:default` blinking не переопределяет terminal setting.
+- [Обычный prompt](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/index.tsx#L1736-L1745)
+  передаёт `config.cursor` в textarea. Donor `bun.lock:2249` закрепляет OpenTUI 0.5.10;
+  [EditBufferRenderable](https://github.com/anomalyco/opentui/blob/v0.5.10/packages/core/src/renderables/EditBufferRenderable.ts)
+  задаёт дефолт `cursorStyle: {style:"block", blinking:true}` и использует его при
+  отсутствии override. Поэтому вертикальная форма пользовательского курсора не
+  является универсальным дефолтом upstream. Cursor policy отдельна от `animations`.
+- Native `crates/oc-tui/src/shell.rs:1654–1658` задаёт только caret position;
+  `terminal.rs:50–62` и `oc/src/tui_cmd.rs:1074–1079` управляют цветом. Форма/мигание
+  и соответствующая config/DTO-проекция отсутствуют. Locked Ratatui backend
+  `show_cursor`/`hide_cursor` управляет видимостью, не выбирает blinking/steady style.
+  Это подтверждённый implementation gap; точная причинная цепочка в пользовательском
+  terminal ещё не измерена настоящим PTY-запуском, не приписывать её decoder или FPS.
+- `scripts/tui_capture/bridge.py:460–464` явно задаёт оригиналу `blinking:false`;
+  `frontend.js:3–6` стартует с `cursorBlink:false`, а `:87–89` сохраняет только
+  `x/y/visible/shape`. Видимость здесь означает show/hide режима, не текущую фазу
+  терминального мигания. Existing steady-cursor captures и schema/comparator не
+  доказывают blink parity; cell `slow_blink` — атрибут текста, не caret.
+
+#### Контракт исправления
+
+1. В Home и session prompt воспроизвести upstream cursor shape/blinking: без настройки
+   — editor default block/blinking; явный `line` — вертикальный caret с выбранным
+   миганием; `blinking:false` — steady; `style:default` — terminal default без отдельного
+   принудительного blink override. Сохранить также admitted underline/block варианты.
+   Не захардкодить blinking bar для всех пользователей и не читать/переписывать их
+   config ради green. Cursor настройка проходит через existing native config owner
+   с typed validation, precedence/provenance и актуальной generation при reload/switch.
+2. Использовать терминальный cursor control у existing `terminal.rs`/TUI lifecycle
+   owner, а не рисовать символ I/L в styled-cell buffer. Уже используемый Crossterm
+   0.29.0 имеет [SetCursorStyle](https://docs.rs/crossterm/0.29.0/crossterm/cursor/enum.SetCursorStyle.html)
+   для blinking/steady block/underline/bar и default (DECSCUSR). Не добавлять UI blink
+   timer, постоянные redraw/wakeup или SGR text-blink. Terminal/frontend воспроизводит
+   мигание; не обещать одинаковый физический период на разных эмуляторах.
+3. `animations:false` не отключает отдельно выбранное caret blinking. Сохраняются
+   позиция по Unicode/display cells, цвет, draft/paste chips, selection и editor focus.
+   Prompt → dialog/search → prompt меняет видимость/позицию по реальному focus owner,
+   без курсора в неактивном поле или второго caret. Busy/cancel и modal routing не
+   меняются. Normal exit, error и panic корректно восстанавливают terminal cursor
+   state вместе с existing raw/alternate-screen cleanup; не оставляют навязанный style.
+
+#### Порядок правок и done
+
+1. После explicit resume повторно сверить implementation HEAD/diff, source defaults,
+   focus и config route. Добавить nearest failing tests для cursor policy/ANSI output
+   в `oc-tui/src/terminal/tests.rs` и для admitted config в existing owner suite;
+   существенные новые tests отдельно от production, без нового crate/renderer.
+2. Доставить минимальный typed config/projection + terminal-control slice; apply style
+   только при реальном изменении effective policy/lifecycle, не на каждом frame.
+   Проверить Home/session, default/line/steady/default-terminal, animations on/off,
+   focus restore и terminal cleanup targeted tests у затронутых owners.
+3. В existing `oc` target `pty_t39` проверить rebuilt actual binary с isolated config
+   и fake provider: управляющие cursor sequences, idle без дополнительного ввода,
+   typing/Unicode/resize, dialog round trip и explicit exit/restoration. По возможности
+   использовать тот же SSH/tmux-like профиль; unsupported terminal control фиксировать
+   явно, не объявлять working parity. Дополнительная provider generation для мигания
+   не требуется. Переиспользовать VIS31 counters: нет новых периодических UI paints,
+   writes/wakeups при idle; terminal blink не считается application redraw.
+4. Расширить existing capture profile/producer/validator согласованно: записывать
+   effective shape и blink policy отдельно от show/hide и наблюдаемой painted phase.
+   Старые four-field dumps сохраняют своё значение, не получают fabricated blink
+   metadata задним числом. Running pinned-original/native full styled-cell/PNG/cursor
+   sequences на identical fixture/profile должны доказать on → off → on при неподвижном
+   caret без дополнительного input; отдельно steady и focus restoration. Сопоставлять
+   одинаковые наблюдаемые фазы, не произвольные wall clocks. Нельзя выключить blinking
+   обеим сторонам, замаскировать cursor или заменить временное доказательство одним PNG.
+5. Выполнить nearest config/terminal/TUI/PTY tests и applicable affected-crate checks,
+   затем обязательные fmt/clippy/workspace tests/locked build на итоговом code commit.
+   Никаких paid calls, browser/MCP campaign или обновления baseline ради этой правки.
+6. При синхронизации development-плана добавить VIS44 mandatory/NOT_RUN/evidence empty
+   в `tui-recovery/ACCEPTANCE.json`, pinned sources в `SOURCES.json`, контракт в
+   `T44_CONTRACT_AMENDMENT.md`, шаг V05 в `IMPLEMENTATION_GUIDE.md`, методику в
+   `VERIFICATION.md`/`docs/TEST_PLAN.md`, ссылки в R5 spec, `roadmap/M9.md` и T44 `work`
+   в `planning/tasks.json`. Это development paths, не отсутствующие local links master;
+   сохранить PAUSED, existing case statuses и исторические evidence.
+
+**Done для исправления:** actual native caret мигает и сохраняет форму/config/focus
+как pinned original в допущенном terminal profile; steady/default modes, cleanup и
+затронутые regressions зелёные, paired temporal evidence приложено, нового idle work
+нет. Plan commit не является runtime PASS, не завершает VIS44/T44 или весь TUI parity.
+
 ## Этап 6 — долгие сессии, миграция и поставка
 
 Прогнать одинаковую воспроизводимую нагрузку на upstream и Rust: большие outputs, tool bursts, compaction, отмены, много завершённых сессий, смена Location, reconnect, медленный клиент, ошибки и завершение MCP. Добавить отдельно TUI scrolling/resize и headless soak.
