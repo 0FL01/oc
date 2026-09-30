@@ -45,6 +45,9 @@ pub const TEXT_DELTA_BYTE_CAP: usize = 16 * 1024;
 /// Typed provider errors (no credentials, no prompt contents).
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum ProviderError {
+    /// The owning operation could not persist its dispatch accounting.
+    #[error("generation dispatch accounting unavailable")]
+    DispatchRefused,
     /// One physical provider request, with bounded classified wire facts.
     #[error("{0}")]
     Request(Box<PhysicalFailure>),
@@ -894,6 +897,7 @@ pub async fn stream_generation_observed(
         cancel,
         chunk_timeout.unwrap_or(Duration::from_millis(config.chunk_timeout_ms)),
         observe,
+        &mut || async { Ok(()) },
     )
     .await
 }
@@ -909,6 +913,33 @@ pub async fn stream_input_observed(
     max_output: u64,
     cancel: &AtomicBool,
     observe: &mut (dyn FnMut(&StreamItem) + Send),
+) -> Result<Generation, ProviderError> {
+    stream_input_counted(
+        config,
+        model,
+        variant,
+        input,
+        tools,
+        max_output,
+        cancel,
+        observe,
+        &mut || async { Ok(()) },
+    )
+    .await
+}
+
+/// Owning-operation dispatch boundary, after local admission and before send.
+#[allow(clippy::too_many_arguments)]
+pub(crate) async fn stream_input_counted<F: Future<Output = Result<(), ProviderError>> + Send>(
+    config: &ResponsesConfig,
+    model: &str,
+    variant: Option<&SelectedVariant>,
+    input: &[InputItem],
+    tools: &[ToolDef],
+    max_output: u64,
+    cancel: &AtomicBool,
+    observe: &mut (dyn FnMut(&StreamItem) + Send),
+    dispatch: &mut (impl FnMut() -> F + Send),
 ) -> Result<Generation, ProviderError> {
     if max_output == 0 {
         return Err(ProviderError::InvalidConfig);
@@ -941,6 +972,7 @@ pub async fn stream_input_observed(
         cancel,
         Duration::from_millis(config.chunk_timeout_ms),
         observe,
+        dispatch,
     )
     .await
 }
@@ -973,12 +1005,13 @@ pub(crate) async fn wait_cancel(cancel: &AtomicBool) {
     }
 }
 
-async fn stream_body(
+async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
     config: &ResponsesConfig,
     body: Vec<u8>,
     cancel: &AtomicBool,
     chunk_timeout: Duration,
     observe: &mut (dyn FnMut(&StreamItem) + Send),
+    dispatch: &mut (impl FnMut() -> F + Send),
 ) -> Result<Generation, ProviderError> {
     if config.timeout == Some(true) {
         return Err(ProviderError::InvalidConfig);
@@ -1011,6 +1044,7 @@ async fn stream_body(
         cancel,
         chunk_timeout,
         observe,
+        dispatch,
     )
     .await
     .map_err(|(error, _)| error)
@@ -1089,7 +1123,7 @@ async fn guard_private_url(url: &str, allow_private: bool) -> Result<(), Provide
 /// One POST→SSE attempt. Returns the terminal error plus whether any event
 /// was already committed (which forbids retry).
 #[allow(clippy::too_many_arguments)]
-async fn stream_attempt(
+async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
     client: &reqwest::Client,
     url: &str,
     headers: &reqwest::header::HeaderMap,
@@ -1098,19 +1132,27 @@ async fn stream_attempt(
     cancel: &AtomicBool,
     chunk_timeout: Duration,
     observe: &mut (dyn FnMut(&StreamItem) + Send),
+    dispatch: &mut (impl FnMut() -> F + Send),
 ) -> Result<Generation, (ProviderError, bool)> {
     let request = client
         .post(url)
         .headers(headers.clone())
         .body(body.to_vec());
+    let send = async {
+        if cancel.load(Ordering::Relaxed) {
+            return Err((ProviderError::Cancelled, false));
+        }
+        dispatch().await.map_err(|e| (e, false))?;
+        Ok(request.send().await)
+    };
     let resp = tokio::select! {
         biased;
         () = wait_cancel(cancel) => return Err((ProviderError::Cancelled, false)),
-        result = tokio::time::timeout(chunk_timeout, request.send()) => result.map_err(|_| {
+        result = tokio::time::timeout(chunk_timeout, send) => result.map_err(|_| {
             let mut failure = PhysicalFailure::transport(Operation::Request, Delivery::Unknown, None);
             failure.transport = Some(TransportKind::IdleTimeout);
             (ProviderError::Request(Box::new(failure)), false)
-        })?,
+        })??,
     }
         .map_err(|e| {
             // Only true timeouts are deadlines; refusals/DNS failures are
@@ -1232,16 +1274,31 @@ async fn stream_attempt(
                 if bytes.is_empty() {
                     continue;
                 }
-                let mut forward = |item: &StreamItem| {
-                    committed |= !matches!(
-                        item,
-                        StreamItem::Usage { .. } | StreamItem::MessageBoundary { .. }
-                    );
-                    observe(item);
-                };
-                let result = parser.push_observed(&bytes, &mut forward);
-                let mut fresh = result.map_err(|e| read_failure(e, committed))?;
-                items.append(&mut fresh);
+                // A Content-Length response can coalesce thousands of frames
+                // into one ready chunk. Give existing bounded event consumers
+                // and cancellation a turn between dispatched SSE frames.
+                for segment in bytes.split_inclusive(|byte| *byte == b'\n') {
+                    if cancel.load(Ordering::Relaxed) {
+                        return Err((ProviderError::Cancelled, committed));
+                    }
+                    let events = parser.events;
+                    let mut forward = |item: &StreamItem| {
+                        committed |= !matches!(
+                            item,
+                            StreamItem::Usage { .. } | StreamItem::MessageBoundary { .. }
+                        );
+                        observe(item);
+                    };
+                    let result = parser.push_observed(segment, &mut forward);
+                    let mut fresh = result.map_err(|e| read_failure(e, committed))?;
+                    items.append(&mut fresh);
+                    if parser.completed {
+                        break;
+                    }
+                    if parser.events != events {
+                        tokio::task::yield_now().await;
+                    }
+                }
                 if parser.completed {
                     break;
                 }

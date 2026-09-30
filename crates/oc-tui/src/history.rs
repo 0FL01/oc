@@ -445,6 +445,21 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
                 part_row.tool = Some(card_from_row(op));
             }
         }
+        if let Some(state) = turn.part_states.get(index)
+            && matches!(
+                part,
+                TranscriptPart::Text(_) | TranscriptPart::Reasoning { .. }
+            )
+            && matches!(
+                state.status.as_str(),
+                "failed" | "unknown" | "interrupted" | "incomplete" | "cancelled"
+            )
+        {
+            part_row.meta = Some(AssistantMeta {
+                status: Some(state.status.clone()),
+                ..AssistantMeta::default()
+            });
+        }
         rows.push(part_row);
         if let Some(state) = turn.part_states.get(index).filter(|s| s.truncated) {
             let mut notice = empty_row();
@@ -467,6 +482,24 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         }
     }
     rows.append(&mut reasoning_notices);
+    for span in &turn.spans {
+        if let Some(retry) = &span.retry {
+            let mut notice = empty_row();
+            notice.text = format!(
+                "[Historical retry · {} · attempt {} · at {} · {}]",
+                span.status,
+                retry.attempt,
+                retry.at,
+                retry
+                    .safe_error
+                    .chars()
+                    .filter(|c| !c.is_control())
+                    .take(512)
+                    .collect::<String>()
+            );
+            rows.push(notice);
+        }
+    }
     let mut footer = empty_row();
     if turn.omitted_parts > 0 {
         let mut notice = empty_row();

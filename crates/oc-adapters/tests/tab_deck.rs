@@ -82,7 +82,14 @@ async fn accept_fresh(app: &oc_core::core_app::CoreApp, root: &str) {
             .unwrap()
             .unwrap();
         match event {
-            CoreEvent::TurnFinished { session, .. } | CoreEvent::TurnFailed { session, .. }
+            CoreEvent::RetryScheduled { session, .. } if session == id(root) => {
+                // This closed-port fixture tests durable adoption, not exhaustion.
+                // Cancel the genuine finite backoff instead of waiting 10 gaps.
+                app.cancel(session).await.unwrap();
+            }
+            CoreEvent::TurnFinished { session, .. }
+            | CoreEvent::TurnFailed { session, .. }
+            | CoreEvent::TurnInterrupted { session, .. }
                 if session == id(root) =>
             {
                 break;

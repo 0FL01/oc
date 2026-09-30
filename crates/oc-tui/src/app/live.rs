@@ -123,6 +123,9 @@ impl ScriptDriver {
                 Ok(Ok(CoreEvent::TurnPresentation {
                     turn, projection, ..
                 })) => state.apply_presentation(&turn, &projection),
+                Ok(Ok(CoreEvent::RetryScheduled {
+                    turn, span, retry, ..
+                })) => state.apply_retry(&turn, &span, &retry),
                 Ok(Ok(CoreEvent::TurnFailed { turn, error, .. })) => {
                     state.apply_failed(&turn, &error);
                     return PumpOutcome::Closed;
@@ -226,6 +229,61 @@ pub enum PumpOutcome {
 }
 
 impl TuiState {
+    /// Active-turn only: parked views receive this through the same scoped router.
+    pub fn apply_retry(
+        &mut self,
+        turn: &WorkerTurnId,
+        span: &str,
+        retry: &oc_core::queries::RetryFact,
+    ) {
+        if self.active_turn.as_ref() != Some(turn) {
+            return;
+        }
+        if self
+            .live_span
+            .as_ref()
+            .is_some_and(|(owner, current)| owner == turn && current != span)
+        {
+            return;
+        }
+        if self
+            .live_retry_seen
+            .as_ref()
+            .is_some_and(|(owner, id, attempt)| {
+                owner == turn
+                    && id == span
+                    && (retry.attempt < *attempt
+                        || (retry.attempt == *attempt && self.live_retry.is_none()))
+            })
+        {
+            return;
+        }
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64;
+        self.retry_due =
+            (retry.at > now).then(|| Instant::now() + Duration::from_millis(retry.at - now));
+        self.live_retry = Some((span.into(), retry.clone()));
+        self.live_retry_seen = Some((turn.clone(), span.into(), retry.attempt));
+        self.invalidate_transcript();
+    }
+
+    pub fn retry_notice(&self) -> Option<String> {
+        self.active_turn.as_ref()?;
+        self.live_retry.as_ref().map(|(_, retry)| {
+            format!(
+                "{} · attempt {} · {}",
+                if self.retry_due.is_some() {
+                    "Retry scheduled"
+                } else {
+                    "Retry due"
+                },
+                retry.attempt,
+                retry.safe_error
+            )
+        })
+    }
     /// Replace from the owner's conversation-filtered replay projection.
     pub fn apply_compaction_history(
         &mut self,
@@ -676,6 +734,11 @@ impl TuiState {
         self.live_model_label = None;
         self.live_agent_color_index = None;
         self.compress_turn = Some(turn.clone());
+        self.live_retry = None;
+        self.live_retry_seen = None;
+        self.retry_due = None;
+        self.live_span = None;
+        self.live_projection_revision = None;
         self.active_turn = Some(turn);
         self.reasoning_epoch = self.reasoning_epoch.wrapping_add(1);
         self.status = TuiStatus::Streaming;
@@ -836,6 +899,11 @@ impl TuiState {
                 self.reasoning_started = None;
                 self.reasoning_finished = None;
                 self.turn_usage = None;
+                self.live_retry = None;
+                self.live_retry_seen = None;
+                self.retry_due = None;
+                self.live_span = None;
+                self.live_projection_revision = None;
                 self.active_turn = Some(turn);
                 self.reasoning_epoch = self.reasoning_epoch.wrapping_add(1);
                 if !exiting {
@@ -933,7 +1001,26 @@ impl TuiState {
         if self.active_turn.as_ref() != Some(turn) || projection.id != turn.0 {
             return;
         }
+        if self
+            .live_projection_revision
+            .as_ref()
+            .is_some_and(|(owner, revision)| owner == turn && *revision > projection.revision)
+        {
+            return;
+        }
+        self.live_projection_revision = Some((turn.clone(), projection.revision));
         self.live_part_states = projection.part_states.clone();
+        if let Some(span) = projection.spans.last() {
+            self.live_span = Some((turn.clone(), span.id.clone()));
+            if projection.status == "started"
+                && let Some(retry) = &span.retry
+            {
+                self.apply_retry(turn, &span.id, retry);
+            } else {
+                self.live_retry = None;
+                self.retry_due = None;
+            }
+        }
         self.invalidate_transcript();
         self.live_preview_truncated |= projection.truncated;
         self.live_agent_color_index = projection.agent_color_index;

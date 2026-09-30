@@ -1200,6 +1200,8 @@ fn subagent_request(call: &ToolCall) -> Result<SubagentRequest, ToolError> {
 /// with a diagnostic instead of leaking it into a foreign context.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TurnLog {
+    /// Assistant-span facts, absent in legacy journals.
+    pub spans: Vec<oc_core::queries::AssistantSpan>,
     /// Safe pinned labels and measured footer metadata.
     pub display: serde_json::Value,
     /// Ordered presentation references and public reasoning absent from wire history.
@@ -1228,6 +1230,7 @@ impl TurnLog {
     /// Start an empty log for a turn.
     pub fn new(turn_id: &str, model: &str, provider: &str) -> Self {
         Self {
+            spans: Vec::new(),
             display: serde_json::json!({}),
             display_parts: Vec::new(),
             turn_id: turn_id.to_string(),
@@ -1262,6 +1265,7 @@ impl TurnLog {
         let (input, native_mcp) = self.encode_mcp_input();
         let mut value = serde_json::json!({
             "display": self.display,
+            "spans": self.spans,
             "display_parts": self.display_parts,
             "turn_id": self.turn_id,
             "model": self.model,
@@ -1281,6 +1285,12 @@ impl TurnLog {
     /// Deserialize from the turn row.
     pub fn from_json(value: &serde_json::Value) -> Result<Self, String> {
         Ok(Self {
+            spans: value
+                .get("spans")
+                .map(|v| serde_json::from_value(v.clone()))
+                .transpose()
+                .map_err(|_| "invalid spans")?
+                .unwrap_or_default(),
             display: value
                 .get("display")
                 .cloned()

@@ -637,6 +637,11 @@ pub struct TuiState {
     toast_expiry: Option<ToastExpiry>,
     toast_down: bool,
     active_turn: Option<WorkerTurnId>,
+    live_retry: Option<(String, oc_core::queries::RetryFact)>,
+    live_retry_seen: Option<(WorkerTurnId, String, u32)>,
+    live_span: Option<(WorkerTurnId, String)>,
+    live_projection_revision: Option<(WorkerTurnId, u64)>,
+    retry_due: Option<Instant>,
     /// First Esc arms the running turn for five seconds; only a second press
     /// interrupts it (pinned prompt/index.tsx:499–528).
     interrupt_armed_until: Option<Instant>,
@@ -824,6 +829,11 @@ impl TuiState {
             toast_expiry: None,
             toast_down: false,
             active_turn: None,
+            live_retry: None,
+            live_retry_seen: None,
+            live_span: None,
+            live_projection_revision: None,
+            retry_due: None,
             interrupt_armed_until: None,
             pending: None,
             compress_turn: None,
@@ -1040,6 +1050,7 @@ impl TuiState {
             self.next_scroll_animation_deadline(),
             self.leader_deadline(),
             self.next_tab_deadline(),
+            self.retry_due,
         ]
         .into_iter()
         .flatten()
@@ -1048,6 +1059,10 @@ impl TuiState {
 
     /// True only when a deadline actually changes visible state.
     pub fn tick_ui(&mut self, now: Instant) -> bool {
+        let retry_due = self.retry_due.is_some_and(|at| now >= at);
+        if retry_due {
+            self.retry_due = None;
+        }
         let expired = self.interrupt_armed_until.is_some_and(|until| now >= until)
             || self.toast_expiry.as_ref().is_some_and(|expiry| {
                 expiry
@@ -1063,7 +1078,7 @@ impl TuiState {
         if leader {
             self.leader = None;
         }
-        expired || scanner || wheel || compaction || leader || tabs
+        expired || scanner || wheel || compaction || leader || tabs || retry_due
     }
 
     fn leader_deadline(&self) -> Option<Instant> {

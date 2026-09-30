@@ -3105,6 +3105,7 @@ async fn handle_worker_event(
     }
     let owner = match &event {
         CoreEvent::SessionTitleUpdated { session, .. }
+        | CoreEvent::RetryScheduled { session, .. }
         | CoreEvent::TurnStarted { session, .. }
         | CoreEvent::TurnPresentation { session, .. }
         | CoreEvent::TextDelta { session, .. }
@@ -3145,6 +3146,9 @@ async fn handle_worker_event(
         CoreEvent::TurnPresentation {
             turn, projection, ..
         } => state.apply_presentation(&turn, &projection),
+        CoreEvent::RetryScheduled {
+            turn, span, retry, ..
+        } => state.apply_retry(&turn, &span, &retry),
         CoreEvent::TextDelta { turn, delta, .. } => state.apply_delta(&turn, &delta),
         CoreEvent::ReasoningDelta { turn, delta, .. } => {
             state.apply_reasoning_delta(&turn, &delta);

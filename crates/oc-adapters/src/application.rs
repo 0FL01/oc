@@ -72,6 +72,10 @@ struct AutomaticTitleResult {
     session: SessionId,
     expected_event: i64,
     title: Option<String>,
+    dispatch: Option<(
+        String,
+        oneshot::Sender<Result<(), crate::provider::ProviderError>>,
+    )>,
 }
 
 // The owner aborts unfinished provider work on shutdown or Location replacement.
@@ -110,6 +114,13 @@ fn commit_automatic_title(
     work: &Mutex<AutomaticTitles>,
     result: AutomaticTitleResult,
 ) {
+    if let Some((operation, ack)) = result.dispatch {
+        let _ = ack.send(
+            db.generation_dispatch(&result.session.0, &operation, "title")
+                .map_err(|_| crate::provider::ProviderError::DispatchRefused),
+        );
+        return;
+    }
     {
         let mut work = work.lock().expect("title work mutex");
         if work.pending.get(&result.session.0) != Some(&result.expected_event) {
@@ -3349,11 +3360,18 @@ async fn worker(
                         continue;
                     }
                 };
+                let title_operation = crate::runtime::next_turn_id(
+                    "title",
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis() as u64,
+                );
                 let cancel = AtomicBool::new(false);
                 let operation = async {
                     let generation = tokio::time::timeout(
                         std::time::Duration::from_secs(10),
-                        crate::provider::stream_input_observed(
+                        crate::provider::stream_input_counted(
                             &composition.provider,
                             &selection.id,
                             selection.variant.as_ref(),
@@ -3362,6 +3380,10 @@ async fn worker(
                             output,
                             &cancel,
                             &mut |_| {},
+                            &mut || async {
+                                db.generation_dispatch(&session.0, &title_operation, "title")
+                                    .map_err(|_| crate::provider::ProviderError::DispatchRefused)
+                            },
                         ),
                     )
                     .await
@@ -3639,7 +3661,7 @@ async fn worker(
                             }
                             let _ = events.send(CoreEvent::TurnStarted {
                                 session: session.clone(),
-                                turn: id,
+                                turn: id.clone(),
                                 model_switch: model_switch.cloned().map(|notice| {
                                     project_model_switch(notice, &composition.catalog)
                                 }),
@@ -3654,6 +3676,7 @@ async fn worker(
                                     work.pending.insert(session.0.clone(), expected_event);
                                     work.tasks.retain(|(_, task)| !task.is_finished());
                                     let session = session.clone();
+                                    let title_operation = id.0.clone();
                                     let sender = (*title_tx).clone();
                                     let provider = composition.provider.clone();
                                     let selection = title_selection.clone();
@@ -3704,7 +3727,7 @@ async fn worker(
                                                     let cancel = AtomicBool::new(false);
                                                     let generation = tokio::time::timeout(
                                                         std::time::Duration::from_secs(10),
-                                                        crate::provider::stream_input_observed(
+                                                        crate::provider::stream_input_counted(
                                                             &provider,
                                                             &selection.id,
                                                             selection.variant.as_ref(),
@@ -3713,6 +3736,17 @@ async fn worker(
                                                             budget.output,
                                                             &cancel,
                                                             &mut |_| {},
+                                                            &mut || {
+                                                                let sender = sender.clone();
+                                                                let session = session.clone();
+                                                                let operation = title_operation.clone();
+                                                                async move {
+                                                                    let (ack, receipt) = oneshot::channel();
+                                                                    sender.send(AutomaticTitleResult {session,expected_event,title:None,dispatch:Some((operation,ack))}).await
+                                                                        .map_err(|_|crate::provider::ProviderError::DispatchRefused)?;
+                                                                    receipt.await.map_err(|_|crate::provider::ProviderError::DispatchRefused)?
+                                                                }
+                                                            },
                                                         ),
                                                     )
                                                     .await
@@ -3758,6 +3792,7 @@ async fn worker(
                                                 .await;
                                                 let _ = sender
                                                     .send(AutomaticTitleResult {
+                                                        dispatch: None,
                                                         session,
                                                         expected_event,
                                                         title,

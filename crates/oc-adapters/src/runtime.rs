@@ -35,6 +35,7 @@ use crate::tools::{
 };
 #[path = "runtime_compaction.rs"]
 mod compaction;
+mod retry;
 
 /// Max tool rounds per turn (bounded agent loop).
 pub const MAX_ROUNDS: u32 = 8;
@@ -756,6 +757,7 @@ struct RuntimeWorkspace {
 /// The primary lane mirrors the published workspace. A child lane replaces
 /// the agent prompt and narrows permissions with the child agent's rules.
 struct TurnLane {
+    owning_operation: Option<String>,
     agent_id: Option<String>,
     agent_color_index: Option<usize>,
     fixed_input: Vec<InputItem>,
@@ -894,7 +896,7 @@ fn millis() -> u64 {
 // Unique across every runtime/Location in this process, even if the wall clock
 // repeats or moves backwards. SQLite turns.id PRIMARY KEY rejects historical
 // collisions before acceptance; no old in-memory events survive process restart.
-fn next_turn_id(session: &str, timestamp: u64) -> String {
+pub(crate) fn next_turn_id(session: &str, timestamp: u64) -> String {
     static NEXT: AtomicU64 = AtomicU64::new(0);
     let serial = NEXT
         .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| n.checked_add(1))
@@ -1767,6 +1769,7 @@ impl<'a> Runtime<'a> {
             &workspace.agent_permission_rules,
         );
         TurnLane {
+            owning_operation: None,
             agent_id: workspace.agent_id.clone(),
             agent_color_index: workspace.agent_color_index,
             fixed_input: workspace.fixed_input.clone(),

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-29T23:51:11+00:00
+State updated: 2026-09-30T02:56:47+00:00
 Active: T54
 
 Сверить Git status/diff до выполнения команд.
@@ -14,13 +14,13 @@ Owner-approved 2026-09-29 provider-error retry plan: typed HTTP/Responses SSE er
 
 # T54
 ## Result
-R1 physical typed failures verified; no adapter retry.
+R2–R4 verified: finite retry, durable spans and lane counts.
 ## Checks
-Workspace1309; provider25; native18x2; parent25+1+18 PASS.
+Workspace1321; owner17+4+3; native9 per ELF; Python47 PASS.
 ## Risks
-R2–R4/VIS43 and whole GOAL open; no live requests.
+VIS43/GO03 separate; no full product claim.
 ## Next
-Finite runtime retry/continuation and durable span lifecycle.
+Task closeout, then independent ready backend task.
 
 
 Ready (до 5): T45, T50, T53

@@ -133,6 +133,13 @@ impl SubmissionReceipt {
 /// Typed application events (live hints + durable outcomes for T03).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CoreEvent {
+    /// Persisted before the cancellable runtime wait; addressed to one span.
+    RetryScheduled {
+        session: SessionId,
+        turn: WorkerTurnId,
+        span: String,
+        retry: crate::queries::RetryFact,
+    },
     /// The owner atomically completed a catalog attempt; read the current scoped catalog.
     ProviderChanged,
     /// Actual resource-owner publication, independent of an active turn.
@@ -1926,6 +1933,7 @@ mod tests {
                 .expect("event timeout")
                 .expect("event channel");
             match ev {
+                CoreEvent::RetryScheduled { .. } => {}
                 CoreEvent::TextDelta { delta, .. } => deltas.push(delta),
                 CoreEvent::TurnFinished { text, .. } => return (deltas, text),
                 CoreEvent::TurnInterrupted { partial, .. } => {
@@ -2228,6 +2236,7 @@ mod tests {
                 .expect("timeout")
                 .expect("event");
             match ev {
+                CoreEvent::RetryScheduled { .. } => {}
                 CoreEvent::TurnInterrupted { partial, .. } => {
                     assert!(partial.contains("c0 "), "partial={partial}");
                     assert!(

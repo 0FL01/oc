@@ -458,21 +458,35 @@ impl Runtime<'_> {
             .read()
             .expect("native compaction")
             .clone();
+        let mut retry_policy = retry::RetryPolicy::default();
         // Known overflow must use the durable transcript, never repeat native overflow.
         if snapshot.reason != CompactionReason::Overflow
             && let Some(strategy) = strategy
         {
             let route = crate::compaction::route_identity(&catalog.provider, model, provider)
                 .map_err(|_| RuntimeError::Provider)?;
-            if let Some(native) =
-                strategy
-                    .compact(&route, &history, cancel)
+            let native = loop {
+                match strategy
+                    .compact(&route, &history, cancel, &mut || {
+                        self.db
+                            .generation_dispatch(session, &snapshot.id, "native_compaction")
+                            .map_err(|_| crate::provider::ProviderError::DispatchRefused)
+                    })
                     .await
-                    .map_err(|error| {
+                {
+                    Ok(native) => break native,
+                    Err(error) => {
+                        if let Some(decision) = retry_policy.decide(&error, millis())
+                            && retry::wait(&decision, cancel).await
+                        {
+                            continue;
+                        }
                         snapshot.error = Some(error.to_string());
-                        RuntimeError::Provider
-                    })?
-            {
+                        return Err(RuntimeError::Provider);
+                    }
+                }
+            };
+            if let Some(native) = native {
                 if native.route != route
                     || native.replacement["type"] != "compaction"
                     || native.replacement["encrypted_content"]
@@ -523,63 +537,132 @@ impl Runtime<'_> {
         )
         .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
         let mut publication_failed = false;
-        let generation = crate::provider::stream_input_observed(
-            provider,
-            model,
-            selection.variant.as_ref(),
-            &input,
-            &[],
-            budget.output,
-            cancel,
-            &mut |item| {
-                if let crate::provider::StreamItem::TextDelta(delta) = item
-                    && snapshot.summary.len().saturating_add(delta.len()) <= 256 * 1024
+        let operation = snapshot.id.clone();
+        let mut corrected = false;
+        'summary: loop {
+            let generation = loop {
+                snapshot.summary.clear();
+                match crate::provider::stream_input_counted(
+                    provider,
+                    model,
+                    selection.variant.as_ref(),
+                    &input,
+                    &[],
+                    budget.output,
+                    cancel,
+                    &mut |item| {
+                        if let crate::provider::StreamItem::TextDelta(delta) = item
+                            && snapshot.summary.len().saturating_add(delta.len()) <= 256 * 1024
+                        {
+                            snapshot.summary.push_str(delta);
+                            if self.publish_compaction(snapshot).is_err() {
+                                publication_failed = true;
+                            }
+                        }
+                    },
+                    &mut || async {
+                        self.db
+                            .generation_dispatch(session, &operation, "compaction")
+                            .map_err(|_| crate::provider::ProviderError::DispatchRefused)
+                    },
+                )
+                .await
                 {
-                    snapshot.summary.push_str(delta);
-                    if self.publish_compaction(snapshot).is_err() {
-                        publication_failed = true;
+                    Ok(generation) => break generation,
+                    Err(error) => {
+                        if !publication_failed
+                            && let Some(decision) = retry_policy.decide(&error, millis())
+                            && retry::wait(&decision, cancel).await
+                        {
+                            continue;
+                        }
+                        snapshot.error = Some(error.to_string());
+                        return Err(if publication_failed {
+                            RuntimeError::Storage
+                        } else {
+                            RuntimeError::Provider
+                        });
                     }
                 }
-            },
-        )
-        .await
-        .map_err(|error| {
-            snapshot.error = Some(error.to_string());
-            RuntimeError::Provider
-        })?;
-        if publication_failed {
-            return Err(RuntimeError::Storage);
+            };
+            if publication_failed {
+                return Err(RuntimeError::Storage);
+            }
+            if let Some(usage) = generation.compaction_usage {
+                if let Some(total) = &mut snapshot.usage {
+                    total.input_tokens += usage.input_tokens;
+                    total.output_tokens += usage.output_tokens;
+                    total.cache_read_tokens += usage.cache_read_tokens;
+                    total.cache_write_tokens += usage.cache_write_tokens;
+                    total.reasoning_tokens += usage.reasoning_tokens;
+                } else {
+                    snapshot.usage = Some(usage);
+                }
+            }
+            if generation.finish == crate::provider::FinishReason::Length {
+                return Err(RuntimeError::Provider);
+            }
+            if generation
+                .output
+                .iter()
+                .any(|item| item["type"] == "function_call")
+            {
+                return Err(RuntimeError::Provider);
+            }
+            let canonical = generation
+                .output
+                .iter()
+                .filter(|i| i["type"] == "message" && i["role"] == "assistant")
+                .filter_map(|i| i["content"].as_array())
+                .flatten()
+                .filter(|p| p["type"] == "output_text")
+                .filter_map(|p| p["text"].as_str())
+                .collect::<Vec<_>>();
+            let summary = if canonical.is_empty() {
+                generation.text
+            } else {
+                canonical.join("")
+            };
+            if summary.len() > 256 * 1024 {
+                return Err(RuntimeError::Provider);
+            }
+            let has_section = summary.lines().any(|line| {
+                [
+                    "## Objective",
+                    "## Requirements",
+                    "## Decisions",
+                    "## Work State",
+                    "### Completed",
+                    "### Active",
+                    "### Blocked",
+                    "## Next Move",
+                    "## Relevant Files",
+                    "## Important Context",
+                ]
+                .contains(&line.trim())
+            });
+            if !has_section && !corrected {
+                corrected = true;
+                input.push(InputItem::message(InputRole::User,"The previous response did not fill in the required summary template. Do not call tools. Return the summary as text using the exact section headings from the template."));
+                models::admit_budget(
+                    &selection,
+                    estimate_tokens(
+                        &serde_json::to_string(&input).map_err(|_| RuntimeError::Storage)?,
+                    ),
+                    &budget,
+                )
+                .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+                continue 'summary;
+            }
+            if !has_section {
+                return Err(RuntimeError::Provider);
+            }
+            snapshot.summary = summary;
+            return Ok(Some(PreparedCheckpoint {
+                boundary,
+                native: None,
+                removed,
+            }));
         }
-        snapshot.usage = generation.compaction_usage;
-        if generation
-            .output
-            .iter()
-            .any(|item| item["type"] == "function_call")
-        {
-            return Err(RuntimeError::Provider);
-        }
-        let canonical = generation
-            .output
-            .iter()
-            .filter(|i| i["type"] == "message" && i["role"] == "assistant")
-            .filter_map(|i| i["content"].as_array())
-            .flatten()
-            .filter(|p| p["type"] == "output_text")
-            .filter_map(|p| p["text"].as_str())
-            .collect::<Vec<_>>();
-        let summary = if canonical.is_empty() {
-            generation.text
-        } else {
-            canonical.join("")
-        };
-        if summary.len() > 256 * 1024 || summary.trim().is_empty() {
-            return Err(RuntimeError::Provider);
-        }
-        snapshot.summary = summary;
-        Ok(Some(PreparedCheckpoint {
-            boundary,
-            native: None,
-            removed,
-        }))
     }
 }

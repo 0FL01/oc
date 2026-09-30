@@ -8,6 +8,8 @@ pub trait NativeCompaction: Send + Sync {
         route: &'a str,
         input: &'a [crate::provider::InputItem],
         cancel: &'a std::sync::atomic::AtomicBool,
+        // Invoke immediately before each actual physical send, never for None.
+        dispatch: &'a mut (dyn FnMut() -> Result<(), crate::provider::ProviderError> + Send),
     ) -> std::pin::Pin<
         Box<
             dyn Future<Output = Result<Option<NativeCheckpoint>, crate::provider::ProviderError>>

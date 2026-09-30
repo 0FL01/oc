@@ -259,6 +259,13 @@ async fn compaction_invalid_summary_and_cancel_preserve_context() {
     let task = tokio::spawn(async move {
         let (mut socket, _) = read_request(&listener).await;
         respond(&mut socket, &sse("   ")).await;
+        let (mut correction, request) = read_request(&listener).await;
+        assert!(
+            request["input"]
+                .to_string()
+                .contains("required summary template")
+        );
+        respond(&mut correction, &sse("   ")).await;
     });
     runtime
         .queue_compaction("s", CompactionReason::Manual)
@@ -446,7 +453,7 @@ async fn compaction_auto_threshold_and_known_overflow_keep_tool_effect_once() {
             let task = tokio::spawn(async move {
                 let (mut socket, body) = read_request(&listener).await;
                 assert_eq!(body["tools"], serde_json::json!([]));
-                respond(&mut socket, &sse("Manual remains available")).await;
+                respond(&mut socket, &sse("## Objective\nManual remains available")).await;
             });
             runtime
                 .queue_compaction("s", CompactionReason::Manual)
@@ -538,6 +545,9 @@ async fn compaction_failed_overflow_summary_does_not_retry_the_main_request() {
         let (mut socket, body) = read_request(&listener).await;
         assert_eq!(body["tools"], serde_json::json!([]));
         respond(&mut socket, &sse("")).await;
+        let (mut socket, body) = read_request(&listener).await;
+        assert_eq!(body["tools"], serde_json::json!([]));
+        respond(&mut socket, &sse("")).await;
         assert!(
             tokio::time::timeout(Duration::from_millis(100), listener.accept())
                 .await
@@ -575,6 +585,7 @@ impl crate::compaction::NativeCompaction for Native {
         route: &'a str,
         _input: &'a [InputItem],
         _cancel: &'a AtomicBool,
+        _dispatch: &'a mut (dyn FnMut() -> Result<(), crate::provider::ProviderError> + Send),
     ) -> std::pin::Pin<
         Box<
             dyn Future<
@@ -595,6 +606,84 @@ impl crate::compaction::NativeCompaction for Native {
             }))
         })
     }
+}
+
+struct NativeResponses(ResponsesConfig);
+impl crate::compaction::NativeCompaction for NativeResponses {
+    fn compact<'a>(
+        &'a self,
+        route: &'a str,
+        input: &'a [InputItem],
+        cancel: &'a AtomicBool,
+        dispatch: &'a mut (dyn FnMut() -> Result<(), crate::provider::ProviderError> + Send),
+    ) -> std::pin::Pin<
+        Box<
+            dyn Future<
+                    Output = Result<
+                        Option<crate::compaction::NativeCheckpoint>,
+                        crate::provider::ProviderError,
+                    >,
+                > + Send
+                + 'a,
+        >,
+    > {
+        Box::pin(async move {
+            let generation = crate::provider::stream_input_counted(
+                &self.0,
+                "m",
+                None,
+                input,
+                &[],
+                8000,
+                cancel,
+                &mut |_| {},
+                &mut || std::future::ready(dispatch()),
+            )
+            .await?;
+            Ok(Some(crate::compaction::NativeCheckpoint {
+                route: route.into(),
+                replacement: generation.output[0].clone(),
+                usage: generation.compaction_usage,
+            }))
+        })
+    }
+}
+
+#[tokio::test]
+async fn ret01_native_auxiliary_retry_counts_actual_sockets() {
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    seed(&db, "old", "old user");
+    let runtime = runtime(&db, project.path(), Generation::default());
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = config(&listener);
+    runtime.register_native_compaction(Arc::new(NativeResponses(provider.clone())));
+    let server = tokio::spawn(async move {
+        let (mut first, request) = read_request(&listener).await;
+        respond(
+            &mut first,
+            "data: {\"type\":\"error\",\"error\":{\"code\":\"server_error\"}}\n\n",
+        )
+        .await;
+        drop(first);
+        let (mut second, retry) = read_request(&listener).await;
+        assert_eq!(request, retry);
+        respond(&mut second,"data: {\"type\":\"response.completed\",\"response\":{\"output\":[{\"type\":\"compaction\",\"status\":\"completed\",\"encrypted_content\":\"opaque\"}]}}\n\n").await;
+    });
+    runtime
+        .queue_compaction("s", CompactionReason::Manual)
+        .unwrap();
+    assert!(
+        runtime
+            .deliver_compaction("s", &catalog(), "m", None, &provider)
+            .await
+            .unwrap()
+    );
+    server.await.unwrap();
+    let conn = rusqlite::Connection::open(db.root().join("oc.sqlite")).unwrap();
+    assert_eq!(conn.query_row("SELECT count(*) FROM events WHERE kind='generation_dispatched' AND json_extract(payload,'$.lane')='native_compaction'",[],|r|r.get::<_,i64>(0)).unwrap(),2);
 }
 #[tokio::test]
 async fn compaction_native_opaque_route_checkpoint_without_summary_body() {
@@ -827,7 +916,7 @@ async fn compaction_manual_plain_canonical_text_is_independent_of_caller_cancel(
         let body = format!(
             "data: {}\n\ndata: {}\n\n",
             serde_json::json!({"type":"response.output_text.delta","delta":"partial stream"}),
-            serde_json::json!({"type":"response.completed","response":{"status":"completed","output":[{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Preserve the completed implementation and next action."}]}]}})
+            serde_json::json!({"type":"response.completed","response":{"status":"completed","output":[{"type":"message","role":"assistant","content":[{"type":"output_text","text":"## Objective\nPreserve the completed implementation and next action."}]}]}})
         );
         respond(&mut socket, &body).await;
     });
@@ -849,7 +938,7 @@ async fn compaction_manual_plain_canonical_text_is_independent_of_caller_cancel(
     );
     assert_eq!(
         db.compaction_history("s").unwrap()[0].summary,
-        "Preserve the completed implementation and next action."
+        "## Objective\nPreserve the completed implementation and next action."
     );
     task.await.unwrap();
 }

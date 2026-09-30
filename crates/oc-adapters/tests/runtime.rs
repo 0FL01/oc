@@ -822,6 +822,7 @@ async fn check_application_patch_replay(line: &str, count: usize) {
             .expect("event timeout")
             .expect("event channel");
         match event {
+            CoreEvent::RetryScheduled { .. } => {}
             CoreEvent::ToolCallStarted {
                 op, name, input, ..
             } => started = Some((op, name, input)),

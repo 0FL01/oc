@@ -248,4 +248,5 @@ fn paint_selection_fixture(state: &mut TuiState, frame: Rect, needle: &str) -> (
 
 mod input;
 mod lifecycle;
+mod retry;
 mod transcript;

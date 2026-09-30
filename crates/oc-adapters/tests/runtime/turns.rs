@@ -3,6 +3,212 @@
 use super::*;
 
 #[tokio::test]
+async fn ret01_runtime_mixed_retry_continues_partial_without_spending_rounds() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("retry").unwrap();
+    let (base, hits, requests) = Fake::start_recording(
+        vec![
+            "data: {\"type\":\"error\",\"error\":{\"code\":\"server_error\"}}\n\n".into(),
+            sse_delta("partial"),
+            sse_delta("continued") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let mut p = params("retry", "input", &harness, provider_of(&base), &NO_CANCEL);
+    p.max_rounds = 1;
+    let report = runtime.run_turn(p).await.unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(report.rounds, 1);
+    assert_eq!(*hits.lock().unwrap(), 3);
+    let requests = requests.lock().unwrap();
+    assert_eq!(
+        requests[0], requests[1],
+        "pre-output retry is the same request"
+    );
+    assert!(
+        requests[2]["input"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["role"] == "assistant" && item.to_string().contains("partial"))
+    );
+    let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    let raw: String = conn
+        .query_row(
+            "SELECT result FROM turns WHERE id=?1",
+            [&report.turn_id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let log: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(log["spans"].as_array().unwrap().len(), 2);
+    assert_eq!(log["spans"][0]["status"], "failed");
+    assert_eq!(log["spans"][0]["retry"]["attempt"], 3);
+    assert_eq!(log["spans"][0]["finish"], "error");
+    assert!(
+        log["spans"][0]["error"]
+            .as_str()
+            .unwrap()
+            .contains("incomplete")
+    );
+    assert_ne!(log["spans"][0]["id"], log["spans"][1]["id"]);
+    assert!(log["spans"][1]["retry"].is_null());
+    assert!(log["spans"][1]["error"].is_null());
+    assert_eq!(log["spans"][1]["finish"], "stop");
+    let span: String = conn.query_row("SELECT json_extract(payload,'$.span') FROM events WHERE kind='retry_scheduled' ORDER BY seq DESC LIMIT 1", [], |r|r.get(0)).unwrap();
+    assert_eq!(span, log["spans"][0]["id"].as_str().unwrap());
+}
+
+#[tokio::test]
+async fn ret01_runtime_retry_never_replays_committed_effect() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("effect-retry").unwrap();
+    let (base, hits, requests) = Fake::start_recording(
+        vec![
+            sse_tool_call(
+                "once",
+                "bash",
+                &serde_json::json!({"argv":["sh","-c","printf effect >> retry-effects"]}),
+            ) + &sse_completed(),
+            sse_delta("partial"),
+            sse_delta("done") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "effect-retry",
+            "input",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(report.rounds, 2);
+    assert_eq!(*hits.lock().unwrap(), 3);
+    assert_eq!(
+        std::fs::read_to_string(harness._project.path().join("retry-effects")).unwrap(),
+        "effect"
+    );
+    assert_eq!(report.calls.len(), 1);
+    assert!(function_output(&requests.lock().unwrap()[2], "once").is_some());
+    let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    assert_eq!(
+        conn.query_row("SELECT count(*) FROM tool_operations", [], |r| r
+            .get::<_, i64>(0))
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        conn.query_row(
+            "SELECT count(*) FROM events WHERE kind='generation_dispatched'",
+            [],
+            |r| r.get::<_, i64>(0)
+        )
+        .unwrap(),
+        3
+    );
+}
+
+#[tokio::test]
+async fn ret01_partial_continuation_budget_refusal_settles_without_another_send() {
+    let (mut harness, mut generation) = make_harness(allow_all());
+    harness.catalog.models.insert(
+        "m".into(),
+        serde_json::json!({"limit":{"context":16384,"output":1000}}),
+    );
+    generation.compaction.auto = false;
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("continuation-budget").unwrap();
+    let partial = sse_delta(&"x".repeat(12000)).repeat(8);
+    let (base, hits) = Fake::start(vec![partial], Duration::ZERO);
+    let report = runtime
+        .run_turn(params(
+            "continuation-budget",
+            "input",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Failed);
+    assert_eq!(
+        *hits.lock().unwrap(),
+        1,
+        "input admission refusal cannot dispatch or retry"
+    );
+    let (status, result) = harness.db.turn_result(&report.turn_id).unwrap();
+    assert_eq!(status, "failed");
+    let log: serde_json::Value = serde_json::from_str(&result.unwrap()).unwrap();
+    let spans = log["spans"].as_array().unwrap();
+    assert_eq!(spans.len(), 2);
+    assert_eq!(spans[0]["status"], "failed");
+    assert_eq!(spans[0]["retry"]["attempt"], 2);
+    assert_eq!(spans[1]["status"], "failed");
+    assert!(spans[1]["completed"].as_u64().is_some());
+    assert!(report.diagnostic.as_deref().unwrap().contains("context"));
+}
+
+#[tokio::test]
+async fn ret01_cancel_backoff_keeps_safe_due_and_dispatches_nothing_else() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("cancel-retry").unwrap();
+    let cancel = AtomicBool::new(false);
+    let (base, hits) = Fake::start(
+        vec!["data: {\"type\":\"error\",\"error\":{\"code\":\"server_error\"}}\n\n".into()],
+        Duration::ZERO,
+    );
+    let operation = runtime.run_turn(params(
+        "cancel-retry",
+        "input",
+        &harness,
+        provider_of(&base),
+        &cancel,
+    ));
+    let cancellation = async {
+        let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while conn
+                .query_row(
+                    "SELECT count(*) FROM events WHERE kind='retry_scheduled'",
+                    [],
+                    |r| r.get::<_, i64>(0),
+                )
+                .unwrap()
+                == 0
+            {
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+        })
+        .await
+        .unwrap();
+        cancel.store(true, Ordering::Relaxed);
+    };
+    let (report, ()) = tokio::join!(operation, cancellation);
+    let report = report.unwrap();
+    assert_eq!(report.status, TurnStatus::Cancelled);
+    assert_eq!(*hits.lock().unwrap(), 1);
+    let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    let raw: String = conn
+        .query_row(
+            "SELECT result FROM turns WHERE id=?1",
+            [&report.turn_id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let log: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(log["spans"][0]["retry"]["attempt"], 2);
+    assert_eq!(log["spans"][0]["status"], "cancelled");
+    assert!(log["spans"][0]["retry"]["at"].as_u64().is_some());
+}
+
+#[tokio::test]
 async fn fresh_turn_commits_root_binding_selection_before_ack_and_streams_normally() {
     let mut permissions = allow_all();
     permissions.insert("read".into(), Permission::Deny);
@@ -105,6 +311,8 @@ async fn fresh_turn_commits_root_binding_selection_before_ack_and_streams_normal
             "turn_started",
             "accepted_model",
             "message",
+            "generation_dispatched",
+            "generation_dispatched",
             "message",
             "turn_finished"
         ]
@@ -681,11 +889,11 @@ async fn text_turn_completes_and_drains() {
 #[tokio::test]
 async fn aud11_terminal_semantics_preserve_non_success_and_truthful_length() {
     for (terminal, expected, stored) in [
-        ("", TurnStatus::Incomplete, "incomplete"),
+        ("", TurnStatus::Completed, "completed"),
         (
             "data: {\"type\":\"response.failed\",\"response\":{\"status\":\"failed\",\"error\":{\"code\":\"server_error\"}}}\n\n",
-            TurnStatus::Failed,
-            "failed",
+            TurnStatus::Completed,
+            "completed",
         ),
         (
             "data: {\"type\":\"response.incomplete\",\"response\":{\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"max_output_tokens\"}}}\n\n",
@@ -694,8 +902,8 @@ async fn aud11_terminal_semantics_preserve_non_success_and_truthful_length() {
         ),
         (
             "data: {\"type\":\"response.incomplete\",\"response\":{\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"unknown\"}}}\n\n",
-            TurnStatus::Incomplete,
-            "incomplete",
+            TurnStatus::Completed,
+            "completed",
         ),
         (
             "data: {\"type\":\"response.incomplete\",\"response\":{\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"content_filter\"}}}\n\n",
@@ -706,7 +914,16 @@ async fn aud11_terminal_semantics_preserve_non_success_and_truthful_length() {
         let (harness, generation) = make_harness(allow_all());
         let runtime = runtime_of(&harness, generation, Vec::new());
         runtime.create_session("s").unwrap();
-        let (base, hits) = Fake::start(vec![sse_delta("partial") + terminal], Duration::ZERO);
+        let transient = terminal.is_empty()
+            || terminal.contains("server_error")
+            || terminal.contains("unknown");
+        let (base, hits) = Fake::start(
+            vec![
+                sse_delta("partial") + terminal,
+                sse_delta("recovered") + &sse_completed(),
+            ],
+            Duration::ZERO,
+        );
         let mut observed = String::new();
         let report = runtime
             .run_turn_with_events(
@@ -718,7 +935,12 @@ async fn aud11_terminal_semantics_preserve_non_success_and_truthful_length() {
             .await
             .unwrap();
         assert_eq!(
-            observed, "partial",
+            observed,
+            if transient {
+                "partialrecovered"
+            } else {
+                "partial"
+            },
             "fixture must deliver a valid text delta"
         );
         assert_eq!(report.status, expected);
@@ -730,16 +952,30 @@ async fn aud11_terminal_semantics_preserve_non_success_and_truthful_length() {
                 history,
                 [
                     ("user".into(), "hello".into()),
-                    ("assistant".into(), "partial".into())
+                    (
+                        "assistant".into(),
+                        if transient {
+                            "recovered".into()
+                        } else {
+                            "partial".into()
+                        }
+                    )
                 ]
             );
-            assert_eq!(
-                report.diagnostic.as_deref(),
-                Some("provider finish=length (max_output_tokens)")
-            );
+            if !transient {
+                assert_eq!(
+                    report.diagnostic.as_deref(),
+                    Some("provider finish=length (max_output_tokens)")
+                );
+            }
             let (_, raw) = harness.db.turn_result(&report.turn_id).unwrap();
             let log: serde_json::Value = serde_json::from_str(&raw.unwrap()).unwrap();
-            assert_eq!(log["display"]["finish_reason"], "length");
+            if transient {
+                assert_eq!(log["spans"][0]["status"], "failed");
+                assert_eq!(log["spans"][0]["retry"]["attempt"], 2);
+            } else {
+                assert_eq!(log["display"]["finish_reason"], "length");
+            }
         } else {
             assert_eq!(
                 history,
@@ -747,7 +983,11 @@ async fn aud11_terminal_semantics_preserve_non_success_and_truthful_length() {
                 "failed/incomplete assistant must not become a completed answer"
             );
         }
-        assert_eq!(*hits.lock().unwrap(), 1, "no hidden generation retry");
+        assert_eq!(
+            *hits.lock().unwrap(),
+            if transient { 2 } else { 1 },
+            "one attempt per dispatch; continuation only for typed transient failure"
+        );
     }
 }
 
@@ -892,7 +1132,10 @@ async fn aud11_review_length_terminal_only_call_has_no_effect_or_intent() {
             String::new()
         };
         let (base, hits) = Fake::start(
-            vec![sse_delta("partial") + &done + &terminal],
+            vec![
+                sse_delta("partial") + &done + &terminal,
+                "data: {\"type\":\"error\",\"error\":{\"code\":\"insufficient_quota\"}}\n\n".into(),
+            ],
             Duration::ZERO,
         );
         let mut turn = params(
@@ -924,8 +1167,19 @@ async fn aud11_review_length_terminal_only_call_has_no_effect_or_intent() {
                 "actual completed call dispatches once"
             );
         }
-        assert_eq!(report.status, TurnStatus::Incomplete);
-        assert_eq!(*hits.lock().unwrap(), 1, "one physical attempt");
+        assert_eq!(
+            report.status,
+            if prior_done {
+                TurnStatus::Incomplete
+            } else {
+                TurnStatus::Failed
+            }
+        );
+        assert_eq!(
+            *hits.lock().unwrap(),
+            if prior_done { 1 } else { 2 },
+            "prior done dispatches; incomplete tools continue without any intent"
+        );
     }
 }
 
@@ -1286,13 +1540,13 @@ async fn two_reasoning_output_items_keep_public_parts_and_opaque_continuation_se
 
 #[tokio::test]
 async fn only_done_reasoning_items_have_duration_on_failed_cancelled_or_incomplete_streams() {
-    let failed = "data: {\"type\":\"response.failed\",\"response\":{\"status\":\"failed\"}}\n\n";
+    let failed = "data: {\"type\":\"response.failed\",\"response\":{\"status\":\"failed\",\"error\":{\"code\":\"insufficient_quota\"}}}\n\n";
     let incomplete =
         "data: {\"type\":\"response.incomplete\",\"response\":{\"status\":\"incomplete\"}}\n\n";
     for (terminal, expected, stored_status, cancel_after_second) in [
         (failed, TurnStatus::Failed, "failed", false),
-        (incomplete, TurnStatus::Incomplete, "incomplete", false),
-        ("", TurnStatus::Incomplete, "incomplete", false),
+        (incomplete, TurnStatus::Failed, "failed", false),
+        ("", TurnStatus::Failed, "failed", false),
         ("", TurnStatus::Cancelled, "cancelled", true),
     ] {
         let (harness, generation) = make_harness(allow_all());
@@ -1305,6 +1559,7 @@ async fn only_done_reasoning_items_have_duration_on_failed_cancelled_or_incomple
                     + &sse_reasoning("Second")
                     + &sse_reasoning(" half")
                     + terminal,
+                failed.into(),
             ],
             Duration::ZERO,
         );
@@ -1344,7 +1599,15 @@ async fn only_done_reasoning_items_have_duration_on_failed_cancelled_or_incomple
                 .unwrap()
                 .is_empty()
         );
-        assert_eq!(*hits.lock().unwrap(), 1, "no retry or tool generation");
+        assert_eq!(
+            *hits.lock().unwrap(),
+            if terminal == failed || cancel_after_second {
+                1
+            } else {
+                2
+            },
+            "incomplete reasoning continues; quota and cancel settle without tools"
+        );
         let (status, stored) = harness.db.turn_result(&report.turn_id).unwrap();
         assert_eq!(status, stored_status);
         let stored: serde_json::Value = serde_json::from_str(&stored.unwrap()).unwrap();
@@ -1354,7 +1617,12 @@ async fn only_done_reasoning_items_have_duration_on_failed_cancelled_or_incomple
         assert!(parts[0]["duration_ms"].as_u64().is_some());
         assert_eq!(parts[1]["reasoning"], "Second half");
         assert!(parts[1].get("duration_ms").is_none(), "r2 never ended");
-        assert!(!stored.to_string().contains("private-first"));
+        assert!(
+            !stored["display_parts"]
+                .to_string()
+                .contains("private-first"),
+            "opaque continuation never reaches public parts"
+        );
         assert!(!stored.to_string().contains("pending_text"));
         assert_eq!(
             harness.db.read_history("unfinished-reasoning").unwrap(),
@@ -2288,6 +2556,7 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             .expect("event timeout")
             .expect("event channel");
         match event {
+            CoreEvent::RetryScheduled { .. } => {}
             CoreEvent::ReasoningDelta { delta, .. } => reasoning.push_str(&delta),
             CoreEvent::TurnUsage {
                 input_tokens,

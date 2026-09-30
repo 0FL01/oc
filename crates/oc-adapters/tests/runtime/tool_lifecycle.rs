@@ -495,7 +495,10 @@ async fn aud11_incomplete_call_never_executes() {
             "item_id": "fc_partial", "delta": args.to_string()});
         // Even valid JSON arguments cannot substitute for output_item.done.
         let (base, hits) = Fake::start(
-            vec![format!("data: {added}\n\ndata: {delta}\n\n{terminal}")],
+            vec![
+                format!("data: {added}\n\ndata: {delta}\n\n{terminal}"),
+                "data: {\"type\":\"error\",\"error\":{\"code\":\"insufficient_quota\"}}\n\n".into(),
+            ],
             Duration::ZERO,
         );
         let report = runtime
@@ -510,7 +513,11 @@ async fn aud11_incomplete_call_never_executes() {
             harness.db.turn_result(&report.turn_id).unwrap().0,
             "completed"
         );
-        assert_eq!(*hits.lock().unwrap(), 1, "no hidden generation retry");
+        assert_eq!(
+            *hits.lock().unwrap(),
+            2,
+            "one continuation, then terminal quota; incomplete arguments never admit tools"
+        );
     }
 }
 

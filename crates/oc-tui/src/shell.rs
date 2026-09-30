@@ -1954,7 +1954,9 @@ fn footer_line(
     let left_width =
         (layout_width as usize).saturating_sub(hints.width() + usize::from(hints_visible) * 2);
     let mut spans: Vec<Span<'static>> = Vec::new();
-    if state.status() == &TuiStatus::Streaming {
+    if let Some(notice) = state.retry_notice() {
+        spans.push(Span::styled(notice, Style::default().fg(theme.warning())));
+    } else if state.status() == &TuiStatus::Streaming {
         spans.push(Span::raw(" ")); // prompt/index.tsx:1887 marginLeft=1
         if state.chrome.animations == Some(false) {
             spans.push(Span::styled("[⋯]", muted));

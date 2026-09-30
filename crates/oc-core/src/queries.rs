@@ -203,6 +203,12 @@ pub struct ModelSwitchNotice {
 /// Safe turn metadata and ordered bounded parts, projected from durable records.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct HistoryTurn {
+    /// Ordered owner event watermark for snapshot/live reconciliation.
+    pub revision: u64,
+    /// Actual generation dispatches attributed to this owning operation.
+    pub physical_requests: u64,
+    /// Physical assistant spans, including settled failed continuations.
+    pub spans: Vec<AssistantSpan>,
     /// Stable journal turn id.
     pub id: String,
     /// Actual terminal/runtime status.
@@ -232,6 +238,29 @@ pub struct HistoryTurn {
     pub truncated: bool,
     /// Older journal has no trustworthy public part ordering/summary records.
     pub legacy_text_only: bool,
+}
+
+/// Safe durable retry notice. `at` is an epoch deadline, never a dispatch command.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct RetryFact {
+    pub attempt: u32,
+    pub at: u64,
+    pub safe_error: String,
+}
+
+/// Irreducible physical-span lifecycle inside the existing turn journal.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct AssistantSpan {
+    pub id: String,
+    pub step: u32,
+    pub status: String,
+    pub started: u64,
+    pub completed: Option<u64>,
+    pub retry: Option<RetryFact>,
+    #[serde(default)]
+    pub error: Option<String>,
+    #[serde(default)]
+    pub finish: Option<String>,
 }
 
 /// Metadata parallel to `HistoryTurn.parts`, shared by live checkpoint events

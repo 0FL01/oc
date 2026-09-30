@@ -341,7 +341,7 @@ async fn compaction_owner_measured_23000_context_survives_restart_and_history_co
             assert!(body["input"].to_string().contains("ARCHIVE-1-"));
             assert!(!body["input"].to_string().contains("fourth request"));
             // Deliberately huge summary usage cannot become a new context anchor.
-            respond(&mut socket,"data: {\"type\":\"response.output_text.delta\",\"delta\":\"VIS34-CHECKPOINT continue\"}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":35000,\"output_tokens\":1800}}}\n\n").await;
+            respond(&mut socket,"data: {\"type\":\"response.output_text.delta\",\"delta\":\"## Objective\\nVIS34-CHECKPOINT continue\"}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":35000,\"output_tokens\":1800}}}\n\n").await;
             let rebuilt = request(&listener).await;
             socket = rebuilt.0;
             let wire = rebuilt.1["input"].to_string();
@@ -598,7 +598,7 @@ async fn compaction_owner_publication_failures_surface_and_allow_selection_conve
         if stage == "completed" {
             let (mut socket, body) = request(&listener).await;
             assert_eq!(body["tools"], serde_json::json!([]));
-            respond(&mut socket,"data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"output\":[{\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"Preserve the completed work.\"}]}]}}\n\n").await;
+            respond(&mut socket,"data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"output\":[{\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"## Objective\\nPreserve the completed work.\"}]}]}}\n\n").await;
         }
         loop {
             if let CoreEvent::Compaction(snapshot) = timeout(Duration::from_secs(5), events.recv())

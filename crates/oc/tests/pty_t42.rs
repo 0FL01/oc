@@ -1279,8 +1279,8 @@ fn bare_rename_requests_real_title_without_creating_turn_and_restores_on_restart
     );
     assert_eq!(
         after.1,
-        counts.1 + 1,
-        "one durable title event, no new turn"
+        counts.1 + 2,
+        "one physical dispatch fact and one durable title event, no new turn"
     );
     quit(&mut pty);
     let mut restart = PtySession::spawn(

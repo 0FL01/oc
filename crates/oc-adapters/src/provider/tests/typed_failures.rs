@@ -1,4 +1,46 @@
 use super::*;
+
+#[tokio::test]
+async fn ret01_coalesced_frames_yield_to_scoped_consumer_without_lag() {
+    // Match the core owner's existing bounded broadcast, without raising it.
+    let (sender, mut receiver) = tokio::sync::broadcast::channel(256);
+    let consumer = tokio::spawn(async move {
+        for _ in 0..4096 {
+            receiver.recv().await?;
+        }
+        Ok::<_, tokio::sync::broadcast::error::RecvError>(4096)
+    });
+    let mut wire = sse_delta("burst").repeat(4096);
+    wire.extend(sse_completed(10, 20));
+    let server = TestServer::spawn(Arc::new(move |_| Action {
+        status: "200 OK",
+        headers: vec![("Content-Length", wire.len().to_string())],
+        chunks: vec![(wire.clone(), 0)],
+        abort_after: None,
+    }))
+    .await;
+    let generation = crate::provider::stream_generation_observed(
+        &test_config(&server.base),
+        "m",
+        None,
+        "input",
+        &[],
+        &NO_CANCEL,
+        None,
+        &mut |item| {
+            if matches!(item, StreamItem::TextDelta(_)) {
+                let _ = sender.send(());
+            }
+        },
+    )
+    .await
+    .unwrap();
+    drop(sender);
+    assert_eq!(generation.text.len(), 20480);
+    assert_eq!(consumer.await.unwrap().unwrap(), 4096);
+    assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
+    server.shutdown();
+}
 use crate::provider::{
     Delivery, FailureKind, FinishReason, Operation, PhysicalFailure, RetryHeaders, TransportKind,
 };

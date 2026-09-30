@@ -2076,6 +2076,51 @@ impl Db {
         Ok(())
     }
 
+    /// Journal and retry event commit together, before any runtime wait.
+    pub(crate) fn checkpoint_retry(
+        &self,
+        session: &str,
+        turn: &str,
+        span: &str,
+        result: &str,
+        retry: &oc_core::queries::RetryFact,
+    ) -> Result<(), StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        if tx.execute(
+            "UPDATE turns SET result=?1 WHERE id=?2 AND session_id=?3 AND status='started'",
+            params![result, turn, session],
+        )? != 1
+        {
+            return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
+        }
+        tx.execute(
+            "INSERT INTO events(session_id,kind,payload) VALUES (?1,'retry_scheduled',?2)",
+            params![
+                session,
+                serde_json::json!({"turn":turn,"span":span,"retry":retry}).to_string()
+            ],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// Count actual admitted send dispatches, independently of logical rounds.
+    pub(crate) fn generation_dispatch(
+        &self,
+        session: &str,
+        operation: &str,
+        lane: &str,
+    ) -> Result<(), StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        // An inherited operation remains fixed even when a later root turn starts.
+        let root_operation: Option<String> = conn.query_row(
+            "SELECT COALESCE(json_extract(result,'$.display.owning_operation'),id) FROM turns WHERE id=?1 OR (session_id=?2 AND status='started') ORDER BY id=?1 DESC,rowid DESC LIMIT 1",
+            params![operation,session], |r|r.get(0)).optional()?;
+        conn.execute("INSERT INTO events(session_id,kind,payload) VALUES (?1,'generation_dispatched',?2)", params![session,serde_json::json!({"operation":root_operation.as_deref().unwrap_or(operation),"owner":operation,"lane":lane}).to_string()])?;
+        Ok(())
+    }
+
     /// Outcome and its replayable wire item are a single durable boundary.
     pub(crate) fn tool_outcome_with_log(
         &self,
@@ -2332,6 +2377,8 @@ impl Db {
         };
         let meta: serde_json::Value = serde_json::from_str(&metadata).unwrap_or_default();
         let mut turn = HistoryTurn {
+            revision: conn.query_row("SELECT COALESCE(MAX(seq),0) FROM events WHERE session_id=?1",[session],|r|r.get::<_,i64>(0))? as u64,
+            physical_requests: conn.query_row("SELECT count(*) FROM events WHERE kind='generation_dispatched' AND json_extract(payload,'$.operation')=?1",[&id],|r|r.get::<_,i64>(0))? as u64,
             id: id.clone(),
             status,
             agent: meta["agent"].as_str().map(str::to_string),
@@ -2348,6 +2395,13 @@ impl Db {
             parts: Vec::new(),
             ..HistoryTurn::default()
         };
+        // 16 logical steps × (11 attempt spans + one overflow rebuild).
+        let mut spans = conn.prepare_cached("SELECT s.value FROM turns t,json_each(t.result,'$.spans') s WHERE t.id=?1 ORDER BY CAST(s.key AS INTEGER) LIMIT 192")?;
+        for raw in spans.query_map([&id], |r| r.get::<_, String>(0))? {
+            if let Ok(span) = serde_json::from_str::<oc_core::queries::AssistantSpan>(&raw?) {
+                turn.spans.push(span);
+            }
+        }
         let total: Option<i64> = conn.query_row(
             "SELECT json_array_length(result,'$.display_parts') FROM turns WHERE id=?1",
             [&id],
@@ -2370,6 +2424,12 @@ impl Db {
                 truncated: part["truncated"].as_bool().unwrap_or(false),
                 input_omitted: false,
             };
+            if let Some(span) = part["span"]
+                .as_str()
+                .and_then(|id| turn.spans.iter().find(|s| s.id == id))
+            {
+                state.status = span.status.clone();
+            }
             let before = turn.parts.len();
             if let Some(text) = part["reasoning"].as_str() {
                 state.truncated |= text.len() > budget.min(16 * 1024);
@@ -3067,6 +3127,11 @@ impl Db {
         };
         for (turn, session) in interrupted {
             Self::conversation_complete(&tx, &turn, &session)?;
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis() as i64;
+            tx.execute("UPDATE turns SET result=json_set(result,'$.spans['||(json_array_length(result,'$.spans')-1)||'].status','unknown','$.spans['||(json_array_length(result,'$.spans')-1)||'].completed',?2) WHERE id=?1 AND json_valid(result) AND json_array_length(result,'$.spans')>0 AND json_extract(result,'$.spans['||(json_array_length(result,'$.spans')-1)||'].completed') IS NULL",params![turn,now])?;
         }
         tx.execute(
             "UPDATE turns SET status = 'unknown' WHERE status = 'started'",
@@ -3406,6 +3471,7 @@ fn apply_schema(conn: &Connection) -> Result<(), StorageError> {
             op_id TEXT PRIMARY KEY REFERENCES tool_operations(id) ON DELETE CASCADE,
             metadata TEXT NOT NULL);
           CREATE INDEX IF NOT EXISTS events_accepted_model ON events(session_id, seq) WHERE kind='accepted_model';
+          CREATE INDEX IF NOT EXISTS events_generation_operation ON events(json_extract(payload,'$.operation')) WHERE kind='generation_dispatched';
          CREATE TABLE IF NOT EXISTS blobs(digest TEXT PRIMARY KEY, size INTEGER NOT NULL, path TEXT NOT NULL);
          CREATE TABLE IF NOT EXISTS prefs(key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL);
          INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (1, 't04');",

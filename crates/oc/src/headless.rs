@@ -131,6 +131,13 @@ pub async fn run_once_to_writers(
                     }
                 };
                 match event {
+                    CoreEvent::RetryScheduled { turn: id, span, retry, .. } if id == turn => {
+                        if json {
+                            writeln!(err, "{}", serde_json::json!({"type":"retry", "span":span,"attempt":retry.attempt,"at":retry.at,"error":retry.safe_error}))
+                        } else {
+                            writeln!(err, "retry attempt {} at {}: {}",retry.attempt,retry.at,retry.safe_error)
+                        }.map_err(|e|e.to_string())?;
+                    }
                     CoreEvent::TurnStarted { .. } | CoreEvent::SessionTitleUpdated { .. } => {}
                     CoreEvent::TextDelta {
                         turn: id, delta, ..

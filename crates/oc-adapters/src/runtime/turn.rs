@@ -202,6 +202,7 @@ fn resolve_child_model(
 
 /// Foreground child runner for one calling turn.
 struct TurnSubagent<'r, 'a> {
+    owning_operation: String,
     runtime: &'r Runtime<'a>,
     parent_session: String,
     parent_model_id: String,
@@ -344,6 +345,7 @@ impl TurnSubagent<'_, '_> {
             .run_child_turn(
                 agent,
                 self.parent_lane,
+                &self.owning_operation,
                 &child_session,
                 prompt,
                 &model,
@@ -939,6 +941,7 @@ impl<'a> Runtime<'a> {
         let mut calls = Vec::new();
         let mut turn_log = TurnLog::new(&turn_id, &selection.id, &params.catalog.provider);
         turn_log.display = serde_json::json!({
+            "owning_operation":lane.owning_operation.as_deref().unwrap_or(&turn_id),
             "model_label":selection.entry.get("name").and_then(|v|v.as_str()).unwrap_or(&selection.id),
             "agent":lane.agent_id,
             "agent_color_index":lane.agent_color_index,
@@ -955,7 +958,8 @@ impl<'a> Runtime<'a> {
         let mut overflow_recovered = false;
         let mut overflow_pending = false;
         let mut last_compacted_round = None;
-        loop {
+        let mut retry_policy = retry::RetryPolicy::default();
+        'step: loop {
             if params.cancel.load(Ordering::Relaxed) {
                 return self.commit_turn(
                     &turn_log,
@@ -1017,6 +1021,10 @@ impl<'a> Runtime<'a> {
                 &params.variant,
             ));
             let runner = subagents.as_ref().map(|catalog| TurnSubagent {
+                owning_operation: lane
+                    .owning_operation
+                    .clone()
+                    .unwrap_or_else(|| turn_id.clone()),
                 runtime: self,
                 parent_session: params.session.clone(),
                 parent_model_id: params.model_id.clone(),
@@ -1191,7 +1199,7 @@ impl<'a> Runtime<'a> {
                     .flatten();
             }
             let continuation = dcp_continuation(&history, &turn_log.input, &tool_projection);
-            let input: Vec<InputItem> = fixed_input
+            let mut input: Vec<InputItem> = fixed_input
                 .iter()
                 .chain(nudge_input.iter())
                 .chain(anchors.iter())
@@ -1219,12 +1227,13 @@ impl<'a> Runtime<'a> {
                 report.diagnostic = Some(error.to_string());
                 return Ok(report);
             }
-            let stream_started = std::time::Instant::now();
+            let mut stream_started = std::time::Instant::now();
             let mut reasoning_started: Option<std::time::Instant> = None;
             let mut reasoning_closed = false;
             // Stream slots are private until canonical output supplies input
             // references. Their positions preserve text between reasoning items.
             struct TextSlot {
+                text: String,
                 part: usize,
                 item_id: String,
                 output_index: Option<u64>,
@@ -1233,139 +1242,435 @@ impl<'a> Runtime<'a> {
             let mut active_text: Option<usize> = None;
             let mut reasoning_anchors: Vec<(usize, String)> = Vec::new();
             let mut pending_tools = PendingToolStreams::new(rounds + 1);
-            let generation = match crate::provider::stream_input_observed(
-                &params.provider,
-                &selection.id,
-                selection.variant.as_ref(),
-                &input,
-                &tool_defs,
-                budget.output,
-                params.cancel,
-                &mut |item| match item {
-                    crate::provider::StreamItem::ToolCallStarted { item_id, call_id, name } => {
-                        if let Some(event) = pending_tools.announce(item_id, call_id, name) {
-                            tool_event(&turn_id, &ToolCallEvent::ArgumentStream(event));
-                        }
-                    }
-                    crate::provider::StreamItem::ArgDelta { item_id, delta } => {
-                        if let Some(event) = pending_tools.delta(item_id, delta) {
-                            tool_event(&turn_id, &ToolCallEvent::ArgumentStream(event));
-                        }
-                    }
-                    crate::provider::StreamItem::TextDelta(delta) => {
-                        if !delta.is_empty() && active_text.is_none() {
-                            active_text = Some(text_slots.len());
-                            text_slots.push(TextSlot {
-                                part: turn_log.display_parts.len(),
-                                item_id: String::new(),
-                                output_index: None,
-                            });
-                            turn_log.display_parts.push(serde_json::json!({"pending_text":true}));
-                        }
-                        text_delta(&turn_id, delta);
-                    }
-                    crate::provider::StreamItem::MessageBoundary { item_id, output_index, done } => {
-                        let slot = active_text.filter(|&index| {
-                            let current = &text_slots[index];
-                            (item_id.is_empty() || current.item_id.is_empty() || current.item_id == *item_id)
-                                && (output_index.is_none() || current.output_index.is_none() || current.output_index == *output_index)
-                        }).or_else(|| {
-                            text_slots.iter().position(|slot| {
-                                (!item_id.is_empty() && slot.item_id == *item_id)
-                                    || (output_index.is_some() && slot.output_index == *output_index)
-                            })
-                        });
-                        let slot = slot.unwrap_or_else(|| {
-                            let index = text_slots.len();
-                            text_slots.push(TextSlot {
-                                part: turn_log.display_parts.len(),
-                                item_id: String::new(),
-                                output_index: None,
-                            });
-                            turn_log.display_parts.push(serde_json::json!({"pending_text":true}));
-                            index
-                        });
-                        if !item_id.is_empty() { text_slots[slot].item_id.clone_from(item_id); }
-                        if output_index.is_some() { text_slots[slot].output_index = *output_index; }
-                        active_text = (!done).then_some(slot);
-                    }
-                    crate::provider::StreamItem::ReasoningDelta(delta) if !delta.is_empty() => {
-                        active_text = None;
-                        reasoning_started.get_or_insert_with(std::time::Instant::now);
-                        if let Some(last) = turn_log.display_parts.last_mut()
-                            && let Some(text) = last.get("reasoning").and_then(|v| v.as_str())
-                            && !reasoning_closed
-                        {
-                            let mut text = text.to_string();
-                            if text.len() + delta.len() > 16 * 1024 { last["truncated"] = true.into(); }
-                            if text.len() < 16 * 1024 { text.push_str(delta); }
-                            last["reasoning"] = truncate(&text, 16 * 1024).into();
-                        } else {
-                            turn_log.display_parts.push(serde_json::json!({"reasoning":truncate(delta, 16 * 1024), "truncated":delta.len()>16*1024}));
-                        }
-                        reasoning_closed = false;
-                        reasoning_delta(&turn_id, delta);
-                    }
-                    crate::provider::StreamItem::OpaqueItem { item_id, payload }
-                        if !item_id.is_empty() && payload.get("type").and_then(|v| v.as_str()) == Some("reasoning")
-                            && reasoning_started.is_some() => {
-                        let part = turn_log.display_parts.len().saturating_sub(1);
-                        if let Some(last) = turn_log.display_parts.last_mut()
-                            && last.get("reasoning").is_some()
-                            && !reasoning_closed
-                        {
-                            last["duration_ms"] = streamed_ms(reasoning_started.take().expect("active reasoning").elapsed()).into();
-                            reasoning_anchors.push((part, item_id.clone()));
-                            reasoning_closed = true;
-                            reasoning_item_ended(&turn_id);
-                        }
-                    }
-                    _ => {}
-                },
-            )
-            .await
+            if let Some(previous) = turn_log.spans.last_mut()
+                && previous.completed.is_none()
             {
-                Ok(generation) => {
-                    streamed += stream_started.elapsed();
-                    generation
-                }
-                Err(error) => {
-                    tool_event(&turn_id, &ToolCallEvent::ArgumentStream(oc_core::tool_stream::ToolStreamEvent::Clear { round: rounds + 1 }));
-                    if error.is_context_overflow() && !overflow_recovered && compaction_config.auto {
-                        overflow_recovered=true;
-                        overflow_pending=true;
-                        self.queue_compaction(&params.session,oc_core::compaction::CompactionReason::Overflow)?;
-                        // Continue the same logical step/journal. No tool execution is retried.
-                        continue;
-                    }
-                    turn_log.display_parts.retain(|part| part.get("pending_text").is_none());
-                    streamed += stream_started.elapsed();
-                    let status = if params.cancel.load(Ordering::Relaxed) {
-                        TurnStatus::Cancelled
-                    } else if error.is_incomplete() {
-                        TurnStatus::Incomplete
-                    } else {
-                        TurnStatus::Failed
+                previous.retry = None;
+                previous.error = None;
+                previous.finish = None;
+                previous.status = "interrupted".into();
+                previous.completed = Some(millis());
+            }
+            turn_log.spans.push(oc_core::queries::AssistantSpan {
+                id: next_turn_id("assistant", millis()),
+                step: rounds + 1,
+                status: "started".into(),
+                started: millis(),
+                completed: None,
+                retry: None,
+                error: None,
+                finish: None,
+            });
+            let generation = loop {
+                let mut partial_opaque = Vec::new();
+                let mut semantic_started = false;
+                let mut checkpoint_failed = false;
+                self.db
+                    .checkpoint_turn(&turn_id, &turn_log.to_json().to_string())?;
+                let result = {
+                    let mut observe = |item: &crate::provider::StreamItem| {
+                        if !semantic_started
+                            && !matches!(
+                                item,
+                                crate::provider::StreamItem::Usage { .. }
+                                    | crate::provider::StreamItem::MessageBoundary { .. }
+                            )
+                        {
+                            semantic_started = true;
+                            let span = turn_log.spans.last_mut().expect("active span");
+                            span.retry = None;
+                            span.error = None;
+                            span.finish = None;
+                            span.started = millis();
+                            if self
+                                .db
+                                .checkpoint_turn(&turn_id, &turn_log.to_json().to_string())
+                                .is_err()
+                                || self
+                                    .publish_span_projection(&params.session, &turn_id)
+                                    .is_err()
+                            {
+                                checkpoint_failed = true;
+                            }
+                        }
+                        match item {
+                            crate::provider::StreamItem::ToolCallStarted {
+                                item_id,
+                                call_id,
+                                name,
+                            } => {
+                                if let Some(event) = pending_tools.announce(item_id, call_id, name)
+                                {
+                                    tool_event(&turn_id, &ToolCallEvent::ArgumentStream(event));
+                                }
+                            }
+                            crate::provider::StreamItem::ArgDelta { item_id, delta } => {
+                                if let Some(event) = pending_tools.delta(item_id, delta) {
+                                    tool_event(&turn_id, &ToolCallEvent::ArgumentStream(event));
+                                }
+                            }
+                            crate::provider::StreamItem::TextDelta(delta) => {
+                                if !delta.is_empty() && active_text.is_none() {
+                                    active_text = Some(text_slots.len());
+                                    text_slots.push(TextSlot {
+                                        text: String::new(),
+                                        part: turn_log.display_parts.len(),
+                                        item_id: String::new(),
+                                        output_index: None,
+                                    });
+                                    turn_log
+                                        .display_parts
+                                        .push(serde_json::json!({"pending_text":true}));
+                                }
+                                if let Some(index) = active_text {
+                                    text_slots[index].text.push_str(delta);
+                                }
+                                text_delta(&turn_id, delta);
+                            }
+                            crate::provider::StreamItem::MessageBoundary {
+                                item_id,
+                                output_index,
+                                done,
+                            } => {
+                                let slot = active_text
+                                    .filter(|&index| {
+                                        let current = &text_slots[index];
+                                        (item_id.is_empty()
+                                            || current.item_id.is_empty()
+                                            || current.item_id == *item_id)
+                                            && (output_index.is_none()
+                                                || current.output_index.is_none()
+                                                || current.output_index == *output_index)
+                                    })
+                                    .or_else(|| {
+                                        text_slots.iter().position(|slot| {
+                                            (!item_id.is_empty() && slot.item_id == *item_id)
+                                                || (output_index.is_some()
+                                                    && slot.output_index == *output_index)
+                                        })
+                                    });
+                                let slot = slot.unwrap_or_else(|| {
+                                    let index = text_slots.len();
+                                    text_slots.push(TextSlot {
+                                        text: String::new(),
+                                        part: turn_log.display_parts.len(),
+                                        item_id: String::new(),
+                                        output_index: None,
+                                    });
+                                    turn_log
+                                        .display_parts
+                                        .push(serde_json::json!({"pending_text":true}));
+                                    index
+                                });
+                                if !item_id.is_empty() {
+                                    text_slots[slot].item_id.clone_from(item_id);
+                                }
+                                if output_index.is_some() {
+                                    text_slots[slot].output_index = *output_index;
+                                }
+                                active_text = (!done).then_some(slot);
+                            }
+                            crate::provider::StreamItem::ReasoningDelta(delta)
+                                if !delta.is_empty() =>
+                            {
+                                active_text = None;
+                                reasoning_started.get_or_insert_with(std::time::Instant::now);
+                                if let Some(last) = turn_log.display_parts.last_mut()
+                                    && let Some(text) =
+                                        last.get("reasoning").and_then(|v| v.as_str())
+                                    && !reasoning_closed
+                                {
+                                    let mut text = text.to_string();
+                                    if text.len() + delta.len() > 16 * 1024 {
+                                        last["truncated"] = true.into();
+                                    }
+                                    if text.len() < 16 * 1024 {
+                                        text.push_str(delta);
+                                    }
+                                    last["reasoning"] = truncate(&text, 16 * 1024).into();
+                                } else {
+                                    turn_log.display_parts.push(serde_json::json!({"reasoning":truncate(delta, 16 * 1024), "truncated":delta.len()>16*1024}));
+                                }
+                                reasoning_closed = false;
+                                reasoning_delta(&turn_id, delta);
+                            }
+                            crate::provider::StreamItem::OpaqueItem { item_id, payload } => {
+                                if payload["type"] != "function_call"
+                                    && payload["type"] != "message"
+                                {
+                                    partial_opaque.push((
+                                        turn_log.display_parts.len().saturating_sub(1),
+                                        payload.clone(),
+                                    ));
+                                }
+                                if !item_id.is_empty()
+                                    && payload.get("type").and_then(|v| v.as_str())
+                                        == Some("reasoning")
+                                    && reasoning_started.is_some()
+                                {
+                                    let part = turn_log.display_parts.len().saturating_sub(1);
+                                    if let Some(last) = turn_log.display_parts.last_mut()
+                                        && last.get("reasoning").is_some()
+                                        && !reasoning_closed
+                                    {
+                                        last["duration_ms"] = streamed_ms(
+                                            reasoning_started
+                                                .take()
+                                                .expect("active reasoning")
+                                                .elapsed(),
+                                        )
+                                        .into();
+                                        reasoning_anchors.push((part, item_id.clone()));
+                                        reasoning_closed = true;
+                                        reasoning_item_ended(&turn_id);
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
                     };
-                    let mut report = self.commit_turn(
-                        &turn_log,
-                        turn_id,
-                        &params.session,
-                        status,
-                        text,
-                        rounds,
-                        streamed_ms(streamed),
-                        usage,
-                        context_usage,
-                        calls,
-                        nudge_hint,
-                        &published,
-                    )?;
-                    report.diagnostic = Some(error.to_string());
-                    return Ok(report);
+                    crate::provider::stream_input_counted(
+                        &params.provider,
+                        &selection.id,
+                        selection.variant.as_ref(),
+                        &input,
+                        &tool_defs,
+                        budget.output,
+                        params.cancel,
+                        &mut observe,
+                        &mut || async {
+                            self.db
+                                .generation_dispatch(
+                                    &params.session,
+                                    &turn_id,
+                                    if primary_request { "main" } else { "child" },
+                                )
+                                .map_err(|_| crate::provider::ProviderError::DispatchRefused)
+                        },
+                    )
+                    .await
+                };
+                match result {
+                    Ok(generation) => {
+                        if checkpoint_failed {
+                            return Err(RuntimeError::Storage);
+                        }
+                        streamed += stream_started.elapsed();
+                        let span = turn_log.spans.last_mut().expect("active span");
+                        span.status = "completed".into();
+                        span.finish = Some(
+                            if generation.finish == crate::provider::FinishReason::Length {
+                                "length"
+                            } else {
+                                "stop"
+                            }
+                            .into(),
+                        );
+                        span.completed = Some(millis());
+                        break generation;
+                    }
+                    Err(error) => {
+                        if checkpoint_failed {
+                            return Err(RuntimeError::Storage);
+                        }
+                        turn_log.spans.last_mut().expect("active span").error =
+                            Some(error.to_string());
+                        tool_event(
+                            &turn_id,
+                            &ToolCallEvent::ArgumentStream(
+                                oc_core::tool_stream::ToolStreamEvent::Clear { round: rounds + 1 },
+                            ),
+                        );
+                        if error.is_context_overflow()
+                            && !semantic_started
+                            && !overflow_recovered
+                            && compaction_config.auto
+                        {
+                            overflow_recovered = true;
+                            overflow_pending = true;
+                            self.queue_compaction(
+                                &params.session,
+                                oc_core::compaction::CompactionReason::Overflow,
+                            )?;
+                            // Continue the same logical step/journal. No tool execution is retried.
+                            continue 'step;
+                        }
+                        streamed += stream_started.elapsed();
+                        let output_started = matches!(&error, crate::provider::ProviderError::Request(f) if f.output_committed);
+                        if output_started {
+                            let mut partial_items = partial_opaque
+                                .into_iter()
+                                .map(|(part, opaque)| {
+                                    turn_log.opaque.push(opaque.clone());
+                                    (part, InputItem::ProviderOutput(opaque), false)
+                                })
+                                .collect::<Vec<_>>();
+                            for slot in &text_slots {
+                                if !slot.text.is_empty() {
+                                    partial_items.push((slot.part,InputItem::ProviderOutput(serde_json::json!({
+                                "type":"message", "role":"assistant", "status":"incomplete",
+                                "content":[{"type":"output_text","text":slot.text}]
+                            })),true));
+                                }
+                            }
+                            partial_items.sort_by_key(|(part, _, _)| *part);
+                            for (part, item, message) in partial_items {
+                                let index = turn_log.input.len();
+                                // Explicit partial status: never invent canonical completion.
+                                turn_log.input.push(item);
+                                if message {
+                                    turn_log.display_parts[part] = serde_json::json!({"message":index,"span":turn_log.spans.last().expect("active").id});
+                                }
+                            }
+                            let span = turn_log.spans.last_mut().expect("active span");
+                            span.status = "failed".into();
+                            span.finish = Some("error".into());
+                            span.completed = Some(millis());
+                        }
+                        turn_log
+                            .display_parts
+                            .retain(|part| part.get("pending_text").is_none());
+                        if !params.cancel.load(Ordering::Relaxed)
+                            && let Some(decision) = retry_policy.decide(&error, millis())
+                        {
+                            turn_log.spans.last_mut().expect("active span").retry =
+                                Some(decision.clone());
+                            self.publish_retry(&params.session, &turn_log, &decision)?;
+                            if retry::wait(&decision, params.cancel).await {
+                                if output_started {
+                                    // Resume from the committed journal and current DCP
+                                    // projection, keeping the admitted binding/tools fixed.
+                                    let (status, raw) = self.db.turn_result(&turn_id)?;
+                                    if status != "started" {
+                                        return Err(RuntimeError::Storage);
+                                    }
+                                    let saved: serde_json::Value =
+                                        serde_json::from_str(&raw.ok_or(RuntimeError::Storage)?)
+                                            .map_err(|_| RuntimeError::Storage)?;
+                                    turn_log = TurnLog::from_json(&saved)
+                                        .map_err(|_| RuntimeError::Storage)?;
+                                    let refreshed = self.active_projection(&params.session)?;
+                                    let prior = turn_log
+                                        .user_message
+                                        .as_deref()
+                                        .and_then(|anchor| {
+                                            refreshed
+                                                .projected
+                                                .iter()
+                                                .position(|row| row.0 == anchor)
+                                        })
+                                        .map_or(refreshed.projected.as_slice(), |index| {
+                                            &refreshed.projected[..index]
+                                        });
+                                    history = self.wire_history(
+                                        &params.session,
+                                        prior,
+                                        &refreshed.blocks,
+                                        &selection.id,
+                                        &params.catalog.provider,
+                                        lane.agent_digest.as_deref(),
+                                        refreshed.after_seq,
+                                    )?;
+                                    projected = refreshed.projected;
+                                    let raw_context: Vec<_> =
+                                        history.iter().chain(&turn_log.input).cloned().collect();
+                                    tool_projection = self.db.dcp_tool_projection_for_input(
+                                        &params.session,
+                                        &raw_context,
+                                    )?;
+                                    anchors = compress_available
+                                        .then(|| dcp_config_input(&projected, &dcp_config))
+                                        .flatten();
+                                    turn_log.input.push(InputItem::message(InputRole::Developer,
+                                    "The previous response was interrupted. Continue from where you left off without repeating completed content."));
+                                    input = fixed_input
+                                        .iter()
+                                        .chain(nudge_input.iter())
+                                        .chain(anchors.iter())
+                                        .chain(
+                                            dcp_continuation(
+                                                &history,
+                                                &turn_log.input,
+                                                &tool_projection,
+                                            )
+                                            .iter(),
+                                        )
+                                        .cloned()
+                                        .collect();
+                                    turn_log.spans.push(oc_core::queries::AssistantSpan {
+                                        id: next_turn_id("assistant", millis()),
+                                        step: rounds + 1,
+                                        status: "started".into(),
+                                        started: millis(),
+                                        completed: None,
+                                        retry: None,
+                                        error: None,
+                                        finish: None,
+                                    });
+                                }
+                                if let Err(error) = models::admit_budget(
+                                    &selection,
+                                    estimate_tokens(
+                                        &serde_json::to_string(&(&input, &tool_defs))
+                                            .map_err(|_| RuntimeError::Storage)?,
+                                    ),
+                                    budget,
+                                ) {
+                                    let mut report = self.commit_turn(
+                                        &turn_log,
+                                        turn_id,
+                                        &params.session,
+                                        TurnStatus::Failed,
+                                        text,
+                                        rounds,
+                                        streamed_ms(streamed),
+                                        usage,
+                                        context_usage,
+                                        calls,
+                                        nudge_hint,
+                                        &published,
+                                    )?;
+                                    report.diagnostic = Some(error.to_string());
+                                    return Ok(report);
+                                }
+                                text_slots.clear();
+                                active_text = None;
+                                reasoning_anchors.clear();
+                                reasoning_started = None;
+                                reasoning_closed = false;
+                                pending_tools = PendingToolStreams::new(rounds + 1);
+                                stream_started = std::time::Instant::now();
+                                continue;
+                            }
+                        }
+                        let status = if params.cancel.load(Ordering::Relaxed) {
+                            TurnStatus::Cancelled
+                        } else if error.is_incomplete() {
+                            TurnStatus::Incomplete
+                        } else {
+                            TurnStatus::Failed
+                        };
+                        let mut report = self.commit_turn(
+                            &turn_log,
+                            turn_id,
+                            &params.session,
+                            status,
+                            text,
+                            rounds,
+                            streamed_ms(streamed),
+                            usage,
+                            context_usage,
+                            calls,
+                            nudge_hint,
+                            &published,
+                        )?;
+                        report.diagnostic = Some(error.to_string());
+                        return Ok(report);
+                    }
                 }
             };
             rounds += 1;
+            retry_policy = retry::RetryPolicy::default();
             for event in pending_tools.flush() {
                 tool_event(&turn_id, &ToolCallEvent::ArgumentStream(event));
             }
@@ -1763,6 +2068,7 @@ impl<'a> Runtime<'a> {
         &self,
         agent: &SubagentAgent,
         parent_lane: &TurnLane,
+        owning_operation: &str,
         session: &str,
         prompt: String,
         model: &ResolvedModel,
@@ -1793,6 +2099,7 @@ impl<'a> Runtime<'a> {
                 .or_insert(*level);
         }
         let lane = TurnLane {
+            owning_operation: Some(owning_operation.into()),
             agent_id: Some(agent.id.clone()),
             agent_color_index: workspace
                 .subagents
@@ -1887,6 +2194,16 @@ impl<'a> Runtime<'a> {
         }
         let assistant =
             (status == TurnStatus::Completed && !text.is_empty()).then_some(text.as_str());
+        let mut turn_log = turn_log.clone();
+        if let Some(span) = turn_log.spans.last_mut()
+            && span.completed.is_none()
+        {
+            span.status = status.as_str().into();
+            if span.error.is_some() {
+                span.finish = Some("error".into());
+            }
+            span.completed = Some(millis());
+        }
         self.db.commit_turn(
             &turn_id,
             status.as_str(),
