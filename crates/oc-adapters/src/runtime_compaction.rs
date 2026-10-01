@@ -74,6 +74,18 @@ impl Runtime<'_> {
         provider: &ResponsesConfig,
     ) -> Result<(), RuntimeError> {
         if let Some((_, _, Some(route), Some(_))) = self.db.checkpoint_record(session)?
+            && let Some(origin) = self.db.checkpoint_model(session)?
+            && origin.provider == provider_id
+            && origin.id != model
+            && route
+                == crate::compaction::route_identity(provider_id, &origin.id, provider)
+                    .map_err(|_| RuntimeError::Provider)?
+        {
+            // Same verified credential/endpoint scope, different model: preserve
+            // public tail while withholding this native checkpoint entirely.
+            return Ok(());
+        }
+        if let Some((_, _, Some(route), Some(_))) = self.db.checkpoint_record(session)?
             && (self
                 .native_compaction
                 .read()
@@ -119,6 +131,7 @@ impl Runtime<'_> {
             return Err(RuntimeError::TurnActive);
         }
         let snapshot = CompactionSnapshot {
+            model: None,
             anchor: self.db.compaction_anchor(session)?,
             id: next_turn_id("compaction", millis()),
             session: session.into(),
@@ -367,6 +380,11 @@ impl Runtime<'_> {
         snapshot: &mut CompactionSnapshot,
     ) -> Result<Option<PreparedCheckpoint>, RuntimeError> {
         self.validate_checkpoint_route(session, &catalog.provider, model, provider)?;
+        snapshot.model = Some(oc_core::queries::ModelRef {
+            provider: catalog.provider.clone(),
+            id: model.to_string(),
+            variant: variant.map(str::to_owned),
+        });
         let config = self.current.read().expect("generation lock").config.clone();
         let recover_native = snapshot.reason == CompactionReason::Overflow
             && self

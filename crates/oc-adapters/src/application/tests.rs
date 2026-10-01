@@ -1419,3 +1419,5 @@ mod reload_tests {
         guard.join().await.unwrap();
     }
 }
+#[path = "live_switch_tests.rs"]
+mod live_switch_tests;

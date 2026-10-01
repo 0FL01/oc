@@ -352,6 +352,14 @@ pub fn explain(provider: &str, selection: &Selection, catalog_size: usize) -> se
     })
 }
 
+/// Opaque display identity for an unavailable retained selection. The raw
+/// choice remains unchanged for admission; renderers must not expose it as a
+/// current admitted model/variant.
+pub fn unavailable_selection_identity(kind: &str, raw: &str) -> String {
+    use sha2::Digest as _;
+    format!("{kind}-{:x}", sha2::Sha256::digest(raw.as_bytes()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::{ModelCatalog, admit, diagnose, explain, select_model, select_variant};

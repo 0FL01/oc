@@ -6,10 +6,14 @@ use oc_core::core_app::FreshSelection;
 use oc_core::queries::SessionSelectionAction as Action;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct ModelChoice {
     id: String,
     variant: Option<String>,
+}
+
+fn normalized_variant(variant: &Option<String>) -> Option<&str> {
+    variant.as_deref().filter(|name| *name != "default")
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -238,6 +242,37 @@ pub(super) fn for_turn(
     }
 }
 
+/// Request-boundary read of the same durable owner record, scoped to the pinned
+/// agent/Location. No draft, registry or archive is loaded here.
+pub(crate) fn request_choice(
+    db: &Db,
+    project: &std::path::Path,
+    provider: &str,
+    session: &str,
+    agent: Option<&str>,
+) -> Result<Option<(String, Option<String>)>, crate::runtime::RuntimeError> {
+    let project = project.to_string_lossy();
+    let session_record = key("session", &[&project, provider, session]);
+    let epoch = load::<u64>(db, &key("legacy_epoch", &[&project, provider]))
+        .map_err(|_| crate::runtime::RuntimeError::Storage)?
+        .unwrap_or(0);
+    let choice = match db
+        .get_pref_bounded(&session_record, 64 * 1024)
+        .map_err(|_| crate::runtime::RuntimeError::Storage)?
+    {
+        crate::storage::BoundedPref::Missing => None,
+        crate::storage::BoundedPref::TooLarge => return Err(crate::runtime::RuntimeError::Storage),
+        crate::storage::BoundedPref::Value(raw) => Some(
+            serde_json::from_str::<SessionChoice>(&raw)
+                .map_err(|_| crate::runtime::RuntimeError::Storage)?,
+        ),
+    };
+    Ok(choice
+        .filter(|choice| choice.epoch >= epoch && choice.agent.as_deref() == agent)
+        .and_then(|choice| choice.models.get(agent.unwrap_or("")).cloned())
+        .map(|model| (model.id, model.variant)))
+}
+
 /// Bounded, read-only fork selection: preserve this session's other agent
 /// drafts while pinning the currently effective choice and legacy epoch.
 pub(super) fn fork_choice(
@@ -275,6 +310,7 @@ pub(super) fn fork_choice(
         fallback,
         session,
         FreshSelection {
+            binding: None,
             agent_id: selected.agent_id,
             model_id: selected.model_id,
             variant: selected.variant,
@@ -366,6 +402,7 @@ pub(super) fn home(
     action: Action,
 ) -> Result<Effective, CoreError> {
     match action {
+        Action::Commit(_) => Err(app_error("model commit requires an existing session")),
         Action::Current => Ok(current.clone()),
         Action::Agent(agent) | Action::New(Some(agent)) => {
             let selected = home_for_agent(db, c, fallback, Some(&agent))?;
@@ -448,7 +485,22 @@ pub(super) fn apply(
     session: &str,
     home: bool,
     action: Action,
+    generation: u64,
 ) -> Result<Effective, CoreError> {
+    let previous = for_turn(db, c, fallback, session)?;
+    if let Action::Commit(commit) = &action {
+        validate_commit(db, c, &previous, session, generation, commit)?;
+        let visible = previous.snapshot(c, generation);
+        if visible.model_id == commit.model_id
+            && normalized_variant(&visible.variant) == normalized_variant(&commit.variant)
+        {
+            // An unchanged captured projection can carry an opaque retired
+            // identity. Keep its original owner cause/admission, never treat
+            // that display identity as a replacement model or silent fallback.
+            previous.admit_selection(c)?;
+            return Ok(previous);
+        }
+    }
     let key = session_key(c, session);
     let existing = load::<SessionChoice>(db, &key)?;
     if existing.is_none() && action == Action::Current && fallback.legacy_epoch != 0 {
@@ -474,7 +526,7 @@ pub(super) fn apply(
     } else if let Action::New(agent) = &action {
         choice.agent = agent.clone();
     }
-    let mut selected = if matches!(action, Action::Model(_))
+    let mut selected = if matches!(action, Action::Model(_) | Action::Commit(_))
         || (choice.models.is_empty()
             && fallback.legacy_epoch != 0
             && !matches!(action, Action::Agent(_)))
@@ -489,6 +541,20 @@ pub(super) fn apply(
     }
     let mut records = Vec::new();
     match &action {
+        Action::Commit(commit) => {
+            set_model(
+                &mut selected,
+                c,
+                ModelChoice {
+                    id: commit.model_id.clone(),
+                    variant: commit.variant.clone().filter(|name| name != "default"),
+                },
+            )?;
+            records.push(record(
+                variant_key(c, &selected.model_id),
+                &selected.variant,
+            )?);
+        }
         Action::Model(id) => {
             let mut preferred = if choice
                 .models
@@ -531,6 +597,17 @@ pub(super) fn apply(
         _ => {}
     }
     selected.admit_selection(c)?;
+    let model_action = matches!(
+        action,
+        Action::Model(_) | Action::Variant(_) | Action::Commit(_)
+    );
+    if model_action
+        && selected.model_id == previous.model_id
+        && selected.agent_id == previous.agent_id
+        && normalized_variant(&selected.variant) == normalized_variant(&previous.variant)
+    {
+        return Ok(selected);
+    }
     choice
         .models
         .insert(choice.agent.clone().unwrap_or_default(), model(&selected));
@@ -542,7 +619,70 @@ pub(super) fn apply(
         )?);
     }
     records.push(record(key, &choice)?);
-    db.set_prefs(&records)
-        .map_err(|error| CoreError::Diagnostic(storage_diagnostic(db.root(), &error)))?;
+    let persisted = if model_action {
+        let commit = publication(c, &selected, generation, &action);
+        db.commit_session_model_choice(
+            &records,
+            session,
+            &serde_json::json!({"session":session,"commit":commit}).to_string(),
+        )
+    } else {
+        db.set_prefs(&records)
+    };
+    persisted.map_err(|error| CoreError::Diagnostic(storage_diagnostic(db.root(), &error)))?;
     Ok(selected)
+}
+
+pub(super) fn publication(
+    c: &Composition,
+    selected: &Effective,
+    generation: u64,
+    action: &Action,
+) -> oc_core::queries::ModelCommit {
+    oc_core::queries::ModelCommit {
+        caller: if let Action::Commit(commit) = action {
+            commit.caller
+        } else {
+            0
+        },
+        binding: oc_core::queries::SelectionBinding {
+            location: Some(c.project.to_string_lossy().into_owned()),
+            generation,
+            provider: c.catalog.provider.clone(),
+            agent_id: selected.agent_id.clone(),
+        },
+        model_id: selected.model_id.clone(),
+        variant: normalized_variant(&selected.variant).map(str::to_owned),
+        draft_revision: if let Action::Commit(commit) = action {
+            commit.draft_revision
+        } else {
+            0
+        },
+    }
+}
+
+fn validate_commit(
+    db: &Db,
+    c: &Composition,
+    current: &Effective,
+    session: &str,
+    generation: u64,
+    commit: &oc_core::queries::ModelCommit,
+) -> Result<(), CoreError> {
+    if commit.binding.location.as_deref() != Some(c.project.to_string_lossy().as_ref())
+        || commit.binding.generation != generation
+        || commit.binding.provider != c.catalog.provider
+        || commit.binding.agent_id != current.snapshot(c, generation).agent_id
+    {
+        return Err(app_error("stale model commit scope"));
+    }
+    if db
+        .session_meta(session)
+        .map_err(app_error)?
+        .parent_id
+        .is_some()
+    {
+        return Err(app_error("child session is read-only"));
+    }
+    Ok(())
 }

@@ -223,6 +223,16 @@ pub(crate) fn project(
     references: &[Reference],
     current: &[Fact],
 ) -> Vec<InputItem> {
+    project_items(input, references, current, |_, item| Some(item.clone()))
+}
+
+/// Preserve chronological reference indexes while another owner narrows items.
+pub(crate) fn project_items(
+    input: &[InputItem],
+    references: &[Reference],
+    current: &[Fact],
+    mut project: impl FnMut(usize, &InputItem) -> Option<InputItem>,
+) -> Vec<InputItem> {
     let mut output = Vec::new();
     for index in 0..=input.len() {
         for reference in references.iter().filter(|r| r.index == index) {
@@ -230,8 +240,8 @@ pub(crate) fn project(
                 output.push(fact.input());
             }
         }
-        if let Some(item) = input.get(index) {
-            output.push(item.clone());
+        if let Some(item) = input.get(index).and_then(|item| project(index, item)) {
+            output.push(item);
         }
     }
     output

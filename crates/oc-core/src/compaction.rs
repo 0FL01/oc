@@ -39,6 +39,9 @@ pub struct CompactionAnchor {
 /// Public replayable operation. Opaque provider continuation never crosses this API.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompactionSnapshot {
+    /// Producing request scope in the existing JSON record (legacy absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<crate::queries::ModelRef>,
     #[serde(default)]
     pub anchor: CompactionAnchor,
     pub id: String,

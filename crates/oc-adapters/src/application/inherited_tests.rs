@@ -595,7 +595,7 @@ async fn r4a_malformed_nondefault_saved_pin_reports_model_not_agent_and_allows_r
     let mut effective = Effective::from_composition(&composition);
     assert!(effective.set_agent(&composition, "pinned").is_err());
     effective.retain_invalid_saved_agent(&composition, "pinned");
-    let projected = effective.snapshot(&composition);
+    let projected = effective.snapshot(&composition, 0);
     assert!(!format!("{projected:?}").contains("malformed-pin-canary"));
     let (app, guard, _) = spawn_with_env(&project, &data, BTreeMap::new())
         .await

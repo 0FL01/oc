@@ -701,16 +701,14 @@ fn r4a_native_existing_primary_blocked_pin_is_model_cause_and_repairs_without_ag
             )
             .await
             .unwrap();
-            for choice in [
-                app.home_selection(Action::Current).await.unwrap(),
-                app.session_selection(SessionId::new(ACTIVE).unwrap(), false, Action::Current)
-                    .await
-                    .unwrap(),
-            ] {
-                assert_eq!(choice.agent_id.as_deref(), Some("lost"));
-                assert_eq!(choice.model_id, MODEL);
-                assert!(choice.chrome.selection.is_none());
-            }
+            let home = app.home_selection(Action::Current).await.unwrap();
+            assert_eq!(home.agent_id.as_deref(), Some("lost"));
+            assert_eq!(home.chrome.selection.unwrap().diagnostic.code, ServiceCode::ModelUnavailable,
+                "committing a captured fresh session does not rewrite independent Home/config preferences");
+            let active = app.session_selection(SessionId::new(ACTIVE).unwrap(), false, Action::Current).await.unwrap();
+            assert_eq!(active.agent_id.as_deref(), Some("lost"));
+            assert_eq!(active.model_id, MODEL);
+            assert!(active.chrome.selection.is_none());
             let parked = app
                 .session_selection(SessionId::new(RETIRED).unwrap(), false, Action::Current)
                 .await

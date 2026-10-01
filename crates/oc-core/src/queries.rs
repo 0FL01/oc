@@ -151,6 +151,8 @@ pub const PREF_PRIMARY_AGENT: &str = "tui.primary_agent";
 /// `select_model` remains an exact model/variant action.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SessionSelectionAction {
+    /// Commit one exact captured composer choice, with its owner scope.
+    Commit(ModelCommit),
     /// Read/initialize the session's selection.
     Current,
     /// Select a model, retaining the current choice or its remembered variant.
@@ -161,6 +163,26 @@ pub enum SessionSelectionAction {
     Agent(String),
     /// Initialize a new Home route for the current agent.
     New(Option<String>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct SelectionBinding {
+    pub location: Option<String>,
+    pub generation: u64,
+    pub provider: String,
+    pub agent_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ModelCommit {
+    /// Frontend instance correlation, not authority. Zero is the direct API.
+    #[serde(default)]
+    pub caller: u64,
+    pub binding: SelectionBinding,
+    pub model_id: String,
+    pub variant: Option<String>,
+    /// Local composer revision for matching receipts; never owner authority.
+    pub draft_revision: u64,
 }
 
 /// One committed history row with its durable sequence number.
@@ -251,6 +273,9 @@ pub struct RetryFact {
 /// Irreducible physical-span lifecycle inside the existing turn journal.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AssistantSpan {
+    /// Actual prepared request, independent of the current composer selection.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub request: Option<RequestIdentity>,
     pub id: String,
     pub step: u32,
     pub status: String,
@@ -263,10 +288,31 @@ pub struct AssistantSpan {
     pub finish: Option<String>,
 }
 
+/// Bounded public receipt for one physical prepared primary attempt. Hashes are
+/// input/schema provenance receipts, not promises of provider cache reuse.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct RequestIdentity {
+    pub model: ModelRef,
+    pub model_label: String,
+    pub span: String,
+    /// First journal input owned by this attempt (including its settled results).
+    pub input_start: usize,
+    pub context_limit: u64,
+    pub input_limit: u64,
+    pub output_limit: u64,
+    pub estimated_input: u64,
+    pub dcp_min_context: u64,
+    pub dcp_max_context: u64,
+    pub tool_fingerprint: String,
+    pub context_fingerprint: String,
+}
+
 /// Metadata parallel to `HistoryTurn.parts`, shared by live checkpoint events
 /// and replay. Sequence never changes when an earlier part is omitted.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PartState {
+    /// Actual owning request label, never the later composer choice.
+    pub model_label: Option<String>,
     /// Durable display sequence within its owning turn.
     pub sequence: usize,
     /// Recorded tool outcome, or parent turn state for text/reasoning.
@@ -434,6 +480,8 @@ pub struct CatalogSnapshot {
 /// Presentation-only settings; no runtime policy or credentials.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct TuiChrome {
+    /// Actual configuration generation used to authorize captured selections.
+    pub selection_generation: u64,
     /// Independent, effective DCP transcript display controls.
     pub dcp: crate::dcp_view::DcpDisplayConfig,
     /// Admitted CLI session permission preference. Consumer registration is explicit.

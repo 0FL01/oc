@@ -1119,6 +1119,14 @@ impl<'a> Runtime<'a> {
         let mut overflow_pending = false;
         let mut last_compacted_round = None;
         let mut retry_policy = retry::RetryPolicy::default();
+        let mut retry_resuming = false;
+        let mut prepared_model = selection.id.clone();
+        let fallback = published
+            .config
+            .providers
+            .get(&params.catalog.provider)
+            .map(|provider| provider.options.native_fallback_limits)
+            .unwrap_or_default();
         'step: loop {
             if let Some(events) = self
                 .compaction_events
@@ -1157,6 +1165,94 @@ impl<'a> Runtime<'a> {
                     &published,
                 );
             }
+            // The owner record is re-read exactly once for this prepared attempt.
+            // Configuration, agent lane, route and issued batch remain captured.
+            let (model_id, variant) = if primary_request {
+                crate::application::request_choice(
+                    self.db,
+                    &self.roots.project,
+                    &params.catalog.provider,
+                    &params.session,
+                    lane.agent_id.as_deref(),
+                )?
+                .unwrap_or_else(|| (params.model_id.clone(), params.variant.clone()))
+            } else {
+                (params.model_id.clone(), params.variant.clone())
+            };
+            self.admit_provider(params.catalog, &model_id, &params.provider)?;
+            let base = models::select_model(params.catalog, &model_id)
+                .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+            let selection = models::select_variant(&base, variant.as_deref())
+                .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+            self.validate_checkpoint_route(
+                &params.session,
+                &params.catalog.provider,
+                &selection.id,
+                &params.provider,
+            )?;
+            if prepared_model != selection.id {
+                let refreshed = self.active_projection(&params.session)?;
+                let prior = refreshed
+                    .projected
+                    .iter()
+                    .filter(|row| {
+                        turn_log.user_message.as_deref() != Some(row.0.as_str())
+                            && !turn_log.shell_notice_messages.contains(&row.0)
+                    })
+                    .cloned()
+                    .collect::<Vec<_>>();
+                history = self.wire_history(
+                    &params.session,
+                    &prior,
+                    &refreshed.blocks,
+                    &selection.id,
+                    &params.catalog.provider,
+                    lane.agent_digest.as_deref(),
+                    refreshed.after_seq,
+                )?;
+                projected = refreshed.projected;
+                prepared_model = selection.id.clone();
+            }
+            let prepared_budget = models::budget(&selection, params.max_output, fallback);
+            let budget = &prepared_budget;
+            let model_context = budget.context;
+            let dcp_model_key = format!("{}/{}", params.catalog.provider, selection.id);
+            let thresholds = dcp_config.effective_for_context(&dcp_model_key, model_context);
+            if thresholds.min_context > thresholds.max_context {
+                return Err(RuntimeError::InvalidArgs(
+                    "effective DCP minContextLimit exceeds maxContextLimit".into(),
+                ));
+            }
+            let state_key = format!(
+                "dcp.nudge.{}\0{}\0{}",
+                params.session, params.catalog.provider, selection.id
+            );
+            {
+                let mut states = self.nudge_state.lock().expect("nudge lock");
+                if !states.contains_key(&state_key) {
+                    let state = self
+                        .db
+                        .get_pref(&state_key)?
+                        .map(|raw| serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage))
+                        .transpose()?
+                        .unwrap_or_default();
+                    states.insert(state_key.clone(), state);
+                }
+            }
+            let compaction_context = selection
+                .entry
+                .pointer("/limit/context")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+            let compaction_output = selection
+                .entry
+                .pointer("/limit/output")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(budget.output);
+            let compaction_input = selection
+                .entry
+                .pointer("/limit/input")
+                .and_then(|v| v.as_u64());
             // A completed connection/control is adopted only before building
             // the next provider request. Its clients, schemas, guidance and
             // execution context then stay leased through that request's tools.
@@ -1203,7 +1299,7 @@ impl<'a> Runtime<'a> {
                 .map_err(|_| RuntimeError::Provider)?,
                 &fixed_input,
                 &tool_defs,
-                &params.variant,
+                &variant,
             ));
             let runner = subagents.as_ref().map(|catalog| TurnSubagent {
                 owning_operation: lane
@@ -1212,8 +1308,8 @@ impl<'a> Runtime<'a> {
                     .unwrap_or_else(|| turn_id.clone()),
                 runtime: self,
                 parent_session: params.session.clone(),
-                parent_model_id: params.model_id.clone(),
-                parent_variant: params.variant.clone(),
+                parent_model_id: selection.id.clone(),
+                parent_variant: variant.clone(),
                 catalog: params.catalog,
                 provider: &params.provider,
                 cancel: params.cancel,
@@ -1248,9 +1344,9 @@ impl<'a> Runtime<'a> {
                 });
                 previous_instruction_input = latest_instruction_input;
             }
-            let current_instruction_input = crate::instructions::project(
-                &turn_log.input,
-                &turn_log.instruction_references,
+            let current_instruction_input = turn_log.instruction_input_for(
+                &selection.id,
+                &params.catalog.provider,
                 &instruction_facts,
             );
             let projected_continuation =
@@ -1337,7 +1433,7 @@ impl<'a> Runtime<'a> {
                     &params.session,
                     params.catalog,
                     &selection.id,
-                    params.variant.as_deref(),
+                    variant.as_deref(),
                     &params.provider,
                     Some(params.cancel),
                 )
@@ -1407,11 +1503,14 @@ impl<'a> Runtime<'a> {
                 anchors = compress_available
                     .then(|| dcp_config_input(&projected, &dcp_config))
                     .flatten();
+                // Summary work may have waited while a busy selection committed.
+                // Rebuild the next primary through the same admission boundary.
+                continue 'step;
             }
             let continuation =
                 dcp_continuation(&history, &current_instruction_input, &tool_projection);
             crate::instructions::reconcile(&mut fixed_input, &continuation, &instruction_facts);
-            let mut input: Vec<InputItem> = fixed_input
+            let input: Vec<InputItem> = fixed_input
                 .iter()
                 .chain(nudge_input.iter())
                 .chain(anchors.iter())
@@ -1467,7 +1566,7 @@ impl<'a> Runtime<'a> {
                 report.diagnostic = Some(error.to_string());
                 return Ok(report);
             }
-            let mut stream_started = std::time::Instant::now();
+            let stream_started = std::time::Instant::now();
             let mut reasoning_started: Option<std::time::Instant> = None;
             let mut reasoning_closed = false;
             // Stream slots are private until canonical output supplies input
@@ -1482,7 +1581,8 @@ impl<'a> Runtime<'a> {
             let mut active_text: Option<usize> = None;
             let mut reasoning_anchors: Vec<(usize, String)> = Vec::new();
             let mut pending_tools = PendingToolStreams::new(rounds + 1);
-            if let Some(previous) = turn_log.spans.last_mut()
+            if !retry_resuming
+                && let Some(previous) = turn_log.spans.last_mut()
                 && previous.completed.is_none()
             {
                 previous.retry = None;
@@ -1491,17 +1591,77 @@ impl<'a> Runtime<'a> {
                 previous.status = "interrupted".into();
                 previous.completed = Some(millis());
             }
-            turn_log.spans.push(oc_core::queries::AssistantSpan {
-                id: next_turn_id("assistant", millis()),
-                step: rounds + 1,
-                status: "started".into(),
-                started: millis(),
-                completed: None,
-                retry: None,
-                error: None,
-                finish: None,
-            });
-            let generation = loop {
+            if !retry_resuming {
+                turn_log.spans.push(oc_core::queries::AssistantSpan {
+                    request: None,
+                    id: next_turn_id("assistant", millis()),
+                    step: rounds + 1,
+                    status: "started".into(),
+                    started: millis(),
+                    completed: None,
+                    retry: None,
+                    error: None,
+                    finish: None,
+                });
+            }
+            retry_resuming = false;
+            let receipt = oc_core::queries::RequestIdentity {
+                model: oc_core::queries::ModelRef {
+                    provider: params.catalog.provider.clone(),
+                    id: selection.id.clone(),
+                    variant: selection
+                        .variant
+                        .as_ref()
+                        .map(|v| v.name.clone())
+                        .filter(|v| v != "default"),
+                },
+                model_label: format!(
+                    "{}{}",
+                    selection.entry["name"].as_str().unwrap_or(&selection.id),
+                    selection
+                        .variant
+                        .as_ref()
+                        .map_or(String::new(), |variant| format!(" ({})", variant.name))
+                ),
+                span: turn_log.spans.last().expect("prepared span").id.clone(),
+                input_start: turn_log.input.len(),
+                context_limit: budget.context,
+                input_limit: budget.input,
+                output_limit: budget.output,
+                estimated_input: request_estimate,
+                dcp_min_context: thresholds.min_context,
+                dcp_max_context: thresholds.max_context,
+                tool_fingerprint: crate::compaction::fingerprint(&tool_defs),
+                context_fingerprint: crate::compaction::fingerprint(&(
+                    &crate::compaction::route_identity(
+                        &params.catalog.provider,
+                        &selection.id,
+                        &params.provider,
+                    )
+                    .map_err(|_| RuntimeError::Provider)?,
+                    &variant,
+                    &input,
+                    &tool_defs,
+                )),
+            };
+            turn_log.spans.last_mut().expect("prepared span").request = Some(receipt.clone());
+            turn_log.requests.push(receipt);
+            self.db
+                .checkpoint_turn(&turn_id, &turn_log.to_json().to_string())?;
+            if let Some(events) = self
+                .compaction_events
+                .lock()
+                .expect("event publisher")
+                .as_ref()
+                && let Some(projection) = self.db.turn_presentation(&params.session, &turn_id)?
+            {
+                let _ = events.send(oc_core::core_app::CoreEvent::TurnPresentation {
+                    session: oc_core::domain::SessionId(params.session.clone()),
+                    turn: oc_core::core_app::WorkerTurnId(turn_id.clone()),
+                    projection,
+                });
+            }
+            let generation = {
                 let mut partial_opaque = Vec::new();
                 let mut semantic_started = false;
                 let mut checkpoint_failed = false;
@@ -1560,7 +1720,7 @@ impl<'a> Runtime<'a> {
                                     });
                                     turn_log
                                         .display_parts
-                                        .push(serde_json::json!({"pending_text":true}));
+                                        .push(serde_json::json!({"pending_text":true,"span":turn_log.spans.last().expect("active span").id}));
                                 }
                                 if let Some(index) = active_text {
                                     text_slots[index].text.push_str(delta);
@@ -1599,7 +1759,7 @@ impl<'a> Runtime<'a> {
                                     });
                                     turn_log
                                         .display_parts
-                                        .push(serde_json::json!({"pending_text":true}));
+                                        .push(serde_json::json!({"pending_text":true,"span":turn_log.spans.last().expect("active span").id}));
                                     index
                                 });
                                 if !item_id.is_empty() {
@@ -1629,7 +1789,7 @@ impl<'a> Runtime<'a> {
                                     }
                                     last["reasoning"] = truncate(&text, 16 * 1024).into();
                                 } else {
-                                    turn_log.display_parts.push(serde_json::json!({"reasoning":truncate(delta, 16 * 1024), "truncated":delta.len()>16*1024}));
+                                    turn_log.display_parts.push(serde_json::json!({"reasoning":truncate(delta, 16 * 1024), "truncated":delta.len()>16*1024,"span":turn_log.spans.last().expect("active span").id}));
                                 }
                                 reasoning_closed = false;
                                 reasoning_delta(&turn_id, delta);
@@ -1707,7 +1867,7 @@ impl<'a> Runtime<'a> {
                             .into(),
                         );
                         span.completed = Some(millis());
-                        break generation;
+                        generation
                     }
                     Err(error) => {
                         if checkpoint_failed {
@@ -1779,7 +1939,7 @@ impl<'a> Runtime<'a> {
                             if retry::wait(&decision, params.cancel).await {
                                 if output_started {
                                     // Resume from the committed journal and current DCP
-                                    // projection, keeping the admitted binding/tools fixed.
+                                    // projection; the next attempt admits its own view.
                                     let (status, raw) = self.db.turn_result(&turn_id)?;
                                     if status != "started" {
                                         return Err(RuntimeError::Storage);
@@ -1823,25 +1983,11 @@ impl<'a> Runtime<'a> {
                                         .flatten();
                                     turn_log.input.push(InputItem::message(InputRole::Developer,
                                     "The previous response was interrupted. Continue from where you left off without repeating completed content."));
-                                    input = fixed_input
-                                        .iter()
-                                        .chain(nudge_input.iter())
-                                        .chain(anchors.iter())
-                                        .chain(
-                                            dcp_continuation(
-                                                &history,
-                                                &crate::instructions::project(
-                                                    &turn_log.input,
-                                                    &turn_log.instruction_references,
-                                                    &instruction_facts,
-                                                ),
-                                                &tool_projection,
-                                            )
-                                            .iter(),
-                                        )
-                                        .cloned()
-                                        .collect();
+                                    // Preserve the pending continuation span even
+                                    // if its new view is refused before dispatch.
+                                    // No RequestIdentity is assigned until admitted.
                                     turn_log.spans.push(oc_core::queries::AssistantSpan {
+                                        request: None,
                                         id: next_turn_id("assistant", millis()),
                                         step: rounds + 1,
                                         status: "started".into(),
@@ -1852,39 +1998,8 @@ impl<'a> Runtime<'a> {
                                         finish: None,
                                     });
                                 }
-                                if let Err(error) = models::admit_budget(
-                                    &selection,
-                                    estimate_tokens(
-                                        &serde_json::to_string(&(&input, &tool_defs))
-                                            .map_err(|_| RuntimeError::Storage)?,
-                                    ),
-                                    budget,
-                                ) {
-                                    let mut report = self.commit_turn(
-                                        &turn_log,
-                                        turn_id,
-                                        &params.session,
-                                        TurnStatus::Failed,
-                                        text,
-                                        rounds,
-                                        streamed_ms(streamed),
-                                        usage,
-                                        context_usage,
-                                        calls,
-                                        nudge_hint,
-                                        &published,
-                                    )?;
-                                    report.diagnostic = Some(error.to_string());
-                                    return Ok(report);
-                                }
-                                text_slots.clear();
-                                active_text = None;
-                                reasoning_anchors.clear();
-                                reasoning_started = None;
-                                reasoning_closed = false;
-                                pending_tools = PendingToolStreams::new(rounds + 1);
-                                stream_started = std::time::Instant::now();
-                                continue;
+                                retry_resuming = true;
+                                continue 'step;
                             }
                         }
                         let status = if params.cancel.load(Ordering::Relaxed) {
@@ -2121,8 +2236,7 @@ impl<'a> Runtime<'a> {
                 {
                     assigned[i] = true;
                     positioned.push((messages[i].0, slot.part));
-                    turn_log.display_parts[slot.part] =
-                        serde_json::json!({"message":messages[i].2});
+                    turn_log.display_parts[slot.part] = serde_json::json!({"message":messages[i].2,"span":turn_log.spans.last().expect("active span").id});
                 }
             }
             // Without an identity, a stream slot only identifies a message if
@@ -2138,8 +2252,7 @@ impl<'a> Runtime<'a> {
                 {
                     assigned[i] = true;
                     positioned.push((messages[i].0, slot.part));
-                    turn_log.display_parts[slot.part] =
-                        serde_json::json!({"message":messages[i].2});
+                    turn_log.display_parts[slot.part] = serde_json::json!({"message":messages[i].2,"span":turn_log.spans.last().expect("active span").id});
                 }
             }
             let removed = text_slots
@@ -2167,7 +2280,7 @@ impl<'a> Runtime<'a> {
                         .unwrap_or(turn_log.display_parts.len());
                     turn_log
                         .display_parts
-                        .insert(position, serde_json::json!({"message":input_index}));
+                        .insert(position, serde_json::json!({"message":input_index,"span":turn_log.spans.last().expect("active span").id}));
                     for (_, part) in &mut positioned {
                         if *part >= position {
                             *part += 1;
@@ -2811,7 +2924,7 @@ impl<'a> Runtime<'a> {
                 .unwrap_or(turn_log.display_parts.len());
             turn_log
                 .display_parts
-                .insert(position, serde_json::json!({"tool":op}));
+                .insert(position, serde_json::json!({"tool":op,"span":turn_log.spans.last().map(|span|span.id.as_str())}));
             for (_, part) in positioned.iter_mut() {
                 if *part >= position {
                     *part += 1;
@@ -3347,8 +3460,14 @@ impl<'a> Runtime<'a> {
                                 generation: self.generation_id(),
                                 agent: turn_log.display["agent"].as_str().map(str::to_owned),
                                 agent_digest: turn_log.agent_digest.clone(),
-                                model: turn_log.model.clone(),
-                                provider: turn_log.provider.clone(),
+                                model: turn_log.requests.last().map_or_else(
+                                    || turn_log.model.clone(),
+                                    |request| request.model.id.clone(),
+                                ),
+                                provider: turn_log.requests.last().map_or_else(
+                                    || turn_log.provider.clone(),
+                                    |request| request.model.provider.clone(),
+                                ),
                                 command: call.arguments["command"]
                                     .as_str()
                                     .expect("validated command")

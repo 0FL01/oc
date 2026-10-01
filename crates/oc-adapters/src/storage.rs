@@ -1893,6 +1893,26 @@ impl Db {
         Ok(())
     }
 
+    /// Selection and its irreducible event commit in the same existing owner.
+    pub(crate) fn commit_session_model_choice(
+        &self,
+        values: &[(String, String)],
+        session: &str,
+        payload: &str,
+    ) -> Result<(), StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        for (key, value) in values {
+            Self::upsert_pref(&tx, key, value)?;
+        }
+        tx.execute(
+            "INSERT INTO events(session_id,kind,payload) VALUES(?1,'session_model_selected',?2)",
+            params![session, payload],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+
     fn upsert_pref(conn: &Connection, key: &str, value: &str) -> Result<(), StorageError> {
         conn.prepare_cached(
             "INSERT INTO prefs(key, value, updated_at) VALUES (?1, ?2, ?3)
@@ -2464,6 +2484,7 @@ impl Db {
         for (sequence, part) in refs.enumerate() {
             let part: serde_json::Value = serde_json::from_str(&part?).unwrap_or_default();
             let mut state = PartState {
+                model_label: None,
                 sequence,
                 status: turn.status.clone(),
                 truncated: part["truncated"].as_bool().unwrap_or(false),
@@ -2474,6 +2495,10 @@ impl Db {
                 .and_then(|id| turn.spans.iter().find(|s| s.id == id))
             {
                 state.status = span.status.clone();
+                state.model_label = span
+                    .request
+                    .as_ref()
+                    .map(|request| request.model_label.clone());
             }
             let before = turn.parts.len();
             if let Some(text) = part["reasoning"].as_str() {

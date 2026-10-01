@@ -1674,6 +1674,22 @@ impl<'a> Runtime<'a> {
         self.active.load(Ordering::Relaxed) || self.compaction_active()
     }
 
+    pub(crate) fn publish_model_selection(
+        &self,
+        session: oc_core::domain::SessionId,
+        commit: oc_core::queries::ModelCommit,
+    ) {
+        if let Some(events) = self
+            .compaction_events
+            .lock()
+            .expect("event publisher")
+            .as_ref()
+        {
+            let _ =
+                events.send(oc_core::core_app::CoreEvent::SessionModelSelected { session, commit });
+        }
+    }
+
     /// Per-session DCP turn counters, if the session ever ran a turn.
     pub fn dcp_turn_state(&self, session: &str) -> Option<NudgeState> {
         let prefix = format!("dcp.nudge.{session}\0");

@@ -2557,6 +2557,7 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             .expect("event timeout")
             .expect("event channel");
         match event {
+            CoreEvent::SessionModelSelected { .. } => {}
             CoreEvent::RetryScheduled { .. } => {}
             CoreEvent::ReasoningDelta { delta, .. } => reasoning.push_str(&delta),
             CoreEvent::TurnUsage {
@@ -2786,6 +2787,7 @@ async fn application_fresh_turn_validates_and_atomically_pins_home_choice() {
         .unwrap();
     let sid = |name| SessionId::new(name).unwrap();
     let chosen = |agent: &str, model: &str, variant: Option<&str>| FreshSelection {
+        binding: None,
         agent_id: Some(agent.into()),
         model_id: model.into(),
         variant: variant.map(str::to_string),

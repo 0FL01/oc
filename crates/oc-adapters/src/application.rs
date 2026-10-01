@@ -54,6 +54,7 @@ mod provider_catalog;
 mod provider_tests;
 #[path = "application_selection.rs"]
 mod selection;
+pub(crate) use selection::request_choice;
 pub(crate) mod session_move;
 #[path = "application_tab_deck.rs"]
 mod tab_deck;
@@ -941,7 +942,7 @@ impl Effective {
     }
 
     /// Catalog plus this effective selection.
-    fn snapshot(&self, composition: &Composition) -> CatalogSnapshot {
+    fn snapshot(&self, composition: &Composition, generation: u64) -> CatalogSnapshot {
         let issue = self.selection_issue(composition);
         let mut models: Vec<ModelEntry> = composition
             .catalog
@@ -1041,6 +1042,7 @@ impl Effective {
         CatalogSnapshot {
             chrome: {
                 let mut chrome = composition.tui_chrome.clone();
+                chrome.selection_generation = generation;
                 chrome.permissions_auto = composition.permission_preference.load(Ordering::SeqCst);
                 chrome.provider = Some(composition.provider_state.for_model(
                     &self.model_id,
@@ -1108,8 +1110,7 @@ impl Effective {
 }
 
 fn selection_identity(kind: &str, raw: &str) -> String {
-    use sha2::Digest as _;
-    format!("{kind}-{:x}", sha2::Sha256::digest(raw.as_bytes()))
+    crate::models::unavailable_selection_identity(kind, raw)
 }
 
 fn selection_diagnostic(
@@ -1504,7 +1505,8 @@ async fn start_worker(
                             location: record.directory.clone(),
                             generation: location_epoch.load(Ordering::SeqCst),
                             session: record.session.clone(),
-                            catalog: effective.snapshot(&composition),
+                            catalog: effective
+                                .snapshot(&composition, location_epoch.load(Ordering::SeqCst)),
                             diagnostics: composition.diagnostics.clone(),
                             notices: composition.startup_notices.clone(),
                         }));
@@ -1641,7 +1643,7 @@ async fn start_worker(
                     session.clone(),
                     old_deck,
                 );
-                let receipt = match receipt {
+                let mut receipt = match receipt {
                     Ok(receipt) => receipt,
                     Err(error) => {
                         next.shutdown_mcp().await.map_err(|error| {
@@ -1678,7 +1680,8 @@ async fn start_worker(
                 effective = next_effective;
                 registry = next_registry;
                 sessions.insert(path, session.0);
-                location_epoch.fetch_add(1, Ordering::SeqCst);
+                receipt.catalog.chrome.selection_generation =
+                    location_epoch.fetch_add(1, Ordering::SeqCst) + 1;
                 let _ = ack.send(Ok(receipt));
             }
             WorkerOutcome::Stop => {
@@ -1802,7 +1805,10 @@ async fn start_worker(
                                 }
                             };
                             match selected {
-                                Ok(selected) => Some(selected.snapshot(&next_composition)),
+                                Ok(selected) => Some(selected.snapshot(
+                                    &next_composition,
+                                    location_epoch.load(Ordering::SeqCst) + 1,
+                                )),
                                 Err(error) => {
                                     next.shutdown_mcp().await.map_err(|error| {
                                         runtime_issue(next.location(), &["mcp"], &error).diagnostic
@@ -1870,7 +1876,10 @@ async fn start_worker(
                                     location,
                                     generation: location_epoch.load(Ordering::SeqCst),
                                     session: session.expect("attached switch has a session").0,
-                                    catalog: effective.snapshot(&composition),
+                                    catalog: effective.snapshot(
+                                        &composition,
+                                        location_epoch.load(Ordering::SeqCst),
+                                    ),
                                     diagnostics: notes,
                                     notices,
                                 }));
@@ -1893,7 +1902,10 @@ async fn start_worker(
                                 let _ = ack.send(Ok(ReloadLocationSnapshot {
                                     location,
                                     generation: location_epoch.load(Ordering::SeqCst),
-                                    catalog: effective.snapshot(&composition),
+                                    catalog: effective.snapshot(
+                                        &composition,
+                                        location_epoch.load(Ordering::SeqCst),
+                                    ),
                                     diagnostics: notes,
                                     notices,
                                 }));
@@ -1989,6 +2001,7 @@ fn validate_reload_selections(
             &session.0,
             false,
             oc_core::queries::SessionSelectionAction::Current,
+            next.generation_id(),
         )
         .map_err(|_| selection_error())?;
         let turn = selection::for_turn(db, composition, effective, &session.0)
@@ -2370,6 +2383,7 @@ fn prepare_picker_open(
         &session.0,
         false,
         oc_core::queries::SessionSelectionAction::Current,
+        runtime.generation_id(),
     )?;
     // Current is a read projection: existing retired selections must remain
     // visible and editable without rewriting preferences. Execution admission
@@ -2426,7 +2440,7 @@ fn prepare_picker_open(
     Ok(oc_core::queries::SessionPickerOpen {
         session,
         location: runtime.location().into(),
-        catalog: selected.snapshot(composition),
+        catalog: selected.snapshot(composition, location_epoch.load(Ordering::SeqCst)),
         page,
         deck,
         previous_deck,
@@ -3075,7 +3089,8 @@ fn query(
             let _ = ack.send(result);
         }
         InboxMsg::Catalog { ack } => {
-            let _ = ack.send(Ok(effective.snapshot(composition)));
+            let snapshot = effective.snapshot(composition, location_epoch.load(Ordering::SeqCst));
+            let _ = ack.send(Ok(snapshot));
         }
         InboxMsg::SessionSelection {
             session,
@@ -3084,14 +3099,66 @@ fn query(
             ack,
         } => {
             let result = (|| {
-                if runtime.turn_active() {
+                if runtime.turn_active()
+                    && !matches!(
+                        action,
+                        oc_core::queries::SessionSelectionAction::Current
+                            | oc_core::queries::SessionSelectionAction::Model(_)
+                            | oc_core::queries::SessionSelectionAction::Variant(_)
+                            | oc_core::queries::SessionSelectionAction::Commit(_)
+                    )
+                {
                     return Err(CoreError::TurnBusy);
                 }
                 runtime
                     .open_session(&session.0)
                     .map_err(|error| runtime_query_error(db, error))?;
-                selection::apply(db, composition, effective, &session.0, home, action)
-                    .map(|selected| selected.snapshot(composition))
+                if runtime.turn_active()
+                    && matches!(
+                        action,
+                        oc_core::queries::SessionSelectionAction::Model(_)
+                            | oc_core::queries::SessionSelectionAction::Variant(_)
+                    )
+                    && db
+                        .session_meta(&session.0)
+                        .map_err(|error| query_storage_error(db, error))?
+                        .parent_id
+                        .is_some()
+                {
+                    return Err(CoreError::TurnBusy);
+                }
+                let previous = selection::for_turn(db, composition, effective, &session.0)?;
+                let selected = selection::apply(
+                    db,
+                    composition,
+                    effective,
+                    &session.0,
+                    home,
+                    action.clone(),
+                    location_epoch.load(Ordering::SeqCst),
+                )?;
+                if matches!(
+                    action,
+                    oc_core::queries::SessionSelectionAction::Model(_)
+                        | oc_core::queries::SessionSelectionAction::Variant(_)
+                        | oc_core::queries::SessionSelectionAction::Commit(_)
+                ) && (previous.model_id != selected.model_id
+                    || previous.variant.as_deref().filter(|v| *v != "default")
+                        != selected.variant.as_deref().filter(|v| *v != "default"))
+                {
+                    runtime.publish_model_selection(
+                        session.clone(),
+                        selection::publication(
+                            composition,
+                            &selected,
+                            location_epoch.load(Ordering::SeqCst),
+                            &action,
+                        ),
+                    );
+                }
+                let snapshot =
+                    selected.snapshot(composition, location_epoch.load(Ordering::SeqCst));
+                Ok(snapshot)
             })();
             let _ = ack.send(result);
         }
@@ -3111,7 +3178,8 @@ fn query(
                 };
                 let explicit = action != oc_core::queries::SessionSelectionAction::Current;
                 let selected = selection::home(db, composition, effective, &current, action)?;
-                let snapshot = selected.snapshot(composition);
+                let snapshot =
+                    selected.snapshot(composition, location_epoch.load(Ordering::SeqCst));
                 if explicit {
                     home_choices.insert(location.to_string(), selected);
                 }
@@ -3165,7 +3233,7 @@ fn query(
                 effective.legacy_epoch += 1;
                 effective.model_id = selection.id.clone();
                 effective.variant = selection.variant.map(|variant| variant.name);
-                Ok(effective.snapshot(composition))
+                Ok(effective.snapshot(composition, location_epoch.load(Ordering::SeqCst)))
             })();
             let _ = ack.send(result);
         }
@@ -3185,7 +3253,7 @@ fn query(
                 db.set_pref(&epoch_key, &epoch_value).map_err(app_error)?;
                 effective.legacy_epoch += 1;
                 publish_workspace(runtime, composition, effective).map_err(app_error)?;
-                Ok(effective.snapshot(composition))
+                Ok(effective.snapshot(composition, location_epoch.load(Ordering::SeqCst)))
             })();
             let _ = ack.send(result);
         }
@@ -3511,6 +3579,7 @@ async fn worker(
             } => InboxMsg::Submit {
                 session,
                 text: compress_prompt(&focus),
+                selection: None,
                 ack,
             },
             other => other,
@@ -3806,14 +3875,19 @@ async fn worker(
                 });
             }
             message @ (InboxMsg::Submit { .. } | InboxMsg::SubmitFresh { .. }) => {
-                let (session, text, fresh, ack) = match message {
-                    InboxMsg::Submit { session, text, ack } => (session, text, None, ack),
+                let (session, text, fresh, captured_selection, ack) = match message {
+                    InboxMsg::Submit {
+                        session,
+                        text,
+                        selection,
+                        ack,
+                    } => (session, text, None, selection, ack),
                     InboxMsg::SubmitFresh {
                         session,
                         text,
                         selection,
                         ack,
-                    } => (session, text, Some(selection), ack),
+                    } => (session, text, Some(selection), None, ack),
                     _ => unreachable!(),
                 };
                 if text.trim().is_empty() {
@@ -3841,7 +3915,37 @@ async fn worker(
                         }
                     }
                     let (selected, initial_selection) = match fresh {
-                        Some(Some(choice)) => {
+                        Some(Some(mut choice)) => {
+                            if let Some(binding) = &choice.binding {
+                                let home = match home_choices.get(runtime.location()) {
+                                    Some(selected) => selected.clone(),
+                                    None => selection::home_current(db, composition, effective)?,
+                                };
+                                if binding.location.as_deref()
+                                    != Some(composition.project.to_string_lossy().as_ref())
+                                    || binding.generation != location_epoch.load(Ordering::SeqCst)
+                                    || binding.provider != composition.catalog.provider
+                                    || binding.agent_id
+                                        != home
+                                            .snapshot(
+                                                composition,
+                                                location_epoch.load(Ordering::SeqCst),
+                                            )
+                                            .agent_id
+                                {
+                                    return Err(app_error("stale fresh model commit scope"));
+                                }
+                                let visible = home
+                                    .snapshot(composition, location_epoch.load(Ordering::SeqCst));
+                                choice.agent_id = home.agent_id.clone();
+                                if choice.model_id == visible.model_id
+                                    && choice.variant == visible.variant
+                                {
+                                    home.admit_selection(composition)?;
+                                    choice.model_id = home.model_id.clone();
+                                    choice.variant = home.variant.clone();
+                                }
+                            }
                             let (selected, record) =
                                 selection::fresh(composition, effective, &session.0, choice)?;
                             (selected, Some(record))
@@ -3852,6 +3956,7 @@ async fn worker(
                                 None => selection::home_current(db, composition, effective)?,
                             };
                             let choice = oc_core::core_app::FreshSelection {
+                                binding: None,
                                 agent_id: home.agent_id.clone(),
                                 model_id: home.model_id.clone(),
                                 variant: home.variant.clone(),
@@ -3860,10 +3965,41 @@ async fn worker(
                                 selection::fresh(composition, effective, &session.0, choice)?;
                             (selected, Some(record))
                         }
-                        None => (
-                            selection::for_turn(db, composition, effective, &session.0)?,
-                            None,
-                        ),
+                        None => {
+                            let selected = if let Some(commit) = captured_selection {
+                                let previous =
+                                    selection::for_turn(db, composition, effective, &session.0)?;
+                                let action =
+                                    oc_core::queries::SessionSelectionAction::Commit(commit);
+                                let selected = selection::apply(
+                                    db,
+                                    composition,
+                                    effective,
+                                    &session.0,
+                                    false,
+                                    action.clone(),
+                                    location_epoch.load(Ordering::SeqCst),
+                                )?;
+                                if previous.model_id != selected.model_id
+                                    || previous.variant.as_deref().filter(|v| *v != "default")
+                                        != selected.variant.as_deref().filter(|v| *v != "default")
+                                {
+                                    runtime.publish_model_selection(
+                                        session.clone(),
+                                        selection::publication(
+                                            composition,
+                                            &selected,
+                                            location_epoch.load(Ordering::SeqCst),
+                                            &action,
+                                        ),
+                                    );
+                                }
+                                selected
+                            } else {
+                                selection::for_turn(db, composition, effective, &session.0)?
+                            };
+                            (selected, None)
+                        }
                     };
                     selected.admit_selection(composition)?;
                     runtime

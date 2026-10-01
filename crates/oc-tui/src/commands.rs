@@ -125,8 +125,6 @@ impl CommandSpec {
                     | CommandAction::CloseTab
                     | CommandAction::RenameSession { .. }
                     | CommandAction::OpenSessions
-                    | CommandAction::OpenModelPicker
-                    | CommandAction::OpenVariants
                     | CommandAction::OpenAgents
                     | CommandAction::SwitchLocation { .. }
                     | CommandAction::ReloadConfiguration

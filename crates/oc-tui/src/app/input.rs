@@ -1802,7 +1802,7 @@ impl TuiState {
                 .map(|variant| variant.name.clone())
                 .or_else(|| {
                     picker
-                        .retired_variant()
+                        .retired_variant_label()
                         .map(|name| format!("{name} (unavailable)"))
                 }),
         ))
@@ -2049,10 +2049,6 @@ impl TuiState {
             KeyAction::UndoConversation => self.run_command(CommandAction::UndoConversation),
             KeyAction::RedoConversation => self.run_command(CommandAction::RedoConversation),
             KeyAction::Agents => self.run_command(CommandAction::OpenAgents),
-            KeyAction::CycleVariant if self.is_busy() => KeyOutcome {
-                note: Some("turn active; action unavailable".into()),
-                ..Default::default()
-            },
             KeyAction::CycleVariant => KeyOutcome {
                 intent: Some(PanelIntent::CycleVariant),
                 ..Default::default()
@@ -2307,7 +2303,27 @@ impl TuiState {
         if self.status == TuiStatus::Quit {
             return KeyOutcome::default();
         }
+        if self.input.trim().is_empty() {
+            return match self.commit_composer_model() {
+                Ok(()) => KeyOutcome::default(),
+                Err(error) => KeyOutcome {
+                    note: Some(format!("model commit: {error}")),
+                    ..Default::default()
+                },
+            };
+        }
         if self.pending.is_some() {
+            if let Some(action @ (CommandAction::OpenModelPicker | CommandAction::OpenVariants)) =
+                dispatch(self.input.trim())
+            {
+                let outcome = self.run_command(action);
+                if outcome.note.is_none() {
+                    self.input.clear();
+                    self.editor.clear();
+                    self.input_revision += 1;
+                }
+                return outcome;
+            }
             if let Some(action) = dispatch(self.input.trim())
                 && let Some(reason) = self.command_unavailable(&action)
             {
@@ -2375,14 +2391,23 @@ impl TuiState {
                 ..KeyOutcome::default()
             };
         }
-        // The application owns Home selection and validates it on acceptance;
-        // `None` resolves the current Home choice without session preferences.
+        // Capture now; owner preparation commits only after earlier admissions.
         let fresh = self.session.is_none();
         let session = self.session.clone().unwrap_or_else(fresh_session_id);
         let result = if fresh {
-            self.app.request_submit_fresh(session.clone(), text, None)
+            let selection =
+                self.captured_model_commit()
+                    .map(|commit| oc_core::core_app::FreshSelection {
+                        binding: Some(commit.binding.clone()),
+                        agent_id: commit.binding.agent_id,
+                        model_id: commit.model_id,
+                        variant: commit.variant,
+                    });
+            self.app
+                .request_submit_fresh(session.clone(), text, selection)
         } else {
-            self.app.request_submit(session.clone(), text)
+            self.app
+                .request_submit_selected(session.clone(), text, self.captured_model_commit())
         };
         match result {
             Ok(receipt) => {
@@ -3036,16 +3061,6 @@ impl TuiState {
                 }
             }
             TuiPanel::Rename => return self.handle_rename_key(KeyAction::Enter),
-            TuiPanel::Model if self.is_busy() => {
-                outcome.note = self
-                    .command_unavailable(&CommandAction::OpenModelPicker)
-                    .map(str::to_string)
-            }
-            TuiPanel::Variant if self.is_busy() => {
-                outcome.note = self
-                    .command_unavailable(&CommandAction::OpenVariants)
-                    .map(str::to_string)
-            }
             TuiPanel::Agents if self.is_busy() => {
                 outcome.note = self
                     .command_unavailable(&CommandAction::OpenAgents)

@@ -13,6 +13,7 @@ async fn vis34_session_tps_is_current_presentation_for_finished_and_replayed_foo
     state.apply_usage(&turn, 1000, 200, 4000);
     state.apply_finished(&turn, "## actual body\n\nretained text", 1500);
     state.apply_compaction(oc_core::compaction::CompactionSnapshot {
+        model: None,
         anchor: Default::default(),
         id: "checkpoint".into(),
         session: "tps".into(),

@@ -149,7 +149,7 @@ impl ModelPicker {
                 },
                 current: current == name,
                 footer: if name == "default" {
-                    self.retired_variant()
+                    self.retired_variant_label()
                         .map(|variant| format!("{variant} unavailable"))
                         .unwrap_or_default()
                 } else {
@@ -227,6 +227,11 @@ impl ModelPicker {
         (selected.id == persisted.id && selected.variant.is_none() && self.last_error.is_some())
             .then_some(persisted.variant.as_deref())
             .flatten()
+    }
+
+    pub(crate) fn retired_variant_label(&self) -> Option<String> {
+        self.retired_variant()
+            .map(|raw| models::unavailable_selection_identity("variant", raw))
     }
 
     /// Sorted ids for the bounded browse window around the cursor.

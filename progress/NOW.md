@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-01T13:58:52+00:00
+State updated: 2026-10-01T20:28:56+00:00
 Active: T50
 
 Сверить Git status/diff до выполнения команд.
@@ -14,13 +14,13 @@ Owner-approved selected R1–R10; detailed contract/slices in spec/M8. Shell com
 
 # T50
 ## Result
-R9 executors/captured file family verified; live busy switch next.
+Same-task live model switch verified; captured tools and compatible history retained.
 ## Checks
-Workspace1409 PASS; parent13 +44 native; Python47.
+Workspace1413 PASS; parent7 +14 normal ELF cases; Python47.
 ## Risks
 Whole T50 open; T44 paused; live allowance exhausted.
 ## Next
-Same-task committed model switch, then shell controls.
+Shell inventory/selected controls and same-process foreground conversion.
 
 
 Ready (до 5): T53, T56

@@ -423,6 +423,15 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
     // A preview notice is not a durable part. Keep adjacent reasoning refs
     // adjacent for grouping, then show every notice before the next part.
     let mut reasoning_notices = Vec::new();
+    let first = turn
+        .spans
+        .iter()
+        .find_map(|span| span.request.as_ref().map(|request| &request.model));
+    let mixed = turn
+        .spans
+        .iter()
+        .filter_map(|span| span.request.as_ref())
+        .any(|request| Some(&request.model) != first);
     for (index, part) in turn.parts.iter().enumerate() {
         if !matches!(part, TranscriptPart::Reasoning { .. }) {
             rows.append(&mut reasoning_notices);
@@ -461,6 +470,19 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
             });
         }
         rows.push(part_row);
+        if mixed
+            && !matches!(part, TranscriptPart::Tool(_))
+            && let Some(model) = turn
+                .part_states
+                .get(index)
+                .and_then(|state| state.model_label.clone())
+        {
+            rows.last_mut()
+                .expect("part row")
+                .meta
+                .get_or_insert_with(Default::default)
+                .model = Some(model);
+        }
         if let Some(state) = turn.part_states.get(index).filter(|s| s.truncated) {
             let mut notice = empty_row();
             notice.text = if state.input_omitted {
@@ -510,7 +532,15 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         rows.push(notice);
     }
     footer.meta = Some(AssistantMeta {
-        model: Some(turn.model_label.clone()),
+        model: Some(
+            turn.spans
+                .last()
+                .and_then(|span| span.request.as_ref())
+                .map_or_else(
+                    || turn.model_label.clone(),
+                    |request| request.model_label.clone(),
+                ),
+        ),
         duration_ms: turn.duration_ms,
         input_tokens: turn.usage.map(|v| v.0),
         output_tokens: turn.usage.map(|v| v.1),

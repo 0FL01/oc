@@ -120,9 +120,13 @@ fn var01_full_canonical_cycle_picker_agreement_and_exact_wire() {
     fixture.wait_requests(6);
     wait_screen_row(&pty, "esc interrupt", DEADLINE);
     pty.send(b"busy preserved draft\x14");
-    wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
     wait_screen_row(&pty, "busy preserved draft", DEADLINE);
-    wait_screen_row(&pty, "T39 model fixture · none", DEADLINE);
+    wait_screen_row(&pty, "T39 model fixture · minimal", DEADLINE);
+    assert_eq!(
+        fixture.wait_requests(6).len(),
+        6,
+        "busy variant draft dispatches nothing"
+    );
     fixture.vis28_continue.store(true, Ordering::Relaxed);
     wait_screen_row(&pty, "answer:vis28 completed", DEADLINE);
     wait_idle(&pty);
@@ -168,7 +172,7 @@ fn var01_empty_disabled_noop_and_readonly_shortcut_preserve_draft_and_selection(
         }
         let mut pty = PtySession::spawn(fixture.clone(), "var01-guards", None);
         pty.wait_visible(READY, DEADLINE);
-        choose_model(&mut pty, "T39 model"); // seed an exact durable selection
+        choose_model(&mut pty, "T39 model"); // identical local choice remains a no-op
         pty.send(b"noop draft\x14\x10"); // palette supplies a processed-key barrier
         wait_screen_row(&pty, "Commands", DEADLINE);
         pty.send(b"\x1b");
@@ -181,8 +185,8 @@ fn var01_empty_disabled_noop_and_readonly_shortcut_preserve_draft_and_selection(
         assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
         let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
         assert_eq!(
-            saved_selection(&db, &fixture, "var01-guards", DEFAULT_AGENT),
-            serde_json::json!({"id":MODEL,"variant":null})
+            saved_selection_record(&db, &fixture, "var01-guards", "fixture"),
+            None
         );
         assert!(db.read_history("var01-guards").unwrap().is_empty());
         db.create_child_session(
@@ -245,8 +249,8 @@ fn var01_empty_disabled_noop_and_readonly_shortcut_preserve_draft_and_selection(
             [("assistant".into(), "VAR01 readonly sentinel".into())]
         );
         assert_eq!(
-            saved_selection(&db, &fixture, "var01-guards", DEFAULT_AGENT),
-            serde_json::json!({"id":MODEL,"variant":null})
+            saved_selection_record(&db, &fixture, "var01-guards", "fixture"),
+            None
         );
     }
 }
@@ -311,6 +315,7 @@ fn var01_discovery_refresh_reopen_restart_and_retired_identity() {
     wait_screen_row(&pty, "Canonical probe 1 ludka2 · fast", DEADLINE);
     pty.send(b"\x03");
     wait_screen_absent(&pty, "identity draft");
+    pty.send(b"\r"); // explicit empty-composer commit before restart
     pty.send(b"/quit\r");
     assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
     let before = {
@@ -331,6 +336,7 @@ fn var01_discovery_refresh_reopen_restart_and_retired_identity() {
     choose_variant(&mut pty, "Default");
     // Keep the saved session valid while explicitly retiring the independent
     // Home draft through successful refresh; retained-tab reload guards remain.
+    pty.send(b"\r"); // commit the existing session; Home keeps its own local draft
     pty.send(b"/new\r");
     wait_screen_row(&pty, "█▀▀█ █▀▀█", DEADLINE);
     for (phase, disabled) in [(2, false), (3, true)] {
@@ -1552,6 +1558,7 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
         pty.wait_visible(READY, DEADLINE);
         choose_model(&mut pty, "T39 alt");
         choose_variant(&mut pty, "fast");
+        pty.send(b"\r"); // picker alone no longer persists the selected choice
         pty.send(b"/rename Retained selection root\r");
         wait_screen_row(&pty, "Retained selection root", DEADLINE);
         pty.send(b"/quit\r");
@@ -2186,16 +2193,7 @@ fn v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle
     fixture.wait_requests(6);
     // Slash, chord and palette routes all consult the same availability policy.
     let mut draft_len = 0;
-    for command in [
-        "/new",
-        "/clear",
-        "/model",
-        "/variants",
-        "/agents",
-        "/continue",
-        "/thinking",
-        "/effort",
-    ] {
+    for command in ["/new", "/clear", "/agents", "/continue"] {
         pty.send(&vec![0x7f; draft_len]);
         pty.send(command.as_bytes());
         wait_screen_row(&pty, command, DEADLINE);
@@ -2204,7 +2202,27 @@ fn v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle
         draft_len = command.len();
     }
     pty.send(&vec![0x7f; draft_len]);
-    for route in [b"\x18n".as_slice(), b"\x18m", b"\x18a", b"\x18l"] {
+    for (command, panel) in [
+        ("/model", "Select model"),
+        ("/variants", "Select variant"),
+        ("/thinking", "Select variant"),
+        ("/effort", "Select variant"),
+    ] {
+        pty.send(format!("{command}\r").as_bytes());
+        wait_screen_row(&pty, panel, DEADLINE);
+        pty.send(b"\x1b");
+        dismissed(&pty, panel);
+        assert_eq!(
+            fixture.wait_requests(6).len(),
+            6,
+            "busy selector opening is local"
+        );
+    }
+    pty.send(b"\x18m");
+    wait_screen_row(&pty, "Select model", DEADLINE);
+    pty.send(b"\x1b");
+    dismissed(&pty, "Select model");
+    for route in [b"\x18n".as_slice(), b"\x18a", b"\x18l"] {
         pty.send(route);
         wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
     }
@@ -2234,7 +2252,7 @@ fn v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle
         "navigation and unavailable actions never submit"
     );
     for (i, request) in requests.iter().enumerate() {
-        if i != 1 {
+        if [0, 2, 5, 6].contains(&i) {
             assert_eq!(request["model"], ALT_MODEL);
             assert_eq!(
                 request["reasoning"]["effort"], "high",
@@ -2264,11 +2282,9 @@ fn v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle
             DEFAULT_AGENT
         ])
     );
-    let draft: serde_json::Value =
-        serde_json::from_str(&db.get_pref(&draft_key).unwrap().unwrap()).unwrap();
-    assert_eq!(
-        draft["id"], ALT_MODEL,
-        "subsequent Home routes restore the persisted Location/agent model draft"
+    assert!(
+        db.get_pref(&draft_key).unwrap().is_none(),
+        "local Home picker choice is captured into its accepted session, never a persisted uncommitted draft"
     );
     assert_eq!(saved["id"], ALT_MODEL);
     assert_eq!(

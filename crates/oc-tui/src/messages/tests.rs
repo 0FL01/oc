@@ -1922,6 +1922,7 @@ fn vis34_archive_paragraph_final_lf_has_one_footer_margin_full_cached_and_indexe
     let mut prompt = user("VIS34 next: continue from checkpoint; no tools.", vec![]);
     prompt.seq = 2;
     let checkpoint = crate::compaction::row(&CompactionSnapshot {
+        model:None,
             anchor: CompactionAnchor { message: prompt.message_id.as_ref().map(|id| id.0.clone()), ..Default::default() },
             id: "checkpoint".into(), session: "s".into(), reason: CompactionReason::Automatic, state: CompactionState::Completed,
             summary: "## Objective\n- VIS34-CHECKPOINT: preserve R1, R2, R3.\n\n## Work State\n- Three seeded exchanges completed; filesystem unchanged.\n\n## Next Move\n1. Continue the user request without replaying tools.\n".into(),

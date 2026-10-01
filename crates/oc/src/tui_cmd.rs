@@ -659,6 +659,7 @@ impl LoopState {
     }
 
     fn open_home(&mut self, state: &mut TuiState, mut next: TuiState) {
+        next.inherit_committed_model_choice(state);
         next.approval_roots.clone_from(&state.approval_roots);
         state.close_panel();
         next.take_tab_clocks_from(state);
@@ -2424,43 +2425,13 @@ async fn apply_intent_with_origin(
             state.apply_card_output(op, offset, page);
         }
         PanelIntent::SelectModel { id } => {
-            let snapshot = selection(app, state, SelectionAction::Model(id)).await?;
-            state.model_choice_applied(snapshot);
+            state.draft_model(&id)?;
         }
         PanelIntent::ChooseModel { variant, .. } => {
-            let snapshot = selection(app, state, SelectionAction::Variant(variant)).await?;
-            state.model_choice_applied(snapshot);
+            state.draft_variant(variant.as_deref())?;
         }
         PanelIntent::CycleVariant => {
-            if state.is_busy() {
-                return Err("turn active; action unavailable".into());
-            }
-            let current = selection(app, state, SelectionAction::Current).await?;
-            // T47/VAR01: owner snapshot supplies canonical effective order.
-            // Preserve pinned stale/last-name → Default and empty no-op rules.
-            let named: Vec<_> = current
-                .models
-                .iter()
-                .find(|model| model.id == current.model_id)
-                .into_iter()
-                .flat_map(|model| &model.variants)
-                .filter(|variant| !variant.disabled && variant.name != "default")
-                .map(|variant| variant.name.as_str())
-                .collect();
-            if named.is_empty() {
-                state.apply_catalog(current);
-                return Ok(());
-            }
-            let next = match current.variant.as_deref().filter(|name| *name != "default") {
-                None => Some(named[0].to_string()),
-                Some(value) => named
-                    .iter()
-                    .position(|name| *name == value)
-                    .and_then(|index| named.get(index + 1))
-                    .map(|name| name.to_string()),
-            };
-            let snapshot = selection(app, state, SelectionAction::Variant(next)).await?;
-            state.model_choice_applied(snapshot);
+            state.cycle_variant_draft()?;
         }
         PanelIntent::NewSession => {
             if state.is_busy() && state.approvals.active().is_none() {
@@ -3216,6 +3187,7 @@ async fn handle_worker_event(
     let owner = match &event {
         CoreEvent::ShellNotice(notice) => &notice.session,
         CoreEvent::SessionMoved { session, .. }
+        | CoreEvent::SessionModelSelected { session, .. }
         | CoreEvent::SessionTitleUpdated { session, .. }
         | CoreEvent::RetryScheduled { session, .. }
         | CoreEvent::TurnStarted { session, .. }
@@ -3244,6 +3216,9 @@ async fn handle_worker_event(
         return Ok(());
     }
     match event {
+        CoreEvent::SessionModelSelected { session, commit } => {
+            state.apply_session_model_selected(&session, &commit)
+        }
         CoreEvent::ShellNotice(notice) => {
             if state.is_busy() {
                 state.push_note(&notice.text);

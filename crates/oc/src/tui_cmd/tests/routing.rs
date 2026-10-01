@@ -363,7 +363,7 @@ async fn copy_message_queries_exact_owner_row_instead_of_window_preview() {
 }
 
 #[tokio::test]
-async fn selecting_model_updates_metadata_without_selection_toast() {
+async fn selecting_model_updates_local_draft_without_owner_commit_or_selection_toast() {
     use oc_core::queries::ModelEntry;
 
     let (app, mut inbox, _) = CoreApp::channel(4);
@@ -389,27 +389,6 @@ async fn selecting_model_updates_metadata_without_selection_toast() {
     assert_eq!(state.active_model_label(), Some(("first".into(), None)));
     assert_eq!(state.note(), None);
 
-    let worker = tokio::spawn(async move {
-        let Some(InboxMsg::SessionSelection {
-            session: owner,
-            home,
-            action,
-            ack,
-        }) = inbox.recv().await
-        else {
-            panic!("model selection must reach owner")
-        };
-        assert_eq!(owner, session);
-        assert!(!home);
-        assert_eq!(action, SelectionAction::Model("second".into()));
-        selected.model_id = "second".into();
-        ack.send(Ok(selected)).unwrap();
-        assert!(
-            inbox.try_recv().is_err(),
-            "selection needs no extra owner action"
-        );
-    });
-
     apply_intent(
         &app,
         &mut state,
@@ -422,7 +401,7 @@ async fn selecting_model_updates_metadata_without_selection_toast() {
     .unwrap();
     assert_eq!(state.active_model_label(), Some(("second".into(), None)));
     assert_eq!(state.note(), None);
-    worker.await.unwrap();
+    assert!(inbox.try_recv().is_err(), "picker choice is only a draft");
 }
 
 #[tokio::test]
@@ -516,7 +495,7 @@ async fn selecting_agent_updates_owner_and_draft_without_selection_toast() {
 }
 
 #[tokio::test]
-async fn variant_cycle_uses_owner_order_and_stale_default_rules_in_home_and_session() {
+async fn variant_cycle_drafts_catalog_order_and_stale_default_rules_in_home_and_session() {
     use oc_core::queries::{ModelEntry, VariantEntry};
     for home in [true, false] {
         for (current, expected) in [
@@ -532,10 +511,7 @@ async fn variant_cycle_uses_owner_order_and_stale_default_rules_in_home_and_sess
             } else {
                 TuiState::new(app.clone(), SessionId::new("cycle-owner").unwrap())
             };
-            // Deliberately stale/empty UI: the owner chooses the next variant.
-            state.apply_catalog(catalog());
             state.restore_prompt("next accepted prompt".into());
-            state.push_note("unrelated warning");
             let mut selected = catalog();
             selected.models = vec![ModelEntry {
                 id: selected.model_id.clone(),
@@ -561,29 +537,8 @@ async fn variant_cycle_uses_owner_order_and_stale_default_rules_in_home_and_sess
                 output_known: false,
             }];
             selected.variant = current.map(str::to_string);
-            let worker = tokio::spawn(async move {
-                for action_expected in [
-                    SelectionAction::Current,
-                    SelectionAction::Variant(expected.map(str::to_string)),
-                ] {
-                    let (action, ack) = match inbox.recv().await.unwrap() {
-                        InboxMsg::HomeSelection { action, ack } if home => (action, ack),
-                        InboxMsg::SessionSelection {
-                            action,
-                            ack,
-                            home: false,
-                            ..
-                        } if !home => (action, ack),
-                        _ => panic!("selection scope"),
-                    };
-                    assert_eq!(action, action_expected);
-                    if let SelectionAction::Variant(value) = action {
-                        selected.variant = value;
-                    }
-                    ack.send(Ok(selected.clone())).unwrap();
-                }
-                assert!(inbox.try_recv().is_err(), "cycle must not submit");
-            });
+            state.apply_catalog(selected);
+            state.push_note("unrelated warning");
             let intent = state
                 .handle_key(oc_tui::events::KeyAction::CycleVariant)
                 .await
@@ -599,7 +554,10 @@ async fn variant_cycle_uses_owner_order_and_stale_default_rules_in_home_and_sess
             assert_eq!(state.input(), "next accepted prompt");
             assert_eq!(state.panel(), &oc_tui::app::TuiPanel::None);
             assert_eq!(state.note(), Some("unrelated warning"));
-            worker.await.unwrap();
+            assert!(
+                inbox.try_recv().is_err(),
+                "cycle must neither commit nor submit"
+            );
         }
     }
 }
@@ -635,14 +593,7 @@ async fn variant_cycle_missing_models_or_named_variants_is_noop_and_child_is_rea
                 output_known: false,
             });
         }
-        let worker = tokio::spawn(async move {
-            let Some(InboxMsg::HomeSelection { action, ack }) = inbox.recv().await else {
-                panic!("current")
-            };
-            assert_eq!(action, SelectionAction::Current);
-            ack.send(Ok(selected)).unwrap();
-            inbox
-        });
+        state.apply_catalog(selected);
         apply_intent(
             &app,
             &mut state,
@@ -651,7 +602,6 @@ async fn variant_cycle_missing_models_or_named_variants_is_noop_and_child_is_rea
         )
         .await
         .unwrap();
-        let mut inbox = worker.await.unwrap();
         assert!(inbox.try_recv().is_err());
         let mut deck = LoopState {
             read_only: true,
@@ -754,9 +704,23 @@ async fn variant_cycle_persists_and_next_real_request_uses_selected_overlay() {
         .unwrap();
     let mut state = TuiState::new(app.clone(), session.clone());
     let mut deck = LoopState::default();
+    state.apply_catalog(
+        app.session_selection(session.clone(), false, SelectionAction::Current)
+            .await
+            .unwrap(),
+    );
     apply_intent(&app, &mut state, &mut deck, PanelIntent::CycleVariant)
         .await
         .unwrap();
+    assert_eq!(
+        app.session_selection(session.clone(), false, SelectionAction::Current)
+            .await
+            .unwrap()
+            .variant,
+        None,
+        "variant cycle remains local until composer admission"
+    );
+    state.handle_key(KeyAction::Enter).await;
     assert_eq!(
         app.session_selection(session.clone(), false, SelectionAction::Current)
             .await
@@ -765,6 +729,7 @@ async fn variant_cycle_persists_and_next_real_request_uses_selected_overlay() {
             .as_deref(),
         Some("custom")
     );
+    state.poll_submission();
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
 

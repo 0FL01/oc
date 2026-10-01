@@ -2092,7 +2092,13 @@ async fn v04_pending_command_availability_preserves_receipt_focus_and_draft() {
     use oc_core::core_app::InboxMsg;
     let (app, mut inbox, _) = CoreApp::channel(4);
     let mut state = TuiState::new(app, sid("v04-pending"));
-    state.apply_catalog(snapshot());
+    let mut catalog = snapshot();
+    catalog.models[0].variants.push(VariantEntry {
+        name: "low".into(),
+        disabled: false,
+        reasoning_effort: Some("low".into()),
+    });
+    state.apply_catalog(catalog);
     type_text(&mut state, "pending prompt").await;
     state.handle_key(KeyAction::Enter).await;
     let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
@@ -2114,14 +2120,24 @@ async fn v04_pending_command_availability_preserves_receipt_focus_and_draft() {
     for action in [
         CommandAction::NewSession,
         CommandAction::OpenSessions,
-        CommandAction::OpenModelPicker,
-        CommandAction::OpenVariants,
         CommandAction::OpenAgents,
     ] {
         let outcome = state.run_command(action);
         assert_eq!(outcome.intent, None);
         assert!(outcome.note.unwrap().contains("turn active"));
         assert_eq!(state.panel(), &TuiPanel::None);
+    }
+    for (action, panel) in [
+        (CommandAction::OpenModelPicker, TuiPanel::Model),
+        (CommandAction::OpenVariants, TuiPanel::Variant),
+    ] {
+        let outcome = state.run_command(action);
+        assert_eq!(outcome.intent, None);
+        assert_eq!(outcome.note, None);
+        assert_eq!(state.panel(), &panel);
+        assert_eq!(state.input(), "pending prompt");
+        assert_eq!(state.status(), &TuiStatus::PendingSubmission);
+        state.close_panel();
     }
     assert!(inbox.try_recv().is_err());
     ack.send(Ok(WorkerTurnId("receipt-intact".into()))).unwrap();
@@ -2197,7 +2213,7 @@ async fn vis29_variant_current_focus_centers_on_open_and_clear_in_narrow_view() 
 }
 
 #[tokio::test]
-async fn variant_cycle_keeps_draft_and_modal_focus_and_refuses_pending_submit() {
+async fn variant_cycle_keeps_draft_and_modal_focus_and_allows_local_pending_choice() {
     let (app, mut inbox, _) = CoreApp::channel(4);
     let mut state = TuiState::new(app, sid("cycle-focus"));
     state.apply_catalog(snapshot());
@@ -2218,11 +2234,8 @@ async fn variant_cycle_keeps_draft_and_modal_focus_and_refuses_pending_submit() 
         panic!("submit")
     };
     let result = state.handle_key(KeyAction::CycleVariant).await;
-    assert_eq!(result.intent, None);
-    assert_eq!(
-        result.note.as_deref(),
-        Some("turn active; action unavailable")
-    );
+    assert_eq!(result.intent, Some(PanelIntent::CycleVariant));
+    assert_eq!(result.note, None);
     assert_eq!(state.input(), "unchanged draft");
     assert!(inbox.try_recv().is_err());
     drop(ack);

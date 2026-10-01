@@ -732,7 +732,24 @@ async fn compaction_native_opaque_route_checkpoint_without_summary_body() {
     assert!(
         runtime
             .validate_checkpoint_route("s", "fixture", "another-model", &provider)
-            .is_err()
+            .is_ok()
+    );
+    let changed = runtime
+        .wire_history(
+            "s",
+            &active.projected,
+            &active.blocks,
+            "another-model",
+            "fixture",
+            None,
+            active.after_seq,
+        )
+        .unwrap();
+    assert!(
+        !serde_json::to_string(&changed)
+            .unwrap()
+            .contains("opaque provider bytes"),
+        "model-only continuation with proven origin withholds incompatible opaque checkpoint"
     );
     let mut different = provider.clone();
     different

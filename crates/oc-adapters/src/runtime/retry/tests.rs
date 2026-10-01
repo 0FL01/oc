@@ -151,6 +151,7 @@ fn ret01_recovery_preserves_historical_retry_without_dispatch() {
     };
     for (id, completed, status) in [("old", Some(1), "failed"), ("active", None, "started")] {
         log.spans.push(oc_core::queries::AssistantSpan {
+            request: None,
             id: id.into(),
             step: 1,
             status: status.into(),

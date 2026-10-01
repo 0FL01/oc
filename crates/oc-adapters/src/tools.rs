@@ -1401,11 +1401,13 @@ fn subagent_request(call: &ToolCall) -> Result<SubagentRequest, ToolError> {
 
 /// Durable turn log: opaque provider items + usage with a replay boundary.
 ///
-/// Serialized as JSON into the turn row (`turns.result`); replay is allowed
-/// only for the same `(model, provider)` pair — switches drop alien state
-/// with a diagnostic instead of leaking it into a foreign context.
+/// Serialized as JSON into the turn row (`turns.result`). Opaque replay stays
+/// bound to its producing model/provider; model changes project ordinary groups without
+/// leaking foreign opaque state or mutating this journal.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TurnLog {
+    /// Physical attempts and input provenance within this existing journal.
+    pub requests: Vec<oc_core::queries::RequestIdentity>,
     pub(crate) instruction_references: Vec<crate::instructions::Reference>,
     /// Assistant-span facts, absent in legacy journals.
     pub spans: Vec<oc_core::queries::AssistantSpan>,
@@ -1434,11 +1436,13 @@ pub struct TurnLog {
 }
 
 mod mcp_log;
+mod model_history;
 
 impl TurnLog {
     /// Start an empty log for a turn.
     pub fn new(turn_id: &str, model: &str, provider: &str) -> Self {
         Self {
+            requests: Vec::new(),
             instruction_references: Vec::new(),
             spans: Vec::new(),
             display: serde_json::json!({}),
@@ -1475,6 +1479,7 @@ impl TurnLog {
     pub fn to_json(&self) -> serde_json::Value {
         let (input, native_mcp, native_read) = self.encode_mcp_input();
         let mut value = serde_json::json!({
+            "requests": self.requests,
             "instruction_references": self.instruction_references,
             "display": self.display,
             "spans": self.spans,
@@ -1501,6 +1506,12 @@ impl TurnLog {
     /// Deserialize from the turn row.
     pub fn from_json(value: &serde_json::Value) -> Result<Self, String> {
         Ok(Self {
+            requests: value
+                .get("requests")
+                .map(|v| serde_json::from_value(v.clone()))
+                .transpose()
+                .map_err(|_| "invalid request receipts")?
+                .unwrap_or_default(),
             instruction_references: value
                 .get("instruction_references")
                 .map(|v| serde_json::from_value(v.clone()))

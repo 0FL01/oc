@@ -68,6 +68,9 @@ impl ScriptDriver {
             let event = tokio::time::timeout(timeout, self.rx.recv()).await;
             state.poll_submission();
             match event {
+                Ok(Ok(CoreEvent::SessionModelSelected { session, commit })) => {
+                    state.apply_session_model_selected(&session, &commit)
+                }
                 Ok(Ok(CoreEvent::PermissionAsked(_)))
                 | Ok(Ok(CoreEvent::PermissionResolved { .. })) => {
                     if let Ok(pending) = state.app.pending_approvals().await {
@@ -445,6 +448,7 @@ impl TuiState {
         self.chrome = snapshot.chrome.clone();
         self.auto_accept = snapshot.auto_accept;
         let mut picker = ModelPicker::new(catalog_from_snapshot(&snapshot));
+        let draft = self.composer_catalog(&snapshot);
         if !snapshot.model_id.is_empty() {
             let record = serde_json::json!({
                 "provider": snapshot.provider,
@@ -453,6 +457,10 @@ impl TuiState {
             });
             picker.load_persisted_raw(Some(&record.to_string()));
             picker.focus_id(&snapshot.model_id);
+        }
+        if let Some(draft) = draft {
+            picker.load_persisted_raw(Some(&serde_json::to_string(&draft).expect("model ref")));
+            picker.focus_id(&draft.id);
         }
         if let Some(selection) = &snapshot.chrome.selection {
             self.push_note(&selection.to_string());
@@ -823,6 +831,7 @@ impl TuiState {
                 .map(|entry| entry.color_index)
         });
         self.pending = Some(PendingSubmission {
+            selection: self.captured_model_commit(),
             request_id: self.request_id,
             generation: self.generation,
             session,
@@ -843,6 +852,7 @@ impl TuiState {
     /// Reconcile the unique acceptance receipt before applying queued turn
     /// events. Failure leaves the editable draft intact. No worker is spawned.
     pub fn poll_submission(&mut self) {
+        self.poll_model_commits();
         let Some(result) = self.pending.as_mut().and_then(|p| p.receipt.try_result()) else {
             return;
         };
@@ -899,8 +909,9 @@ impl TuiState {
             Ok(turn) => {
                 self.invalidate_transcript();
                 if pending.fresh {
-                    self.session = Some(pending.session);
+                    self.session = Some(pending.session.clone());
                 }
+                self.model_submission_accepted(&pending.session, pending.selection.as_ref());
                 self.live_preview_truncated = false;
                 self.live_part_states.clear();
                 self.live_terminal_status = None;
@@ -1043,6 +1054,15 @@ impl TuiState {
         }
         self.live_projection_revision = Some((turn.clone(), projection.revision));
         self.live_part_states = projection.part_states.clone();
+        let first = projection
+            .spans
+            .iter()
+            .find_map(|span| span.request.as_ref().map(|r| &r.model));
+        self.live_mixed_models = projection
+            .spans
+            .iter()
+            .filter_map(|span| span.request.as_ref())
+            .any(|r| Some(&r.model) != first);
         if let Some(span) = projection.spans.last() {
             self.live_span = Some((turn.clone(), span.id.clone()));
             if projection.status == "started"
@@ -1058,8 +1078,14 @@ impl TuiState {
         self.live_preview_truncated |= projection.truncated;
         self.live_agent_color_index = projection.agent_color_index;
         self.live_terminal_status = Some(projection.status.clone());
-        self.live_model_label =
-            (!projection.model_label.is_empty()).then(|| projection.model_label.clone());
+        self.live_model_label = projection
+            .spans
+            .last()
+            .and_then(|span| span.request.as_ref())
+            .map(|request| request.model_label.clone())
+            .or_else(|| {
+                (!projection.model_label.is_empty()).then(|| projection.model_label.clone())
+            });
     }
 
     /// Apply provider-reported usage for the active turn; without it the
@@ -1224,13 +1250,27 @@ impl TuiState {
             if matches!(part, LivePart::Vacant) {
                 continue;
             }
-            self.window.push_row(part.to_row(
+            let mut row = part.to_row(
                 self.active_agent.clone(),
                 Some(crate::messages::ReasoningIdentity::Live(
                     self.reasoning_epoch,
                     self.live_part_offset + ordinal,
                 )),
-            ));
+            );
+            if self.live_mixed_models
+                && row.tool.is_none()
+                && let Some(model) = self
+                    .live_part_states
+                    .iter()
+                    .find(|state| state.sequence == self.live_part_offset + ordinal)
+                    .and_then(|state| state.model_label.clone())
+            {
+                row.meta = Some(AssistantMeta {
+                    model: Some(model),
+                    ..Default::default()
+                });
+            }
+            self.window.push_row(row);
         }
     }
 

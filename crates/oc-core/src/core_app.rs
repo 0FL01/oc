@@ -101,6 +101,8 @@ pub struct WorkerTurnId(pub String);
 /// against its current Location before creating anything.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FreshSelection {
+    /// Optional composer scope; explicit programmatic callers retain admission.
+    pub binding: Option<crate::queries::SelectionBinding>,
     /// Selected primary agent, if any.
     pub agent_id: Option<String>,
     /// Exact selected model id.
@@ -112,6 +114,18 @@ pub struct FreshSelection {
 /// One enqueued submission's acceptance receipt. The application owns the
 /// operation even if this receipt is dropped; cancel/shutdown it through CoreApp.
 pub struct SubmissionReceipt(oneshot::Receiver<Result<WorkerTurnId, CoreError>>);
+
+/// Exact owner acknowledgement for a commit that creates no user input/turn.
+pub struct ModelCommitReceipt(oneshot::Receiver<Result<CatalogSnapshot, CoreError>>);
+impl ModelCommitReceipt {
+    pub fn try_result(&mut self) -> Option<Result<CatalogSnapshot, CoreError>> {
+        match self.0.try_recv() {
+            Ok(result) => Some(result),
+            Err(oneshot::error::TryRecvError::Empty) => None,
+            Err(oneshot::error::TryRecvError::Closed) => Some(Err(CoreError::Shutdown)),
+        }
+    }
+}
 
 impl SubmissionReceipt {
     /// Poll without waiting for network, provider or durable acceptance.
@@ -133,6 +147,11 @@ impl SubmissionReceipt {
 /// Typed application events (live hints + durable outcomes for T03).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CoreEvent {
+    /// Durable scoped choice changed; this is not a request/assistant identity.
+    SessionModelSelected {
+        session: SessionId,
+        commit: crate::queries::ModelCommit,
+    },
     /// Same-ID placement already committed at a durable terminal boundary.
     SessionMoved {
         operation: String,
@@ -473,6 +492,8 @@ pub enum InboxMsg {
         session: SessionId,
         /// Input text.
         text: String,
+        /// Optional exact selection prepared in the same admission order.
+        selection: Option<crate::queries::ModelCommit>,
         /// Durable acceptance or rejection.
         ack: oneshot::Sender<Result<WorkerTurnId, CoreError>>,
     },
@@ -1083,6 +1104,7 @@ impl CoreApp {
             .send(InboxMsg::Submit {
                 session,
                 text,
+                selection: None,
                 ack: ack_tx,
             })
             .await
@@ -1104,6 +1126,7 @@ impl CoreApp {
             .try_send(InboxMsg::Submit {
                 session,
                 text,
+                selection: None,
                 ack: ack_tx,
             })
             .map_err(|_| CoreError::QueueFull)?;
@@ -1117,17 +1140,53 @@ impl CoreApp {
         session: SessionId,
         text: String,
     ) -> Result<SubmissionReceipt, CoreError> {
+        self.request_submit_selected(session, text, None)
+    }
+
+    /// Capture selection now; the single inbox owner commits it at preparation.
+    pub fn request_submit_selected(
+        &self,
+        session: SessionId,
+        text: String,
+        selection: Option<crate::queries::ModelCommit>,
+    ) -> Result<SubmissionReceipt, CoreError> {
         if text.len() > MAX_INPUT_BYTES {
             return Err(CoreError::InputTooLarge);
         }
         let (ack, receipt) = oneshot::channel();
         self.inbox
-            .try_send(InboxMsg::Submit { session, text, ack })
+            .try_send(InboxMsg::Submit {
+                session,
+                text,
+                selection,
+                ack,
+            })
             .map_err(|error| match error {
                 mpsc::error::TrySendError::Full(_) => CoreError::QueueFull,
                 mpsc::error::TrySendError::Closed(_) => CoreError::Shutdown,
             })?;
         Ok(SubmissionReceipt(receipt))
+    }
+
+    /// Bounded, nonwaiting busy commit, using the existing session selection port.
+    pub fn request_model_commit(
+        &self,
+        session: SessionId,
+        commit: crate::queries::ModelCommit,
+    ) -> Result<ModelCommitReceipt, CoreError> {
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .try_send(InboxMsg::SessionSelection {
+                session,
+                home: false,
+                action: crate::queries::SessionSelectionAction::Commit(commit),
+                ack,
+            })
+            .map_err(|error| match error {
+                mpsc::error::TrySendError::Full(_) => CoreError::QueueFull,
+                mpsc::error::TrySendError::Closed(_) => CoreError::Shutdown,
+            })?;
+        Ok(ModelCommitReceipt(receipt))
     }
 
     /// Enqueue a new root's first turn without waiting for durable acceptance.
@@ -1683,7 +1742,7 @@ async fn worker_loop(
                             };
                             let _ = ack.send(res);
                         }
-                        Some(InboxMsg::Submit { session: _, text: _, ack }) => {
+                        Some(InboxMsg::Submit { session: _, text: _, ack, .. }) => {
                             let _ = ack.send(Err(CoreError::TurnBusy));
                         }
                         Some(InboxMsg::SubmitFresh { ack, .. }) => {
@@ -1768,7 +1827,9 @@ async fn worker_loop(
                     };
                     let _ = ack.send(res);
                 }
-                Some(InboxMsg::Submit { session, text, ack }) => {
+                Some(InboxMsg::Submit {
+                    session, text, ack, ..
+                }) => {
                     scripted_accept_submit(
                         &provider,
                         &events,
@@ -2060,7 +2121,7 @@ mod tests {
                 .expect("event timeout")
                 .expect("event channel");
             match ev {
-                CoreEvent::RetryScheduled { .. } => {}
+                CoreEvent::SessionModelSelected { .. } | CoreEvent::RetryScheduled { .. } => {}
                 CoreEvent::TextDelta { delta, .. } => deltas.push(delta),
                 CoreEvent::TurnFinished { text, .. } => return (deltas, text),
                 CoreEvent::TurnInterrupted { partial, .. } => {
@@ -2231,6 +2292,7 @@ mod tests {
     async fn fresh_receipt_waits_for_owner_ack_and_preserves_explicit_selection() {
         let (app, mut inbox, _) = CoreApp::channel(1);
         let selected = FreshSelection {
+            binding: None,
             agent_id: Some("build".into()),
             model_id: "model-x".into(),
             variant: None,
@@ -2368,7 +2430,7 @@ mod tests {
                 .expect("timeout")
                 .expect("event");
             match ev {
-                CoreEvent::RetryScheduled { .. } => {}
+                CoreEvent::SessionModelSelected { .. } | CoreEvent::RetryScheduled { .. } => {}
                 CoreEvent::TurnInterrupted { partial, .. } => {
                     assert!(partial.contains("c0 "), "partial={partial}");
                     assert!(

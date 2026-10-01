@@ -428,6 +428,7 @@ impl std::ops::AddAssign for LiveViewMetrics {
 
 /// Immutable submission identity plus the editable draft's revision at enqueue.
 struct PendingSubmission {
+    selection: Option<oc_core::queries::ModelCommit>,
     request_id: u64,
     generation: u64,
     session: SessionId,
@@ -625,6 +626,7 @@ pub struct TuiState {
     live_agent_color_index: Option<usize>,
     live_terminal_status: Option<String>,
     live_model_label: Option<String>,
+    live_mixed_models: bool,
     live_preview_truncated: bool,
     /// First reasoning delta of the active turn, for the collapsed header's
     /// duration (`part.time.created` upstream).
@@ -661,6 +663,7 @@ pub struct TuiState {
     mention_owner_epoch: Option<u64>,
     /// Model picker (present while the Model panel lives).
     pub(crate) picker: Option<ModelPicker>,
+    model_selection: model_selection::ComposerSelection,
     catalog_loaded: bool,
     /// Agent profiles from the catalog snapshot.
     pub(crate) agents: Vec<AgentEntry>,
@@ -822,6 +825,7 @@ impl TuiState {
             live_agent_color_index: None,
             live_terminal_status: None,
             live_model_label: None,
+            live_mixed_models: false,
             live_preview_truncated: false,
             reasoning_started: None,
             reasoning_finished: None,
@@ -851,6 +855,7 @@ impl TuiState {
             mention_result: None,
             mention_owner_epoch: None,
             picker: None,
+            model_selection: Default::default(),
             catalog_loaded: false,
             agents: Vec::new(),
             active_agent: None,
@@ -1322,6 +1327,7 @@ impl TuiState {
 mod input;
 mod live;
 mod mcp;
+mod model_selection;
 mod tabs;
 mod transcript;
 

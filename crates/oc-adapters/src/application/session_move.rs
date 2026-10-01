@@ -146,7 +146,7 @@ pub(crate) async fn prepare(
             &composition.variant,
             &composition.default_agent
         ),
-        future.snapshot(&composition)
+        future.snapshot(&composition, 0)
     );
     // Debug intentionally masks credentials. Bind the complete admitted native
     // options too, hashing in memory only; no secret-bearing payload is stored.

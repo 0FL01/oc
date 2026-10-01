@@ -1218,6 +1218,17 @@ fn saved_provider_selection(
     agent: &str,
     provider: &str,
 ) -> serde_json::Value {
+    saved_selection_record(db, fixture, session, provider).expect("committed selection")["models"]
+        [agent]
+        .clone()
+}
+
+fn saved_selection_record(
+    db: &oc_adapters::storage::Db,
+    fixture: &Fixture,
+    session: &str,
+    provider: &str,
+) -> Option<serde_json::Value> {
     let key = format!(
         "tui.selection.session:{}",
         serde_json::json!([
@@ -1232,9 +1243,9 @@ fn saved_provider_selection(
             session
         ])
     );
-    let record: serde_json::Value =
-        serde_json::from_str(&db.get_pref(&key).unwrap().unwrap()).unwrap();
-    record["models"][agent].clone()
+    db.get_pref(&key)
+        .unwrap()
+        .map(|record| serde_json::from_str(&record).unwrap())
 }
 
 fn dismissed(pty: &PtySession, title: &str) {

@@ -361,7 +361,7 @@ async fn t47_unknown_limits_use_configured_caps_without_variant_overlay() {
 }
 
 #[tokio::test]
-async fn v04_model_change_projects_public_history_without_foreign_tool_state() {
+async fn v04_model_change_preserves_closed_tool_pairs_and_public_invocation_history() {
     let (mut harness, generation) = make_harness(allow_all());
     harness.catalog.models.insert(
         "other".into(),
@@ -417,7 +417,18 @@ async fn v04_model_change_projects_public_history_without_foreign_tool_state() {
         assert!(changed.contains("expanded review instructions with original config"));
         assert!(changed.contains("public original answer"));
         assert!(!changed.contains("/review"));
-        assert!(!changed.contains("old-model-call") && !changed.contains("function_call"));
+        let changed_items = captured[2]["input"].as_array().unwrap();
+        assert!(
+            changed_items
+                .iter()
+                .any(|item| item["type"] == "function_call" && item["call_id"] == "old-model-call")
+        );
+        assert!(
+            changed_items
+                .iter()
+                .any(|item| item["type"] == "function_call_output"
+                    && item["call_id"] == "old-model-call")
+        );
         assert_eq!(captured[2]["model"], "other");
         assert!(
             captured[3]["input"].to_string().contains("old-model-call"),
@@ -460,7 +471,7 @@ async fn v04_model_change_projects_public_history_without_foreign_tool_state() {
     let fallback_input = requests[4]["input"].to_string();
     assert!(fallback_input.contains("/review"));
     assert!(!fallback_input.contains("expanded review instructions"));
-    assert!(!fallback_input.contains("old-model-call"));
+    assert!(fallback_input.contains("old-model-call"));
     let public = harness.db.read_history("model-change").unwrap();
     assert_eq!(public.len(), 8);
     assert_eq!(public[0], ("user".into(), "/review".into()));

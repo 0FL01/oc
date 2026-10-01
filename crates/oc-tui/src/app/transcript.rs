@@ -1089,13 +1089,27 @@ impl TuiState {
             if matches!(part, LivePart::Vacant) {
                 continue;
             }
-            rows.push(part.to_row(
+            let mut row = part.to_row(
                 self.active_agent.clone(),
                 Some(crate::messages::ReasoningIdentity::Live(
                     self.reasoning_epoch,
                     self.live_part_offset + ordinal,
                 )),
-            ));
+            );
+            if self.live_mixed_models
+                && row.tool.is_none()
+                && let Some(model) = self
+                    .live_part_states
+                    .iter()
+                    .find(|state| state.sequence == self.live_part_offset + ordinal)
+                    .and_then(|state| state.model_label.clone())
+            {
+                row.meta = Some(AssistantMeta {
+                    model: Some(model),
+                    ..Default::default()
+                });
+            }
+            rows.push(row);
         }
         let live = !self.live_text.is_empty() || !self.live_reasoning.is_empty();
         if live {

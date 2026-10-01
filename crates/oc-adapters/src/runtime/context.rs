@@ -745,7 +745,12 @@ impl<'a> Runtime<'a> {
     > {
         let context = self.active_projection(session)?;
         let (model, provider) = current
-            .map(|log| (log.model.clone(), log.provider.clone()))
+            .map(|log| {
+                log.requests
+                    .last()
+                    .map(|request| (request.model.id.clone(), request.model.provider.clone()))
+                    .unwrap_or_else(|| (log.model.clone(), log.provider.clone()))
+            })
             .unwrap_or(self.db.dcp_wire_route(session)?.unwrap_or_default());
         let digest = current
             .map(|log| log.agent_digest.as_deref())
@@ -954,14 +959,13 @@ impl<'a> Runtime<'a> {
             }
             if changed_location
                 || (agent_digest != Some("__compaction__")
-                    && (log.model != model
-                        || (log.agent_digest.as_deref() != agent_digest
+                    && (log.agent_digest.as_deref() != agent_digest
                     // Pre-Build native sessions used the same empty default
                     // agent lane without a digest. Adopt only the unchanged
                     // builtin profile, preserving genuine tool/opaque pairs.
-                    && !(log.agent_digest.is_none() && agent_digest == Some(crate::defs::agent_digest(&crate::defs::builtin_build()).as_str())))))
+                    && !(log.agent_digest.is_none() && agent_digest == Some(crate::defs::agent_digest(&crate::defs::builtin_build()).as_str()))))
             {
-                // Model or agent behavior changed: start a fresh causality lane
+                // Location or agent behavior changed: start a fresh causality lane
                 // from public messages, but retain the originally expanded user
                 // prompt for an uncompressed anchor. Never re-expand an invocation
                 // using the current workspace's potentially changed commands.
@@ -982,15 +986,11 @@ impl<'a> Runtime<'a> {
                 .filter_map(|item| item.call_output().map(|(id, _)| id.to_owned()))
                 .collect();
             let instruction_input = if agent_digest == Some("__compaction__") {
-                log.input.clone()
+                log.input_for(model, provider)
             } else {
-                crate::instructions::project(
-                    &log.input,
-                    &log.instruction_references,
-                    &instruction_facts,
-                )
+                log.instruction_input_for(model, provider, &instruction_facts)
             };
-            let input = instruction_input
+            let mut input = instruction_input
                 .into_iter()
                 .filter(|item| match item {
                     InputItem::ProviderOutput(value) if value["type"] == "function_call" => {
@@ -1001,6 +1001,23 @@ impl<'a> Runtime<'a> {
                     _ => true,
                 })
                 .collect::<Vec<_>>();
+            // Legacy command records without a usable prepared prompt retain
+            // their immutable public invocation, never today's expansion.
+            if block_id.is_none()
+                && prompt.as_deref().is_none_or(str::is_empty)
+                && let Some((_, _, public)) = projected.iter().find(|row| row.0 == anchor)
+                && let Some(user) = input.iter_mut().find(|item| {
+                    matches!(
+                        item,
+                        InputItem::Message {
+                            role: InputRole::User,
+                            ..
+                        }
+                    )
+                })
+            {
+                *user = InputItem::message(InputRole::User, public);
+            }
             turns
                 .entry(block_id.unwrap_or(anchor))
                 .or_insert_with(Vec::new)
@@ -1011,6 +1028,10 @@ impl<'a> Runtime<'a> {
             if !moved
                 && id == "session-checkpoint"
                 && let Some((_, _, _, Some(raw))) = self.db.checkpoint_record(session)?
+                && self
+                    .db
+                    .checkpoint_model(session)?
+                    .is_none_or(|origin| origin.id == model && origin.provider == provider)
             {
                 input.push(InputItem::ProviderOutput(
                     serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?,

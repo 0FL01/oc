@@ -36,6 +36,7 @@ async fn ret01_retry_scope_due_semantic_start_and_stale_snapshot() {
             status: "started".into(),
             revision: 3,
             spans: vec![AssistantSpan {
+                request: None,
                 id: "old".into(),
                 step: 1,
                 status: "started".into(),
@@ -64,6 +65,7 @@ async fn ret01_retry_scope_due_semantic_start_and_stale_snapshot() {
         "older reschedule cannot replace newest fact"
     );
     let old = AssistantSpan {
+        request: None,
         id: "old".into(),
         step: 1,
         status: "failed".into(),
@@ -74,6 +76,7 @@ async fn ret01_retry_scope_due_semantic_start_and_stale_snapshot() {
         finish: None,
     };
     let new = AssistantSpan {
+        request: None,
         id: "new".into(),
         step: 1,
         status: "started".into(),
@@ -129,6 +132,7 @@ async fn ret01_reopen_failed_retry_is_history_not_active_wait() {
         id: "finished".into(),
         status: "completed".into(),
         spans: vec![AssistantSpan {
+            request: None,
             id: "failed-span".into(),
             step: 1,
             status: "failed".into(),
