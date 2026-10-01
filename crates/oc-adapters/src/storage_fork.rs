@@ -416,6 +416,17 @@ impl Db {
         );
         Self::upsert_pref(&tx, &selection_key, choice)?;
         Self::upsert_pref(&tx, &tab_adoption_key(location, &root), TAB_ADOPTION_VALUE)?;
+        // Ambient instructions adopt the newest parent sources, independently
+        // of the chosen historical message cutoff. Immutable facts are shared.
+        match Self::get_pref_bounded_in(&tx, &format!("instructions.{source}"), 65536)? {
+            BoundedPref::Value(value) => {
+                Self::upsert_pref(&tx, &format!("instructions.{root}"), &value)?
+            }
+            BoundedPref::Missing => {}
+            BoundedPref::TooLarge => {
+                return Err(refuse("instruction metadata budget exceeded").into());
+            }
+        }
         tx.execute(
             "INSERT INTO events(session_id,kind,payload) VALUES (?1,'session_forked',?2)",
             params![

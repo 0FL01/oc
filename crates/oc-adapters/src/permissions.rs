@@ -211,6 +211,48 @@ impl PermissionRules {
             .any(|layer| evaluate_layer(layer, &actions, resource) == Some(Permission::Deny))
     }
 
+    /// Automatic instruction sources have no approval consumer. Match the two
+    /// names of this one source within each ordered authority, then intersect
+    /// authorities/constraints as usual. An approval for another file is absent.
+    pub(crate) fn automatic_source_allowed(
+        &self,
+        fallback: &BTreeMap<String, Permission>,
+        resolved: &str,
+        location: &str,
+    ) -> bool {
+        let layer_effect = |layer: &[Rule]| {
+            let mut effect = None;
+            for rule in layer {
+                if wildcard("read", legacy_key(&rule.action)) {
+                    effect.get_or_insert(Permission::Ask);
+                    if wildcard(resolved, &rule.resource) || wildcard(location, &rule.resource) {
+                        effect = Some(rule.effect);
+                    }
+                }
+            }
+            effect
+        };
+        let scalar = scalar_rules(fallback);
+        let authorities = if self.authorities.is_empty() {
+            std::slice::from_ref(&scalar)
+        } else {
+            &self.authorities
+        };
+        let mut effect = None;
+        for layer in authorities {
+            if let Some(next) = layer_effect(layer) {
+                effect = Some(effect.map_or(next, |old| strictest(old, next)));
+            }
+        }
+        let mut effect = effect.unwrap_or(Permission::Deny);
+        for layer in &self.constraints {
+            if let Some(next) = layer_effect(layer) {
+                effect = strictest(effect, next);
+            }
+        }
+        effect == Permission::Allow
+    }
+
     /// Catalog visibility is conservative for resource rules, but a whole-action
     /// denial at any authority boundary removes the definition. Execution still
     /// evaluates every actual resource; visibility never grants a call.

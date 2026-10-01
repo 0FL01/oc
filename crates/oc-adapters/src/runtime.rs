@@ -327,6 +327,37 @@ impl<'a> RuntimePolicy<'a> {
             |rules| rules.evaluate_actions(self.permissions, &actions, resource),
         )
     }
+
+    /// Live instruction fetches obey effective read authority and explicit
+    /// ceilings in both resolved and Location forms. Initial roots are separate
+    /// admitted config snapshots and never pass through this live-read hook.
+    pub(crate) fn instruction_path_denied(&self, resource: &str) -> bool {
+        let normalized = permission_path(self.root, resource);
+        self.effect("read", &normalized) == Permission::Deny
+            || self.rules.map_or(
+                self.permissions.get("read") == Some(&Permission::Deny),
+                |rules| {
+                    rules.denied_by_rule(self.permissions, "read", resource)
+                        || rules.denied_by_rule(self.permissions, "read", &normalized)
+                },
+            )
+    }
+
+    /// Automatic source IO needs permanent Allow for that source. Keep the
+    /// admitted original-file guard above distinct: approved Ask reads complete.
+    pub(crate) fn automatic_instruction_source_allowed(&self, resource: &str) -> bool {
+        !self.instruction_path_denied(resource)
+            && self.rules.map_or(
+                self.permissions.get("read") == Some(&Permission::Allow),
+                |rules| {
+                    rules.automatic_source_allowed(
+                        self.permissions,
+                        resource,
+                        &permission_path(self.root, resource),
+                    )
+                },
+            )
+    }
 }
 
 impl ToolPolicy for RuntimePolicy<'_> {
@@ -778,6 +809,7 @@ struct RuntimeWorkspace {
     agent_permissions: BTreeMap<String, Permission>,
     agent_permission_rules: crate::permissions::PermissionRules,
     instructions: String,
+    instruction_roots: Vec<crate::instructions::Root>,
     skills_projection: Option<String>,
     subagents: Option<SubagentCatalog>,
 }
@@ -1519,8 +1551,17 @@ impl<'a> Runtime<'a> {
         } else {
             Some(serde_json::to_string(&projection).map_err(|_| RuntimeError::Storage)?)
         };
-        let fixed_input =
-            lane_fixed_input(agent_prompt, instructions, skills_projection.as_deref());
+        let shared_sources = !self
+            .workspace
+            .read()
+            .expect("workspace lock")
+            .instruction_roots
+            .is_empty();
+        let fixed_input = lane_fixed_input(
+            agent_prompt,
+            if shared_sources { "" } else { instructions },
+            skills_projection.as_deref(),
+        );
         if let Some(home) = self.parent_env.get("HOME") {
             agent_permission_rules.expand_home(home);
         }
@@ -1532,7 +1573,11 @@ impl<'a> Runtime<'a> {
         workspace.agent_permission_rules = agent_permission_rules;
         workspace.agent_id = agent_id;
         workspace.agent_color_index = agent_color_index;
-        workspace.instructions = instructions.to_string();
+        workspace.instructions = if shared_sources {
+            String::new()
+        } else {
+            instructions.to_string()
+        };
         workspace.skills_projection = skills_projection;
         Ok(())
     }
@@ -1854,6 +1899,7 @@ impl<'a> Runtime<'a> {
 }
 
 mod context;
+mod instructions;
 mod mcp;
 mod turn;
 

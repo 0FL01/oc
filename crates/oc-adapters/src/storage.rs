@@ -33,6 +33,8 @@ mod dcp_view;
 mod fork;
 #[path = "storage_grants.rs"]
 mod grants;
+#[path = "storage_instructions.rs"]
+mod instructions;
 #[path = "storage_shell_jobs.rs"]
 mod shell_jobs;
 

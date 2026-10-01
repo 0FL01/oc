@@ -740,8 +740,8 @@ impl<'a> Runtime<'a> {
         let workspace = self.workspace.read().expect("workspace lock").clone();
         // Outbound context honors compression blocks + prune mark: covered
         // members collapse to summaries, raw history is never rewritten.
-        let (mut projected, mut history) = if fresh_selection.is_some() {
-            (Vec::new(), Vec::new())
+        let (mut projected, mut history, history_scope) = if fresh_selection.is_some() {
+            (Vec::new(), Vec::new(), None)
         } else {
             let ActiveContext {
                 after_seq,
@@ -757,7 +757,7 @@ impl<'a> Runtime<'a> {
                 lane.agent_digest.as_deref(),
                 after_seq,
             )?;
-            (projected, history)
+            (projected, history, Some((after_seq, blocks)))
         };
         let dcp_config = self.dcp_config.read().expect("dcp lock").clone();
         let compress_available = dcp_config.enabled
@@ -809,6 +809,29 @@ impl<'a> Runtime<'a> {
             .with_mcp(&attached.entries);
         let mut fixed_input = lane.fixed_input.clone();
         fixed_input.extend(mcp_instruction_input(attached, &policy));
+        let (instruction_revision, instruction_sources) =
+            self.instruction_sources(&params.session, &policy, params.cancel)?;
+        let prior_instruction_facts = self.db.instruction_view(&params.session)?.1;
+        let prior_instruction_input = prior_instruction_facts
+            .iter()
+            .map(crate::instructions::Fact::input)
+            .collect::<Vec<_>>();
+        history.retain(|item| !prior_instruction_input.contains(item));
+        // Pre-admission counts the same source layer. Durable identities are
+        // allocated only with the accepted turn's checkpoint below.
+        for source in &instruction_sources {
+            if source.content.is_some() {
+                fixed_input.push(
+                    crate::instructions::Fact {
+                        event: 0,
+                        source: source.clone(),
+                        change: "initial".into(),
+                        revision: instruction_revision + 1,
+                    }
+                    .input(),
+                );
+            }
+        }
         let mut tool_defs = builtin_tool_defs();
         tool_defs.retain(|tool| policy.tool_visible(&tool.name));
         if !compress_available {
@@ -949,6 +972,7 @@ impl<'a> Runtime<'a> {
         let mut calls = Vec::new();
         let mut turn_log = TurnLog::new(&turn_id, &selection.id, &params.catalog.provider);
         turn_log.display = serde_json::json!({
+            "config_generation":published.id,
             "owning_operation":lane.owning_operation.as_deref().unwrap_or(&turn_id),
             "model_label":selection.entry.get("name").and_then(|v|v.as_str()).unwrap_or(&selection.id),
             "agent":lane.agent_id,
@@ -964,8 +988,32 @@ impl<'a> Runtime<'a> {
         turn_log
             .input
             .push(InputItem::message(InputRole::User, &params.prompt));
-        self.db
-            .checkpoint_turn(&turn_id, &turn_log.to_json().to_string())?;
+        self.db.checkpoint_instructions(
+            &turn_id,
+            &mut turn_log,
+            instruction_revision,
+            &instruction_sources,
+            usize::from(instruction_revision != 0),
+            None,
+        )?;
+        if let Some((after_seq, blocks)) = history_scope {
+            history = self.wire_history(
+                &params.session,
+                &projected,
+                &blocks,
+                &selection.id,
+                &params.catalog.provider,
+                lane.agent_digest.as_deref(),
+                after_seq,
+            )?;
+        }
+        let mut previous_instruction_input = self
+            .db
+            .instruction_view(&params.session)?
+            .1
+            .iter()
+            .map(crate::instructions::Fact::input)
+            .collect::<Vec<_>>();
         let max_rounds = params.max_rounds.clamp(1, ROUND_CAP);
         let mut rounds = 0u32;
         let mut overflow_recovered = false;
@@ -1085,8 +1133,33 @@ impl<'a> Runtime<'a> {
                 cancel: params.cancel,
                 roots: Some(self.roots.clone()),
             };
+            let instruction_facts = self.db.instruction_view(&params.session)?.1;
+            let latest_instruction_input = instruction_facts
+                .iter()
+                .map(crate::instructions::Fact::input)
+                .collect::<Vec<_>>();
+            if previous_instruction_input != latest_instruction_input {
+                // Only typed source projections changed. Keep the already
+                // admitted conversational/notice window pinned; a full refresh
+                // here could deliver a current-turn shell notice twice.
+                history.retain(|item| {
+                    !previous_instruction_input.contains(item)
+                        || latest_instruction_input.contains(item)
+                });
+                previous_instruction_input = latest_instruction_input;
+            }
+            let current_instruction_input = crate::instructions::project(
+                &turn_log.input,
+                &turn_log.instruction_references,
+                &instruction_facts,
+            );
             let projected_continuation =
-                dcp_continuation(&history, &turn_log.input, &tool_projection);
+                dcp_continuation(&history, &current_instruction_input, &tool_projection);
+            crate::instructions::reconcile(
+                &mut fixed_input,
+                &projected_continuation,
+                &instruction_facts,
+            );
             let (nudge, persisted_nudge) = {
                 let estimate = estimate_tokens(
                     &serde_json::to_string(&(
@@ -1235,7 +1308,9 @@ impl<'a> Runtime<'a> {
                     .then(|| dcp_config_input(&projected, &dcp_config))
                     .flatten();
             }
-            let continuation = dcp_continuation(&history, &turn_log.input, &tool_projection);
+            let continuation =
+                dcp_continuation(&history, &current_instruction_input, &tool_projection);
+            crate::instructions::reconcile(&mut fixed_input, &continuation, &instruction_facts);
             let mut input: Vec<InputItem> = fixed_input
                 .iter()
                 .chain(nudge_input.iter())
@@ -1627,7 +1702,11 @@ impl<'a> Runtime<'a> {
                                         .chain(
                                             dcp_continuation(
                                                 &history,
-                                                &turn_log.input,
+                                                &crate::instructions::project(
+                                                    &turn_log.input,
+                                                    &turn_log.instruction_references,
+                                                    &instruction_facts,
+                                                ),
                                                 &tool_projection,
                                             )
                                             .iter(),
@@ -2147,7 +2226,11 @@ impl<'a> Runtime<'a> {
                 .and_then(|catalog| catalog.agents.keys().position(|id| id == &agent.id)),
             fixed_input: lane_fixed_input(
                 Some(&agent.prompt),
-                &workspace.instructions,
+                if workspace.instruction_roots.is_empty() {
+                    &workspace.instructions
+                } else {
+                    ""
+                },
                 workspace.skills_projection.as_deref(),
             ),
             agent_digest: agent.digest.clone(),
@@ -2914,14 +2997,78 @@ impl<'a> Runtime<'a> {
                         output: output.clone(),
                     }
                 });
-            self.db.tool_outcome_with_log_and_effects(
-                &op,
-                state,
-                &output,
-                turn_id,
-                &turn_log.to_json().to_string(),
-                patch_effects.as_ref(),
-            )?;
+            if name == "read" && state == "completed" && !cancel.load(Ordering::Acquire) {
+                let instruction_generation = turn_log.display["config_generation"]
+                    .as_u64()
+                    .ok_or(RuntimeError::Storage)?;
+                if instruction_generation != self.generation_id() {
+                    return Err(RuntimeError::StaleGeneration {
+                        want: instruction_generation,
+                        got: self.generation_id(),
+                    });
+                }
+                let roots = self
+                    .workspace
+                    .read()
+                    .expect("workspace lock")
+                    .instruction_roots
+                    .clone();
+                let (revision, facts) = self.db.instruction_view(session)?;
+                let mut desired = facts.into_iter().map(|f| f.source).collect::<Vec<_>>();
+                let path = match unit {
+                    Assembled::Call(call) => call.arguments["path"].as_str(),
+                    _ => None,
+                }
+                .expect("validated read path");
+                let admitted = crate::instructions::after_read(
+                    &roots,
+                    &self.files,
+                    path,
+                    false,
+                    instruction_generation,
+                    &self.roots.data,
+                    invocation_policy,
+                    cancel,
+                )
+                .map_err(RuntimeError::InvalidArgs)?;
+                for mut source in admitted {
+                    if let Some(old) = desired.iter_mut().find(|s| s.path == source.path) {
+                        // A canonical root alias may also be discovered by a
+                        // nested read; retain its original root provenance.
+                        if old.origin != crate::instructions::Origin::Nested {
+                            source.origin = old.origin.clone();
+                            source.root = old.root.clone();
+                        }
+                        *old = source;
+                    } else if source.content.is_some() {
+                        desired.push(source);
+                    }
+                }
+                let index = turn_log.input.len();
+                if turn_log.display["config_generation"].as_u64() != Some(self.generation_id()) {
+                    return Err(RuntimeError::StaleGeneration {
+                        want: turn_log.display["config_generation"].as_u64().unwrap_or(0),
+                        got: self.generation_id(),
+                    });
+                }
+                self.db.checkpoint_instructions(
+                    turn_id,
+                    turn_log,
+                    revision,
+                    &desired,
+                    index,
+                    Some((&op, state, &output)),
+                )?;
+            } else {
+                self.db.tool_outcome_with_log_and_effects(
+                    &op,
+                    state,
+                    &output,
+                    turn_id,
+                    &turn_log.to_json().to_string(),
+                    patch_effects.as_ref(),
+                )?;
+            }
             emit_tool_finish_with_effects(
                 tool_event,
                 turn_id,

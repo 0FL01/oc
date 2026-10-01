@@ -745,7 +745,17 @@ impl<'a> Runtime<'a> {
             digest,
             context.after_seq,
         )?;
-        let current_input = current.map_or(&[][..], |log| log.input.as_slice());
+        let instruction_facts = self.db.instruction_view(session)?.1;
+        let current_instruction_input = current
+            .map(|log| {
+                crate::instructions::project(
+                    &log.input,
+                    &log.instruction_references,
+                    &instruction_facts,
+                )
+            })
+            .unwrap_or_default();
+        let current_input = current_instruction_input.as_slice();
         let raw_before = before_history
             .iter()
             .chain(current_input)
@@ -804,8 +814,17 @@ impl<'a> Runtime<'a> {
             .collect::<Vec<_>>();
         let before_calls = dcp_call_contents(&raw_before, &existing_projection);
         let after_calls = dcp_call_contents(&raw_after, &candidate_projection);
-        let before_wire = dcp_continuation(&before_history, current_input, &existing_projection);
-        let after_wire = dcp_continuation(&after_history, current_input, &candidate_projection);
+        let mut before_wire =
+            dcp_continuation(&before_history, current_input, &existing_projection);
+        let mut after_wire = dcp_continuation(&after_history, current_input, &candidate_projection);
+        let with_reconciled = |wire: &mut Vec<InputItem>| {
+            let mut fixed = Vec::new();
+            crate::instructions::reconcile(&mut fixed, wire, &instruction_facts);
+            fixed.append(wire);
+            *wire = fixed;
+        };
+        with_reconciled(&mut before_wire);
+        with_reconciled(&mut after_wire);
         let bytes = |rows: &[(String, String, String)], wire: &[InputItem]| {
             serde_json::to_vec(&(dcp_config_input(rows, config), wire))
                 .map(|raw| raw.len())
@@ -879,6 +898,7 @@ impl<'a> Runtime<'a> {
         let mut turns = BTreeMap::new();
         let mut changed_lane_prompts = BTreeMap::new();
         let mut represented = std::collections::BTreeSet::new();
+        let instruction_facts = self.db.instruction_view(session)?.1;
         let logs = self
             .db
             .presentation_wire_logs(session, after_seq, projected, blocks)?
@@ -893,7 +913,7 @@ impl<'a> Runtime<'a> {
             let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
             let prompt = value["_dcp_prompt"].as_str().map(str::to_owned);
             let block_id = value["_dcp_block"].as_str().map(str::to_owned);
-            let Some(anchor) = log.user_message else {
+            let Some(anchor) = log.user_message.clone() else {
                 continue;
             };
             if log.provider != provider && agent_digest != Some("__compaction__") {
@@ -929,8 +949,16 @@ impl<'a> Runtime<'a> {
                 .iter()
                 .filter_map(|item| item.call_output().map(|(id, _)| id.to_owned()))
                 .collect();
-            let input = log
-                .input
+            let instruction_input = if agent_digest == Some("__compaction__") {
+                log.input.clone()
+            } else {
+                crate::instructions::project(
+                    &log.input,
+                    &log.instruction_references,
+                    &instruction_facts,
+                )
+            };
+            let input = instruction_input
                 .into_iter()
                 .filter(|item| match item {
                     InputItem::ProviderOutput(value) if value["type"] == "function_call" => {

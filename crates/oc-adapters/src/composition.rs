@@ -48,6 +48,7 @@ pub struct Composition {
     pub parent_env: BTreeMap<String, String>,
     /// Ordered global + Location instructions for a fixed request lane.
     pub instructions: String,
+    pub(crate) instruction_roots: Vec<crate::instructions::Root>,
     /// Selected primary-agent prompt, if configured.
     pub agent_prompt: Option<String>,
     /// Digest of the selected primary profile.
@@ -623,28 +624,49 @@ async fn load_stages(
     {
         build.mode = Some("primary".into());
     }
+    let mut instruction_roots = Vec::new();
     let mut instruction_files = Vec::new();
-    if let Some(global) = global.as_ref()
-        && let Some(root) = admitted_roots[0].as_ref()
-    {
-        let file = global.join("AGENTS.md");
-        if let Some(admitted) = admit_instruction(&file, global)? {
-            instruction_files.push((
-                file.to_string_lossy().into_owned(),
-                read_instruction(root, &admitted),
-            ));
+    for (index, origin) in [
+        (0, crate::instructions::Origin::Global),
+        (
+            usize::from(global.is_some()),
+            crate::instructions::Origin::Project,
+        ),
+    ] {
+        if origin == crate::instructions::Origin::Global && global.is_none() {
+            continue;
         }
-    }
-    let local_agents = project.join("AGENTS.md");
-    if let Some(root) = admitted_roots
-        .get(usize::from(global.is_some()))
-        .and_then(Option::as_ref)
-        && let Some(admitted) = admit_instruction(&local_agents, &project)?
-    {
-        instruction_files.push((
-            local_agents.to_string_lossy().into_owned(),
-            read_instruction(root, &admitted),
-        ));
+        if let Some(root) = admitted_roots.get(index).and_then(Option::as_ref) {
+            // Initial instructions are trusted config-generation inputs, not a
+            // model read grant. Read once with the config/profile admission;
+            // later requests must not mix in files from a failed reload.
+            let file = root.path.join("AGENTS.md");
+            let baseline = if let Some(admitted) = admit_instruction(&file, &root.path)? {
+                let text = read_instruction(root, &admitted);
+                let baseline = text.as_ref().ok().map(|text| {
+                    std::sync::Arc::new(crate::instructions::Source::baseline(
+                        &admitted,
+                        &root.path,
+                        origin.clone(),
+                        text,
+                    ))
+                });
+                instruction_files.push((file.to_string_lossy().into_owned(), text));
+                baseline
+            } else {
+                None
+            };
+            instruction_roots.push(crate::instructions::Root {
+                path: root.path.clone(),
+                dir: std::sync::Arc::new(
+                    root.dir
+                        .try_clone()
+                        .map_err(|_| invalid("instructions", &["root"]))?,
+                ),
+                origin,
+                baseline,
+            });
+        }
     }
     let (instructions, instruction_diagnostics) = defs::load_instruction_texts(&instruction_files);
 
@@ -1244,6 +1266,7 @@ async fn load_stages(
         project,
         parent_env,
         instructions,
+        instruction_roots,
         agent_prompt: selected_agent.as_ref().map(|agent| agent.body.clone()),
         agent_digest: selected_agent.as_ref().map(defs::agent_digest),
         variant: selected_agent.and_then(|agent| agent.variant),
@@ -1683,7 +1706,7 @@ fn read_instruction(root: &AdmittedRoot, path: &Path) -> Result<String, String> 
     let relative = path
         .strip_prefix(&root.path)
         .map_err(|_| "outside admitted root".to_string())?;
-    let mut file = admitted_fs::open_beneath(&root.dir, relative, libc::O_RDONLY)
+    let mut file = admitted_fs::open_beneath_no_symlinks(&root.dir, relative, libc::O_RDONLY)
         .map_err(|_| "unreadable".to_string())?;
     let meta = file.metadata().map_err(|_| "unreadable".to_string())?;
     if !meta.is_file() {

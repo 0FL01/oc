@@ -1920,6 +1920,7 @@ fn publish_workspace(
         .agent_id
         .as_ref()
         .and_then(|id| composition.agents.get(id));
+    runtime.publish_instruction_roots(composition.instruction_roots.clone())?;
     runtime.publish_workspace(
         effective.agent_prompt.as_deref(),
         &composition.instructions,

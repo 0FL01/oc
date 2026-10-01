@@ -2,6 +2,9 @@ use super::*;
 use oc_core::queries::{ConversationAction, ModelRef};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+#[path = "runtime/instructions/tests.rs"]
+mod instruction_tests;
+
 fn catalog() -> ModelCatalog {
     ModelCatalog {
         provider: "fixture".into(),

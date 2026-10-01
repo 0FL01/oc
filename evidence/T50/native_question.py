@@ -11,8 +11,10 @@ import struct
 import termios
 from pathlib import Path
 import select
+import signal
 import sqlite3
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -20,6 +22,22 @@ import time
 QUESTIONS = [{"question": "Choose the implementation", "header": "Choice", "options": [
     {"label": "Native", "description": "Use native code"},
     {"label": "Other", "description": "Another choice"}]}]
+
+
+def own_tty():
+    # /dev/tty must name the fixture slave, never the authoring terminal.
+    fcntl.ioctl(0, termios.TIOCSCTTY, 0)
+
+
+def tty_command(command):
+    # Attach in a fresh interpreter after setsid, not a threaded preexec hook.
+    return [sys.executable, str(Path(__file__).resolve()), "--exec-pty", *command]
+
+
+def stop_owned(process):
+    if process is not None and process.poll() is None:
+        os.killpg(process.pid, signal.SIGKILL)
+        process.wait(timeout=5)
 
 
 def read_until(process, master, marker, buffer=b""):
@@ -127,10 +145,13 @@ def run(binary, case, *, auto=False, keys=None, questions=None, expected=None,
             fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 36, 120, 0, 0))
         if auto:
             command.append("--auto")
+        if master is not None:
+            command = tty_command(command)
         process = subprocess.Popen(command, cwd=project, env=environment,
                                    stdin=slave if master is not None else subprocess.DEVNULL,
                                    stdout=slave if master is not None else subprocess.PIPE,
-                                   stderr=slave if master is not None else subprocess.PIPE)
+                                   stderr=slave if master is not None else subprocess.PIPE,
+                                   start_new_session=True)
         if master is not None:
             os.close(slave)
         try:
@@ -142,8 +163,7 @@ def run(binary, case, *, auto=False, keys=None, questions=None, expected=None,
                 with sqlite3.connect(data / "oc.sqlite") as db:
                     assert db.execute("SELECT state FROM tool_operations WHERE name='question'").fetchone()[0] == "started"
                 if crash:
-                    process.kill()
-                    process.wait(timeout=5)
+                    stop_owned(process)
                 else:
                     os.write(master, keys)
                 if crash:
@@ -180,13 +200,17 @@ def run(binary, case, *, auto=False, keys=None, questions=None, expected=None,
                     with sqlite3.connect(data / "oc.sqlite") as db:
                         session = db.execute("SELECT session_id FROM tool_operations WHERE name='question'").fetchone()[0]
                     # Reopen the real TUI from journal; no synthetic form or provider RPC.
-                    while select.select([master], [], [], 0)[0]:
+                    drain_deadline = time.monotonic() + 2
+                    while time.monotonic() < drain_deadline and select.select([master], [], [], 0)[0]:
                         try:
-                            os.read(master, 65536)
+                            if not os.read(master, 65536):
+                                break
                         except OSError:
                             break
-                    slave = os.open(tty_path, os.O_RDWR)
-                    reopened = subprocess.Popen([str(binary), "--data-dir", str(data), "tui", "--session", session], cwd=project, env=environment, stdin=slave, stdout=slave, stderr=slave)
+                    # The supervisor must not acquire this controlling tty and
+                    # receive SIGHUP when closing the master after the reopen.
+                    slave = os.open(tty_path, os.O_RDWR | os.O_NOCTTY)
+                    reopened = subprocess.Popen(tty_command([str(binary), "--data-dir", str(data), "tui", "--session", session]), cwd=project, env=environment, stdin=slave, stdout=slave, stderr=slave, start_new_session=True)
                     os.close(slave)
                     screen = read_until(reopened, master, b"question" if crash else b"Questions answered")
                     assert len(requests) == (1 if crash else 4 if child else 2) and not failures, failures
@@ -224,12 +248,8 @@ def run(binary, case, *, auto=False, keys=None, questions=None, expected=None,
             assert not failures
             print(json.dumps({"case": case, "status": "PASS", "requests": 1, "operation_rows": 1}))
         finally:
-            if process.poll() is None:
-                process.kill()
-                process.communicate(timeout=5)
-            if reopened is not None and reopened.poll() is None:
-                reopened.kill()
-                reopened.wait(timeout=5)
+            stop_owned(process)
+            stop_owned(reopened)
             if master is not None:
                 os.close(master)
             server.shutdown()
@@ -268,4 +288,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if sys.argv[1:2] == ["--exec-pty"]:
+        own_tty()
+        os.execv(sys.argv[2], sys.argv[2:])
+    else:
+        main()

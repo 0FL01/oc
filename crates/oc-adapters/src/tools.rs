@@ -1336,6 +1336,7 @@ fn subagent_request(call: &ToolCall) -> Result<SubagentRequest, ToolError> {
 /// with a diagnostic instead of leaking it into a foreign context.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TurnLog {
+    pub(crate) instruction_references: Vec<crate::instructions::Reference>,
     /// Assistant-span facts, absent in legacy journals.
     pub spans: Vec<oc_core::queries::AssistantSpan>,
     /// Safe pinned labels and measured footer metadata.
@@ -1368,6 +1369,7 @@ impl TurnLog {
     /// Start an empty log for a turn.
     pub fn new(turn_id: &str, model: &str, provider: &str) -> Self {
         Self {
+            instruction_references: Vec::new(),
             spans: Vec::new(),
             display: serde_json::json!({}),
             display_parts: Vec::new(),
@@ -1403,6 +1405,7 @@ impl TurnLog {
     pub fn to_json(&self) -> serde_json::Value {
         let (input, native_mcp) = self.encode_mcp_input();
         let mut value = serde_json::json!({
+            "instruction_references": self.instruction_references,
             "display": self.display,
             "spans": self.spans,
             "display_parts": self.display_parts,
@@ -1425,6 +1428,12 @@ impl TurnLog {
     /// Deserialize from the turn row.
     pub fn from_json(value: &serde_json::Value) -> Result<Self, String> {
         Ok(Self {
+            instruction_references: value
+                .get("instruction_references")
+                .map(|v| serde_json::from_value(v.clone()))
+                .transpose()
+                .map_err(|_| "invalid instruction references")?
+                .unwrap_or_default(),
             spans: value
                 .get("spans")
                 .map(|v| serde_json::from_value(v.clone()))

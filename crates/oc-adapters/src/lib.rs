@@ -15,6 +15,7 @@ pub mod dcp_auto;
 pub mod defs;
 pub mod discovery;
 pub mod files;
+mod instructions;
 mod mcp_lookup;
 pub mod mcp_remote;
 pub mod mcp_result;
