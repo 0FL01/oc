@@ -28,6 +28,8 @@ mod background_lifecycle;
 mod model_session_tools;
 #[path = "fixtures/question_lifecycle.rs"]
 mod question_lifecycle;
+#[path = "runtime/session_move.rs"]
+mod session_move;
 
 fn sse_delta(text: &str) -> String {
     format!(
@@ -866,6 +868,7 @@ async fn check_application_patch_replay(line: &str, count: usize) {
             CoreEvent::TurnPresentation { projection, .. } => checkpoints.push(projection),
             CoreEvent::TurnStarted { .. }
             | CoreEvent::SessionTitleUpdated { .. }
+            | CoreEvent::SessionMoved { .. }
             | CoreEvent::TextDelta { .. }
             | CoreEvent::ReasoningDelta { .. }
             | CoreEvent::ReasoningItemEnded { .. }

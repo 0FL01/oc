@@ -778,7 +778,11 @@ async fn load_stages(
         &sources,
     )?;
     // Keep central authority independent of the startup primary selection.
-    for tool in ["opencode_models", "opencode_session_rename"] {
+    for tool in [
+        "opencode_models",
+        "opencode_session_rename",
+        "opencode_session_move",
+    ] {
         generation
             .permission_rules
             .module_permission(tool, config::Permission::Allow);

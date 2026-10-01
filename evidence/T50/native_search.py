@@ -19,6 +19,7 @@ import time
 
 QUESTION_SUPPORTED = False  # historical frozen mode remains the default
 MODEL_SESSION_SUPPORTED = False
+SESSION_MOVE_SUPPORTED = False
 
 
 def run(binary, case, calls, *, permission=None, child=False, auto=False, budget=False, cancel=False):
@@ -177,7 +178,8 @@ def run(binary, case, calls, *, permission=None, child=False, auto=False, budget
             return
         active = requests[1 if child else 0]
         names = {tool["name"] for tool in active["tools"]}
-        assert not names & {"write", "edit", "execute", "websearch", "bash", "opencode_session_move"}
+        assert not names & {"write", "edit", "execute", "websearch", "bash"}
+        assert ("opencode_session_move" in names) == (SESSION_MOVE_SUPPORTED and not child)
         if MODEL_SESSION_SUPPORTED:
             assert "opencode_models" in names
             assert ("opencode_session_rename" in names) == (not child)
@@ -255,14 +257,16 @@ def hit(path, line, text):
 
 
 def main():
-    global QUESTION_SUPPORTED, MODEL_SESSION_SUPPORTED
+    global QUESTION_SUPPORTED, MODEL_SESSION_SUPPORTED, SESSION_MOVE_SUPPORTED
     parser = argparse.ArgumentParser()
     parser.add_argument("binary", type=Path)
     parser.add_argument("--question-supported", action="store_true", help="Current R4 catalog; preserves historical R3 mode by default")
     parser.add_argument("--model-session-supported", action="store_true", help="Current R7 catalog; preserves historical R3 mode by default")
+    parser.add_argument("--session-move-supported", action="store_true", help="Current R8 root catalog; retains General/Explore move ceiling")
     options = parser.parse_args()
     QUESTION_SUPPORTED = options.question_supported
     MODEL_SESSION_SUPPORTED = options.model_session_supported
+    SESSION_MOVE_SUPPORTED = options.session_move_supported
     binary = options.binary.resolve()
     before = hashlib.sha256(binary.read_bytes()).hexdigest()
     print(json.dumps({"binary": str(binary), "sha256_before": before}))

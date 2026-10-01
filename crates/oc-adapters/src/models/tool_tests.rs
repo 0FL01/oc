@@ -12,7 +12,18 @@ fn tool18_direct_strict_catalog() {
         assert_eq!(def.parameters["additionalProperties"], false);
         assert_eq!(def.parameters["required"], serde_json::json!(required));
     }
-    assert!(!defs.iter().any(|d| d.name == "opencode_session_move"));
+    assert!(defs.iter().any(|d| d.name == "opencode_session_move"));
+}
+
+#[test]
+fn tool19_direct_strict_move_catalog() {
+    let defs = crate::runtime::builtin_tool_defs();
+    let def = defs
+        .iter()
+        .find(|d| d.name == "opencode_session_move")
+        .expect("direct R8 move");
+    assert_eq!(def.parameters["additionalProperties"], false);
+    assert_eq!(def.parameters["required"], serde_json::json!(["directory"]));
 }
 
 #[test]

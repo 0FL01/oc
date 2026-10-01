@@ -133,6 +133,14 @@ impl SubmissionReceipt {
 /// Typed application events (live hints + durable outcomes for T03).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CoreEvent {
+    /// Same-ID placement already committed at a durable terminal boundary.
+    SessionMoved {
+        operation: String,
+        session: SessionId,
+        directory: String,
+        /// Present only when the application's current root followed the move.
+        location: Option<Box<LocationSnapshot>>,
+    },
     /// Automatic shell result; history delivery is already committed.
     ShellNotice(crate::queries::ShellNotice),
     /// Persisted before the cancellable runtime wait; addressed to one span.
@@ -2060,6 +2068,7 @@ mod tests {
                 }
                 CoreEvent::TurnStarted { .. }
                 | CoreEvent::SessionTitleUpdated { .. }
+                | CoreEvent::SessionMoved { .. }
                 | CoreEvent::TurnPresentation { .. }
                 | CoreEvent::ReasoningDelta { .. }
                 | CoreEvent::ReasoningItemEnded { .. }
@@ -2379,6 +2388,7 @@ mod tests {
                 }
                 CoreEvent::TextDelta { .. }
                 | CoreEvent::SessionTitleUpdated { .. }
+                | CoreEvent::SessionMoved { .. }
                 | CoreEvent::TurnPresentation { .. }
                 | CoreEvent::TurnStarted { .. }
                 | CoreEvent::ReasoningDelta { .. }

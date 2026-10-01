@@ -3143,6 +3143,57 @@ async fn handle_worker_event(
     session: &SessionId,
     event: CoreEvent,
 ) -> Result<(), String> {
+    if let CoreEvent::SessionMoved {
+        session: moved,
+        location,
+        ..
+    } = &event
+    {
+        if let Some(snapshot) = location {
+            if app.catalog().await.is_ok_and(|catalog| {
+                catalog.chrome.location.as_deref() == Some(snapshot.location.as_str())
+            }) {
+                adopt_location(
+                    app,
+                    state,
+                    _loop_state,
+                    snapshot.catalog.clone(),
+                    &snapshot.location,
+                )
+                .await;
+            }
+        } else {
+            // An explicit idle target left this scope; retire only its parked
+            // view. The caller's Location, draft and all surviving views stay owned.
+            if let Some(index) = _loop_state.tabs.iter().position(|view| {
+                view.as_ref()
+                    .is_some_and(|view| view.attached_session() == Some(moved))
+            }) {
+                _loop_state.tabs.remove(index);
+                _loop_state.tab_cards_before.remove(index);
+                if let Some(active) = _loop_state.active_tab.as_mut()
+                    && *active > index
+                {
+                    *active -= 1;
+                }
+            }
+            match app.tab_deck().await {
+                Ok(snapshot)
+                    if _loop_state.location.as_deref() == Some(snapshot.location.as_str())
+                        && _loop_state.snapshot(state).sessions == snapshot.sessions
+                        && _loop_state.snapshot(state).active == snapshot.active =>
+                {
+                    _loop_state.revision = snapshot.revision;
+                }
+                _ => {
+                    _loop_state.save_disabled = true;
+                    state.push_note("Session moved; saved tabs refresh required");
+                }
+            }
+            _loop_state.sync_tabs(state);
+        }
+        return Ok(());
+    }
     if matches!(
         &event,
         CoreEvent::PermissionAsked(_)
@@ -3164,7 +3215,8 @@ async fn handle_worker_event(
     }
     let owner = match &event {
         CoreEvent::ShellNotice(notice) => &notice.session,
-        CoreEvent::SessionTitleUpdated { session, .. }
+        CoreEvent::SessionMoved { session, .. }
+        | CoreEvent::SessionTitleUpdated { session, .. }
         | CoreEvent::RetryScheduled { session, .. }
         | CoreEvent::TurnStarted { session, .. }
         | CoreEvent::TurnPresentation { session, .. }
@@ -3212,6 +3264,7 @@ async fn handle_worker_event(
         | CoreEvent::QuestionResolved { .. } => {
             unreachable!("handled above")
         }
+        CoreEvent::SessionMoved { .. } => unreachable!("handled above"),
         CoreEvent::SessionTitleUpdated { title, .. } => state.session_title = Some(title),
         CoreEvent::TurnStarted {
             turn, model_switch, ..

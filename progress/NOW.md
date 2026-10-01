@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-01T06:36:06+00:00
+State updated: 2026-10-01T11:37:34+00:00
 Active: T50
 
 Сверить Git status/diff до выполнения команд.
@@ -14,13 +14,13 @@ Owner-approved selected R1–R9; detailed contract/slices in spec/M8. Shell comm
 
 # T50
 ## Result
-R6/TOOL17 verified; normal artifacts restored unchanged.
+R8/TOOL19 verified: full-turn boundary, atomic same-ID move.
 ## Checks
-Workspace1386 PASS; owner16; each ELF27+20+14+6; Python47.
+Workspace1399 PASS; parent7 owner +10 native; Python47.
 ## Risks
-Cooperative conversion/lookup limits; R7/R8 still open.
+R2 extension/R1/R9 pending; T44 paused; live allowance exhausted.
 ## Next
-Direct model lookup and session rename, then safe-boundary move.
+Model-dependent file tools and actual in-task model switch.
 
 
 Ready (до 5): T53, T56

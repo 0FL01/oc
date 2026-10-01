@@ -480,6 +480,12 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
                 "title":{"type":"string","minLength":1,"maxLength":256},"sessionID":{"type":"string","minLength":1,"maxLength":256}}}),
         },
         ToolDef {
+            name: "opencode_session_move".into(),
+            description: "Admit a same-session directory move. Omit sessionID for current; explicit targets must be locally known idle roots. Children may move only themselves; General/Explore cannot move. Relative paths and ~ use the target's original context and admitted HOME. Existing no-follow/data-root/trust guards apply; external_directory must already be Allow. Returns pending with a durable operation ID: placement changes only after the FULL source turn is durably terminal. All same-turn tools retain source context. A destination request must be a distinct new turn. No saved grant is created.".into(),
+            parameters: serde_json::json!({"type":"object","additionalProperties":false,"required":["directory"],"properties":{
+                "directory":{"type":"string","minLength":1,"maxLength":4096},"sessionID":{"type":"string","minLength":1,"maxLength":256}}}),
+        },
+        ToolDef {
             name: "read".to_string(),
             description: "Read a project file or directory. Text has 1-based line references; directories are sorted with directories first. offset is 1-based, limit defaults to 2000. Validated PNG/JPEG/GIF/WebP images are inline content for image-capable selected Responses models; PDF is unsupported. Native no-follow, permission, data-root, 1 MiB file scan and 65536-byte page budgets apply."
                 .to_string(),
@@ -895,6 +901,7 @@ struct ActiveContext {
 /// Single-flight: one active turn at a time (mirrors the single-turn
 /// worker); reload and DCP config changes only land between turns.
 pub struct Runtime<'a> {
+    prepared_moves: Mutex<BTreeMap<String, crate::application::session_move::Prepared>>,
     pub(crate) shell_jobs: Arc<crate::shell::jobs::Jobs>,
     approvals: Arc<oc_core::approval::ApprovalQueue>,
     questions: Arc<oc_core::question::QuestionQueue>,
@@ -1016,6 +1023,7 @@ impl<'a> Runtime<'a> {
         crate::dcp::apply_dcp_schema(db).map_err(|_| RuntimeError::Storage)?;
         db.grants_schema()?;
         Ok(Self {
+            prepared_moves: Mutex::new(BTreeMap::new()),
             shell_jobs: crate::shell::jobs::Jobs::new(db),
             approvals: Arc::new(oc_core::approval::ApprovalQueue::default()),
             questions: Arc::new(oc_core::question::QuestionQueue::default()),

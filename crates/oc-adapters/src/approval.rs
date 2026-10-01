@@ -292,6 +292,9 @@ pub(crate) async fn prepare(
 /// Exact literal resources are safe to save only when they contain no wildcard
 /// metacharacters. This is separate from the actual policy resource set.
 pub(crate) fn save_patterns(action: &str, resources: &[String]) -> Vec<String> {
+    if action == "opencode_session_move" {
+        return vec![];
+    }
     if !matches!(
         action,
         "read"

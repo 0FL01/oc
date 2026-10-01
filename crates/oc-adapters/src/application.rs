@@ -54,6 +54,7 @@ mod provider_catalog;
 mod provider_tests;
 #[path = "application_selection.rs"]
 mod selection;
+pub(crate) mod session_move;
 #[path = "application_tab_deck.rs"]
 mod tab_deck;
 
@@ -1222,6 +1223,7 @@ fn subagent_catalog(composition: &Composition) -> Option<SubagentCatalog> {
 
 /// What the command loop returns to the supervisor.
 enum WorkerOutcome {
+    Move(Box<session_move::Prepared>),
     /// Inbox closed or an explicit shutdown was requested.
     Stop,
     ProviderCatalog(
@@ -1379,6 +1381,15 @@ async fn start_worker(
         let outcome = match outcome {
             Ok(outcome) => outcome,
             Err(error) => {
+                let shell_stop = runtime
+                    .shell_jobs
+                    .shutdown()
+                    .await
+                    .map_err(|e| storage_diagnostic(db.root(), &e));
+                let shell_delivery = runtime
+                    .shell_jobs
+                    .deliver(&events)
+                    .map_err(|e| storage_diagnostic(db.root(), &e));
                 let provider_stop = provider_work.stop().await;
                 let title_stop = stop_automatic_titles(&title_work).await;
                 runtime.shutdown_mcp().await.map_err(|error| {
@@ -1386,10 +1397,151 @@ async fn start_worker(
                 })?;
                 title_stop?;
                 provider_stop?;
+                shell_stop?;
+                shell_delivery?;
                 return Err(error);
             }
         };
         match outcome {
+            WorkerOutcome::Move(prepared) => {
+                let prepared = *prepared;
+                let moved: Result<(), oc_core::queries::ServiceDiagnostic> = async {
+                    prepared.recheck(&db).map_err(|error| {
+                        runtime_issue(
+                            runtime.location(),
+                            &["session_move"],
+                            &RuntimeError::InvalidArgs(error),
+                        )
+                        .diagnostic
+                    })?;
+                    let record = prepared.record.clone();
+                    let current = (sessions.get(runtime.location()) == Some(&record.session)
+                        || (!sessions.contains_key(runtime.location())
+                            && db
+                                .move_source_is_target(&record)
+                                .map_err(|e| storage_diagnostic(db.root(), &e))?))
+                        && db
+                            .session_meta(&record.session)
+                            .map_err(|e| storage_diagnostic(db.root(), &e))?
+                            .parent_id
+                            .is_none();
+                    let next_composition = prepared.composition;
+                    let mut next =
+                        build_runtime(&db, &next_composition).map_err(|e| e.diagnostic)?;
+                    let next_effective = prepared.effective;
+                    publish_workspace(&next, &next_composition, &next_effective).map_err(|e| {
+                        runtime_issue(&record.directory, &["workspace"], &e).diagnostic
+                    })?;
+                    let next_registry = prepared.registry;
+                    if current {
+                        let provider_stop = provider_work.stop().await;
+                        let mcp_stop = runtime.shutdown_mcp().await.map_err(|e| {
+                            runtime_issue(runtime.location(), &["mcp"], &e).diagnostic
+                        });
+                        while let Ok(result) = title_rx.try_recv() {
+                            commit_automatic_title(&db, &events, &title_work, result);
+                        }
+                        let title_stop = stop_automatic_titles(&title_work).await;
+                        mcp_stop?;
+                        title_stop?;
+                        provider_stop?;
+                        remote_retry_quarantined |= runtime.remote_retry_quarantined();
+                        if remote_retry_quarantined {
+                            next.quarantine_remote_retries();
+                        }
+                        next.set_approval_events(&events);
+                        next.set_compaction_events(&events);
+                        next.start_mcp()
+                            .map_err(|e| runtime_issue(next.location(), &["mcp"], &e).diagnostic)?;
+                    }
+                    if let Err(error) = session_move::Prepared::recheck_parts(
+                        &db,
+                        &record,
+                        &prepared.directory,
+                        prepared.identity,
+                    ) {
+                        next.shutdown_mcp()
+                            .await
+                            .map_err(|e| runtime_issue(next.location(), &["mcp"], &e).diagnostic)?;
+                        return Err(runtime_issue(
+                            runtime.location(),
+                            &["session_move"],
+                            &RuntimeError::InvalidArgs(error),
+                        )
+                        .diagnostic);
+                    }
+                    if let Err(error) = db.apply_session_move(&record) {
+                        next.shutdown_mcp()
+                            .await
+                            .map_err(|e| runtime_issue(next.location(), &["mcp"], &e).diagnostic)?;
+                        return Err(storage_diagnostic(db.root(), &error));
+                    }
+                    let mut location = None;
+                    if current {
+                        let mode = composition.approval_consumer_mode.load(Ordering::SeqCst);
+                        next_composition
+                            .approval_consumer_mode
+                            .store(mode, Ordering::SeqCst);
+                        if mode > 0 {
+                            next.register_approval_consumer(mode == 2);
+                        }
+                        let consumer = composition.question_consumer.load(Ordering::SeqCst);
+                        next_composition
+                            .question_consumer
+                            .store(consumer, Ordering::SeqCst);
+                        if consumer {
+                            next.register_question_consumer();
+                        }
+                        next.shell_jobs = runtime.shell_jobs.clone();
+                        sessions.remove(&record.source);
+                        sessions.insert(record.directory.clone(), record.session.clone());
+                        runtime = next;
+                        composition = next_composition;
+                        effective = next_effective;
+                        registry = next_registry;
+                        location_epoch.fetch_add(1, Ordering::SeqCst);
+                        location = Some(Box::new(LocationSnapshot {
+                            location: record.directory.clone(),
+                            generation: location_epoch.load(Ordering::SeqCst),
+                            session: record.session.clone(),
+                            catalog: effective.snapshot(&composition),
+                            diagnostics: composition.diagnostics.clone(),
+                            notices: composition.startup_notices.clone(),
+                        }));
+                    }
+                    let _ = events.send(CoreEvent::SessionMoved {
+                        operation: record.operation,
+                        session: SessionId(record.session),
+                        directory: record.directory,
+                        location,
+                    });
+                    Ok(())
+                }
+                .await;
+                if let Err(error) = moved {
+                    let shell_stop = runtime
+                        .shell_jobs
+                        .shutdown()
+                        .await
+                        .map_err(|e| storage_diagnostic(db.root(), &e));
+                    let shell_delivery = runtime
+                        .shell_jobs
+                        .deliver(&events)
+                        .map_err(|e| storage_diagnostic(db.root(), &e));
+                    let provider_stop = provider_work.stop().await;
+                    let title_stop = stop_automatic_titles(&title_work).await;
+                    let mcp_stop = runtime
+                        .shutdown_mcp()
+                        .await
+                        .map_err(|e| runtime_issue(runtime.location(), &["mcp"], &e).diagnostic);
+                    shell_stop?;
+                    shell_delivery?;
+                    provider_stop?;
+                    title_stop?;
+                    mcp_stop?;
+                    return Err(error);
+                }
+            }
             WorkerOutcome::ProviderCatalog(outcome) => {
                 let outcome = match outcome {
                     Ok(outcome) => outcome,
@@ -3247,6 +3399,16 @@ async fn worker(
     runtime.set_compaction_events(events);
     let mut pending_inputs = std::collections::VecDeque::new();
     'worker: loop {
+        if let Some(prepared) = runtime.ready_session_move().await.map_err(|error| {
+            runtime_issue(
+                runtime.location(),
+                &["session_move"],
+                &RuntimeError::InvalidArgs(error),
+            )
+            .diagnostic
+        })? {
+            return Ok(WorkerOutcome::Move(Box::new(prepared)));
+        }
         runtime.shell_jobs.deliver(events).map_err(|_| {
             runtime_issue(
                 runtime.location(),

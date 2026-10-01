@@ -13,6 +13,8 @@ import tempfile
 import threading
 import traceback
 
+SESSION_MOVE_SUPPORTED = False
+
 CASES = ("catalog", "dynamic", "rename", "explicit", "restart", "deny", "ask", "unknown", "foreign", "invalid",
          "child_own", "child_parent", "child_sibling", "child_foreign", "general", "bad_lookup",
          "models_deny", "models_ask", "child_models")
@@ -96,7 +98,7 @@ def run(binary, case):
                     assert request.get("reasoning",{}).get("effort") == "high", "selection/variant changed"
                     assert self.headers.get("authorization") == "Bearer SYNTHETIC_R7_KEY"
                     definitions = {t["name"]:t for t in request.get("tools",[])}
-                    assert "opencode_session_move" not in definitions and "bash" not in definitions
+                    assert "bash" not in definitions
                     if case == "models_deny":
                         assert "opencode_models" not in definitions
                     else:
@@ -105,6 +107,7 @@ def run(binary, case):
                         assert props["additionalProperties"] is False and props["properties"]["limit"]["maximum"] == 100
                         assert props["properties"]["offset"]["minimum"] == 0 and props["properties"]["limit"]["default"] == 20
                     is_child_request = child and phase in (1,2) and not any(i.get("call_id")=="spawn" for i in request["input"])
+                    assert ("opencode_session_move" in definitions) == (SESSION_MOVE_SUPPORTED and not (case == "general" and is_child_request))
                     if is_child_request:
                         child_schema.update({name:definition["parameters"] for name,definition in definitions.items()
                             if name in ("opencode_models","opencode_session_rename")})
@@ -274,10 +277,13 @@ def run(binary, case):
             assert not thread.is_alive()
 
 def main():
+    global SESSION_MOVE_SUPPORTED
     parser=argparse.ArgumentParser()
     parser.add_argument("binary",type=Path)
     parser.add_argument("--case",choices=CASES)
+    parser.add_argument("--session-move-supported",action="store_true",help="Current R8 catalog; retains frozen historical R7 mode by default")
     options=parser.parse_args()
+    SESSION_MOVE_SUPPORTED=options.session_move_supported
     binary=options.binary.resolve()
     before=digest(binary)
     failed=0

@@ -508,7 +508,11 @@ impl<'a> Runtime<'a> {
     }
 
     fn rename_target(&self, caller: &str, call: &crate::tools::ToolCall) -> Result<(), String> {
-        let (_, target) = crate::tools::rename_input(&call.arguments)?;
+        let (_, target) = if call.name == "opencode_session_move" {
+            crate::tools::move_input(&call.arguments)?
+        } else {
+            crate::tools::rename_input(&call.arguments)?
+        };
         let target = target.unwrap_or(caller);
         self.open_session(caller)
             .map_err(|_| "session target unavailable")?;
@@ -533,6 +537,34 @@ impl<'a> Runtime<'a> {
             return Err("session target unavailable".into());
         }
         Ok(())
+    }
+
+    pub(crate) async fn ready_session_move(
+        &self,
+    ) -> Result<Option<crate::application::session_move::Prepared>, String> {
+        let Some(record) = self
+            .db
+            .ready_session_moves(&self.location)
+            .map_err(|_| "move storage unavailable")?
+            .into_iter()
+            .next()
+        else {
+            return Ok(None);
+        };
+        let cached = self
+            .prepared_moves
+            .lock()
+            .expect("moves lock")
+            .remove(&record.operation);
+        let prepared = match cached {
+            Some(prepared) => prepared,
+            None => {
+                crate::application::session_move::prepare(self.db, record, self.parent_env.clone())
+                    .await?
+            }
+        };
+        prepared.recheck(self.db)?;
+        Ok(Some(prepared))
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1029,6 +1061,8 @@ impl<'a> Runtime<'a> {
         let mut calls = Vec::new();
         let mut turn_log = TurnLog::new(&turn_id, &selection.id, &params.catalog.provider);
         turn_log.display = serde_json::json!({
+            "location":self.location,
+            "move_epoch":self.db.session_move_epoch(&params.session)?,
             "config_generation":published.id,
             "owning_operation":lane.owning_operation.as_deref().unwrap_or(&turn_id),
             "model_label":selection.entry.get("name").and_then(|v|v.as_str()).unwrap_or(&selection.id),
@@ -2485,14 +2519,22 @@ impl<'a> Runtime<'a> {
             let mut guarded = self.guard_patch(unit.clone());
             // Dispatch default-current before exact-resource common admission.
             if let Assembled::Call(call) = &mut guarded
-                && call.name == "opencode_session_rename"
+                && matches!(
+                    call.name.as_str(),
+                    "opencode_session_rename" | "opencode_session_move"
+                )
                 && crate::tools::validate_call(call).is_ok()
                 && call.arguments.get("sessionID").is_none()
             {
                 call.arguments["sessionID"] = session.into();
             }
-            let structural = match &guarded {
-                Assembled::Call(call) if call.name == "opencode_session_rename" => {
+            let mut structural = match &guarded {
+                Assembled::Call(call)
+                    if matches!(
+                        call.name.as_str(),
+                        "opencode_session_rename" | "opencode_session_move"
+                    ) =>
+                {
                     self.rename_target(session, call).and_then(|()| {
                         if turn_log.display["config_generation"].as_u64()
                             == Some(self.generation_id())
@@ -2505,6 +2547,65 @@ impl<'a> Runtime<'a> {
                 }
                 _ => Ok(()),
             };
+            let mut prepared_move = None;
+            if structural.is_ok()
+                && !permission_rejected
+                && !cancel.load(Ordering::Acquire)
+                && let Assembled::Call(call) = &mut guarded
+                && call.name == "opencode_session_move"
+                && crate::tools::validate_call(call).is_ok()
+            {
+                let (raw, target) =
+                    crate::tools::move_input(&call.arguments).expect("validated move");
+                let target = target.unwrap_or(session).to_string();
+                let prepared = async {
+                    if self
+                        .db
+                        .has_pending_move(&target)
+                        .map_err(|_| "move storage unavailable")?
+                        || self.prepared_moves.lock().expect("moves lock").len() >= 8
+                    {
+                        return Err("session move already pending".to_string());
+                    }
+                    let directory = crate::application::session_move::resolve(
+                        &self.location,
+                        raw,
+                        &self.parent_env,
+                    )?;
+                    if policy.effect(&call.name, &target) == Permission::Deny
+                        || policy.effect(&call.name, &directory) == Permission::Deny
+                    {
+                        return Err("session move denied".into());
+                    }
+                    if !std::path::Path::new(&directory).starts_with(&self.roots.project)
+                        && policy.effect("external_directory", &directory) != Permission::Allow
+                    {
+                        return Err("move external directory not admitted".into());
+                    }
+                    let record = crate::storage::MoveRecord {
+                        operation: op.clone(),
+                        session: target,
+                        source_turn: turn_id.into(),
+                        source: self.location.clone(),
+                        directory,
+                        fingerprint: String::new(),
+                    };
+                    crate::application::session_move::prepare(
+                        self.db,
+                        record,
+                        self.parent_env.clone(),
+                    )
+                    .await
+                }
+                .await;
+                match prepared {
+                    Ok(prepared) => {
+                        call.arguments["directory"] = prepared.record.directory.clone().into();
+                        prepared_move = Some(prepared);
+                    }
+                    Err(error) => structural = Err(error),
+                }
+            }
             let mut admission = match &guarded {
                 Assembled::Call(call)
                     if !permission_rejected
@@ -2533,7 +2634,10 @@ impl<'a> Runtime<'a> {
             }
             if admission.is_ok()
                 && let Assembled::Call(call) = &guarded
-                && call.name == "opencode_session_rename"
+                && matches!(
+                    call.name.as_str(),
+                    "opencode_session_rename" | "opencode_session_move"
+                )
                 && let Err(error) = self.rename_target(session, call).and_then(|()| {
                     if turn_log.display["config_generation"].as_u64() == Some(self.generation_id())
                     {
@@ -2542,6 +2646,23 @@ impl<'a> Runtime<'a> {
                         Err("stale session generation".into())
                     }
                 })
+            {
+                admission = Err(error.into());
+            }
+            if admission.is_ok()
+                && let Some(prepared) = &prepared_move
+                && let Err(error) = prepared.recheck(self.db)
+            {
+                admission = Err(error.into());
+            }
+            if admission.is_ok()
+                && let Some(prepared) = &prepared_move
+                && let Err(error) = crate::application::session_move::prepare(
+                    self.db,
+                    prepared.record.clone(),
+                    self.parent_env.clone(),
+                )
+                .await
             {
                 admission = Err(error.into());
             }
@@ -2934,6 +3055,24 @@ impl<'a> Runtime<'a> {
                 rejection
             } else {
                 match unit {
+                    Assembled::Call(call) if call.name == "opencode_session_move" => {
+                        let prepared = prepared_move.take().expect("move prepared before intent");
+                        let record = prepared.record.clone();
+                        match prepared.recheck(self.db).and_then(|()| {
+                            self.db
+                                .admit_session_move(&record)
+                                .map_err(|_| "move storage unavailable".into())
+                        }) {
+                            Ok(()) => {
+                                self.prepared_moves
+                                    .lock()
+                                    .expect("moves lock")
+                                    .insert(op.clone(), prepared);
+                                ("completed",serde_json::json!({"status":"pending","operationID":op,"sessionID":record.session,"directory":record.directory}).to_string())
+                            }
+                            Err(error) => ("failed", format!("error: {error}")),
+                        }
+                    }
                     Assembled::Call(call) if call.name == "opencode_models" => {
                         let published = self.current.read().expect("generation lock").clone();
                         let secrets =

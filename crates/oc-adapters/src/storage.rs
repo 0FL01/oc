@@ -35,8 +35,11 @@ mod fork;
 mod grants;
 #[path = "storage_instructions.rs"]
 mod instructions;
+#[path = "storage_session_move.rs"]
+mod session_move;
 #[path = "storage_shell_jobs.rs"]
 mod shell_jobs;
+pub(crate) use session_move::MoveRecord;
 
 /// Bounded page projection retaining the exact persisted message identity.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -494,6 +497,7 @@ impl Db {
         Self::conversation_schema(&conn)?;
         Self::session_list_schema(&conn)?;
         Self::shell_jobs_schema(&conn)?;
+        Self::session_move_schema(&conn)?;
         // Same journal, indexed anchor lookup: history paging must not parse
         // every archived turn. Legacy non-JSON results are excluded safely.
         conn.execute_batch("CREATE INDEX IF NOT EXISTS turns_display_anchor ON turns(session_id, COALESCE(json_extract(result,'$.assistant_message'),json_extract(result,'$.user_message'))) WHERE json_valid(result)")?;

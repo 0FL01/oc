@@ -913,6 +913,8 @@ impl<'a> Runtime<'a> {
         let mut turns = BTreeMap::new();
         let mut changed_lane_prompts = BTreeMap::new();
         let mut represented = std::collections::BTreeSet::new();
+        let move_epoch = self.db.session_move_epoch(session)?;
+        let moved = move_epoch != 0;
         let instruction_facts = self.db.instruction_view(session)?.1;
         let logs = self
             .db
@@ -931,18 +933,25 @@ impl<'a> Runtime<'a> {
             let Some(anchor) = log.user_message.clone() else {
                 continue;
             };
-            if log.provider != provider && agent_digest != Some("__compaction__") {
+            let changed_location = moved
+                && (log.display["move_epoch"].as_i64().unwrap_or(0) != move_epoch
+                    || log.display["location"].as_str() != Some(self.location.as_str()));
+            if log.provider != provider
+                && agent_digest != Some("__compaction__")
+                && !changed_location
+            {
                 return Err(RuntimeError::InvalidArgs(
                     "session wire history belongs to a different provider/model".to_string(),
                 ));
             }
-            if agent_digest != Some("__compaction__")
-                && (log.model != model
-                    || (log.agent_digest.as_deref() != agent_digest
+            if changed_location
+                || (agent_digest != Some("__compaction__")
+                    && (log.model != model
+                        || (log.agent_digest.as_deref() != agent_digest
                     // Pre-Build native sessions used the same empty default
                     // agent lane without a digest. Adopt only the unchanged
                     // builtin profile, preserving genuine tool/opaque pairs.
-                    && !(log.agent_digest.is_none() && agent_digest == Some(crate::defs::agent_digest(&crate::defs::builtin_build()).as_str()))))
+                    && !(log.agent_digest.is_none() && agent_digest == Some(crate::defs::agent_digest(&crate::defs::builtin_build()).as_str())))))
             {
                 // Model or agent behavior changed: start a fresh causality lane
                 // from public messages, but retain the originally expanded user
@@ -991,7 +1000,8 @@ impl<'a> Runtime<'a> {
         }
         let mut input = Vec::new();
         for (id, role, text) in projected {
-            if id == "session-checkpoint"
+            if !moved
+                && id == "session-checkpoint"
                 && let Some((_, _, _, Some(raw))) = self.db.checkpoint_record(session)?
             {
                 input.push(InputItem::ProviderOutput(

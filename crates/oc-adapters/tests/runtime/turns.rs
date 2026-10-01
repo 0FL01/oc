@@ -2573,6 +2573,7 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             CoreEvent::ShellNotice(_) => panic!("unexpected shell in reasoning-only fixture"),
             CoreEvent::TurnStarted { .. }
             | CoreEvent::SessionTitleUpdated { .. }
+            | CoreEvent::SessionMoved { .. }
             | CoreEvent::TurnPresentation { .. }
             | CoreEvent::ReasoningItemEnded { .. }
             | CoreEvent::TextDelta { .. }
