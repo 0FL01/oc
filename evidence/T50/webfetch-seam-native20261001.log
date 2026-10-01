@@ -1,0 +1,31 @@
+COMMAND ["python3", "-B", "evidence/T50/native_webfetch.py", "target/debug/oc"]
+{"case": "default", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 1, "tool_rows": 1, "terminal_states": ["completed"], "process_exit": 0}
+{"case": "markdown", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 1, "tool_rows": 1, "terminal_states": ["completed"], "process_exit": 0}
+{"case": "text", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 1, "tool_rows": 1, "terminal_states": ["completed"], "process_exit": 0}
+{"case": "html", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 1, "tool_rows": 1, "terminal_states": ["completed"], "process_exit": 0}
+{"case": "redirect", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 2, "tool_rows": 1, "terminal_states": ["completed"], "process_exit": 0}
+{"case": "plain", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 1, "tool_rows": 1, "terminal_states": ["completed"], "process_exit": 0}
+{"case": "json", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 1, "tool_rows": 1, "terminal_states": ["completed"], "process_exit": 0}
+{"case": "status", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 1, "tool_rows": 1, "terminal_states": ["completed"], "process_exit": 0}
+{"case": "seconds", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 1, "tool_rows": 1, "terminal_states": ["completed"], "process_exit": 0}
+{"case": "invalid_format", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 0, "tool_rows": 1, "terminal_states": ["failed"], "process_exit": 0}
+{"case": "invalid_timeout", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 0, "tool_rows": 1, "terminal_states": ["failed"], "process_exit": 0}
+{"case": "invalid_null", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 0, "tool_rows": 1, "terminal_states": ["failed"], "process_exit": 0}
+{"case": "unknown_option", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 0, "tool_rows": 1, "terminal_states": ["failed"], "process_exit": 0}
+{"case": "auth", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 0, "tool_rows": 1, "terminal_states": ["failed"], "process_exit": 0}
+{"case": "password", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 0, "tool_rows": 1, "terminal_states": ["failed"], "process_exit": 0}
+{"case": "scheme", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 0, "tool_rows": 1, "terminal_states": ["failed"], "process_exit": 0}
+{"case": "private", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 0, "tool_rows": 1, "terminal_states": ["failed"], "process_exit": 0}
+{"case": "loopback_refused", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 0, "tool_rows": 1, "terminal_states": ["failed"], "process_exit": 0}
+{"case": "denied", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 0, "tool_rows": 1, "terminal_states": ["failed"], "process_exit": 0}
+{"case": "ask", "status": "PASS", "provider_requests": 2, "main_requests": 1, "auxiliary_requests": 1, "get_requests": 0, "tool_rows": 0, "terminal_states": [], "process_exit": 1}
+{"case": "private_redirect", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 1, "tool_rows": 1, "terminal_states": ["failed"], "process_exit": 0}
+{"case": "password_redirect", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 1, "tool_rows": 1, "terminal_states": ["failed"], "process_exit": 0}
+{"case": "scheme_redirect", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 1, "tool_rows": 1, "terminal_states": ["failed"], "process_exit": 0}
+{"case": "redirect_limit", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 6, "tool_rows": 1, "terminal_states": ["failed"], "process_exit": 0}
+{"case": "oversize", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 1, "tool_rows": 1, "terminal_states": ["completed"], "process_exit": 0}
+{"case": "timeout_body", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "get_requests": 1, "tool_rows": 1, "terminal_states": ["failed"], "process_exit": 0}
+{"case": "cancel_body", "status": "PASS", "provider_requests": 2, "main_requests": 1, "auxiliary_requests": 1, "get_requests": 1, "tool_rows": 1, "terminal_states": ["cancelled"], "process_exit": 130}
+{"binary": "/home/opencode/ai/oc/target/debug/oc", "sha256_before": "a1f44ad41d94f36dd70a14b87859d4df02c4ff151d34a3af695314eee110314b", "sha256_after": "a1f44ad41d94f36dd70a14b87859d4df02c4ff151d34a3af695314eee110314b", "failures": 0, "owned_cleanup": "all PGIDs/HTTP threads joined before TempDir cleanup", "cases": 27, "provider_requests": 79, "main_requests": 52, "auxiliary_requests": 27, "get_requests": 22, "tool_rows": 26}
+
+RECORDER {"command": ["python3", "-B", "evidence/T50/native_webfetch.py", "target/debug/oc"], "exit": 0, "seconds": 23.48, "log": "/home/opencode/ai/oc/evidence/T50/webfetch-seam-native20261001.log", "log_bytes": 5703, "truncated": false, "summaries": 0, "passed": 0, "failed": 0, "ignored": 0}

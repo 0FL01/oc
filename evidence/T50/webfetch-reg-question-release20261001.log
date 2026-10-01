@@ -1,0 +1,17 @@
+COMMAND ["python3", "-B", "evidence/T50/native_question.py", "target/release/oc"]
+Traceback (most recent call last):
+  File "/home/opencode/ai/oc/evidence/T50/native_question.py", line 295, in <module>
+    main()
+    ~~~~^^
+  File "/home/opencode/ai/oc/evidence/T50/native_question.py", line 266, in main
+    before = hashlib.sha256(binary.read_bytes()).hexdigest()
+                            ~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/pathlib/_abc.py", line 625, in read_bytes
+    with self.open(mode='rb') as f:
+         ~~~~~~~~~^^^^^^^^^^^
+  File "/usr/lib/python3.13/pathlib/_local.py", line 539, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/opencode/ai/oc/target/release/oc'
+
+RECORDER {"command": ["python3", "-B", "evidence/T50/native_question.py", "target/release/oc"], "exit": 1, "seconds": 0.09, "log": "/home/opencode/ai/oc/evidence/T50/webfetch-reg-question-release20261001.log", "log_bytes": 769, "truncated": false, "summaries": 0, "passed": 0, "failed": 0, "ignored": 0}

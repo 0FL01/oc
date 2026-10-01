@@ -1143,7 +1143,11 @@ fn build_runtime<'a>(db: &'a Db, composition: &Composition) -> Result<Runtime<'a
             data: db.root().to_path_buf(),
         },
         None,
-        false,
+        composition
+            .parent_env
+            .get("OC_TEST_WEBFETCH_ALLOW_LOOPBACK")
+            .map(String::as_str)
+            == Some("1"),
         composition.dcp_config.clone(),
     )
     .map_err(|error| runtime_issue(&source, &["runtime"], &error))?;

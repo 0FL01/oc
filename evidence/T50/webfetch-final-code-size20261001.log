@@ -1,0 +1,12 @@
+COMMAND ["python3", "-B", "scripts/code_size.py", "--base", "40a201e61ed7c81fa0ed52b82392d9c2d9ac8643", "--changed"]
+7 files; 10636 physical lines; 419132 UTF-8 bytes
+crates/oc-adapters/src/application.rs: {'lines': 4253, 'bytes': 183573} (mixed/unknown) delta={'lines': 4, 'bytes': 140}
+crates/oc-adapters/src/tools.rs: {'lines': 2291, 'bytes': 82269} (mixed/unknown) delta={'lines': 8, 'bytes': 756}
+crates/oc-adapters/src/runtime.rs: {'lines': 1916, 'bytes': 78038} (mixed/unknown) delta={'lines': 4, 'bytes': 798}
+crates/oc-adapters/src/webfetch.rs: {'lines': 1407, 'bytes': 49045} (mixed/unknown) delta={'lines': 193, 'bytes': 6158}
+crates/oc-adapters/src/webfetch/render.rs: {'lines': 492, 'bytes': 16389} (source) delta={'lines': 492, 'bytes': 16389}
+crates/oc-adapters/src/webfetch/format_tests.rs: {'lines': 221, 'bytes': 7797} (test) delta={'lines': 221, 'bytes': 7797}
+crates/oc-adapters/src/tools/tests/webfetch.rs: {'lines': 56, 'bytes': 2021} (test) delta={'lines': 56, 'bytes': 2021}
+Advisory only; renames appear as old deleted + new path. Details: --json.
+
+RECORDER {"command": ["python3", "-B", "scripts/code_size.py", "--base", "40a201e61ed7c81fa0ed52b82392d9c2d9ac8643", "--changed"], "exit": 0, "seconds": 1.14, "log": "/home/opencode/ai/oc/evidence/T50/webfetch-final-code-size20261001.log", "log_bytes": 956, "truncated": false, "summaries": 0, "passed": 0, "failed": 0, "ignored": 0}

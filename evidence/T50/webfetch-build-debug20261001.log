@@ -1,0 +1,6 @@
+COMMAND ["cargo", "build", "--locked"]
+   Compiling oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)
+   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 12.15s
+
+RECORDER {"command": ["cargo", "build", "--locked"], "exit": 0, "seconds": 12.24, "log": "/home/opencode/ai/oc/evidence/T50/webfetch-build-debug20261001.log", "log_bytes": 193, "truncated": false, "summaries": 0, "passed": 0, "failed": 0, "ignored": 0}

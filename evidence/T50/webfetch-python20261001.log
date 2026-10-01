@@ -1,0 +1,8 @@
+COMMAND ["python3", "-B", "-m", "unittest", "discover", "-s", "scripts", "-p", "test_*.py"]
+...............................................
+----------------------------------------------------------------------
+Ran 47 tests in 9.428s
+
+OK
+
+RECORDER {"command": ["python3", "-B", "-m", "unittest", "discover", "-s", "scripts", "-p", "test_*.py"], "exit": 0, "seconds": 9.65, "log": "/home/opencode/ai/oc/evidence/T50/webfetch-python20261001.log", "log_bytes": 146, "truncated": false, "summaries": 0, "passed": 0, "failed": 0, "ignored": 0}

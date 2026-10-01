@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-01T05:07:47+00:00
+State updated: 2026-10-01T06:36:06+00:00
 Active: T50
 
 Сверить Git status/diff до выполнения команд.
@@ -14,13 +14,13 @@ Owner-approved 2026-09-27 tool RECON: built-in websearch/provider integrations �
 
 # T50
 ## Result
-R5/TOOL16 verified: numbered text, directories, typed validated images.
+R6/TOOL17 verified; normal artifacts restored unchanged.
 ## Checks
-Workspace1380 PASS; owner8; normal ELF20 each; Python47.
+Workspace1386 PASS; owner16; each ELF27+20+14+6; Python47.
 ## Risks
-Cooperative syscall cancellation; full T50/R6–R8 open.
+Cooperative conversion/lookup limits; R7/R8 still open.
 ## Next
-R6 webfetch formats and total deadline, then model/session tools.
+Direct model lookup and session rename, then safe-boundary move.
 
 
 Ready (до 5): T53

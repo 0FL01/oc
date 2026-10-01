@@ -1,0 +1,23 @@
+COMMAND ["python3", "-B", "evidence/T50/native_read.py", "target/release/oc"]
+{"case": "text_default", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "text_page", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "nested_lifecycle", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "directory", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "directory_page", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "nested_directory", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "image", "status": "PASS", "requests": 3, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "malformed", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "pdf", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "unsupported_model", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "over_budget", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "denied", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "symlink", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "fifo", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "binary", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "invalid_offset", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "incomplete", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "model_budget", "status": "PASS", "requests": 2, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "image_dcp", "status": "PASS", "requests": 4, "compaction_requests": 0, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+{"case": "image_compaction", "status": "PASS", "requests": 3, "compaction_requests": 1, "elf_sha256": "083327efdb4fb3d57ad34f88be81fca09772006b5ad2773652670fec3e5dfffb", "owned_cleanup": "joined"}
+
+RECORDER {"command": ["python3", "-B", "evidence/T50/native_read.py", "target/release/oc"], "exit": 0, "seconds": 14.78, "log": "/home/opencode/ai/oc/evidence/T50/webfetch-reg-read-release20261001.log", "log_bytes": 3825, "truncated": false, "summaries": 0, "passed": 0, "failed": 0, "ignored": 0}

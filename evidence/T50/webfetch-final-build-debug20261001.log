@@ -1,0 +1,4 @@
+COMMAND ["cargo", "build", "--locked"]
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.69s
+
+RECORDER {"command": ["cargo", "build", "--locked"], "exit": 0, "seconds": 0.77, "log": "/home/opencode/ai/oc/evidence/T50/webfetch-final-build-debug20261001.log", "log_bytes": 72, "truncated": false, "summaries": 0, "passed": 0, "failed": 0, "ignored": 0}

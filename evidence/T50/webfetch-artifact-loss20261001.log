@@ -1,0 +1,5 @@
+COMMAND ["ls", "target/debug/oc", "target/release/oc"]
+ls: cannot access 'target/debug/oc': No such file or directory
+ls: cannot access 'target/release/oc': No such file or directory
+
+RECORDER {"command": ["ls", "target/debug/oc", "target/release/oc"], "exit": 2, "seconds": 0.0, "log": "/home/opencode/ai/oc/evidence/T50/webfetch-artifact-loss20261001.log", "log_bytes": 128, "truncated": false, "summaries": 0, "passed": 0, "failed": 0, "ignored": 0}

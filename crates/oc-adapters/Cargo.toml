@@ -26,6 +26,7 @@ base64.workspace = true
 regex.workspace = true
 ignore.workspace = true
 image = { version = "=0.25.9", default-features = false, features = ["png", "jpeg", "gif", "webp"] }
+html5ever = "=0.35.0"
 
 [dev-dependencies]
 tempfile.workspace = true

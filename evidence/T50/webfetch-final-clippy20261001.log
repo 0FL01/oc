@@ -1,0 +1,7 @@
+COMMAND ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"]
+    Checking oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Checking oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)
+    Checking oc v0.1.0 (/home/opencode/ai/oc/crates/oc)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 16.73s
+
+RECORDER {"command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 0, "seconds": 16.91, "log": "/home/opencode/ai/oc/evidence/T50/webfetch-final-clippy20261001.log", "log_bytes": 267, "truncated": false, "summaries": 0, "passed": 0, "failed": 0, "ignored": 0}

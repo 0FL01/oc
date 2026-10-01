@@ -7,13 +7,14 @@
 //! `reqwest::dns::Resolve` wrapper rejects non-public addresses at connect
 //! time, so a DNS answer that changes between the pre-dial check and the
 //! actual connection cannot reach a private endpoint. One total deadline
-//! spans DNS, every redirect hop and the body. Loopback and private ranges
+//! spans DNS, every redirect hop, body and joined bounded conversion. Loopback and private ranges
 //! are refused unless the explicit test-only `allow_loopback` exception is
 //! set; production callers leave it `false`.
 
 use std::borrow::Cow;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use reqwest::Url;
@@ -23,6 +24,84 @@ use thiserror::Error;
 pub const BODY_CAP_BYTES: usize = 1024 * 1024;
 /// Max redirect hops followed.
 pub const MAX_REDIRECTS: usize = 5;
+/// Admission/metadata bound, including each redirect URL.
+pub const URL_CAP_BYTES: usize = 8 * 1024;
+/// Complete model-visible result bound (metadata plus content).
+pub const OUTPUT_CAP_BYTES: usize = BODY_CAP_BYTES;
+pub(super) const CONTENT_CAP_BYTES: usize = OUTPUT_CAP_BYTES - 32 * 1024;
+
+#[cfg(test)]
+mod format_tests;
+mod render;
+
+/// Requested representation. Non-HTML responses remain their original text.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum FetchFormat {
+    Text,
+    #[default]
+    Markdown,
+    Html,
+}
+
+impl FetchFormat {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Text => "text",
+            Self::Markdown => "markdown",
+            Self::Html => "html",
+        }
+    }
+}
+
+/// Strict native tool admission; no DNS or I/O and no model-supplied auth.
+pub(crate) struct Invocation<'a> {
+    pub url: &'a str,
+    pub format: FetchFormat,
+    pub timeout: Duration,
+}
+
+pub(crate) fn invocation(args: &serde_json::Value) -> Result<Invocation<'_>, String> {
+    let invalid = || {
+        "invalid arguments for webfetch: expected url, format text|markdown|html and timeout in seconds (>0, <=120)".to_string()
+    };
+    let object = args.as_object().ok_or_else(invalid)?;
+    if object
+        .keys()
+        .any(|key| !matches!(key.as_str(), "url" | "format" | "timeout"))
+    {
+        return Err(invalid());
+    }
+    let url = object
+        .get("url")
+        .and_then(|v| v.as_str())
+        .ok_or_else(invalid)?;
+    parse_request_url(url).map_err(|_| invalid())?;
+    let format = match object.get("format") {
+        None => FetchFormat::Markdown,
+        Some(v) => match v.as_str() {
+            Some("text") => FetchFormat::Text,
+            Some("markdown") => FetchFormat::Markdown,
+            Some("html") => FetchFormat::Html,
+            _ => return Err(invalid()),
+        },
+    };
+    let seconds = match object.get("timeout") {
+        None => 30.0,
+        Some(v) => v.as_f64().ok_or_else(invalid)?,
+    };
+    if !seconds.is_finite() || seconds <= 0.0 || seconds > 120.0 {
+        return Err(invalid());
+    }
+    let timeout = Duration::try_from_secs_f64(seconds).map_err(|_| invalid())?;
+    if timeout.is_zero() {
+        return Err(invalid());
+    }
+    Ok(Invocation {
+        url,
+        format,
+        timeout,
+    })
+}
 
 /// Error type used by resolver futures; same shape as reqwest's internal
 /// alias, which is not publicly nameable in 0.13.
@@ -31,6 +110,8 @@ type DnsBoxError = Box<dyn std::error::Error + Send + Sync>;
 /// Typed fetch errors (no body contents, no credentials).
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum FetchError {
+    #[error("cancelled")]
+    Cancelled,
     /// Malformed URL or unsupported scheme.
     #[error("invalid url")]
     InvalidUrl,
@@ -63,7 +144,7 @@ pub enum FetchError {
 /// loopback destinations; it never defaults on.
 #[derive(Debug, Clone, Copy)]
 pub struct FetchOptions {
-    /// Total deadline per call (DNS, all hops, body).
+    /// Total deadline per call (DNS, all hops, body, conversion).
     pub timeout: Duration,
     /// TCP/TLS connect timeout.
     pub connect_timeout: Duration,
@@ -172,6 +253,9 @@ pub async fn check_host(host: &str, port: u16, allow_loopback: bool) -> Result<(
 /// Parse and validate a request URL: http/https only, host required,
 /// userinfo refused, fragment stripped (never sent).
 fn parse_request_url(url: &str) -> Result<Url, FetchError> {
+    if url.len() > URL_CAP_BYTES || url.is_empty() {
+        return Err(FetchError::InvalidUrl);
+    }
     let mut url = Url::parse(url).map_err(|_| FetchError::InvalidUrl)?;
     validate_url(&mut url)?;
     Ok(url)
@@ -179,6 +263,9 @@ fn parse_request_url(url: &str) -> Result<Url, FetchError> {
 
 /// Validate scheme/host/userinfo of `url` and strip its fragment.
 pub(crate) fn validate_url(url: &mut Url) -> Result<(), FetchError> {
+    if url.as_str().len() > URL_CAP_BYTES {
+        return Err(FetchError::InvalidUrl);
+    }
     match url.scheme() {
         "http" | "https" => {}
         _ => return Err(FetchError::InvalidUrl),
@@ -216,7 +303,7 @@ pub(crate) fn check_static_host(url: &Url, allow_loopback: bool) -> Result<(), F
 /// and absolute targets; every result is re-validated.
 fn redirect_target(base: &Url, location: &str) -> Result<Url, FetchError> {
     let location = location.trim();
-    if location.is_empty() || location.contains('\0') {
+    if location.is_empty() || location.len() > URL_CAP_BYTES || location.contains('\0') {
         return Err(FetchError::BadResponse);
     }
     let mut target = base.join(location).map_err(|_| FetchError::BadResponse)?;
@@ -346,7 +433,7 @@ fn blocked_address(err: &reqwest::Error) -> bool {
 /// Fetch a URL with full guard rails.
 ///
 /// `auth` (if any) is sent only on the first hop, never inherited by
-/// redirects. One total deadline spans DNS, every hop and the body; bodies
+/// redirects. One total deadline spans DNS, every hop, body and conversion; bodies
 /// stream with a byte cap, HTML is reduced to readable text, JSON is
 /// pretty-printed when parseable.
 pub async fn fetch(
@@ -366,11 +453,115 @@ async fn fetch_with_resolver(
     opts: FetchOptions,
     lookup: Arc<dyn reqwest::dns::Resolve>,
 ) -> Result<FetchResult, FetchError> {
+    static NO_CANCEL: AtomicBool = AtomicBool::new(false);
+    fetch_owned(url, auth, opts, lookup, None, &NO_CANCEL).await
+}
+
+/// Native read-only tool entry: never sends credentials, including configured
+/// legacy bearer auth. Compatibility `fetch` retains its first-hop-only API.
+pub async fn fetch_formatted(
+    url: &str,
+    opts: FetchOptions,
+    format: FetchFormat,
+    cancel: &AtomicBool,
+) -> Result<FetchResult, FetchError> {
+    fetch_owned(
+        url,
+        None,
+        opts,
+        Arc::new(SystemResolver),
+        Some(format),
+        cancel,
+    )
+    .await
+}
+
+async fn fetch_owned(
+    url: &str,
+    auth: Option<&str>,
+    opts: FetchOptions,
+    lookup: Arc<dyn reqwest::dns::Resolve>,
+    format: Option<FetchFormat>,
+    cancel: &AtomicBool,
+) -> Result<FetchResult, FetchError> {
+    let deadline = Instant::now()
+        .checked_add(opts.timeout)
+        .ok_or(FetchError::Deadline)?;
+    let mut network = std::pin::pin!(tokio::time::timeout_at(
+        tokio::time::Instant::from_std(deadline),
+        fetch_body(url, auth, opts, lookup, deadline)
+    ));
+    let (mut result, body) = loop {
+        if cancel.load(Ordering::Acquire) {
+            return Err(FetchError::Cancelled);
+        }
+        tokio::select! {
+            raw = &mut network => break raw.map_err(|_| FetchError::Deadline)??,
+            () = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    };
+    let content_type = result.content_type.clone();
+    let token = Arc::new(AtomicBool::new(false));
+    struct CancelOnDrop(Arc<AtomicBool>);
+    impl Drop for CancelOnDrop {
+        fn drop(&mut self) {
+            self.0.store(true, Ordering::Release);
+        }
+    }
+    let _cleanup = CancelOnDrop(token.clone());
+    let worker_token = token.clone();
+    let mut worker = tokio::task::spawn_blocking(move || {
+        #[cfg(test)]
+        let _observed_worker = format_tests::Worker::enter();
+        if let Some(format) = format {
+            render::convert(
+                &body,
+                content_type.as_deref(),
+                format,
+                deadline,
+                &worker_token,
+            )
+        } else {
+            // Legacy extraction is input-bounded and off the async executor too.
+            let text = extract_text(&body, content_type.as_deref());
+            render::checkpoint(deadline, &worker_token)?;
+            Ok((text, false))
+        }
+    });
+    let converted = loop {
+        tokio::select! {
+            joined = &mut worker => break joined.map_err(|_| FetchError::BadResponse)?,
+            () = tokio::time::sleep(Duration::from_millis(5)) => {
+                if cancel.load(Ordering::Acquire) || Instant::now() >= deadline {
+                    token.store(true, Ordering::Release);
+                }
+            }
+        }
+    };
+    #[cfg(test)]
+    format_tests::JOINS.fetch_add(1, Ordering::SeqCst);
+    // Join precedes terminal outcome, even when cancel races the last token.
+    if cancel.load(Ordering::Acquire) {
+        return Err(FetchError::Cancelled);
+    }
+    budget_left(deadline)?;
+    let (text, truncated) = converted?;
+    result.text = text;
+    result.truncated |= truncated;
+    Ok(result)
+}
+
+async fn fetch_body(
+    url: &str,
+    auth: Option<&str>,
+    opts: FetchOptions,
+    lookup: Arc<dyn reqwest::dns::Resolve>,
+    deadline: Instant,
+) -> Result<(FetchResult, Vec<u8>), FetchError> {
     if auth.map(str::is_empty).unwrap_or(false) {
         return Err(FetchError::InvalidUrl);
     }
     let mut current = parse_request_url(url)?;
-    let deadline = Instant::now() + opts.timeout;
     let resolver: Arc<dyn reqwest::dns::Resolve> =
         Arc::new(GuardedResolver::new(lookup, opts.allow_loopback));
     let client = reqwest::Client::builder()
@@ -439,18 +630,20 @@ async fn fetch_with_resolver(
         let body = tokio::time::timeout(body_budget, read_capped_body(resp, opts.body_cap))
             .await
             .map_err(|_| FetchError::Deadline)??;
-        let (text, truncated) = (
-            extract_text(&body.body, content_type.as_deref()),
-            body.truncated,
-        );
-        return Ok(FetchResult {
-            status,
-            content_type,
-            url: url.to_string(),
-            final_url: current.to_string(),
-            text,
-            truncated,
-        });
+        if content_type.as_ref().is_some_and(|ct| ct.len() > 256) {
+            return Err(FetchError::BadResponse);
+        }
+        return Ok((
+            FetchResult {
+                status,
+                content_type,
+                url: url.to_string(),
+                final_url: current.to_string(),
+                text: String::new(),
+                truncated: body.truncated,
+            },
+            body.body,
+        ));
     }
 }
 

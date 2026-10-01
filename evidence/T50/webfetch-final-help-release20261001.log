@@ -1,0 +1,19 @@
+COMMAND ["target/release/oc", "--help"]
+Native oc agent runtime
+
+Usage: oc [OPTIONS] [COMMAND]
+
+Commands:
+  run       Run one headless prompt through the local runtime
+  sessions  Inspect persisted sessions
+  tui       Launch the local interactive TUI
+  help      Print this message or the help of the given subcommand(s)
+
+Options:
+      --data-dir <DATA_DIR>  Isolate storage under an explicit data directory
+      --auto                 Automatically answer permission requests once (never saves grants)
+      --smoke                Print linked crate versions and exit without side effects
+  -h, --help                 Print help
+  -V, --version              Print version
+
+RECORDER {"command": ["target/release/oc", "--help"], "exit": 0, "seconds": 0.01, "log": "/home/opencode/ai/oc/evidence/T50/webfetch-final-help-release20261001.log", "log_bytes": 636, "truncated": false, "summaries": 0, "passed": 0, "failed": 0, "ignored": 0}

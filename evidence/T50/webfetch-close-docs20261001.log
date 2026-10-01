@@ -1,0 +1,5 @@
+COMMAND ["python3", "-B", "scripts/check_docs.py"]
+OK: documentation/registry/examples/journal structure only
+{"tasks": 55, "acceptance_specifications": 163, "goal_characters": 699}
+
+RECORDER {"command": ["python3", "-B", "scripts/check_docs.py"], "exit": 0, "seconds": 0.13, "log": "/home/opencode/ai/oc/evidence/T50/webfetch-close-docs20261001.log", "log_bytes": 131, "truncated": false, "summaries": 0, "passed": 0, "failed": 0, "ignored": 0}

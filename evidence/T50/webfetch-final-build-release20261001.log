@@ -1,0 +1,7 @@
+COMMAND ["cargo", "build", "--release", "--locked"]
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+   Compiling oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)
+   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)
+    Finished `release` profile [optimized] target(s) in 2m 07s
+
+RECORDER {"command": ["cargo", "build", "--release", "--locked"], "exit": 0, "seconds": 128.05, "log": "/home/opencode/ai/oc/evidence/T50/webfetch-final-build-release20261001.log", "log_bytes": 257, "truncated": false, "summaries": 0, "passed": 0, "failed": 0, "ignored": 0}

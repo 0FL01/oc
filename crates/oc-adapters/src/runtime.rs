@@ -528,8 +528,12 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "webfetch".to_string(),
-            description: "Fetch a URL as text".to_string(),
-            parameters: schema(serde_json::json!({"url": {"type": "string"}}), &["url"]),
+            description: "Read-only HTTP/HTTPS GET. format text|markdown|html defaults to markdown; HTML converts to readable Unicode with useful structure, other textual MIME stays original. timeout is seconds (>0, maximum120, default30), one total DNS/redirect/body/conversion deadline. Returns original/final URL, status, content type and requested format metadata. Native 1MiB body/output caps and per-hop actual-dial public-egress guard apply. No browser/JS/search, cookies, auth or inherited proxy.".to_string(),
+            parameters: serde_json::json!({"type":"object", "properties":{
+                "url":{"type":"string","minLength":1,"maxLength":crate::webfetch::URL_CAP_BYTES},
+                "format":{"type":"string","enum":["text","markdown","html"],"default":"markdown"},
+                "timeout":{"type":"number","exclusiveMinimum":0,"maximum":120,"default":30}
+            },"required":["url"],"additionalProperties":false}),
         },
         ToolDef {
             name: "skill".to_string(),

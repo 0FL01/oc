@@ -1,0 +1,27 @@
+COMMAND ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "webfetch"]
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 17.30s
+     Running unittests src/lib.rs (target/debug/deps/oc_adapters-ed9aaed69dd516e3)
+
+running 16 tests
+test tools::tests::webfetch::tool17_model_independent_schema_defaults_and_units ... ok
+test tools::tests::webfetch::tool17_strict_format_seconds_and_known_options_before_io ... ok
+test webfetch::format_tests::tool17_dns_is_inside_total_deadline ... ok
+test webfetch::format_tests::tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_responsive ... ok
+test webfetch::format_tests::tool17_parser_caps_and_deadline_refuse_partial_success ... ok
+test webfetch::format_tests::tool17_unicode_structure_and_honest_mime ... ok
+test webfetch::tests::aud25_html_unicode_entities_and_malformed ... ok
+test webfetch::tests::aud25_url_relative_query_ipv6 ... ok
+test webfetch::tests::aud26_dial_bound_private_answer_sends_no_request ... ok
+test webfetch::tests::aud26_total_deadline_spans_redirects ... ok
+test webfetch::tests::tool07_text_html_json_redirect_status ... ok
+test webfetch::tests::tool08_ip_classification ... ok
+test webfetch::tests::tool08_large_body_deadline_auth ... ok
+test webfetch::tests::tool08_localhost_needs_exception ... ok
+test webfetch::tests::tool08_loopback_private_redirect_guards ... ok
+test webfetch::tests::units_extract_and_html ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 397 filtered out; finished in 1.78s
+
+
+RECORDER {"command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "webfetch"], "exit": 0, "seconds": 19.16, "log": "/home/opencode/ai/oc/evidence/T50/webfetch-targeted20261001.log", "log_bytes": 1521, "truncated": false, "summaries": 1, "passed": 16, "failed": 0, "ignored": 0}

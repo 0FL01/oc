@@ -1,0 +1,4 @@
+COMMAND ["python3", "-B", "scripts/check_docs.py"]
+ERROR: Another progress writer is active
+
+RECORDER {"command": ["python3", "-B", "scripts/check_docs.py"], "exit": 1, "seconds": 0.09, "log": "/home/opencode/ai/oc/evidence/T50/webfetch-docs20261001.log", "log_bytes": 41, "truncated": false, "summaries": 0, "passed": 0, "failed": 0, "ignored": 0}

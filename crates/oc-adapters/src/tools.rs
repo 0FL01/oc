@@ -507,7 +507,7 @@ pub struct ToolContext<'a> {
     /// Caller-observed environment (scrubbed by the supervisor).
     pub parent_env: &'a BTreeMap<String, String>,
     /// Patch roots (project + data) for `apply_patch` resolution.
-    /// Explicit webfetch bearer (config-provided, never from model args).
+    /// Legacy client bearer setting; native model webfetch never sends auth.
     pub webfetch_auth: Option<String>,
     /// Test-only webfetch loopback exception.
     pub webfetch_allow_private: bool,
@@ -628,10 +628,7 @@ pub(crate) fn validate_call(call: &ToolCall) -> Result<(), String> {
                 .map_err(|error| error.to_string());
         }
         "webfetch" => {
-            nonempty("url")
-                && !["auth", "authorization", "headers", "apiKey", "api_key"]
-                    .iter()
-                    .any(|key| args.get(key).is_some())
+            return crate::webfetch::invocation(args).map(|_| ());
         }
         "skill" => nonempty("id"),
         "question" => {
@@ -1156,35 +1153,44 @@ pub(crate) async fn execute_shell_typed(
 }
 
 async fn tool_webfetch(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
-    for forbidden in ["auth", "authorization", "headers", "apiKey", "api_key"] {
-        if call.arguments.get(forbidden).is_some() {
-            return format!(
-                "error: invalid arguments for webfetch: {forbidden} is never model-supplied"
-            );
-        }
-    }
-    let url = call
-        .arguments
-        .get("url")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-    if url.is_empty() {
-        return "error: invalid arguments for webfetch: missing url".to_string();
-    }
+    let input = match crate::webfetch::invocation(&call.arguments) {
+        Ok(input) => input,
+        Err(error) => return format!("error: {error}"),
+    };
     let opts = crate::webfetch::FetchOptions {
-        timeout: Duration::from_secs(30),
+        timeout: input.timeout,
         connect_timeout: Duration::from_secs(10),
         max_redirects: crate::webfetch::MAX_REDIRECTS,
         body_cap: crate::webfetch::BODY_CAP_BYTES,
         allow_loopback: ctx.webfetch_allow_private,
     };
-    match crate::webfetch::fetch(url, ctx.webfetch_auth.as_deref(), opts).await {
-        Ok(result) => {
-            let mut text = result.text;
-            if result.truncated {
-                text.push_str("\n[truncated]");
+    let started = std::time::Instant::now();
+    match crate::webfetch::fetch_formatted(input.url, opts, input.format, ctx.cancel).await {
+        Ok(mut result) => {
+            // Only small, individually bounded metadata is serialized. Content
+            // is appended directly; JSON escaping cannot amplify a 1MiB body.
+            let mut metadata = serde_json::json!({"url":result.url, "final_url":result.final_url,
+                "status":result.status, "content_type":result.content_type,
+                "format":input.format.as_str(), "timeout_seconds":input.timeout.as_secs_f64(),
+                "truncated":result.truncated});
+            let header_bytes = metadata.to_string().len() + 2;
+            let room = crate::webfetch::OUTPUT_CAP_BYTES.saturating_sub(header_bytes);
+            if result.text.len() > room {
+                let mut end = room;
+                while !result.text.is_char_boundary(end) {
+                    end -= 1;
+                }
+                result.text.truncate(end);
+                metadata["truncated"] = serde_json::Value::Bool(true);
             }
-            text
+            let output = format!("{metadata}\n\n{}", result.text);
+            if ctx.cancel.load(std::sync::atomic::Ordering::Acquire) {
+                "error: cancelled".into()
+            } else if started.elapsed() >= input.timeout {
+                "error: deadline exceeded".into()
+            } else {
+                output
+            }
         }
         Err(e) => format!("error: {e}"),
     }
@@ -1512,6 +1518,8 @@ mod tests {
     mod foreground;
     #[path = "search.rs"]
     mod search;
+    #[path = "webfetch.rs"]
+    mod webfetch;
     use super::{
         AllowAllPolicy, Assembled, BatchError, DenyListPolicy, MODEL_TOOL_NAMES, SkillSnapshot,
         ToolCall, ToolContext, ToolRoots, TurnLog, assemble_calls, execute_batch, to_input_items,

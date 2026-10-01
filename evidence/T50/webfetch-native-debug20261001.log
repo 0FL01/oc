@@ -1,0 +1,31 @@
+COMMAND ["python3", "-B", "evidence/T50/native_webfetch.py", "target/debug/oc"]
+{"case": "default", "status": "FAIL", "error": "Command '['/home/opencode/ai/oc/target/debug/oc', '--data-dir', '/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-fetch-_gbadogm/data', 'run', '--json', 'Fetch fixture']' timed out after 12 seconds"}
+{"case": "markdown", "status": "FAIL", "error": "Command '['/home/opencode/ai/oc/target/debug/oc', '--data-dir', '/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-fetch-8cxiom4f/data', 'run', '--json', 'Fetch fixture']' timed out after 12 seconds"}
+{"case": "text", "status": "FAIL", "error": "Command '['/home/opencode/ai/oc/target/debug/oc', '--data-dir', '/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-fetch-i5jue4cg/data', 'run', '--json', 'Fetch fixture']' timed out after 12 seconds"}
+{"case": "html", "status": "FAIL", "error": "Command '['/home/opencode/ai/oc/target/debug/oc', '--data-dir', '/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-fetch-w6ciijiv/data', 'run', '--json', 'Fetch fixture']' timed out after 12 seconds"}
+{"case": "redirect", "status": "FAIL", "error": "Command '['/home/opencode/ai/oc/target/debug/oc', '--data-dir', '/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-fetch-seueds0b/data', 'run', '--json', 'Fetch fixture']' timed out after 12 seconds"}
+{"case": "plain", "status": "FAIL", "error": "Command '['/home/opencode/ai/oc/target/debug/oc', '--data-dir', '/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-fetch-c_ukdtk2/data', 'run', '--json', 'Fetch fixture']' timed out after 12 seconds"}
+{"case": "json", "status": "FAIL", "error": "Command '['/home/opencode/ai/oc/target/debug/oc', '--data-dir', '/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-fetch-c5zyz35r/data', 'run', '--json', 'Fetch fixture']' timed out after 12 seconds"}
+{"case": "status", "status": "FAIL", "error": "Command '['/home/opencode/ai/oc/target/debug/oc', '--data-dir', '/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-fetch-ka0wjdz9/data', 'run', '--json', 'Fetch fixture']' timed out after 12 seconds"}
+{"case": "seconds", "status": "FAIL", "error": "Command '['/home/opencode/ai/oc/target/debug/oc', '--data-dir', '/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-fetch-p9l7f74k/data', 'run', '--json', 'Fetch fixture']' timed out after 12 seconds"}
+{"case": "invalid_format", "status": "FAIL", "error": "['unexpected physical provider request']"}
+{"case": "invalid_timeout", "status": "FAIL", "error": "Command '['/home/opencode/ai/oc/target/debug/oc', '--data-dir', '/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-fetch-nmm0wktt/data', 'run', '--json', 'Fetch fixture']' timed out after 12 seconds"}
+{"case": "invalid_null", "status": "FAIL", "error": "['unexpected physical provider request']"}
+{"case": "unknown_option", "status": "FAIL", "error": "['unexpected physical provider request']"}
+{"case": "auth", "status": "FAIL", "error": "Command '['/home/opencode/ai/oc/target/debug/oc', '--data-dir', '/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-fetch-pu5hozim/data', 'run', '--json', 'Fetch fixture']' timed out after 12 seconds"}
+{"case": "password", "status": "FAIL", "error": "['unexpected physical provider request']"}
+{"case": "scheme", "status": "FAIL", "error": "['unexpected physical provider request']"}
+{"case": "private", "status": "FAIL", "error": "['unexpected physical provider request']"}
+{"case": "loopback_refused", "status": "FAIL", "error": "['unexpected physical provider request']"}
+{"case": "denied", "status": "FAIL", "error": "Command '['/home/opencode/ai/oc/target/debug/oc', '--data-dir', '/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-fetch-77ehj2ou/data', 'run', '--json', 'Fetch fixture']' timed out after 12 seconds"}
+{"case": "ask", "status": "FAIL", "error": "['unexpected physical provider request']"}
+{"case": "private_redirect", "status": "FAIL", "error": "['unexpected physical provider request']"}
+{"case": "password_redirect", "status": "FAIL", "error": "['unexpected physical provider request']"}
+{"case": "scheme_redirect", "status": "FAIL", "error": "['unexpected physical provider request']"}
+{"case": "redirect_limit", "status": "FAIL", "error": "['unexpected physical provider request']"}
+{"case": "oversize", "status": "FAIL", "error": "Command '['/home/opencode/ai/oc/target/debug/oc', '--data-dir', '/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-fetch-dy99id_s/data', 'run', '--json', 'Fetch fixture']' timed out after 12 seconds"}
+{"case": "timeout_body", "status": "FAIL", "error": "Command '['/home/opencode/ai/oc/target/debug/oc', '--data-dir', '/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-fetch-eyb3tdno/data', 'run', '--json', 'Fetch fixture']' timed out after 12 seconds"}
+{"case": "cancel_body", "status": "FAIL", "error": "no real held GET"}
+{"binary": "/home/opencode/ai/oc/target/debug/oc", "sha256_before": "4bf90f946d77e8bc69a8829966a717b531a7e5580964ad5888dca07c61a9aaae", "sha256_after": "4bf90f946d77e8bc69a8829966a717b531a7e5580964ad5888dca07c61a9aaae", "failures": 27, "owned_cleanup": "all PGIDs/HTTP threads joined before TempDir cleanup", "cases": 0, "provider_requests": 0, "get_requests": 0, "tool_rows": 0}
+
+RECORDER {"command": ["python3", "-B", "evidence/T50/native_webfetch.py", "target/debug/oc"], "exit": 1, "seconds": 187.93, "log": "/home/opencode/ai/oc/evidence/T50/webfetch-native-debug20261001.log", "log_bytes": 5381, "truncated": false, "summaries": 0, "passed": 0, "failed": 0, "ignored": 0}
