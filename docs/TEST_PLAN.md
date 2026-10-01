@@ -527,13 +527,15 @@ T44 visual qualification remains separate and PAUSED until explicit resume.
 
 ## T50 selected native tools qualification (approved 2026-09-27; pending)
 
-TOOL12–TOOL19 in planning/acceptance.json have only T50 as owner; relevant high-level
-A02/A03/A04/A05/A06/A08/A10/A13 and existing detailed scenarios stay regressions,
+TOOL12–TOOL20 in planning/acceptance.json have only T50 as owner; relevant high-level
+A02/A03/A04/A05/A06/A07/A08/A10/A13 and existing detailed scenarios stay regressions,
 not reassigned owners. Use pinned donor fixtures and actual binary calls/results;
 helper-only tests, fixture table tool names and document validation are insufficient.
 
 - TOOL12 captures policy-filtered root/child direct catalogs, canonical shell and
   legacy bash compatibility/deny, explicit MCP search and excluded native tools.
+  The 2026-10-01 file-tools extension below adds exact model selection and mandatory
+  next-request switch; universal no-edit/write assertions are narrowly superseded.
 - TOOL13 uses process/provider barriers for foreground waiting and background
   launch/progress/automatic notices, timeout default/zero/explicit semantics,
   original-location completion after move, cancel/shutdown/crash/delivery. Reuse
@@ -567,11 +569,83 @@ helper-only tests, fixture table tool names and document validation are insuffic
   immutable source turn, destination requests without stale harness/opaque items,
   original background/child execution and MCP quarantine. AUD14 supersedes only
   permanent binding; direct cross-Location use without admitted move still fails.
+- TOOL20 covers real edit/write semantics/shared mutation admission/durable effects,
+  using the source fixtures and actual-binary procedure below. It is not a second
+  owner of old patch/permission/DCP/crash tests or a visual PASS claim.
 
 Run nearest targeted evidence per minimal slice, then affected crate/integration
 and mandatory final workspace gates, rebuilt debug/release binaries and existing
 bounded live envelope. No new paid search campaign or live-budget expansion. Keep
 historical reports and task statuses unchanged until real qualification.
+
+### T50 model-dependent file tools — TOOL12/TOOL20 (approved 2026-10-01; pending)
+
+Source/finish line: [T50/R1/R9](goals/2026-09-27-native-tool-parity.md), pinned
+U90–U94. TOOL12/TOOL20 belong only to T50; PRM01 remains T45 and VIS35/VIS36 T44.
+One bounded fake-provider campaign on rebuilt actual `oc` proves tool definitions,
+calls/results and real filesystem/storage effects. Share its receipts with frontend
+tests; static registry entries/renderer fixtures/helper-only green do not qualify.
+
+1. **Selector and catalog.** Freeze synthetic model IDs for eligible `gpt-`, arbitrary
+   unknown non-GPT, `gpt-4`, `gpt-oss`, combined exceptions and case variants. Compare
+   exact case-sensitive donor predicate on selected model.id, not provider/display
+   names or reasoning/metadata guesses. Verify all advertised schemas and permission
+   filtering: eligible patch only, otherwise edit/write only; Deny/Explore/Plan/child
+   ceilings and existing MCP/DCP remain. Configured namespaced MCP tools are not
+   filtered just because a suffix resembles a built-in file tool. Convert old global
+   no-write/edit assertions to selected-family assertions; preserve patch cases with
+   an eligible synthetic fixture model rather than disabling their tests.
+2. **Mandatory user model switch.** In one session, execute apply_patch, switch to a
+   non-patch model and execute write/edit, then switch back and execute apply_patch.
+   Capture each very next request and follow-up: tools[], runtime-managed guidance,
+   early admitted size and actual schema/context fingerprint/cache inputs agree.
+   Check child with opposite own-model family and parent selection retention. Hold
+   a request with a provider barrier, change later selection through the admitted
+   owner path and verify pinned in-flight turn versus next-boundary view. Test actual
+   picker/selection path where frontend ownership is involved, not test-only mutation
+   of a global registry. Excluded-family scripted call has zero filesystem effects
+   and a correctly paired failed outcome, never an unmatched tool graph.
+3. **Context/recovery.** Reopen/restart same session, compress a closed span and run
+   native compact before another prompt. Inspect tools and managed lanes, not a
+   blanket ban on the word edit/write in immutable historical content. Old calls/
+   results keep actual names and valid causal structure under wire_history; no
+   cross-tool translation, alien opaque continuation, obsolete managed schema/guidance
+   resurrection or closed/unknown mutation replay. Use raw-history invariants and
+   bounded hot-context fixtures, not full-archive reads or a new context cache.
+4. **File bytes and result contract.** Source-derived edit fixtures pin exact-first
+   precedence, typography fallback, trailing-whitespace line match, nonoverlap and
+   unique/all/count; no-match/ambiguity/empty-identical-old error, empty-new deletion,
+   Unicode/CRLF/final newline/BOM. Write creates, overwrites and empties files, creates
+   parents, preserves intended text bytes/BOM and existing allowed mode. Verify
+   actual path/operation/existed/resource/replacements/files, filesystem bytes and
+   saved bounded result-derived diffs, not success prose or synthetic patch Add.
+   Preparation reads bounded preimages under mutation policy; no prior read call
+   becomes a new authorization prerequisite. Existing strict patch matching remains.
+5. **Approval/safety/durability.** Actual Allow and Deny calls, real consumer Ask with
+   pre-effect before/after diff, then a changed existing or absent target while waiting.
+   Valid reply must recheck approved bytes/identity/absence before writing; stale
+   preimage refuses unapproved effect. Legacy aliases/grants/resource/home/Plan/child
+   narrowing and path/symlink/own-data-root/protected sentinels hold for both tools.
+   DCP uses parsed path, not content text as pseudo-resource. Intent/outcome crash
+   points and storage failure distinguish failed/confirmed/unknown, never replay;
+   call/result pairs, effects and historical cards survive reopen without current-file
+   reads. Reuse TOOL02–04/09/10, AUD04–06/16/42, DCP04 and A10 measurements; do not
+   replicate the same negative matrix at every layer or revise baseline thresholds.
+6. **Separate visual qualification.** After the minimal backend data/real consumer
+   slice and explicit T44 resume, VIS35/VIS36 use these actual outcomes with running
+   pinned original/native Write/Edit/ApplyPatch components, full styled-cell/PNG/cursor
+   at established profiles, state/diff settings and 120/121 boundary. Include distinct
+   `# Wrote`, `← Edit` and patch labels, grammar syntax/gutters/attributes, pending/
+   completed/error/approval and metadata-only replay/model switch. Backend green is
+   not pixel parity; native-only golden/crop/mask/fake patch cards cannot close VIS35.
+
+Run nearest owner tests and affected crate gates per slice; integration/final
+fmt/clippy/workspace tests/build/debug-release binary qualification remains required.
+Existing A09/read-apply_patch-bash/E2E/live gates are retained with a compatible,
+catalog-admitted selection, not silently swapped to edit/write or skipped. Non-GPT
+qualification here is offline actual binary; no new paid campaign/full-model matrix
+or live-budget increase. Preserve historical reports/statuses; planned extension is
+pending/NOT_RUN until these observations exist, no READY claim from doc validation.
 
 ## Evidence cadence
 

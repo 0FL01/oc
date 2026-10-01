@@ -1,17 +1,25 @@
 # Tools и MCP — один понятный рабочий путь
 
-Product tool list является явным выбранным подмножеством OpenCode, не «все инструменты upstream». Названия/описания одинаковы для любых моделей; no GPT-vs-other write branch.
+Product tool list является явным выбранным подмножеством OpenCode, не «все инструменты upstream». Схемы/имена каждого инструмента стабильны; owner-approved T50/R1/R9 выбирает файловое семейство по точному OC2 model.id predicate, а не provider/display name. Это pending tool-selection exception, не model-ID routing/discovery/reasoning allowlist.
 
 Owner-approved [T50 contract](goals/2026-09-27-native-tool-parity.md) defines the
-pending target catalog: read/glob/grep/apply_patch/shell/webfetch/skill/question/
+pending target catalog: read/glob/grep/(apply_patch OR edit/write)/shell/webfetch/skill/question/
 subagent/compress plus opencode_models/opencode_session_rename/opencode_session_move.
 Effective policy/config still filters tools. No built-in websearch/provider selector,
 Code Mode/execute or built-in browser; explicit admitted MCP search/browser remains.
 PDF stays unsupported. This amendment is not a claim that the new tools work today.
 
+File-tools rule is case-sensitive: model.id contains `gpt-` and neither `oss` nor
+`gpt-4` → only apply_patch; otherwise only edit/write. On user model switch the very
+next request removes incompatible definitions/catalog/managed guidance, including
+follow-ups, root/own-model-child, restart and DCP/native-compaction reconstruction.
+One selected view drives budgets/fingerprints/previews; in-flight selection stays
+pinned. Raw historical tool calls/results are not erased or translated. Detailed
+contract/evidence: T50/R1/R9/TOOL12/TOOL20, T45/PRM01 and T44/VIS35/VIS36.
+
 ## Built-ins
 
-`read`: bounded чтение файла/диапазона строк с path/offset/limit, явные truncated/next cursor и blob reference при необходимости. Директории и binary contents обрабатываются явно; не грузить весь репозиторий. `read`, `glob`, `grep` и `apply_patch` отклоняют own data root, включая direct path и symlink escape. `glob`/`grep` дают stable sorted paginated matches с bounded files/bytes/time. Plain literal/regex режимы явно различимы; не писать custom regex engine.
+`read`: bounded чтение файла/диапазона строк с path/offset/limit, явные truncated/next cursor и blob reference при необходимости. Директории и binary contents обрабатываются явно; не грузить весь репозиторий. `read`, `glob`, `grep` и файловые mutations (`apply_patch`/`edit`/`write`) отклоняют own data root, включая direct path и symlink escape. `glob`/`grep` дают stable sorted paginated matches с bounded files/bytes/time. Plain literal/regex режимы явно различимы; не писать custom regex engine.
 
 `apply_patch`: один JSON argument `patchText` с upstream-style `*** Begin Patch` / Add File / Update File / Delete File / Move to / End Patch. Не смешивать с provider-hosted Responses `apply_patch` schema. В M2 сохранить parser fixtures выбранного OpenCode baseline; политика unsafe paths — наша.
 
@@ -44,6 +52,24 @@ mutation syscalls. Temporary inode — `O_CREAT|O_EXCL|O_NOFOLLOW`, новое �
 оставить staging file, но не вызывает автоматический replay.
 
 Для удаления/rename сохранять достаточную operation metadata в own storage; не превращать это в snapshot/undo subsystem. Не запускать `git reset`, не делать auto-rollback на пользовательские файлы. Модель получает concise diff/status; полный diff в bounded blob.
+
+`write` (T50/R9 pending): `{path,content}` создаёт/перезаписывает файл, включая пустой
+content и missing parents; donor BOM/newline semantics, bounded regular-file preimage
+и реальные target/resource/existed/operation metadata. Не эмуляция Add File patch.
+
+`edit` (T50/R9 pending): `{path,oldString,newString,replaceAll?}`; существующий файл,
+unique match по умолчанию, все matches при true, фактический replacements count.
+Donor precedence: exact nonoverlapping → typography-normalized → trailing-whitespace
+line matching; CRLF/BOM сохраняются. Empty/identical old, no match и ambiguity —
+error; empty new удаляет совпадение. Это отдельная edit семантика, не fuzzy patch.
+
+Все три mutation tools используют общий canonical apply_patch permission/grants
+owner, actual resources, before/after approval preview и approved-preimage recheck
+после ожидания. Effective Deny/Plan/child/data-root/no-follow/protected paths и caps
+не обходятся выбором модели. Intent до effects, outcome/confirmed diffs после; crash
+не разрешает replay. Нет prerequisite отдельного read call. T44 VIS35 показывает
+Write/Edit/ApplyPatch отдельно; replay использует persisted input/results/effects,
+не сегодняшние файлы. No Formatter/LSP subsystem в этом файловом срезе.
 
 `shell` (T50 target): command/workdir/timeout/background through the actual configured Linux shell; default foreground timeout120000ms, explicit0 disables execution timeout, background default has no execution timeout. Preserve legacy `bash(argv/cwd/timeout_ms)` through one supervisor/policy owner with unambiguous schema normalization, not duplicate advertised tools or a Deny bypass. Process group, trusted cwd, minimal documented credential-free env, concurrent drains, bounded preview/retained output and TERM→grace→KILL→wait remain. Background returns running/shellID after launch and later an automatic durable terminal notice, without polling; output/jobs/queues/teardown stay bounded even with no execution timeout. Native unknown effects never auto-replay; no hidden persistent terminal manager or sandbox claim.
 
@@ -161,7 +187,7 @@ preview никогда не подменяет доступные модели �
 
 ## Permissions caveat
 
-Универсальный patch убирает дублирование модельных tools, но shell технически может писать через cat/python/компилятор, а MCP может иметь свои side effects. Инструкция предпочитать patch для source edits — behavioral contract, не OS isolation. Runtime и агент не должны заявлять обратное. Build artifacts нормально создаются dev tools.
+Выбранное совместимое файловое семейство не является sandbox: shell технически может писать через cat/python/компилятор, а MCP может иметь свои side effects. Инструкция предпочитать выбранные file tools для source edits — behavioral contract, не OS isolation. Runtime и агент не должны заявлять обратное. Build artifacts нормально создаются dev tools.
 
 ## MCP transport
 

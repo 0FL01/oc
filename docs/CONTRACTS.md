@@ -126,7 +126,7 @@ T53/GO03 для будущих wires и T44/VIS43 для visual parity.
 
 ## Permissions
 
-Default product profile: read/search в trusted project allow; apply_patch/bash/webfetch/MCP ask; skill/compress allow. Для live tests выделенный temporary fixture workspace с явно allowlisted operations. Режим полномочий authoring-agent не меняет автоматически permissions самого `oc`.
+Default product profile: read/search в trusted project allow; file mutations (canonical apply_patch permission, including T50 edit/write target), bash/webfetch/MCP ask; skill/compress allow. Для live tests выделенный temporary fixture workspace с явно allowlisted operations. Режим полномочий authoring-agent не меняет автоматически permissions самого `oc`.
 
 T50 canonical shell normalizes with legacy bash policy through the same ceiling;
 legacy Deny/save patterns cannot be bypassed by changing names. New question/models
@@ -135,7 +135,14 @@ never implicit allow for a missing central action. Profile overrides may only na
 session rename/move targets must be authorized independently of trusting the target
 directory. Native target/path/credential ceilings remain declared donor differences.
 
-`ask` без interactive channel — ApprovalRequired с ненулевым exit status. Parsing errors не превращаются в allow. Legacy `write`/`edit` permission entries нормализуются к patch operations; конфликтующие применимые policies разрешаются консервативно deny → ask → allow и фиксируются как difference. Нельзя объединять implicit default allow с explicit deny.
+`ask` без interactive channel — ApprovalRequired с ненулевым exit status. Parsing errors не превращаются в allow. Legacy `write`/`edit`/`patch` permission entries нормализуются к canonical apply_patch mutation identity, в том числе для реальных T50 edit/write tools; конфликтующие применимые policies разрешаются консервативно deny → ask → allow и фиксируются как difference. Нельзя объединять implicit default allow с explicit deny. Model/tool-family switch не создаёт grants и не снимает central/profile/parent-child/Plan ceilings; actual path/home/resource/save-pattern normalization и own-data-root exclusion одинаковы для выбранного файлового семейства.
+
+T50/R9 pending mutations reuse one prepared before/after/digest and exact-call permit
+path: preview before Ask, bounded wait without DB transaction, approved-preimage
+revalidation after reply/before commit, durable intent before effects and truthful
+confirmed effects afterwards. Write overwrite/absence and edit matched preimages
+cannot bypass stale-approval/no-follow checks. Crash/reopen never reexecute settled
+or unknown tools; saved transcript effects are not present-day file reconstruction.
 
 Project config/AGENTS, agent body, command template и skill body могут влиять на instruction/user/tool-result data, но не расширять trusted host boundary или central permissions. Agent restrictions только сужают policy, а admission всё равно повторяется при tool execution. Tool/MCP descriptions и fetched pages — untrusted input. Native extension — trusted code с правами процесса, не sandbox.
 
@@ -161,6 +168,22 @@ guidance remain separate. Same assembler serves root/child, with real native too
 descriptions/schemas separate from messages. Initial instruction baseline and
 chronological changed/removed/nested-read fragments survive restart/compaction/Revert
 within trust and immutable-generation boundaries, without rewriting old raw messages.
+
+Owner-approved T50/R1/R9 file-family view (2026-10-01; pending) is shared by early
+request admission, each primary follow-up, tool-catalog compaction contexts,
+root/own-model-child capability previews and runtime-managed guidance. Exact
+case-sensitive selected model.id contains `gpt-` and neither `oss` nor `gpt-4` →
+apply_patch only; otherwise edit/write only, then effective policy narrows. Stable
+tool schemas and native apply_patch(patchText) are unchanged across providers.
+This is the sole new model-name tool-selection exception, not discovery/reasoning/
+protocol routing. On a user switch GPT → non-GPT → GPT the very next request
+replaces incompatible definitions/managed guidance and uses matching budget/cache/
+context fingerprints; restart/DCP/native compact cannot revive stale catalogs.
+Custom system keeps separate truthful managed guidance; arbitrary user/profile
+text and historical calls/results are not rewritten or translated. Existing model-
+switch wire_history projection preserves valid causal groups and opaque scope,
+and captured in-flight turn selection is not retargeted. TOOL12/TOOL20 own behavior;
+T45/PRM01 consumes the view, T44/VIS35/VIS36 qualifies separate cards/previews.
 
 subagent defaults foreground, background:true returns running/sessionID while child
 work progresses; independent foreground children overlap. Fresh child receives its

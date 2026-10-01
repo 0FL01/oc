@@ -8,7 +8,7 @@
 
 Продукт работает с пользовательским OpenProxy через нативный OpenAI Responses wire adapter; принимает config alias `@ai-sdk/openai`, baseURL/apiKey и указанные options. `ludka` поддерживает static models, `ludka2` — динамическую metadata discovery по присланному plugin без списка моделей в Rust. API/OAuth реальных upstream providers остаются за OpenProxy.
 
-Целевой direct набор: `read`, `glob`, `grep`, `apply_patch`, `shell`, `webfetch`, `skill`, `question`, `subagent`, `compress`, `opencode_models`, `opencode_session_rename`, `opencode_session_move` и dynamically registered MCP tools. Канонический command-shell дополняется совместимостью прежнего `bash(argv)` через одного владельца исполнения/permissions; не две взаимозаменяемые схемы в каталоге. `write`/`edit`, built-in `websearch` и Code Mode/`execute` не выставляются модели. Встроенный DCP переносит required range/compress, nudges, protections, deduplication, purgeErrors, сохранение projection и минимальную панель управления. Модель может провести цикл read → patch → shell test → корректировка → ответ, выполнить webfetch и явно настроенный `codex_web` search, по запросу загрузить объявленный skill, сжать завершённый контекст и продолжить после restart. Это требуемый результат, не claim, что новые tools уже реализованы; контракт T50 ниже.
+Целевой direct набор: `read`, `glob`, `grep`, файловое семейство `apply_patch` либо `edit`/`write` по текущей модели, `shell`, `webfetch`, `skill`, `question`, `subagent`, `compress`, `opencode_models`, `opencode_session_rename`, `opencode_session_move` и dynamically registered MCP tools. Точный OC2 selector и обязательное обновление каталога/guidance при смене модели — amendment T50 от 2026-10-01 ниже. Канонический command-shell дополняется совместимостью прежнего `bash(argv)` через одного владельца исполнения/permissions; не две взаимозаменяемые схемы в каталоге. Built-in `websearch` и Code Mode/`execute` не выставляются модели. Встроенный DCP переносит required range/compress, nudges, protections, deduplication, purgeErrors, сохранение projection и минимальную панель управления. Модель может провести цикл read → совместимая файловая правка → shell test → корректировка → ответ, выполнить webfetch и явно настроенный `codex_web` search, по запросу загрузить объявленный skill, сжать завершённый контекст и продолжить после restart. Это требуемый результат, не claim, что новые tools уже реализованы; контракт T50 ниже.
 
 ## Критерии приёмки — A01–A13
 
@@ -99,8 +99,10 @@ extensions, не обещание полного parity или бесконеч�
 
 Эта запись дополняет, не ослабляет A02/A04/A05/A07/A10/A13 и не отменяет запрет
 unknown-effect replay, parent-child authority narrowing, canonical trust boundaries,
-skill body только через native skill, apply_patch вместо write/edit и отсутствие
+skill body только через native skill и отсутствие
 JS/CodeMode/cloud host. Donor recovery at-least-once не является exactly-once effects.
+Прежнее «apply_patch вместо write/edit» superseded только файловым amendment T50
+от 2026-10-01 ниже; остальные ограничения этой записи сохраняются.
 T45 владеет новыми scenarios; T44 UI qualification отдельна, без done-dependency.
 Утверждён только план: execution statuses/evidence не становятся PASS.
 
@@ -346,6 +348,45 @@ execution generations, bounded resources и no unknown-effect replay сохра�
 whole-task dependencies, второго store/framework или нового paid campaign.
 Plan-only доставка не запускает T56, не меняет активную T50, не снимает PAUSED
 у T44 и не переписывает historical PASS/baseline. A01–A13 остаются обязательными.
+
+## Owner scope amendment (2026-10-01 — model-dependent file tools)
+
+После read-only RECON владелец утвердил подробную запись и commit/push плана:
+добавить native `edit`/`write` как в OC2 TS, оставлять `apply_patch` для совместимых
+GPT-моделей и **обязательно** убирать несовместимые tools из следующего provider
+request, если пользователь переключил модель. Контракт —
+[T50/R1/R9](docs/goals/2026-09-27-native-tool-parity.md), срезы —
+[M8](roadmap/M8.md#model-dependent-file-tools--t50r1r9-approved-2026-10-01-pending).
+
+- Перенести точный case-sensitive donor predicate по выбранному `model.id`:
+  содержит `gpt-`, не содержит `oss` и не содержит `gpt-4` → только `apply_patch`;
+  иначе → только `edit`/`write`. Затем effective policy/config/capabilities могут
+  сузить набор. Native имя `apply_patch(patchText)` сохраняется вместо donor `patch`.
+  Это узкое исключение для tool selection, не список production model IDs,
+  reasoning allowlist, guessed capability, изменение discovery или provider routes.
+- T50/R1/TOOL12 владеет одним выбранным request-view для preflight budgets,
+  каждого follow-up, root/own-model child, управляемой tool guidance и fingerprints.
+  После GPT → non-GPT → GPT следующий request получает совместимые schemas/guidance;
+  restart, DCP и `/compact` не воскрешают устаревшие определения. In-flight turn
+  остаётся на captured selection/generation; исторические calls/results не удалять
+  и не переименовывать, alien opaque continuation не переносить на новую модель.
+- T50/R9/TOOL20 владеет реальными filesystem effects: write create/overwrite/empty/
+  missing parents, edit unique/replaceAll и donor matching precedence/CRLF/BOM.
+  Общие permissions/grants, truthful previews, approved-preimage recheck, no-follow
+  paths/data-root/protected paths, durable intent/outcome и no unknown-effect replay
+  обязательны для всех трёх tools. Две schemas без executor/admission не закрывают scope.
+- T45/R6/R10/PRM01 потребляет выбранный набор для profiles/Plan/base/custom/child
+  prompt и capability previews; T44/R4/VIS35 — отдельные Write/Edit/ApplyPatch cards,
+  их replay и full paired styled-cell/PNG qualification, VIS36 — общие approval
+  previews. Минимальные backend slices, не circular whole-task done-dependencies.
+
+Superseded только универсальный patch/no-write-edit запрет в прежних Q03/Q04,
+TOOL03/R1/VIS35 и относящийся к нему запрет model-name tool selection. Strict patch
+grammar, native trust/policy narrowing, immutable raw history, bounded hot state,
+прежний A09 read/apply_patch/bash coding flow и все A01–A13/live gates сохраняются.
+TOOL12–TOOL20 принадлежат только T50; это не новый tracker, existing detailed
+owners, historical PASS/audits/baseline и execution statuses неизменны. Реализация и
+новая qualification pending/NOT_RUN; план не завершает T50 и не снимает PAUSED T44.
 
 ## Исполнение
 

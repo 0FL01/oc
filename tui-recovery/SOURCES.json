@@ -1002,6 +1002,51 @@
       "locator": "3–6 override registered syntax foreground with muted text while preserving source attributes; message-parts.tsx:20–89 reasoning code",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/thinking-syntax.ts#L3-L6",
       "purpose": "VIS14/VIS15 shared parent/child reasoning syntax is muted, not ordinary fenced-code foreground or free-form keyword matching"
+    },
+    {
+      "id": "U90",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/tool/plugin/patch.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "296–309 case-sensitive model.id gpt-/oss/gpt-4 predicate; deletes current edit/write or patch on context, compaction and generate",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/patch.ts#L296-L309",
+      "purpose": "T50/R1/TOOL12 exact selected file-tool view and mandatory next-request user-model-switch compatibility; narrow exception, not provider/reasoning routing or raw-history cleanup"
+    },
+    {
+      "id": "U91",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/tool/plugin/edit.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "24–40 path/oldString/newString/replaceAll and files/replacements; 49–101 matching; 119–213 permission, validation, CRLF/BOM, preview and write",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/edit.ts#L24-L213",
+      "purpose": "T50/R9/TOOL20 donor edit semantics and common mutation authority; VIS35/VIS36 distinct Edit effects/preview, not fuzzy patch matching"
+    },
+    {
+      "id": "U92",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/tool/plugin/write.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "23–35 path/content and operation/target/resource/existed; 55–91 edit permission, preimage preview, create/overwrite and BOM-preserving write",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/write.ts#L23-L91",
+      "purpose": "T50/R9/TOOL20 write empty/create/overwrite/parents and truthful results; VIS35/VIS36 Write/approval consumers; not synthetic Add File"
+    },
+    {
+      "id": "U93",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/system-prompt.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "9–27 write/edit instructions conditioned on actual tool availability, create/replace versus targeted edits",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/system-prompt.ts#L9-L27",
+      "purpose": "T50 selected view consumed by T45/PRM01 root/own-model-child base/custom guidance/previews; remove stale managed catalog text, not literal user/profile/history records"
+    },
+    {
+      "id": "U94",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "3044–3078 Write # Wrote numbered syntax input content/pending; 3324–3386 Edit first files metadata/← Edit/PatchDiff/unified-split-auto/wrap/pending",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L3044-L3078",
+      "purpose": "VIS35 distinct real Write/Edit presentation beside ApplyPatch; persisted result-derived effects and source input for live/history/reopen, full paired frames after T50 backend slice"
     }
   ],
   "external_primary_sources": [

@@ -6,7 +6,7 @@ Q01 закрыт: provider family `@ai-sdk/openai` через собственн
 
 Q02 закрыт: DCP functional port обязателен, codex_web remote bearer/no OAuth, Chrome stdio integration с default disabled. Пользовательский discovery script — часть required behavior, а не временная справка.
 
-Q03/Q04 закрыты для daily-direct: read/file mutation/webfetch/shell, MCP, compress + reminders, исходный TUI product direction сохраняется. Один built-in apply_patch вместо write/edit для всех моделей. Это намеренное отличие, не ошибка parity.
+Q03/Q04 закрыты для daily-direct: read/file mutation/webfetch/shell, MCP, compress + reminders, исходный TUI product direction сохраняется. Историческое решение «один built-in apply_patch вместо write/edit для всех моделей» superseded узким owner amendment D22 ниже; остальные ответы не переоткрываются.
 
 Q05 по runner/полномочиям уточнён: authoring-agent не привязан к GPT, модели, provider или CLI. Compatible agent работает в non-root account с dev tools; YOLO-подобные режимы, rootless Docker, git commit/push разрешены только в пределах runbook. Конкретный monetary cap/время watchdog владелец не указал. Не выдавать отсутствие cap за unlimited budget approval или блокировать все offline работы из-за незаполненного старого вопросника.
 
@@ -153,6 +153,33 @@ This is pending plan delivery: MCP09/MCP10 only T46, CFG09/CFG10/UI07 only T51,
 VIS42 only T44 (with startup transitions in existing VIS19/VIS40). No second registry/
 daemon/store/framework, whole-task completion cycle, historical PASS rewrite or new
 OAuth/JS host. Historical T37 env evidence remains factual but does not qualify R6.
+
+### D22 — model-dependent file tools (owner-approved 2026-10-01; pending)
+
+После RECON владелец утвердил подробный план и commit/push:
+[T50/R1/R9](goals/2026-09-27-native-tool-parity.md),
+[ordered slices](../roadmap/M8.md#model-dependent-file-tools--t50r1r9-approved-2026-10-01-pending).
+Нативные `edit`/`write` добавляются с OC2 schemas/файловой семантикой. Точный
+case-sensitive predicate `model.id.includes("gpt-") && !model.id.includes("oss") &&
+!model.id.includes("gpt-4")` выбирает только `apply_patch`; иначе только `edit`/`write`,
+после чего effective policy/capabilities сужают exposure. Имя `apply_patch` сохраняет
+нынешний ordinary function `patchText` contract, не provider-hosted tool.
+
+Обязателен совместимый следующий request при пользовательской смене модели в обе
+стороны: tools/catalog/автоматическая guidance, preflight budgets и fingerprints
+строятся из одного selected view для root/own-model child и follow-ups. История
+calls/results неизменна; no tool translation/reexecution или alien opaque replay.
+Общие legacy permission identity/grants, approval preview/preimage recheck,
+descriptor-safe paths/protections, durable confirmed effects и resource caps остаются.
+
+Superseded только Q03/Q04's single-patch/no-edit-write exclusion, такой же clause
+TOOL03 и запрет model-name **file-tool selector** в действующих T45/T44 contracts.
+Strict apply_patch matching не становится fuzzy; no production model allowlist,
+reasoning-name inference, discovery/protocol/provider routing change или JS host.
+TOOL12/TOOL20 имеют owner T50; PRM01 остаётся T45, VIS35/VIS36 — T44, без новых
+tasks/store/framework/paid campaign или whole-task dependency cycle. Старые audits/
+evidence/PASS и A09 patch flow сохраняются. Plan-only delivery не меняет active T50,
+PAUSED T44 или остальные statuses и не является реализацией/qualification PASS.
 
 ## Остаточные prerequisites, не новые Q
 

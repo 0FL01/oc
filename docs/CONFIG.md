@@ -227,8 +227,16 @@ Initial safety defaults предложены этой редакцией, мен
 
 На конец M2 historical domains/differences фиксируются в `evidence/T07/compatibility.md`;
 к финалу — current evidence in FINAL.md. Bounded Location discovery, direct MCP,
-unified apply_patch, native authority narrowing, exact native mappings, strict security,
+canonical mutation permission identity, native authority narrowing, exact native mappings, strict security,
 read-only inputs, own storage/CLI and resource bounds remain explicit differences.
 Primary-only/no-child/executable-command exclusions are superseded only by approved
 T45/R3/R6–R10; pending subagent/context/prompt/DCP extensions are not supported claims.
 Unsupported audio/video/pdf, CodeMode/OAuth/arbitrary npm remain outside scope.
+
+The historical universal apply_patch/no-write-edit difference is superseded only
+by the 2026-10-01 [T50/R1/R9 file-tools contract](goals/2026-09-27-native-tool-parity.md).
+Selected-model predicate changes schemas/managed guidance, not configured model IDs,
+reasoning/discovery/provider routes. Existing write/edit/patch permission aliases still
+normalize to apply_patch and preserve explicit Deny, grants and profile ceilings.
+No new file-tool override setting or executable sample is added in this plan delivery;
+supported implementation/compatibility claims require TOOL12/TOOL20 qualification.

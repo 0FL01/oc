@@ -13,7 +13,7 @@
 
 - Rust 2024, небольшой workspace, KISS/YAGNI. Ядро не зависит от UI; в production нет Node/Bun/JS-host. Внешний MCP через npx — только явная пользовательская зависимость.
 - OpenProxy подключается нативным Responses adapter. `@ai-sdk/openai` — alias конфигурации, не npm dependency. Не зашивать model IDs, reasoning allowlists по именам и vendor-specific маршруты; discovery сверять с владельческим кодом в `references/`.
-- Для файловых изменений модель получает `apply_patch`, не built-in `write`/`edit`. Shell — мощный отдельный инструмент, не sandbox. История неизменна; DCP меняет только provider projection.
+- Файловые tools выбираются для текущей модели по OC2 predicate: `apply_patch` либо `edit`/`write`; обязательный switch каталога/guidance — T50/R1/R9 в `GOAL.md`. Это узкое исключение из запрета model-name heuristics, не provider/reasoning routing. Shell не sandbox; raw history неизменна, DCP меняет provider projection.
 
 ## Файлы, слайсы и контекст
 

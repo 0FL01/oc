@@ -6,7 +6,7 @@ Compatible agent читает `AGENTS.md`, `GOAL.md`, `progress/NOW.md`, све�
 
 Модель, provider и credentials compatible agent принадлежат внешнему runner и не являются частью product config. Не извлекать runner auth config в evidence и не переключать authoring-agent на provider тестируемого `oc`. `OC_TEST_MODEL` выбирает только модель live-теста продукта; product env и runner credentials — разные вещи.
 
-Минимальная совместимость: agent умеет читать и изменять assigned worktree любым механизмом, запускать разрешённые shell-команды и тесты, фиксировать exit status/redacted evidence, проверять `git status`/`HEAD`/diff и вести progress checkpoint после interruption/resume. `apply_patch` — product-tool contract для модели `oc`, не обязательный интерфейс authoring-agent. Agent обязан соблюдать one mutation owner per worktree, OS/filesystem/network/secret/Git permissions и остановиться при неизвестном side effect или concurrent diff.
+Минимальная совместимость: agent умеет читать и изменять assigned worktree любым механизмом, запускать разрешённые shell-команды и тесты, фиксировать exit status/redacted evidence, проверять `git status`/`HEAD`/diff и вести progress checkpoint после interruption/resume. Model-dependent `apply_patch` либо `edit`/`write` — product-tool contract T50 для модели `oc`, не требуемый интерфейс authoring-agent. Agent обязан соблюдать one mutation owner per worktree, OS/filesystem/network/secret/Git permissions и остановиться при неизвестном side effect или concurrent diff.
 
 ## Preflight T00
 

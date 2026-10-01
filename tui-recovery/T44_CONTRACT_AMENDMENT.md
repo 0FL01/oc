@@ -497,11 +497,19 @@ Pinned источники VIS34: U15–U17 в `SOURCES.json`.
 
 ## File-mutation parity — VIS35
 
-1. Сохранить единый `apply_patch(patchText)` для всех моделей; write/edit не
-   добавлять в model registry и не вводить native model-name routing. Визуальный
-   эталон — оригинальный OC2 `patch`, компонент `ApplyPatch`; Write/Edit — отдельные
-   представления OC2, не fallback для «глупых» моделей. Это ordinary function tool,
-   не provider-hosted Responses apply_patch schema.
+Owner-approved 2026-10-01 file-tools amendment supersedes только прежнее universal
+patch/no-write-edit/model-name-selector исключение. Backend owns T50/R1/R9,
+TOOL12/TOOL20; VIS35/VIS36 — отдельная T44 presentation qualification после explicit
+resume, не второй mutation owner или зависимость от completion всего T50/T45.
+
+1. Использовать выбранное семейство T50: exact case-sensitive OC2 model.id содержит
+   `gpt-` и не содержит `oss`/`gpt-4` → только `apply_patch(patchText)`; иначе только
+   `edit`/`write`, затем effective policy сужает набор. Следующий request после user
+   switch обязан заменить несовместимые tools/управляемую guidance; in-flight turn
+   сохраняет selection, raw calls/results не переименовываются/не удаляются.
+   Визуальные эталоны — отдельные OC2 ApplyPatch, Write и Edit, не generic row или
+   fake apply_patch. Native apply_patch остаётся ordinary function patchText,
+   не provider-hosted Responses apply_patch schema и не model/provider routing.
 2. Проверить настоящий executor: create, empty create, multi-hunk update,
    full replacement, delete, move и multi-file. Независимо проверять bytes,
    modes, отсутствие удалённого/source файла и содержимое destination.
@@ -516,9 +524,13 @@ Pinned источники VIS34: U15–U17 в `SOURCES.json`.
    geometry/theme/syntax/gutters, unified/split/auto (>120 columns) и wrap.
    Preview до исполнения не показывать как подтверждённый success.
 5. Добавить bounded paired PTY scenario к существующему capture harness:
-   реальные tool calls OC2 patch/native apply_patch, проверка объявленных
-   schemas, файловых effects и model-visible results. Для OC2 использовать
-   штатный hook, допускающий patch на fixture-model; не менять донор.
+   реальные calls OC2 patch/native apply_patch и OC2/native edit/write, проверка
+   объявленных schemas, файловых effects и model-visible results. Использовать
+   fixture model IDs, штатно проходящие exact donor selector обеих веток, не
+   override production selection, не менять донор или подменять tool labels.
+   В одной сессии переключить eligible GPT → non-GPT → GPT после actual outcomes,
+   проверить следующий request и отображение новых/исторических cards отдельно;
+   TOOL12 уже владеет protocol/own-model-child/restart/DCP/compact assertions.
 6. Снять полные styled-cell/PNG frames на narrow/wide и границе 120/121,
    при default и explicit diff settings, для completed/error и permission
    accept/reject; проверить observable streaming/running frames.
@@ -533,17 +545,41 @@ Pinned источники VIS34: U15–U17 в `SOURCES.json`.
    не способность модели работать с форматом; наличие строкового patchText в schema
    тоже не гарантирует корректные hunks. Не добавлять новый model matrix/framework.
 
-Pinned источники: U18–U20 в `SOURCES.json`. VIS35 — спецификация, не executed PASS.
+9. Добавить реальные Write/Edit consumers после минимальных T50 executors/admission:
+   - Write: `{path,content}`, create/overwrite/empty/missing parents; `# Wrote` path
+     и numbered syntax content из original input, не сегодняшнего файла; pending
+     `Preparing write…`/Write fallback по pinned source. Empty content не скрывает
+     реальную zero-byte mutation, длинный input сохраняет bounded presentation.
+   - Edit: `{path,oldString,newString,replaceAll?}`, actual unique/all/count effects,
+     CRLF/BOM/Unicode; `← Edit` path, result-derived first-file PatchDiff и
+     `Preparing edit…` fallback. Donor exact/typography/line matching и negatives —
+     TOOL20 behavior, не regex по свободному output для UI status.
+   - Shared grammar-based syntax, gutters/line numbers, semantic fg/bg/attributes,
+     unified/split/auto (>120), diff wrapping и geometry остаются обязательными.
+     Completed effects не заменять approval preview; rejected/error/cancelled/unknown
+     честны. Для partial показывать только confirmed changes, не rollback обещание.
+   - Live attach/history/reopen/restart используют durable input/result/effects с
+     правильным session/operation binding; нет mutation replay или reread текущих
+     workspace files. Кадры сохраняют старое настоящее tool name после model switch.
+     Approval branches shared с VIS36, bytes/storage — TOOL20, no duplicate matrix.
+
+Pinned источники: U18–U20/U86–U87 и appended U90–U94 в `SOURCES.json`.
+VIS35 mandatory pending/NOT_RUN, evidence empty: plan-only delivery не квалифицирует
+новые инструменты, не переписывает historical captures и не снимает PAUSED T44.
 
 ## Audited Approve permission parity — VIS36
 
 Утверждённый контракт будущей реализации, не claim существующего approval backend.
 Все необходимые dependencies поддерживаемых действий обязательны; отсутствие backend
-не заменяется Unsupported waiver или инертным UI. Pinned sources: U20–U23.
+не заменяется Unsupported waiver или инертным UI. Pinned sources: U20–U23,
+owner-approved T50 edit/write preview supplement (2026-10-01): U91/U92.
 
 1. **Contract/mappings.** Зафиксировать native tool → permission action → presentation,
-   actual resources и отдельные owner-generated save patterns. apply_patch использует
-   donor edit preview. Реализовать donor project identity для grants: Git root/origin,
+   actual resources и отдельные owner-generated save patterns. apply_patch и T50
+   edit/write используют shared canonical mutation permission и donor edit preview;
+   actual path/resource/home/save-pattern normalization, prepared before/after и
+   approved identity/bytes/absence recheck не зависят от выбранной моделью схемы.
+   Реализовать donor project identity для grants: Git root/origin,
    subdirectories/worktrees/clones/non-Git; не подменять session/Location directory.
 2. **Owner lifecycle.** Existing application façade владеет authoritative pending
    query, asked/resolved events и typed once/always/reject reply с optional feedback.
@@ -554,7 +590,8 @@ Pinned источники: U18–U20 в `SOURCES.json`. VIS35 — специфи
    очищают waiters. Restart не авторизует replay старого ожидания.
 3. **Leaf admission/durability.** Policy evaluation чистая; один подготовленный leaf
    request и invocation-local Once покрывают exact resources и rechecks, не весь lane.
-   Интегрировать все supported tools, включая patch move targets, shell cwd/command/save,
+   Интегрировать все supported tools, включая patch move targets, edit/write path
+   и overwrite/missing-target preimage, shell cwd/command/save,
    read/search/webfetch/skill/MCP/subagent/compress. После wait revalidate prerequisites.
    Порядок: prepare/validate → approval → revalidate → durable execution intent → effect
    → durable outcome. Если нужен durable waiting-state, он pre-execution, не started
