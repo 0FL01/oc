@@ -201,9 +201,12 @@
       "id": "VIS14",
       "step": "V06",
       "title": "Markdown streaming and code",
-      "expected": "Fences/headings/lists/inline spans match reference including incomplete stream; completed blocks not globally reparsed every frame.",
+      "expected": "Fences/headings/lists/inline spans match reference including incomplete stream; completed blocks not globally reparsed every frame. Follow the 2026-10-01 VIS39 child-TUI clarification: one shared parent/child/live/replay native grammar renderer covers all donor configured languages/filetypes/aliases/highlight queries and exact semantic token boundaries/fg/bg/italic/bold/underline/inline-code background, including muted reasoning styles. Freeze actual reference grammar/query assets and pin vetted native grammars, no JS/WASM plugin host or runtime download. Unknown-language fallback is not a waiver for missing required grammars; four heuristics/palette equality/native goldens cannot qualify. Preserve Unicode/wrap/streaming/theme/width invalidation and VIS31/32 bounds; plain Shell/tool labels and PTY ANSI palette remain distinct.",
       "sources": [
-        "P06"
+        "P06",
+        "U86",
+        "U87",
+        "U89"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",
@@ -504,7 +507,9 @@
       "sources": [
         "U18",
         "U19",
-        "U20"
+        "U20",
+        "U86",
+        "U87"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",
@@ -560,7 +565,7 @@
     {
       "id": "VIS39",
       "step": "V06",
-      "title": "Full subagent delegation transcript, controls, colors and temporal parity",
+      "title": "Full child TUI, Subagents/Shell/Terminals controls, syntax, colors and temporal parity",
       "expected": "Follow T44_CONTRACT_AMENDMENT.md section Subagent delegation parity — VIS39. T45/R3/SUB01/SUB02 first supply actual concurrent foreground/immediate background, typed durable child/operation/launch/current-state/result/delivery projections and Ctrl+B conversion; T44 owns presentation qualification, no whole-T45 completion dependency/new task/store/framework. Preserve native closed-response/schema-validation-before-tool-admission: no partial-JSON execution or free-text child/status inference. Match three argument-stream Delegating… rows, populated agent/description and explicit model/variant, continuation, actual live running versus terminal tool, persistent Background launch badge, source icon/spinner/InlineToolRow fallback/wrapping/padding, semantic fg/bg/attributes, denial/error/permission/cancel/unknown and selection-safe hover/click/error expansion. No extra bordered result/session-ID block. Actual Thought parts/duration and parent response footer, not child-count steps or OCR constants. Durable source=subagent notices have actual child/agent/state/description/result and delivery identity, finished/failed/cancelled heading/icon/color, muted width-truncated suffix and child navigation, not toast/generic Notice/fake footer. Barrier-controlled three-child fixture proves parent answer while children run, first completion/continuation then two notices before follow-up; ordinary child refusal prose is completed, not runtime failure. Match real lower Subagents composer active/inactive/current/focused/running/empty/scroll, actual keymap/mouse/interrupt/parent navigation, Ctrl+B owner-backed backgrounding and draft/focus/permission-question priority. Family footer counts/root-tab busy/attention/unread differ from parent own-running scanner. Require 80-ms Braille/no text shimmer and source continuation/fallback branches, tab pulse/tint/glow/easing/state transitions and source-specific animation-off behavior; reuse VIS28/VIS31, no global phase synchronization or permanent idle polling. Full running pinned-original/native styled-cell/PNG/cursor comparison at 80x24/120x40/160x48 with representative Unicode/long labels includes animation-on temporal sequences AND off fallback, normal/hover/selection/error-detail/composer effects. Native goldens/static frames/off-only/crops/masks/tolerance cannot qualify; missing executable reference remains BLOCKED_REFERENCE. Reuse SUB01/SUB02 and VIS15/17/21/22/23/28/31/33/36/37/A02/A08/A10 evidence without duplicate negative/theme/viewport matrices. Replay/reopen/restart uses persisted notices/metadata and current child status without duplicate delivery/provider/tool replay or unknown-effect retry; bounded family/history queries/caches/queues, immutable history, conversation-only Undo/Redo, permissions/parent-child narrowing/cleanup remain. No sleep300/new paid campaign, Explore policy widening or excluded native tools. Preserve pinned provenance/licenses and prior failed/blocked evidence; plan approval is not PASS.",
       "sources": [
         "U02",
@@ -578,7 +583,19 @@
         "U46",
         "U47",
         "U48",
-        "U49"
+        "U49",
+        "U78",
+        "U79",
+        "U80",
+        "U81",
+        "U82",
+        "U83",
+        "U84",
+        "U85",
+        "U86",
+        "U87",
+        "U88",
+        "U89"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",

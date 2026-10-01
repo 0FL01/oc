@@ -841,8 +841,11 @@ spinner и VIS41 hover-marquee; их утверждённый срез опис�
    interrupts only running child, Enter opens, first Up closes, Down wraps; Esc/Ctrl+C
    and left/right tabs follow composer/focus layer. Child route opens Subagents by
    default when no form; close returns parent, preserve actual parent draft/chips/
-   cursor/focus. Session shortcuts (U02/U35) include interrupt, Down picker, child
-   left/right and Up parent where applicable; never hijack ordinary editor arrows.
+   cursor/focus. Session shortcuts (U02/U35) include interrupt, Down picker and Up
+   parent where applicable; never hijack ordinary editor arrows. The declared child
+   next/previous bindings have no registered route handlers in this pinned source;
+   do not invent functional sibling Left/Right navigation. Composer Left/Right
+   switches its tabs.
    Ctrl+B invokes actual owner Session.background conversion of owned foreground work,
    admits genuine control context, returns running launch state and keeps observing
    terminal delivery; not a local badge toggle. Other shell lifecycle stays T50/TOOL13.
@@ -900,6 +903,164 @@ spinner и VIS41 hover-marquee; их утверждённый срез опис�
 
 VIS39 mandatory, NOT_RUN/evidence empty until actual qualification. Approval freezes
 the plan, not implementation PASS; existing task statuses/evidence/baseline stay intact.
+
+### Child TUI, Shell/Terminals — уточнение VIS39 (2026-10-01)
+
+Owner asked for full parity of this segment and explicitly chose **«Включить
+Terminals»**, then approved the detailed work-plan update/commit/push. Pinned OC2
+remains `2670273ff17da96f85c5826ced57aa1b368754fa`; OCR is scenario intent, not a
+literal strings/theme/status oracle. This subsection supplements the full VIS39
+contract above. Its old no-new-task language excludes duplicate subagent/UI owners;
+the approved exception is **T56/TERM01 for native interactive PTYs**, not another
+VIS gate. T44 remains PAUSED until explicit resume; this plan is not execution PASS.
+
+**RECON baseline at native `cd2a95926e3c3c5f3eeda451cf8a1a8b814914fd`:** linked
+inline child navigation/family composer is absent; explicit child history is
+read-only and blanket-refuses SwitchSession; child turn text/reasoning/tool callbacks
+are no-ops; background subagents are rejected and tool batch awaits sequentially.
+Ctrl+B currently means input Left. Shell has initially background jobs/notices/cancel
+and terminal-only retained output, not authoritative live inventory/output or
+foreground conversion. No persistent PTY owner/pane exists. Syntax is hand-written
+Rust/Python/Shell/JSON heuristics with plain fallback. These are source observations,
+**not** executed RED/PASS or evidence that the dirty T50 code implements this scope.
+
+| Required surface | Behavioral owner/prerequisite | T44 qualification |
+|---|---|---|
+| Linked child, ordinary live transcript, family/current state, independent interrupt/background, notices | T45/R3/SUB01/SUB02 | VIS39 + reused VIS15/17/21/22/23/27/28/31/33/36/37 |
+| Actual running shell list, live bounded output/final flush, exact-job kill, same-process Ctrl+B | T50/R2/TOOL13 | VIS39 Shell composer/output dialog, existing VIS16 plain shell cards |
+| Session-local interactive PTY inventory/create/select/input/resize/snapshot/reap | T56/TERM01 | VIS39 Terminals composer/picker/right pane/focus/colors/cursor |
+| Shared complete code grammar/alias/query/style rendering in parent and child | T44/R4 native renderer | VIS14 and VIS35, reused VIS27/31/32/33 |
+
+1. **Actual child route, not a result preview.** Clicking the parent's delegation
+   row or durable child notice, or selecting the family row, opens that same child's
+   ordinary session transcript while it is still running. Reuse the parent/child
+   renderer for user task, Thought/reasoning groups, Markdown/fenced code, Shell/
+   read/grep/patch cards, selection/copy and truthful agent/model/duration/TPS/
+   interrupted footer. No extra bordered result excerpt, synthetic status footer,
+   cropped child view or unconditional native read-only banner in place of donor
+   chrome. Open history plus live events without duplicate parts or a restart of work.
+   When no form has priority the child auto-opens the lower Subagents composer;
+   its close and `session.parent` (default Up) return to the real parent. Normal
+   child routes suppress the root sidebar; root-family tabs remain root-owned.
+   Narrowly supersede only blanket navigation/control refusal: do **not** turn a
+   child into an arbitrary new root-turn editor or relax profile/model/Undo guards.
+   Round trips preserve root deck/draft/chips/cursor/focus and pinned execution state.
+   Keep descendant permission/question parent routing and actual request bindings.
+
+2. **One lower composer, three distinct inventories.** U45/U44 plus U78/U80/U88
+   define raised background/split border/padding, at-most-five visible list rows,
+   current/focused/hover states and tab-specific footer hints. Subagents and Shell
+   are unconditional; Terminals follows resolved `session.terminal` (enabled on
+   Linux, derived from platform in U88, not a donor user-config option or presence
+   of a process). Left/right wrap tabs; Esc/Ctrl+C or clicking
+   the `esc` hint closes the composer without stopping work. Tab labels themselves
+   are text, not invented mouse buttons. Rows select on hover/move and activate on
+   mouse-up. Existing Subagents Ctrl+A active/inactive, selected-running Ctrl+D
+   interrupt, Enter child open, first-Up-close/Down-wrap and empty states remain.
+   Current child running derives from its owner, not a completed launch badge.
+
+3. **Shell tab and output viewer are operational.** U78 lists only currently
+   running jobs of the source session, including a child session's own shell jobs;
+   never reconstruct the list from immutable tool results. Empty text is `No shell
+   commands`. Enter or row mouse-up opens the selected job's output; Ctrl+D kills
+   precisely that job through its source session/Location identity, not the parent
+   turn. Up from first closes; Down wraps; hints are conditional `output`/`kill`
+   with actual configured keys. U79 dialog is centered/xlarge with source height
+   `max(3, floor(H * .6) - 6)`, title/command and Running/Timed out/Killed/Exited
+   code states, recent bounded 64-KiB cursor reads, live output and final flush.
+   It retains its original job after the running inventory removes it. Follow-tail,
+   user scroll/page/home/end, ANSI stripping/CR normalization and Esc close match
+   source; content is **plain text**, not Bash grammar coloring. Cancel scoped reads/
+   subscriptions on close; no permanent idle poller or unbounded retained output.
+
+4. **Ctrl+B is a real control, not hide/filter/kill.** The delayed hint `Press
+   ctrl+b to move running work to the background` uses effective key formatting and
+   actual blocking Shell/Subagent state. Application dispatch freezes the target
+   work identity and asks T45/T50 owners to convert that same admitted execution;
+   it does not launch a duplicate process/child, cancel it or mark a TUI boolean.
+   Verify parent/child continuation and durable notice ordering, no repeated result/
+   delivery, conversion-versus-terminal races and late/stale controls after routing.
+   Composer active/inactive filtering, session navigation and pane hiding are never
+   conversion or interruption. Key priority follows the focused source surface;
+   terminal Ctrl+C/D bytes must not leak into these global/composer actions.
+
+5. **Terminals is a real interactive PTY, not Shell relabelled.** U80/U81 list
+   existing session terminals plus `+ New terminal`, at most five visible rows,
+   actual foregroundProcess/title fallback and selected/focused action styles/bold.
+   Up/k and Down/j wrap through the New row; unlike Subagents/Shell, Up on first
+   does not close. Enter or row mouse-up selects/creates; no invented kill hint.
+   Selection is session-local/persisted through remount; removed selection clears.
+   Without a visible terminal initial selection is undefined: immediate Enter is
+   a no-op until Up/Down/hover selects a row. Activation calls composer.close before
+   select/create; on a child this shared close navigates to parent. Qualify actual
+   reference route/target identity, not an assumed child-local modal or pane.
+   U82 `/terminal` creates new; toggle-on refreshes and chooses the **last terminal
+   in inventory**, creating only if empty. Select opens the lower Terminals composer
+   including `+ New terminal`, not a generic modal. Hide/toggle-off/close clears
+   persisted selected ID and focuses session **without terminating the PTY**.
+   Default leader-left/right focuses session/right pane, leader-down selects,
+   leader-t toggles, leader-up closes. Exact layout integrates the right pane with
+   sidebar/panel and tab rail, default half width, source width clamps/persistence
+   and drag resize; child suppresses sidebar, not its own PTY capability.
+
+6. **Terminal rendering, focus and resource ownership.** U83 is a VT screen, not
+   transcript text or raw escape forwarding to the host. A vetted pinned native
+   emulator renders cells/cursor; snapshot then replay cursor/ready ordering avoids
+   lost/duplicated output/input. Actual PTY size follows pane resize. Theme semantic
+   ANSI16/default fg/bg and attributes update with theme, distinct from code syntax.
+   Focused terminal has raw-key priority: only the configured leader key or active
+   leader sequence bypasses interception, not arbitrary non-leader pane remappings.
+   Ctrl+C/D reach the PTY. First click into session only focuses it and consumes the matching
+   release before permission/transcript actions; transcript wheel does not steal
+   terminal focus. Hide/show/session change never kills a PTY; exit/disconnect
+   restores session focus. T56 owns caps on screen/scrollback/escape/input/output/
+   process counts and actual shutdown/reap. No host OSC/clipboard escape, provider/
+   runner credentials or view-driven process replay. Donor daemon handoff survives
+   server/client lifetimes; native ownership is limited to live `oc`, with safe
+   interrupted/unknown crash recovery and no auto-recreated shell. Declare this
+   runtime difference; do not waive pane/list geometry/colors/keys or fake persistence.
+
+7. **Full shared grammar/style parity — VIS14/VIS35.** U86/U87/U89 are the
+   grammar/alias/highlight-query and semantic style oracle, not OCR or a language
+   keyword list. Inventory OpenTUI built-ins Markdown/JavaScript/TypeScript and all
+   configured donor parsers/filetypes/aliases (including Rust, Python, Bash, JSON,
+   Go, C/C++, Java, HTML/CSS, YAML/TOML, diff and the rest of U86). Freeze actual
+   grammar/query asset revisions/provenance/licenses for the reference fixture:
+   a pinned parsers-config URL can still point at floating assets. Native uses
+   vetted pinned compiled grammars/highlight queries, no Node/Bun/WASM plugin host
+   or production runtime downloads. Qualify token boundaries **and** fg/bg, italic,
+   bold, underline and precedence for comments/keywords/keyword.type/functions/
+   variables/types/operators/punctuation, Markdown headings/emphasis/links/inline
+   code background, diff and feedback. Reasoning keeps source styles but muted fg.
+   Unknown-language fallback is allowed only for genuinely unknown source languages;
+   missing required grammar/reference asset is pending/blocked, not silent plain
+   fallback or an all-languages waiver. Plain Shell commands/output, Read/Grep/Glob
+   and Subagent labels stay plain; do not add decorative grammar coloring to them.
+   One renderer/cache serves parent/child/live/replay and result-derived patch hunks;
+   preserve streaming partial fences, Unicode/wrapping, theme/width invalidation,
+   correct old/new diff lines/unified-split and bounded completed-block parsing.
+
+8. **Ordered evidence and closure.** First actual-binary/protocol/SQLite/process
+   SUB01/SUB02, TOOL13 extension and TERM01 establish real work/control/input/output
+   facts; T44 can consume each minimal qualified slice without waiting for all
+   T45/T50/T56 to finish. Keep existing three-child fixture and add a bounded
+   canonical path: parent delegation → child open while blocked → live child shell
+   → Ctrl+B → Shell output/selected-job kill or selected-child interrupt → notices/
+   parent continuation; independently create/select/type/hide/reopen/resize a real
+   terminal in the same fixture. Freeze a small shared mixed-code/patch transcript
+   for parent/child with grammar token spans and source styles; finite representative
+   language fixtures cover the full admitted grammar inventory without a duplicated
+   viewport/state cross-product. Reopen/restart checks history/current-state/notice/
+   selection reconciliation without execution; no literal sleep300/paid campaign.
+   Then paired running-original/native full styled-cell/PNG/cursor evidence at
+   80x24/120x40/160x48 covers controls, child transcript, all composer tabs, Shell
+   dialog and right pane, representative Unicode/theme/focus/selection/resize and
+   animation-on phase/state sequences plus source-specific off branches. Reuse
+   VIS14/15/16/17/21/22/23/27/28/31/32/33/35/36/37 and A02/A08/A10 rather than new
+   visual gates or duplicate safety suites. Own-tab/VIS41, native goldens, static
+   widgets or off-only captures cannot close this segment. No masks/crops/tolerance/
+   reference substitution; missing runnable reference stays BLOCKED_REFERENCE.
+   Behavioral and visual results are separately reported with factual provenance.
 
 ## MCP modal parity — VIS40
 

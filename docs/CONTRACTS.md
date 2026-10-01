@@ -42,6 +42,42 @@ Question pending wait has its own typed replies, distinct from permissions; stal
 duplicate/foreign replies fail, dismissal interrupts, no-consumer headless is explicit
 non-success and --auto never invents an answer. No held DB transaction or UI-only state.
 
+### Live child / shell / terminal projections (approved 2026-10-01; pending)
+
+T45/R3 owns child-scoped ordinary accepted/text/reasoning/tool/terminal events and
+bounded family/current-state queries. History plus live replay is deduplicated by
+actual session/turn/operation identity. Immutable launch/tool metadata and current
+child liveness are distinct; typed outcomes, not child prose, determine failure.
+Linked-child/parent/family navigation and selected-child interruption narrowly
+replace blanket child navigation refusal; arbitrary child new-root-turn/profile/
+model/Undo authority stays prohibited. Root deck/draft/focus and real descendant
+permission/question bindings survive navigation, without approval or cancellation.
+
+T50/R2 owns authoritative source-session shell inventory/status and bounded live
+output cursors/snapshots/events before completion. An output viewer pins the source
+job/Location even after the running list removes it; terminal flush remains readable.
+Selected-shell kill is not CancelTurn on the current parent. Session background
+control delegates to T45/T50 owners and converts the same foreground execution,
+not another spawn or a UI flag; stale/foreign/racing/repeated requests preserve one
+settlement/delivery and cleanup. Parent move never retargets existing execution.
+
+[T56/TERM01](goals/2026-10-01-native-session-terminals.md) separately owns user-driven
+session-local interactive PTY inventory/create/input/resize/snapshot/output/exit,
+not a model-facing tool or shell-job projection. Native VT cells/cursor are rendered
+inside the pane; raw escape bytes cannot reach the host terminal. Hide/show and view
+switches do not kill; raw focused Ctrl+C/D reach the PTY, not application/composer
+actions. Preserve original session/Location/generation, sanitized shell env and
+owned process/descriptor/queue bounds, shutdown/reap and identity-verified crash
+quarantine. Native live-application lifetime, not donor daemon/server handoff;
+restart never recreates old shells/replays unknown commands or invents running state.
+
+These are minimal local CoreApp DTO/command/query/event extensions of existing
+owners, not a generic RPC/framework/store. T44/VIS39 owns paired presentation of
+all three work inventories and child/terminal panes; VIS14/VIS35 share complete
+native grammar/style rendering. Ordinary plain Shell text, grammar syntax and VT
+ANSI palette are distinct. Behavior precedes visual qualification without whole-task
+completion dependencies; approval/plan validation is not implementation PASS.
+
 Пустой stream EOF без terminal completion — interrupted/failed, не успех. Не выполнять tool дважды из-за повторного done-event. Тесты включают arbitrary chunk split, CRLF, partial UTF-8 и terminal error after text.
 
 ## Tool operation state

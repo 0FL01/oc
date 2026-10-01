@@ -310,6 +310,43 @@ Pinned original допускает закрытие busy-вкладок; сущ�
 VIS39/VIS41. План pending/NOT_RUN; T44 остаётся PAUSED до explicit resume,
 активная T50, historical evidence и execution statuses не меняются.
 
+## Owner scope amendment (2026-10-01 — child TUI / Subagents / Shell / Terminals)
+
+Владелец потребовал **полный визуальный и интерактивный паритет этого сегмента**
+с pinned OC2 v2.0.12: из parent delegation/notice открывается собственный живой
+TUI ребёнка, доступны возврат, выбор/прерывание детей, настоящий Ctrl+B, нижний
+composer Subagents/Shell/Terminals, Shell output и рабочий terminal pane. После
+RECON владелец явно выбрал «Включить Terminals», затем утвердил подробную запись
+плана и commit/push. OCR иллюстрирует сценарий, не задаёт точные строки/цвета.
+
+- [T45/R3/SUB01/SUB02](docs/goals/2026-09-21-config-compat-and-subagents.md)
+  владеет live child events, bounded family/current-state projections и реальным
+  independent lifecycle/control; [T50/R2/TOOL13](docs/goals/2026-09-27-native-tool-parity.md)
+  — authoritative shell list/live bounded output/targeted kill и переводом уже
+  запущенного foreground shell в background без повторного запуска.
+- Новый [T56/TERM01](docs/goals/2026-10-01-native-session-terminals.md) владеет
+  session-local interactive native PTY и реальным frontend consumer. Terminals
+  не являются shell jobs и не ограничиваются декоративной вкладкой. PTY переживает
+  hide/show и переключение представления в живом `oc`; чистый shutdown reaps,
+  crash/restart не переисполняет неизвестные команды. Daemon/serve/attach/HTTP parity
+  и наследование provider/runner credentials **не** разрешены.
+- [T44/R4/R5/VIS39](tui-recovery/T44_CONTRACT_AMENDMENT.md#child-tui-shellterminals--уточнение-vis39-2026-10-01)
+  квалифицирует весь сегмент парными full styled-cell/PNG/cursor captures, включая
+  controls, геометрию, semantic colors/attributes, focus, selection и анимации.
+  VIS14/VIS35 используют общий grammar-based syntax renderer для parent/child:
+  donor language/alias/query inventory и точные стили, не четыре эвристики или
+  только совпавшая палитра. Plain Shell text и VT/ANSI terminal colors отличны
+  от syntax highlighting. Это узкое уточнение общего A08, не full-product parity.
+
+Superseded только blanket refusal child navigation/control и исключение PTY
+terminal-manager **для T56**. Child view не становится произвольным root-turn
+editor; profile/model/Undo authority, trust/permissions, immutable history и
+execution generations, bounded resources и no unknown-effect replay сохраняются.
+Минимальные behavioral slices предшествуют visual qualification; нет circular
+whole-task dependencies, второго store/framework или нового paid campaign.
+Plan-only доставка не запускает T56, не меняет активную T50, не снимает PAUSED
+у T44 и не переписывает historical PASS/baseline. A01–A13 остаются обязательными.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

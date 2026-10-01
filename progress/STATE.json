@@ -387,6 +387,13 @@
       "latest": "progress/M8/T55/0003.md",
       "evidence": "evidence/T55/report.md",
       "reopen_reason": null
+    },
+    "T56": {
+      "status": "todo",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
+      "reopen_reason": null
     }
   },
   "last_checkpoint_task": "T50"

@@ -894,6 +894,114 @@
       "locator": "16–24 prompt Tab capture; app.tsx:1207–1214 action/binding layers; component/prompt/autocomplete.tsx:96–100,667–735 mode/layer; test/prompt/traits.test.ts:5–10",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/prompt/traits.ts#L16-L24",
       "purpose": "VIS06/VIS10 focused prompt/autocomplete ownership; configured Tab dispatch needs actual pinned-reference qualification, not an assumed global fallthrough"
+    },
+    {
+      "id": "U78",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/composer/shell-tab.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "20–32 running-only source-session inventory/output; 49–145 hints, keys, hover/mouse-up and maxHeight5",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/composer/shell-tab.tsx#L20-L145",
+      "purpose": "VIS39 Shell is a real job list/output/kill surface, not terminal PTYs or immutable launch-result liveness; TOOL13 behavioral owner"
+    },
+    {
+      "id": "U79",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-shell-output.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "13–144 status/height, original shell Location/id, bounded recent cursor reads/live final flush, ANSI/CR normalization and scrolling",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-shell-output.tsx#L13-L144",
+      "purpose": "VIS39 full Shell output dialog; viewer survives running-list removal and shows plain text, not grammar-highlighted Bash"
+    },
+    {
+      "id": "U80",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/composer/terminals-tab.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "9–114 Terminals registration, existing PTYs/+ New terminal, up/k/down/j wrap, Enter/mouse-up and selected/focused styles",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/composer/terminals-tab.tsx#L9-L114",
+      "purpose": "VIS39 operational Terminals tab/list; TERM01 real interactive PTY prerequisite, distinct from Shell first-Up-close/kill hints"
+    },
+    {
+      "id": "U81",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/context/session-terminals.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "14–99 per-session list/create/source cwd, persisted selected terminal, refresh/select and removed-selection cleanup",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/session-terminals.tsx#L14-L99",
+      "purpose": "T56/TERM01 session terminal ownership/UI consumer; hiding/remounting is not killing or recreating a PTY"
+    },
+    {
+      "id": "U82",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/session-frame.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "29–407 right-pane layout/focus/drag resize; 199–242 hide clears selection/show chooses last inventory; 221–254 lower Terminals picker/slash; config/keybind.ts:96–100; test/session-wheel-focus.test.tsx",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/session-frame.tsx#L29-L407",
+      "purpose": "VIS39 terminal pane/picker, /terminal/toggle/select/hide, child sidebar suppression, first-click release guard and non-focus-stealing wheel"
+    },
+    {
+      "id": "U83",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/terminal-pane.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "24–383 EmbeddedTerminalRenderable, snapshot/output-cursor attach/ready/input/resize/focus; 338–364 terminalPalette",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/terminal-pane.tsx#L24-L383",
+      "purpose": "Native VT cells/cursor and semantic ANSI16/default fg/bg, not host raw-escape forwarding or Markdown syntax; real Ctrl+C/D PTY input"
+    },
+    {
+      "id": "U84",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/persistent-pty/index.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "56–110 service list/get/create/write/resize/control/input/snapshot/read/remove/shutdown/handoff/attach; makeDaemonTransport implementation",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/persistent-pty/index.ts#L56-L110",
+      "purpose": "T56 behavior source; donor daemon/handoff and inherited process env are explicitly not native architecture/credential permissions"
+    },
+    {
+      "id": "U85",
+      "repository": "anomalyco/opencode",
+      "path": "packages/schema/src/persistent-pty.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "9–15 sessionID/foregroundProcess/size/output offsets; 42–47 snapshot/checkpoint/cursor; 68–69 added/removed events",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/schema/src/persistent-pty.ts#L9-L69",
+      "purpose": "Typed local native projections may differ from donor HTTP/WebSocket API; preserve observable PTY identity/screen/replay semantics"
+    },
+    {
+      "id": "U86",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/parsers-config.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "1–386 OpenTUI Markdown/JavaScript/TypeScript built-ins and complete configured grammar/filetype/alias/highlight/locals-query inventory",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/parsers-config.ts#L1-L386",
+      "purpose": "VIS14/VIS35 shared parent/child grammar parity; pin actual referenced grammar/query assets, not just potentially floating URLs or four language heuristics"
+    },
+    {
+      "id": "U87",
+      "repository": "anomalyco/opencode",
+      "path": "packages/theme/src/tui/syntax.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "4–85 generateSyntax semantic token scopes/fg/bg/italic/bold/underline, Markdown/diff/feedback; context/theme.tsx syntax lifecycle",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/theme/src/tui/syntax.ts#L4-L85",
+      "purpose": "Exact syntax style contract and invalidation; palette equality alone is not tokenization/style parity"
+    },
+    {
+      "id": "U88",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/config/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "257–262 resolved session.terminal type; 303–309 platform-derived enablement, not a user-config flag; keybind.ts:96–100,251–253",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/config/index.tsx#L303-L309",
+      "purpose": "Linux resolved terminal capability is enabled independently of PTY presence; no invented compatibility setting or automatic spawn"
+    },
+    {
+      "id": "U89",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/thinking-syntax.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "3–6 override registered syntax foreground with muted text while preserving source attributes; message-parts.tsx:20–89 reasoning code",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/thinking-syntax.ts#L3-L6",
+      "purpose": "VIS14/VIS15 shared parent/child reasoning syntax is muted, not ordinary fenced-code foreground or free-form keyword matching"
     }
   ],
   "external_primary_sources": [

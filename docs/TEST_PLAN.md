@@ -230,7 +230,49 @@ VIS15/17/21/22/23/28/31/33/36/37/A02/A08/A10 without duplicated negative/theme/v
 matrices. Replay/restart uses current child state/persisted notices without duplicate
 delivery/reexecution; bounded paging/family queries/queues and no periodic idle work.
 Backend and visual results separate, missing reference BLOCKED_REFERENCE, no all-T45
-completion dependency, new task/store/framework, policy widening or historical PASS.
+completion dependency, duplicate subagent/UI task/store/framework, policy widening
+or historical PASS. The approved 2026-10-01 T56 PTY exception is specified below.
+
+### Full child / Shell / Terminals qualification (approved 2026-10-01; pending)
+
+Follow the [VIS39 clarification](../tui-recovery/T44_CONTRACT_AMENDMENT.md#child-tui-shellterminals--уточнение-vis39-2026-10-01)
+and [T56 R1–R4](goals/2026-10-01-native-session-terminals.md). SUB01/SUB02 remain
+only T45; TOOL13 remains only T50; new TERM01 only T56. T44 owns VIS39 presentation
+and shared VIS14/VIS35 complete grammar/style parity, not a duplicate runtime test.
+
+| Primary evidence | Smallest direct qualification |
+|---|---|
+| SUB01/SUB02 extension | Real linked child open while parent waits; ordinary child accepted/text/reasoning/tool events and history reconcile once. Exact-child interrupt with independent sibling progress; source family/Location/job generation, parent return/draft/deck/focus and actual descendant approval/question binding. Ctrl+B/delivery/late/restart races preserve settlement and no execution replay. Preserve child new-turn/profile/model/Undo guards. |
+| TOOL13 extension | Actual running inventory/status and live bounded output before terminal, same-PID admitted foreground conversion, selected-job kill, final flush after running-list removal. Source session/Location persists across parent move; no CancelTurn on an unrelated parent, repeated spawn/result/notice or lost process-group cleanup. Initial running tool result is not current liveness. |
+| TERM01 | Rebuilt actual-binary PTY creates two real session PTYs, types known commands and raw control bytes, switches/selects/hides/reopens without kill/duplicate spawn. Independently verify process identity/cwd/sanitized env, actual child resize, bounded VT cells/cursor/output replay and ready-before-input ordering. First-click release/wheel/raw-key/leader focus behavior and draft restoration; exit/disconnect/shutdown/restart cleanup with verified process identity and no old-command restart. No model tool/daemon/JS/WASM plugin host or credentials/host-escape leak. |
+| VIS14/VIS35 | Full donor U86 language/filetype/alias/query inventory and actual grammar/query asset provenance; finite representative token-span/style fixtures exercise every admitted grammar. One shared native parent/child Markdown/code/patch renderer matches semantic fg/bg/italic/bold/underline/precedence and U89 muted reasoning, with unknown-only fallback. Paired mixed-code/diff frames prove wrapping/streaming/theme/replay, line numbers/unified-split and bounded completed-block cache. No heuristic/plain-required-language waiver. |
+| VIS39 extended | Running pinned-original/native full paired child transcript, Subagents/Shell/Terminals rows/picker/footer, live Shell output and right VT pane/cursor. Source keys/hover/mouse/selection/focus/interrupt/kill/input/resize have actual effects; tab labels are not invented buttons, hiding is not cancellation. Exact colors/attributes/blank cells/geometry plus existing animation-on/off sequences. |
+
+One barrier-controlled canonical path shares the fixture: parent delegation → child
+open while blocked → live child shell → Ctrl+B → Shell output/selected kill or child
+interrupt → durable notices/parent follow-up; independently create/select/input/
+hide/reopen/resize a PTY. TERM01 specifically selects the first of two PTYs, hides
+(selection clears), toggles on (last inventory entry selected), and proves both
+process identities survive. No visible terminal gives undefined picker selection/
+initial Enter no-op; activation closes the lower composer before dispatch, including
+child→parent close routing. Linux create/refresh failure keeps controls and source
+error; only configured leader/active sequence bypasses raw-key interception. Qualify
+actual reference target/route rather than assuming a child-local modal/pane.
+Keep the existing three-child notice-order fixture and
+reopen/restart/resource assertions; do not duplicate all states/widths/languages in
+a Cartesian matrix. Actual process/provider/SQLite checks precede visual claims.
+Existing 80x24/120x40/160x48 profiles include representative Unicode/light-dark/
+custom-theme/focus/streaming states. Source PTY ANSI16/default fg/bg, plain Shell
+text and grammar colors are different contracts. Linux `session.terminal` is a
+resolved platform capability in U88, not an invented user option or startup spawn.
+
+Donor daemon/server handoff and inherited process env are declared native lifetime/
+credential differences, never a geometry/interactive waiver. Reuse VIS15/16/17/21/
+22/23/27/28/31/32/33/36/37/A02/A08/A10; no new VIS gate/paid campaign/OCR sleep300.
+Own-tab/VIS41, static widgets/native goldens/off-only frames cannot close the segment.
+No masks/crops/tolerance/reference substitution; missing runnable original remains
+BLOCKED_REFERENCE. This plan leaves T56 todo/TERM01 NOT_RUN, T44 PAUSED, T50 active
+and all existing execution/evidence/baseline statuses unchanged.
 
 ## Session tab qualification — VIS39 / VIS41 (approved 2026-09-27; pending)
 

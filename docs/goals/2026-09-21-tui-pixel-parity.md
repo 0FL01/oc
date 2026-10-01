@@ -5,7 +5,8 @@ Source: user instructions 2026-09-21, reviewed recovery amendment 2026-09-22 and
 Additional source: owner-approved canonical effort ordering after RECON, 2026-09-27.
 Additional source: owner-reported missing Middle Click tab close and explicit request to add the detailed work plan, 2026-09-30.
 Additional source: owner-reported Shift+Tab opens the agent picker instead of cycling, Tab/OC1 binding investigation and approval of the detailed T44/T45 fix plan, 2026-09-30.
-Last updated: 2026-09-30
+Additional source: owner request for full child-TUI/Subagents/Shell/Terminals parity, explicit Terminals inclusion and detailed plan commit/push approval, 2026-10-01.
+Last updated: 2026-10-01
 
 ## Objective
 
@@ -217,8 +218,27 @@ animation-on phase/state sequences and off fallbacks; native goldens are insuffi
 Preserve native closed-response-before-tool-admission as a declared timing difference,
 no partial-JSON execution or free-text status inference. Historical subagent rows
 consume current child status, unlike frozen VIS38 DCP metrics. Runtime/UI ownership
-stays T45/T44, no completion cycle/new task/store/framework or policy widening.
+stays T45/T44 for child lifecycle/presentation, no completion cycle/duplicate owner/
+store/framework or policy widening. The 2026-10-01 PTY exception is T56, not another
+subagent or VIS owner.
 Approval is not PASS; VIS39 starts NOT_RUN/evidence empty, previous evidence intact.
+
+Owner-approved [2026-10-01 full segment clarification](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#child-tui-shellterminals--уточнение-vis39-2026-10-01)
+requires actual linked child live history/events and parent return, the complete lower
+Subagents/Shell/Terminals composer, bounded live Shell output/kill/same-process Ctrl+B
+and real interactive Terminals right pane/create/select/input/resize/focus/cursor.
+T50/R2/TOOL13 and new [T56/TERM01](2026-10-01-native-session-terminals.md) supply
+their minimal behavioral slices; T44 owns full paired qualification, not just inline
+cards or own-tab/VIS41 frames. U78–U89 supplement U35–U49/U02. Child turn/profile/
+model/Undo guards stay; only blanket navigation/control refusal is superseded.
+
+VIS14/VIS35 additionally qualify one shared parent/child grammar renderer against all
+donor configured languages/aliases/queries and semantic token fg/bg/attributes,
+Markdown styles and result-derived diff. Freeze reference grammar/query assets,
+pin vetted native grammars; heuristic keyword coloring or a plain fallback for a
+required missing grammar cannot claim parity. Ordinary shell text and terminal VT
+palette remain separate. Shared renderer/cache serves streaming/replay/reopen/resize/
+theme without reparsing the full completed transcript; use existing VIS31/32 bounds.
 
 ### Constraints
 
@@ -263,6 +283,8 @@ retained as history, not a current pause instruction or unresolved credential bl
 - Next: V06a Markdown and V06b public reasoning/tool/patch/replay verified locally with actual application effects and paired original/native captures; all whole-frame comparisons still DIFFERENT. See `evidence/tui/recovery-v06{a,b}/checkpoint.md`; VIS13–VIS17/R4 remain unverified. V07a–c source/MCP negative checks and V07e one raw-PTY terminal-control path have factual checkpoints; remaining V07 safety/resources, V08–V09 and missing backend/service actions remain open. Owner-reported exported credentials refute the prior missing-export root-cause claim. Their newer 401/403 catalog screen and the current process's separate 200 catalog smoke (report/checkpoint under `evidence/tui/recovery-startup/catalog-smoke-*`) distinguish Responses use from catalog authorization, not the owner's remote policy. Positive live visual inspection is not a waiver; native autoaccept remains Unsupported (`evidence/tui/recovery-v02/auto-capability.md`).
 
 ## Material Decisions
+
+- 2026-10-01: owner approves expanded child-TUI/Subagents/Shell/Terminals plan including native interactive PTY, not a decorative terminal tab. T45 supplies live child lifecycle/events, T50 owns shell inventory/live output/conversion and T56 owns PTY behavior/functional consumer; T44 VIS39 owns the entire paired segment and VIS14/VIS35 complete shared grammar/style rendering. Only child navigation/control refusal and the T56 terminal-manager exclusion are superseded; child authority, native no-daemon/no-credential-inheritance/unknown-effect safety remain. Existing statuses/historical evidence and PAUSED T44 are unchanged.
 
 - 2026-09-30: owner approved a detailed plan and commit/push for Shift+Tab agent-cycle and Tab binding findings. Extend existing T44/VIS06/VIS10/VIS17 and T45/R6, not a new task/gate. Preserve OC2 defaults; support explicit OC1-style overrides with focused-input priority, owner-backed selection and minimum catalog eligibility correction. U76/U77 distinguish binding declarations from actual editor capture; native override and paired reference results remain separate. Active T50, PAUSED T44 and historical execution/evidence statuses are unchanged.
 - 2026-09-30: owner requested a detailed plan and commit/push for the reported missing Middle Click tab closure. Added mandatory T44/R5/VIS44 with pinned U74/U75, the existing CloseTab runtime path, targeted regression and actual-binary/paired qualification. The approved narrow slice preserves native busy guards and discloses the donor difference; broader busy-close lifecycle semantics need separate approval. T44 remains PAUSED, T50 active, historical evidence and existing execution statuses unchanged.

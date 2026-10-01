@@ -47,6 +47,23 @@ mutation syscalls. Temporary inode — `O_CREAT|O_EXCL|O_NOFOLLOW`, новое �
 
 `shell` (T50 target): command/workdir/timeout/background through the actual configured Linux shell; default foreground timeout120000ms, explicit0 disables execution timeout, background default has no execution timeout. Preserve legacy `bash(argv/cwd/timeout_ms)` through one supervisor/policy owner with unambiguous schema normalization, not duplicate advertised tools or a Deny bypass. Process group, trusted cwd, minimal documented credential-free env, concurrent drains, bounded preview/retained output and TERM→grace→KILL→wait remain. Background returns running/shellID after launch and later an automatic durable terminal notice, without polling; output/jobs/queues/teardown stay bounded even with no execution timeout. Native unknown effects never auto-replay; no hidden persistent terminal manager or sandbox claim.
 
+Owner amendment 2026-10-01 extends T50/R2/TOOL13 with authoritative source-session
+running shell inventory/status, bounded live output/final flush, selected-job kill
+and same-process foreground Ctrl+B conversion. Immutable initial `running` result
+is not live job status. Original session/Location/generation and durable notice
+identity remain; repeated/terminal/cancel races never spawn again or duplicate results.
+T44/VIS39 owns paired Shell rows/output viewer. This is command-shell lifecycle,
+not an attached interactive PTY or a new model polling/terminal tool.
+
+The old arbitrary-terminal-manager exclusion is narrowly superseded by approved
+[T56/TERM01](goals/2026-10-01-native-session-terminals.md): explicit user-created
+session-local native PTYs selected from Terminals and shown in the right pane.
+They survive hide/show/session view changes within live `oc`, not application
+shutdown/daemon handoff. Native sanitized shell env/trust/credential ceilings,
+bounded VT/input/output/process ownership, reaping and no unknown-command replay
+remain. No model-visible terminal tool, hidden startup process, Node/Bun/WASM host
+or donor inherited-provider/runner env. Shell, child jobs and PTYs are different owners.
+
 `webfetch`: read-only GET, http/https, text/HTML/JSON response; T50 adds requested text/markdown/html (default markdown), timeout seconds default30/max120 and truthful original/final URL/status/content-type/format. One total budget includes conversion; bounded download/redirect/output and Unicode conversion remain. Не browser automation и не OpenProxy private admin fetch. Private/link-local/loopback targets запрещены по умолчанию; DNS resolution, фактический dial и каждый redirect проверяются вместе. Explicit trusted endpoint exception для provider/MCP НЕ распространяется на модельный webfetch. Credential headers не наследуются; proxy env не должен обходить egress policy. Для test fixtures использовать отдельный explicit loopback allowlist. No arbitrary methods/upload/cookies.
 
 `glob`: bounded glob pattern, stable sorted pagination. T50 adds donor path/hidden

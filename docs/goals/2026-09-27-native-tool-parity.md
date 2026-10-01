@@ -1,9 +1,9 @@
 # Goal: Selected native tool parity with OC2
 
 Status: active
-Contract status means the owner-approved finish line is frozen, not that T50 is executing. Implementation is pending; T50 remains todo and only T44 is active in the progress engine.
+Contract status means the owner-approved finish line is frozen; execution state belongs to progress/STATE.json. At the 2026-10-01 amendment T50 is active and T44 is PAUSED. Historical delivered slices do not qualify the new R2 extension.
 Source: owner-approved tool RECON and plan, 2026-09-27: omit built-in websearch and Code Mode, accept the remaining proposed tool work, then update the plan and commit/push. Donor OC2 v2.0.12 at `2670273ff17da96f85c5826ced57aa1b368754fa`.
-Last updated: 2026-09-27
+Last updated: 2026-10-01
 
 ## Objective
 
@@ -31,7 +31,10 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Owner: T50, existing shell supervisor and session/runtime ownership.
   - Acceptance: command runs in the actual selected/configured Linux shell; support workdir and timeout in milliseconds. Foreground is default with donor 120000 ms default; explicit timeout:0 disables execution timeout. background:true returns running/shellID after durable admission and actual launch; its default has no execution timeout, while an explicit timeout is honored. Zero/unset timeout never removes bounded output, queues, cancellation or teardown limits. Native trusted-workdir, minimal credential-free child environment and resource rules remain explicit differences.
   - Acceptance: background progresses while the calling session continues; exactly one durable terminal notice is delivered per job/delivery identity without model polling, even if the session is idle/busy or has moved. This is delivery deduplication, not exactly-once external execution. Capture bounded stdout/stderr/exit/signal/timeout/truncation and readable retained output; cancel/shutdown cleans owned process groups with TERM/KILL/wait/reap. Restart delivers committed results without re-execution; started/unknown shell effects are never auto-replayed or reported completed without evidence. A finished foreground response does not silently cancel admitted background work.
+  - Acceptance supplement (2026-10-01): authoritative bounded list/status and live output cursor/snapshot/events identify actual active jobs for their original source session/Location/operation/generation. An initial immutable running tool result is not current job state. The Shell composer lists running jobs only; an already opened output viewer retains its original job identity through list removal and reads the final flush. Bounded live recent-output/retained reads work before completion, not only after a terminal outcome. Reuse the supervisor's actual drains; do not infer liveness from a transcript string or create a permanent UI poller.
+  - Acceptance supplement: Ctrl+D kill targets the selected shell only, including child-origin work; it is not CancelTurn on an unrelated/current parent. Ctrl+B converts the already admitted foreground shell to owned background with the same process/operation/output provenance, releases its blocking wait according to the shared application control contract and retains durable terminal notice/delivery. Repeated controls and conversion-versus-completion/cancel races cannot spawn again, duplicate result/delivery or lose cleanup. T45 aggregates child/shell session-background controls through existing owners, not a competing shell manager. Parent move/view navigation preserves original execution context.
   - Primary evidence: TOOL13 actual binary with process/provider barriers proves early background return/progress/automatic notice, normal foreground waiting, default/explicit/zero timeouts, cancel/shutdown, crash/delivery and credential exclusion; reuse TOOL05/TOOL06/AUD27/AUD28 and A10 measurements, not duplicate helper-only suites.
+  - Primary evidence supplement: actual-binary PTY and owner assertions prove authoritative running inventory, output while the process is held, same-PID foreground conversion, selected-job kill, final output/status after inventory removal, independent sibling progress and correct child/source routing through move/reopen/restart. T44/VIS39 reuses these facts for Shell rows/output dialog geometry and keys; TERM01/T56 interactive PTY is separate, not TOOL13 completion or a whole-task dependency.
   - Status: pending
   - Evidence:
 
@@ -96,7 +99,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 - Rust 2024, Linux rootless, existing crate DAG/error/policy/ownership levels; no service, JS/Code Mode/plugin host, cloud scheduler, second executable registry or second history/archive.
 - Single native apply_patch contract, explicit Deny and central/parent-child narrowing, data-root/source/path/symlink/CAS protection, immutable raw history, bounded queues/output/media and no unknown-effect replay remain. Do not remove tests or change A10 baselines to qualify the extension.
-- Excluded: write/edit built-ins, built-in websearch/provider integrations, Code Mode/execute, built-in browser, PDF, LSP, filesystem snapshots/undo, arbitrary shell terminal manager. Explicit external MCP tools remain opt-in and permission-gated.
+- Excluded: write/edit built-ins, built-in websearch/provider integrations, Code Mode/execute, built-in browser, PDF, LSP, filesystem snapshots/undo, arbitrary shell terminal manager within T50. Owner-approved [T56](2026-10-01-native-session-terminals.md) narrowly adds explicit session-local interactive PTYs; it does not turn shell into a terminal tool or permit a daemon/credential inheritance. Explicit external MCP tools remain opt-in and permission-gated.
 - Historical audits/PASS and existing task statuses are not rewritten as implementation evidence. Native resource/trust/permission differences are explicit; no claim of identical donor internals or unlimited resources.
 
 ## Change Envelope
@@ -107,8 +110,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint and State
 
-- T50 is planned/todo, no implementation evidence. T44 remains active; existing T45/T46/T47/T49 work and statuses are unchanged.
-- Next when T50 starts: choose the first minimal R1/R2 alias/schema or R3 search slice in M8, freeze its direct fixture/captured-request evidence, then implement and qualify. Do not batch all eight outcomes into one rewrite.
+- At this plan amendment T50 is active; its latest checkpoint qualifies R6/TOOL17 and directs R7 lookup/rename then R8 move (verify actual Git/NOW). This patch does not alter those execution statuses or historical evidence. T44 remains PAUSED.
+- Continue the current R7/R8 slice without interrupting its dirty work. The new R2 inventory/live-output/foreground-conversion slice is pending and must be qualified before claiming full TOOL13/VIS39 scope; use the ordered M8 handoff rather than batch all outcomes or start a second active task.
 - Checks: new TOOL12–TOOL19 have one owner T50; relevant A02/A03/A04/A05/A06/A08/A10/A13 and prior scenarios are regressions, not reassigned owners. Plan validation is not runtime PASS.
 - Blocker: none for this plan delivery; PDF is deliberately excluded, not a hidden pending requirement.
 
@@ -126,5 +129,6 @@ All links point to the admitted OC2 v2.0.12 commit; current native restrictions 
 
 ## Material Decision and Completion
 
+- 2026-10-01: owner approves full child-TUI/Subagents/Shell/Terminals segment. Extend R2/TOOL13 with live inventory/output, targeted kill and same-process foreground conversion; historical initial-background PASS is not this new qualification. T56 separately owns session PTYs, T44/VIS39 owns paired Shell/Terminals presentation, T45 owns child lifecycle/session control orchestration. No duplicate owner/store/framework/paid campaign; current T50/T44 states and evidence preserved.
 - 2026-09-27: owner approves selected tool parity and explicit websearch/Code Mode exclusions. Add one T50 in the existing progress engine; no new tracker or T44/T45 completion cycle. Narrowly supersede permanent session-Location binding with admitted move, preserve immutable execution and safety.
 - Final implementation status: pending. This document records the frozen plan, not delivery of working tools or execution PASS.

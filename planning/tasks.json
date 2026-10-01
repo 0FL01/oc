@@ -506,13 +506,14 @@
         "T47",
         "T52",
         "T53",
-        "T54"
+        "T54",
+        "T56"
       ],
       "tests": [
         "OPS02",
         "OPS03"
       ],
-      "work": "Заполнить FINAL по A01–A13 и связать authoritative executable evidence. RET01/T54 и VIS43/T44 обязательны для заявленного provider-retry parity; GO03/T53 — для допуска новых Chat/Messages wires, без зависимости T54 от завершения T44/T53. После backend-изменений повторить AUD38/AUD39 qualification на итоговом code commit (ownership остаётся T42); старый PASS не заменяет проверки нового кода. При missing mandatory live evidence записать BUILD_READY_LIVE_BLOCKED и block T30. Выполнить final staged secret review, reviewed own-branch push и отдельный delivery status; не объявлять READY при открытом обязательном scope.",
+      "work": "Заполнить FINAL по A01–A13 и связать authoritative executable evidence. RET01/T54 и VIS43/T44 обязательны для заявленного provider-retry parity; GO03/T53 — для допуска новых Chat/Messages wires, без зависимости T54 от завершения T44/T53. Owner-approved 2026-10-01 child-TUI/Subagents/Shell/Terminals scope requires SUB01/SUB02, extended TOOL13, TERM01/T56 and paired VIS14/VIS35/VIS39; initial-background or own-tab PASS is insufficient. После backend-изменений повторить AUD38/AUD39 qualification на итоговом code commit (ownership остаётся T42); старый PASS не заменяет проверки нового кода. При missing mandatory live evidence записать BUILD_READY_LIVE_BLOCKED и block T30. Выполнить final staged secret review, reviewed own-branch push и отдельный delivery status; не объявлять READY при открытом обязательном scope.",
       "evidence": "evidence/T30/report.md",
       "spec": "roadmap/M6.md"
     },
@@ -730,7 +731,7 @@
     {
       "id": "T44",
       "phase": "M9",
-      "title": "TUI pixel parity с opencode v2.0.12, включая Approve (VIS36), question (VIS37), DCP (VIS38), subagent (VIS39), MCP modal/startup (VIS19/VIS40), tab hover-marquee (VIS41), plugin/service errors (VIS42), provider retry (VIS43), Middle Click tab close (VIS44)",
+      "title": "TUI pixel parity с opencode v2.0.12, включая Approve (VIS36), question (VIS37), DCP (VIS38), child/Subagents/Shell/Terminals (VIS39), MCP modal/startup (VIS19/VIS40), tab hover-marquee (VIS41), plugin/service errors (VIS42), provider retry (VIS43), Middle Click tab close (VIS44)",
       "depends_on": [],
       "tests": [
         "A02",
@@ -805,7 +806,7 @@
       "title": "Selected native tool parity: shell/search/question/read/fetch/session controls",
       "depends_on": [],
       "tests": ["A02", "A03", "A04", "A05", "A06", "A08", "A10", "A13", "TOOL12", "TOOL13", "TOOL14", "TOOL15", "TOOL16", "TOOL17", "TOOL18", "TOOL19"],
-      "work": "Owner-approved 2026-09-27 tool RECON: built-in websearch/provider integrations и Code Mode/execute исключены; explicit MCP search/browser сохраняются. R1–R8: canonical shell command/workdir/timeout/background с durable automatic notices и legacy bash(argv) compatibility через одного policy/execution owner; grep regex/literal/path/include/caseSensitive и glob path/hidden; настоящий application-owned question с typed answers/multiple/free-form/cancel/headless; read text/directories/images (PDF excluded); webfetch text/markdown/html/defaults/timeout; direct opencode_models/session_rename/session_move без Code Mode. Session move сохраняет ID/history и применяется только через admitted safe-boundary destination generation; immutable turn/request/job context, child placement, trust, legacy Deny, raw history, sticky MCP quarantine и no unknown-effect replay сохраняются. TOOL12–TOOL19 имеют только T50 как owner; existing regressions не переназначать. Координация T45 prompt/profile/subagent consumers, T46 MCP и T44 real frontend/visual surfaces без circular completion dependency. Порядок минимальных срезов и pinned donor references в spec/M8; новый todo не означает implementation PASS.",
+      "work": "Owner-approved 2026-09-27 tool RECON: built-in websearch/provider integrations и Code Mode/execute исключены; explicit MCP search/browser сохраняются. R1–R8: canonical shell command/workdir/timeout/background с durable automatic notices и legacy bash(argv) compatibility через одного policy/execution owner; grep regex/literal/path/include/caseSensitive и glob path/hidden; настоящий application-owned question с typed answers/multiple/free-form/cancel/headless; read text/directories/images (PDF excluded); webfetch text/markdown/html/defaults/timeout; direct opencode_models/session_rename/session_move без Code Mode. Session move сохраняет ID/history и применяется только через admitted safe-boundary destination generation; immutable turn/request/job context, child placement, trust, legacy Deny, raw history, sticky MCP quarantine и no unknown-effect replay сохраняются. TOOL12–TOOL19 имеют только T50 как owner; existing regressions не переназначать. Координация T45 prompt/profile/subagent consumers, T46 MCP и T44 real frontend/visual surfaces без circular completion dependency. Порядок минимальных срезов и pinned donor references в spec/M8; новый todo не означает implementation PASS. Approved 2026-10-01 R2/TOOL13 extension: authoritative source-session shell inventory/status, bounded live output/final flush, selected-job kill and same-process foreground Ctrl+B conversion. T56 owns interactive PTYs; T44/VIS39 owns paired Shell/Terminals presentation. New R2 extension remains pending; preserve current R7/R8 dirty work/checkpoint and PAUSED T44.",
       "evidence": "evidence/T50/report.md",
       "spec": "docs/goals/2026-09-27-native-tool-parity.md"
     },
@@ -864,6 +865,16 @@
       "work": "Owner-requested 2026-09-30 diagnostic follow-up: real cx/gpt-6-luna/high output_item.done completed function call followed by response.completed/output:[] is rejected by current native adapter before tool admission. Reconcile genuinely completed streamed items with sparse terminal output without weakening terminal/argument/identity/effect validation; distinguish local reconciliation failures from actual truncated streams. Frozen R1-R4, synthetic RED/GREEN differential and bounded live receipts in spec/evidence. Rebuilt debug/release headless/PTY then actual real-API apply_patch->read->function_call_output->final/reopen qualification, continuing the existing durable <=24-request campaign (4 consumed at diagnosis). No model hardcoding/fallback, retry framework, partial tool execution or unknown-effect replay. Priority: next safe T50 scheduling handoff before T53/T45 and T27; do not interrupt dirty T50 or resume PAUSED T44. PROV09/PROV10 only T55; PROV03/PROV08/RET01/E2E02 keep existing owners. Planning registered todo; implementation/live native E2E NOT_RUN.",
       "evidence": "evidence/T55/report.md",
       "spec": "docs/goals/2026-09-30-responses-tool-compatibility.md"
+    },
+    {
+      "id": "T56",
+      "phase": "M8",
+      "title": "Native session-local interactive PTYs для Terminals",
+      "depends_on": [],
+      "tests": ["A02", "A03", "A08", "A10", "A13", "TERM01"],
+      "work": "Owner-approved 2026-10-01 full child-TUI/Subagents/Shell/Terminals scope and explicit Terminals inclusion. R1-R4: real session-local PTY owner and bounded typed inventory/create/input/resize/snapshot/output/exit; actual frontend create/select/hide/show/focus with raw control-byte routing, VT cells/cursor/theme and gap-free replay; safe shutdown/reap/crash identity recovery without command restart. Preserve native trust, source Location/generation, sanitized shell env and no provider/runner credential inheritance. Separate from T50 shell jobs and T45 children; T44/VIS39 owns full paired list/picker/right-pane geometry/colors/keys. No daemon/serve/attach/HTTP parity, JS/WASM plugin host, new model terminal tool/store/framework or whole-task dependency. TERM01 only T56, behavior and visual results separate. Plan todo/NOT_RUN; current T50 and PAUSED T44 unchanged.",
+      "evidence": "evidence/T56/report.md",
+      "spec": "docs/goals/2026-10-01-native-session-terminals.md"
     }
   ]
 }

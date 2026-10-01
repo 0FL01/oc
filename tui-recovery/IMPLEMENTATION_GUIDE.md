@@ -404,6 +404,49 @@ Reuse VIS15/17/21/22/23/28/31/33/36/37/A02/A08/A10, включая idle deadline
 bounds, no duplicate backend negative/theme/viewport matrix or new paid campaign.
 Не объявлять PASS по static frame/native golden; registry/evidence определяют status.
 
+### Complete child/Shell/Terminals segment — 2026-10-01
+
+Canonical [VIS39 clarification](T44_CONTRACT_AMENDMENT.md#child-tui-shellterminals--уточнение-vis39-2026-10-01)
+extends the slice, not its executed status. T45 supplies ordinary live child events/
+family/control; T50 supplies authoritative shell list/live output/selected kill/
+same-process Ctrl+B; T56 supplies genuine interactive PTY/session/source ownership
+and the real frontend consumer. Do not route child inspection via an extra root tab
+or replace Terminals with shell output. Remove only blanket child navigation/control
+refusal; keep child new-turn/profile/model/Undo guards and root deck/draft/focus.
+
+Implement one lower composer with distinct inventories and tab-specific keys/hints:
+Subagents active/inactive/interrupt, Shell running/output/kill/final-flush viewer,
+Terminals existing/+ New/select/create. Shell/Subagents first-Up-close differs from
+Terminals Up/k wrap; no visible terminal means initially undefined selection and
+Enter no-op. Select uses the lower Terminals composer, closes before activation
+(child returns parent), then dispatches the admitted action; qualify actual target.
+Hide/close clears selected ID but does not kill; toggle-on chooses last inventory
+entry or creates if empty, not necessarily the previously selected PTY. Linux load/
+create errors keep controls and source callsite feedback (composer: `Unable to load
+terminal`), not disable capability or a universal invented toast.
+U78–U85/U88 define live Shell dialog/PTY pane/selection/focus/resize/snapshot ordering.
+Focused raw Ctrl+C/D go to PTY; only configured leader/active leader sequence bypass
+interception. First-click release guard remains application-owned.
+Render bounded VT cells/cursor, never forward raw PTY escapes to the host terminal.
+No donor daemon/env inheritance, hidden startup spawn or unknown-command restart.
+
+Syntax is a shared VIS14/VIS35 native renderer/cache, not another child-specific
+highlighter. Freeze U86 full grammar/filetype/alias/highlight-query inventory and
+actual referenced asset provenance; compile/license/pin vetted native grammars.
+Use U87 exact semantic scopes and attributes, U89 muted reasoning foreground.
+Replace the current Rust/Python/Shell/JSON keyword heuristics: they are not full
+tokenization parity. Missing required grammar is unqualified, not silent plain
+fallback; genuinely unknown language fallback remains. Plain Shell/tool labels,
+grammar-highlighted Markdown/patch and PTY ANSI16 theme are separate surfaces.
+Qualify streaming/closed fences, Unicode, theme/width invalidation, diff line numbers/
+unified-split and bounded completed-block cache without full-transcript reparse.
+
+Reuse actual SUB01/SUB02/TOOL13/TERM01 process/protocol/SQLite/PTY evidence for the
+paired child/all-tabs/output/pane frames; add only representative mixed-code/patch
+and focus/resize/replay states at existing profiles. Own-tab/VIS41/static/native-
+golden/off-only results do not qualify. T44 remains PAUSED until explicit resume;
+no new VIS gate/negative cross-product/paid campaign or PASS from this plan.
+
 ## Permission slice — VIS36 (V05/V06 prerequisites)
 
 Следовать audited sequence в T44_CONTRACT_AMENDMENT.md: real owner approval lifecycle
