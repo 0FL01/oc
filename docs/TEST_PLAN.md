@@ -62,9 +62,12 @@ or whole-task done-dependencies. Contract: docs/CONTRACTS.md Canonical effort or
   matrix at every layer. Existing validation remains authoritative for malformed data.
 - Actual rebuilt binary PTY: variant picker and complete Ctrl+T round trip traverse
   the same owner order in Home/session, Default before/after named choices. Shortcut
-  neither submits nor changes model/draft; busy/read-only guards, empty/all-disabled
-  no-op and explicit stale-cycle → Default recovery remain. Next accepted fake Responses
-  request receives exact declared effort of the chosen alias, then Default adds no
+   neither submits nor changes model ID/text draft; read-only/authority, empty/all-disabled
+   no-op and explicit stale-cycle → Default remain. Live-selection clarification replaces
+   model/variant busy refusal only: choice is draft, captured send/blank Enter commits,
+   next prepared request of the same task receives exact committed effort while old
+   request/tools keep actual variant. Reuse TOOL12/PRM01 switching receipts, not another
+   VAR01 owner. Default adds no
   variant overlay. Standard-name rank without effort must not manufacture wire effort.
 - Reorder/refresh/session switch/reopen/process restart retains choice by exact ID,
   not sorted index; removal/disable preserves existing visible retirement diagnostic
@@ -581,7 +584,8 @@ historical reports and task statuses unchanged until real qualification.
 ### T50 model-dependent file tools — TOOL12/TOOL20 (approved 2026-10-01; pending)
 
 Source/finish line: [T50/R1/R9](goals/2026-09-27-native-tool-parity.md), pinned
-U90–U94. TOOL12/TOOL20 belong only to T50; PRM01 remains T45 and VIS35/VIS36 T44.
+U90–U102, including follow-up live-switch clarification. TOOL12/TOOL20 belong only
+to T50; PRM01 remains T45, VAR01 ordering T47 and visual cases T44.
 One bounded fake-provider campaign on rebuilt actual `oc` proves tool definitions,
 calls/results and real filesystem/storage effects. Share its receipts with frontend
 tests; static registry entries/renderer fixtures/helper-only green do not qualify.
@@ -595,21 +599,46 @@ tests; static registry entries/renderer fixtures/helper-only green do not qualif
    filtered just because a suffix resembles a built-in file tool. Convert old global
    no-write/edit assertions to selected-family assertions; preserve patch cases with
    an eligible synthetic fixture model rather than disabling their tests.
-2. **Mandatory user model switch.** In one session, execute apply_patch, switch to a
-   non-patch model and execute write/edit, then switch back and execute apply_patch.
-   Capture each very next request and follow-up: tools[], runtime-managed guidance,
-   early admitted size and actual schema/context fingerprint/cache inputs agree.
-   Check child with opposite own-model family and parent selection retention. Hold
-   a request with a provider barrier, change later selection through the admitted
-   owner path and verify pinned in-flight turn versus next-boundary view. Test actual
-   picker/selection path where frontend ownership is involved, not test-only mutation
-   of a global registry. Excluded-family scripted call has zero filesystem effects
-   and a correctly paired failed outcome, never an unmatched tool graph.
+2. **Mandatory live model switch — TOOL12.** Freeze one actual-binary fake-provider
+   autonomous task with eligible GPT A and non-patch B. Do not send a new user prompt
+   between its steps or mutate a global registry/test-only model variable.
+   - Hold A's provider request; use real picker to choose B and prove draft-only:
+     composer B, owner still A, no switch/request/cancel/effect. Blank Enter in the
+     existing ordinary composer commits B through the authorized owner while busy.
+     Capture acknowledgement/selection event separately from actual request identity.
+   - Release A to issue apply_patch and settle its real result exactly once under A's
+     captured catalog/model, even though B is selected. A separate tool/Ask barrier
+     case commits through the same owner while a call waits; preserve call/resources/
+     preview/model identity and normal approval/preimage checks. Respect permission/
+     form focus; do not turn their Enter into a hidden composer commit.
+   - Next natural request in the same task is B: inspect model/variant, tools[],
+     managed guidance, known/fallback budget/output cap, model-relative DCP thresholds,
+     estimated wire and schema/context/cache fingerprints together. It receives A's
+     retained ordinary call/result/outcome groups, without alien opaque/checkpoint.
+     Execute real write/edit, hold continuation and commit A again without another
+     prompt; next request is A/patch. Preserve immutable config/Location/agent scope.
+   - Assert actual A/B/A request/assistant attribution in live and durable history,
+     not current composer labels or one overwritten turn model. New call excluded by
+     its issuing request fails before filesystem effects with a paired typed outcome;
+     switching preference cannot retroactively exclude an already issued valid A call.
+     Opposite-family child retains its own admitted selection/projection/authority.
+   - Reuse U101/captured-selection fixtures for message/command preparation behind
+     earlier pending admission and later picker changes: sent choice/order and matching
+     ack/events are exact; failure/stale echo cannot confirm a rejected choice or erase
+     newer draft. Blank Enter adds no fake user text. With no pending work, draft/commit after final answer
+     alone creates no request, interrupt, title request or tool effect.
+   - Within existing retry allowances, hold one admitted retry or compaction rebuild,
+     commit B and prove the next prepared attempt uses coherent B view while an already
+     prepared A attempt retains A. Counters/quotas do not reset because choice changed.
+     Reopen/restart verifies latest committed choice, not unconfirmed draft, and no
+     replay of settled or unknown tools. Share receipts with PRM01 and visual consumers,
+     not a duplicate matrix or second switch owner.
 3. **Context/recovery.** Reopen/restart same session, compress a closed span and run
    native compact before another prompt. Inspect tools and managed lanes, not a
    blanket ban on the word edit/write in immutable historical content. Old calls/
-   results keep actual names and valid causal structure under wire_history; no
-   cross-tool translation, alien opaque continuation, obsolete managed schema/guidance
+   results keep actual names and valid retained causal structure under the corrected
+   model-compatible wire_history projection; no result-losing fresh lane, cross-tool
+   translation, alien opaque continuation, obsolete managed schema/guidance
    resurrection or closed/unknown mutation replay. Use raw-history invariants and
    bounded hot-context fixtures, not full-archive reads or a new context cache.
 4. **File bytes and result contract.** Source-derived edit fixtures pin exact-first
@@ -636,7 +665,10 @@ tests; static registry entries/renderer fixtures/helper-only green do not qualif
    pinned original/native Write/Edit/ApplyPatch components, full styled-cell/PNG/cursor
    at established profiles, state/diff settings and 120/121 boundary. Include distinct
    `# Wrote`, `← Edit` and patch labels, grammar syntax/gutters/attributes, pending/
-   completed/error/approval and metadata-only replay/model switch. Backend green is
+   completed/error/approval and metadata-only replay/model switch. Reuse the same
+   live-switch receipts for VIS09/VIS29 draft/composer/commit and VIS17 actual A/B
+   request/footer attribution; VIS36 approval remains on its original call after switch.
+   Backend green is
    not pixel parity; native-only golden/crop/mask/fake patch cards cannot close VIS35.
 
 Run nearest owner tests and affected crate gates per slice; integration/final

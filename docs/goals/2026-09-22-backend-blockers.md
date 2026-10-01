@@ -134,8 +134,12 @@ Implement independently reviewable slices:
 2. Add one stable rank helper after effective merge; reuse for owner snapshots, picker/
    cycle and applicable enabled-list diagnostics. Verify local overrides rank the final
    value, not remote input, and no consumer can put known max before known xhigh.
-3. Actual binary/PTY proves picker and full Ctrl+T cycle agree, preserve model/draft,
-   shortcut sends no request, busy/read-only guards hold. Fake Responses proves exact
+3. Actual binary/PTY proves picker and full Ctrl+T cycle agree, preserve model/text draft,
+   shortcut sends no request and read-only/authority guards hold. The 2026-10-01 live
+   model-selection clarification supersedes only blanket busy refusal: variant choice
+   is a draft, captured send or blank Enter commits, next request of the same task uses
+   it while prepared requests/tools retain their model/variant. Reuse TOOL12/PRM01,
+   not a second switching owner or change to canonical ranks. Fake Responses proves exact
    selected effort and no overlay after Default, no inferred effort from rank/name.
 4. Verify persisted identity through reorder/refresh/session reopen/process restart;
    retired/disabled choice remains visible/actionable until explicit recovery, with

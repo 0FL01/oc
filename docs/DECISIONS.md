@@ -181,6 +181,32 @@ tasks/store/framework/paid campaign или whole-task dependency cycle. Стар
 evidence/PASS и A09 patch flow сохраняются. Plan-only delivery не меняет active T50,
 PAUSED T44 или остальные statuses и не является реализацией/qualification PASS.
 
+### D23 — live model switch at request boundaries (owner-approved 2026-10-01; pending)
+
+Follow-up OC2 RECON distinguishes local picker draft from committed session model.
+The owner requires original busy-time switching and approved detailed plan commit/push.
+Source: pinned U95–U102, [T50/R1/TOOL12](goals/2026-09-27-native-tool-parity.md#live-model-switching--r1tool12-approved-2026-10-01-pending).
+
+- Picker updates local session/agent (pre-session Location/agent) draft. Captured
+  message/command preparation or blank Enter in an existing ordinary composer commits
+  model/variant; matching owner facts reconcile it. Draft is not current execution.
+- Authorized commit is accepted while busy. The next request of the same task reloads
+  selection and coherent budget/tools/guidance/fingerprints/compatible history, without
+  a new prompt. Retry/compaction rebuilds keep existing policies; final answer without
+  continuation plus commit does not create generation.
+- Prepared request/stream/tools/approval remain on captured model/view. A call issued
+  by A is checked against A's request, not newly selected B; normal permissions/preimage
+  still hold. Preserve actual request/assistant attribution and retained ordinary tool
+  pairs/outcomes, strip incompatible opaque state and never replay settled/unknown effects.
+
+This narrowly supersedes model/variant busy refusal, D22's ambiguous whole-turn model
+pin and result-losing model-switch fresh lanes, not immutable config/Location generation,
+child/read-only authority, provider/credential admission, response-close admission,
+finite retry or quarantine. T50 owns TOOL12 and request/selection slices, T45/PRM01
+consumes shared composer/prompt lifecycle, T47/VAR01 retains ordering, T44 retains
+VIS09/VIS29/VIS17/VIS35/VIS36 paired visuals. No new tool/task/ID/store/paid campaign,
+completion cycle, historical PASS rewrite or status change; R8/T55 schedule preserved.
+
 ## Остаточные prerequisites, не новые Q
 
 Secrets/connectivity/наличие нужной live модели проверяются just-in-time в T16/T27, не в T00. Missing → конкретный external blocker, не угадывание credentials. Docker проверяется только перед первым использованием и иначе `NOT_USED`. Exact versions Cargo dependencies/rmcp protocol/TLS проверяются compile spike. Реальная browser-служба требуется только для opt-in smoke. Monetary hard limit внешнего authoring-agent не задан; документация его не исполняет. Semantic DCP качества проверяются fixtures/live task, а не декларацией.

@@ -367,9 +367,11 @@ request, если пользователь переключил модель. К
 - T50/R1/TOOL12 владеет одним выбранным request-view для preflight budgets,
   каждого follow-up, root/own-model child, управляемой tool guidance и fingerprints.
   После GPT → non-GPT → GPT следующий request получает совместимые schemas/guidance;
-  restart, DCP и `/compact` не воскрешают устаревшие определения. In-flight turn
-  остаётся на captured selection/generation; исторические calls/results не удалять
-  и не переименовывать, alien opaque continuation не переносить на новую модель.
+  restart, DCP и `/compact` не воскрешают устаревшие определения. Уточнение live-switch
+  ниже заменяет ошибочную фиксацию модели на весь turn: captured selection сохраняет
+  подготовленный request с его tools, следующий request той же задачи принимает
+  committed выбор. Calls/results не удалять/переименовывать; alien opaque continuation
+  не переносить на новую модель.
 - T50/R9/TOOL20 владеет реальными filesystem effects: write create/overwrite/empty/
   missing parents, edit unique/replaceAll и donor matching precedence/CRLF/BOM.
   Общие permissions/grants, truthful previews, approved-preimage recheck, no-follow
@@ -387,6 +389,56 @@ grammar, native trust/policy narrowing, immutable raw history, bounded hot state
 TOOL12–TOOL20 принадлежат только T50; это не новый tracker, existing detailed
 owners, historical PASS/audits/baseline и execution statuses неизменны. Реализация и
 новая qualification pending/NOT_RUN; план не завершает T50 и не снимает PAUSED T44.
+
+## Owner clarification (2026-10-01 — OC2 live model-switch parity)
+
+Владелец потребовал **паритет переключения моделей во время работы OC2 TS**,
+после read-only RECON утвердил развёрнутую правку плана и commit/push. Источник —
+тот же pinned donor, appended U95–U102 в `tui-recovery/SOURCES.json`; подробный
+контракт и срезы — T50/R1/TOOL12 и T45/R10/PRM01, метод — `docs/TEST_PLAN.md`.
+
+- **Draft ≠ commit.** Picker во время busy меняет local composer draft, scoped к
+  session/agent (до сессии — Location/agent), а не немедленно модель runtime.
+  Отправка обычного сообщения/команды подтверждает captured выбор; пустой Enter
+  в обычном composer существующей сессии тоже делает commit без нового user text.
+  Session-model event/ack reconciles draft; ошибка не выдаётся за успешный commit.
+- **Busy не запрещает committed switch.** Выбор model/variant принимается через
+  существующий authorized owner, не очередь «только после завершения turn».
+  Следующий LLM request/step той же автономной задачи перечитывает committed выбор,
+  заново разрешает admission/budget/tools/guidance/fingerprints и совместимую историю.
+  Retry/compaction rebuild используют тот же request-preparation boundary, не
+  дополнительный retry слой или разрешение повторять неизвестные effects.
+- **Prepared request остаётся captured.** Его stream, route/model/variant, context
+  revision, advertised tools, tool execution/approval и фактическая attribution не
+  отменяются и не перепривязываются от изменения выбора. Уже выданный A `apply_patch`
+  не становится недопустимым только потому, что выбрана B с `edit/write`; новое
+  несовместимое исполнение проверяется по snapshot выдавшего его request.
+  Permissions/Deny/Plan/parent-child/path/preimage checks сохраняются.
+- **Нет потери выполненной работы.** Продолжение B получает retained compatible
+  call/result groups и подтверждённые outcomes A без удаления/translation/reexecution.
+  Incompatible opaque state/checkpoint исключается; raw history и bounded latest
+  hot projection сохранены, forgotten archive не загружается из-за смены модели.
+  Selection event, request identity и assistant attribution — разные факты; нельзя
+  переписать старые A requests/footers текущим B. Commit сам не запускает генерацию,
+  если естественного continuation уже нет. Restart восстанавливает committed выбор,
+  не подтверждает draft и не повторяет tools.
+- **Qualification.** TOOL12 доказывает GPT → non-GPT → GPT внутри одной работающей
+  задачи с provider/tool/approval barriers, без нового пользовательского prompt.
+  Draft-only, blank Enter, captured submission ordering, old-request tool completion,
+  next-request catalog/budget/wire/history и retry/compact/restart — части одного
+  bounded actual-binary scenario. T44 VIS09/VIS29/VIS17/VIS35/VIS36 отдельно проверяет
+  picker/composer, реальные request footers/cards/approval и paired styled frames.
+
+Superseded только busy-refusal model/variant selection, whole-turn **model** pinning
+и несовместимая с этим трактовка fresh-lane, теряющая retained tool results. Config/
+Location generation, session/child/read-only authority, provider/credential admission,
+response-close-before-tool-admission, one execution owner, retry limits/quarantine и
+no unknown-effect replay неизменны. Это не новый model-facing selector tool или
+general steering/agent-switch/config-reload task. TOOL12 остаётся только T50,
+PRM01 только T45, VAR01 ordering только T47; новых IDs/tasks/dependency cycles нет.
+Первый file-tools план в `760d54f7d` не квалифицирует это уточнение. Dirty R8 и T55
+safe-handoff priority сохраняются; T50 active, T44 PAUSED, historical PASS/statuses
+не переписываются. План pending, не runtime или visual PASS.
 
 ## Исполнение
 

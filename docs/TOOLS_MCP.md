@@ -13,9 +13,16 @@ File-tools rule is case-sensitive: model.id contains `gpt-` and neither `oss` no
 `gpt-4` → only apply_patch; otherwise only edit/write. On user model switch the very
 next request removes incompatible definitions/catalog/managed guidance, including
 follow-ups, root/own-model-child, restart and DCP/native-compaction reconstruction.
-One selected view drives budgets/fingerprints/previews; in-flight selection stays
-pinned. Raw historical tool calls/results are not erased or translated. Detailed
-contract/evidence: T50/R1/R9/TOOL12/TOOL20, T45/PRM01 and T44/VIS35/VIS36.
+One captured view per prepared request drives budgets/fingerprints/previews and its
+tool execution. Picker changes a local draft; committed model/variant switch is
+accepted while busy and reloaded before the next request of the same task, not only
+the next user turn. Blank Enter in an existing ordinary composer can commit without
+new text. A's already issued file tool keeps A's allowset/approval identity after B
+is selected, with normal policy/preimage checks; B receives compatible retained
+outcomes, not alien opaque state or replay. Raw historical calls/results are not
+erased/translated; draft alone or commit after final answer creates no request.
+Detailed [live-selection contract](CONTRACTS.md#live-model-selection--t50r1tool12-approved-2026-10-01-pending)
+and evidence: T50/R1/R9/TOOL12/TOOL20, T45/PRM01 and T44 visual consumers.
 
 ## Built-ins
 

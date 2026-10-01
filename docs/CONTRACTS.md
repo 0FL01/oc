@@ -169,8 +169,8 @@ descriptions/schemas separate from messages. Initial instruction baseline and
 chronological changed/removed/nested-read fragments survive restart/compaction/Revert
 within trust and immutable-generation boundaries, without rewriting old raw messages.
 
-Owner-approved T50/R1/R9 file-family view (2026-10-01; pending) is shared by early
-request admission, each primary follow-up, tool-catalog compaction contexts,
+Owner-approved T50/R1/R9 file-family view (2026-10-01; pending) is shared by each
+request's admission/budget, primary follow-up, tool-catalog compaction contexts,
 root/own-model-child capability previews and runtime-managed guidance. Exact
 case-sensitive selected model.id contains `gpt-` and neither `oss` nor `gpt-4` →
 apply_patch only; otherwise edit/write only, then effective policy narrows. Stable
@@ -180,10 +180,46 @@ protocol routing. On a user switch GPT → non-GPT → GPT the very next request
 replaces incompatible definitions/managed guidance and uses matching budget/cache/
 context fingerprints; restart/DCP/native compact cannot revive stale catalogs.
 Custom system keeps separate truthful managed guidance; arbitrary user/profile
-text and historical calls/results are not rewritten or translated. Existing model-
-switch wire_history projection preserves valid causal groups and opaque scope,
-and captured in-flight turn selection is not retargeted. TOOL12/TOOL20 own behavior;
+text and historical calls/results are not rewritten or translated. The live-switch
+clarification below retains compatible causal groups and excludes alien opaque state;
+captured prepared requests/tools are not retargeted. TOOL12/TOOL20 own behavior;
 T45/PRM01 consumes the view, T44/VIS35/VIS36 qualifies separate cards/previews.
+
+### Live model selection — T50/R1/TOOL12 (approved 2026-10-01; pending)
+
+- Picker selection is a composer draft, scoped to session/agent or pre-session
+  Location/agent; it is not the current request model or a committed runtime choice.
+  Message/command preparation commits the captured model/variant in admission order.
+  Blank Enter in an existing ordinary composer commits without new user text. Matching
+  owner events/ack reconcile draft; failure/stale echoes cannot falsely confirm a choice.
+- A committed model/variant change is permitted while busy through the authorized
+  selection owner. Before the next model request of the same autonomous task, reload
+  it and rebuild coherent model limits/admission, schemas/managed guidance, DCP model
+  thresholds, compatible context and cache/fingerprints. No extra user prompt is needed.
+  The same rule applies to admitted retry/compaction request rebuilds; finite allowances
+  and no unknown-effect replay are unchanged. No continuation means commit alone does
+  not create a request; subsequent work uses the committed selection.
+- The prepared request captures actual route/model/variant/context/tools and keeps
+  them through stream and settled tool batch/approval. Do not abort/restart it from a
+  later choice. Its call allowset is its advertised view, not the latest preference:
+  A's issued apply_patch may finish after B/edit-write is selected, subject to normal
+  Deny/Ask/grant/Plan/child/path/preimage checks. A new B call excluded by B's snapshot
+  fails before effects with a paired outcome. Selection never grants authority.
+- Retained model-neutral calls/results and confirmed outcomes remain available to
+  B in the bounded hot projection; a model-mismatch fresh lane cannot discard them.
+  Strip incompatible opaque/checkpoint state, not ordinary tool names or causal pairs.
+  Do not resurrect forgotten archive or repeat execution. Preserve raw records and
+  actual per-request/assistant identity; the current B preference must not relabel A
+  work or imply that a multi-request turn used one model. Restart restores committed
+  selection and truthful stored attribution, not an unconfirmed draft or tool replay.
+
+Superseded only model/variant busy refusal and whole-turn model capture in the prior
+file-tools plan. Immutable config/Location/agent generations, child/read-only authority,
+explicit provider/credential admission, one execution owner and request revisions hold.
+This is not general steer/agent-switch/config-reload parity. T50 owns TOOL12, T45/PRM01
+consumes prompt/draft lifecycle, T47 owns VAR01 ordering and T44 separately qualifies
+VIS09/VIS29/VIS17/VIS35/VIS36 after explicit resume. No new selector tool/store/framework.
+Detailed implementation slices: [T50 live switching](goals/2026-09-27-native-tool-parity.md#live-model-switching--r1tool12-approved-2026-10-01-pending).
 
 subagent defaults foreground, background:true returns running/sessionID while child
 work progresses; independent foreground children overlap. Fresh child receives its
@@ -239,7 +275,9 @@ supported**, never manufacturing capabilities or enabling missing allowlist entr
   keeps actionable diagnostics, not a silent substitute. Cycle from a stale choice
   follows the existing explicit Ctrl+T → Default rule; no named choices means a no-op.
 - Preserve exact configured wire values, allowlist/merge precedence, profile/subagent
-  selection and immutable turn/config-generation boundaries. No global JSON sorting,
+  authority and immutable config-generation boundaries. Live model/variant selection
+  follows draft/commit and per-request capture above, not blanket busy refusal.
+  No global JSON sorting,
   serde order-feature change, model-ID/reasoning allowlist or provider fallback.
 
 This is an owner-approved native ordering difference from pinned OC2's declared order,

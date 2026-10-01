@@ -1,4 +1,4 @@
-# T50 — Selected native tool parity: file mutations/shell/search/question/read/fetch/session controls
+# T50 — Selected native tool parity: live model/file tools/shell/search/question/read/fetch/session controls
 
 Status: active
 Spec: ../../../docs/goals/2026-09-27-native-tool-parity.md

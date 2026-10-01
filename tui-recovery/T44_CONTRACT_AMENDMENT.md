@@ -114,7 +114,10 @@ acceptance for variants, not the remaining UI parity requirements or historical 
    T45 primary/subagent selection and T50 opencode_models consume the same facts, not
    a second ordering owner; model/provider grouping order itself is unchanged.
 3. Actual binary PTY proves identical picker/cycle sequence in Home/session, full
-   round trip, no model/draft change or request on shortcut, busy/read-only guards,
+   round trip, no model-ID/text-draft change or request on shortcut, read-only/authority
+   guards. The 2026-10-01 live-selection clarification supersedes only model/variant
+   busy refusal: local draft, captured send/blank Enter commit and next-request adoption
+   inside the same task; prepared requests/tools keep actual variant. Preserve
    Default no-overlay distinct from named none, no-named/all-disabled no-op and
    explicit stale-cycle → Default. Fake Responses next prompt carries exact selected
    declared effort; ranking by name without effort does not invent wire data.
@@ -495,6 +498,49 @@ Pinned источники VIS34: U15–U17 в `SOURCES.json`.
 `packages/core/src/session/compaction.ts:174–207,742–791`;
 `packages/core/src/session/runner/llm.ts:220–225,265–270`.
 
+## Live model-selection parity — VIS09/VIS29/VIS17/VIS35/VIS36 (2026-10-01)
+
+Owner approved original OC2 busy-time switching after follow-up RECON and requested
+the detailed plan commit/push. Pinned U95–U102 distinguish draft, commit and prepared
+request identity. This corrects whole-turn model pin and model/variant busy refusal
+in the first file-tools plan; config/Location/agent generations and child/read-only/
+profile/permission authority remain. Backend slice/TOOL12 is T50, prompt/draft consumer
+PRM01 is T45, effort ordering VAR01 is T47; T44 owns paired presentation, stays PAUSED.
+
+1. **Picker/composer — VIS09/VIS29.** Real `/models`/effective shortcut is usable while
+   root work is busy. Select B changes local composer draft scoped to session/agent
+   (Location/agent before a session), not current request or committed model. Preserve
+   exact provider/model/variant identity, enabled choices/canonical effort order,
+   current/focus markers, ordinary text draft/chips/cursor and modal restoration.
+   Captured normal send/command or blank Enter in an existing ordinary composer commits
+   choice; busy alone is not refusal. Do not force a composer through a permission/form
+   overlay or bypass child/read-only authority. Matching ack/events reconcile draft;
+   error/stale echo retains truthful choice and does not clear a newer draft.
+2. **Request attribution/replay — VIS17.** With A's stream/tool held, choose B and
+   prove draft-only means no committed switch/request/cancel. Commit B while busy:
+   old A parts/footer/tool/approval continue bound to actual A; next natural LLM request
+   of the same task is B without a new user message. Footer model/variant comes from
+   actual request/assistant-span metadata, not composer preference or a synthetic
+   single model for all steps in the turn. Replay/reopen/restart preserves real A/B
+   attribution and committed selection, not unconfirmed draft or repeated execution.
+   Selection after final answer does not itself create a request.
+3. **Old/new file families and approval — VIS35/VIS36.** Use eligible GPT A/non-GPT B
+   and reverse switch inside one task. A's issued apply_patch remains admissible by
+   A's captured tool view after B/edit-write is committed, subject to normal permission/
+   preimage rules. Keep pending approval on its original call/resources/preview/identity;
+   choice does not authorize, cancel, relabel or bypass it. B's next request receives
+   compatible file definitions/managed guidance and retained ordinary outcomes, no
+   incompatible opaque replay. Old actual cards retain their names/effects; new calls
+   show the correct family. Excluded-by-issuing-request call gets truthful failed state.
+4. **Evidence.** Reuse TOOL12 provider/tool/approval barriers and source U100 same-run
+   switch, U101 pending-admission/captured commit order. T44 adds full running-original/
+   native paired styled-cell/PNG/cursor captures for busy picker/draft-only/commit/
+   next-step/old-new footer-card/approval and replay at established representative
+   profiles, not a Cartesian matrix. Retry/compact/bytes/storage negatives are existing
+   backend receipts, not repeated visual gates. No crop/mask/static label/renderer-only
+   golden qualifies effects or busy adoption. New scenarios remain NOT_RUN, evidence
+   unchanged; plan delivery does not resume T44 or rewrite historical PASS.
+
 ## File-mutation parity — VIS35
 
 Owner-approved 2026-10-01 file-tools amendment supersedes только прежнее universal
@@ -505,8 +551,10 @@ resume, не второй mutation owner или зависимость от comp
 1. Использовать выбранное семейство T50: exact case-sensitive OC2 model.id содержит
    `gpt-` и не содержит `oss`/`gpt-4` → только `apply_patch(patchText)`; иначе только
    `edit`/`write`, затем effective policy сужает набор. Следующий request после user
-   switch обязан заменить несовместимые tools/управляемую guidance; in-flight turn
-   сохраняет selection, raw calls/results не переименовываются/не удаляются.
+   commit обязан заменить несовместимые tools/управляемую guidance в следующем request
+   той же задачи, не ждать нового user turn. Prepared request с его tools сохраняет
+   captured model/view; picker draft не commit. Raw calls/results не переименовываются/
+   не удаляются, retained compatible outcomes не теряются при model mismatch.
    Визуальные эталоны — отдельные OC2 ApplyPatch, Write и Edit, не generic row или
    fake apply_patch. Native apply_patch остаётся ordinary function patchText,
    не provider-hosted Responses apply_patch schema и не model/provider routing.
@@ -528,8 +576,9 @@ resume, не второй mutation owner или зависимость от comp
    объявленных schemas, файловых effects и model-visible results. Использовать
    fixture model IDs, штатно проходящие exact donor selector обеих веток, не
    override production selection, не менять донор или подменять tool labels.
-   В одной сессии переключить eligible GPT → non-GPT → GPT после actual outcomes,
-   проверить следующий request и отображение новых/исторических cards отдельно;
+   В одной работающей задаче переключить eligible GPT → non-GPT → GPT через actual
+   busy commit и stream/tool barriers, без нового prompt. Проверить completion старых
+   calls, следующий request и actual attribution новых/исторических cards отдельно;
    TOOL12 уже владеет protocol/own-model-child/restart/DCP/compact assertions.
 6. Снять полные styled-cell/PNG frames на narrow/wide и границе 120/121,
    при default и explicit diff settings, для completed/error и permission
@@ -563,7 +612,7 @@ resume, не второй mutation owner или зависимость от comp
      workspace files. Кадры сохраняют старое настоящее tool name после model switch.
      Approval branches shared с VIS36, bytes/storage — TOOL20, no duplicate matrix.
 
-Pinned источники: U18–U20/U86–U87 и appended U90–U94 в `SOURCES.json`.
+Pinned источники: U18–U20/U86–U87 и appended U90–U102 в `SOURCES.json`.
 VIS35 mandatory pending/NOT_RUN, evidence empty: plan-only delivery не квалифицирует
 новые инструменты, не переписывает historical captures и не снимает PAUSED T44.
 

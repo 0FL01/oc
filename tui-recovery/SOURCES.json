@@ -1047,6 +1047,78 @@
       "locator": "3044–3078 Write # Wrote numbered syntax input content/pending; 3324–3386 Edit first files metadata/← Edit/PatchDiff/unified-split-auto/wrap/pending",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L3044-L3078",
       "purpose": "VIS35 distinct real Write/Edit presentation beside ApplyPatch; persisted result-derived effects and source input for live/history/reopen, full paired frames after T50 backend slice"
+    },
+    {
+      "id": "U95",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-model.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "126–139 onSelect uses local.model.set/recent and variant dialog, no session.switchModel or busy cancellation; local.tsx 263–381 owns scoped draft/captured-commit reconciliation",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-model.tsx#L126-L139",
+      "purpose": "T50/R1/TOOL12 and T45/PRM01 picker draft is distinct from committed runtime model; VIS09/VIS29 busy picker/composer semantics"
+    },
+    {
+      "id": "U96",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/prompt/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "1274–1293 commitModel/commitSelection and blank Enter in an existing composer; 1301–1318 commands; 1343–1360 captured prompt prepare after earlier admission",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/index.tsx#L1274-L1360",
+      "purpose": "Real draft-to-commit/empty Enter and captured submission ordering, not immediate picker mutation or deferred-until-idle switching"
+    },
+    {
+      "id": "U97",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/session.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "90–102 Session.switchModel has same-choice no-op and publishes ModelSelected without busy refusal, interrupt or wake; server handlers/session.ts 246–253 forwards the API",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/session.ts#L90-L102",
+      "purpose": "Authorized committed model change while work is active, separate selection event versus actual prepared request identity; TOOL12 and visual consumers"
+    },
+    {
+      "id": "U98",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/context.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "121–157 select reloads session/agent/permissions/tools/instructions; 160–175 load resolves model and compatible history from that snapshot",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/context.ts#L121-L175",
+      "purpose": "One coherent request-preparation model/tool/context view, not one model pinned for an entire autonomous task; TOOL12/PRM01"
+    },
+    {
+      "id": "U99",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/runner/llm.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "187–202 next-step boundary/prepareContext; 204–247 retries refresh selection and build captured primary request; 248–270 attempt identity and overflow rebuild",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/runner/llm.ts#L187-L270",
+      "purpose": "Next LLM step/attempt of the same run adopts committed choice without new prompt; prepared stream/tools stay captured, finite retry policy unchanged"
+    },
+    {
+      "id": "U100",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/test/session-runner.test.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "3386–3407 reloads a model switch before a tool-driven continuation step with blocked tool and original/replacement requests; 3022–3076 overflow-recovery switch during compaction",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/test/session-runner.test.ts#L3386-L3407",
+      "purpose": "Source regression for mandatory same-task busy model switch and rebuilt-request selection; source inspection is not executed native PASS"
+    },
+    {
+      "id": "U101",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/test/compact-admission.test.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "193–226 selectModel while first prompt admission is unresolved, no immediate mutations, then model:first/compact:first/model:second/prompt:second ordering",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/test/compact-admission.test.tsx#L193-L226",
+      "purpose": "TUI draft versus captured commit/admission ordering under delayed API/SSE; not proof that a picker alone switches active runtime"
+    },
+    {
+      "id": "U102",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/runner/to-llm-message.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "153–205 ordinary assistant tool-call/result groups and model/provider compatibility for opaque metadata; 239–256 model-switched projection and same-model effort updates",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/runner/to-llm-message.ts#L153-L256",
+      "purpose": "Compatible outcomes/call-result causality survives switching without tool renaming/deletion/reexecution or alien opaque replay; TOOL12 and VIS17/VIS35"
     }
   ],
   "external_primary_sources": [

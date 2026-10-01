@@ -53,12 +53,16 @@ Token saving фиксируется как measured/estimated; сохранно�
 
 Upstream protects tool/file content и умеет preserve user messages/tags [D1]. Перенести required config и exact behavior из fixtures. `apply_patch` имеет защиту, эквивалентную protected write/edit; owner-approved T50/R9/TOOL20 распространяет её на реальные `edit`/`write`. У patch вычислять `affected_paths` из распарсенного patch до исполнения; protected glob проверяет все source/destination пути, а не отсутствующий параметр `filePath`. Для edit/write брать parsed `path`, не трактовать `content`/`oldString`/`newString` как ресурсы. Common mutation permissions/data-root/no-follow/approved-preimage и configured tool/content/dedup/purge protections сохраняются при смене модели; Ask не bypass защиты.
 
-T50/R1/TOOL12 pending: DCP/restart/native compact reconstruct current model's compatible
-file schemas/catalog/managed guidance, never archived obsolete definitions. Removing
-tools does not erase/rename historical calls/results or automatically load forgotten
-raw groups. Current causal/protected groups and bounded hot state remain; no mutation
-replay or second context owner. TOOL20 verifies new tool protection consumers while
-existing DCP04/other DCP IDs retain owners and historical evidence.
+T50/R1/TOOL12 pending: DCP/restart/native compact reconstruct the committed selection's
+compatible file schemas/catalog/managed guidance, never archived obsolete definitions.
+Live commit while busy is adopted at the next request preparation/rebuild of the same
+task, including retry/compaction; prepared streams/tools retain captured identity/view.
+Recompute model budget/thresholds and compatible hot projection together. Removing
+tools does not erase/rename retained historical call/result groups or drop completed
+outcomes merely because the model changed; exclude alien opaque/checkpoint state.
+It never reloads forgotten raw groups. Current causal/protected groups and bounded
+hot state remain; no mutation replay or second context owner. TOOL20 verifies new tool
+protection consumers while existing DCP04/other DCP IDs retain owners and historical evidence.
 
 Summary хранит выбранные useful mutation outcomes/outputs; references на большие blobs только когда они нужны продолжению. Нельзя подменить currently required verbatim content ссылкой, когда effective policy требует verbatim. Runtime task/pack protection снимается по завершении своего scope; historical suffix не получает защиту только из-за происхождения. Явные пользовательские protections остаются пользовательским выбором; их изменение/release учитывается на admitted generation, не обходится молча. Не append всей истории/огромного patch/старой защиты к каждой summary «для сохранности».
 

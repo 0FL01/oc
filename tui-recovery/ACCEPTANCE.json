@@ -124,12 +124,19 @@
       "id": "VIS09",
       "step": "V04",
       "title": "Model dialog search and selection",
-      "expected": "Select model uses display metadata, current-dot vs focus, scrolling beyond8 rows, actual model/variant choice in captured provider request. Variant picker consumes shared T47/VAR01 canonical effective effort order per T44_CONTRACT_AMENDMENT.md: Default separate, only supported enabled names, stable aliases/custom order and exact selected ID, no independent lexical sort. Verify full paired styled-cell/PNG/cursor geometry/colors/focus with identical canonically supplied order; separately label the approved native ordering difference on identical unsorted fixtures, no masking or universal donor pixel PASS. Reuse VAR01 identity/wire/refresh/reopen evidence; VIS29 qualifies the full Ctrl+T round trip, no whole-T47 completion dependency.",
+      "expected": "Select model uses display metadata, current-dot vs focus, scrolling beyond8 rows and exact model/variant identity. Follow Live model-selection parity clarification 2026-10-01 in T44_CONTRACT_AMENDMENT.md: picker is usable while authorized root work is busy and changes session/agent-local composer draft, not the active request or committed model. Captured send/command or blank Enter in an existing ordinary composer commits through the owner while busy; matching ack/events reconcile, error/stale echo cannot falsely confirm or erase a newer draft. Old prepared request/tools retain actual A; next natural request of the same task uses B without new user text, while draft-only/final-answer commit causes no generation/cancel/effect. Preserve text/chips/cursor/modal restoration and child/read-only/permission-form authority. Variant picker consumes shared T47/VAR01 canonical effort order: Default separate, supported enabled names only, stable aliases/custom order/exact ID, no independent lexical sort. Full paired styled-cell/PNG/cursor frames cover busy draft/commit/next-step geometry/colors/focus with identical canonical supplied order; separately label approved native differences on unsorted fixtures, no masking/universal pixel PASS. Reuse TOOL12/PRM01 actual effects/order and VAR01 wire/refresh/reopen evidence, VIS29 variant cycle and VIS17 request attribution; no whole-task dependency or duplicated backend matrix. T44 PAUSED, new qualification NOT_RUN.",
       "sources": [
         "P03",
         "P10",
         "U05",
-        "U66"
+        "U66",
+        "U95",
+        "U96",
+        "U97",
+        "U98",
+        "U99",
+        "U100",
+        "U101"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",
@@ -244,7 +251,7 @@
       "id": "VIS17",
       "step": "V06",
       "title": "Durable replay parity",
-      "expected": "Same session parts/cards/metadata render equivalently after page reload, session switch and process restart, with one durable owner. For a fresh session with a non-default profile and no explicit profile switch, the first user stripe matches pinned upstream during streaming, after completion/durable page replacement and after reopen. Both actual user and assistant message IDs retain the correct turn association and agent/color metadata; verify a real completed turn and history query, not synthetic rows or a renderer fallback. Paired full styled-cell/PNG frames and two sequential outgoing provider requests must show unchanged selected agent ID/digest (owner selection/log evidence) and that profile's instruction input, with no silent default-Build substitution under unchanged profile/config. No hard-coded profile/color or new immutable historical-color rule across explicit profile switches. UI color and stable profile instructions do not establish provider KV-cache reuse; do not publish credentials or raw live responses. Owner-approved 2026-09-27 primary-profile contract in T44_CONTRACT_AMENDMENT.md: profile selection/instructions/model/variant survive reopen/reload; Plan reminders reconcile after compaction/Revert without inventing a profile switch. Reuse T45 R6 runtime/headless evidence (run --agent switches before prompting; omission retains existing selection), with pinned U26/U28/U30. Backend behavior does not substitute for paired visual replay qualification. The 2026-09-30 direct-cycle slice commits selection through the same owner: actual Shift+Tab or explicit Tab override preserves draft/focus and survives restart; a subsequent captured request receives the selected profile instructions/model/variant, without generation/tool effects from cycling itself. Reuse existing owner/PTY/R6 evidence and keep unavailable saved selections explicit.",
+      "expected": "Same session parts/cards/metadata render equivalently after page reload, session switch and process restart, with one durable owner. For a fresh session with a non-default profile and no explicit profile switch, the first user stripe matches pinned upstream during streaming, after completion/durable page replacement and after reopen. Both actual user and assistant message IDs retain correct turn association and agent/color metadata; verify real completed turn/history, not synthetic rows or renderer fallback. Paired full styled-cell/PNG frames and two sequential provider requests show unchanged selected agent ID/digest and profile instructions, no default-Build substitution under unchanged profile/config. No hard-coded profile/color or immutable historical-color rule across explicit profile switches; color/stable instructions do not prove provider KV cache, no credentials/raw live responses. Keep 2026-09-27 T44 primary-profile selection/instructions/model/variant and Plan reconciliation after compaction/Revert; reuse T45 R6 run --agent/omission and U26/U28/U30 receipts. The 2026-09-30 direct cycle uses the same owner, preserves draft/focus/restart and sends no generation/tool effects itself; a subsequent request gets selected profile instructions/model/variant, unavailable choices stay explicit. Follow 2026-10-01 Live model-selection parity: actual A/B/A request/assistant attribution in one task survives live/page/reopen/restart; current composer draft or committed B must not relabel A's already prepared stream/tools/approval or overwrite all steps with one turn model. Preserve old actual tool names/results and bounded compatible causal history without replay/current-file rereads. Reuse TOOL12/PRM01 barriers/order/backend receipts; T44 separately captures full paired old/new footer/card/replay frames, not another backend matrix. Historical evidence/statuses unchanged, new qualification NOT_RUN and T44 PAUSED.",
       "sources": [
         "P01",
         "P06",
@@ -252,7 +259,10 @@
         "U26",
         "U28",
         "U30",
-        "U29"
+        "U29",
+        "U97",
+        "U99",
+        "U102"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",
@@ -412,14 +422,18 @@
     {
       "id": "VIS29",
       "step": "V05",
-      "title": "Ctrl+T cycles active model variants",
-      "expected": "Owner-approved 2026-09-27 Canonical effort ordering section in T44_CONTRACT_AMENDMENT.md supersedes only pinned declared order. Real PTY Ctrl+T and variant picker share T47/VAR01 active-model order Default -> none -> minimal -> low -> medium -> high -> xhigh -> max -> custom -> Default, absent/disabled/reserved default skipped, no fabricated levels. Known exact explicit reasoningEffort ranks before name; absent effort may rank standard name, explicitly unknown effort is custom. Preserve case/whitespace/unknown spellings, distinct aliases and stable equal-rank/custom source order, not lexical sort/dedup. Selection by exact ID remains visible/persisted through reorder/refresh/reopen/restart without model/draft change or shortcut request; retired/disabled choice has actionable diagnostic, no silent substitute. Preserve busy/read-only guards, explicit stale-cycle -> Default and empty/all-disabled no-op. Next accepted fake Responses request uses exact declared selected effort; rank/name does not manufacture effort, Default adds no variant overlay and differs from named none. Full paired original/native styled-cell/PNG/cursor frames use identical canonical supplied order for geometry/colors/focus; identical unsorted fixtures separately record approved native order difference, no masking/universal donor pixel PASS. Reuse VAR01 protocol/durability evidence and existing guards, not a whole-T47 done-dependency or duplicate owner.",
+      "title": "Ctrl+T cycles selected model variants",
+      "expected": "Owner-approved 2026-09-27 Canonical effort ordering in T44_CONTRACT_AMENDMENT.md supersedes only pinned declared order. Real PTY Ctrl+T/variant picker share selected-model T47/VAR01 order Default -> none -> minimal -> low -> medium -> high -> xhigh -> max -> custom -> Default, absent/disabled/reserved default skipped, no fabricated levels. Exact known explicit reasoningEffort ranks before name; absent effort may use standard-name rank, unknown explicit effort stays custom. Preserve case/whitespace/unknown IDs, distinct aliases/stable ties/custom source order, no lexical sort/dedup. Preserve model-ID/text draft, read-only/authority, explicit stale-cycle -> Default and empty/all-disabled no-op. Follow 2026-10-01 Live model-selection clarification: busy alone does not refuse local variant draft; captured send/command or blank Enter commits, next prepared request of the same task uses exact committed variant while old requests/tools retain actual variant. Shortcut/draft alone creates no request, commit after final answer does not generate work. Committed exact-ID selection survives reorder/refresh/reopen/restart; retired/disabled choice stays actionable without fallback. Fake Responses uses exact declared effort, no rank/name synthesis; Default has no overlay and differs from named none. Full paired original/native styled-cell/PNG/cursor frames cover canonical order and busy draft/commit geometry/colors/focus; identical unsorted fixtures disclose approved native ordering difference, no masking/universal pixel PASS. Reuse VAR01 ordering/wire/durability and TOOL12/PRM01 switching receipts, no whole-task dependency/duplicate owner. Qualification NOT_RUN, T44 PAUSED.",
       "sources": [
         "U02",
         "U05",
         "U66",
         "U67",
-        "U68"
+        "U68",
+        "U95",
+        "U96",
+        "U97",
+        "U99"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",
@@ -503,7 +517,7 @@
       "id": "VIS35",
       "step": "V06",
       "title": "Selected Write/Edit/ApplyPatch effects, model switches and full OC2 visual parity",
-      "expected": "Follow File-mutation parity VIS35 amendment 2026-10-01. T50/R1/R9 supplies exact case-sensitive OC2 selected model.id contains gpt- and neither oss nor gpt-4 -> apply_patch only, otherwise edit/write only, then policy narrows. Obligatory very-next-request tools/managed-guidance replacement after same-session eligible GPT->non-GPT->GPT; captured in-flight selection and raw historical tool names/results retained. Reuse TOOL12/TOOL20 protocol/bytes/admission evidence, not whole-T50/T45 completion. Exercise real OC2 patch/native apply_patch create/empty/update/full replacement/delete/move/multi-file, plus real OC2/native write create/overwrite/empty/parents and edit unique/all/count/CRLF/BOM effects. Independently verify filesystem/modes, schemas, matched results and durable confirmed changes. Distinct Write # Wrote path + numbered syntax original-input content/Preparing write fallback, Edit ← Edit path + first-file result PatchDiff/Preparing edit fallback, and existing ApplyPatch Created/Patched/Deleted/Patching/Patch failed per-file states must match pinned originals, not renamed generic or fake patch cards. Full paired styled-cell/PNG/cursor frames cover geometry/spacing/theme fg-bg-attributes/shared grammar syntax/gutters/old-new line numbers/unified-split-auto at 120/121/wrap and observable pending/running/completed/error/permission accept-reject. Preserve truthful partial/cancelled/unknown and preview-versus-confirmed distinction. Persist input/result-derived metadata for live/history/session switch/reopen/restart without current-file rereads or tool reexecution; old actual cards survive model switches. Shared VIS36 previews/policy/DCP/boundedness remain; no provider-hosted schema or other model/reasoning/vendor routing. Retain A09 real model-authored patch coding/reopen/expected-path flow; scripted calls do not prove model proficiency. Native goldens/historical single-patch PASS/cropped mock cards do not qualify. New qualification pending/NOT_RUN; T44 stays PAUSED until explicit resume.",
+      "expected": "Follow File-mutation parity and Live model-selection clarification 2026-10-01 in T44_CONTRACT_AMENDMENT.md. T50/R1/R9 supplies exact case-sensitive OC2 model.id contains gpt- and neither oss nor gpt-4 -> apply_patch only, otherwise edit/write only, then policy narrows. Mandatory GPT->non-GPT->GPT inside one working task: local picker draft differs from busy commit, next request replaces tools/managed guidance without new user prompt, old prepared stream/tools/approval keep actual model/view and issuing-request allowset. A's issued patch is not invalid solely because B/edit-write is selected; compatible retained outcomes/history survive without alien opaque replay. Raw historical tool names/results stay actual. Reuse TOOL12/TOOL20 protocol/bytes/admission and VIS09/VIS29/VIS17 attribution receipts, no whole-T50/T45 dependency or duplicate matrix. Exercise real OC2 patch/native apply_patch create/empty/update/full replacement/delete/move/multi-file, plus write create/overwrite/empty/parents and edit unique/all/count/CRLF/BOM. Independently verify bytes/modes/schemas/matched results/durable confirmed changes. Distinct Write # Wrote path/numbered syntax original-input content/Preparing write fallback, Edit ← Edit path/first-file result PatchDiff/Preparing edit fallback and existing ApplyPatch Created/Patched/Deleted/Patching/Patch failed per-file states match pinned originals, not generic/fake patch cards. Full paired styled-cell/PNG/cursor frames cover geometry/spacing/theme fg-bg-attributes/shared grammar syntax/gutters/old-new numbers/unified-split-auto at 120/121/wrap and observable pending/running/completed/error/permission accept-reject. Truthful partial/cancelled/unknown and preview-versus-confirmed distinction remain. Durable input/results/effects replay without current-file rereads/reexecution; old cards retain actual names after switch. Shared VIS36 previews/policy/DCP/boundedness and native ordinary patchText schema remain, no other model/reasoning/vendor routing. Retain A09 model-authored patch coding/reopen/expected-path flow; scripted calls do not prove proficiency. Native goldens/historical single-patch PASS/cropped mocks do not qualify. New qualification pending/NOT_RUN; T44 PAUSED until explicit resume.",
       "sources": [
         "U18",
         "U19",
@@ -514,7 +528,14 @@
         "U91",
         "U92",
         "U93",
-        "U94"
+        "U94",
+        "U95",
+        "U96",
+        "U97",
+        "U98",
+        "U99",
+        "U100",
+        "U102"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",
@@ -524,14 +545,16 @@
       "id": "VIS36",
       "step": "V05",
       "title": "Full supported-action Approve permission lifecycle and OC2 UI parity",
-      "expected": "Implement real application-owned pending query/events/replies and cancellable pre-effect waiting, scoped to operation/session/pinned generation. Leaf-prepared requests carry actual resources, explicit save patterns and previews; invocation-local Once covers rechecks without widening authority. Effective Deny and structural ceilings cannot be bypassed. Typed plain Reject interrupts execution and rejects remaining same-session pending requests; child feedback follows corrected continuation. Waiting is not started/unknown effect; cancel/shutdown/drop/stale replies/restart never authorize replay. Always commits deduplicated donor-project-identity grants before acknowledgement, survives restart, isolates unrelated projects and reevaluates eligible pending requests; Once/autoaccept write no grants. Reproduce original lower prompt/fullscreen geometry/theme, root/descendant routing, request-keyed reset, supported previews including edit diff metadata precedence/word wrap, conditional Always/pattern explanation, mouse/keyboard/effective shortcuts/app.exit/Esc, child feedback, complete draft restoration, reply errors, tool warning/denied and tab attention. Implement Settings/palette/config/CLI prompt-autoaccept controls and explicit once-consumers, including supported headless auto; no-channel headless fails. Qualify actual effects with owner integration and paired full styled-cell/PNG evidence, covering persistence/project identity, denial, lifecycle, mode precedence and 79/80,120/121 boundaries. Share patch accept/reject evidence with VIS35 without circular completion dependency or duplicated tool/viewport/state cross-product; no new framework/dashboard or Unsupported waiver. Behavior and visual results remain separate; existing native policy differences are disclosed, not relaxed or claimed identical. Approved 2026-10-01 T50 edit/write uses shared canonical mutation permission/grants and real parsed path, before/after preview and approved identity/bytes/absence recheck after wait; selection/tool-name switch cannot bypass Deny/Plan/child/data-root/protected paths or grant scope. Write overwrite/empty/new and edit unique/all display truthful pre-effect diffs, not completed effects. Reuse TOOL20 race/path/durability evidence and VIS35 Write/Edit/ApplyPatch visuals; statuses/evidence unchanged and T44 remains PAUSED.",
+      "expected": "Implement real application-owned pending query/events/replies and cancellable pre-effect waiting, scoped to operation/session/pinned generation. Leaf-prepared requests carry actual resources, explicit save patterns and previews; invocation-local Once covers rechecks without widening authority. Effective Deny and structural ceilings cannot be bypassed. Typed plain Reject interrupts execution and rejects remaining same-session pending requests; child feedback follows corrected continuation. Waiting is not started/unknown effect; cancel/shutdown/drop/stale replies/restart never authorize replay. Always commits deduplicated donor-project-identity grants before acknowledgement, survives restart, isolates unrelated projects and reevaluates eligible pending requests; Once/autoaccept write no grants. Reproduce original lower prompt/fullscreen geometry/theme, root/descendant routing, request-keyed reset, supported previews including edit diff metadata precedence/word wrap, conditional Always/pattern explanation, mouse/keyboard/effective shortcuts/app.exit/Esc, child feedback, complete draft restoration, reply errors, tool warning/denied and tab attention. Implement Settings/palette/config/CLI prompt-autoaccept controls and explicit once-consumers, including supported headless auto; no-channel headless fails. Qualify actual effects with owner integration and paired full styled-cell/PNG evidence, covering persistence/project identity, denial, lifecycle, mode precedence and 79/80,120/121 boundaries. Share patch accept/reject evidence with VIS35 without circular completion dependency or duplicated tool/viewport/state cross-product; no new framework/dashboard or Unsupported waiver. Behavior and visual results remain separate; existing native policy differences are disclosed, not relaxed or claimed identical. Approved 2026-10-01 T50 edit/write uses shared canonical mutation permission/grants and real parsed path, before/after preview and approved identity/bytes/absence recheck after wait; selection/tool-name switch cannot bypass Deny/Plan/child/data-root/protected paths or grant scope. Write overwrite/empty/new and edit unique/all display truthful pre-effect diffs, not completed effects. Follow Live model-selection clarification: an authorized busy commit does not cancel/relabel/rebind the waiting A call/resources/preview/approval to B or check its allowset against B's new catalog. Original request model/view and normal policy/preimage remain; respect form focus, no forced hidden-composer Enter. Next request may adopt B after settlement, old approval/card identity survives replay. Reuse TOOL12 barriers and TOOL20 race/path/durability receipts plus VIS35 visuals, not duplicate matrices; statuses/evidence unchanged, new qualification NOT_RUN and T44 PAUSED.",
       "sources": [
         "U20",
         "U21",
         "U22",
         "U23",
         "U91",
-        "U92"
+        "U92",
+        "U97",
+        "U99"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",
