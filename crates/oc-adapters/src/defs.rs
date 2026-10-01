@@ -1014,7 +1014,7 @@ fn insert_agent(out: &mut Collector, root: &DefRoot, mut input: AgentInput, path
             .insert("question".into(), crate::config::Permission::Deny);
         input.permission_rules.extend(
             crate::permissions::PermissionRules::from_config(
-                &serde_json::json!({"tools":{"question":false}}),
+                &serde_json::json!({"tools":{"question":false,"opencode_session_rename":false}}),
             )
             .expect("builtin question constraint"),
         );

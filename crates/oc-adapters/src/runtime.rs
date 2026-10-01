@@ -466,6 +466,20 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
     };
     vec![
         ToolDef {
+            name: "opencode_models".into(),
+            description: "Search the admitted model catalog without changing your model or contacting providers. Own provider first, newest known family by default. Unknown metadata stays null. Variant IDs use the shared effective effort order. Native 64KiB page budget; unselected configured providers expose static metadata only.".into(),
+            parameters: serde_json::json!({"type":"object","additionalProperties":false,"required":[],"properties":{
+                "query":{"type":"string","maxLength":4096},"provider":{"type":"string","maxLength":4096},
+                "all":{"type":"boolean","default":false},"limit":{"type":"integer","minimum":1,"maximum":100,"default":20},
+                "offset":{"type":"integer","minimum":0,"default":0}}}),
+        },
+        ToolDef {
+            name: "opencode_session_rename".into(),
+            description: "Rename the current session, or an explicitly locally known idle root in this Location. Children may rename only themselves. Title is trimmed, nonempty, at most 256 UTF-8 bytes with no control/invisible text. Effective session policy applies to the exact session ID; success means durable title and session_updated event.".into(),
+            parameters: serde_json::json!({"type":"object","additionalProperties":false,"required":["title"],"properties":{
+                "title":{"type":"string","minLength":1,"maxLength":256},"sessionID":{"type":"string","minLength":1,"maxLength":256}}}),
+        },
+        ToolDef {
             name: "read".to_string(),
             description: "Read a project file or directory. Text has 1-based line references; directories are sorted with directories first. offset is 1-based, limit defaults to 2000. Validated PNG/JPEG/GIF/WebP images are inline content for image-capable selected Responses models; PDF is unsupported. Native no-follow, permission, data-root, 1 MiB file scan and 65536-byte page budgets apply."
                 .to_string(),

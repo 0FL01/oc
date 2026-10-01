@@ -24,6 +24,8 @@ use oc_core::context_plan::ProtectedSpec;
 mod approval_lifecycle;
 #[path = "fixtures/background_lifecycle.rs"]
 mod background_lifecycle;
+#[path = "runtime/model_session_tools.rs"]
+mod model_session_tools;
 #[path = "fixtures/question_lifecycle.rs"]
 mod question_lifecycle;
 

@@ -44,6 +44,8 @@ pub const MODEL_TOOL_NAMES: &[&str] = &[
     "skill",
     "question",
     "compress",
+    "opencode_models",
+    "opencode_session_rename",
 ];
 /// Subagent tool name, advertised only when the runtime published a
 /// subagent catalog for the lane; deliberately outside [`MODEL_TOOL_NAMES`].
@@ -172,6 +174,7 @@ pub(crate) fn permission_resources(call: &ToolCall) -> Result<Vec<String>, ToolE
         "webfetch" => vec![string("url")?],
         "skill" => vec![string("id")?],
         "subagent" => vec![string("agent")?],
+        "opencode_session_rename" => vec![string("sessionID")?],
         "shell" => vec![string("command")?],
         "apply_patch" => {
             crate::patch::affected_paths(&string("patchText")?).map_err(|_| invalid())?
@@ -611,6 +614,8 @@ pub(crate) fn validate_call(call: &ToolCall) -> Result<(), String> {
     };
     let valid = match call.name.as_str() {
         "read" => return read::parse(call).map(|_| ()),
+        "opencode_models" => return crate::models::lookup::parse(args).map(|_| ()),
+        "opencode_session_rename" => return rename_input(args).map(|_| ()),
         "glob" => {
             return parse_glob_args(call)
                 .map(|_| ())
@@ -645,6 +650,29 @@ pub(crate) fn validate_call(call: &ToolCall) -> Result<(), String> {
     } else {
         Err(format!("invalid arguments for {}", call.name))
     }
+}
+
+pub(crate) fn rename_input(args: &serde_json::Value) -> Result<(&str, Option<&str>), String> {
+    let o = args.as_object().ok_or("invalid session rename arguments")?;
+    if o.keys()
+        .any(|k| !matches!(k.as_str(), "title" | "sessionID"))
+    {
+        return Err("invalid session rename arguments".into());
+    }
+    let title = o
+        .get("title")
+        .and_then(serde_json::Value::as_str)
+        .and_then(oc_core::core_app::normalized_session_title)
+        .ok_or("invalid session title")?;
+    let target = o
+        .get("sessionID")
+        .map(|v| {
+            v.as_str()
+                .filter(|s| !s.is_empty() && s.len() <= 256 && !s.chars().any(char::is_control))
+                .ok_or("invalid session target")
+        })
+        .transpose()?;
+    Ok((title, target))
 }
 
 /// Required `subagent` shape. Agent/model resolution stays with the runner.
@@ -1617,7 +1645,9 @@ mod tests {
                 "webfetch",
                 "skill",
                 "question",
-                "compress"
+                "compress",
+                "opencode_models",
+                "opencode_session_rename"
             ]
         );
         assert!(!MODEL_TOOL_NAMES.contains(&"write"));

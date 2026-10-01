@@ -2247,11 +2247,21 @@ impl Db {
         session: &str,
         title: &str,
     ) -> Result<(), StorageError> {
+        self.rename_session(session, title, true)
+    }
+
+    /// Existing manual-title transaction, with explicit native self-child access.
+    pub(crate) fn rename_session(
+        &self,
+        session: &str,
+        title: &str,
+        root_only: bool,
+    ) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         let affected = tx.execute(
-            "UPDATE sessions SET title = ?2 WHERE id = ?1 AND parent_id IS NULL",
-            params![session, title],
+            "UPDATE sessions SET title = ?2 WHERE id = ?1 AND (?3 = 0 OR parent_id IS NULL)",
+            params![session, title, root_only],
         )?;
         if affected == 0 {
             return Err(StorageError::SessionNotFound);

@@ -896,6 +896,20 @@ fn assemble_with_admission(
         if let Some(only) = enabled_providers
             && !only.contains(id)
         {
+            if !require_credential && !entry.models.is_empty() {
+                // Inert, shape-admitted public metadata in the existing generation.
+                // Never resolve unselected credentials/endpoints or admit routing.
+                out_providers.insert(
+                    id.clone(),
+                    ProviderEntry {
+                        npm: entry.npm.clone(),
+                        name: entry.name.clone(),
+                        options: ProviderOptions::default(),
+                        models: entry.models.clone(),
+                    },
+                );
+                provenance.insert(format!("provider.{id}"), path.clone());
+            }
             continue;
         }
         let trusted = sources.iter().any(|s| s.path == *path && s.trusted);

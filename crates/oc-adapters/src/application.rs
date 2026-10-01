@@ -139,6 +139,25 @@ fn commit_automatic_title(
     }
 }
 
+/// Private direct seam for an already admitted native invocation. No Inbox
+/// request: the application worker is currently awaiting this same turn.
+pub(crate) fn commit_session_rename(
+    db: &Db,
+    events: Option<&broadcast::Sender<CoreEvent>>,
+    session: &str,
+    title: &str,
+    root_only: bool,
+) -> Result<(), StorageError> {
+    db.rename_session(session, title, root_only)?;
+    if let Some(events) = events {
+        let _ = events.send(CoreEvent::SessionTitleUpdated {
+            session: oc_core::domain::SessionId(session.into()),
+            title: title.into(),
+        });
+    }
+    Ok(())
+}
+
 async fn stop_automatic_titles(
     work: &Mutex<AutomaticTitles>,
 ) -> Result<(), oc_core::queries::ServiceDiagnostic> {

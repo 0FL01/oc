@@ -294,7 +294,13 @@ pub(crate) async fn prepare(
 pub(crate) fn save_patterns(action: &str, resources: &[String]) -> Vec<String> {
     if !matches!(
         action,
-        "read" | "apply_patch" | "shell" | "bash" | "skill" | "subagent"
+        "read"
+            | "apply_patch"
+            | "shell"
+            | "bash"
+            | "skill"
+            | "subagent"
+            | "opencode_session_rename"
     ) {
         return vec!["*".into()];
     }

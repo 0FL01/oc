@@ -56,6 +56,11 @@ fn saved_patterns_preserve_unix_literal_identity_and_support_actual_patterns() {
     assert!(!matches("a/bc", r"a\b?"));
     assert!(matches("git status", "git *"));
     assert!(matches("git", "git *"));
+    assert_eq!(
+        save_patterns("opencode_session_rename", &["session-a".into()]),
+        ["session-a"]
+    );
+    assert!(save_patterns("opencode_session_rename", &["session-*".into()]).is_empty());
 }
 
 #[test]

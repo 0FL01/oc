@@ -767,6 +767,9 @@ async fn load_stages(
         &source_roots,
     )
     .map_err(LoadFailure::Configuration)?;
+    generation.providers.retain(|id, _| {
+        !disabled.contains(id) && enabled.as_ref().is_none_or(|ids| ids.contains(id))
+    });
     admit_local_mcp(
         &mut generation,
         &project,
@@ -775,6 +778,15 @@ async fn load_stages(
         &sources,
     )?;
     // Keep central authority independent of the startup primary selection.
+    for tool in ["opencode_models", "opencode_session_rename"] {
+        generation
+            .permission_rules
+            .module_permission(tool, config::Permission::Allow);
+        generation
+            .permissions
+            .entry(tool.into())
+            .or_insert(config::Permission::Allow);
+    }
     generation
         .permission_rules
         .module_permission("question", config::Permission::Allow);

@@ -10,6 +10,8 @@ use std::collections::BTreeMap;
 
 use thiserror::Error;
 
+pub(crate) mod lookup;
+
 /// Exact known effort ranks for the effective variants view.
 pub const STANDARD_VARIANTS: [&str; 7] =
     ["none", "minimal", "low", "medium", "high", "xhigh", "max"];
@@ -211,6 +213,10 @@ pub fn select_variant(
 #[cfg(test)]
 #[path = "models/tests.rs"]
 mod ordering_tests;
+
+#[cfg(test)]
+#[path = "models/tool_tests.rs"]
+mod tool_tests;
 
 /// Native fallback caps and default output request; never catalog capacities.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

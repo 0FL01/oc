@@ -134,7 +134,10 @@ pub(super) fn mcp_instruction_input(
         .collect()
 }
 
-fn mcp_redactions(config: &Generation, parent_env: &BTreeMap<String, String>) -> Vec<String> {
+pub(super) fn mcp_redactions(
+    config: &Generation,
+    parent_env: &BTreeMap<String, String>,
+) -> Vec<String> {
     let mut secrets: Vec<String> = parent_env
         .iter()
         .filter(|(name, _)| {

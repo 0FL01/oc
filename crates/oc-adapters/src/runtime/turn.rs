@@ -491,6 +491,50 @@ fn record_tool_finish(
 }
 
 impl<'a> Runtime<'a> {
+    pub(crate) fn commit_session_rename(
+        &self,
+        session: &str,
+        title: &str,
+        root_only: bool,
+    ) -> Result<(), StorageError> {
+        let events = self.compaction_events.lock().expect("events lock").clone();
+        crate::application::commit_session_rename(
+            self.db,
+            events.as_ref(),
+            session,
+            title,
+            root_only,
+        )
+    }
+
+    fn rename_target(&self, caller: &str, call: &crate::tools::ToolCall) -> Result<(), String> {
+        let (_, target) = crate::tools::rename_input(&call.arguments)?;
+        let target = target.unwrap_or(caller);
+        self.open_session(caller)
+            .map_err(|_| "session target unavailable")?;
+        self.open_session(target)
+            .map_err(|_| "session target unavailable")?;
+        let caller_meta = self
+            .db
+            .session_meta(caller)
+            .map_err(|_| "session target unavailable")?;
+        let target_meta = self
+            .db
+            .session_meta(target)
+            .map_err(|_| "session target unavailable")?;
+        if target != caller
+            && (caller_meta.parent_id.is_some()
+                || target_meta.parent_id.is_some()
+                || self
+                    .db
+                    .session_family_running(target)
+                    .map_err(|_| "session storage unavailable")?)
+        {
+            return Err("session target unavailable".into());
+        }
+        Ok(())
+    }
+
     #[allow(clippy::too_many_arguments)]
     async fn admit_tool<'p>(
         &self,
@@ -2116,6 +2160,7 @@ impl<'a> Runtime<'a> {
                     budget.input.saturating_sub(request_estimate),
                     ACTIVE_CONTEXT_BYTES_CAP.saturating_sub(read_context_bytes),
                     read_log_base,
+                    params.catalog,
                 )
                 .await;
             tool_event(
@@ -2423,6 +2468,7 @@ impl<'a> Runtime<'a> {
         read_tokens: u64,
         read_bytes: usize,
         read_log_base: usize,
+        catalog: &ModelCatalog,
     ) -> Result<(Vec<CallRecord>, bool, bool), RuntimeError> {
         let mut records = Vec::new();
         let mut projection_changed = false;
@@ -2436,11 +2482,34 @@ impl<'a> Runtime<'a> {
             };
             // Keep the original provider identifier in the durable operation id.
             let op = format!("{turn_id}-r{round}-c{i}-{id}");
-            let guarded = self.guard_patch(unit.clone());
-            let admission = match &guarded {
+            let mut guarded = self.guard_patch(unit.clone());
+            // Dispatch default-current before exact-resource common admission.
+            if let Assembled::Call(call) = &mut guarded
+                && call.name == "opencode_session_rename"
+                && crate::tools::validate_call(call).is_ok()
+                && call.arguments.get("sessionID").is_none()
+            {
+                call.arguments["sessionID"] = session.into();
+            }
+            let structural = match &guarded {
+                Assembled::Call(call) if call.name == "opencode_session_rename" => {
+                    self.rename_target(session, call).and_then(|()| {
+                        if turn_log.display["config_generation"].as_u64()
+                            == Some(self.generation_id())
+                        {
+                            Ok(())
+                        } else {
+                            Err("stale session generation".into())
+                        }
+                    })
+                }
+                _ => Ok(()),
+            };
+            let mut admission = match &guarded {
                 Assembled::Call(call)
                     if !permission_rejected
                         && !cancel.load(Ordering::Acquire)
+                        && structural.is_ok()
                         && (!is_builtin(&call.name)
                             || crate::tools::validate_call(call).is_ok()) =>
                 {
@@ -2459,6 +2528,23 @@ impl<'a> Runtime<'a> {
                 }
                 _ => Ok(policy.clone()),
             };
+            if let Err(error) = structural {
+                admission = Err(error.into());
+            }
+            if admission.is_ok()
+                && let Assembled::Call(call) = &guarded
+                && call.name == "opencode_session_rename"
+                && let Err(error) = self.rename_target(session, call).and_then(|()| {
+                    if turn_log.display["config_generation"].as_u64() == Some(self.generation_id())
+                    {
+                        Ok(())
+                    } else {
+                        Err("stale session generation".into())
+                    }
+                })
+            {
+                admission = Err(error.into());
+            }
             if matches!(&admission, Err(AdmissionFailure::Required)) {
                 return Err(RuntimeError::ApprovalRequired { tool: name.into() });
             }
@@ -2848,6 +2934,32 @@ impl<'a> Runtime<'a> {
                 rejection
             } else {
                 match unit {
+                    Assembled::Call(call) if call.name == "opencode_models" => {
+                        let published = self.current.read().expect("generation lock").clone();
+                        let secrets =
+                            super::mcp::mcp_redactions(&published.config, &self.parent_env);
+                        match crate::models::lookup::execute(
+                            &published.config,
+                            catalog,
+                            &call.arguments,
+                            &secrets,
+                        ) {
+                            Ok(output) => ("completed", output),
+                            Err(error) => ("failed", format!("error: {error}")),
+                        }
+                    }
+                    Assembled::Call(call) if call.name == "opencode_session_rename" => {
+                        let (title, target) =
+                            crate::tools::rename_input(&call.arguments).expect("validated rename");
+                        let target = target.unwrap_or(session);
+                        match self.commit_session_rename(target, title, target != session) {
+                            Ok(()) => (
+                                "completed",
+                                serde_json::json!({"sessionID":target,"title":title}).to_string(),
+                            ),
+                            Err(_) => ("failed", "error: session storage unavailable".into()),
+                        }
+                    }
                     Assembled::Call(call) if call.name == "question" => {
                         use oc_core::question::*;
                         use sha2::{Digest as _, Sha256};
