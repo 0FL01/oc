@@ -4,6 +4,9 @@ use super::*;
 use serde_json::{Value, json};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+#[path = "read_tests.rs"]
+mod read;
+
 fn runtime<'a>(db: &'a Db, project: &std::path::Path) -> Runtime<'a> {
     let mut generation = Generation {
         permissions: [

@@ -394,7 +394,7 @@ fn aud09_aud10_binary_exact_typed_tool_history_survives_restart() {
         respond(&mut socket, &output, None);
         expected.extend(output);
         expected.push(json!({"type": "function_call_output", "call_id": call_id,
-            "output": "temporary read evidence"}));
+            "output": "Read file note.txt, lines 1-1\n1: temporary read evidence"}));
     }
     let (mut socket, _, body) = fixture.accept();
     assert_eq!(body["input"], json!(expected), "both complete tool rounds");

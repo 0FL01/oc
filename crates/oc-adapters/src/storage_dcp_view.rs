@@ -73,7 +73,13 @@ impl Db {
                   AND (logs.id IN (SELECT value FROM json_each(?3)) OR NOT (i.value->>'$.type'='message' AND i.value->>'$.id' IS NULL AND i.value->>'$.phase' IS NULL AND i.value->>'$.status' IS NULL))
                   AND (i.value->>'$.type'!='function_call' OR EXISTS(SELECT 1 FROM json_each(logs.result,'$.input') answered WHERE answered.value->>'$.type'='function_call_output' AND answered.value->>'$.call_id'=i.value->>'$.call_id'))),
                 'call_id',a.value->>'$.call_id','result',json(a.value->'$.result')))
-                FROM json_each(logs.result,'$.native_mcp_results') a),'[]')))
+                 FROM json_each(logs.result,'$.native_mcp_results') a),'[]')),
+               'native_read_results',json(COALESCE((SELECT json_group_array(json_object(
+                 'input_index',(SELECT count(*) FROM json_each(logs.result,'$.input') i WHERE i.key<a.value->>'$.input_index'
+                   AND (logs.id IN (SELECT value FROM json_each(?3)) OR NOT (i.value->>'$.type'='message' AND i.value->>'$.id' IS NULL AND i.value->>'$.phase' IS NULL AND i.value->>'$.status' IS NULL))
+                   AND (i.value->>'$.type'!='function_call' OR EXISTS(SELECT 1 FROM json_each(logs.result,'$.input') answered WHERE answered.value->>'$.type'='function_call_output' AND answered.value->>'$.call_id'=i.value->>'$.call_id'))),
+                 'call_id',a.value->>'$.call_id','result',json(a.value->'$.result')))
+                 FROM json_each(logs.result,'$.native_read_results') a),'[]')))
               AS result,archive_rowid
             FROM logs WHERE id IN (SELECT value FROM json_each(?3)) OR block_id IS NOT NULL
           ) SELECT CASE WHEN length(CAST(result AS BLOB))<=?5 THEN result END FROM visible WHERE result->>'$._dcp_block' IS NULL OR json_array_length(result,'$.input')>0 ORDER BY archive_rowid LIMIT 4097")?;
@@ -588,7 +594,8 @@ impl Db {
                 .iter()
                 .filter_map(|i| match i {
                     crate::provider::InputItem::FunctionCallOutput { call_id, .. }
-                    | crate::provider::InputItem::McpFunctionCallOutput { call_id, .. } => {
+                    | crate::provider::InputItem::McpFunctionCallOutput { call_id, .. }
+                    | crate::provider::InputItem::ReadFunctionCallOutput { call_id, .. } => {
                         Some(call_id.clone())
                     }
                     _ => None,

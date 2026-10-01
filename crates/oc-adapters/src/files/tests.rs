@@ -202,7 +202,7 @@ async fn tool14_active_scan_cancel_refuses_partial_and_joins_before_next_query()
             }
         }
     }
-    for (name, phase) in [("grep", "hit"), ("glob", "candidate")] {
+    for (name, phase) in [("grep", "hit"), ("glob", "candidate"), ("read", "read")] {
         let (_tmp, mut files) = fixture();
         fs::write(files.root.join("a.rs"), "NEEDLE\nNEEDLE\n").unwrap();
         let (entered_tx, entered_rx) = tokio::sync::oneshot::channel();
@@ -251,7 +251,11 @@ async fn tool14_active_scan_cancel_refuses_partial_and_joins_before_next_query()
         let stopping = Arc::new(AtomicBool::new(false));
         let stop = stopping.clone();
         let call = |id: &str, tool: &str, args: serde_json::Value| serde_json::json!({"type":"function_call","id":id,"call_id":id,"name":tool,"arguments":args.to_string(),"status":"completed"});
-        let args = serde_json::json!({"pattern":if name=="grep" {"NEEDLE"} else {"*.rs"}});
+        let args = if name == "read" {
+            serde_json::json!({"path":"a.rs"})
+        } else {
+            serde_json::json!({"pattern":if name=="grep" {"NEEDLE"} else {"*.rs"}})
+        };
         let script = vec![
             vec![
                 call("active", name, args.clone()),

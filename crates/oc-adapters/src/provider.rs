@@ -208,6 +208,12 @@ pub enum InputItem {
         call_id: String,
         output: crate::mcp_result::McpToolOutput,
     },
+    /// Native validated local read image, with separate local-source provenance.
+    #[serde(rename = "function_call_output")]
+    ReadFunctionCallOutput {
+        call_id: String,
+        output: crate::tools::read::ReadToolOutput,
+    },
     /// Complete output item, including opaque fields and assistant phase.
     #[serde(untagged)]
     ProviderOutput(serde_json::Value),
@@ -256,6 +262,7 @@ impl InputItem {
         match self {
             Self::FunctionCallOutput { call_id, output } => Some((call_id, output)),
             Self::McpFunctionCallOutput { call_id, output } => Some((call_id, output.display())),
+            Self::ReadFunctionCallOutput { call_id, output } => Some((call_id, output.display())),
             _ => None,
         }
     }

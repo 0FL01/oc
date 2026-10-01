@@ -467,13 +467,13 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
     vec![
         ToolDef {
             name: "read".to_string(),
-            description: "Read a project file slice. `path` is relative to the project root; `offset` is the 1-based first line, `limit` caps lines (default 50)."
+            description: "Read a project file or directory. Text has 1-based line references; directories are sorted with directories first. offset is 1-based, limit defaults to 2000. Validated PNG/JPEG/GIF/WebP images are inline content for image-capable selected Responses models; PDF is unsupported. Native no-follow, permission, data-root, 1 MiB file scan and 65536-byte page budgets apply."
                 .to_string(),
             parameters: schema(
                 serde_json::json!({
                     "path": {"type": "string"},
-                    "offset": {"type": "integer"},
-                    "limit": {"type": "integer"},
+                    "offset": {"type": "integer", "minimum":1, "maximum":1000000, "default":1},
+                    "limit": {"type": "integer", "minimum":1, "maximum":2000, "default":2000},
                 }),
                 &["path"],
             ),

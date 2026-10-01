@@ -511,16 +511,23 @@ impl Runtime<'_> {
         let mut transcript = history.clone();
         let mut media_pairs = Vec::new();
         for (index, item) in history.iter().enumerate() {
-            if let InputItem::McpFunctionCallOutput { call_id, output } = item
-                && output.has_media()
-            {
+            let media = match item {
+                InputItem::McpFunctionCallOutput { call_id, output } if output.has_media() => {
+                    Some((call_id, output.display()))
+                }
+                InputItem::ReadFunctionCallOutput { call_id, output } => {
+                    Some((call_id, output.display()))
+                }
+                _ => None,
+            };
+            if let Some((call_id, display)) = media {
                 let call = history[..index].iter().rev().find(|i| {
                     matches!(i, InputItem::ProviderOutput(v) if v["type"] == "function_call" && v["call_id"].as_str() == Some(call_id.as_str()))
                 }).ok_or(RuntimeError::Storage)?;
                 media_pairs.extend([call.clone(), item.clone()]);
                 transcript[index] = InputItem::FunctionCallOutput {
                     call_id: call_id.clone(),
-                    output: output.display().into(),
+                    output: display.into(),
                 };
             }
         }

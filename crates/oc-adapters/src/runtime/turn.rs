@@ -858,6 +858,19 @@ impl<'a> Runtime<'a> {
         let assembled_estimate = estimate_tokens(
             &serde_json::to_string(&(&fixed_input, &admitted_history, &prompt_input, &tool_defs))
                 .map_err(|_| RuntimeError::Storage)?,
+        )
+        .saturating_add(
+            admitted_history
+                .iter()
+                .filter_map(|item| match item {
+                    InputItem::ReadFunctionCallOutput { output, .. } => Some(
+                        output
+                            .estimated_tokens()
+                            .saturating_add((output.facts().to_string().len() as u64).div_ceil(4)),
+                    ),
+                    _ => None,
+                })
+                .sum::<u64>(),
         );
         let compaction_config = published.config.compaction.clone();
         let usage_scope = crate::compaction::fingerprint(&(
@@ -1320,7 +1333,35 @@ impl<'a> Runtime<'a> {
                 .collect();
             let request_estimate = estimate_tokens(
                 &serde_json::to_string(&(&input, &tool_defs)).map_err(|_| RuntimeError::Storage)?,
+            )
+            .saturating_add(
+                input
+                    .iter()
+                    .filter_map(|item| match item {
+                        InputItem::ReadFunctionCallOutput { output, .. } => {
+                            Some(output.estimated_tokens().saturating_add(
+                                (output.facts().to_string().len() as u64).div_ceil(4),
+                            ))
+                        }
+                        _ => None,
+                    })
+                    .sum::<u64>(),
             );
+            let read_log_base = turn_log.to_json().to_string().len();
+            let read_context_bytes = serde_json::to_vec(&input)
+                .map_err(|_| RuntimeError::Storage)?
+                .len()
+                .saturating_add(
+                    input
+                        .iter()
+                        .filter_map(|item| match item {
+                            InputItem::ReadFunctionCallOutput { output, .. } => {
+                                Some(output.facts().to_string().len())
+                            }
+                            _ => None,
+                        })
+                        .sum::<usize>(),
+                );
             if let Err(error) = models::admit_budget(&selection, request_estimate, budget) {
                 let mut report = self.commit_turn(
                     &turn_log,
@@ -2067,6 +2108,14 @@ impl<'a> Runtime<'a> {
                     &state_key,
                     &mut tool_projection,
                     tool_event,
+                    selection
+                        .entry
+                        .pointer("/modalities/input")
+                        .and_then(serde_json::Value::as_array)
+                        .is_some_and(|m| m.iter().any(|v| v == "image")),
+                    budget.input.saturating_sub(request_estimate),
+                    ACTIVE_CONTEXT_BYTES_CAP.saturating_sub(read_context_bytes),
+                    read_log_base,
                 )
                 .await;
             tool_event(
@@ -2370,10 +2419,16 @@ impl<'a> Runtime<'a> {
         nudge_key: &str,
         tool_projection: &mut crate::storage::DcpToolProjection,
         tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
+        read_images: bool,
+        read_tokens: u64,
+        read_bytes: usize,
+        read_log_base: usize,
     ) -> Result<(Vec<CallRecord>, bool, bool), RuntimeError> {
         let mut records = Vec::new();
         let mut projection_changed = false;
         let mut permission_rejected = false;
+        let mut read_extra_bytes = 0usize;
+        let mut read_visual_tokens = 0u64;
         for (i, unit) in units.iter().enumerate() {
             let (id, name, input) = match unit {
                 Assembled::Call(call) => (&call.id, call.name.as_str(), call.arguments.to_string()),
@@ -2787,6 +2842,8 @@ impl<'a> Runtime<'a> {
             }
             let mut patch_effects = None;
             let mut native_mcp_result = None;
+            let mut native_read_result = None;
+            let mut read_directory = false;
             let (state, output) = if let Some(rejection) = rejection {
                 rejection
             } else {
@@ -2878,7 +2935,9 @@ impl<'a> Runtime<'a> {
                         patch_effects = effects;
                         (output_state(&output), output)
                     }
-                    Assembled::Call(call) if matches!(call.name.as_str(), "glob" | "grep") => {
+                    Assembled::Call(call)
+                        if matches!(call.name.as_str(), "read" | "glob" | "grep") =>
+                    {
                         // Same bounded spawn_blocking/join strategy as foreground
                         // shell. Capture this invocation's immutable authority,
                         // not a reloaded generation or another session's token.
@@ -2906,7 +2965,24 @@ impl<'a> Runtime<'a> {
                                 mcp: &[],
                                 permit,
                             };
-                            crate::tools::execute_search(&files, &policy, &token, &call)
+                            if call.name == "read" {
+                                crate::tools::read::execute(
+                                    &files,
+                                    &policy,
+                                    &token,
+                                    &call,
+                                    read_images,
+                                )
+                            } else {
+                                let (state, output) =
+                                    crate::tools::execute_search(&files, &policy, &token, &call);
+                                crate::tools::read::Outcome {
+                                    state,
+                                    output,
+                                    image: None,
+                                    directory: false,
+                                }
+                            }
                         });
                         let result = loop {
                             tokio::select! {
@@ -2921,9 +2997,38 @@ impl<'a> Runtime<'a> {
                         if ctx.cancel.load(Ordering::Acquire) {
                             ("cancelled", "error: cancelled".into())
                         } else {
-                            result.unwrap_or_else(|_| {
-                                ("failed", "error: search worker failed".into())
-                            })
+                            let mut result = result.unwrap_or_else(|_| {
+                                crate::tools::read::Outcome::error(
+                                    "failed",
+                                    "read/search worker failed",
+                                )
+                            });
+                            if let Some(image) = &result.image {
+                                let retained = image.retained_bytes();
+                                let growth = turn_log
+                                    .to_json()
+                                    .to_string()
+                                    .len()
+                                    .saturating_sub(read_log_base);
+                                let bytes = growth
+                                    .saturating_add(read_extra_bytes)
+                                    .saturating_add(retained);
+                                let visual =
+                                    read_visual_tokens.saturating_add(image.estimated_tokens());
+                                let tokens = visual.saturating_add((bytes as u64).div_ceil(4));
+                                if tokens > read_tokens || bytes > read_bytes {
+                                    result = crate::tools::read::Outcome::error(
+                                        "failed",
+                                        "image exceeds selected model or retained-context budget; compress context or use a smaller image",
+                                    );
+                                } else {
+                                    read_extra_bytes = read_extra_bytes.saturating_add(retained);
+                                    read_visual_tokens = visual;
+                                }
+                            }
+                            native_read_result = result.image;
+                            read_directory = result.directory;
+                            (result.state, result.output)
                         }
                     }
                     Assembled::Call(call) if matches!(call.name.as_str(), "shell" | "bash") => {
@@ -2991,6 +3096,11 @@ impl<'a> Runtime<'a> {
                         call_id: id.clone(),
                         output: native,
                     }
+                } else if let Some(native) = native_read_result {
+                    InputItem::ReadFunctionCallOutput {
+                        call_id: id.clone(),
+                        output: native,
+                    }
                 } else {
                     InputItem::FunctionCallOutput {
                         call_id: id.clone(),
@@ -3024,7 +3134,7 @@ impl<'a> Runtime<'a> {
                     &roots,
                     &self.files,
                     path,
-                    false,
+                    read_directory,
                     instruction_generation,
                     &self.roots.data,
                     invocation_policy,

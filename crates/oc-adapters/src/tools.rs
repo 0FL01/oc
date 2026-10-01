@@ -30,6 +30,7 @@ use crate::provider::StreamItem;
 use crate::shell::{Shell, ShellLimits};
 use crate::storage::Db;
 
+pub mod read;
 pub(crate) mod shell_call;
 
 /// Model-visible tool names; `write`/`edit` must never appear here.
@@ -609,7 +610,7 @@ pub(crate) fn validate_call(call: &ToolCall) -> Result<(), String> {
             .is_some_and(|s| !s.is_empty())
     };
     let valid = match call.name.as_str() {
-        "read" => nonempty("path"),
+        "read" => return read::parse(call).map(|_| ()),
         "glob" => {
             return parse_glob_args(call)
                 .map(|_| ())
@@ -836,37 +837,7 @@ fn parse_search_page(
 }
 
 fn tool_read(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
-    let path = call
-        .arguments
-        .get("path")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-    if path.is_empty() {
-        return "error: invalid arguments for read: missing path".to_string();
-    }
-    let offset = call
-        .arguments
-        .get("offset")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(1);
-    let limit = call
-        .arguments
-        .get("limit")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(50) as usize;
-    match ctx.files.read(path, offset, limit) {
-        Ok(result) => {
-            let mut text = result.lines.join("\n");
-            if result.truncated {
-                text.push_str(&format!(
-                    "\n[truncated, next_offset={}]",
-                    result.next_offset.unwrap_or(0)
-                ));
-            }
-            text
-        }
-        Err(e) => format!("error: {e}"),
-    }
+    read::execute(ctx.files, ctx.policy, ctx.cancel, call, false).output
 }
 
 /// The same typed search path is used by direct batches and the runtime's
@@ -1403,7 +1374,7 @@ impl TurnLog {
 
     /// Serialize for the turn row.
     pub fn to_json(&self) -> serde_json::Value {
-        let (input, native_mcp) = self.encode_mcp_input();
+        let (input, native_mcp, native_read) = self.encode_mcp_input();
         let mut value = serde_json::json!({
             "instruction_references": self.instruction_references,
             "display": self.display,
@@ -1421,6 +1392,9 @@ impl TurnLog {
         });
         if !native_mcp.is_empty() {
             value["native_mcp_results"] = native_mcp.into();
+        }
+        if !native_read.is_empty() {
+            value["native_read_results"] = native_read.into();
         }
         value
     }

@@ -283,6 +283,12 @@ pub(crate) fn apply_dcp_projection(
             *occurrence += 1;
             !projection.hidden.contains(&key)
         }
+        InputItem::ReadFunctionCallOutput { call_id, .. } => {
+            let occurrence = outputs.entry(call_id.clone()).or_default();
+            let key = (call_id.clone(), *occurrence);
+            *occurrence += 1;
+            !projection.hidden.contains(&key)
+        }
         _ => true,
     });
 }
@@ -308,6 +314,7 @@ pub(crate) fn dcp_contents(input: &[InputItem]) -> Vec<&str> {
             InputItem::McpFunctionCallOutput { output, .. } => {
                 content.extend(output.texts().iter().map(String::as_str))
             }
+            InputItem::ReadFunctionCallOutput { output, .. } => content.push(output.display()),
             InputItem::ProviderOutput(value) => {
                 if value["type"] == "function_call" {
                     if let Some(arguments) = value["arguments"].as_str() {
@@ -396,6 +403,14 @@ pub(crate) fn dcp_call_contents(
                 *occurrence += 1;
                 if !projection.hidden.contains(&key) {
                     values.entry(key).or_default().1 = output.texts().join("\n");
+                }
+            }
+            InputItem::ReadFunctionCallOutput { call_id, output } => {
+                let occurrence = outputs.entry(call_id.clone()).or_default();
+                let key = (call_id.clone(), *occurrence);
+                *occurrence += 1;
+                if !projection.hidden.contains(&key) {
+                    values.entry(key).or_default().1 = output.display().into();
                 }
             }
             _ => {}

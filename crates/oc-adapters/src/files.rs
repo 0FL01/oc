@@ -11,6 +11,7 @@ use std::path::{Component, Path, PathBuf};
 
 use thiserror::Error;
 
+pub(crate) mod read;
 pub(crate) mod search;
 
 /// Per-call read byte cap (mirrors `preview_bytes` 65536).
@@ -111,6 +112,7 @@ pub struct FileSuggestionResult {
 pub struct Files {
     root: PathBuf,
     data_root: PathBuf,
+    read_root: Result<std::sync::Arc<File>, FileToolError>,
     #[cfg(test)]
     scan_barrier: Option<std::sync::Arc<ScanBarrier>>,
 }
@@ -258,6 +260,8 @@ impl Files {
         Ok(Self {
             root: project_root.to_path_buf(),
             data_root: data_root.to_path_buf(),
+            read_root: open_suggest_root(&normalize_suggest_root(project_root))
+                .map(std::sync::Arc::new),
             #[cfg(test)]
             scan_barrier: None,
         })
@@ -265,39 +269,16 @@ impl Files {
 
     /// Bounded file/range read.
     pub fn read(&self, path: &str, offset: u64, limit: usize) -> Result<ReadResult, FileToolError> {
-        let abs = self.resolve(path)?;
-        let meta = std::fs::symlink_metadata(&abs).map_err(|_| FileToolError::NotFound)?;
-        if meta.file_type().is_dir() {
-            return Err(FileToolError::InvalidPattern("is a directory".to_string()));
+        match self.read_admitted(
+            path,
+            offset.max(1),
+            limit.clamp(1, READ_LINES_CAP),
+            |_| true,
+            &std::sync::atomic::AtomicBool::new(false),
+        )? {
+            read::Content::Text(page) => Ok(page),
+            _ => Err(FileToolError::Binary),
         }
-        if !meta.file_type().is_file() {
-            return Err(FileToolError::NotFound);
-        }
-        let bytes = std::fs::read(&abs).map_err(|_| FileToolError::Io)?;
-        if bytes.contains(&0) {
-            return Err(FileToolError::Binary);
-        }
-        let text = String::from_utf8_lossy(&bytes);
-        let all: Vec<&str> = text.lines().collect();
-        let start = offset.saturating_sub(1).min(all.len() as u64) as usize;
-        let want = limit.clamp(1, READ_LINES_CAP);
-        let mut used = 0usize;
-        let mut lines = Vec::new();
-        for line in all.iter().skip(start).take(want) {
-            used += line.len() + 1;
-            if used > READ_BYTES_CAP && !lines.is_empty() {
-                break;
-            }
-            lines.push(line.to_string());
-        }
-        let end = start + lines.len();
-        let truncated = end < all.len();
-        Ok(ReadResult {
-            offset: offset.max(1),
-            lines,
-            truncated,
-            next_offset: truncated.then_some(end as u64 + 1),
-        })
     }
 
     /// Stable sorted paginated glob over relative paths.

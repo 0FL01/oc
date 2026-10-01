@@ -499,7 +499,7 @@ async fn t47_admission_counts_tool_schemas_and_rechecks_tool_results() {
         let script = sse_tool_call(
             "read-large",
             "read",
-            &serde_json::json!({"path":"large.txt", "limit":4_000}),
+            &serde_json::json!({"path":"large.txt", "limit":2_000}),
         ) + &sse_completed();
         let (base, hits, _) = Fake::start_recording(vec![script], Duration::ZERO);
         let result = runtime

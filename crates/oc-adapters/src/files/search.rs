@@ -97,7 +97,7 @@ impl GrepOptions<'_> {
     }
 }
 
-struct Budget<'a> {
+pub(super) struct Budget<'a> {
     start: Instant,
     entries: usize,
     bytes: u64,
@@ -106,8 +106,15 @@ struct Budget<'a> {
     barrier: Option<std::sync::Arc<ScanBarrier>>,
 }
 
+#[cfg(test)]
+pub(super) fn read_checkpoint(files: &Files, cancel: &AtomicBool) -> Result<(), FileToolError> {
+    let mut budget = Budget::new(Some(cancel));
+    budget.barrier = files.scan_barrier.clone();
+    budget.checkpoint("read")
+}
+
 impl<'a> Budget<'a> {
-    fn new(cancel: Option<&'a AtomicBool>) -> Self {
+    pub(super) fn new(cancel: Option<&'a AtomicBool>) -> Self {
         Self {
             start: Instant::now(),
             entries: 0,
@@ -117,7 +124,7 @@ impl<'a> Budget<'a> {
             barrier: None,
         }
     }
-    fn check(&self) -> Result<(), FileToolError> {
+    pub(super) fn check(&self) -> Result<(), FileToolError> {
         if self
             .cancel
             .is_some_and(|cancel| cancel.load(Ordering::Acquire))

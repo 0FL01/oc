@@ -323,9 +323,20 @@ async fn scenario(
             "max signed offset cannot be incremented by SQLite indexing"
         );
         assert!(
-            app.tool_output_page(sessions[0].clone(), read.op.clone(), 1, 4)
-                .await
-                .is_err(),
+            app.tool_output_page(
+                sessions[0].clone(),
+                read.op.clone(),
+                first
+                    .text
+                    .char_indices()
+                    .find(|(_, c)| !c.is_ascii())
+                    .expect("Unicode fixture body after read header")
+                    .0
+                    + 1,
+                4
+            )
+            .await
+            .is_err(),
             "mid-character offsets must not return zero progress"
         );
         assert!(

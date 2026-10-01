@@ -1162,9 +1162,11 @@ fn s07_pty_equal_view_archive_resource_samples() {
             .collect();
         assert_eq!(read_outputs.len(), 1, "{label}: exactly one read result");
         assert!(
-            read_outputs[0]["output"]
-                .as_str()
-                .is_some_and(|text| text == S07_NOTE.trim_end()),
+            read_outputs[0]["output"].as_str().is_some_and(|text| text
+                == format!(
+                    "Read file s07-note.txt, lines 1-1\n1: {}",
+                    S07_NOTE.trim_end()
+                )),
             "{label}: read must return the seeded file: {read_outputs:?}"
         );
         assert_eq!(

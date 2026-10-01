@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-01T02:58:18+00:00
+State updated: 2026-10-01T05:07:47+00:00
 Active: T50
 
 Сверить Git status/diff до выполнения команд.
@@ -14,13 +14,13 @@ Owner-approved 2026-09-27 tool RECON: built-in websearch/provider integrations �
 
 # T50
 ## Result
-R5 RED: default50 and absent nested instructions; read.md.
+R5/TOOL16 verified: numbered text, directories, typed validated images.
 ## Checks
-Both retained ELFs: 2 RED guards each; no production changes.
+Workspace1380 PASS; owner8; normal ELF20 each; Python47.
 ## Risks
-Approved T45/R10 prerequisite unfinished, not external blockage.
+Cooperative syscall cancellation; full T50/R6–R8 open.
 ## Next
-Implement shared nested instruction owner, then resume R5.
+R6 webfetch formats and total deadline, then model/session tools.
 
 
 Ready (до 5): T53
