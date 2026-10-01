@@ -26,7 +26,7 @@ and evidence: T50/R1/R9/TOOL12/TOOL20, T45/PRM01 and T44 visual consumers.
 
 ## Built-ins
 
-`read`: bounded чтение файла/диапазона строк с path/offset/limit, явные truncated/next cursor и blob reference при необходимости. Директории и binary contents обрабатываются явно; не грузить весь репозиторий. `read`, `glob`, `grep` и файловые mutations (`apply_patch`/`edit`/`write`) отклоняют own data root, включая direct path и symlink escape. `glob`/`grep` дают stable sorted paginated matches с bounded files/bytes/time. Plain literal/regex режимы явно различимы; не писать custom regex engine.
+`read`: bounded чтение файла/диапазона строк с path/offset/limit, явные truncated/next cursor и blob reference при необходимости. Директории и binary contents обрабатываются явно; не грузить весь репозиторий. `read`, `glob`, `grep` и файловые mutations (`apply_patch`/`edit`/`write`) отклоняют own data root, включая direct path и symlink escape. Pending T50/R10 ниже разрешает только точный registered artifact для authorized read/grep, не directory/glob/mutation или произвольный blob. `glob`/`grep` дают stable sorted paginated matches с bounded files/bytes/time. Plain literal/regex режимы явно различимы; не писать custom regex engine.
 
 `apply_patch`: один JSON argument `patchText` с upstream-style `*** Begin Patch` / Add File / Update File / Delete File / Move to / End Patch. Не смешивать с provider-hosted Responses `apply_patch` schema. В M2 сохранить parser fixtures выбранного OpenCode baseline; политика unsafe paths — наша.
 
@@ -112,7 +112,9 @@ pagination and explicit malformed/budget outcomes remain. Pattern ≤4096 bytes,
 per-file read ≤1 MiB, aggregate scan ≤16 MiB,
 hit text ≤2 KiB на UTF-8 boundary. Files открываются no-follow/nonblocking и после
 fstat читаются только regular; FIFO/device не блокируют runtime. Budget exhaustion
-видим, не подменяется silent partial success.
+видим, не подменяется silent partial success. R10 exact-artifact route streams beyond
+ordinary1 MiB file admission without relaxing ordinary project scans, aggregate/time/
+hit budgets or no-follow/session/policy checks.
 
 `compress` — ordinary function tool из DCP.md; файл на диске не меняет. Schema
 точно `{topic,content:[{startId,endId,summary}]}`. Он использует тот же permission
@@ -172,7 +174,7 @@ ASCII-границам (`<`, `>`, `;`), поэтому UTF-8 сохраняет�
 паниковать; named/numeric entities декодируются, malformed/unclosed разметка
 переносится без паники.
 
-## T40 qualification — bounded active context и retention
+## T40 historical qualification — bounded active context и retention
 
 Активная projection строится по ссылкам/страницам: `read_history_full`
 остаётся только у явного owner-действия (manual `/dcp-compress` над видимым
@@ -184,13 +186,62 @@ bytes/cap и советом compress/prune, а не потерю фактов. �
 токенов (bytes/4) документирована как оценка, а не как точный счётчик
 конкретной proxy-модели.
 
-Tool output: UI-строка операции отдаёт bounded preview с маркером `…[+N]` и
-точным `output_bytes`; полный result хранится один раз в
+Tool output в историческом T40 срезе: UI-строка операции отдаёт bounded preview с
+маркером `…[+N]` и точным `output_bytes`; полный result доступен в
 `tool_operations.output` и читается продолжением
 `read_tool_op_output(op, offset, limit)` (байтовые окна по UTF-8-границам,
-`next_offset`). Модель по-прежнему получает полный result в turn log —
-preview никогда не подменяет доступные модели данные. Ввод TUI ограничен тем
-же лимитом, что и core, а превышение видно в note.
+`next_offset`). Модель также получает полный result в turn log — это не доказательство
+единственной full-copy во всём runtime и не файловый `read(path)` для модели.
+Ввод TUI ограничен тем же лимитом, что и core, а превышение видно в note.
+Ни исторический PASS, ни этот UI preview не квалифицирует общий tool-output limiter.
+
+## Tool-output previews и filesystem continuation — T50/R10/TOOL21 (pending)
+
+Owner-approved2026-10-01 [contract/RECON/ordered slices](goals/2026-09-27-native-tool-parity.md#tool-output--r10tool21-approved-2026-10-01-pending)
+narrowly supersedes full-inline publication for **new oversized admitted text**,
+discard-before-shell-capture and exact-artifact data-root read/search denial.
+Small inline results and legacy raw records stay unchanged/immutable. This is not
+implemented behavior at RECON HEAD8a4291d13; historical T40 evidence remains factual.
+
+- Common prepared-result boundary runs before provider input/new durable outcome/
+  TurnLog/UI cloning for local built-ins, MCP text/structured-text projection, fetch
+  and skill bodies. Configured2000-line/51200-byte defaults keep general head or shell
+  tail; UTF-8, shared multipart text count and bounded reserved reference/notice within
+  native64 KiB served-text envelope. No `metadata.truncated:true/false` bypass. Preserve
+  typed control JSON/effects/error status and separately admitted media under its caps.
+- One cold normalized/redacted text capture in `<native-data-root>/tool-output/` is
+  registered by the existing Db owner with operation/session/source generation, actual
+  readable extent and capture state. Hot result holds preview/ref/counts/guidance, not
+  full text repeated across SQLite/TurnLog/resident history. Stream UI/model reads;
+  keep legacy SQLite APIs compatible, no whole-artifact `read_blob`/second archive.
+- Shell drains tee admitted text before old1 MiB-per-stream discard and keep bounded
+  recent/tail RAM. Foreground/background/live viewer/final notice/same-process Ctrl+B
+  share one capture identity/final flush. Slow/failing disk, quota/cap or endless flood
+  never require unbounded queues; continue drain/cancel/reap with explicit capture loss.
+  Process exit/effects and log capture state are separate, no auto-rerun to repair a log.
+- Complete means all admitted text was captured, not full HTTP body rejected at input,
+  media/base64, unredacted secrets or discarded producer bytes. Native artifact cap16 MiB,
+  shared existing quota default2 GiB and completed TTL7 days are explicit differences
+  from donor full-file retention without a byte quota. Preview-truncated can still be capture-complete;
+  producer/cap/quota/IO/cancel loss is incomplete with actual readable prefix or no path.
+  Failed durable storage/cleanup remains non-success, never unlimited inline fallback.
+- Exact registered artifact can be accessed by model `read(path,offset,limit)` or
+  `grep` under session/already authorized owned-lineage/provenance/effective Deny,
+  trust/no-follow/identity/regular-file checks. Stream beyond ordinary file1 MiB with
+  bounded page/scan/time/hit/model budgets and honest next cursors. No directory/glob,
+  arbitrary blob/SQLite/WAL/config access or widening mutation authority; guessed path
+  and quoted/forked child references grant nothing. No AGENTS discovery from log paths.
+- Existing owner protects active writer/reader leases, publishes readable extents
+  crash-safely and cleans completed captures after7 days. Expired/missing is explicit
+  on read; immutable outcome/ref/history and ordinary referenced blobs are not deleted.
+  Restart/model-switch/move/DCP/compact retain current bounded refs, not automatic
+  full-artifact/archive loading or producer replay.
+
+TOOL21 actual rebuilt debug/release large-output → next-request preview/path → real
+read/grep → distant fact → useful continuation is mandatory. TOOL13/TOOL16 own their
+existing lifecycle/media cases; AUD34/LOAD02/STORE04/A05/A10 retain ownership and provide
+regressions/resource/crash receipts. Existing T44 presentation qualification stays
+separate and PAUSED; no new task/store/framework/paid campaign or historical PASS rewrite.
 
 ## Permissions caveat
 

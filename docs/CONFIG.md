@@ -130,6 +130,60 @@ qualified merely by accepted fields or old snapshot tests; their required runtim
 effects need current evidence. DCP12 proves default/threshold/config-resolution
 behavior, not completion of all these other outcomes.
 
+## Tool-output configuration — T50/R10/TOOL21 (approved 2026-10-01; pending)
+
+Frozen [tool-output contract](goals/2026-09-27-native-tool-parity.md#tool-output--r10tool21-approved-2026-10-01-pending)
+adds a root upstream-compatible section in admitted `opencode.json`/`opencode.jsonc`.
+At RECON HEAD8a4291d13 native `Generation`/loader ignore this section: this is an
+approved target, **not current configurable support**. Do not add it to executable
+examples or rewrite user configuration to imply otherwise.
+
+```jsonc
+{
+  // Target configuration; both fields are optional, defaults shown.
+  "tool_output": {
+    "max_lines": 2000,
+    "max_bytes": 51200,
+  },
+}
+```
+
+- Both fields are positive integers: no0/negative/fraction/string/overflow, null,
+  disabled/unlimited sentinel or malformed section. Units are logical lines and UTF-8
+  bytes of admitted text, not characters/tokens/media. Default byte count is50 KiB,
+  not50,000. No per-agent/per-tool override or new retention/quota key in this section.
+- Use existing global/explicit/Location/.opencode source order and provenance, but
+  **last defining section replaces the whole section**, not field-wise deep merge.
+  Earlier `{max_bytes:4096}` then later `{max_lines:40}` gives40/51200. Later `{}`
+  restores2000/51200; an absent section does not shadow an earlier definition. Expose
+  selected section/shadowed origins and defaulted fields without expanded secrets.
+- Reject `max_bytes` above native64 KiB served-text safety ceiling with safe source/
+  field diagnostics; positive line values never remove independent byte bounds.
+  Preview body uses both configured caps, plus a separately bounded reserved artifact/
+  count/status notice within total served-text64 KiB. Tiny limits can give empty body
+  plus useful reference; selected request/model admission still applies. Further
+  native limiting is explicit, not silent unlimited/clamping or a false full result.
+- General text previews keep head, shell tail; joined text parts share one budget,
+  terminal newline adds no synthetic line, huge lines clip on UTF-8 boundaries with
+  explicit continuation/loss facts. Existing producer `truncated` metadata does not
+  waive the common check. Image/media, HTTP/MCP/input and structured-control caps are
+  separate; a file reference does not bypass them or turn unsupported media into success.
+- Parse into the same typed immutable config generation. Publish only the complete
+  admitted candidate; invalid reload retains the previous generation and effective
+  settings. Existing safe-boundary reload affects newly admitted turns/jobs, not
+  in-flight prepared results or running background jobs. Model/variant switch is not
+  config reload; stored previews/references/counts are not recomputed on reopen.
+
+Oversized admitted normalized/redacted text is retained by the existing native
+Db owner under `tool-output/`, with a model-readable exact registered path. Initial
+artifact ceiling16 MiB, existing shared storage quota default2 GiB and completed
+artifact TTL7 days are native safety differences, **not donor `tool_output` fields**
+or implemented TOML controls. Capture loss/IO/quota/expiry is explicit; no full-inline
+fallback, producer replay, arbitrary native-root access or automatic cold rehydration.
+TOOL21 qualifies config → bounded provider result → filesystem → authorized read/grep
+continuation, reusing TOOL13/TOOL16/AUD34/LOAD02/STORE04. Parser success, a UI2048-byte
+preview and old SQLite continuation alone do not qualify this behavior.
+
 ## Instructions и definitions
 
 `AGENTS.md` — не config override. Effective instructions состоят из canonical-deduplicated `G/AGENTS.md`, затем applicable Location files в pinned nearest-working-directory-to-root order; distinct sentinel каждого admitted файла входит ровно один раз с provenance. Unreadable/disappeared file даёт diagnostic и не сохраняет текст из старой candidate. Reload возможен только между turns.
@@ -264,7 +318,7 @@ implementation, not by advertising an unsupported setting as already functional.
 
 Пример TOML — контракт будущего parser, не config существующего upstream. Числа имеют явные units в key. `provider.options.timeout/chunkTimeout` upstream имеют их собственную semantics; не применять discovery milliseconds как generation timeout.
 
-Initial safety defaults предложены этой редакцией, меняются осмысленным config/decision и не являются измеренными performance budgets. Per-event 4 MiB, model tool args 2 MiB, serialized request 24 MiB (ниже observed proxy cap 32 MiB), preview 64 KiB, retained tool output 16 MiB, active queue 8 MiB, blob quota 2 GiB, max turns 128/запуск. Не выделять все capacity upfront.
+Initial safety defaults предложены этой редакцией, меняются осмысленным config/decision и не являются измеренными performance budgets. Per-event 4 MiB, model tool args 2 MiB, serialized request 24 MiB (ниже observed proxy cap 32 MiB), preview 64 KiB, retained tool output 16 MiB, active queue 8 MiB, blob quota 2 GiB, max turns 128/запуск. Не выделять все capacity upfront. T50/R10 отдельно freezes tool-output body defaults2000/51200, served-text ceiling64 KiB, artifact ceiling16 MiB/shared2 GiB/TTL7 days и readable registered artifacts; это pending план, не реализация всего TOML limits parser и не замена актуальных transport caps.
 
 Превышение explicit limit видно как error/truncated + counters; history не silently удаляется для продолжения. Адмиссия контекста отдельно учитывает input/output/model limits. Не забывать input base64 expansion у attachments.
 

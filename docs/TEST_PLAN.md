@@ -629,7 +629,7 @@ T44 visual qualification remains separate and PAUSED until explicit resume.
 
 ## T50 selected native tools qualification (approved 2026-09-27; pending)
 
-TOOL12–TOOL20 in planning/acceptance.json have only T50 as owner; relevant high-level
+TOOL12–TOOL21 in planning/acceptance.json have only T50 as owner; relevant high-level
 A02/A03/A04/A05/A06/A07/A08/A10/A13 and existing detailed scenarios stay regressions,
 not reassigned owners. Use pinned donor fixtures and actual binary calls/results;
 helper-only tests, fixture table tool names and document validation are insufficient.
@@ -677,11 +677,99 @@ helper-only tests, fixture table tool names and document validation are insuffic
 - TOOL20 covers real edit/write semantics/shared mutation admission/durable effects,
   using the source fixtures and actual-binary procedure below. It is not a second
   owner of old patch/permission/DCP/crash tests or a visual PASS claim.
+- TOOL21 adds the common configurable limiter/filesystem/read-search chain below.
+  TOOL13/TOOL16 and AUD34/LOAD02/STORE04 keep original owners; their nearest receipts
+  are reused, not copied/reassigned or relabelled PASS by this plan amendment.
 
 Run nearest targeted evidence per minimal slice, then affected crate/integration
 and mandatory final workspace gates, rebuilt debug/release binaries and existing
 bounded live envelope. No new paid search campaign or live-budget expansion. Keep
 historical reports and task statuses unchanged until real qualification.
+
+### Tool-output filesystem continuation — TOOL21 (approved 2026-10-01; pending)
+
+Finish line/source comparison: [T50/R10](goals/2026-09-27-native-tool-parity.md#tool-output--r10tool21-approved-2026-10-01-pending).
+TOOL21 belongs only to T50; one bounded offline fake-provider campaign on rebuilt
+debug/release `oc` proves real result/config/filesystem/provider behavior. Freeze
+workload sizes/barriers/sentinel positions before execution. Helper tests and UI
+`read_session_tool_output` are not the model `read(path)` acceptance surface.
+
+1. **Config/counting fixtures.** Nearest config/result-owner tests use admitted global/
+   Location/.opencode JSON/JSONC and prove missing/default2000/51200, supplied fields,
+   later-section wholesale replacement (earlier4096 bytes/later40 lines →40/51200),
+   empty section/defaults, safe provenance, invalid shape/zero/negative/fraction/string/
+   overflow/byte-ceiling diagnostics and atomic failed reload. Barrier-held old job
+   keeps captured settings, newly admitted work after reload uses new generation;
+   model switch alone never applies new config. No user config/secret extraction.
+   Count joined multipart UTF-8 bytes/lines, CRLF/trailing newline, exact boundary/
+   over-limit, many short lines and one huge Unicode line. General head versus shell
+   tail, bounded reserved marker + total64 KiB, tiny-limit empty preview/ref, exact
+   loss versus producer-incomplete counters are explicit. Fake `truncated:false/true`
+   cannot bypass common preparation; do not inherit donor bypass as desired behavior.
+2. **Actual model chain.** Start a normal owned shell via actual provider tool call.
+   Emit >1 MiB but <16 MiB normalized synthetic text, >2000 lines and >51200 bytes;
+   put unique sentinel beyond old per-stream1 MiB and outside final bounded tail.
+   Capture the very next provider request independently: bounded text body/notice,
+   truthful complete artifact path/extent/status/read guidance, no full-payload copy
+   or sentinel. Inspect actual regular artifact file/registered op-session identity
+   and text facts under storage-owner checks. Fake provider calls advertised `read`
+   at the later line page and `grep` with exact artifact path, obtains the sentinel
+   in the next bounded tool result and continues using it. Independently verify
+   request/call-result causality and shell side-effect execution counter=1; no exact
+   natural-language-response or LLM keyword classification as proof. Exercise one
+   configured low line/byte case through this same pipeline, not merely parser green.
+3. **Common result/media boundary.** Nearest runtime/MCP/fetch/skill fixtures prove
+   large admitted text/structured-text uses the same limiter even with producer
+   metadata and multiple parts, while small result stays complete inline. Transport/
+   input caps remain; rejected remote body is not promised saved. Preserve typed
+   question/compress/session-control/mutation envelopes/confirmed effects, MCP isError/
+   failed/partial/unknown and valid graph without cutting JSON or fabricating success.
+   Mixed text/image or other media retains its separately admitted modality/accounting;
+   invalid/over-budget media does not become successful partial text or a file bypass.
+   Reuse TOOL16/PROV05/MCP07/TOOL17/TOOL11 nearest assertions, not a full campaign per tool.
+4. **Storage/fault/access qualification.** Under the same Db owner prove concurrent
+   reservations,16 MiB artifact ceiling/shared quota/temp/orphan accounting and bounded
+   streaming/publication. Inject quota, IO/registration/fsync/rename failure and crash
+   before/after publication/outcome. Captured prefix/state is honest, no full-path
+   promise to unregistered bytes, no unbounded inline fallback/tool rerun; native
+   fatal storage/cleanup and actual effect state remain non-success where required.
+   Use an injected owner clock for7-day expiry and protected live writer/reader leases;
+   expired/missing read is actionable while raw outcome/ref/ordinary referenced blobs
+   survive. No wall-clock7-day wait, global prune or changed STORE04 expectations.
+   Real read/grep negative fixtures cover foreign/unauthorized child/guessed/forked
+   reference, effective Deny, symlink/file-swap/nonregular, arbitrary blob/SQLite/WAL/
+   native directory/glob/mutation and escaped path; sentinels remain inaccessible.
+   Exact admitted artifact >1 MiB works with bounded page/scan/time/hit/huge-line/next
+   cursor behavior; no full-file allocation or nested AGENTS discovery. Existing
+   artifact-backed pages under lower preview caps reuse validated source/extent refs
+   and correct cursors, not recursive cold payload duplication. Existing
+   project-file/data-root/path/permission tests remain, except the approved exact route.
+5. **Shell consumers/recovery.** TOOL13 process barriers reuse the same capture for
+   foreground/background/live output/final notice/viewer, same-PID Ctrl+B and final
+   flush under completion/cancel races. Flood/slow disk/over-cap/quota/IO drains remain
+   bounded and clean owned processes; output loss does not invent success or replay.
+   Reopen/restart with existing store retrieves the registered artifact, bounded preview
+   and status without execution. Same-task committed model switch, allowed session move,
+   DCP/compact retain selected causal refs without loading full/forgotten captures;
+   explicit read alone reintroduces a bounded page. Reuse TOOL12/13/19/DCP11 safety
+   receipts rather than expanding their entire matrices or requiring all T45/T44.
+6. **Resource/closure.** Reuse AUD34 fact-after-preview and LOAD02/A10 large-output
+   measurements: freeze flood/history sizes and equal active projections; record peak/
+   retained RAM, stream buffers/tail/queues/tasks/processes, disk/DB/WAL amplification,
+   reservations and clean cancellation/shutdown. New oversized text has one cold copy
+   plus hot bounded refs/previews, not full copies in SQLite/TurnLog/history. Ordinary
+   legacy inline output and the existing3 KiB AUD34 scenario stay unchanged; only its
+   universal full-inline interpretation for new oversized output is superseded. Never
+   raise baseline/thresholds, skip tests or assert loss as success. Run nearest owner/
+   affected-crate checks per slice, required integration/final workspace fmt/clippy/
+   tests/build and rebuilt debug/release chain; existing mandatory live gates remain,
+   but this output scenario creates no new paid campaign/live-budget expansion.
+
+Current sanitized evidence/T50/report.md must cite implementation commits, binary
+revision/commands/exits, captured request limits/artifact/continuation facts and shared
+fault/resource receipts. TOOL21/runtime and existing T44 visual qualification remain
+separate; statuses/historical reports/baseline are untouched. At plan delivery the
+new scenario is pending/NOT_RUN; no qualification from docs validation or old UI2048.
 
 ### CLI models / profile binding qualification — TOOL18 + T45/R6 (approved 2026-10-01; pending)
 

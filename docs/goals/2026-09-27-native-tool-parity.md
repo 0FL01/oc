@@ -1,16 +1,17 @@
 # Goal: Selected native tool parity with OC2
 
 Status: active
-Contract status means the owner-approved finish line is frozen; execution state belongs to progress/STATE.json. At the 2026-10-01 amendments T50 is active and T44 is PAUSED. Historical delivered slices do not qualify the new R2 or model-dependent R1/R9 extensions.
+Contract status means the owner-approved finish line is frozen; execution state belongs to progress/STATE.json. At the 2026-10-01 amendments T50 is active and T44 is PAUSED. Historical delivered slices do not qualify the new R2, model-dependent R1/R9 or tool-output R10 extensions.
 Source: owner-approved tool RECON and plan, 2026-09-27: omit built-in websearch and Code Mode, accept the remaining proposed tool work, then update the plan and commit/push. Donor OC2 v2.0.12 at `2670273ff17da96f85c5826ced57aa1b368754fa`.
 Additional source: owner request for OC2 TS edit/write for non-patch models, apply_patch for compatible GPT models, mandatory catalog removal/replacement after a user model switch, followed by detailed plan commit/push approval, 2026-10-01.
 Additional source: owner requires OC2 TS parity when switching models during an active task, approves the follow-up RECON and detailed plan commit/push, 2026-10-01. This supersedes whole-turn model pinning, not immutable Location/config generation or execution authority.
 Additional source: owner asks whether `opencode models` is planned for obtaining model IDs to bind agent profiles/other uses; after pinned-original comparison approves detailed work-plan changes and commit/push in the current branch, 2026-10-01. R7 adds the user CLI catalog consumer, not an automatic profile binder.
+Additional source: owner requests comparison with original OC2 TS and our plans for tool-output line limits, separate filesystem logs with readable continuation, `opencode.jsonc` configuration and context-bomb protection; after read-only RECON approves the detailed work-plan amendment and commit/push in the current branch, 2026-10-01. R10/TOOL21 freezes that common pipeline; implementation is not requested by this plan delivery.
 Last updated: 2026-10-01
 
 ## Objective
 
-The selected Linux-native tool set matches the agreed OC2 capabilities through real model calls, application-owned outcomes and frontend consumers. The selected model receives apply_patch or edit/write using the exact donor predicate. A committed user model switch is accepted during busy and replaces incompatible definitions and runtime-managed guidance before the next request of the same autonomous task, without a new prompt. Picker draft is not commit; the prepared request and its tools retain their captured view. This is not full upstream parity: built-in websearch, Code Mode/execute, built-in browser and PDF remain excluded. Explicit MCP search/browser tools remain supported, not automatically connected or advertised.
+The selected Linux-native tool set matches the agreed OC2 capabilities through real model calls, application-owned outcomes and frontend consumers. The selected model receives apply_patch or edit/write using the exact donor predicate. A committed user model switch is accepted during busy and replaces incompatible definitions and runtime-managed guidance before the next request of the same autonomous task, without a new prompt. Picker draft is not commit; the prepared request and its tools retain their captured view. Large admitted tool text is bounded before model/history publication, retained in a registered filesystem artifact and explicitly readable in bounded pages; `tool_output` in `opencode.json/jsonc` controls line/byte previews without disabling safety caps. This is not full upstream parity: built-in websearch, Code Mode/execute, built-in browser and PDF remain excluded. Explicit MCP search/browser tools remain supported, not automatically connected or advertised.
 
 ## Execution Directive
 
@@ -40,6 +41,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: background progresses while the calling session continues; exactly one durable terminal notice is delivered per job/delivery identity without model polling, even if the session is idle/busy or has moved. This is delivery deduplication, not exactly-once external execution. Capture bounded stdout/stderr/exit/signal/timeout/truncation and readable retained output; cancel/shutdown cleans owned process groups with TERM/KILL/wait/reap. Restart delivers committed results without re-execution; started/unknown shell effects are never auto-replayed or reported completed without evidence. A finished foreground response does not silently cancel admitted background work.
   - Acceptance supplement (2026-10-01): authoritative bounded list/status and live output cursor/snapshot/events identify actual active jobs for their original source session/Location/operation/generation. An initial immutable running tool result is not current job state. The Shell composer lists running jobs only; an already opened output viewer retains its original job identity through list removal and reads the final flush. Bounded live recent-output/retained reads work before completion, not only after a terminal outcome. Reuse the supervisor's actual drains; do not infer liveness from a transcript string or create a permanent UI poller.
   - Acceptance supplement: Ctrl+D kill targets the selected shell only, including child-origin work; it is not CancelTurn on an unrelated/current parent. Ctrl+B converts the already admitted foreground shell to owned background with the same process/operation/output provenance, releases its blocking wait according to the shared application control contract and retains durable terminal notice/delivery. Repeated controls and conversion-versus-completion/cancel races cannot spawn again, duplicate result/delivery or lose cleanup. T45 aggregates child/shell session-background controls through existing owners, not a competing shell manager. Parent move/view navigation preserves original execution context.
+  - R10 dependency supplement: shared stdout/stderr drains stream admitted text to the registered artifact before discard and retain bounded recent/tail output in RAM. Foreground, background, final notices and the existing output viewer consume the same capture identity/status; preview truncation is distinct from incomplete artifact capture and process exit. TOOL13 owns lifecycle/control proof; common configuration/artifact/continuation proof is TOOL21, not a second shell owner.
   - Primary evidence: TOOL13 actual binary with process/provider barriers proves early background return/progress/automatic notice, normal foreground waiting, default/explicit/zero timeouts, cancel/shutdown, crash/delivery and credential exclusion; reuse TOOL05/TOOL06/AUD27/AUD28 and A10 measurements, not duplicate helper-only suites.
   - Primary evidence supplement: actual-binary PTY and owner assertions prove authoritative running inventory, output while the process is held, same-PID foreground conversion, selected-job kill, final output/status after inventory removal, independent sibling progress and correct child/source routing through move/reopen/restart. T44/VIS39 reuses these facts for Shell rows/output dialog geometry and keys; TERM01/T56 interactive PTY is separate, not TOOL13 completion or a whole-task dependency.
   - Status: pending
@@ -49,7 +51,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: approved search parity proposal; pinned grep/glob schemas and filesystem behavior.
   - Owner: T50, existing file/search executor and policy.
   - Acceptance: grep supports regex (default) and literal:true, path file/directory scope, include glob, caseSensitive (default true) and limit. Pin a vetted engine compatible with the donor ripgrep syntax; do not invent a custom matcher or promise unsupported regex features. glob supports path, hidden (default false), pattern and limit with donor matching/hidden/ignore behavior. Existing deterministic pagination may remain as an explicit extension, with coherent ordering/truncation diagnostics.
-  - Acceptance: validate patterns/options before scanning; malformed regex and exhausted scan/result budgets are explicit outcomes. Preserve own-data-root exclusion, canonical admitted path boundaries, no-follow regular-file checks and bounded entries/bytes/time. External-directory behavior outside native trust admission remains a declared difference, not an implied access grant.
+  - Acceptance: validate patterns/options before scanning; malformed regex and exhausted scan/result budgets are explicit outcomes. Preserve own-data-root exclusion except R10's exact registered-artifact read/search route, canonical admitted path boundaries, no-follow regular-file checks and bounded entries/bytes/time. External-directory behavior outside native trust admission remains a declared difference, not an implied access grant.
   - Primary evidence: TOOL14 pinned source-derived fixtures for regex/literal/case/path/include/hidden/ignore/options plus actual provider schemas/calls; TOOL01 and path/permission regressions remain authoritative.
   - Status: pending
   - Evidence:
@@ -68,7 +70,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: approved read proposal; PDF remains outside the selected scope.
   - Owner: T50 file/result/provider boundary; T45 retains nested AGENTS instruction ownership.
   - Acceptance: path plus 1-based offset/limit reads text with line references or paged directory entries; donor default limit is 2000. Images supported by the selected Responses model are validated and delivered as real image content, not a success string containing only a path/base64 dump. Unsupported model/file modality, PDF, invalid images and over-budget content are actionable outcomes. Do not silently substitute text for unsupported media.
-  - Acceptance: retain path/permission/symlink/own-data-root protections, byte/model budgets and bounded output. Successful file/directory reads invoke the same admitted nested AGENTS lifecycle as T45/R10, with provenance and dedup; image handling does not introduce a second instruction loader or wider filesystem trust.
+  - Acceptance: retain path/permission/symlink/own-data-root protections except R10's exact registered-artifact read/search route, byte/model budgets and bounded output. Successful project file/directory reads invoke the same admitted nested AGENTS lifecycle as T45/R10, with provenance and dedup; artifact reads are tool data and never discover AGENTS from the native data root. Image handling does not introduce a second instruction loader or wider filesystem trust.
   - Primary evidence: TOOL16 actual binary text/directory pagination and captured image continuation, malformed/PDF/unsupported/over-budget cases; reuse PROV05/PRM01 rather than claiming user-image input tests already prove tool-image output.
   - Status: pending
   - Evidence:
@@ -116,12 +118,26 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Status: pending
   - Evidence:
 
+- R10: Configurable tool-text previews retain readable filesystem artifacts without context bombs.
+  - Source: owner-requested OC2 TS comparison and approved RECON plan, 2026-10-01; pinned tool-output/config/runner/shell sources below.
+  - Owner: T50 common result/config/runtime/storage/file/shell owners. TOOL21 is the one new common executable scenario; TOOL13 keeps shell lifecycle, TOOL16 keeps read/media, T45 keeps prompt/DCP/child authority and T44 keeps existing visual qualification. No new task or circular whole-task dependency.
+  - Acceptance: typed `tool_output.max_lines`/`max_bytes` in admitted `opencode.json/jsonc` default to 2000/51200, positive integers only; the last source defining the section replaces the section wholesale, omitted fields use defaults. Preserve provenance, atomic reload and captured running generation; model switch is not config reload. Native served-output/model/transport/resource ceilings remain independent.
+  - Acceptance: every local model-facing tool text result passes the common prepared-result boundary before provider input, durable new outcome/TurnLog and UI projection. General text keeps a bounded head, shell a bounded tail; line and UTF-8 byte limits both apply, producer `truncated` metadata is not a bypass. Preserve typed control results/valid call-result graph and separately admitted media; do not truncate JSON into invalid output or turn failure into success.
+  - Acceptance: oversized admitted normalized/redacted text has one cold filesystem capture under `<native-data-root>/tool-output/` and a bounded hot preview/reference with actual path, counts, read/search guidance and truthful capture state. Full means the complete admitted text, not media, secrets or bytes rejected by upstream transport/input guards. Initial artifact ceiling16 MiB and existing shared quota default2 GiB are explicit native differences; cap/quota/IO/cancel/producer loss must say incomplete, never falsely full or fall back to unbounded inline output.
+  - Acceptance: the existing Db/data-root owner registers session/operation/source-generation identity and crash-safe publication; bounded streaming/read/search never materializes the artifact or duplicates full new text in SQLite, TurnLog and resident history. Shell taps real drains before the old 1 MiB-per-stream discard; no post-hoc attempt to recover discarded bytes or tool rerun after logging failure.
+  - Acceptance: model `read(path,offset,limit)` and `grep` on the exact registered artifact can find text beyond preview and the old ordinary-file 1 MiB ceiling. Session/authorized-lineage access, effective Deny/trust/provenance/no-follow/regular-file and scan/page/model caps remain; no broad native-root/blob/directory access or instruction discovery. References survive allowed model changes/restart/move without auto-loading payloads.
+  - Acceptance: completed artifacts expire after7 days through the same owner, with active writer/reader leases protected, explicit expired/missing continuation and crash/orphan handling. This expirable resource class does not delete raw history or ordinary referenced blobs. Old raw records remain immutable; only universal full-inline publication of new oversized outputs is superseded.
+  - Primary evidence: TOOL21 rebuilt debug/release binary with bounded fake provider executes a >1 MiB shell output, captures the next request's bounded preview/path, then actual read/grep → distant sentinel → useful continuation. Nearest source-derived config/line/byte/media fixtures and fault/restart/cancel/resource receipts are described in TEST_PLAN. Reuse TOOL13/TOOL16/AUD34/LOAD02/STORE04/A05/A10, retain historical ownership/evidence; helpers/UI SQLite continuation alone cannot qualify this path.
+  - Status: pending
+  - Evidence:
+
 ### Constraints and non-goals
 
 - Rust 2024, Linux rootless, existing crate DAG/error/policy/ownership levels; no service, JS/Code Mode/plugin host, cloud scheduler, second executable registry or second history/archive.
 - Model-dependent file-family exposure shares one native mutation/policy owner; explicit Deny and central/parent-child narrowing, data-root/source/path/symlink/CAS protection, immutable raw history, bounded queues/output/media and no unknown-effect replay remain. Do not remove tests or change A10 baselines to qualify the extension. Exact donor file-tool predicate is the only new model-name exception; production IDs/reasoning allowlists/provider routes remain forbidden.
 - Excluded: built-in websearch/provider integrations, Code Mode/execute, built-in browser, PDF, LSP, filesystem snapshots/undo, arbitrary shell terminal manager within T50. No Formatter/LSP subsystem is introduced merely because donor mutation tools call it; this slice ports the agreed file schemas/semantics under existing native boundaries. Owner-approved [T56](2026-10-01-native-session-terminals.md) narrowly adds explicit session-local interactive PTYs; it does not turn shell into a terminal tool or permit a daemon/credential inheritance. Explicit external MCP tools remain opt-in and permission-gated.
 - Historical audits/PASS and existing task statuses are not rewritten as implementation evidence. Native resource/trust/permission differences are explicit; no claim of identical donor internals or unlimited resources.
+- R10 narrows only full-inline publication of new oversized text, discard-before-shell-capture and the exact registered-artifact read/search exception. It does not permit native-root glob/directory reads, arbitrary blobs, tool-output execution, a new archive/daemon/credential owner, disabled media/transport caps, history rewriting or unknown-effect replay.
 
 ## Live model switching — R1/TOOL12 (approved 2026-10-01; pending)
 
@@ -307,6 +323,176 @@ T50 remains active, T44 PAUSED; settle the current dirty slice and preserve T55'
 next-safe-handoff priority. CLI implementation and new qualification are pending/
 NOT_RUN, not PASS from approval or the historical direct-tool report.
 
+## Tool output — R10/TOOL21 (approved 2026-10-01; pending)
+
+### RECON: original behavior and native gap
+
+Comparison starts from native HEAD `8a4291d13457a1641529dd6fa80d97d43d22066d`
+with existing live-switch/runtime/TUI/R8/CODE_MAP work dirty, not a clean runtime
+qualification. Donor remains OC2 v2.0.12 at the pinned commit above. RECON was
+read-only: no builds, tests, live requests, secret/config extraction or source edits.
+
+| Surface | Pinned OC2 TS | Native source at RECON / missing work |
+| --- | --- | --- |
+| Common text limiter | `tool-output.ts`: 2000 lines / 50×1024 bytes, head preview, full joined text file and path marker before tool-result publication | `runtime/turn.rs` puts ordinary full String into FunctionCallOutput/TurnLog; 2048-byte report/UI preview is a different boundary |
+| Configuration | root `tool_output`, optional positive `max_lines`/`max_bytes`; `Config.latest` selects the last complete section, config plugin updates limiter | `config.rs::Generation`/loader do not parse the section; documented TOML safety proposals are not implemented tool-output config |
+| Shell | real combined-output stream writes a file; result keeps tail using the same configured limits; live cursor and7-day cleanup | `shell.rs::spawn_drain` keeps first1 MiB per stdout/stderr, drains/discards the rest; `ShellOutcome` cannot reconstruct lost data. Background shares the same loss |
+| Continuation | filesystem path can be read with paged `read`; artifact access goes through file policy | `storage.rs::read_tool_op_output`/`read_session_tool_output` page SQLite output for application/UI only. Ordinary `files/read.rs` rejects native data root and first materializes a ≤1 MiB file |
+| Storage/context guards | general limiter has TTL but no dedicated artifact quota; media excluded from text count | active-context16 MiB, request32 MiB, media/MCP/fetch/file caps and Db blob quota exist. They refuse/limit inputs but do not provide the common spill/read chain |
+
+Original is not a perfect security contract: `metadata.truncated !== undefined`
+skips its common limiter even for false, and read/grep/glob/shell set that field.
+Native must preserve useful parity, **not this bypass**. Donor counts only text
+parts joined with newline, preserves file parts, removes a synthetic terminal empty
+line, and may keep no body for one overlong line. Donor artifact write failure is
+a defect; native follows its typed failure/effect model rather than crashing or
+republishing the oversized body. Media and actual transport admission stay separate.
+
+### Frozen configuration and counting
+
+- Only root `tool_output: {max_lines?, max_bytes?}` is added to upstream config;
+  no per-tool/per-agent map, implicit file, automatic config write or executable sample
+  change in this delivery. JSON/JSONC use existing admitted source order. A later
+  `{max_lines: 40}` replaces an earlier `{max_bytes: 4096}`: effective40/51200,
+  not40/4096. `{}` restores defaults. Missing section uses2000/51200.
+- Reject zero, negative, fractional, string, overflow and invalid section shapes with
+  safe source/field diagnostics; failed reload retains the whole previous generation.
+  Byte values above the native64 KiB served-text ceiling cannot raise that ceiling
+  and are rejected explicitly. Positive line values never disable the independent
+  byte ceiling; arithmetic/counting/serialization is checked and bounded.
+- Limits count UTF-8 bytes and logical lines of admitted text, not characters/tokens
+  or media/base64. Join multiple text parts with newline under one shared budget;
+  trailing newline does not create an extra empty line. Keep whole lines when they
+  fit, clip a lone oversized line only on a UTF-8 boundary with an explicit marker.
+  General results keep head, shell keeps recent tail; expose which end was kept.
+- Configured limits bound preview **body**. Artifact/ref/count/status notice has its
+  own bounded reserved allowance; total served text including notice is ≤64 KiB and
+  still passes selected model/request admission. Tiny positive limits may yield empty
+  body plus a useful bounded reference, never an unbounded marker or output fallback.
+  Further native truncation reports its effective reason, not a falsely exact donor
+  truncation count. Producer loss and preview loss are distinct facts.
+- Published config updates affect only newly admitted turns/jobs under the existing
+  safe generation boundary. An executing prepared result/background job uses captured
+  limits/source generation; model/variant switch does not reread config or re-limit
+  historical results. Reopened presentation uses recorded facts, not today's defaults.
+
+### Result, artifact and access lifecycle
+
+```text
+confirmed tool execution / owned shell drain
+  -> admitted normalization + redaction + bounded capture
+  -> prepared result {bounded text, typed controls/media, artifact reference/status}
+  -> one durable outcome + bounded TurnLog/provider projection + UI pages
+  -> explicit authorized read/grep artifact -> bounded result -> next request
+```
+
+- Common preparation owns text projection for built-ins, admitted MCP text/structured
+  text, webfetch and skill bodies; producer `truncated:true/false` cannot skip it.
+  Preserve error category/isError/failed/partial/unknown and typed question/compress/
+  session-control/mutation metadata. Bound free text around those envelopes without
+  slicing serialized JSON or erasing confirmed effects. Existing media modality,
+  per-part/count/wire/model budgets still apply and cannot be bypassed via a file ref.
+  A saved admitted skill body is data; reading it does not execute/load another skill.
+- Keep small results inline unchanged. For new oversized text retain one cold copy
+  with small hot preview/reference in operation, TurnLog, provider and presentation;
+  do not also retain the full payload as SQLite text, serialized log and long-lived
+  String copies. Old full-inline records are not migrated/truncated/deleted. Existing
+  UI continuation APIs consume legacy inline output or stream new artifacts through
+  the same storage owner; no second UI archive or whole-file `read_blob` fallback.
+  Artifact-backed read/search pages reuse their validated source/extent reference and
+  recompute common preview caps/next cursor; do not duplicate the same cold payload
+  into recursive artifacts simply because a page exceeded a lower preview setting.
+- Use the existing exclusive Db/data-root owner and quota accounting, including
+  reservations/temp/orphan bytes and concurrent writers. Store exact generated path,
+  artifact identity, operation/session/Location/generation, admitted text byte/line
+  facts and capture state. Generated opaque names are not authority. Producer streams
+  normalize/redact incrementally before disk and hot publication, including secrets
+  split across chunks; counts/full-capture claims refer to that admitted text.
+- Initial artifact hard ceiling is16 MiB; shared existing storage quota defaults2 GiB,
+  not an additional2 GiB pool. Defaults are safety choices, not measured A10 budgets
+  or new `tool_output` retention/quota keys. Shell streams from launch; generic bounded
+  nonstreaming results spill when oversized. Record stdout/stderr provenance and the
+  combined observed capture order without inventing a total OS emission order.
+- Register active captures and publish readable extents only after the matching bytes
+  exist. Completed publication uses existing temp/no-follow/fsync/atomic-rename/
+  directory-sync principles and durable registration. A committed result cannot
+  promise a full unregistered/missing file. Live reads see a stable published extent;
+  completion final-flush/path identity never duplicates the capture at Ctrl+B.
+- Distinguish complete capture, producer-limited input, artifact cap/quota loss,
+  IO/registration failure and interrupted capture. Where a readable prefix exists,
+  return its exact extent/state; otherwise do not advertise a usable full path.
+  Preview truncation alone does not mean incomplete capture. Logging trouble never
+  retries a shell/MCP/mutation, falsifies known process exit/effects or claims full
+  output; persist actual effects and capture failure separately. Storage/cleanup
+  failures retain native non-success semantics, never an unlimited inline fallback.
+- Shell artifact writes/queues and tail ring remain bounded under flood/slow disk.
+  After capture cap/quota/IO failure keep draining without retention, maintain bounded
+  recent output and honest loss counters/state, and preserve deadline/cancel/reap.
+  Foreground/background/notice/viewer use the same stream/capture owner and source
+  context. A producer that never ends cannot require unlimited disk or memory.
+- `read`/`grep` admit **only an exact registered regular artifact file**, not its
+  directory, all `tool-output/*`, arbitrary `blobs/*`, SQLite/WAL, configs or another
+  session's guessed path. Verify session or already authorized owned lineage and
+  original operation provenance plus effective current permissions/Deny; child refs,
+  forked text and moved placement do not confer new authority. Keep descriptor-relative
+  no-follow/type/identity checks and symlink/swap protection. Ordinary project paths,
+  glob and all mutations keep the original data-root denial.
+- Artifact continuation scans/reads incrementally beyond1 MiB with bounded buffers,
+  line offsets/pages, huge-line clipping, explicit next cursor and scan/time/output
+  budgets. No eager full-file load. Reads/searches are ordinary limited tool results;
+  continuation never restores the whole cold capture to hot context. The text is
+  untrusted tool data, never a discovered AGENTS/system instruction source.
+- Completed artifacts expire7 days after completion through bounded owner cleanup.
+  Protect active writer/reader leases; crash abandons an active capture as interrupted/
+  unknown under existing recovery, never auto-restarts its producer. TTL is separate
+  from ordinary referenced-blob GC: expire only this resource class, keep immutable
+  raw outcome/ref and report expired/missing on explicit access. Quota pressure may
+  clean already expired/unleased resources, not silently delete unexpired captures
+  or normal referenced blobs. Orphan/temp accounting is crash-safe under STORE04.
+- Restart, same-task model switch, allowed move, DCP and `/compact` retain bounded
+  causal results/references as selected by the current projection. None automatically
+  reads/reinflates an artifact or forgotten archive; expired access is actionable.
+
+### Ordered implementation slices and qualification
+
+1. **Freeze typed seams/fixtures.** At one reviewed code base trace each local result
+   to runtime publication, add minimal prepared-result/capture descriptors through
+   existing owners, and freeze donor counting/config fixtures plus a >1 MiB distant
+   sentinel workload. Do not add schemas/UI paths before the storage/read route exists.
+2. **Config generation.** Parse the two fields in `config.rs::Generation` with
+   whole-section replacement/defaults/provenance/validation; prove atomic reload and
+   captured running limits. No per-agent layer, new config daemon or secret dump.
+3. **Common preparation.** Insert one limiter before provider/outcome/TurnLog cloning,
+   share text/head/tail counting, reserve bounded notices and preserve typed controls/
+   media/errors. Test multiple text parts, UTF-8 and producer-metadata non-bypass.
+4. **Registered filesystem capture.** Extend existing `storage.rs`/blob ownership
+   minimally with streaming/reservation/publication/read/expiry and session/op identity.
+   Add only the needed native schema migration; preserve legacy inline reads/history
+   and ordinary blob guarantees. Fault-check quota/IO/crash/orphans before advertising
+   a full artifact. Common result/storage slices publish together, not a broken prefix.
+5. **Shell producer integration.** Tap `shell.rs::spawn_drain` before discard, replace
+   growing first-prefix vectors with bounded recent/tail state, stream through the
+   same registered capture for foreground/background/live viewers/notices/Ctrl+B.
+   TOOL13 barriers prove same-process control/final flush; incomplete capture remains
+   separate from exit/timeout/cancel. Never rerun execution to obtain a log.
+6. **Exact-artifact read/search.** Extend file admission/resource/policy and read/grep
+   streaming only for registered artifacts, preserve normal data-root denial and
+   no-follow/session/lineage constraints. Reuse TOOL16 media/project reads and T45
+   AGENTS regressions; no generic external-directory grant or instruction loader.
+7. **TOOL21 closure.** Rebuilt debug/release actual binary: large tool output → captured
+   next-request bounded preview/path → real read/grep → distant sentinel → continuation;
+   restart/model-switch/compact do not rehydrate or replay. Share TOOL13/TOOL16/AUD34/
+   LOAD02/STORE04 resource/fault receipts and required affected/integration/final gates.
+   Update current CONFIG/TOOLS_MCP/help/examples only with delivered support. No paid
+   campaign or per-layer duplicate scenario; plan validation is not runtime PASS.
+
+Scheduling: preserve and settle the current dirty T50 slice first and keep T55's
+next-safe-handoff priority. When T50 reaches R10, the shared config/result/capture
+seams precede shell/read integration and common qualification; they are prerequisites
+for those slices, not whole T45/T44/T46/T56 completion. T44 remains PAUSED and owns
+existing presentation gates separately. R10 is pending/NOT_RUN; historical T40/AUD34
+and initial shell retention evidence do not prove the new filesystem/provider path.
+
 ## Change Envelope
 
 - Reuse `crates/oc-adapters/src/{files,tools,shell,webfetch,runtime,application,composition,config,storage}.rs`, `oc-core` typed commands/queries/results, existing provider result lowering and `oc`/`oc-tui` consumers; targeted tests/fixtures/docs/evidence. Changes to internal typed media/job/move storage are allowed only for these outcomes.
@@ -315,15 +501,17 @@ NOT_RUN, not PASS from approval or the historical direct-tool report.
 - Direct presentation consumers are `oc-tui/src/tools.rs`, `app/live.rs` and existing history projection/results; T50 supplies persisted write/edit input/results/effects, T44 extends VIS35/VIS36 actual cards/previews. Update CODE_MAP/fixture paths with the implementation only; this plan leaves unrelated dirty session_move/CODE_MAP work untouched.
 - A vetted regex/search dependency or existing ripgrep integration and a bounded Markdown converter may be chosen for R3/R6; pin/provenance/compile checks are required. No dependency is added by this plan-only delivery.
 - R7 CLI adds `oc/src/{cli,bootstrap}.rs` and a narrow command consumer, existing config/composition/catalog/metadata projection seams and actual-binary tests. Minimal provider-qualified read-only DTOs may extend the existing core query surface only as needed by real consumers; no full application/session startup, public API solely for tests, second catalog/store/cache, credential import or automatic config writer. T45/R6 retains binding normalization/selection ownership; T53 supplies its future catalog through the same seam.
+- R10 extends existing `config.rs::Generation`/loader, `tools.rs`/result and `runtime/{turn,context}.rs` publication, `storage.rs`/`storage_shell_jobs.rs`, `shell.rs`/`shell/jobs.rs` drains, `files.rs`/`files/read.rs`/search and resource/permission preparation. Typed core/application/UI continuation facts may extend minimally for actual consumers; media/MCP/fetch/skill lowering must use the same common preparation. Internal native schema migration/streaming artifact resources are allowed only under the existing Db owner, not a new store/archive/framework/crate or public test API. Tests remain beside owners/in existing runtime/storage/binary targets; CODE_MAP updates follow implementation, not this plan.
 - No private authoring config, secrets, deployment changes, paid search provisioning or executable runtime/config example edits in this plan update. Ordinary own-branch commit/push is required.
 
 ## Current Checkpoint and State
 
-- At this plan amendment T50 is active; its latest checkpoint qualifies R6/TOOL17 and directs R7 lookup/rename then R8 move (verify actual Git/NOW). This patch does not alter those execution statuses or historical evidence. T44 remains PAUSED.
+- At this plan amendment T50 is active and T44 PAUSED. The current NOW checkpoint reports the R9 executors/captured file-family slice verified and live busy switching next; Git HEAD includes initial file executors at0804b7dbb, with the live-switch/runtime/TUI/R8/CODE_MAP work still dirty. This is existing handoff evidence, not fresh qualification of that code or R10. Plan delivery does not alter execution statuses, historical leaves or evidence.
 - R7 lookup/rename is committed at 0dc85e817. Initial file-tools RECON was at 3446dc3c1; that plan landed in 760d54f7d. Live-switch RECON/this clarification starts from 760d54f7d with R8 session_move/CODE_MAP/runtime/evidence dirty. Git takes precedence over the older R6 handoff. Preserve all dirty work and settle its current slice before scheduling this extension. R2 inventory/live-output/foreground-conversion and R1/R9 file-tools/live-switch extensions remain pending; follow M8 ordering without a second active task or interruption of approved T55 priority. Neither historical file-tools plan nor existing busy-refusal tests qualifies corrected same-task switching.
-- Checks: TOOL12–TOOL20 have one owner T50; relevant A02/A03/A04/A05/A06/A07/A08/A10/A13 and prior scenarios are regressions, not reassigned owners. TOOL12/TOOL20 and T44 VIS35/VIS36 are separate behavioral/visual results; existing A09/live owners/flow remain. Plan validation is not runtime PASS.
+- Checks: TOOL12–TOOL21 have one owner T50; relevant A02/A03/A04/A05/A06/A07/A08/A10/A13 and prior scenarios are regressions, not reassigned owners. TOOL12/TOOL20 and T44 VIS35/VIS36 are separate behavioral/visual results; existing A09/live owners/flow remain. Plan validation is not runtime PASS.
 - Blocker: none for this plan delivery; PDF is deliberately excluded, not a hidden pending requirement.
 - CLI follow-up (2026-10-01): R7 direct lookup/rename evidence is historical delivered behavior; newly approved `oc models`/catalog-only extension is NOT_STARTED/NOT_RUN. Missing CLI/default-dependent composition and differing tool paging are source-verified gaps at RECON HEAD 70de7a256. Profile consumer belongs to T45/R6, future Go/custom catalogs to T53; dirty runtime/TUI/CODE_MAP and execution statuses remain untouched by this plan.
+- Tool-output follow-up (2026-10-01): R10/TOOL21 is frozen/pending; native source gaps are recorded above at HEAD8a4291d13. This delivery changes plan/registry/generated NOW only, not runtime, executable configs, historical leaves/evidence, active T50 or PAUSED T44. Minimum next R10 action after the safe scheduled handoff is typed common-result/config/capture fixtures; missing producer capture and exact artifact read are implementation work, not an external blocker or existing PASS.
 
 ## Pinned References
 
@@ -344,9 +532,12 @@ All links point to the admitted OC2 v2.0.12 commit; current native restrictions 
 - U95 — [Picker changes local draft](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-model.tsx#L126-L139); draft scope/reconciliation: [local selection](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/local.tsx#L263-L381). U96 — [Commit/blank Enter/captured prompt preparation](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/index.tsx#L1274-L1360).
 - U97 — [Busy-allowed model event/no-op](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/session.ts#L90-L102); [API forwards without busy guard](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/server/src/handlers/session.ts#L246-L253). U98 — [Boundary session/tool/model snapshot](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/context.ts#L121-L175); U99 — [Next-step/retry/compaction request preparation](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/runner/llm.ts#L187-L247).
 - U100 — [Blocked-tool switch and same-run continuation regression](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/test/session-runner.test.ts#L3386-L3407); overflow rebuild: [3022–3076](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/test/session-runner.test.ts#L3022-L3076). U101 — [TUI pending-admission/captured selection order](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/test/compact-admission.test.tsx#L193-L226); U102 — [Compatible historical tool pairs/opaque metadata](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/runner/to-llm-message.ts#L153-L256).
+- [Common limiter/defaults/file/TTL and metadata skip](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool-output.ts#L13-L153), [runner publication boundary](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/runner/step.ts#L117-L129), [positive config schema](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/schema/src/config/tool-output.ts#L3-L9), [whole-section selection](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/config.ts#L22-L24), [config update plugin](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/config/plugin/tool-output.ts#L9-L22).
+- [Shell file/tail/live capture](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/shell.ts#L196-L335), [limiter/full-file/count/media/cleanup fixtures](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/test/tool-output.test.ts#L34-L153), [config reload fixtures](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/test/config/tool-output.test.ts#L17-L63), [shell limits/file fixtures](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/test/tool-shell.test.ts#L1326-L1381). These R10 references do not add visual source IDs or repin the donor.
 
 ## Material Decision and Completion
 
+- 2026-10-01: owner approves the detailed output RECON plan and commit/push in the current branch. Add R10/TOOL21 to existing T50: configurable2000-line/51200-byte common previews, registered streaming filesystem capture/read-search continuation, native16 MiB/shared2 GiB/7-day lifecycle and honest incomplete states. Supersede only full-inline publication of new oversized text, shell discard-before-capture and exact-artifact data-root read/search exclusion; preserve old raw history, permissions/redaction/media/transport/bounds/no replay and ordinary referenced blobs. TOOL13/TOOL16 and AUD34/LOAD02/STORE04 remain their original owners; no new task/store/paid campaign, T44 resume or runtime/status/PASS change. Current dirty slice and T55 priority preserved.
 - 2026-10-01: owner approves detailed CLI models/profile-binding work-plan delivery and commit/push on the current branch after comparison with pinned OC2. Extend R7/TOOL18 with `oc models`, exact complete ID stdout and selection-independent catalog-only admission. Supersede only projected models list/refresh spelling, preserve lookup schemas/paging and config/policy/discovery/credential contracts. T45/R6 verifies real bindings, T53 supplies future catalogs; no new tasks/gates/store/server/config writer or execution/PASS changes. Existing dirty code and T55 handoff priority are preserved.
 - 2026-10-01: follow-up owner instruction requires original OC2 switching during active work and detailed plan commit/push. Frozen boundary becomes a prepared request plus its tools, not the entire native turn. R1/TOOL12 now includes busy-allowed committed selection, local draft/captured commit/blank Enter, next-request adoption within the same task, retained compatible outcomes and real request/assistant attribution. Only model/variant busy refusal, whole-turn model pin and incompatible result-losing projection are superseded; config/Location generations, authority, policy, finite retry and no unknown-effect replay remain. T45/PRM01 and T44 VIS09/VIS29/VIS17/VIS35/VIS36 consume minimal slices; ownership/statuses/history/R8/T55 schedule unchanged, qualification pending.
 - 2026-10-01: owner approves RECON plan and requires detailed work-plan commit/push in the current branch. R1 now selects apply_patch or edit/write using exact donor predicate and obligatorily refreshes next-request tools/managed guidance after a user model switch; R9/TOOL20 adds real file semantics/admission/effects. Only universal patch/no-write-edit and related model-name selector prohibitions are superseded. T45 profiles/Plan/prompt and T44 VIS35/VIS36 consume minimal slices independently. No implementation PASS/status change, new task/framework/paid campaign or historical evidence rewrite; dirty R8 preserved.

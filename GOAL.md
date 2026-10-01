@@ -520,6 +520,50 @@ immutable generations/history и no unknown-effect replay неизменны. Pl
 NOT_RUN: active T50, PAUSED T44, T55 safe-handoff priority и historical PASS/statuses
 не переписываются; ни существующий `opencode_models`, ни doc validation не закрывают CLI.
 
+## Owner amendment (2026-10-01 — tool-output limits / readable filesystem artifacts)
+
+После read-only сравнения с pinned OC2 TS владелец утвердил развёрнутый план и
+commit/push в текущую ветку: лимит строк/байт tool output, отдельный filesystem
+лог с возможностью прочитать продолжение, `opencode.jsonc` configuration и защита
+от context bombs. [T50/R10/TOOL21](docs/goals/2026-09-27-native-tool-parity.md#tool-output--r10tool21-approved-2026-10-01-pending)
+владеет общим pipeline; порядок — [M8](roadmap/M8.md#tool-output-limits--readable-artifacts--t50r10tool21-approved-2026-10-01-pending),
+конфигурация — `docs/CONFIG.md`, qualification — `docs/TEST_PLAN.md`.
+
+- Root `tool_output.max_lines`/`max_bytes` в admitted `opencode.json/jsonc`:
+  defaults2000/51200, positive integers, latest defining section wholesale с defaults
+  для пропущенных полей, provenance/atomic reload/captured running generation.
+  Config не отключает independent native served-text/model/transport/resource caps.
+- Общий подготовленный результат ограничивает admitted tool text **до** provider,
+  нового durable outcome/TurnLog и UI: general head, shell tail, обе границы/UTF-8,
+  bounded marker/path/count/capture status. Producer `truncated` не bypass. Typed
+  controls/failed/partial/unknown, call-result graph и отдельные media budgets сохраняются.
+- Полный admitted normalized/redacted текст сверх preview сохраняется одной cold
+  копией в зарегистрированном `<native-data-root>/tool-output/` артефакте у existing
+  Db owner; новый hot history хранит bounded preview/ref, не полный payload в нескольких
+  lifetime-long buffers/SQLite/TurnLog. Shell пишет из реальных drains до discard,
+  foreground/background/live output/notices/Ctrl+B разделяют capture identity.
+- Native safety differences: artifact cap16 MiB, existing shared quota default2 GiB,
+  TTL7 дней для завершённых captures; protected active leases/crash-safe publication/
+  orphan accounting. Producer/cap/quota/IO/cancel loss явно incomplete, не «полный лог»
+  и не unlimited inline fallback/reexecution. Process effects и capture status различны.
+- Model `read`/`grep` читает/ищет **точный зарегистрированный artifact**, в том числе
+  после прежнего1 MiB обычного file cap, streaming/pages/scan/model budgets. Session/
+  authorized lineage/provenance/effective Deny/trust/no-follow/type checks обязательны;
+  никаких directory/glob/произвольных blobs/native-root прав или AGENTS discovery.
+  Restart/model-switch/move/DCP/compact не загружают холодный текст автоматически;
+  expired/missing access явный, raw history и обычные referenced blobs не удаляются.
+
+Superseded только полный inline result **новых oversized outputs**, discard до shell
+capture и узкий data-root read/search запрет для зарегистрированного artifact.
+Small results/legacy raw records и все остальные A01–A13/mandatory live/security/
+history/unknown-effect invariants сохранены. TOOL21 — один новый detailed gate только
+T50; TOOL13/TOOL16, AUD34/LOAD02/STORE04 остаются прежними owners/regressions.
+Нужна actual rebuilt debug/release цепочка large-output → next-request preview/path
+→ real read/grep → distant fact → continuation плюс fault/resource receipts; старый
+UI-preview/SQLite continuation/doc validator её не квалифицирует. План pending/NOT_RUN,
+active T50/PAUSED T44, dirty runtime/TUI/CODE_MAP, T55 safe-handoff priority и historical
+PASS/statuses неизменны. Это плановая доставка, не новая task или runtime PASS.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.
