@@ -1,8 +1,9 @@
 # T45 — Остаток subagent system (T43 slices 5-8) и DCP defaults (DCP12)
 
-Status: active
+Status: blocked
 Spec: ../../../docs/goals/2026-09-21-config-compat-and-subagents.md
 
 Последние 12 записей; остальные доступны по номеру/targeted search.
 
 - [0001](0001.md)
+- [0002](0002.md)

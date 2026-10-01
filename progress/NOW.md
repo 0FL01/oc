@@ -1,29 +1,29 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-01T02:57:39+00:00
-Active: T45
+State updated: 2026-10-01T02:58:18+00:00
+Active: T50
 
 Сверить Git status/diff до выполнения команд.
-Task: T45 — Остаток subagent system (T43 slices 5-8) и DCP defaults (DCP12)
-Spec: docs/goals/2026-09-21-config-compat-and-subagents.md
-Evidence target: evidence/T45/report.md
+Task: T50 — Selected native tool parity: shell/search/question/read/fetch/session controls
+Spec: docs/goals/2026-09-27-native-tool-parity.md
+Evidence target: evidence/T50/report.md
 
-Background subagents + synthetic notices + reap, command routing (agent/model/subagent/subtask), DCP allowSubAgents для child turns, typed TUI/history child lifecycle/family/control projections. Built-in build/plan/general/explore и остаток typed upstream agent fields (color/steps/system/request) с реальной семантикой, не silent acceptance; hidden/permission-filtered catalog опирается на T43 backend regression. Owner-approved 2026-09-27 R6: полный Build/Plan/custom Markdown primary-profile parity; discovery/nested IDs/field-wise merge/default primary mode, default_agent fallback, Plan policy/narrow plan-directory admission/enter-leave reminders/reconciliation и run --agent с фактическим switch перед prompt. Pinned U25–U30 и прямые ссылки в spec; T44 VIS06/VIS10/VIS17 проверяют picker/cycle/prompt/replay, backend и visual результаты отдельно, без circular completion dependency. Foreground prerequisite уже в 7895f43; removed T43 done-dependency устраняет взаимоблокировку, не объявляет остаток выполненным. Источник: evidence/subagents/upstream-v2.0.12-plan.md (срезы 5-8, amended concurrency/recovery/DCP). TUI-часть координировать с владельцем T44: T45 supplies minimal R3/SUB01/SUB02 real lifecycle/typed projections/Ctrl+B conversion; T44 owns VIS39 transcript/composer/indicator/colors/animations qualification, не all-T45 completion dependency или второй store/framework. Launch metadata/current child state и durable notice/result/delivery identity различны, replay/restart без duplicate continuation/reexecution, native response-close-before-admission сохранён. T44 VIS26 ожидает non-primary agent exposure (mode/hidden фильтр) для `@`-mention; координировать без блокировки срезов T44. Owner-approved 2026-09-27 R7: native Linux host/workspace environment в общем prompt assembler; rootless collection без shell subprocesses, bounded deterministic rendering, base harness fallback/environment/date и сохранение environment при custom system. Actual shell execution context, root/child requests, restart/Location refresh, graceful unavailable fields и отсутствие дублей/лишних metadata; captured provider requests и non-root release-binary verification. Pinned context references в spec; A13 вместе с существующими gates, без новой T44 done-dependency. Owner-approved R3/R8–R10: concurrent foreground children и настоящий background до завершения parent, bounded owned scheduling/durable notices/safe restart без unknown-effect replay; optional context_message_ids с exact quoted user-context pack, active branch/revision/budget preflight и durable immutable snapshot. Stable IDs независимо от DCP; guidance/capability preview фактических automatic profile/AGENTS/tools/skills и собственных child compress прав, без parent transcript/system inheritance. Child DCP default true, false/off/manual/Deny gates, narrow Explore compress, session isolation и lifecycle защиты task/pack. Long-horizon repeated compression без lifetime call/block quota, nesting dead end и полного чтения inactive archive; bounded active graph/resource gates сохранены. Shared prompt/instruction baseline, nested AGENTS read, chronological updates и restart/compaction/Revert reconciliation в admitted trust boundary. SUB01/SUB02/CTX01/CTX02/PRM01/DCP10/DCP11 и A04/A07/A10 квалифицируются T45, donor/native differences отдельно; план не является PASS. Owner-approved R9/DCP12: native omitted-field compress defaults 40%/55%/summaryBuffer=false, frequency5/iteration15/soft и остальные defaults сохранены. Shared canonical provider/model budget/context fallback и точные overrides дают одинаковые effective min/max/buffer/capacity facts runtime и панели, без context=0 или смешения nudge и hard admission. Read-only optional dcp.json/jsonc/inline precedence, numeric/percent/per-model overrides, true buffer opt-in, boundary/cadence/reset и immutable generations квалифицировать actual rebuilt binary/fake-provider snapshots; docs/DCP.md содержит полный срез. T44 presentation отдельно, без all-T45 completion/new policy store/framework/paid campaign или изменения прежних statuses/evidence/baseline.
+Owner-approved 2026-09-27 tool RECON: built-in websearch/provider integrations и Code Mode/execute исключены; explicit MCP search/browser сохраняются. R1–R8: canonical shell command/workdir/timeout/background с durable automatic notices и legacy bash(argv) compatibility через одного policy/execution owner; grep regex/literal/path/include/caseSensitive и glob path/hidden; настоящий application-owned question с typed answers/multiple/free-form/cancel/headless; read text/directories/images (PDF excluded); webfetch text/markdown/html/defaults/timeout; direct opencode_models/session_rename/session_move без Code Mode. Session move сохраняет ID/history и применяется только через admitted safe-boundary destination generation; immutable turn/request/job context, child placement, trust, legacy Deny, raw history, sticky MCP quarantine и no unknown-effect replay сохраняются. TOOL12–TOOL19 имеют только T50 как owner; existing regressions не переназначать. Координация T45 prompt/profile/subagent consumers, T46 MCP и T44 real frontend/visual surfaces без circular completion dependency. Порядок минимальных срезов и pinned donor references в spec/M8; новый todo не означает implementation PASS.
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T45
+# T50
 ## Result
-Shared initial/nested instruction prerequisite verified; Ask bypass repaired.
+R5 RED: default50 and absent nested instructions; read.md.
 ## Checks
-Workspace1372; independent owner8/nativeAsk6/Python47 PASS.
+Both retained ELFs: 2 RED guards each; no production changes.
 ## Risks
-Full T45/R10 and T50/R5 semantics remain open; T44 PAUSED.
+Approved T45/R10 prerequisite unfinished, not external blockage.
 ## Next
-Return shared successful-read hook to T50/R5.
+Implement shared nested instruction owner, then resume R5.
 
 
 Ready (до 5): T53
-Blocked: T27, T43, T44, T50
+Blocked: T27, T43, T44, T45
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.
