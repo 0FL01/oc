@@ -126,7 +126,40 @@ T53/GO03 для будущих wires и T44/VIS43 для visual parity.
 
 ## Permissions
 
-Default product profile: read/search в trusted project allow; file mutations (canonical apply_patch permission, including T50 edit/write target), bash/webfetch/MCP ask; skill/compress allow. Для live tests выделенный temporary fixture workspace с явно allowlisted operations. Режим полномочий authoring-agent не меняет автоматически permissions самого `oc`.
+Default product profile: read/search в trusted project allow; file mutations (canonical apply_patch permission, including T50 edit/write target), bash/webfetch ask; skill/compress allow. Прежний default MCP ask superseded только утверждённым ниже T45 target; текущий runtime ещё не квалифицирован на новый default. Для live tests выделенный temporary fixture workspace с явно allowlisted operations. Режим полномочий authoring-agent не меняет автоматически permissions самого `oc`.
+
+### Built-in profiles / default MCP authority — T45 (approved 2026-10-01; pending)
+
+[R3/R6/R8/R10 contract](goals/2026-09-21-config-compat-and-subagents.md#built-in-profiles--default-mcp-access--approved-2026-10-01-pending)
+requires real Build/Plan primary and General/Explore subagent registration before
+configured transforms, with truthful eligibility and effective restrictions.
+Default product MCP authority is Allow for all configured/enabled/admitted/connected
+registered MCP tools, including Plan/General/Explore; not just a child profile grant.
+Add the native baseline before central/parent/child intersection, and scope Explore's
+built-in deny-default exceptions to actual registry actions. Unknown/unregistered or
+unrelated missing actions still deny; no global all-tool wildcard default.
+
+Explicit central/parent/profile Deny/Ask/resource rules/tools:false, trust/caps and
+unknown-effect quarantine remain authoritative. Catalog/preview/initialize guidance/
+execution share collision-safe wire and compatible permission aliases. Whole-action
+Deny removes new schemas, Ask remains conditional and requires the actual consumer;
+failed/pending/disabled servers get no new capability or automatic enable/connect.
+Prepared requests retain their captured catalog/lease; new entries reconcile at safe
+request boundaries. Profile selection/restart is not authorization to replay effects.
+
+Plan uses real enter/leave/reminder reconciliation and native mutation denial outside
+the narrowly admitted `~/.opencode/plan`; files there are written only on explicit
+user request, never automatically at entry. Implementation prose/model switch/MCP/
+autoaccept does not exit Plan. Both selected T50 file families and parent-child
+ceilings are covered; custom system retains the separate reminder/policy layers.
+Explore keeps native filesystem/shell/question/delegation restrictions and separately
+approved own-history compress; General question/nested delegation remain denied.
+Shell/MCP retain their own effective policies: Plan/Explore are not an external-effect
+sandbox, and default all-MCP Allow does not classify tools as read-only or restrict
+them to guessed web-search names. Explore MCP Allow is a native difference from OC2.
+Only default MCP Ask/missing registered-action authority and donor Explore MCP denial
+are superseded; explicit restrictions and all other native defaults stay intact.
+CTX02/PRM01 remain T45-owned, new qualification pending/NOT_RUN, no task/status change.
 
 T50 canonical shell normalizes with legacy bash policy through the same ceiling;
 legacy Deny/save patterns cannot be bypassed by changing names. New question/models

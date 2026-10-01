@@ -24,6 +24,33 @@ erased/translated; draft alone or commit after final answer creates no request.
 Detailed [live-selection contract](CONTRACTS.md#live-model-selection--t50r1tool12-approved-2026-10-01-pending)
 and evidence: T50/R1/R9/TOOL12/TOOL20, T45/PRM01 and T44 visual consumers.
 
+## Built-in profiles / MCP defaults — approved 2026-10-01, pending
+
+[T45/R3/R6/R8/R10](goals/2026-09-21-config-compat-and-subagents.md#built-in-profiles--default-mcp-access--approved-2026-10-01-pending)
+registers Build/Plan primary and General/Explore subagent without custom definitions.
+Default MCP authority becomes Allow for **all actual registered tools** of configured/
+enabled/admitted/connected servers, including root Plan and both children. Shared
+central baseline precedes child narrowing; no web-search/server allowlist, global
+native-tool wildcard Allow or ineffective child-only grant. Explicit parent/central/
+profile Deny/Ask/resource rules and quarantine/trust/caps remain. Schema visibility,
+delegation capability preview, permitted initialize instructions and invocation share
+the exact collision-safe wire identity and compatible permission alias.
+
+Denied tools are removed from new catalogs; Ask stays conditional and requires the
+real consumer. Disabled/failed/pending servers give no new capability or automatic
+enable/connect. Safe next-request catalogs and captured prepared leases use existing
+T46 ownership, no second MCP registry. Default Explore MCP access is a deliberate
+native difference from donor blanket Deny; arbitrary MCP tools are not classified
+read-only by names/annotations. Native Explore filesystem/shell/question/delegation
+limits and own-history compress gates remain. Plan native mutation policy/reminders
+and General question/nested-delegation/session-control ceilings remain too; neither
+Plan nor Explore is a sandbox of external MCP effects.
+
+CTX02/PRM01 qualify actual no-custom-profile/default-MCP requests/effects and Plan
+lifecycle; T50 keeps executors/selector and T46 lifecycle. This replaces only old
+default MCP Ask/missing registered-action authority, not explicit user restrictions.
+Approval/document validation is not runtime PASS; examples/config sources stay untouched.
+
 ## Built-ins
 
 `read`: bounded чтение файла/диапазона строк с path/offset/limit, явные truncated/next cursor и blob reference при необходимости. Директории и binary contents обрабатываются явно; не грузить весь репозиторий. `read`, `glob`, `grep` и файловые mutations (`apply_patch`/`edit`/`write`) отклоняют own data root, включая direct path и symlink escape. Pending T50/R10 ниже разрешает только точный registered artifact для authorized read/grep, не directory/glob/mutation или произвольный blob. `glob`/`grep` дают stable sorted paginated matches с bounded files/bytes/time. Plain literal/regex режимы явно различимы; не писать custom regex engine.

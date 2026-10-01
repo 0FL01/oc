@@ -277,6 +277,16 @@ Pinned sources U25–U30 in `SOURCES.json`; UI source U29. No new task tracker.
    and prompt states plus owner/runtime evidence. T45 backend and T44 visual results
    remain separate; no circular task-completion dependency or PASS by approval.
 
+**Built-ins/MCP clarification, approved 2026-10-01; pending:** T45's
+[R3/R6/R8/R10 amendment](../docs/goals/2026-09-21-config-compat-and-subagents.md#built-in-profiles--default-mcp-access--approved-2026-10-01-pending)
+supplies actual Build/Plan primary and General/Explore subagent registration, Plan
+reminders/permissions and truthful default-all-MCP capabilities. VIS06/VIS10/VIS17
+consume real no-custom-profile Plan selection/replay; VIS26/VIS39 consume the distinct
+subagent catalog. Keep explicit Deny/Ask and user-profile eligibility; do not claim
+native Explore MCP access is donor permission parity or implement another UI policy
+store. Reuse CTX02/PRM01 behavioral receipts, preserve paired visual requirements.
+No new VIS gate, all-T45 dependency, status/PASS rewrite or implicit T44 resume.
+
 ### Agent-cycle keybindings — уточнение 2026-09-30
 
 **Owner-approved; T44/R5 + T45/R6; implementation pending.** Владелец сообщил,

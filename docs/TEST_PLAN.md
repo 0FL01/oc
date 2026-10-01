@@ -85,6 +85,75 @@ Targeted affected-crate checks and workspace fmt/clippy/tests/build at integrati
 final acceptance supplement A03/A04/A08/A13; no extra paid campaign. Plan validation
 proves document/registry structure only; new behavior and visual results pending/NOT_RUN.
 
+## Built-in profiles / default MCP access — T45 (approved 2026-10-01; pending)
+
+Contract: [R3/R6/R8/R10](goals/2026-09-21-config-compat-and-subagents.md#built-in-profiles--default-mcp-access--approved-2026-10-01-pending).
+Extend existing CTX02/PRM01, not new IDs/tasks. Default MCP Allow is a native
+permission baseline for actual admitted registry entries; Explore MCP access differs
+from pinned OC2. Plan is a real primary mode, not a fixture named plan. Read-only
+RECON is source evidence only; new behavior is pending/NOT_RUN until qualification.
+
+1. **No-custom-profile fixture (PRM01/CTX02).** Real loader with isolated admitted
+   HOME/Location/data root, static synthetic provider model, no agent definitions,
+   fake HTTP/stdio MCP catalogs and no MCP permission overrides. Allow ordinary test
+   operations/subagent invocation explicitly as required by unchanged native defaults.
+   Assert Build/Plan primary and General/Explore subagent, correct automatic catalogs,
+   actual child launch/own system/base fallback and no parent-system/transcript copy.
+   Use one supplied-field override fixture to prove inherited mode/system/restrictions,
+   plus hidden/disabled/caller-denied eligibility through existing R6 tests.
+2. **Default all-MCP chain (CTX02/PRM01).** Rebuilt actual binary sends a parent
+   delegation, General and Explore each invoke configured fake search and a distinctly
+   named arbitrary non-web MCP tool, receive the actual bounded result and continue.
+   Plan invokes the same two admitted tools in its own root request. Record exact schemas,
+   guidance/preview, HTTP or stdio tools/call counters, matched call/results and next
+   provider input; default Allow has no approval request. No server-name/search-suffix
+   allowlist, `permission:"allow"` masking a missing MCP default, config edits or paid
+   API is acceptable proof. Reuse existing MCP harnesses, not another daemon/relay.
+3. **Explicit policy agreement (CTX02).** Central, parent and profile per-tool/
+   wildcard restrictions keep their normal independent boundaries. Use the real
+   wire (`server__tool`) and compatible (`server_tool`) identities to prove Deny
+   removes whole-action schemas/guidance and tools/call is zero even for a scripted
+   forbidden call. Ask is conditional in preview/catalog, server guidance never
+   declares it unconditional; genuine approval precedes the call. Headless with no
+   consumer refuses with zero calls. Reuse AUD42/SUB02 for resource/parent narrowing,
+   not another full permission test matrix. Profile default exceptions never reorder
+   an explicit custom wildcard Deny; unknown/unregistered actions still fail closed.
+4. **Native restriction regression (PRM01 plus existing owners).** With MCP enabled,
+   Explore native shell/file mutations/question/nested subagent remain unavailable,
+   General question/nested delegation and native session-control ceilings remain.
+   Use T50's prepared selected-family view for both file families, DCP10 for allowed
+   own-session compress and explicit false/off/manual/Deny, and SUB01/SUB02 for real
+   child continuation. MCP is not classified as read-only from server hints/names;
+   default availability is not an external filesystem sandbox claim.
+5. **Actual Plan lifecycle (PRM01/R6).** Build→Plan→Build through the existing owner:
+   capture enter/leave near the correct request boundary, no duplication on identical
+   selection and no automatic exit from implementation prose. Compare both selected
+   mutation families using TOOL12/TOOL20 receipts; ordinary-file attempts have zero
+   effects, an explicitly requested file directly in `~/.opencode/plan` has the real
+   admitted effect, explicit Deny/preimage/trust/path constraints remain. No automatic
+   plan-file creation on entry; captured reminder retains that requirement without
+   a keyword-based authorization classifier. Verify custom system retains the separate
+   reminder, no model/variant/MCP/autoaccept-based policy bypass, parent Plan ceilings
+   constrain native child mutations, and context reconciliation after DCP/compact/
+   Revert/reopen/restart has no missing Plan or stale leave-state instructions.
+   Actual `oc run --agent plan` selects before prompting; omission on a resumed session
+   retains its saved profile, no hidden Build substitution. A picker label alone fails.
+6. **Catalog/recovery boundary (existing T46 seams).** Fake barriers update/relist/
+   disconnect before next request; newly admitted registered tools receive the same
+   default, denied entries stay denied and prepared requests retain their captured
+   view subject to real lease checks. Disabled fake browser is zero-spawn/enable,
+   failed/pending MCP gives no new schemas/guidance. Restart rebuilds admitted state;
+   reuse existing MCP08/MCP10/AUD23 quarantine/cleanup/no unknown-effect replay proofs.
+
+Use deterministic fake-provider/process/tool counters and current rebuilt debug/release
+normal-binary headless/PTY evidence for the root/child/default and Plan flows. Run nearest
+profile/permission/runtime tests, affected crates, then R5's fmt/clippy/workspace tests/
+release build at integration/final closure. No new paid/browser campaign or reset of an
+exhausted live allowance. CTX02/PRM01 remain only T45; T46 transports/lifecycle and T50
+executors/selector retain ownership. T44 VIS06/VIS10/VIS17/VIS26/VIS39 paired qualification
+is separate after explicit resume; no new visual gate or whole-task completion cycle.
+Document validation is not runtime/visual PASS or permission to change progress statuses.
+
 ## T45 prompt/delegation/DCP qualification (approved 2026-09-27; pending)
 
 Detailed specs SUB01/SUB02/CTX01/CTX02/PRM01/DCP10/DCP11/DCP12 in planning/acceptance.json

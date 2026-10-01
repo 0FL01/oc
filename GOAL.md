@@ -564,6 +564,46 @@ UI-preview/SQLite continuation/doc validator её не квалифицируе�
 active T50/PAUSED T44, dirty runtime/TUI/CODE_MAP, T55 safe-handoff priority и historical
 PASS/statuses неизменны. Это плановая доставка, не новая task или runtime PASS.
 
+## Owner amendment (2026-10-01 — built-in Plan/General/Explore / default MCP access)
+
+После read-only RECON владелец потребовал учесть встроенные `general`/`explore`,
+разрешить по умолчанию все MCP для поиска и других задач, затем отдельно подтвердил
+`Plan` и утвердил развёрнутую запись плана с commit/push в текущую ветку.
+[T45/R3/R6/R8/R10](docs/goals/2026-09-21-config-compat-and-subagents.md#built-in-profiles--default-mcp-access--approved-2026-10-01-pending)
+владеет профилями/effective policy/prompt, [M8](roadmap/M8.md#built-in-profiles--default-mcp-access--t45-approved-2026-10-01-pending)
+— порядком, CTX02/PRM01 — новой qualification в существующих T45 gates.
+
+- `build`/`plan` — built-in primary, `general`/`explore` — built-in subagent.
+  Они существуют без пользовательских definitions, до admitted JSON/Markdown
+  overrides; description/system/model/mode/hidden/disable и eligibility имеют
+  реальную семантику. Наличие обычного custom `plan` не закрывает native Plan mode.
+- Default product MCP authority — Allow для **всех tools реального каталога**
+  configured/enabled/admitted/connected MCP, в том числе для Plan/General/Explore.
+  Это явный native default перед child narrowing, не grant только внутри ребёнка,
+  hardcoded web-search/server allowlist или глобальный `*` Allow для любых tools.
+  Explicit central/parent/profile Deny/Ask, resource rules, trust и quarantine остаются.
+  Disabled/failed/pending servers не включаются и не запускаются из-за профиля.
+- Explore сохраняет ограничения встроенных filesystem/shell/question/delegation
+  tools и отдельно утверждённый own-history compress; General не получает question
+  или nested delegation. MCP schemas/preview/initialize guidance/actual execution
+  используют одну effective identity/policy. Denied tools отсутствуют в новом
+  каталоге, Ask не выдаётся за unconditional Allow и требует настоящего consumer.
+- Plan требует настоящие enter/leave reminders, reconciliation после DCP/compact/
+  Revert/reopen и switch только через выбор агента. Native file mutations запрещены
+  вне узкого `~/.opencode/plan`; плановые файлы — только по явной просьбе пользователя.
+  Policy охватывает обе T50 file families, child narrowing и approved-preimage checks.
+  Shell/MCP имеют собственные policies: Plan/Explore не sandbox внешних effects,
+  а MCP Allow не означает классификацию всех MCP tools как read-only.
+
+Superseded только прежний default MCP Ask/отсутствующий grant для зарегистрированных
+MCP actions и blanket donor Explore MCP denial; остальные defaults/явные restrictions
+не меняются. Explore MCP Allow — объявленное отличие от pinned OC2, не donor parity.
+T46 сохраняет готовые transports/lifecycle, T50 selector/executors, T44 отдельные
+VIS06/VIS10/VIS17/VIS26/VIS39 после explicit resume; новых tasks/gates/stores/frameworks
+или paid campaign нет. Plan pending/NOT_RUN: эта плановая доставка не переключает
+active T50/PAUSED T44, не затрагивает реализацию T50/CODE_MAP, T55 safe-handoff priority
+или historical evidence/statuses.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

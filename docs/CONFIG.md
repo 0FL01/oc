@@ -207,6 +207,31 @@ Native central/parent/child permissions only narrow. Unsupported arbitrary hooks
 or other unimplemented fields do not become silently accepted. Historical subset
 evidence is not qualification of these pending outcomes.
 
+**Built-ins/MCP amendment, approved 2026-10-01; pending:**
+[T45 contract](goals/2026-09-21-config-compat-and-subagents.md#built-in-profiles--default-mcp-access--approved-2026-10-01-pending)
+seeds `build`/`plan` primary and `general`/`explore` subagent before configured transforms,
+without creating `.opencode` files. Supplied fields override under existing R6 merge/
+authority rules; omitted mode/system must not erase the builtin profile. Hidden/disabled
+and automatic primary/subagent eligibility remain distinct from explicit addressing.
+Custom `plan` without real Plan policy/reminders is not implementation of this target.
+
+For configured/enabled/admitted/connected MCP, all registered tools get native default
+Allow in the shared permission owner before root/child narrowing, including Plan and
+both built-in subagents. No per-server/tool allow config is required by default; explicit
+central/parent/profile Ask/Deny/resources/tools:false remain authoritative. This is not
+`permission:"allow"` for all built-ins, auto-enabling a disabled MCP or admitting unknown
+actions. Use actual registry identities and existing compatible aliases for both schemas
+and invocation. Explore's default MCP exception is native, not donor blanket-deny parity;
+its native file/shell/question/delegation constraints and own-history compress gates stay.
+MCP tools are not inferred read-only, and Plan/Explore are not external-effect sandboxes.
+
+Plan must reconcile enter/leave after DCP/compact/Revert/reopen, forbid ordinary native
+file edits, narrowly admit explicitly requested plan files under `~/.opencode/plan`, and
+exit only on agent selection. It consumes both selected T50 file families and common
+default MCP policy; `run --agent plan` belongs to R6. No new config keys, writer or generated
+profile files are introduced. Executable examples change only when implementation lands;
+this approval does not prove runtime support or change progress statuses.
+
 Command body/description, `$ARGUMENTS`/positional expansion and durable original/expanded
 input remain. T45/R3 supersedes subagent/subtask and child-background exclusions with
 pinned agent/model/route precedence and background child admission; supported shell

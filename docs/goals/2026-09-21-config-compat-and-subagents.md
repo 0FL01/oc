@@ -30,10 +30,10 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Status: verified
   - Evidence: `evidence/T43/report.md`; `MAX_DEF_BODY`/`MAX_SKILL_FILE`/frontmatter/description caps removed, `MAX_TOTAL_BYTES = 4 MiB`, `COMMAND_BYTES_CAP`/`SKILL_BODY_CAP = 1 MiB`; 41 KiB command expands (`crates/oc-adapters/tests/runtime.rs::command_expansion_is_single_bounded_pass`).
 
-- R3: Subagent system fully implemented per upstream v2.0.12.
+- R3: Subagent system fully implemented per upstream v2.0.12 with the approved native MCP defaults.
   - Source: owner instruction "реализовать систему саб агентов полностью", 2026-09-27 concurrency RECON and approval; pinned OC2 `subagent` tool (legacy `task` is a permission migration alias), session parentID, agent modes, command routing and result delivery.
   - Owner: T45 remaining backend/CLI/history slices and typed child lifecycle/projections; preserve T43's landed foreground prerequisites. T44 owns VIS39 transcript/composer/indicator/colors/animations qualification, after the minimal R3 slice, without all-T45 completion or a reverse dependency.
-  - Acceptance: (a) subagent/all profiles load and run; built-in General and Explore have actual donor system/tool restrictions, default depth 1 and caller-gated spawning; model selection is explicit override → child profile → parent, while continuation retains its own selection unless explicitly switched. Primary-only/unknown profiles and foreign sessionID fail before child creation. (b) Foreground is the default; multiple independent subagent calls in one response can run concurrently, and the next parent model step waits for the batch's terminal results. (c) background:true starts independently before returning running/sessionID; it can make progress while the parent turn is still active, not only after parent completion. Parent receives an owner-generated terminal notice without polling or duplicate work.
+  - Acceptance: (a) subagent/all profiles load and run; General and Explore are registered built-in subagents without custom definitions, with real descriptions/system/native-tool restrictions, default depth 1 and caller-gated spawning. The approved 2026-10-01 MCP Allow default below replaces only donor Explore's blanket MCP denial, not native file/shell/question/delegation restrictions or explicit policy. Model selection is explicit override → child profile → parent, while continuation retains its own selection unless explicitly switched. Primary-only/unknown profiles and foreign sessionID fail before child creation. (b) Foreground is the default; multiple independent subagent calls in one response can run concurrently, and the next parent model step waits for the batch's terminal results. (c) background:true starts independently before returning running/sessionID; it can make progress while the parent turn is still active, not only after parent completion. Parent receives an owner-generated terminal notice without polling or duplicate work.
   - Acceptance: (d) children have fresh history plus the delegated prompt, their own profile and applicable workspace context, not the parent transcript or parent agent.system; sessionID continues the child's own history. Child rows retain parent/Location linkage and are visible in history/TUI. (e) command.subagent ?? command.subtask wins over mode inference; explicit false routes inline with agent/model switch ordering, child commands route background without changing parent selection. (f) cancellation/shutdown reaps owned work; per-session scheduling, bounded in-flight/queued work and mutation safety replace a global parent-held single-flight deadlock, without serializing all children behind the parent.
   - Acceptance: (g) durable background recovery verifies parent/child identity, delivers an already committed terminal result without re-execution and uses pinned donor recovery for safely resumable work. Do not claim exactly-once execution: donor recovery is at-least-once. Native started/unknown mutation, shell or MCP operations are never auto-replayed; unresolved effects require explicit recovery. Notifications are deduplicated by durable job generation/delivery identity, including crash at delivery. (h) permissions/parent-child narrowing and R9 child DCP remain authoritative; neither background nor context transfer widens authority.
   - Acceptance: (i) project call/operation, parent/child/session/generation, complete validated input/model/continuation, immutable background launch metadata, current child state, typed permission/outcome and bounded family status/navigation facts from existing owners. Durable synthetic completion retains source=subagent/childID/agent/state/description/result and delivery identity; one child then a batch can reach parent continuation without UI polling or duplicate work. Ctrl+B actually backgrounds owned foreground jobs and admits genuine control context, not a TUI flag. Child prose is not runtime failure. View restoration reconciles current status/notices without reexecuting committed work or unknown effects; safe unfinished-job recovery remains (g). Keep native closed-response validation before admission, queue/query bounds and existing store; T44 VIS39 consumes these facts and independently qualifies presentation.
@@ -65,6 +65,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: custom Markdown discovery supports global/project agent/agents and compatibility mode/modes roots, pinned recursion/ID derivation/source order and native/legacy frontmatter. Absent mode defaults to primary for a new profile; primary/subagent/all eligibility is preserved. Later definitions merge supplied fields rather than replacing the whole profile; permissions follow pinned ordered composition within the preserved native authority boundaries.
   - Acceptance: system/body instructions, model/variant, request settings/headers/body, steps, color, mode/hidden/disabled have actual execution/presentation semantics, not silent acceptance. Native and compatibility forms are checked against the donor importer/migration rather than guessed from V1 docs. Hidden/disabled/subagent-only profiles follow donor picker/cycle/default eligibility; explicit addressing is checked separately.
   - Acceptance: headless run --agent selects/switches the profile before prompting; omission preserves an existing session's profile. Session selection, instructions and model/variant remain truthful through switch/reopen/reload, without silent substitution of Build.
+  - Acceptance supplement (owner-approved 2026-10-01 built-ins): register Build/Plan as primary and General/Explore as subagent before configured transforms; no custom-file prerequisite or primary-only exposure of subagents. Qualify the actual Plan policy/reminder lifecycle and common default MCP authority described below, not merely a custom profile named plan or a picker label. Explicit central/parent/profile restrictions remain authoritative; the requested MCP default also applies to Plan, without redefining it as a shell/MCP sandbox.
   - Acceptance supplement (owner-approved 2026-10-01): consume a real listed reference from [T50/R7 `oc models`](2026-09-27-native-tool-parity.md#cli-models--r7tool18-approved-2026-10-01-pending) in canonical `agents.<id>.model`, legacy `agent` normalization, and Markdown global/project agent/agents roots. Pinned grammar uses the first `/` as provider separator, preserves further slashes in model ID, and admits `provider/model#variant` or structured selection. Separate legacy variant joins a string model only if it has no embedded `#`; embedded/structured native choice wins, per donor importer/migration, not current parser convenience. Listing does not write/bind profiles, choose defaults or widen permissions. Missing/retired model or disabled variant remains explicit, with generation/tool refusal before effects and no provider/model fallback.
   - Agent-cycle clarification (owner-approved 2026-09-30): supply the smallest real ordered primary catalog/selection slice for [T44/VIS06/VIS10/VIS17](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#agent-cycle-keybindings--уточнение-2026-09-30). Current primary_capable() alone does not exclude hidden profiles; automatic cycle/picker eligibility must omit hidden, disabled and subagent-only definitions while explicit addressing retains its separate rules. Reuse session/Home selection validation and model/variant persistence; never change an in-flight profile or silently repair a saved unavailable choice. Existing config composition admits canonical/legacy agent list/forward/reverse bindings for the same immutable Location generation, not a new keymap/config/profile store. T44 supplies direct-cycle input and paired visual evidence after explicit resume; no all-T45 completion dependency or new acceptance ID.
   - Primary evidence: pinned TS fixtures for normalized definitions/merge/default selection plus captured fake-provider requests, independently verified tool effects and session/restart assertions; T44 paired picker/prompt captures prove UI parity separately. Rebuild and exercise target/release/oc. Existing workspace/live gates remain mandatory.
@@ -130,6 +131,113 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Status: pending
   - Evidence:
 
+### Built-in profiles / default MCP access — approved 2026-10-01, pending
+
+Source: owner asks for built-in explore/general and default access to all MCP for web
+search/etc, asks to include built-in Plan, then approves detailed plan commit/push.
+This supplements R3/R6/R8/R10; it is not a new R-ID/task or proof of implementation.
+
+**Source-derived RECON snapshot (HEAD `d6e4d549c`, dirty T50 worktree at inspection):**
+composition registers only `builtin_build`; defs has special constraints for loaded
+general/explore but does not create them. Custom `plan` is an ordinary profile, with
+no Plan lifecycle, and CLI has no `run --agent`. Unmatched central action authority
+denies; attached MCP schemas are appended without the built-in catalog policy filter
+at both initial and follow-up preparation, while guidance/execution do check policy.
+These are read-only findings, not executed RED/PASS. T46 is done for its own MCP
+transport/lifecycle scope; it does not qualify these profile/default-policy outcomes.
+
+#### Profile contract
+
+| ID / default mode | Required behavior without custom definitions |
+| --- | --- |
+| `build` / primary | Preserve existing native registration and default selection; general execution follows effective configured policy, not a new blanket tool Allow. |
+| `plan` / primary | Real Plan edit policy, enter/leave reminders and context reconciliation; question remains permitted only within effective authority. |
+| `general` / subagent | General-purpose description and base harness fallback when no custom system; no question or nested subagent, native session-control ceilings retained. |
+| `explore` / subagent | Adapted donor search-specialist system/quick–medium–very-thorough guidance; native read/glob/grep/webfetch, no shell/file mutation/question/nested delegation, separately admitted own-history compress. |
+
+Seed these profiles once in the existing definition owner before global/Location
+JSON/Markdown merges. Preserve field-wise supplied overrides, model/variant/digest,
+hidden/disabled and explicit mode semantics under R6; a configured omitted field must
+not accidentally erase the built-in mode/system/policy. Automatic primary picker/cycle
+excludes subagent/hidden/disabled; subagent catalog excludes primary/hidden/disabled
+and caller-denied profiles. Explicit hidden addressing follows existing separate rules;
+disabled/unknown/primary-only child targets fail before child/input effects.
+Child context still uses its own profile, not the parent's system/transcript.
+
+#### MCP authority and effective views
+
+- Default product authority is **Allow for every registered tool** in the current
+  configured/enabled/admitted/connected MCP catalog, including root Build/Plan and
+  children General/Explore. No per-tool user grant is needed in an otherwise valid
+  admitted default configuration. This changes only the old MCP Ask/missing-authority
+  default; unknown/unregistered tools and unrelated missing actions still fail closed.
+- Add that explicit native baseline in the shared permission owner before root/child
+  effective intersection. A child-only Allow cannot fix missing central authority.
+  Existing explicit central/parent/profile wildcard or per-tool Deny/Ask/resource
+  rules and legacy tools:false remain constraints; a new default never erases them.
+  Parent effective restrictions remain ceilings during continuation/recovery.
+- Explore's built-in default deny layer must contain scoped exceptions for actual
+  registered MCP actions, rather than leave them under donor blanket Deny. Keep this
+  builtin-default exception separate from user constraints; custom wildcard Deny is
+  not reordered/overwritten. No hardcoded server/tool list, guessed search suffix,
+  readOnly/destructive annotation classifier or MCP allowlist restricted to web tools.
+- Use the registry's collision-safe wire identity (`server__tool`) and existing
+  compatible permission alias (`server_tool`) consistently for catalog visibility,
+  delegation previews, initialize guidance and invocation/resource admission.
+  Explicit whole-action Deny removes schemas from new requests; resource-dependent
+  capabilities remain conditional. Ask may be advertised only truthfully and must
+  use the real permission consumer; headless without one fails before tools/call.
+  Denied/Ask-only tools do not acquire unconditional server instructions.
+- Reuse T46 clients/lifecycle and the captured request lease. Pending/failed/disabled
+  services supply no new usable tools/guidance; profiles never enable/connect a
+  disabled server. New/relisted/disconnected entries reconcile at safe request
+  boundaries; prepared requests retain their captured view and actual lease checks.
+  Restart reconstructs the admitted catalog, not grants or uncertain tool effects.
+- MCP Allow covers all registered MCP tools, not a claim that they are read-only.
+  Explore/Plan native filesystem policies and their planning/research guidance remain;
+  shell/MCP have separate actual policies, as in the existing non-sandbox contract.
+  Do not silently add an effect classifier or a new external side-effect sandbox.
+
+#### Plan behavior, not just registration
+
+Plan native mutations use T50's canonical permission identity for both apply_patch
+and edit/write. Deny ordinary files and narrowly admit the donor-compatible
+`~/.opencode/plan` exception within existing trust/external-directory/no-follow/
+preimage/data-root checks; no whole-HOME grant. Reminders forbid creating/updating
+plan files unless explicitly requested, forbid delegating forbidden file changes,
+and retain Plan until the user selects another agent. Do not parse free user text by
+keywords to guess authorization or create plan files automatically.
+
+Creation/selection into Plan emits the enter reminder; leaving emits the leave
+reminder, repeated same-profile selection does not duplicate it. Request assembly
+reconciles missing/stale reminders after DCP/native compact/Revert/reopen while
+preserving chronological immutable raw records. Custom system overrides cannot erase
+the independent Plan reminder/policy layers. Ordinary implementation prose, MCP use,
+model/variant switch or --auto does not switch agents or bypass native mutation Deny.
+Supply `run --agent plan` through R6's existing selection-before-prompt owner.
+
+#### Ownership and evidence
+
+T45 owns registration/merge/eligibility, default MCP authority/effective views,
+Plan reminders/selection and CTX02/PRM01 qualification. Reuse SUB01/SUB02 for actual
+child launch/continuation/narrowing, DCP10 for Explore own-history compression and
+T43/AUD42 for resource rules; do not duplicate their full matrices. T50 keeps file
+selector/executors, T46 transports/catalog lifecycle, T44 VIS06/VIS10/VIS17/VIS26/
+VIS39 presentation after explicit resume. Minimal qualified seams, not whole-task
+completion dependencies or reopening completed T46 solely for this new default.
+
+Minimum primary evidence: no custom profiles → real Build/Plan/General/Explore
+catalog/eligibility and captured root/child requests; both children and Plan perform
+fake-MCP search plus an arbitrary non-web tool without MCP overrides; explicit
+central/parent/profile Deny/Ask/aliases agree across schemas/preview/guidance/effects.
+Then actual-binary Build → Plan → Build, native mutation zero effects outside the
+plan directory, explicitly requested plan-file effect, compact/Revert/restart and
+headless --agent proof. Use deterministic fake HTTP/stdio/provider counters and
+existing actual-binary harnesses, no new paid/browser campaign. Full methodology:
+[TEST_PLAN](../TEST_PLAN.md#built-in-profiles--default-mcp-access--t45-approved-2026-10-01-pending).
+New scenarios remain pending/NOT_RUN until rebuilt binary/effect evidence and the
+existing affected-crate/workspace gates; historical PASS is not sufficient.
+
 ### Constraints
 
 - C1: Rust 2024, modular monolith, core independent of UI, KISS/YAGNI; no Node/Bun/JS host in production.
@@ -152,6 +260,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - Expected paths, symbols, and direct consumers: `split_frontmatter`, `parse_skill`, `load_kind`, `insert_agent`, `insert_command`, `normalize_permission`, `MAX_*` constants; subagent work touches session/tool/runtime composition and TUI rendering.
 - R6 adds agent definition/merge/default selection, native Build/Plan registration and reminder lifecycle, narrowly admitted Plan-directory mutations under T50's selected family, headless CLI selection and existing T44 picker/cycle consumers. Reuse application/session/config owners; no new agent framework or separate persistence engine. T50 owns executors and selector; T45 consumes their minimal effective view without whole-T50 completion dependency.
 - R6's 2026-10-01 CLI-reference consumer touches existing defs/config normalization, composition and scoped application/model selection only as required to preserve the pinned provider/model/variant grammar and precedence. Use TOOL18's same catalog fixture/receipt and existing profile/recovery tests. Other admitted global/command/child model settings retain their existing owners and routing contracts; no new binding CLI, config writer, credential scan or whole-T53 prerequisite.
+- R3/R6/R8/R10's 2026-10-01 built-ins/MCP amendment touches `defs.rs` builtin constructors/merge, `composition.rs` seeding/default authority, `permissions.rs` and `runtime.rs::RuntimePolicy` identity/visibility, both initial/follow-up `runtime/turn.rs` catalogs, `runtime/mcp.rs` guidance, existing application selection/reminder/context owners and `oc/src/{cli,headless}.rs`. Reuse existing TUI catalog consumers and tests; no agent registry/store, effect classifier, new MCP connection owner, new model tool or user-config writer.
 - R7 adds a small native Linux environment collector in oc-adapters and integration into the existing application/runtime prompt assembler, including the base harness fallback and environment/date baseline. Reuse existing workspace and shell-executor metadata. No second registry, persistence engine, background service or new model-facing tool. This is a Linux extension, not a macOS/Windows implementation commitment or closure of all other OC2 instruction-lifecycle gaps.
 - R3/R8–R10 extend existing session workers/job ownership, subagent schema, durable task/pack admission, conversation views, DCP block/protection queries and shared prompt/instruction projection. Internal typed snapshots/transactional storage fields may be added only for these outcomes; no donor KV clone, external scheduler, second executable registry, generic agent framework or new archive/history copy. Current GOAL.md amendments admit this scope; original audit leaves remain historical evidence.
 - R9/DCP12 additionally touches existing `dcp_auto.rs` defaults/resolution, `composition.rs` config loading, `models.rs` budget reuse and runtime/application/query/panel threshold consumers. Reuse one effective model/config owner, minimal typed fields and bounded active queries; no new policy engine, config writer or lifetime counter. Executable examples/help change with actual implementation, not this plan-only approval.
@@ -162,6 +271,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
+- Built-ins/MCP follow-up (owner-approved 2026-10-01): after safe handoff, first freeze a no-custom-profile fixture for missing Plan/General/Explore and absent central MCP authority. Implement the shared builtin/default policy view, then captured schema/preview/effects and Plan lifecycle using the ordered M8 slices. Existing T50 dirty work, T55 scheduling priority, T44 PAUSED and all task statuses are unchanged; this delivery is plan-only.
 - CLI/profile follow-up (owner-approved 2026-10-01): after T50's minimum `oc models` catalog consumer, qualify one exact listed reference through R6 JSON/Markdown profile selection/request/reopen. Basic loader/profile normalization may proceed with shared fixtures before the CLI lands, but final binding evidence must cite the real CLI receipt. T50 active, T44 PAUSED, current dirty work and T55 safe-handoff priority are unchanged; no historical profile PASS qualifies this new end-to-end scenario.
 - Closes: smallest unresolved T45 slice of R3/R6–R10, not already verified R1/R2.
 - Smallest next action: after a safe scheduling handoff to T45, reconcile actual HEAD/foreground prerequisites and choose one unresolved slice from roadmap/M8.md. For R9/DCP11, first freeze kept/forgotten control facts and reproduce replacement resurrection; do not start with cap increases or a full archive rewrite. This plan-only amendment does not switch the active task (T50 at approval) or resume PAUSED T44.
@@ -177,6 +287,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Material Decisions
 
+- 2026-10-01: owner approves expanded built-in Plan/General/Explore/default-all-MCP plan and commit/push after RECON. Superseded only donor Explore MCP denial and old default MCP Ask/missing registered-action grant; explicit central/parent/profile Ask/Deny, native file/shell/question/delegation restrictions and non-sandbox/security invariants remain. All registered MCP tools, not a web-name allowlist, are covered. T45 owns CTX02/PRM01 additions, T46/T50/T44 retain their existing scopes; new implementation/qualification pending, no status/PASS/baseline changes.
 - 2026-10-01: owner requires original OC2 model switching while work is active and approves detailed plan commit/push after follow-up RECON. R10/PRM01 consumes T50/R1's local draft versus committed selection, blank Enter/captured send ordering and next-request adoption inside the same task. Superseded only blanket model/variant busy refusal and whole-turn model pin, not config/Location generations, child/profile/read-only authority, policy/preimage, retry/quarantine or no replay. U95–U102 append source proof; T47 ordering/T44 visual ownership and all execution statuses/evidence remain unchanged, implementation pending.
 - 2026-10-01: owner approves detailed file-tools plan commit/push after RECON. T50/R1/R9 owns exact OC2 model-dependent apply_patch OR edit/write selection, mandatory next-request switch and real mutation semantics. R6/R10/PRM01 consumes this shared view for root/own-model child, Plan, base/custom guidance and capability previews; only old single-patch/no-write-edit/model-name-selector clauses are superseded. No new T45 executor or model routing, policy widening, task/status change or historical PASS rewrite; T44 stays PAUSED and separately owns VIS35/VIS36.
 - 2026-10-01: owner approved full child-TUI/Subagents/Shell/Terminals visual and interactive plan, explicitly including Terminals. R3 now supplies ordinary live child events, authoritative family/status and independent controls; only blanket navigation/control refusal is superseded, not child turn/profile/model/Undo authority. T50/TOOL13 retains shell jobs, new T56/TERM01 owns native session PTYs and T44/VIS39 owns paired visual qualification. No completion cycle or new T45 store/framework; active T50, PAUSED T44, historical evidence and R1/R2 statuses unchanged.
