@@ -1339,3 +1339,45 @@ pub struct ShellNotice {
     /// Bounded readable facts identical to provider/history input.
     pub text: String,
 }
+
+/// Current supervisor-owned running job, independent of immutable tool results.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShellJob {
+    /// Exact source session, including child-origin work.
+    pub session: crate::domain::SessionId,
+    /// Original tool operation / capture identity.
+    pub shell_id: String,
+    /// Original admitted execution Location.
+    pub location: String,
+    /// Original configuration generation.
+    pub generation: u64,
+    /// Original turn identity.
+    pub turn: String,
+    /// Actual issuing-request model.
+    pub model: String,
+    /// Actual issuing-request provider.
+    pub provider: String,
+    /// Validated admitted command (legacy argv stays literal).
+    pub command: String,
+    /// Verified process-group leader, never a signal capability for callers.
+    pub pid: Option<i32>,
+    /// Whether the original foreground await has been converted/released.
+    pub background: bool,
+}
+
+/// Bounded recent snapshot from actual drains or the frozen terminal capture.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShellSnapshot {
+    /// Original source/operation/execution identity, even after list removal.
+    pub job: ShellJob,
+    /// Current owner state; never the original running result.
+    pub state: String,
+    /// Monotonic actual drained stdout byte cursor.
+    pub stdout_cursor: u64,
+    /// Monotonic actual drained stderr byte cursor.
+    pub stderr_cursor: u64,
+    /// Either bounded capture window discarded earlier bytes.
+    pub truncated: bool,
+    /// Recent text, bounded independently of stream retention.
+    pub text: String,
+}

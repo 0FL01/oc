@@ -13,6 +13,7 @@ import tempfile
 import threading
 BACKGROUND_SUPPORTED = False
 QUESTION_SUPPORTED = False
+SHELL_CONTROLS_SUPPORTED = False
 import time
 
 
@@ -83,6 +84,9 @@ def run(binary, name, tool, args, permission, expected, *, auto=False, shell=Non
             "provider": {"fixture": {"npm": "@ai-sdk/openai", "options": {
                 "baseURL": f"http://127.0.0.1:{server.server_port}/v1", "apiKey": "synthetic"},
                 "models": {"m": {"limit": {"context": 65536, "output": 2048}}}}}}
+        if SHELL_CONTROLS_SUPPORTED:
+            configuration["provider"]["fixture"]["models"]["gpt-shell-regression"] = configuration["provider"]["fixture"]["models"].pop("m")
+            configuration["model"] = "fixture/gpt-shell-regression"
         if plural is not None:
             configuration["permissions"] = plural
         if profile:
@@ -133,8 +137,11 @@ def run(binary, name, tool, args, permission, expected, *, auto=False, shell=Non
         tools = requests[0]["tools"]
         names = [t["name"] for t in tools]
         assert "bash" not in names, (name, "legacy bash advertised", names)
-        assert not set(names) & {"websearch", "execute", "write", "edit",
-                                  "opencode_models", "opencode_session_rename", "opencode_session_move"}
+        assert not set(names) & {"websearch", "execute", "write", "edit"}
+        if not SHELL_CONTROLS_SUPPORTED:
+            assert not set(names) & {"opencode_models", "opencode_session_rename", "opencode_session_move"}
+        else:
+            assert "opencode_models" in names
         if not QUESTION_SUPPORTED or (profile in {"general", "explore"} and not child):
             assert "question" not in names
         else:
@@ -162,7 +169,16 @@ def run(binary, name, tool, args, permission, expected, *, auto=False, shell=Non
         operations = db.execute("SELECT name,state,output FROM tool_operations").fetchall()
         grants = db.execute("SELECT count(*) FROM permission_grants").fetchone()[0]
         if BACKGROUND_SUPPORTED:
-            assert db.execute("SELECT count(*) FROM shell_jobs").fetchone()[0] == 0
+            owned = SHELL_CONTROLS_SUPPORTED and name in {"selected-operators", "legacy-literal", "zero", "timeout", "cancel-zero", "ask-once", "fallback", "fish-fallback", "linux-default-sh"}
+            assert db.execute("SELECT count(*) FROM shell_jobs").fetchone()[0] == int(owned)
+            if owned:
+                operation_id, source, phase, provenance, outcome, notice = db.execute("SELECT operation_id,session_id,phase,provenance,outcome,message_id FROM shell_jobs").fetchone()
+                provenance = json.loads(provenance)
+                assert phase == "terminal" and notice is None
+                assert provenance["operation"] == operation_id and provenance["session"] == source
+                assert provenance["model"] == "gpt-shell-regression" and provenance["location"] == str(project)
+                assert json.loads(outcome)["state"] == next(op[1] for op in operations if op[0] == tool)
+                assert db.execute("SELECT count(*) FROM events WHERE kind='shell_notice'").fetchone()[0] == 0
         assert grants == 0, "direct --auto must remain Once"
         assert len(operations) == (2 if child else 1), (name, operations, result.stderr.decode())
         operation = next(op for op in operations if op[0] == tool)
@@ -210,14 +226,16 @@ def run(binary, name, tool, args, permission, expected, *, auto=False, shell=Non
 
 
 def main():
-    global BACKGROUND_SUPPORTED, QUESTION_SUPPORTED
+    global BACKGROUND_SUPPORTED, QUESTION_SUPPORTED, SHELL_CONTROLS_SUPPORTED
     parser = argparse.ArgumentParser()
     parser.add_argument("binary", type=Path)
     parser.add_argument("--background-supported", action="store_true", help="current background slice schema; historical mode remains the default")
     parser.add_argument("--question-supported", action="store_true", help="current question slice catalog; historical mode remains the default")
+    parser.add_argument("--shell-controls-supported", action="store_true", help="current same-owner foreground ledger and GPT file family; keeps historical mode")
     options = parser.parse_args()
     BACKGROUND_SUPPORTED = options.background_supported
     QUESTION_SUPPORTED = options.question_supported
+    SHELL_CONTROLS_SUPPORTED = options.shell_controls_supported
     binary = options.binary.resolve()
     print(json.dumps({"binary": str(binary), "sha256": hashlib.sha256(binary.read_bytes()).hexdigest()}))
     run(binary, "selected-operators", "shell", {"command":

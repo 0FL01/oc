@@ -2901,13 +2901,13 @@ impl<'a> Runtime<'a> {
             };
             let mut shell_slot = None;
             if rejection.is_none()
-                && matches!(&guarded,Assembled::Call(call) if call.name=="shell" && call.arguments["background"]==true)
+                && matches!(&guarded,Assembled::Call(call) if matches!(call.name.as_str(), "shell" | "bash"))
             {
                 shell_slot = self.shell_jobs.reserve();
                 if shell_slot.is_none() {
                     rejection = Some((
                         "failed",
-                        "error: active background shell resource ceiling (8 jobs)".into(),
+                        "error: active shell resource ceiling (8 jobs)".into(),
                     ));
                 }
             }
@@ -3444,12 +3444,10 @@ impl<'a> Runtime<'a> {
                     Assembled::Call(call) if matches!(call.name.as_str(), "shell" | "bash") => {
                         let invocation = crate::tools::shell_call::invocation(call, ctx.parent_env)
                             .map_err(|error| RuntimeError::InvalidArgs(error.to_string()))?;
-                        if invocation.background {
+                        {
                             let pinned =
                                 invocation_policy.approved_shell_cwd().ok_or_else(|| {
-                                    RuntimeError::InvalidArgs(
-                                        "background shell cwd not pinned".into(),
-                                    )
+                                    RuntimeError::InvalidArgs("shell cwd not pinned".into())
                                 })?;
                             let provenance = crate::shell::jobs::Provenance {
                                 version: 1,
@@ -3470,20 +3468,46 @@ impl<'a> Runtime<'a> {
                                 ),
                                 command: call.arguments["command"]
                                     .as_str()
-                                    .expect("validated command")
-                                    .into(),
+                                    .map(str::to_owned)
+                                    .unwrap_or_else(|| {
+                                        serde_json::to_string(&invocation.argv)
+                                            .expect("validated argv")
+                                    }),
                                 cwd: pinned.path.to_string_lossy().into(),
                                 selected_shell: invocation.argv[0].clone(),
                             };
-                            match self.shell_jobs.launch(self.shell.clone(), self.parent_env.clone(),
-                                invocation.argv, invocation.cwd, invocation.timeout, pinned, provenance,
-                                shell_slot.take().expect("background reservation before intent")).await {
-                                Ok(shell_id) => ("completed", serde_json::json!({"status":"running", "shellID":shell_id,
-                                    "truncated":false,"output":"Background command launched. You will be notified automatically when it completes. DO NOT poll; continue independent work or end your response."}).to_string()),
-                                Err(_) => ("failed", "error: background shell admission or launch failed".into()),
+                            match self
+                                .shell_jobs
+                                .launch_mode(
+                                    self.shell.clone(),
+                                    self.parent_env.clone(),
+                                    invocation.argv,
+                                    invocation.cwd,
+                                    invocation.timeout,
+                                    pinned,
+                                    provenance,
+                                    shell_slot.take().expect("shell reservation before intent"),
+                                    !invocation.background,
+                                )
+                                .await
+                            {
+                                Ok(shell_id) => {
+                                    let outcome = if invocation.background {
+                                        Ok(None)
+                                    } else {
+                                        self.shell_jobs.foreground(session, &shell_id, cancel).await
+                                    };
+                                    match outcome {
+                                        Ok(None) => ("completed", serde_json::json!({"status":"running", "shellID":shell_id,
+                                            "truncated":false,"output":"Background command launched. You will be notified automatically when it completes. DO NOT poll; continue independent work or end your response."}).to_string()),
+                                        Ok(Some(outcome)) => outcome.tool_result(),
+                                        Err(_) => ("unknown", "error: shell supervisor interrupted; effect unknown; not replayed".into()),
+                                    }
+                                }
+                                Err(_) => {
+                                    ("failed", "error: shell admission or launch failed".into())
+                                }
                             }
-                        } else {
-                            crate::tools::execute_shell_typed(ctx, call).await
                         }
                     }
                     Assembled::Call(call) if is_builtin(&call.name) => {

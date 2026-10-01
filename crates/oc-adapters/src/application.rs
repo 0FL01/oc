@@ -3365,8 +3365,9 @@ fn query(
             limit,
             ack,
         } => {
-            let result = db
-                .shell_output(&session.0, &shell_id, offset, limit)
+            let result = runtime
+                .shell_jobs
+                .output(&session.0, &shell_id, offset, limit)
                 .map(|result| {
                     result.map(
                         |(text, bytes, next_offset)| oc_core::queries::ToolOutputPage {
@@ -3389,6 +3390,42 @@ fn query(
             } else {
                 Err(CoreError::TurnNotActive)
             };
+            let _ = ack.send(result);
+        }
+        InboxMsg::ShellJobs { session, ack } => {
+            let result = runtime
+                .shell_jobs
+                .running(&session.0)
+                .map_err(|error| query_storage_error(db, error));
+            let _ = ack.send(result);
+        }
+        InboxMsg::ShellSnapshot {
+            session,
+            shell_id,
+            ack,
+        } => {
+            let result = runtime
+                .shell_jobs
+                .snapshot(&session.0, &shell_id)
+                .map_err(|error| query_storage_error(db, error));
+            let _ = ack.send(result);
+        }
+        InboxMsg::BackgroundShell {
+            session,
+            shell_id,
+            ack,
+        } => {
+            let result = runtime
+                .shell_jobs
+                .background(&session.0, &shell_id)
+                .map_err(|error| query_storage_error(db, error))
+                .and_then(|changed| {
+                    if changed {
+                        Ok(())
+                    } else {
+                        Err(CoreError::TurnNotActive)
+                    }
+                });
             let _ = ack.send(result);
         }
         InboxMsg::Cancel { session, ack } => {

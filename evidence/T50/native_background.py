@@ -20,6 +20,7 @@ import termios
 import time
 
 QUESTION_SUPPORTED = False
+SHELL_CONTROLS_SUPPORTED = False
 import re
 import unicodedata
 
@@ -221,6 +222,8 @@ class Native:
                         return
                     self.tail.extend(chunk)
                     del self.tail[:-16384]
+                    if hasattr(self, "consume_pty"):
+                        self.consume_pty(chunk)
         self.reader = threading.Thread(target=drain, daemon=True)
         self.reader.start()
         until(lambda: b"Untitled session" in self.tail or b"What" in self.tail or b"Synthetic title" in self.tail,
@@ -286,10 +289,14 @@ class Native:
         until(lambda: b"Jump to" in self.tail and b"Fork" in self.tail, "real message action panel did not open")
         self.send(b"\x1b[B" * index + b"\r")
 
-    def completed_frame(self):
+    def completed_frame(self, after_text=None):
         # A durable completed-turn footer is painted only after the consumer
         # reconciles its finished turn. DB settlement alone is not a key ACK.
         text = re.sub(rb"\x1b\[[0-9;?]*[ -/]*[@-~]", b"", bytes(self.tail)).decode("utf-8", "replace")
+        if after_text is not None:
+            if after_text not in text:
+                return False
+            text = text.split(after_text, 1)[1]
         return re.search(r"Build\s*·\s*(?:fixture/)?m\s*·\s*\d", text)
 
     def rows(self, sql, args=()):
@@ -331,12 +338,14 @@ def busy_notice(binary):
             busy.set()
             assert release.wait(10), "busy fake response not released"
             return tool("read", {"path": "seed"}, "read-call")
-        return completed()
+        return completed(f"R2_NOTICE_STEP_{count}") if SHELL_CONTROLS_SUPPORTED else completed()
     with Native(binary, script) as native:
         os.mkfifo(native.project / "barrier")
         native.start()
         native.send(b"launch\r")
         until(native.settled, "calling turn did not complete while background blocked")
+        if SHELL_CONTROLS_SUPPORTED:
+            until(lambda: native.completed_frame("R2_NOTICE_STEP_2"), "calling turn consumer did not acknowledge its exact completed footer")
         job = native.job()
         assert job[2] == "running" and not job[5] and not job[7]
         assert len(native.requests) == 2
@@ -351,6 +360,8 @@ def busy_notice(binary):
         assert len(native.requests) == 3, "completion generated an extra provider request"
         release.set()
         until(lambda: native.settled(2), "busy continuation did not finish")
+        if SHELL_CONTROLS_SUPPORTED:
+            until(lambda: native.completed_frame("R2_NOTICE_STEP_4"), "busy continuation consumer did not acknowledge its exact completed footer")
         assert len(native.requests) == 4
         wire = json.dumps(native.requests[3]["input"])
         assert wire.count(job[6]) == 1, "busy boundary omitted or duplicated notice"
@@ -534,15 +545,25 @@ def foreground_barrier(binary):
         native.send(b"foreground\r")
         until(lambda:native.project.joinpath("leader").exists(),"foreground shell did not reach barrier")
         assert len(native.requests) == 1 and not native.settled()
-        assert native.job() is None
+        if SHELL_CONTROLS_SUPPORTED:
+            job = native.job()
+            assert job[2] == "running" and json.loads(job[4])["pid"] == int(native.project.joinpath("leader").read_text())
+        else:
+            assert native.job() is None
         with open(native.project / "barrier","wb",buffering=0) as barrier:
             barrier.write(b"release")
         until(native.settled,"foreground did not finish after release")
-        assert len(native.requests) == 2 and native.job() is None
+        assert len(native.requests) == 2
+        if SHELL_CONTROLS_SUPPORTED:
+            job = native.job()
+            assert job[2] == "terminal" and job[7] is None and json.loads(job[5])["state"] == "completed"
+            assert native.rows("SELECT count(*) FROM events WHERE kind='shell_foreground'") == [(1,)]
+        else:
+            assert native.job() is None
         assert native.rows("SELECT count(*) FROM events WHERE kind='shell_notice'") == [(0,)]
         output = next(i["output"] for i in native.requests[1]["input"] if i.get("type") == "function_call_output")
         assert "FG_COMPLETE" in output and "running" not in output
-        print(json.dumps({"case":"foreground-false-barrier-waits","status":"PASS","requests":2,"jobs":0,"notices":0}))
+        print(json.dumps({"case":"foreground-false-barrier-waits","status":"PASS","requests":2,"jobs":int(SHELL_CONTROLS_SUPPORTED),"notices":0}))
 
 
 def admission_and_ceiling(binary):
@@ -601,6 +622,7 @@ def child_ceilings(binary):
     import native_foreground as foreground
     foreground.BACKGROUND_SUPPORTED = True
     foreground.QUESTION_SUPPORTED = QUESTION_SUPPORTED
+    foreground.SHELL_CONTROLS_SUPPORTED = SHELL_CONTROLS_SUPPORTED
     for profile in ["plan","general","explore"]:
         foreground.run(binary,f"{profile}-background-ceiling","shell",{"command":"touch marker","background":True},
             {"shell":"allow","subagent":"allow","read":"allow","glob":"allow","grep":"allow","compress":"allow"},
@@ -781,8 +803,10 @@ if __name__ == "__main__":
     parser.add_argument("binary", type=Path)
     parser.add_argument("--review-only",nargs="?",const="both",choices=["both","revert","fork","capacity"])
     parser.add_argument("--question-supported",action="store_true",help="current question catalog for the shared foreground checker; historical mode remains the default")
+    parser.add_argument("--shell-controls-supported",action="store_true",help="current foreground ledger and effective file family; keeps historical mode")
     args = parser.parse_args()
     QUESTION_SUPPORTED = args.question_supported
+    SHELL_CONTROLS_SUPPORTED = args.shell_controls_supported
     binary = args.binary.resolve()
     print(json.dumps({"binary": str(binary), "sha256": hashlib.sha256(binary.read_bytes()).hexdigest()}))
     if args.review_only:

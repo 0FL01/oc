@@ -145,6 +145,15 @@ pub enum PanelIntent {
     },
     ReplyApproval(oc_core::approval::ApprovalReply),
     ReplyQuestion(oc_core::question::QuestionReply),
+    LoadShells,
+    CancelShell {
+        session: SessionId,
+        shell_id: String,
+    },
+    BackgroundShell {
+        session: SessionId,
+        shell_id: String,
+    },
     CompactSession,
     ChangeConversation {
         action: oc_core::queries::ConversationAction,
@@ -522,6 +531,7 @@ pub struct TuiState {
     pub tab_attention: BTreeSet<usize>,
     pub approvals: crate::approval_view::ApprovalView,
     pub questions: crate::question_view::QuestionView,
+    pub(crate) shells: crate::shell_jobs_view::ShellView,
     pub chrome: oc_core::queries::TuiChrome,
     pub parent_id: Option<String>,
     /// New interactive launch, distinct from an explicitly attached session.
@@ -766,6 +776,7 @@ impl TuiState {
             auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
             approvals: Default::default(),
             questions: Default::default(),
+            shells: Default::default(),
             approval_roots: Default::default(),
             tab_attention: Default::default(),
             app,

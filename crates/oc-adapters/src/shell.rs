@@ -240,6 +240,7 @@ impl Shell {
             cancel,
             approved,
             false,
+            None,
             |_| Ok(()),
         )
     }
@@ -247,7 +248,7 @@ impl Shell {
     /// The lifecycle owner freezes OS identity before acknowledging launch.
     /// Failure in that durable callback tears down the group before returning.
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn execute_pinned_started(
+    fn execute_pinned_started(
         &self,
         parent_env: &BTreeMap<String, String>,
         argv: &[String],
@@ -257,6 +258,7 @@ impl Shell {
         cancel: &AtomicBool,
         approved: Option<&PinnedCwd>,
         finish_group: bool,
+        capture: Option<&jobs::Capture>,
         started: impl FnOnce(i32) -> Result<(), ShellError>,
     ) -> Result<ShellOutcome, ShellError> {
         validate_argv(argv)?;
@@ -334,8 +336,16 @@ impl Shell {
         // Concurrent drains: one thread per pipe so interleaved floods can
         // never deadlock a full pipe buffer while we wait below.
         let cap = limits.retain_cap;
-        let out = spawn_drain(child.process.stdout.take(), cap);
-        let err = spawn_drain(child.process.stderr.take(), cap);
+        let out = spawn_drain_live(
+            child.process.stdout.take(),
+            cap,
+            capture.map(|c| (&c.stdout, &c.wake)),
+        );
+        let err = spawn_drain_live(
+            child.process.stderr.take(),
+            cap,
+            capture.map(|c| (&c.stderr, &c.wake)),
+        );
 
         let mut outcome_kind = OutcomeKind::Exited;
         loop {
@@ -567,6 +577,7 @@ struct Drain {
 #[derive(Default)]
 struct DrainState {
     bytes: Vec<u8>,
+    total: u64,
     truncated: bool,
     done: bool,
 }
@@ -582,8 +593,16 @@ impl Drain {
     }
 }
 
-fn spawn_drain<R: Read + Send + 'static>(pipe: Option<R>, cap: usize) -> Drain {
-    let state = Arc::new(Mutex::new(DrainState::default()));
+fn spawn_drain_live<R: Read + Send + 'static>(
+    pipe: Option<R>,
+    cap: usize,
+    live: Option<(&Arc<Mutex<DrainState>>, &Arc<tokio::sync::Notify>)>,
+) -> Drain {
+    let state = live.map_or_else(
+        || Arc::new(Mutex::new(DrainState::default())),
+        |(state, _)| state.clone(),
+    );
+    let wake = live.map(|(_, wake)| wake.clone());
     let worker = state.clone();
     std::thread::spawn(move || {
         if let Some(mut pipe) = pipe {
@@ -593,6 +612,17 @@ fn spawn_drain<R: Read + Send + 'static>(pipe: Option<R>, cap: usize) -> Drain {
                     Ok(0) | Err(_) => break,
                     Ok(n) => {
                         let mut guard = worker.lock().expect("drain state");
+                        guard.total = guard.total.saturating_add(n as u64);
+                        if wake.is_some() {
+                            // A bounded recent window uses the actual drain buffer, not
+                            // a second output copy or a transcript-derived approximation.
+                            let excess = guard.bytes.len().saturating_add(n).saturating_sub(cap);
+                            if excess > 0 {
+                                let drop = excess.min(guard.bytes.len());
+                                guard.bytes.drain(..drop);
+                                guard.truncated = true;
+                            }
+                        }
                         let room = cap.saturating_sub(guard.bytes.len());
                         if room == 0 {
                             guard.truncated = true;
@@ -602,6 +632,10 @@ fn spawn_drain<R: Read + Send + 'static>(pipe: Option<R>, cap: usize) -> Drain {
                             if take < n {
                                 guard.truncated = true;
                             }
+                        }
+                        drop(guard);
+                        if let Some(wake) = &wake {
+                            wake.notify_one();
                         }
                     }
                 }

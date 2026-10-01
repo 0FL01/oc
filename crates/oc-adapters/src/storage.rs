@@ -914,7 +914,7 @@ impl Db {
         }
         tx.execute_batch("CREATE TEMP TABLE IF NOT EXISTS deleting_family(id TEXT PRIMARY KEY); DELETE FROM deleting_family;")?;
         tx.execute("INSERT INTO deleting_family WITH RECURSIVE family(id) AS (SELECT ?1 UNION SELECT s.id FROM sessions s JOIN family f ON s.parent_id=f.id) SELECT id FROM family", [session])?;
-        let busy: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM turns WHERE session_id IN deleting_family AND status='started') OR EXISTS(SELECT 1 FROM shell_jobs WHERE session_id IN deleting_family AND (phase!='terminal' OR message_id IS NULL))", [], |r| r.get(0))?;
+        let busy: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM turns WHERE session_id IN deleting_family AND status='started') OR EXISTS(SELECT 1 FROM shell_jobs j WHERE session_id IN deleting_family AND (phase!='terminal' OR (message_id IS NULL AND (NOT EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload=j.operation_id) OR EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload=j.operation_id)))))", [], |r| r.get(0))?;
         if busy {
             return Err(StorageError::Io(std::io::Error::other(
                 "session family active",

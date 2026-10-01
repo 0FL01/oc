@@ -29,7 +29,7 @@ pub(crate) struct Provenance {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct ProcessIdentity {
-    pid: i32,
+    pub(crate) pid: i32,
     start_ticks: u64,
     boot: String,
     uid: u32,
@@ -110,6 +110,10 @@ pub(crate) struct Outcome {
     pub timeout: bool,
     pub cancelled: bool,
     pub diagnostic: Option<String>,
+    #[serde(default)]
+    pub stdout_bytes: u64,
+    #[serde(default)]
+    pub stderr_bytes: u64,
 }
 
 impl Outcome {
@@ -126,6 +130,8 @@ impl Outcome {
             timeout: false,
             cancelled: false,
             diagnostic: Some(diagnostic.into()),
+            stdout_bytes: 0,
+            stderr_bytes: 0,
         }
     }
 
@@ -152,6 +158,8 @@ impl Outcome {
                 timeout: out.timed_out,
                 cancelled: out.cancelled,
                 diagnostic: None,
+                stdout_bytes: out.stdout.len() as u64,
+                stderr_bytes: out.stderr.len() as u64,
             },
             Err(error) => {
                 let mut outcome = Self::unknown(&format!("shell supervisor: {error}"));
@@ -185,6 +193,36 @@ impl Outcome {
         }
         text
     }
+
+    pub(crate) fn tool_result(&self) -> (&'static str, String) {
+        let state = match self.state.as_str() {
+            "completed" => "completed",
+            "cancelled" => "cancelled",
+            "timed_out" => "timed_out",
+            "failed" => "failed",
+            _ => "unknown",
+        };
+        let mut text = self
+            .exit
+            .map_or_else(|| "exit signal\n".into(), |code| format!("exit {code}\n"));
+        text.push_str(&self.stdout);
+        if !self.stderr.is_empty() {
+            text.push_str(&format!("\n[stderr]\n{}", self.stderr));
+        }
+        if self.stdout_truncated || self.stderr_truncated {
+            text.push_str("\n[truncated]");
+        }
+        if self.timeout {
+            text.push_str("\n[timeout]");
+        }
+        if self.cancelled {
+            text.push_str("\n[cancelled]");
+        }
+        if let Some(diagnostic) = &self.diagnostic {
+            text.push_str(&format!("\n{diagnostic}"));
+        }
+        (state, text)
+    }
 }
 
 struct Work {
@@ -194,6 +232,54 @@ struct Work {
     // All waiters poll the same owned join. Cancelling an idle/select waiter
     // drops only its clone, never the worker or the owner's completion receipt.
     completion: Shared<BoxFuture<'static, bool>>,
+    provenance: Option<Provenance>,
+    capture: Arc<Capture>,
+    control: Arc<Mutex<Control>>,
+    converted: Arc<tokio::sync::Notify>,
+}
+
+#[derive(Default)]
+struct Control {
+    background: bool,
+    finished: bool,
+    pid: Option<i32>,
+    wait_done: bool,
+}
+
+/// The same bounded buffers are consumed by the supervisor, viewer and outcome.
+pub(super) struct Capture {
+    pub(super) stdout: Arc<Mutex<DrainState>>,
+    pub(super) stderr: Arc<Mutex<DrainState>>,
+    pub(super) wake: Arc<tokio::sync::Notify>,
+}
+
+impl Capture {
+    fn new(wake: Arc<tokio::sync::Notify>) -> Arc<Self> {
+        Arc::new(Self {
+            stdout: Arc::default(),
+            stderr: Arc::default(),
+            wake,
+        })
+    }
+
+    fn text(&self) -> String {
+        let out = self.stdout.lock().expect("stdout capture");
+        let err = self.stderr.lock().expect("stderr capture");
+        format!(
+            "status: running\n{}{}{}",
+            String::from_utf8_lossy(&out.bytes),
+            if err.bytes.is_empty() {
+                String::new()
+            } else {
+                format!("\n[stderr]\n{}", String::from_utf8_lossy(&err.bytes))
+            },
+            if out.truncated || err.truncated {
+                "\n[truncated]"
+            } else {
+                ""
+            }
+        )
+    }
 }
 
 /// One process-local owner, shared across Location runtime replacements.
@@ -220,6 +306,7 @@ impl Jobs {
         self.slots.clone().try_acquire_owned().ok()
     }
 
+    #[cfg(test)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) async fn launch(
         self: &Arc<Self>,
@@ -232,14 +319,41 @@ impl Jobs {
         provenance: Provenance,
         slot: tokio::sync::OwnedSemaphorePermit,
     ) -> Result<String, StorageError> {
+        self.launch_mode(
+            shell, env, argv, cwd, timeout, approved, provenance, slot, false,
+        )
+        .await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) async fn launch_mode(
+        self: &Arc<Self>,
+        shell: Shell,
+        env: BTreeMap<String, String>,
+        argv: Vec<String>,
+        cwd: String,
+        timeout: Duration,
+        approved: Arc<PinnedCwd>,
+        provenance: Provenance,
+        slot: tokio::sync::OwnedSemaphorePermit,
+        foreground: bool,
+    ) -> Result<String, StorageError> {
         let id = provenance.operation.clone();
-        self.db.admit_shell_job(&provenance)?;
+        self.db.admit_shell_job_mode(&provenance, foreground)?;
         let cancel = Arc::new(AtomicBool::new(false));
         let owned_cancel = cancel.clone();
         let (started_tx, started_rx) = tokio::sync::oneshot::channel();
         let db = self.db.shared_handle();
         let failed = self.failed.clone();
         let operation = id.clone();
+        let capture = Capture::new(self.wake.clone());
+        let owned_capture = capture.clone();
+        let control = Arc::new(Mutex::new(Control {
+            background: !foreground,
+            wait_done: !foreground,
+            ..Control::default()
+        }));
+        let owned_control = control.clone();
         let task = tokio::task::spawn_blocking(move || {
             let result = shell.execute_pinned_started(
                 &env,
@@ -254,19 +368,26 @@ impl Jobs {
                 &owned_cancel,
                 Some(&approved),
                 true,
+                Some(&owned_capture),
                 |pid| {
                     let identity =
                         ProcessIdentity::read(pid, db.root()).ok_or(ShellError::AdmissionFailed)?;
                     db.start_shell_job(&operation, &identity)
                         .map_err(|_| ShellError::AdmissionFailed)?;
+                    owned_control.lock().expect("shell control").pid = Some(pid);
+                    owned_capture.wake.notify_one();
                     // A dropped caller independently arms its cancellation
                     // guard. Keep supervising to freeze a real cancelled result.
                     let _ = started_tx.send(());
                     Ok(())
                 },
             );
-            let outcome = Outcome::from_result(result);
+            let mut outcome = Outcome::from_result(result);
+            outcome.stdout_bytes = owned_capture.stdout.lock().expect("stdout capture").total;
+            outcome.stderr_bytes = owned_capture.stderr.lock().expect("stderr capture").total;
+            let mut control = owned_control.lock().expect("shell control");
             let result = db.finish_shell_job(&operation, &outcome);
+            control.finished = true;
             if result.is_err() || outcome.state == "unknown" {
                 failed.store(true, Ordering::Release);
             }
@@ -276,11 +397,15 @@ impl Jobs {
             id.clone(),
             Work {
                 _slot: slot,
-                session: provenance.session,
+                session: provenance.session.clone(),
                 cancel: cancel.clone(),
                 completion: async move { matches!(task.await, Ok(Ok(()))) }
                     .boxed()
                     .shared(),
+                provenance: Some(provenance.clone()),
+                capture,
+                control,
+                converted: Arc::new(tokio::sync::Notify::new()),
             },
         );
         // Refresh an idle owner's join set when a new worker is admitted.
@@ -301,6 +426,212 @@ impl Jobs {
         Ok(id)
     }
 
+    pub(crate) fn running(
+        &self,
+        caller: &str,
+    ) -> Result<Vec<oc_core::queries::ShellJob>, StorageError> {
+        self.db.shell_family_contains(caller, caller)?;
+        let work = self.work.lock().expect("shell jobs");
+        let mut rows = Vec::new();
+        for (id, job) in work.iter() {
+            if !self.db.shell_family_contains(caller, &job.session)? {
+                continue;
+            }
+            let control = job.control.lock().expect("shell control");
+            if control.finished || self.db.shell_job_phase(&job.session, id)? != "running" {
+                continue;
+            }
+            if let Some(p) = &job.provenance {
+                rows.push(oc_core::queries::ShellJob {
+                    session: oc_core::domain::SessionId(p.session.clone()),
+                    shell_id: id.clone(),
+                    location: p.location.clone(),
+                    generation: p.generation,
+                    turn: p.turn.clone(),
+                    model: p.model.clone(),
+                    provider: p.provider.clone(),
+                    command: p.command.clone(),
+                    pid: control.pid,
+                    background: control.background,
+                });
+            }
+        }
+        Ok(rows)
+    }
+
+    pub(crate) fn background(&self, session: &str, id: &str) -> Result<bool, StorageError> {
+        let work = self.work.lock().expect("shell jobs");
+        let Some(job) = work.get(id).filter(|job| job.session == session) else {
+            return Ok(false);
+        };
+        let mut control = job.control.lock().expect("shell control");
+        if control.finished || job.cancel.load(Ordering::Acquire) {
+            return Ok(false);
+        }
+        if control.background {
+            return Ok(true);
+        }
+        if !self.db.background_shell_job(id)? {
+            return Ok(false);
+        }
+        control.background = true;
+        job.converted.notify_one();
+        self.wake.notify_one();
+        Ok(true)
+    }
+
+    pub(crate) fn output(
+        &self,
+        session: &str,
+        id: &str,
+        offset: usize,
+        limit: usize,
+    ) -> Result<Option<(String, i64, Option<i64>)>, StorageError> {
+        if let Some(page) = self.db.shell_output(session, id, offset, limit)? {
+            return Ok(Some(page));
+        }
+        let work = self.work.lock().expect("shell jobs");
+        let Some(job) = work.get(id).filter(|job| job.session == session) else {
+            return Ok(None);
+        };
+        let text = job.capture.text();
+        if offset > text.len() || !text.is_char_boundary(offset) {
+            return Err(StorageError::OperationNotFound);
+        }
+        let end = text.floor_char_boundary(
+            offset
+                .saturating_add(limit.clamp(4, crate::storage::TOOL_OP_PREVIEW_BYTES))
+                .min(text.len()),
+        );
+        Ok(Some((
+            text[offset..end].into(),
+            text.len() as i64,
+            (end < text.len()).then_some(end as i64),
+        )))
+    }
+
+    pub(crate) fn snapshot(
+        &self,
+        session: &str,
+        id: &str,
+    ) -> Result<oc_core::queries::ShellSnapshot, StorageError> {
+        let job = self.db.shell_job_identity(session, id)?;
+        let phase = self.db.shell_job_phase(session, id)?;
+        let cap = (crate::storage::TOOL_OP_PREVIEW_BYTES - 128) / 2;
+        let (state, stdout, stderr, stdout_cursor, stderr_cursor, truncated) = if phase
+            == "terminal"
+        {
+            let o = self.db.shell_job_outcome(session, id)?;
+            let stdout = recent(&o.stdout, cap);
+            let stderr = recent(&o.stderr, cap);
+            let preview_truncated = o.stdout.len() > cap || o.stderr.len() > cap;
+            (
+                o.state,
+                stdout,
+                stderr,
+                o.stdout_bytes,
+                o.stderr_bytes,
+                o.stdout_truncated || o.stderr_truncated || preview_truncated,
+            )
+        } else {
+            let work = self.work.lock().expect("shell jobs");
+            let active = work
+                .get(id)
+                .filter(|w| w.session == session)
+                .ok_or(StorageError::OperationNotFound)?;
+            let out = active.capture.stdout.lock().expect("stdout capture");
+            let err = active.capture.stderr.lock().expect("stderr capture");
+            (
+                phase,
+                recent(&String::from_utf8_lossy(&out.bytes), cap),
+                recent(&String::from_utf8_lossy(&err.bytes), cap),
+                out.total,
+                err.total,
+                out.truncated || err.truncated || out.bytes.len() > cap || err.bytes.len() > cap,
+            )
+        };
+        let text = format!(
+            "status: {state}\n{stdout}{}{}",
+            if stderr.is_empty() {
+                String::new()
+            } else {
+                format!("\n[stderr]\n{stderr}")
+            },
+            if truncated { "\n[truncated]" } else { "" }
+        );
+        Ok(oc_core::queries::ShellSnapshot {
+            job,
+            state,
+            stdout_cursor,
+            stderr_cursor,
+            truncated,
+            text,
+        })
+    }
+
+    pub(crate) async fn foreground(
+        &self,
+        session: &str,
+        id: &str,
+        parent_cancel: &AtomicBool,
+    ) -> Result<Option<Outcome>, StorageError> {
+        let (completion, control, converted, cancel) = {
+            let work = self.work.lock().expect("shell jobs");
+            let job = work
+                .get(id)
+                .filter(|job| job.session == session)
+                .ok_or(StorageError::OperationNotFound)?;
+            (
+                job.completion.clone(),
+                job.control.clone(),
+                job.converted.clone(),
+                job.cancel.clone(),
+            )
+        };
+        struct WaitGuard(
+            Arc<AtomicBool>,
+            Arc<Mutex<Control>>,
+            Arc<tokio::sync::Notify>,
+            bool,
+        );
+        impl Drop for WaitGuard {
+            fn drop(&mut self) {
+                let mut state = self.1.lock().expect("shell control");
+                state.wait_done = true;
+                if !self.3 {
+                    self.0.store(true, Ordering::Release);
+                }
+                self.2.notify_one();
+            }
+        }
+        let mut guard = WaitGuard(cancel.clone(), control.clone(), self.wake.clone(), false);
+        loop {
+            {
+                let state = control.lock().expect("shell control");
+                if parent_cancel.load(Ordering::Acquire) {
+                    cancel.store(true, Ordering::Release);
+                }
+                // Completion wins once frozen; conversion before completion releases
+                // the original await exactly once without touching its parent token.
+                if state.background && !state.finished && !cancel.load(Ordering::Acquire) {
+                    guard.3 = true;
+                    return Ok(None);
+                }
+            }
+            tokio::select! {
+                good = completion.clone() => {
+                    guard.3 = true;
+                    if !good { return Err(StorageError::OperationNotFound); }
+                    return self.db.shell_job_outcome(session, id).map(Some);
+                }
+                () = converted.notified() => {},
+                () = tokio::time::sleep(Duration::from_millis(5)) => {
+                    if parent_cancel.load(Ordering::Acquire) { cancel.store(true, Ordering::Release); }
+                }
+            }
+        }
+    }
+
     pub(crate) fn cancel_session(&self, session: &str) -> bool {
         let work = self.work.lock().expect("shell jobs");
         let mut cancelled = false;
@@ -308,7 +639,12 @@ impl Jobs {
             .values()
             .filter(|job| job.session == session && job.completion.peek().is_none())
         {
+            let control = job.control.lock().expect("shell control");
+            if control.finished {
+                continue;
+            }
             job.cancel.store(true, Ordering::Release);
+            self.wake.notify_one();
             cancelled = true;
         }
         cancelled
@@ -320,7 +656,12 @@ impl Jobs {
             .get(id)
             .filter(|job| job.session == session && job.completion.peek().is_none())
         {
+            let control = job.control.lock().expect("shell control");
+            if control.finished {
+                return false;
+            }
             job.cancel.store(true, Ordering::Release);
+            self.wake.notify_one();
             true
         } else {
             false
@@ -333,6 +674,10 @@ impl Jobs {
             .lock()
             .expect("shell jobs")
             .values()
+            .filter(|job| {
+                let state = job.control.lock().expect("shell control");
+                !state.finished || state.wait_done
+            })
             .map(|job| job.completion.clone())
             .collect::<Vec<_>>();
         if joins.is_empty() {
@@ -354,7 +699,10 @@ impl Jobs {
             let mut work = self.work.lock().expect("shell jobs");
             let ids = work
                 .iter()
-                .filter(|(_, job)| job.completion.clone().now_or_never().is_some())
+                .filter(|(_, job)| {
+                    job.control.lock().expect("shell control").wait_done
+                        && job.completion.clone().now_or_never().is_some()
+                })
                 .map(|(id, _)| id.clone())
                 .collect::<Vec<_>>();
             ids.into_iter()
@@ -363,6 +711,13 @@ impl Jobs {
                     (id, job)
                 })
                 .collect::<Vec<_>>()
+        };
+        let sessions = {
+            let work = self.work.lock().expect("shell jobs");
+            work.values()
+                .map(|job| job.session.clone())
+                .chain(completed.iter().map(|(_, job)| job.session.clone()))
+                .collect::<std::collections::BTreeSet<_>>()
         };
         for (id, job) in completed {
             if job.completion.peek() != Some(&true) {
@@ -377,6 +732,11 @@ impl Jobs {
         }
         for notice in self.db.deliver_shell_notices()? {
             let _ = events.send(oc_core::core_app::CoreEvent::ShellNotice(notice));
+        }
+        for session in sessions {
+            let _ = events.send(oc_core::core_app::CoreEvent::ShellChanged {
+                session: oc_core::domain::SessionId(session),
+            });
         }
         Ok(())
     }
@@ -428,3 +788,7 @@ impl Drop for Jobs {
 
 #[cfg(test)]
 mod tests;
+
+fn recent(text: &str, cap: usize) -> String {
+    text[text.ceil_char_boundary(text.len().saturating_sub(cap))..].into()
+}

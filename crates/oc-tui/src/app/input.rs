@@ -568,6 +568,17 @@ impl TuiState {
         if self.questions.active().is_some() {
             return self.questions.terminal_key(event);
         }
+        if self.panel == TuiPanel::None
+            && event.kind == KeyEventKind::Press
+            && event.modifiers == KeyModifiers::CONTROL
+        {
+            if event.code == KeyCode::Char('s') {
+                return Some(KeyAction::Shells);
+            }
+            if self.shells.open && event.code == KeyCode::Char('b') {
+                return Some(KeyAction::ShellBackground);
+            }
+        }
         if self.panel == TuiPanel::Settings
             && event.kind == KeyEventKind::Press
             && event.modifiers == (KeyModifiers::CONTROL | KeyModifiers::SHIFT)
@@ -1630,6 +1641,9 @@ impl TuiState {
         if self.status == TuiStatus::Quit {
             return KeyOutcome::default();
         }
+        if self.panel == TuiPanel::None && self.shells.open {
+            return KeyOutcome::default();
+        }
         if self.panel != TuiPanel::None {
             if self.panel == TuiPanel::Rename {
                 return self.paste_rename(text);
@@ -1933,6 +1947,9 @@ impl TuiState {
                 KeyAction::Enter => KeyAction::Enter,
                 _ => return KeyOutcome::default(),
             };
+        }
+        if self.panel == TuiPanel::None && (self.shells.open || action == KeyAction::Shells) {
+            return self.shells.key(action);
         }
         if self.panel != TuiPanel::None {
             if action == KeyAction::Leader {
@@ -2279,6 +2296,7 @@ impl TuiState {
             }
             KeyAction::Enter => self.handle_enter().await,
             KeyAction::Tab => KeyOutcome::default(),
+            KeyAction::Shells | KeyAction::ShellBackground => KeyOutcome::default(),
         }
     }
 

@@ -20,8 +20,19 @@ impl Db {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(crate) fn admit_shell_job(&self, provenance: &Provenance) -> Result<(), StorageError> {
-        self.conn.lock().expect("db mutex").execute(
+        self.admit_shell_job_mode(provenance, false)
+    }
+
+    pub(crate) fn admit_shell_job_mode(
+        &self,
+        provenance: &Provenance,
+        foreground: bool,
+    ) -> Result<(), StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        tx.execute(
             "INSERT INTO shell_jobs(operation_id,session_id,version,provenance,phase,delivery_id)
              VALUES(?1,?2,1,?3,'admitted',?4)",
             params![
@@ -31,7 +42,105 @@ impl Db {
                 format!("shell-notice:{}", provenance.operation)
             ],
         )?;
+        if foreground {
+            tx.execute(
+                "INSERT INTO events(session_id,kind,payload) VALUES(?1,'shell_foreground',?2)",
+                params![provenance.session, provenance.operation],
+            )?;
+        }
+        tx.commit()?;
         Ok(())
+    }
+
+    pub(crate) fn background_shell_job(&self, operation: &str) -> Result<bool, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let running: bool = conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM shell_jobs WHERE operation_id=?1 AND phase='running')",
+            [operation],
+            |r| r.get(0),
+        )?;
+        if running {
+            conn.execute("INSERT INTO events(session_id,kind,payload) SELECT session_id,'shell_background',operation_id FROM shell_jobs WHERE operation_id=?1", [operation])?;
+        }
+        Ok(running)
+    }
+
+    pub(crate) fn shell_family_contains(
+        &self,
+        caller: &str,
+        source: &str,
+    ) -> Result<bool, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        Self::require_session(&conn, caller)?;
+        // Walk the owned job's ancestry, not every historical descendant of
+        // the caller. Inventory remains eight jobs even in a long-lived family.
+        Ok(conn.query_row("WITH RECURSIVE lineage(id,parent_id) AS (SELECT id,parent_id FROM sessions WHERE id=?2 UNION SELECT s.id,s.parent_id FROM sessions s JOIN lineage child ON child.parent_id=s.id) SELECT EXISTS(SELECT 1 FROM lineage WHERE id=?1)", params![caller, source], |r| r.get(0))?)
+    }
+
+    pub(crate) fn shell_job_phase(
+        &self,
+        session: &str,
+        operation: &str,
+    ) -> Result<String, StorageError> {
+        self.conn
+            .lock()
+            .expect("db mutex")
+            .query_row(
+                "SELECT phase FROM shell_jobs WHERE session_id=?1 AND operation_id=?2",
+                params![session, operation],
+                |r| r.get(0),
+            )
+            .optional()?
+            .ok_or(StorageError::OperationNotFound)
+    }
+
+    pub(crate) fn shell_job_outcome(
+        &self,
+        session: &str,
+        operation: &str,
+    ) -> Result<Outcome, StorageError> {
+        let raw: String = self.conn.lock().expect("db mutex").query_row("SELECT outcome FROM shell_jobs WHERE session_id=?1 AND operation_id=?2 AND phase='terminal'", params![session, operation], |r| r.get(0))?;
+        let outcome: Outcome =
+            serde_json::from_str(&raw).map_err(|_| StorageError::OperationNotFound)?;
+        if outcome.version != 1
+            || !matches!(
+                outcome.state.as_str(),
+                "completed" | "cancelled" | "timed_out" | "failed" | "unknown"
+            )
+        {
+            return Err(StorageError::OperationNotFound);
+        }
+        Ok(outcome)
+    }
+
+    pub(crate) fn shell_job_identity(
+        &self,
+        session: &str,
+        operation: &str,
+    ) -> Result<oc_core::queries::ShellJob, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let (raw, process, background): (String, Option<String>, bool) = conn.query_row("SELECT provenance,process,(NOT EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload=j.operation_id) OR EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload=j.operation_id)) FROM shell_jobs j WHERE session_id=?1 AND operation_id=?2", params![session, operation], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?)))?;
+        let p: Provenance =
+            serde_json::from_str(&raw).map_err(|_| StorageError::OperationNotFound)?;
+        let pid = process
+            .map(|raw| serde_json::from_str::<ProcessIdentity>(&raw).map(|p| p.pid))
+            .transpose()
+            .map_err(|_| StorageError::OperationNotFound)?;
+        if p.version != 1 || p.session != session || p.operation != operation {
+            return Err(StorageError::OperationNotFound);
+        }
+        Ok(oc_core::queries::ShellJob {
+            session: oc_core::domain::SessionId(p.session),
+            shell_id: p.operation,
+            location: p.location,
+            generation: p.generation,
+            turn: p.turn,
+            model: p.model,
+            provider: p.provider,
+            command: p.command,
+            pid,
+            background,
+        })
     }
 
     pub(crate) fn start_shell_job(
@@ -107,7 +216,7 @@ impl Db {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         let rows = {
-            let mut stmt = tx.prepare("SELECT operation_id,session_id,delivery_id,provenance,outcome FROM shell_jobs WHERE phase='terminal' AND message_id IS NULL ORDER BY rowid LIMIT 8")?;
+            let mut stmt = tx.prepare("SELECT operation_id,session_id,delivery_id,provenance,outcome FROM shell_jobs j WHERE phase='terminal' AND message_id IS NULL AND (NOT EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload=j.operation_id) OR EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload=j.operation_id)) ORDER BY rowid LIMIT 8")?;
             stmt.query_map([], |r| {
                 Ok((
                     r.get::<_, String>(0)?,

@@ -24,6 +24,7 @@ pub mod picker;
 pub mod question_view;
 mod scanner;
 pub mod shell;
+mod shell_jobs_view;
 pub mod smoke;
 pub mod styled;
 pub mod terminal;

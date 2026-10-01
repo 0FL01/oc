@@ -2409,6 +2409,21 @@ async fn apply_intent_with_origin(
             }
             loop_state.cards_before = page.rows.last().map(|row| row.rowid);
         }
+        PanelIntent::LoadShells => refresh_shells(app, state).await?,
+        PanelIntent::CancelShell { session, shell_id } => {
+            match app.cancel_shell(session, shell_id).await {
+                Ok(()) | Err(CoreError::TurnNotActive) => {}
+                Err(error) => state.push_note(&error.to_string()),
+            }
+            refresh_shells(app, state).await?;
+        }
+        PanelIntent::BackgroundShell { session, shell_id } => {
+            match app.background_shell(session, shell_id).await {
+                Ok(()) | Err(CoreError::TurnNotActive) => {}
+                Err(error) => state.push_note(&error.to_string()),
+            }
+            refresh_shells(app, state).await?;
+        }
         PanelIntent::LoadCardOutput { op, offset } => {
             let session = require_session(state)?;
             let page = match app
@@ -3034,7 +3049,7 @@ async fn adopt_location(
     deck.revision = None;
     deck.save_disabled = false;
     deck.read_only = false;
-    *state = TuiState::new_home(app.clone());
+    let mut previous = std::mem::replace(state, TuiState::new_home(app.clone()));
     state.apply_catalog(catalog);
     match app.tab_deck().await {
         Ok(snapshot)
@@ -3083,6 +3098,12 @@ async fn adopt_location(
     } else {
         state.push_note(&format!("location: {location}"));
     }
+    state.inherit_shell_view(&mut previous);
+    if state.shells_open()
+        && let Err(error) = refresh_shells(app, state).await
+    {
+        state.push_note(&error);
+    }
     deck.sync_tabs(state);
 }
 
@@ -3114,6 +3135,20 @@ async fn handle_worker_event(
     session: &SessionId,
     event: CoreEvent,
 ) -> Result<(), String> {
+    if matches!(&event, CoreEvent::ShellChanged { .. }) {
+        if state.shells_open() {
+            refresh_shells(app, state).await?;
+        }
+        for parked in _loop_state
+            .tabs
+            .iter_mut()
+            .flatten()
+            .filter(|view| view.shells_open())
+        {
+            refresh_shells(app, parked).await?;
+        }
+        return Ok(());
+    }
     if let CoreEvent::SessionMoved {
         session: moved,
         location,
@@ -3186,7 +3221,8 @@ async fn handle_worker_event(
     }
     let owner = match &event {
         CoreEvent::ShellNotice(notice) => &notice.session,
-        CoreEvent::SessionMoved { session, .. }
+        CoreEvent::ShellChanged { session }
+        | CoreEvent::SessionMoved { session, .. }
         | CoreEvent::SessionModelSelected { session, .. }
         | CoreEvent::SessionTitleUpdated { session, .. }
         | CoreEvent::RetryScheduled { session, .. }
@@ -3216,6 +3252,7 @@ async fn handle_worker_event(
         return Ok(());
     }
     match event {
+        CoreEvent::ShellChanged { .. } => unreachable!("handled above"),
         CoreEvent::SessionModelSelected { session, commit } => {
             state.apply_session_model_selected(&session, &commit)
         }
@@ -3367,6 +3404,32 @@ async fn handle_worker_event(
                 });
             }
         }
+    }
+    Ok(())
+}
+
+async fn refresh_shells(app: &CoreApp, state: &mut TuiState) -> Result<(), String> {
+    let Some(session) = state.attached_session().cloned() else {
+        return Ok(());
+    };
+    state.apply_shell_jobs(
+        app.shell_jobs(session)
+            .await
+            .map_err(|error| error.to_string())?,
+    );
+    if let Some(job) = state.shell_viewer().cloned() {
+        let snapshot = app
+            .shell_snapshot(job.session.clone(), job.shell_id.clone())
+            .await
+            .map_err(|error| error.to_string())?;
+        state.apply_shell_output(
+            &snapshot.job,
+            oc_core::queries::ToolOutputPage {
+                total_bytes: snapshot.text.len() as i64,
+                text: snapshot.text,
+                next_offset: None,
+            },
+        );
     }
     Ok(())
 }

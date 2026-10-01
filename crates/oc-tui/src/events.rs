@@ -78,6 +78,10 @@ pub enum KeyAction {
     Right,
     /// Exit the TUI.
     Quit,
+    /// Open/close the native running-shell composer.
+    Shells,
+    /// Convert the selected admitted foreground shell.
+    ShellBackground,
 }
 
 /// One UI-level event: a mapped key, a bounded paste or a resize hint.
