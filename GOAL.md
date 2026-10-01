@@ -459,6 +459,27 @@ pinned-original/native full styled-cell/PNG/cursor temporal captures миним�
 timer нет; A08/A10, input focus/draft, hover/expand, terminal cleanup и no tool replay
 сохранены. План pending/NOT_RUN: active T50, PAUSED T44 и прежние PASS/statuses intact.
 
+## Owner amendment (2026-10-01 — autoaccept / CLI permission modes)
+
+После read-only RECON владелец утвердил план доведения OC2 `--auto` в существующем
+[T44/R5/VIS36](tui-recovery/T44_CONTRACT_AMENDMENT.md#autoaccept-mode-completion--vis36-2026-10-01).
+Базовый native once-consumer уже реализован; это не новый порт с нуля и не
+LLM-классификатор безопасности. `--auto` автоматически отвечает **Once только на Ask**,
+не превращает policy в Allow, не создаёт Always grants и не отвечает на `question`.
+Effective Deny/Plan/parent-child/trust/preimage/unknown-effect границы сохраняются.
+
+Обязательный остаток: скрытые donor aliases `--yolo`/`--dangerously-skip-permissions`
+через тот же bool; process-only CLI priority над persisted `session.permissions`;
+barrier-controlled pending/new Prompt↔auto transitions, ошибки сохранения/reload/restart;
+same-run owned root/child routing и полноценные Settings/palette/auto marker с paired
+styled-cell/PNG/cursor qualification. Headless требует explicit CLI once-consumer:
+config autoaccept alone не заменяет его. Native headless child coverage — объявленное
+расширение относительно donor exact-session event filter, не policy bypass.
+Behavioral evidence и full VIS36 parity раздельны; старое Unsupported — historical.
+Подробные порядок/проверки — amendment, `roadmap/M8.md`, `docs/TEST_PLAN.md`.
+Новых tasks/gates/policy engine/paid campaign нет; план pending/NOT_RUN, T50 active,
+T44 PAUSED, исторические reports/baselines/statuses intact. Реализация не возобновлена.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

@@ -405,9 +405,9 @@
       "repository": "anomalyco/opencode",
       "path": "packages/tui/src/context/permission.tsx",
       "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
-      "locator": "5–15 mode; routes/session/index.tsx:243–259 once autoaccept; component/dialog-config.tsx:114–122 Settings; config/keybind.ts:275 fullscreen; cli/src/commands/commands.ts:26–35 flags; cli/src/run/noninteractive.ts:135–149 headless consumer",
+      "locator": "5–15 mode; routes/session/index.tsx:185–195 family queue,243–259 once autoaccept; component/dialog-config.tsx:114–122 Settings; config/keybind.ts:275 fullscreen; cli/src/commands/commands.ts:26–36 flags; cli/src/commands/handlers/default.ts:82–87,handlers/run.ts:14–28 hidden aliases; cli/src/run/noninteractive.ts:135–154 once/reject,180–183 exact-session filter",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/permission.tsx#L5-L15",
-      "purpose": "Real prompt/autoaccept mode controls and nonpersistent once consumers, distinct from Always grants"
+      "purpose": "Real prompt/autoaccept controls, process-only CLI priority and hidden aliases; nonpersistent Once distinct from Always, TUI family scope versus headless exact-session filter"
     },
     {
       "id": "U24",

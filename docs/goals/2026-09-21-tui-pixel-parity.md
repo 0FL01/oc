@@ -9,6 +9,7 @@ Additional source: owner request for full child-TUI/Subagents/Shell/Terminals pa
 Additional source: owner-approved OC2 model-dependent edit/write/apply_patch RECON plan and mandatory user-switch compatibility, detailed plan commit/push, 2026-10-01; T50 owns behavior, VIS35/VIS36 presentation remains T44 and PAUSED.
 Additional source: follow-up owner requires original OC2 model-switch parity while an agent works and approves detailed plan commit/push, 2026-10-01; local picker draft/captured commit/blank Enter and request-boundary adoption within the same task supersede whole-turn model pin/busy refusal only. T50 TOOL12/T45 PRM01 backend receipts precede T44 VIS09/VIS29/VIS17/VIS35/VIS36 paired qualification; T44 remains PAUSED.
 Additional source: owner-reported phantom caret over large highlighted tool output, explicit preservation of normal prompt caret blink under continuous repaint, and approval of plan commit/push, 2026-10-01. Existing VIS16/VIS31 own the temporal qualification; T44 remains PAUSED.
+Additional source: owner-approved OC2 --auto RECON and mode-completion plan commit/push, 2026-10-01. Existing T44/R5/VIS36 owns hidden CLI aliases, effective mode/pending/Settings/child qualification; basic native Once behavior already exists, full parity remains open and T44 PAUSED.
 Last updated: 2026-10-01
 
 ## Objective
@@ -181,6 +182,32 @@ waivers. Effective Deny and structural trust boundaries remain authoritative;
 disclose policy differences without claiming identical donor policy algebra.
 VIS36 supplies VIS35's approval prerequisite, not a completion dependency on
 VIS35 or all of T43/T45. Existing independent compaction/card work is not blocked.
+
+Owner-approved [autoaccept mode completion](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#autoaccept-mode-completion--vis36-2026-10-01)
+(2026-10-01) refines this existing slice, not a fresh `--auto` port. Automatic Once
+answers eligible Ask only, never effective Deny, Always grants or `question` answers;
+Plan/parent-child/trust/preimage/no replay stay authoritative. CLI `--auto` and hidden
+donor aliases `--yolo`/`--dangerously-skip-permissions` use one process-only bool;
+CLI priority survives Settings Prompt/reload, without overwriting saved preference.
+Headless requires explicit CLI consumer; `session.permissions=autoaccept` alone
+does not enable it. Same-run owned root/foreground/background child coverage is a
+declared native headless extension over donor exact-session filtering, not widening
+child policy or answering another session's request.
+
+After explicit resume, follow six ordered slices: contract/baseline → CLI aliases →
+barrier-controlled pending/new Prompt↔auto and persistence/error/reload/restart →
+owned child routing → real Settings/palette/auto marker/draft/focus and paired full
+styled-cell/PNG/cursor transitions → targeted/integration/rebuilt-binary closure.
+Duplicate pending-drain sites and two-step CLI mode application are hypotheses to
+test, not proven bugs requiring a speculative refactor. Reuse approval/TOOL15/child
+evidence, no new task/gate/policy engine/paid campaign or all-task dependency.
+
+Current behavioral baseline: `0a86cf67c`, `progress/M9/T44/0066.md`,
+`evidence/tui/recovery-v00/permission-report20260927-01.md:138–145` and
+`evidence/T50/foreground-shell.md:111–118,127–145` document native Once/effects/
+zero-grants behavior on earlier code. These are not current-HEAD results or full
+VIS36 PASS. The historical Unsupported paragraph below remains historical; no
+report/baseline rewrite. New qualification pending/NOT_RUN, statuses unchanged.
 
 ### Question UI parity — VIS37 (R4/R5)
 

@@ -618,7 +618,7 @@ VIS35 mandatory pending/NOT_RUN, evidence empty: plan-only delivery не ква�
 
 ## Audited Approve permission parity — VIS36
 
-Утверждённый контракт будущей реализации, не claim существующего approval backend.
+Утверждённый контракт полной реализации/qualification, не claim VIS36 parity PASS.
 Все необходимые dependencies поддерживаемых действий обязательны; отсутствие backend
 не заменяется Unsupported waiver или инертным UI. Pinned sources: U20–U23,
 owner-approved T50 edit/write preview supplement (2026-10-01): U91/U92.
@@ -687,6 +687,100 @@ UI scaffold после DTO, patch preview qualification после real prefligh
 Не добавлять T44 depends_on completion T43/T45. KISS: existing owner/channels/storage/
 editor/theme/diff, один pending map/state machine; без нового task/framework/DB/policy
 engine/grant dashboard. VIS36 NOT_RUN до actual qualification, не full T44 closure.
+
+### Autoaccept mode completion — VIS36 (2026-10-01)
+
+**Owner-approved after read-only RECON; plan pending/NOT_RUN.** Источник: вопрос
+владельца о `--auto` в OC2 TS и включении в Rust-план, затем «вноси правки в план
+работ и коммит пуш». Это доведение существующего T44/R5/VIS36 mode slice, не новый
+task и не разрешение снимать PAUSED T44 или переключать active T50.
+
+**RECON baseline, не новая qualification.** Pinned OC2 v2.0.12
+`2670273ff17da96f85c5826ced57aa1b368754fa`, U21/U23: `--auto` по умолчанию false;
+скрытые `--yolo`/`--dangerously-skip-permissions` передаются тем же auto bool.
+TUI выбирает args.auto → autoaccept либо `session.permissions`, агрегирует root
+и descendants и отвечает Once. Headless `run` отвечает Once на `permission.asked`,
+но фильтрует exact launched session ID. Это клиентский responder после admission,
+не AI safety orchestration и не global Allow. Configured Deny проверяется до Ask,
+Once не сохраняет grant; App `permissions.autoApprove` — отдельный web/desktop путь
+вне scope. Pinned paths: `packages/cli/src/commands/commands.ts:26–36`,
+`commands/handlers/default.ts:82–87`, `commands/handlers/run.ts:14–28`,
+`run/noninteractive.ts:135–154,180–183`; `packages/tui/src/context/permission.tsx:5–15`,
+`routes/session/index.tsx:185–195,243–259`; `packages/core/src/permission.ts:173–188,231–259,295–304`.
+
+Native `cli.rs`/`bootstrap.rs`/`headless.rs`, `oc-core/src/approval.rs` и application/
+runtime/TUI уже реализуют `--auto`, explicit consumer, Once и mode persistence.
+Поведенческий milestone `0a86cf67c` описан в `progress/M9/T44/0066.md`: full VIS36
+остаётся OPEN, не PASS. Later actual-binary evidence:
+`evidence/tui/recovery-v00/permission-report20260927-01.md:138–145` и
+`evidence/T50/foreground-shell.md:111–118,127–145` подтверждают Ask+CLI-auto effects,
+zero auto grants, Deny/no-effect и headless config-alone refusal на тех срезах.
+Это historical evidence, не запуск проверок на текущем HEAD. Старое
+`evidence/tui/recovery-v02/auto-capability.md` Unsupported сохраняется как история.
+RECON не нашёл hidden aliases в native CLI; mode transitions и full visuals ещё
+требуют qualification. Не переписывать reports и не переоткрывать готовый backend с нуля.
+
+**Frozen semantics.** Default Prompt; admitted `cli.json/jsonc`
+`session.permissions=prompt|autoaccept` и Settings сохраняют preference. CLI auto
+process-only, не пишет эту preference, имеет приоритет даже после Settings → Prompt
+и reload. Без CLI auto следующий restart использует сохранённую preference.
+Headless Ask без explicit CLI consumer даёт actionable ApprovalRequired/nonzero;
+config autoaccept alone не включает его. Auto отвечает Once только eligible Ask,
+включая already-pending/new owned root/child, не Deny/Always и не ответы `question`.
+Plan/parent-child authority, parsed resource/path/preimage rechecks, Location/generation,
+cancel/shutdown и no unknown-effect replay не меняются. Same-run owned foreground/
+background child auto coverage сохраняется как **native headless extension** относительно
+donor exact-session filter; own child profile/policy и foreign/stale isolation обязательны.
+
+**Ordered remaining work after explicit T44 resume:**
+
+1. **Mode contract/current evidence.** Сверить HEAD и перечисленные owners/tests;
+   отделить implemented behavior от ещё открытого full VIS36. Использовать одну
+   effective-mode модель `CLI auto || persisted autoaccept`, отдельно saved preference
+   и explicit headless consumer. Никакого второго policy engine/LLM classifier.
+2. **CLI compatibility.** Добавить hidden `--yolo` и
+   `--dangerously-skip-permissions` как aliases существующего `Args.auto`, не отдельный
+   bypass. Проверить bare TUI, `tui` и `run`, admitted global-flag positions и help:
+   visible `--auto`, aliases hidden. Real Ask effect/zero grants и Deny/no-effect
+   доказывают путь после parsing; одной unit-проверки bool недостаточно.
+3. **Pending/new transitions.** Barrier-controlled owner/actual-binary тестами
+   проверить Prompt→auto для уже ожидающего и следующего Ask, auto→Prompt для
+   следующего Ask, CLI-auto priority при Settings Prompt/reload, failure before ack
+   и restart. RECON видел application pending drain и runtime registration drain,
+   а TUI SetPermissionMode сначала сохраняет mode, затем повторно включает CLI auto.
+   Это гипотеза transition risk, **не доказанный баг**. Проследить registration/
+   drain/effective state; только если эксперимент покажет расхождение, свести применение
+   effective mode/pending resolution к существующему owner без transient prompt,
+   duplicate resolution или lost waiter. Save/reply error сохраняет committed mode/
+   pending/draft и actionable feedback, cancel/stale reply не выдаёт success.
+4. **Owned child routing.** Расширить ближайший root/foreground/background child
+   fixture, не копировать donor headless exact-session limitation. Approve binding
+   остаётся request session/turn/call/operation/resource/agent/Location/generation;
+   navigation/late events не отвечают current-view или соседней/foreign сессии.
+   Effective child Deny/Plan/narrowing сохраняются даже при parent/child auto.
+5. **TUI controls and parity.** Довести Settings → Permissions, /settings/Open
+   settings/filtered palette entry, pending dismissal, truthful effective auto marker
+   и root/child tool/tab attention. Сохранить точный draft/chips/cursor/focus при
+   toggles, reply/save errors, tab/navigation и reload; CLI override не показывать
+   как успешно выключенный auto. Running original/native full styled-cell/PNG/cursor
+   sequences Prompt pending→auto→resolved→Prompt/reask и CLI override квалифицировать
+   на существующих profiles, не static marker/native goldens. `question` остаётся
+   отдельным VIS37/TOOL15 form/answer consumer.
+6. **Closure.** Расширить ближайшие `crates/oc/src/approval_tests.rs`, actual ELF
+   `crates/oc/tests/approval_binary.rs`, core approval/runtime и существующие PTY
+   fixtures только для неподтверждённого поведения/самостоятельного риска. Сначала
+   targeted checks и independently verified effects/grants/config, затем affected
+   crate/integration workspace fmt/clippy/tests/build и rebuilt binary qualification.
+   Reuse existing denial/preimage/grants/child/question/recovery regressions;
+   метод — `docs/TEST_PLAN.md`. Behavior PASS и paired VIS36 parity отдельны;
+   Deny tool result может завершить headless с exit 0: обязательны zero effects/grants,
+   а nonzero требуется именно для unconsumed Ask. Нет новой paid campaign/model matrix.
+
+Change envelope: existing CLI/bootstrap/headless, approval/application/runtime/config
+owners и TUI mode/Settings/routing/tests; новых stores/traits/framework/DB/config key
+или gate IDs нет. Existing VIS36 mandatory NOT_RUN/evidence empty и все historical
+status/baseline/PASS остаются неизменными. T50 TOOL15/TOOL12/TOOL20 и T45 child facts
+можно reuse без all-task dependencies; независимые T44 slices не блокируются.
 
 ## Question UI parity — VIS37
 

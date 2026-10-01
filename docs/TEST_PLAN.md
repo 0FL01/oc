@@ -192,6 +192,63 @@ Existing source fixtures remain donor evidence; intentional hot forgetting is an
 approved native difference, not retroactive parity/PASS. DCP11 completion does not
 close DCP10/DCP12, all T45, PAUSED T44 visual qualification or product READY.
 
+## Autoaccept / CLI modes qualification — T44/VIS36 (approved 2026-10-01; pending)
+
+Follow the [mode-completion slice](../tui-recovery/T44_CONTRACT_AMENDMENT.md#autoaccept-mode-completion--vis36-2026-10-01).
+Basic native Once consumer is implemented; previous behavioral evidence is not a
+current-HEAD run or full VIS36 parity. Extend nearest approval/core/runtime/PTY
+fixtures, not a new auto engine/task/gate or another full negative matrix.
+
+- **CLI and actual effects:** `--auto` plus hidden `--yolo` and
+  `--dangerously-skip-permissions` map to the same Args.auto and admission path in
+  bare TUI/`tui`/`run`, with supported global flag positions; help shows only `--auto`.
+  Rebuild actual binary; fake provider emits a real Ask operation, independently
+  inspect fixture bytes/process effect and permission_grants (zero auto rows).
+  Deny+auto/aliases produces a denied result and zero effects/grants. Do not require
+  Deny to force a nonzero whole-run exit: handled denial may exit 0. Conversely Ask
+  without explicit headless consumer must actionable fail/nonzero even if admitted
+  cli.json/jsonc session.permissions is autoaccept; zero effect/grants.
+- **Transitions:** use provider/tool/approval barriers, not sleeps, to hold an
+  already-pending root Ask. Prompt→auto resolves it Once and next Ask likewise;
+  auto→Prompt makes the next Ask wait for manual reply. With CLI auto, Settings
+  Prompt/reload never disables effective auto or loses/re-resolves a waiter.
+  Track application drain/runtime registration/TUI two-step application to prove
+  the transition; consolidate only a reproduced divergence, no speculative owner
+  redesign. Save failure has no successful ack/false marker/new committed preference;
+  reply failure/stale/cancel preserves or cleans the correct request/draft as required.
+- **Persistence and precedence:** default Prompt, admitted ordered cli.json/jsonc
+  sources, settings saved preference and effective CLI override are separate facts.
+  CLI args never persist auto; JSONC unrelated bytes/comments survive Settings save.
+  Verify reload and restart without flag adopts saved preference, restart with flag
+  keeps auto. Reuse existing write-error/generation/reload tests rather than duplicate
+  each configuration combination at every layer.
+- **Children/questions/recovery:** same-run owned root plus foreground/background
+  children auto Once uses original operation/session/agent/resource/Location/generation
+  binding, including navigation/late events. Own child effective Deny/Plan/authority,
+  foreign/stale isolation, changed preimage and cancel/shutdown remain fail-closed.
+  Disclose native headless descendant coverage vs pinned OC2 exact launched-session
+  event filter. Reuse TOOL15 actual-binary tests to prove --auto never supplies question
+  answers: real TUI question still requires answer, headless no-answer consumer fails.
+  Reopen/restart/recovery never replay approved effects or old pending requests.
+- **VIS36 paired presentation:** after explicit T44 resume and behavioral receipts,
+  actual rebuilt binary and running pinned-original use the same fixture/profile
+  for Settings/palette/filtered entry/marker, Prompt pending→auto→resolved→Prompt/reask,
+  CLI override and representative child routing/error frames. Full styled-cell/PNG/
+  cursor captures verify exact draft/chips/focus restoration, no stuck approval and
+  truthful tool/tab attention. Reuse existing profiles and 79/80,120/121 boundaries,
+  no crop/mask/static-marker/native-only-golden PASS or tool×mode×width cross-product.
+
+Primary owners: `crates/oc/src/approval_tests.rs` for owner/mode tests,
+`crates/oc/tests/approval_binary.rs` for actual ELF headless effects, existing core/
+runtime and PTY targets for independent lifecycle/child/UI risks. A binary-crate
+unit test named real_binary is not itself proof of launching CARGO_BIN_EXE_oc.
+Targeted checks → affected crates → required integration workspace fmt/clippy/tests/
+build → rebuilt-binary and paired qualification. Reuse existing A02/A03/A05/A08/
+A10/A13/permission/recovery gates and TOOL15/TOOL12/TOOL20 receipts as relevant;
+no paid campaign, new model matrix or all-T43/T45/T50 completion dependency.
+Behavior and visual results separate. This plan leaves VIS36 NOT_RUN/evidence empty,
+T44 PAUSED/T50 active and historic statuses/baselines/reports unchanged.
+
 ## T44 DCP display qualification — VIS38 (approved 2026-09-27; pending)
 
 VIS38 belongs only to T44 in its task-local registry, supplements A07/A08/A10 and
