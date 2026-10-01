@@ -201,7 +201,52 @@ full skill bodies и sensitive paths.
 
 ## Commands — проектируемый CLI
 
-`oc`/`oc tui`: local TUI, no daemon. `oc run <prompt> --model <provider/model-id> [--variant name] [--json]` — headless. `oc sessions list`, `oc run --session ID <prompt>` — история/продолжение. `oc models list [--refresh]`, `oc config check`, `oc config explain`, `oc --version`, `oc --help`.
+`oc`/`oc tui`: local TUI, no daemon. `oc run <prompt> --model <provider/model-id> [--variant name] [--json]` — headless. `oc sessions list`, `oc run --session ID <prompt>` — история/продолжение. Owner-approved target: **`oc models`** (без обязательного `list`), `oc config check`, `oc config explain`, `oc --version`, `oc --help`. Это раздел проектируемого CLI, не перечень уже реализованных flags/commands; current parser пока не содержит Models.
+
+### CLI models и привязка профиля — approved 2026-10-01, pending
+
+[T50/R7/TOOL18](goals/2026-09-27-native-tool-parity.md#cli-models--r7tool18-approved-2026-10-01-pending)
+должен предоставить `oc models`: полный список включённых моделей поддерживаемых
+admitted каталогов как точные `provider/model-id`, один ID на строку, стабильный
+лексикографический порядок. Пустой исправный каталог — пустой stdout/exit 0;
+diagnostics — stderr, incomplete required dynamic/fatal/output failures — nonzero.
+Нет family-collapse или default 20-row limit из отдельного `opencode_models` tool.
+Native listing доступен до выбора default model, без paid generation, session/prefs/
+config mutations или MCP/browser startup; metadata visibility ≠ request readiness.
+Static/public metadata не требует generation key, authenticated OpenProxy discovery
+требует ключ admitted endpoint и сохраняет existing oracle/budgets/retirement.
+
+Pinned OC2 `opencode models` имеет ServerParams, а не OC1 positional provider/
+`--verbose`/`--refresh`. Прежнее проектируемое `oc models list [--refresh]` superseded;
+native server/standalone/JSON/filter/bind flags и compatibility alias не добавляются.
+Existing global `--data-dir` остаётся native storage control, не выбор провайдера.
+
+Целевой путь пользователя: скопировать ID из `oc models`, затем вручную указать его
+в global `model`, canonical `agents.<id>.model` либо Markdown profile
+`.opencode/agents/<id>.md`. Для JSON legacy `agent` проходит donor normalization;
+это не каноническое имя OC2 и не повод удалить существующую совместимость.
+Пример **target profile**, не claim текущего полного R6 parity (значения placeholders):
+
+```yaml
+---
+mode: primary
+model: provider/model-id
+---
+Инструкции профиля.
+```
+
+T45/R6 квалифицирует `model: provider/model-id#variant`/structured selection и
+совместимое отдельное `variant`: embedded/structured native choice не подменяется
+отдельным legacy полем. Первый `/` отделяет provider; дальнейшие `/` сохраняются
+в model ID. CLI не добавляет вариант к каждой строке, не пишет/биндит профили и не
+переключает модель. Existing command/child model settings используют тот же exact
+reference под своими контрактами. Actual ID → профиль → request → reopen/restart
+проверяется T45 на реальном TOOL18 CLI receipt; unavailable choice отказывает до
+effects без silent fallback. T53 подключает future Go/custom catalogs через тот же
+read-view после minimal catalog slice, без whole-task prerequisite. Реализация/
+qualification pending, historical tool lookup PASS не закрывает CLI/profile flow.
+
+### Общие CLI controls — проектируемый target
 
 `--config path` и `--native-config path` задают явные источники для tests/запуска. `--data-dir path` изолирует storage. Implement spelling один раз в M1/M2 и синхронизировать fixtures/help, не поддерживать десяток синонимов. Нет TTY без subcommand → usage error. `--json` stdout содержит только NDJSON; пользовательские diagnostics и безопасные notices — stderr.
 

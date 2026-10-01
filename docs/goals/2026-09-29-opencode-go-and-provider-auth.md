@@ -36,6 +36,7 @@ required outcome is resolved and affected constraints remain satisfied.
   - Source: «модели фетчить с models.dev»; donor models-dev normalization, approved audit simplification.
   - Acceptance: GO02 доказывает bounded fetch/parse/cache/last-good, no-key browsing, finite package-to-protocol mapping и реализованные reasoning overlays. Public refresh не подтверждает key и не снимает request auth rejection; retired/deprecated choice остаётся явно unavailable, без fallback/local resurrection.
   - Primary evidence: source fixtures + fake-clock/client catalog tests, включая coexistence с неизменным OpenProxy discovery.
+  - Consumer clarification (owner-approved 2026-10-01 CLI plan): admitted Go/custom metadata is published into the same provider-qualified read-view consumed by T50/R7 `oc models`, TUI and model-facing lookup. Public/no-key visibility does not authorize generation; auth rejection, endpoint scope, retirement and local merge remain unchanged. T50 owns complete ID-only CLI output/TOOL18, T53 GO02 owns catalog fetch/cache and GO05 owns provider-qualified selection. Basic OpenProxy CLI does not wait for whole-T53 or new protocol/live qualification; no second catalog/cache/credential owner or CLI auth/bind command.
   - Status: pending
   - Evidence: pending — evidence/T53/report.md.
 
@@ -228,7 +229,10 @@ done dependency или claim общего pixel parity.
    и immutable admitted binding.
 4. **Connect/models consumers.** Core typed actions/safe DTO → application owner →
    TUI commands/dialog/picker/input/live; headless consumes тот же resolver, без новых
-   auth CLI commands. T50 model lookup получает тот же catalog view.
+   auth CLI commands. T50 model lookup и owner-approved `oc models` получают тот же
+   provider-qualified catalog view после минимального qualified catalog slice.
+   CLI сохраняет свой полный ID-only output вместо tool family/paging semantics;
+   его TOOL18 и T45 profile-binding evidence не дублируют GO02/GO05.
 5. **Qualification.** Nearest owner tests → actual binary → final workspace gates →
    bounded opt-in Go live; один factual report. Не duplicate full matrix на всех слоях.
 

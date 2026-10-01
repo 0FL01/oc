@@ -480,6 +480,46 @@ Behavioral evidence и full VIS36 parity раздельны; старое Unsupp
 Новых tasks/gates/policy engine/paid campaign нет; план pending/NOT_RUN, T50 active,
 T44 PAUSED, исторические reports/baselines/statuses intact. Реализация не возобновлена.
 
+## Owner amendment (2026-10-01 — CLI models / profile bindings)
+
+После сравнения с pinned OC2 владелец утвердил развёрнутую запись плана и commit/push
+в текущую ветку: пользователь получает точные model references через **`oc models`**
+и использует их для профилей агентов или других уже admitted model settings.
+[T50/R7/TOOL18](docs/goals/2026-09-27-native-tool-parity.md#cli-models--r7tool18-approved-2026-10-01-pending)
+владеет CLI и catalog-only загрузкой; [T45/R6](docs/goals/2026-09-21-config-compat-and-subagents.md)
+— реальной привязкой профиля, [M8](roadmap/M8.md#cli-models--profile-bindings-approved-2026-10-01-pending)
+— порядком. Это дополнение к существующим owners, не новый task/gate или config writer.
+
+- `oc models` без обязательного `list` печатает все включённые модели поддерживаемых
+  admitted каталогов как `provider/model-id`, один точный ID на строку, в стабильном
+  лексикографическом порядке. Нет newest-family дедупликации/первых 20 строк из
+  model-facing lookup, display-name подмены, молчаливого truncation или выбора модели.
+  Пустой исправный каталог — пустой stdout/exit 0; безопасные diagnostics — stderr,
+  неполученная обязательная dynamic-часть/fatal/output error — nonzero. Metadata
+  listing не подтверждает credentials, endpoint или возможность платного request.
+- Загрузка каталога работает до выбора default model и не чинит saved unavailable
+  selection скрытым fallback. Существующие config/trust/policy/metadata admission,
+  provider filters, OpenProxy discovery oracle/budgets и secret redaction сохраняются.
+  Нет generation/title/tool/MCP/browser launch, session/recovery/prefs/config mutations
+  ради листинга. Static/public metadata не требует generation key; authenticated
+  OpenProxy discovery разрешает только ключ своего admitted endpoint scope.
+- T45 проверяет ID → canonical `agents.<id>.model`/legacy `agent` и Markdown
+  `.opencode/agents/<id>.md` → actual provider/model/variant → reopen/restart.
+  Первый `/` отделяет provider, остальные входят в model ID; `#variant`, structured
+  selection и legacy separate variant follow donor normalization/precedence. Нет
+  автоматической записи профилей, перевода ID или разрешения недоступной генерации.
+- T53 подключает public Go/custom catalogs через тот же read-view после минимального
+  qualified catalog slice; basic OpenProxy CLI не ждёт всей T53/T45/T44. TOOL18
+  actual debug/release stdout/error/effect proof и T45 profile evidence разделены.
+
+Superseded только прежнее проектируемое `oc models list [--refresh]` в CONFIG:
+в pinned OC2 models имеет ServerParams, не OC1 provider/verbose/refresh flags.
+Native daemon/server/standalone compatibility flags и новые JSON/verbose/filter/bind
+commands не добавляются. A01–A13/mandatory live gates, policy/credential authority,
+immutable generations/history и no unknown-effect replay неизменны. Plan pending/
+NOT_RUN: active T50, PAUSED T44, T55 safe-handoff priority и historical PASS/statuses
+не переписываются; ни существующий `opencode_models`, ни doc validation не закрывают CLI.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

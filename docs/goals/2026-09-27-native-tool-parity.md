@@ -5,6 +5,7 @@ Contract status means the owner-approved finish line is frozen; execution state 
 Source: owner-approved tool RECON and plan, 2026-09-27: omit built-in websearch and Code Mode, accept the remaining proposed tool work, then update the plan and commit/push. Donor OC2 v2.0.12 at `2670273ff17da96f85c5826ced57aa1b368754fa`.
 Additional source: owner request for OC2 TS edit/write for non-patch models, apply_patch for compatible GPT models, mandatory catalog removal/replacement after a user model switch, followed by detailed plan commit/push approval, 2026-10-01.
 Additional source: owner requires OC2 TS parity when switching models during an active task, approves the follow-up RECON and detailed plan commit/push, 2026-10-01. This supersedes whole-turn model pinning, not immutable Location/config generation or execution authority.
+Additional source: owner asks whether `opencode models` is planned for obtaining model IDs to bind agent profiles/other uses; after pinned-original comparison approves detailed work-plan changes and commit/push in the current branch, 2026-10-01. R7 adds the user CLI catalog consumer, not an automatic profile binder.
 Last updated: 2026-10-01
 
 ## Objective
@@ -81,12 +82,14 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Status: pending
   - Evidence:
 
-- R7: Native model lookup and session rename are available directly to the model.
-  - Source: approved native model/session tools proposal; donor opencode tool plugin.
-  - Owner: T50 existing catalog and application/session/storage owners.
+- R7: Native model lookup/session rename are available to the model, and users can list exact model references with `oc models`.
+  - Source: approved native model/session tools proposal; donor opencode tool plugin. Owner-approved 2026-10-01 CLI models/profile-binding follow-up and pinned CLI models handler add the user-facing catalog consumer.
+  - Owner: T50 existing catalog and application/session/storage owners; T45/R6 owns profile binding/execution, T53 owns future Go/custom catalogs/credentials. Reuse minimal qualified seams, no circular whole-task completion dependency.
   - Acceptance: opencode_models supports query/provider/all/limit/offset and returns bounded grouped catalog metadata, variants and next page with donor newest-family and own-provider **model** ordering. Variant lists consume the shared [T47/VAR01 effective effort order](../CONTRACTS.md#canonical-effort-ordering--t47var01-approved-2026-09-27-pending), not a second lexical/source-order policy. This is a minimal catalog prerequisite, not whole-T47 completion. Unknown release/family/price metadata stays unknown; no hardcoded IDs, discovery changes, provider fallback or network/auth routing. Lookup does not switch the calling session's model.
   - Acceptance: opencode_session_rename accepts title and optional sessionID (current session by default), validates nonempty trimmed title and persists/publishes the real rename. Explicit targets must be locally known and authorized by the caller's effective session/tool policy; children cannot modify arbitrary parent/sibling/foreign sessions. Read operations and session-control mutations use the common policy pipeline, never authority inferred from descriptions. These native target-access ceilings are declared donor differences.
+  - Acceptance supplement (2026-10-01): `oc models` lists exact provider-qualified IDs from all enabled supported admitted catalog sources, one per stdout line in deterministic lexical reference order. It needs neither `list` nor a default/session model, retains IDs containing additional slashes and does not collapse families or inherit lookup's default page limit. Empty healthy catalog is exit 0/empty stdout; safe diagnostics stay on stderr, fatal or incomplete required dynamic catalog/output failure is nonzero. Catalog-only config/trust/credential admission and the bounded discovery oracle remain; browsing metadata is not generation readiness. Full contract, errors, source comparison and ordered slices are below.
   - Primary evidence: TOOL18 captured direct schemas/results with static/dynamic/unknown metadata, paging and model retention; actual rename/reopen/restart and deny/foreign-target/no-effect assertions. No Code Mode or second catalog/store.
+  - Primary evidence supplement: TOOL18 rebuilt debug/release subprocess stdout/stderr/exit and fake-service/effect counters for catalog-only listing, no-selection/static/dynamic/multi-provider/empty/failure cases and unchanged prefs/config/history. T45/R6 uses the captured listed reference in profile requests/reopen/restart; profile semantics stay T45-owned. Existing direct-tool evidence does not qualify the new CLI extension.
   - Status: pending
   - Evidence:
 
@@ -188,6 +191,122 @@ request B -> compatible B tools/guidance/budget/history -> same task continues
    approval identity, with full paired styled-cell/PNG/cursor frames. Renderer-only
    goldens cannot prove live switching. TOOL20 filesystem semantics remain separate.
 
+## CLI models — R7/TOOL18 (approved 2026-10-01; pending)
+
+### Source comparison and frozen behavior
+
+At RECON HEAD `70de7a2568bd1d900dd81da6f4517402286d8413`, native `cli.rs::Command`
+contains Run/Sessions/Tui, not Models. CONFIG's `oc models list [--refresh]` is a
+projected spelling, not delivered behavior. R7 direct lookup/rename landed in
+`0dc85e817`; its family reduction/default 20-row page cannot implement CLI listing.
+The existing `CatalogSnapshot` is selected-provider scoped, and composition currently
+requires a selected model before assembling that catalog. Do not fake a selection
+or use a hidden prompt/session just to make listing possible. Preserve current dirty
+live-switch/R8/CODE_MAP work; this amendment is plan-only.
+
+- Pinned OC2 `commands.ts:283–286` registers `models` with ServerParams only;
+  `handlers/models.ts:12–24` resolves the server, requests the current-directory
+  model list, formats `providerID/id`, uses `localeCompare`, and writes lines plus a
+  final EOL only for nonempty output. `server/handlers/model.ts:11–15` returns
+  `Model.available()`; `core/model.ts` filters enabled models. This is not the OC1
+  `models [provider] --verbose --refresh` interface or the opencode_models tool schema.
+- Native command is **`oc models`**, without a required `list`. Retain existing
+  applicable global native options such as `--data-dir`; do not introduce donor
+  server/standalone flags, a daemon, positional provider, refresh, verbose, JSON,
+  pagination or bind/config-writing commands in this slice. No compatibility alias
+  is necessary for a never-implemented `models list` spelling.
+- Print the complete enabled supported admitted ID set, `provider/model-id\n` per
+  line. Use full exact references as identity; names/metadata/families never replace
+  them. Sort deterministically by the full reference, independently of family or
+  preferred provider. Donor uses locale collation; native stable lexical ordering
+  is explicit for punctuation/non-ASCII differences, not a claim of identical locale
+  internals. Do not add an ICU/JS host merely for sorting. Lookup's own-provider/
+  newest-family order and T47's variant effort order are different consumers and
+  remain unchanged. Stream a complete admitted snapshot under existing bounds; a
+  catalog/output cap must fail visibly, not silently produce a successful prefix.
+- Use the same admitted global/Location config sources, precedence, enabled/disabled
+  provider rules, metadata merge and discovery module as current native consumers.
+  Enabled here means effective admitted catalog inclusion, not successful paid
+  inference. Static/public metadata can be inspected without a generation key;
+  absent credentials do not discard independently available metadata. Dynamic
+  authenticated OpenProxy discovery needs its own admitted key/binding. Do not
+  resolve arbitrary unselected secrets/endpoints or claim unsupported provider
+  protocols are ready merely because inert metadata exists. T53's admitted public
+  Go/custom sources join this read-view only through their existing owner.
+  Catalog-source admission selects only required source credentials; it is distinct
+  from choosing a session/default model, and never authorizes a blanket provider scan.
+- Listing works when no default model is selected and does not depend on a valid
+  saved session/agent/model/variant. A valid-shaped unavailable selection is neither
+  silently repaired nor executed. Mandatory malformed config/policy, source trust,
+  endpoint/credential authority, storage ownership when needed and metadata caps
+  remain real admission failures; catalog-only operation is not wider default policy.
+- The command does not submit input, create a session, select a model/profile,
+  dispatch generation/title/compaction, execute tools, connect MCP/browser or run
+  recovery that mutates session operations. No config/profile/prefs/history writes.
+  Reuse the config/catalog owners via a narrow catalog-only loading seam, not the
+  full warm application startup. Only existing admitted catalog cache effects are
+  allowed if its owner already provides them; no second cache/store/credential
+  file or new service. If T53 needs stored credentials, use its same native owner
+  and lock/authority rules rather than import or bypass a running data-root owner.
+
+### Stdout, errors and readiness
+
+| Outcome | stdout | stderr / exit |
+| --- | --- | --- |
+| Complete healthy snapshot | Exact sorted IDs, final newline for nonempty output | Safe optional warnings only; 0 |
+| Complete healthy empty snapshot | Empty | 0; not ModelRequired or a fallback selection |
+| Known static/public metadata, generation key absent | Known admitted IDs | Safe readiness warning where needed; 0 if no required catalog fetch failed |
+| Required authenticated catalog cannot be fetched, timeout/auth/invalid discovery | Independently known admitted IDs may still be printed | Safe cause and action; nonzero, never claim complete/fresh metadata |
+| Fatal source/policy/trust/storage admission or catalog capacity failure | Do not publish a candidate as complete | Safe structured cause; nonzero |
+| Output write failure / cancellation | Possibly an already written prefix | Nonzero / interrupted result under existing CLI error conventions; no false success |
+
+These native partial-list/error semantics are explicit, not a claim of donor exit
+parity. Catalog visibility never clears provider auth failure, proves connection or
+authorizes an otherwise refused request. Preserve discovery's all-or-nothing merge,
+last-good/failure semantics, budgets and remote ID retirement; do not silently
+resurrect removed entries from local overrides. Warnings and errors contain no
+secrets, raw provider/config payloads or unsafe terminal text.
+
+### Ordered implementation and consumer closure
+
+1. **Freeze source fixtures and catalog-only admission.** Reuse config/composition/
+   models and provider_catalog owners. Separate metadata access from mandatory
+   default-model resolution and generation startup, retaining complete policy and
+   source validation. Support enabled static metadata and bounded admitted ludka2
+   discovery before any model choice; no fabricated ID or all-provider auth scan.
+2. **CLI consumer.** Add Models to `oc/src/cli.rs`, dispatch/trace label in
+   `bootstrap.rs`, and a small command consumer beside headless/TUI as appropriate.
+   Read one immutable provider-qualified snapshot, emit only sorted exact lines,
+   report safe causes through existing diagnostics, finish/join owned catalog work
+   on failure/cancel. Extract only shared metadata projection needed by CLI/TUI/
+   lookup; do not expose or call the private model-tool executor as a public CLI API.
+3. **TOOL18 actual-binary qualification.** Offline fixtures cover static/dynamic/
+   empty/disabled/multi-provider/catalog failure without a selected default. Captured
+   stdout, stderr, exits, fake-service request counts and prefs/history/config facts
+   prove the contract. Unknown model metadata stays unknown, exact IDs survive
+   slashes and provider collisions, and there is no 20-row/family truncation.
+4. **T45/R6 binding consumer.** A listed exact reference is used in canonical
+   `agents.<id>.model`, compatible legacy `agent`, and global/project Markdown
+   `.opencode/agents/<id>.md`. Pinned Model.Ref separates provider at the first `/`,
+   preserves remaining slashes, and admits `#variant`/structured selection and
+   separate legacy variant using donor precedence. Prove actual request identity
+   and profile instructions, then reopen/restart; unavailable/retired choices remain
+   explicit with pre-effect refusal. Reuse T45 profile tests, not a second executor/
+   selector or duplicated gate. Other existing model settings consume the same
+   reference grammar under their present scope, not new routing/binding commands.
+5. **T53 catalog consumer and documentation.** Extend the same snapshot with public
+   Go/custom metadata after T53's minimal qualified catalog/credential seam, without
+   forcing basic OpenProxy CLI to wait for full T53 or its new wires/live campaign.
+   Update supported help/CONFIG/run instructions with actual implementation. Binding
+   examples are instructions for users, never automatic writes to their config.
+
+TOOL18 remains solely T50-owned; T45 profile qualification uses its existing R6/
+PRM01/A03/A13 evidence and references the CLI receipt. T53 keeps GO02/GO05, T47 VAR01,
+T44 separate presentation; no new task/test ID or whole-task dependency cycle.
+T50 remains active, T44 PAUSED; settle the current dirty slice and preserve T55's
+next-safe-handoff priority. CLI implementation and new qualification are pending/
+NOT_RUN, not PASS from approval or the historical direct-tool report.
+
 ## Change Envelope
 
 - Reuse `crates/oc-adapters/src/{files,tools,shell,webfetch,runtime,application,composition,config,storage}.rs`, `oc-core` typed commands/queries/results, existing provider result lowering and `oc`/`oc-tui` consumers; targeted tests/fixtures/docs/evidence. Changes to internal typed media/job/move storage are allowed only for these outcomes.
@@ -195,6 +314,7 @@ request B -> compatible B tools/guidance/budget/history -> same task continues
 - R9 extends `patch.rs` and `patch/{fs,effects}.rs` through a coarse private shared mutation seam, `tools.rs` registry/validation/resources/dispatch, `approval.rs` preview/grant/preimage preparation, `permissions.rs`/`config.rs` path normalization and `dcp.rs`/runtime mutation protections. Existing invocation permits/durable tool effects and core FileEffect/PatchEffects payloads may extend minimally; do not create a second executable registry, generic framework, new crate or public API solely for tests. Add substantial tests beside their owner in separate test modules and retain existing Cargo targets.
 - Direct presentation consumers are `oc-tui/src/tools.rs`, `app/live.rs` and existing history projection/results; T50 supplies persisted write/edit input/results/effects, T44 extends VIS35/VIS36 actual cards/previews. Update CODE_MAP/fixture paths with the implementation only; this plan leaves unrelated dirty session_move/CODE_MAP work untouched.
 - A vetted regex/search dependency or existing ripgrep integration and a bounded Markdown converter may be chosen for R3/R6; pin/provenance/compile checks are required. No dependency is added by this plan-only delivery.
+- R7 CLI adds `oc/src/{cli,bootstrap}.rs` and a narrow command consumer, existing config/composition/catalog/metadata projection seams and actual-binary tests. Minimal provider-qualified read-only DTOs may extend the existing core query surface only as needed by real consumers; no full application/session startup, public API solely for tests, second catalog/store/cache, credential import or automatic config writer. T45/R6 retains binding normalization/selection ownership; T53 supplies its future catalog through the same seam.
 - No private authoring config, secrets, deployment changes, paid search provisioning or executable runtime/config example edits in this plan update. Ordinary own-branch commit/push is required.
 
 ## Current Checkpoint and State
@@ -203,6 +323,7 @@ request B -> compatible B tools/guidance/budget/history -> same task continues
 - R7 lookup/rename is committed at 0dc85e817. Initial file-tools RECON was at 3446dc3c1; that plan landed in 760d54f7d. Live-switch RECON/this clarification starts from 760d54f7d with R8 session_move/CODE_MAP/runtime/evidence dirty. Git takes precedence over the older R6 handoff. Preserve all dirty work and settle its current slice before scheduling this extension. R2 inventory/live-output/foreground-conversion and R1/R9 file-tools/live-switch extensions remain pending; follow M8 ordering without a second active task or interruption of approved T55 priority. Neither historical file-tools plan nor existing busy-refusal tests qualifies corrected same-task switching.
 - Checks: TOOL12–TOOL20 have one owner T50; relevant A02/A03/A04/A05/A06/A07/A08/A10/A13 and prior scenarios are regressions, not reassigned owners. TOOL12/TOOL20 and T44 VIS35/VIS36 are separate behavioral/visual results; existing A09/live owners/flow remain. Plan validation is not runtime PASS.
 - Blocker: none for this plan delivery; PDF is deliberately excluded, not a hidden pending requirement.
+- CLI follow-up (2026-10-01): R7 direct lookup/rename evidence is historical delivered behavior; newly approved `oc models`/catalog-only extension is NOT_STARTED/NOT_RUN. Missing CLI/default-dependent composition and differing tool paging are source-verified gaps at RECON HEAD 70de7a256. Profile consumer belongs to T45/R6, future Go/custom catalogs to T53; dirty runtime/TUI/CODE_MAP and execution statuses remain untouched by this plan.
 
 ## Pinned References
 
@@ -215,6 +336,8 @@ All links point to the admitted OC2 v2.0.12 commit; current native restrictions 
 - [Read schema/media/nested AGENTS](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/read.ts#L17-L113), [read filesystem](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/read-filesystem.ts).
 - [Webfetch formats/defaults/conversion](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/webfetch.ts#L12-L100), [Markdown converter](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/html-markdown.ts).
 - [Models/rename/move tools](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/opencode.ts#L11-L197), [move validation/admission](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/move.ts#L74-L152), [same-session placement projection](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/projector.ts#L466-L478).
+- [CLI models registration](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/cli/src/commands/commands.ts#L283-L286), [handler/reference lines/order/empty output](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/cli/src/commands/handlers/models.ts#L9-L24), [available endpoint](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/server/src/handlers/model.ts#L11-L15), [enabled model view](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/model.ts#L208-L250).
+- [Exact Model.Ref grammar](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/schema/src/model.ts#L18-L40), [canonical/legacy agent normalization](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/config/normalize.ts#L131-L164), [Markdown model/variant precedence](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/config/plugin/agent.ts#L177-L211), [profile model-reference regressions](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/test/config/agent.test.ts#L273-L326).
 - U90 — [Exact file-tools selector, context/compaction/generate hooks](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/patch.ts#L296-L309); U91 — [edit schema/matching/preparation](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/edit.ts#L24-L213); U92 — [write schema/preview/create/overwrite](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/write.ts#L23-L91).
 - U93 — [Availability-conditioned write/edit guidance](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/system-prompt.ts#L9-L27); U94 — [Write presentation](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L3044-L3078) and [Edit presentation](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L3324-L3386). IDs append to existing tui-recovery/SOURCES.json, without renumbering historical sources.
 - [Provider lowering/model metadata scope](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/runner/to-llm-message.ts#L153-L247) preserves historical call/result pairs; selector removes current tools, not old raw records. Input repair is schema repair, not cross-tool history translation.
@@ -224,6 +347,7 @@ All links point to the admitted OC2 v2.0.12 commit; current native restrictions 
 
 ## Material Decision and Completion
 
+- 2026-10-01: owner approves detailed CLI models/profile-binding work-plan delivery and commit/push on the current branch after comparison with pinned OC2. Extend R7/TOOL18 with `oc models`, exact complete ID stdout and selection-independent catalog-only admission. Supersede only projected models list/refresh spelling, preserve lookup schemas/paging and config/policy/discovery/credential contracts. T45/R6 verifies real bindings, T53 supplies future catalogs; no new tasks/gates/store/server/config writer or execution/PASS changes. Existing dirty code and T55 handoff priority are preserved.
 - 2026-10-01: follow-up owner instruction requires original OC2 switching during active work and detailed plan commit/push. Frozen boundary becomes a prepared request plus its tools, not the entire native turn. R1/TOOL12 now includes busy-allowed committed selection, local draft/captured commit/blank Enter, next-request adoption within the same task, retained compatible outcomes and real request/assistant attribution. Only model/variant busy refusal, whole-turn model pin and incompatible result-losing projection are superseded; config/Location generations, authority, policy, finite retry and no unknown-effect replay remain. T45/PRM01 and T44 VIS09/VIS29/VIS17/VIS35/VIS36 consume minimal slices; ownership/statuses/history/R8/T55 schedule unchanged, qualification pending.
 - 2026-10-01: owner approves RECON plan and requires detailed work-plan commit/push in the current branch. R1 now selects apply_patch or edit/write using exact donor predicate and obligatorily refreshes next-request tools/managed guidance after a user model switch; R9/TOOL20 adds real file semantics/admission/effects. Only universal patch/no-write-edit and related model-name selector prohibitions are superseded. T45 profiles/Plan/prompt and T44 VIS35/VIS36 consume minimal slices independently. No implementation PASS/status change, new task/framework/paid campaign or historical evidence rewrite; dirty R8 preserved.
 - 2026-10-01: owner approves full child-TUI/Subagents/Shell/Terminals segment. Extend R2/TOOL13 with live inventory/output, targeted kill and same-process foreground conversion; historical initial-background PASS is not this new qualification. T56 separately owns session PTYs, T44/VIS39 owns paired Shell/Terminals presentation, T45 owns child lifecycle/session control orchestration. No duplicate owner/store/framework/paid campaign; current T50/T44 states and evidence preserved.

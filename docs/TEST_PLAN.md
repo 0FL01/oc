@@ -666,6 +666,9 @@ helper-only tests, fixture table tool names and document validation are insuffic
   T47/VAR01 ordered variants, not an independent lexical sort; own-provider/newest-family
   model grouping/paging semantics remain. Minimal shared-view prerequisite, no all-T47
   completion dependency or duplicate ranking matrix/acceptance owner.
+  The owner-approved 2026-10-01 user CLI extension below additionally requires
+  actual `oc models` stdout/error/effect receipts; historical tool lookup/rename
+  PASS does not qualify a missing CLI or a profile binding.
 - TOOL19 freezes A/B configs/history/job placement and uses barriers/crash points
   before admission/placement/result delivery. Verify same ID, trusted generation,
   immutable source turn, destination requests without stale harness/opaque items,
@@ -679,6 +682,60 @@ Run nearest targeted evidence per minimal slice, then affected crate/integration
 and mandatory final workspace gates, rebuilt debug/release binaries and existing
 bounded live envelope. No new paid search campaign or live-budget expansion. Keep
 historical reports and task statuses unchanged until real qualification.
+
+### CLI models / profile binding qualification — TOOL18 + T45/R6 (approved 2026-10-01; pending)
+
+Use the [R7 CLI contract](goals/2026-09-27-native-tool-parity.md#cli-models--r7tool18-approved-2026-10-01-pending).
+TOOL18 remains only T50; the profile consumer is T45/R6 under its existing PRM01/
+A03/A13 evidence. No new detailed scenario or duplicate owner is needed. The pinned
+source is OC2 commands/handlers/models.ts, the available model endpoint, Model.Ref
+and config agent normalization/importer, not V1 CLI documentation. Source observations
+and native declared differences are separate from executed binary qualification.
+
+- **Actual CLI output.** Rebuild and invoke debug/release `oc models` as independent
+  non-TTY subprocesses. Capture exact stdout/stderr/exit, not only parser/unit tests
+  or `--help`. Synthetic static/multi-provider fixture includes more than 20 models,
+  repeated family metadata, slash-containing model IDs, colliding provider-local IDs,
+  unknown limits/costs and excluded disabled entries. Assert complete exact full-ID
+  lines, lexical ordering/final newline, no names/group headers/family reduction/
+  secret/progress contamination. Healthy empty enabled snapshot is empty stdout/0;
+  no default model produces neither ModelRequired nor a fabricated selection.
+- **Catalog and admission.** Reuse admitted global/project precedence and original
+  OpenProxy fake-service fixtures. Bounded success publishes current IDs; auth/
+  timeout/invalid-response failure preserves truthful known metadata and reports
+  incomplete required dynamic catalog with safe stderr/nonzero. Known static/public
+  metadata without a generation key is independently listable, not generation-ready.
+  Disabled source is no network; unselected unsupported entry does not trigger
+  credential extraction/routing. Mandatory malformed source/policy/trust/data-root
+  ownership when needed/caps remain fatal. Reuse DISC01–DISC10/CFG04/UI07 rather
+  than duplicate their whole failure matrices. No new discovery retry policy.
+- **No execution or selection effects.** Fake service counters distinguish allowed
+  catalog GETs from zero generation/title/compaction requests; configured enabled
+  MCP/browser process markers stay absent. Compare fixture config/profile bytes,
+  existing session/history/prefs/selection and recovery records before/after listing,
+  including valid-shaped saved unavailable selection. No session creation, prefs
+  repair, permission grant or full application recovery. Cancellation/output failure
+  is non-success and owned catalog work finishes under existing cleanup/caps; a
+  partially written prefix is never labelled successful complete output.
+- **T45/R6 binding.** Take an exact ID from the real CLI receipt, not a manually
+  substituted expected ID. Load canonical `agents.<id>.model`, legacy `agent` and
+  global/project Markdown fixtures through the real loader. Use one representative
+  profile request/reopen/restart scenario plus nearest normalization fixtures for
+  first `/`, remaining model slashes, `#variant`, structured selection and legacy
+  separate-variant precedence; embedded/structured native choice wins. Capture
+  actual provider/model/variant and profile-body sentinel in fake requests. Retired/
+  unavailable model or disabled variant refuses before generation/tool effects,
+  without sibling/provider fallback or config rewrite. Reuse T45 selection/body/
+  trust tests instead of repeating this scenario on every layer or assigning TOOL18
+  to T45. Profile live-switch/child authority is unchanged, not expanded by listing.
+- **T53 seam/closure.** Future GO02/GO05 fixtures assert admitted Go/custom catalogs
+  reach the shared provider-qualified read-view without key-dependent public fetch
+  or duplicate source/cache/credential owner. Their qualification is T53-owned,
+  not a whole-T53 prerequisite for basic OpenProxy listing. Run nearest affected
+  crate/integration checks and required final fmt/clippy/tests/build gates. CLI and
+  profile reports cite source revision, actual binaries/commands/exits and shared
+  receipts; keep new scenarios pending/NOT_RUN until executed. No paid campaign,
+  store import, baseline change, T44 resume or PASS from this planning update.
 
 ### T50 model-dependent file tools — TOOL12/TOOL20 (approved 2026-10-01; pending)
 
