@@ -156,6 +156,32 @@ draft restoration need paired original/native and actual effects. Native unsuppo
 OAuth and sanitized diagnostics are predeclared capability mappings; no fake sign-in,
 hidden rows or cropped/status-masked PASS. T46 R4 live stays independent, reference
 absence BLOCKED_REFERENCE and existing MCP07/MCP05/AUD23/safety evidence reusable.
+
+VIS16/VIS31 phantom-caret/prompt-blink qualification follows the 2026-10-01 amendment
+and P17–P22/U103–U105/D11–D12. Keep raw PTY/complete-command cursor trace separate from
+actual frontend presentation: final position/text grid cannot prove no transient
+caret, and even a correct Hide/MoveTo/Show trace cannot prove real blink timing.
+Capture entry/fast row moves/leave/re-entry/expand/scroll/resize/viewer close, with
+unchanged Unicode prompt draft/editor caret and independently verified input owner.
+Read-only output has no underlying caret; Search and restored composer do.
+
+Record terminal/frontend version, effective cursor shape/color/blink/default,
+synchronized-output support/fallback, output fragmentation and monotonic capture
+times. With blink enabled, observe at least three full visible/hidden cycles in
+each of stable composer idle, continuous hover repaint at the same editor position,
+and restored composer. Compare cadence/progress to that frontend/profile's recorded
+idle baseline; repeated repaint must not restart the timer indefinitely, suppress
+blink or introduce irregular flicker. Effective nonblinking/default controls remain
+intact. Pair original/native full styled cells/PNG/cursor at matched blink phases,
+not independent absolute wall clocks, while retaining temporal records for both.
+No cursor mask/crop, disabled mouse/blink workaround, final-only capture or sampling
+only after the burst; native-only ordering/golden is not paired qualification.
+Use the existing mature VT/frontend producer for temporal cursor state, not a new
+emulator. Reuse VIS31 settled idle/latency and terminal error/panic cleanup evidence;
+host blink needs no permanent product repaint timer. Missing executable reference
+is BLOCKED_REFERENCE. Both phantom removal and preserved prompt blink must pass;
+the document update itself leaves VIS16/VIS31 NOT_RUN with no execution evidence.
+
 В этом компактном checker нет masks, auto-resize, tolerance или auto-update-goldens.
 Добавление любого исключения в будущем требует отдельного documented approved reason.
 

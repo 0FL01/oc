@@ -307,6 +307,48 @@ is BLOCKED_REFERENCE; preserve provenance/failed attempts, no crop/mask/toleranc
 baseline rewrite. VIS41 NOT_RUN/evidence empty and full VIS39 still open until real
 qualification; approval leaves previous task statuses/evidence unchanged.
 
+## Tool-output phantom caret / prompt blink — VIS16 / VIS31 (approved 2026-10-01; pending)
+
+Only T44/R4–R5/V06 owns the [detailed cursor slice](../tui-recovery/T44_CONTRACT_AMENDMENT.md#tool-output-phantom-caret-and-prompt-blink--vis16vis31-2026-10-01).
+Extend existing mandatory VIS16 and reuse VIS31, not a new VIS/task or whole-T50
+dependency. P17–P22/U103–U105/D11–D12 record source facts and a candidate cause;
+the user's transient flicker has not yet been reproduced by a new actual-binary run.
+
+After explicit T44 resume, recheck HEAD/profile and establish RED with an actual
+large multiline hoverable Shell/eligible expandable card from a bounded fake
+provider/tool fixture. Retain a Unicode draft/caret inside the prompt; send real
+SGR entry/rapid row moves/leave/re-entry, expand/recollapse and recorded-output
+viewer scroll/resize/close. Hover itself never moves focus/caret or expands; view
+actions send no generation/tool replay. Do not recover tool-truncated bytes or add
+new fullscreen/execute UI as part of this bug fix.
+
+Nearest terminal/output regression captures complete VT commands, visibility/final
+placement, fragmented writes and draw-error restoration: unsynchronized output
+hides before transient moves and places the cursor before showing it. The pinned
+backend's internal Show-before-MoveTo must be addressed, not wrapped with one hide
+and declared fixed. Qualify supported synchronized presentation and non-support
+fallback; preserve Ratatui state and existing input-owner routing. Read-only result
+overlay excludes underlying prompt caret; Search has its own, close restores draft.
+Use existing normal/error/panic PTY restoration checks; final cursor position and
+text-only render_screen alone cannot detect the transient defect.
+
+Ordering trace/PTY proves command behavior, not frontend raster/blink timing. With
+the rebuilt binary and same mature terminal frontend/profile, record at least three
+full visible/hidden blink cycles in idle composer, continuous hover repaint at the
+unchanged editor position, and restored composer. Preserve effective shape/color/
+nonblinking/default settings; repaint must not keep resetting blink into steady-on/
+steady-off or irregular flicker. Record timestamps/cycle cadence versus idle baseline.
+Then full paired pinned-original/native styled-cell/PNG/cursor temporal captures at
+matched phases and representative 80x24/120x40/160x48 profiles; raw bytes/static final
+frames/native goldens/mouse-disabled/crop/mask cannot close this qualification.
+
+Reuse VIS31 bounded queue/latency/settled-idle measurements and existing hover/scroll/
+selection/focus regressions, no Cartesian matrix/new emulator/permanent repaint timer
+or paid generation. Done requires both no phantom caret and normal prompt blink;
+missing executable reference is BLOCKED_REFERENCE, never source-only PASS. VIS16/
+VIS31 remain mandatory NOT_RUN/evidence empty; plan approval leaves T50 active,
+T44 PAUSED, historical statuses/PASS/baselines and execution generations unchanged.
+
 ## Agent cycle and Tab bindings — VIS06 / VIS10 / VIS17 (approved 2026-09-30; pending)
 
 Follow the [detailed primary-profile slice](../tui-recovery/T44_CONTRACT_AMENDMENT.md#agent-cycle-keybindings--уточнение-2026-09-30)

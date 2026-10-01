@@ -440,6 +440,25 @@ PRM01 только T45, VAR01 ordering только T47; новых IDs/tasks/de
 safe-handoff priority сохраняются; T50 active, T44 PAUSED, historical PASS/statuses
 не переписываются. План pending, не runtime или visual PASS.
 
+## Owner amendment (2026-10-01 — tool-output phantom caret / prompt blink)
+
+После read-only RECON владелец утвердил запись и commit/push исправления фантомного
+caret при быстром hover большой tool-output карточки. **Корректный blink настоящего
+caret в промпте должен сохраниться и при непрерывной перерисовке**, не только в покое.
+[T44/R4–R5/VIS16 + VIS31](tui-recovery/T44_CONTRACT_AMENDMENT.md#tool-output-phantom-caret-and-prompt-blink--vis16vis31-2026-10-01)
+владеет одним обязательным срезом: отсутствие transient caret на repaint/tool rows,
+правильный input owner/read-only overlay и restoration, safe frame/cursor ordering
+и квалификация blink-enabled idle/hover/restored последовательностей. Final-only
+grid/PTY cursor assertion и одиночный hide перед draw не закрывают оба результата.
+
+Нужны actual rebuilt binary, bounded fake-provider PTY/command trace и running
+pinned-original/native full styled-cell/PNG/cursor temporal captures минимум трёх
+полных blink cycles в каждом input state; nonblinking/default сохраняются, fallback
+без synchronized output проверяется. Подробный RECON/порядок — amendment, метод —
+`docs/TEST_PLAN.md`. Новых tasks/VIS IDs, paid calls/UI framework/permanent repaint
+timer нет; A08/A10, input focus/draft, hover/expand, terminal cleanup и no tool replay
+сохранены. План pending/NOT_RUN: active T50, PAUSED T44 и прежние PASS/statuses intact.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

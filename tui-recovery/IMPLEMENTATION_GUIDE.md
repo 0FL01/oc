@@ -382,6 +382,33 @@ Subagent card связан с реальным parent/child session и status; T
 незавершённые обязательства. Не представлять background/notice/reap как готовые только
 потому, что появилась карточка с таким названием.
 
+### Tool-output phantom caret / prompt blink — VIS16/VIS31 (R4/R5)
+
+Следовать [утверждённому cursor slice](T44_CONTRACT_AMENDMENT.md#tool-output-phantom-caret-and-prompt-blink--vis16vis31-2026-10-01)
+и P17–P22/U103–U105/D11–D12 после explicit resume T44. Сначала source recheck/RED
+на actual большой hoverable tool card, затем минимальное исправление existing
+terminal/frame output boundary (`terminal.rs`/`tui_cmd.rs`), не hover/renderer rewrite.
+Pinned backend выводит diff и Show раньше final MoveTo: внешний hide перед draw
+не закрывает transient-cursor контракт. Protect first paint/resize/clear, final
+input-owner placement и non-synchronized fallback; сохранить Ratatui bookkeeping,
+error model и normal/error/panic restoration. Read-only result overlay исключает
+underlying composer caret; Search/форма владеют своим, close возвращает draft/focus.
+
+Два результата принимаются вместе: нет caret на tool/repaint rows **и нормальный
+prompt blink при continuous hover repaint** с неизменным editor caret. Hide/Show
+и redundant MoveTo могут reset-ить blink: выбранная стратегия должна подтвердить
+оба условия. Сохранить effective shape/color/nonblinking/terminal-default; не
+отключать hover/mouse, не скрывать cursor навсегда и не вводить permanent UI timer.
+Nearest ordering/fragmentation/error regression плюс existing PTY scenario дают
+complete-VT-command trace; не строить собственный emulator из text-only screen parser.
+Actual frontend снимает минимум три полных blink cycles в idle → continuous hover →
+restored composer; raw bytes и final-only snapshot не доказывают real blink timing.
+Затем full paired pinned-original/native styled-cell/PNG/cursor temporal sequences,
+matched phases и representative existing profiles, без crop/mask/native-golden waiver.
+Reuse VIS31 queue/latency/settled idle и existing hover/expand/scroll/selection tests;
+no new task/gate/paid calls/framework или whole-T50 prerequisite. Plan-only NOT_RUN,
+active T50 и PAUSED T44 intact; подробная методика — `VERIFICATION.md`/`TEST_PLAN.md`.
+
 ### Subagent delegation slice — VIS39 (R4/R5)
 
 Следовать [полной VIS39 спецификации](T44_CONTRACT_AMENDMENT.md#subagent-delegation-parity--vis39)

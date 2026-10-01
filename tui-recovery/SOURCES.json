@@ -149,6 +149,60 @@
       "purpose": "Bare oc now launches TUI if both streams are TTY"
     },
     {
+      "id": "P17",
+      "repository": "0FL01/oc",
+      "path": "crates/oc/src/tui_cmd.rs",
+      "commit": "71fcd0f06bf618f06d4b5972fb312123f24378d2",
+      "locator": "61–94 TerminalOutput direct Stdout writes/flush; 980–1018 terminal owner; 1101–1122 first background, cursor color and unguarded draw",
+      "url": "https://github.com/0FL01/oc/blob/71fcd0f06bf618f06d4b5972fb312123f24378d2/crates/oc/src/tui_cmd.rs#L1101-L1122",
+      "purpose": "VIS16/VIS31 static phantom-caret candidate at actual frame output boundary, not a reproduced runtime flicker or completed fix"
+    },
+    {
+      "id": "P18",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/app/transcript.rs",
+      "commit": "71fcd0f06bf618f06d4b5972fb312123f24378d2",
+      "locator": "367–432 painted pointer/overlay guards and hover tool range; 440–465 hover changes styled rows without assigning an editor caret",
+      "url": "https://github.com/0FL01/oc/blob/71fcd0f06bf618f06d4b5972fb312123f24378d2/crates/oc-tui/src/app/transcript.rs#L405-L465",
+      "purpose": "VIS16 preserve actual hover/selection ownership; distinguish style repaint from cursor/focus mutation"
+    },
+    {
+      "id": "P19",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/shell.rs",
+      "commit": "71fcd0f06bf618f06d4b5972fb312123f24378d2",
+      "locator": "217–246 composer before overlays/dialog; 1584–1598 prompt layout; 1667–1671 Frame cursor position from editor caret",
+      "url": "https://github.com/0FL01/oc/blob/71fcd0f06bf618f06d4b5972fb312123f24378d2/crates/oc-tui/src/shell.rs#L1667-L1671",
+      "purpose": "VIS16 correct input-owner position/shape/color/blink and unchanged prompt draft under tool hover"
+    },
+    {
+      "id": "P20",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/terminal.rs",
+      "commit": "71fcd0f06bf618f06d4b5972fb312123f24378d2",
+      "locator": "26–48 raw/alternate/mouse enter and restore; 50–62 independent cursor-color OSC; 69–77 panic restoration",
+      "url": "https://github.com/0FL01/oc/blob/71fcd0f06bf618f06d4b5972fb312123f24378d2/crates/oc-tui/src/terminal.rs#L26-L77",
+      "purpose": "VIS16/VIS31 existing terminal lifecycle owner, no frame-output protection here; preserve normal/error/panic cleanup"
+    },
+    {
+      "id": "P21",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/dialog.rs",
+      "commit": "71fcd0f06bf618f06d4b5972fb312123f24378d2",
+      "locator": "643–646 Search cursor; 650–657 read-only card early return; 801–844 render_card_detail sets no replacement cursor after underlying composer",
+      "url": "https://github.com/0FL01/oc/blob/71fcd0f06bf618f06d4b5972fb312123f24378d2/crates/oc-tui/src/dialog.rs#L801-L844",
+      "purpose": "VIS16 read-only overlay excludes underlying caret and close restores input ownership; source risk, not executed qualification"
+    },
+    {
+      "id": "P22",
+      "repository": "0FL01/oc",
+      "path": "crates/oc/tests/support/screen.rs",
+      "commit": "71fcd0f06bf618f06d4b5972fb312123f24378d2",
+      "locator": "4–7 cells/final position only; 52–163 parser omits cursor visibility/shape/blink; tests/pty_t39.rs:1543–1567 final/settled cursor assertions",
+      "url": "https://github.com/0FL01/oc/blob/71fcd0f06bf618f06d4b5972fb312123f24378d2/crates/oc/tests/support/screen.rs#L52-L163",
+      "purpose": "VIS16/VIS31 coverage gap: final position cannot prove no transient caret or correct actual frontend blink"
+    },
+    {
       "id": "U01",
       "repository": "anomalyco/opencode",
       "path": "packages/tui/src/ui/dialog.tsx",
@@ -1119,6 +1173,33 @@
       "locator": "153–205 ordinary assistant tool-call/result groups and model/provider compatibility for opaque metadata; 239–256 model-switched projection and same-model effort updates",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/runner/to-llm-message.ts#L153-L256",
       "purpose": "Compatible outcomes/call-result causality survives switching without tool renaming/deletion/reexecution or alien opaque replay; TOOL12 and VIS17/VIS35"
+    },
+    {
+      "id": "U103",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "2784–2810 BlockTool hover background and selection-safe mouse-up; 2984–3041 ShellDisplay collapsed/expanded output toggle",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L2784-L2810",
+      "purpose": "VIS16 hover styles/click expansion do not relocate caret into tool rows; renderer hardware cursor behavior still requires executable capture"
+    },
+    {
+      "id": "U104",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/config/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "57–64 cursor shape/blinking, default preserves terminal setting; 296–302 mouse separate from resolved optional cursor style/blinking",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/config/index.tsx#L57-L64",
+      "purpose": "VIS16 effective blinking/nonblinking/default semantics, not authorization for a new cursor-config implementation task"
+    },
+    {
+      "id": "U105",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/prompt/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "1736–1753 textarea gets cursorStyle=config.cursor and content/cursor changes separately",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/index.tsx#L1736-L1753",
+      "purpose": "VIS16 real prompt cursor owner; source inspection does not qualify blink timing under continuous repaint"
     }
   ],
   "external_primary_sources": [
@@ -1141,6 +1222,16 @@
       "id": "D04",
       "url": "https://docs.rs/pulldown-cmark/latest/pulldown_cmark/struct.Options.html",
       "purpose": "Markdown parser with tables; version must be pinned in compile spike"
+    },
+    {
+      "id": "D11",
+      "url": "https://docs.rs/crate/ratatui-core/0.1.2/source/src/terminal/render.rs",
+      "purpose": "Cargo.lock-pinned core 0.1.2, render.rs:288–308 apply_buffer_with_cursor flushes cell diff then show_cursor before set_cursor_position. Local cached source inspected; VIS16/VIS31 outer hide alone is not safe presentation or blink proof"
+    },
+    {
+      "id": "D12",
+      "url": "https://docs.rs/crate/ratatui-crossterm/0.1.2/source/src/lib.rs",
+      "purpose": "Cargo.lock-pinned backend 0.1.2, lib.rs:232–310 draw queues MoveTo/Print, hide/show/final MoveTo execute and flush individually. Local cached source inspected; actual frontend temporal capture remains required"
     }
   ]
 }

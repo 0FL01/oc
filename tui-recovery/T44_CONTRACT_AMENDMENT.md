@@ -1572,6 +1572,143 @@ VIS44 **mandatory, NOT_RUN, evidence empty** до фактической ква�
 и не снимает **PAUSED T44**. После explicit resume выполнять slice по обычному
 one-active-task workflow; plan commit/push не является implementation/evidence PASS.
 
+## Tool-output phantom caret and prompt blink — VIS16/VIS31 (2026-10-01)
+
+Владелец сообщил: при наведении на большую подсвечиваемую карточку tool call
+иногда появляется фантомный `Caret`, мерцающий и прыгающий по строкам при быстром
+движении мыши. Отдельно потребовал сохранить корректный caret blink в поле промпта,
+затем утвердил запись плана и commit/push в текущую ветку. Оба результата обязательны
+в **T44/R4–R5/V06/VIS16**, с reuse **VIS31** для frame lifecycle/settled idle;
+не новый VIS ID/task или permission на resume. «На весь экран» здесь означает
+существующий доступный просмотр/раскрытие recorded tool output, не требование нового
+fullscreen UI, Code Mode/execute или восстановления tool-truncated данных.
+
+### RECON: наблюдение, source facts и ещё не подтверждённая причина
+
+Read-only native RECON: HEAD `71fcd0f06bf618f06d4b5972fb312123f24378d2`;
+dirty T50 file-mutation paths не участвовали в выводе о cursor lifecycle.
+Новые source entries P17–P22/U103–U105/D11–D12 в `SOURCES.json` не заменяют
+исходный audit snapshot и не являются выполненной runtime qualification.
+
+- **U103**, pinned OC2 `routes/session/index.tsx:2784–2810,2984–3041`:
+  BlockTool меняет hover background, ShellDisplay раскрывает/сворачивает preview
+  по mouse-up; selected text блокирует click. Hover handlers не перемещают caret
+  в вывод. Обычный Read не становится полнофайловым viewer.
+- **U104/U105**, `config/index.tsx:57–64,296–302` и
+  `component/prompt/index.tsx:1736–1753`: cursor shape/blinking отделены от mouse;
+  textarea получает `cursorStyle={config.cursor}`. `style:default` сохраняет
+  terminal setting, а blinking при нём не переопределяется. Это источник semantics,
+  не новый config slice. Установленных исходников `@opentui/core` при RECON нет:
+  hardware cursor lifecycle/blink оригинала нужно проверить executable captures,
+  не приписывать renderer отсутствие/наличие hide или reset по TSX handlers.
+- **P17–P20**, native `tui_cmd.rs::drive_ui`,
+  `app/transcript.rs::paint_transcript_at`, `shell.rs::render_prompt`, `terminal.rs`:
+  hover меняет стили, composer задаёт Frame cursor position; actual draw не защищён
+  предварительным hide/synchronized-output transaction. TerminalOutput пишет в
+  Stdout, не собирает весь кадр в атомарную операцию. Cursor color — отдельный OSC,
+  не причина для удаления подсветки/цвета и не гарантия невидимости курсора.
+- **D11/D12**, закреплённые Cargo.lock `ratatui 0.30.2`, core/crossterm `0.1.2`:
+  backend.draw выдаёт MoveTo/Print для changed cells; apply_buffer_with_cursor
+  сначала применяет diff, затем **show_cursor → set_cursor_position**. Show имеет
+  отдельный flush. Видимый terminal cursor может оказаться на строках repaint и
+  кратко показываться перед окончательным MoveTo. Поэтому одиночный hide перед
+  обычным draw недостаточен как доказательство исправления.
+- **P21/P22**: read-only `dialog.rs::render_card_detail` не назначает своего caret
+  после underlying prompt; `oc/tests/support/screen.rs::render_screen` хранит только
+  конечную позицию, не visibility/shape/blink. `pty_t39.rs::settled_cursor` специально
+  ждёт окончания output. Эти final-state assertions не обнаруживают transient caret.
+
+Вероятная причина — видимый hardware cursor во время diff/Show-before-MoveTo,
+но конкретный пользовательский flicker **ещё не воспроизведён** actual binary/PTY.
+Форма/версия terminal frontend и его blink behavior не предоставлены. Первый RED
+должен отделить hardware cursor от нарисованного glyph, mouse pointer и ошибочного
+focus/hit-test; если наблюдение опровергнет гипотезу, расследовать тот же контракт,
+а не закрывать баг по одному исправленному конечному кадру.
+
+### Frozen behavior и границы
+
+1. **Нет фантома во время вывода.** Entry/быстрые mouse moves по строкам/leave,
+   повторный entry, click-expand/recollapse, recorded-output viewer scroll/close
+   и resize не показывают caret в tool content, на repaint boundary или padding.
+   Hover только подсвечивает: input focus, draft/chips/selection/editor caret и
+   tool identity не меняются; существующие click/selection/scroll semantics остаются.
+2. **Правильный input owner.** В обычном composer caret сохраняет исходную позицию,
+   форму, цвет и эффективное blink поведение. Search/редактируемая форма владеет
+   своим caret, read-only result overlay скрывает underlying composer caret;
+   закрытие восстанавливает прежний draft/focus/caret. Не прятать cursor навсегда,
+   не отключать mouse/hover/expand и не удалять символы, похожие на caret, из
+   настоящего tool output ради сокрытия бага.
+3. **Blink при нагрузке обязателен.** При включённом blink и неизменном editor caret
+   есть нормальные visible/hidden cycles и в покое, и при непрерывном hover repaint.
+   Повторные Hide/Show, MoveTo в ту же позицию или shape/color updates не должны
+   подавлять blink, постоянно перезапускать его до первой hidden phase, превращать
+   caret в steady-on/steady-off или вызывать нерегулярное мерцание. Сохранить
+   effective nonblinking/terminal-default setting; не заставлять всех мигать.
+   Не обещать совпадение абсолютной фазы двух независимых wall clocks: сравнивать
+   matched phases и наблюдаемые cycles/cadence с recorded idle baseline одного
+   frontend/profile. Статичный кадр или blink только после остановки мыши не PASS.
+4. **Безопасная output boundary.** В existing terminal/frame owner защитить весь
+   paint, включая first background/resize/clear: transient cursor moves не должны
+   стать видимы. Для unsynchronized path скрытие предшествует этим writes, final
+   position устанавливается при скрытом cursor, а Show следует после неё лишь
+   для active input owner. Учитывать внутренний Show-before-MoveTo закреплённого
+   backend, не добавлять внешний hide поверх него и считать задачу закрытой.
+   Synchronized output допустим после проверки поддержки/profile, но обязателен
+   корректный fallback без него. Если выбранная стратегия сбрасывает blink timer,
+   менять стратегию output/cursor lifecycle и повторять qualification обоих
+   результатов, не ослаблять blink acceptance. Не форкать dependency/вводить новый
+   UI framework, per-widget clock, постоянный repaint timer или второй input owner.
+5. **Restoration и неизменные boundaries.** Normal/error/panic exit восстанавливают
+   cursor visibility/terminal state вместе с existing raw/mouse/alternate-screen
+   cleanup; ошибка draw остаётся non-success. Terminal control injection protections,
+   bounded history/output, permissions, execution identity и no tool replay сохраняются.
+   T56 PTY pane/его VT cursor — отдельный owner; этот срез не заменяет его contracts.
+
+### Ordered slice после explicit resume и достаточная квалификация
+
+1. Сверить новые HEAD/diff и captured terminal profile; nearest regression должен
+   сначала показать reported failure на старом пути. Использовать actual большую
+   multiline Shell/eligible expandable card через bounded fake provider и existing
+   native tool; input содержит непустой Unicode draft с caret внутри. Capture
+   entry → быстрые moves/leave/re-entry → expand → scroll/resize → close/recollapse,
+   без paid generation и без повторного исполнения tool от просмотра.
+2. В existing terminal/frame seam (`oc-tui/src/terminal.rs`, `oc/src/tui_cmd.rs`)
+   минимально исправить output ordering/presentation; `shell.rs`/`dialog.rs` меняются
+   только для доказанного ownership conflict. Не переписывать hover renderer ради
+   hardware cursor. Сохранить Ratatui bookkeeping, full-frame diff, error model и
+   demand-driven scheduling. Проверка blink обязана сопровождать выбор стратегии,
+   а не быть необязательной завершающей smoke-проверкой.
+3. **Ordering regression:** nearest tests в `terminal/tests.rs` и existing
+   `tui_cmd/tests`/TUI focus tests фиксируют реальные backend commands, fragmentation
+   и output-error cleanup. Не добавлять production API ради теста. Для fallback
+   после каждого complete VT command cursor hidden до final placement, а Show не
+   предшествует ему; synchronized path проверяется по presentation semantics.
+   Final grid equality и TestBackend cursor position одни этот риск не доказывают.
+4. **Actual binary + frontend temporal evidence:** extend existing `pty_t39`
+   scenario/support либо existing capture producer bounded cursor-state trace через
+   mature VT parser/frontend; text-only parser не расширять до собственного emulator.
+   Raw PTY/command trace доказывает ordering, но не реальную raster/blink timing.
+   Одним и тем же frontend/profile снять хотя бы **три полных blink cycles** в
+   stable composer idle, затем непрерывном hover repaint при том же caret, затем
+   restored composer. Записать cycle visibility/timestamps и cadence относительно
+   idle baseline; infinite hover/выбор одного удачного кадра не нужны. При read-only
+   viewer курсор скрыт, Search имеет свой caret; exit/error/panic cleanup проверяется
+   существующими PTY restoration cases, расширенными только на cursor state.
+5. **Paired qualification:** running pinned-original/native full styled-cell/PNG/
+   cursor sequences при одной fixture/profile на representative existing
+   80x24/120x40/160x48, Unicode/long output, blink-enabled и effective nonblinking
+   controls. Проверить supported synchronized и non-support fallback paths без
+   полного state×width×terminal product. Unmasked transient frames, matched blink
+   phases, real expand/scroll effects и input-owner restoration обязательны;
+   no final-only/native-golden/mouse-disabled/crop/mask waiver. Недоступный runnable
+   reference — BLOCKED_REFERENCE, не PASS. VIS31 reuse подтверждает queue/latency/
+   settled idle; host cursor blink не должен требовать periodic product repaint.
+
+VIS16/VIS31 остаются **mandatory, NOT_RUN, evidence empty** до новой квалификации.
+Done этого bug slice = **нет фантомного caret И сохранён корректный prompt blink**,
+с intact focus/hover/expand/restoration. Plan-only commit/push не переключает active
+T50, не снимает PAUSED T44 и не переписывает historical evidence/PASS/baselines.
+
 ## Обязательные результаты нового прохода
 
 V00–V09 из IMPLEMENTATION_GUIDE.md и все mandatory сценарии из актуального ACCEPTANCE.json:

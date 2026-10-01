@@ -8,6 +8,7 @@ Additional source: owner-reported Shift+Tab opens the agent picker instead of cy
 Additional source: owner request for full child-TUI/Subagents/Shell/Terminals parity, explicit Terminals inclusion and detailed plan commit/push approval, 2026-10-01.
 Additional source: owner-approved OC2 model-dependent edit/write/apply_patch RECON plan and mandatory user-switch compatibility, detailed plan commit/push, 2026-10-01; T50 owns behavior, VIS35/VIS36 presentation remains T44 and PAUSED.
 Additional source: follow-up owner requires original OC2 model-switch parity while an agent works and approves detailed plan commit/push, 2026-10-01; local picker draft/captured commit/blank Enter and request-boundary adoption within the same task supersede whole-turn model pin/busy refusal only. T50 TOOL12/T45 PRM01 backend receipts precede T44 VIS09/VIS29/VIS17/VIS35/VIS36 paired qualification; T44 remains PAUSED.
+Additional source: owner-reported phantom caret over large highlighted tool output, explicit preservation of normal prompt caret blink under continuous repaint, and approval of plan commit/push, 2026-10-01. Existing VIS16/VIS31 own the temporal qualification; T44 remains PAUSED.
 Last updated: 2026-10-01
 
 ## Objective
@@ -66,6 +67,21 @@ with actual-binary and paired original/native qualification. Closing is not sess
 deletion. Existing busy/permission/Location/lifecycle guards remain; donor busy-close
 behavior is an explicit unresolved parity difference, not an implied authorization
 to weaken them. Plan only: VIS44 NOT_RUN, T44 PAUSED until explicit resume.
+
+Owner-approved tool-output cursor correction (2026-10-01):
+[T44/R4–R5/VIS16/VIS31](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#tool-output-phantom-caret-and-prompt-blink--vis16vis31-2026-10-01)
+requires both no transient phantom caret in hovered/repainted tool rows and normal
+prompt caret blink at a fixed editor position during continuous hover redraw, idle
+and restoration. Preserve input owner/draft/shape/color/nonblinking/default settings,
+hover/expand/scroll and read-only overlay cursor exclusion. Qualify actual frame/output
+ordering (including Ratatui Show-before-MoveTo), non-synchronized fallback and real
+frontend visibility/timing over at least three full blink cycles per input state,
+plus full paired pinned-original/native styled-cell/PNG/cursor sequences. Neither
+final-only cursor position nor hide/draw/show that repeatedly resets blink is PASS.
+Reuse existing restoration/injection/resource gates; no new VIS/task/framework/timer
+or whole-T50 dependency. This fixes the reported interaction, not a new fullscreen
+viewer or recovery of tool-truncated output. Implementation/qualification pending;
+existing execution statuses, historical evidence and PAUSED T44 stay unchanged.
 
 ## Frozen Contract
 

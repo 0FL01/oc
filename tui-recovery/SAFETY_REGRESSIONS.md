@@ -93,6 +93,15 @@ redaction, parent/child permissions и subagent cancellation. Новые T43/T45
 новым orchestration framework. Ask не превращается в allow; отсутствие approval channel
 должно быть ясно, либо реализовано отдельным согласованным контрактом.
 
+VIS16/VIS31 cursor slice reuses S04/S06/S07 and existing terminal restoration tests:
+hover/viewer gestures preserve draft/chips/selection/focus and recorded tool identity,
+never execute raw tool ANSI or replay tools. Normal/error/panic exit restores cursor
+visibility and terminal raw/mouse/alternate-screen state. A fix cannot disable mouse,
+hide the input caret permanently or suppress its effective blink under continuous
+hover repaint. Qualify both synchronized and non-support fallback presentation;
+keep bounded event progress and settled idle, no permanent blink/repaint timer or
+retained history/cursor trace growth. These checks are pending, not new PASS claims.
+
 ## Как фиксировать результат
 
 Писать конкретно: «FAIL воспроизведён на SHA X командой Y», «PASS после SHA Z» или

@@ -236,12 +236,23 @@
     {
       "id": "VIS16",
       "step": "V06",
-      "title": "Tool cards and partial patch",
-      "expected": "Live real operation events create correctly ordered cards/hunks/error/unknown/truncation. Incomplete/partial patch is never displayed as full success. Eligible Explored groups and long-output Shell blocks match upstream normal/hover/click-expanded/second-click-recollapsed full styled-cell and PNG frames, including scroll and actual recorded output after reopen; hover only highlights. Ordinary Read does not falsely offer full-file expansion and an upstream/tool-truncated result is not presented as recoverable data. Successful completed Shell tool cards omit synthesized exit-zero status and match upstream's one-row bordered command/output gap when output is non-empty, without a phantom separator for empty output. Verify one-line/multiline/empty output in paired full frames and replay/reopen; retain actual process output, recorded exit/output metadata and visible abnormal outcomes. Update the existing divergent Shell golden.",
+      "title": "Tool cards, partial patch and phantom-caret-free hover with preserved prompt blink",
+      "expected": "Live real operation events create correctly ordered cards/hunks/error/unknown/truncation. Incomplete/partial patch is never displayed as full success. Eligible Explored groups and long-output Shell blocks match upstream normal/hover/click-expanded/second-click-recollapsed full styled-cell and PNG frames, including scroll and actual recorded output after reopen; hover only highlights. Ordinary Read does not falsely offer full-file expansion and an upstream/tool-truncated result is not presented as recoverable data. Successful completed Shell tool cards omit synthesized exit-zero status and match upstream's one-row bordered command/output gap when output is non-empty, without a phantom separator for empty output. Verify one-line/multiline/empty output in paired full frames and replay/reopen; retain actual process output, recorded exit/output metadata and visible abnormal outcomes. Update the existing divergent Shell golden. Follow the 2026-10-01 Tool-output phantom caret and prompt blink amendment: no visible caret on tool/repaint rows during entry, fast mouse-move/leave/re-entry, expand/recollapse, recorded-output viewer scroll/resize/close. Preserve hover/click/selection and draft/chips/editor caret/focus. Input ownership excludes underlying composer caret in read-only overlays and restores it on close. Preserve effective shape/color/blinking/nonblinking/terminal-default behavior. With a fixed editor caret, actual frontend sequences must show at least three full normal blink cycles in idle, continuous hover repaint and restored composer, without reset-induced steady-on/steady-off or irregular flicker. Actual-binary bounded fake-provider PTY and complete-command cursor trace verify frame ordering, including Show-after-final-placement in the unsynchronized fallback; raw bytes/final-position assertions do not prove blink timing. Running pinned-original/native full styled-cell/PNG/cursor temporal captures and matched blink phases are mandatory; neither final-only/native golden nor hide/draw/show that suppresses blink qualifies. Reuse VIS31 scheduling/idle and existing normal/error/panic restoration; no new VIS/task/framework/permanent repaint timer or paid calls. Qualification remains NOT_RUN until both phantom removal and preserved prompt blink pass.",
       "sources": [
         "P08",
         "P10",
-        "P11"
+        "P11",
+        "P17",
+        "P18",
+        "P19",
+        "P20",
+        "P21",
+        "P22",
+        "U103",
+        "U104",
+        "U105",
+        "D11",
+        "D12"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",
@@ -457,11 +468,16 @@
       "id": "VIS31",
       "step": "V06",
       "title": "Demand-driven high-refresh rendering and idle efficiency",
-      "expected": "On the actual binary through PTY, wait for input, worker updates and real active-animation deadlines; do not unconditionally poll or draw. Paint only dirty visible state, coalescing bursts while bounding work so input, worker events and paints progress. After the view and pending deadlines settle, a stable idle interval has no periodic redraws or wakeups; the upstream scanner cadence remains independent of render pacing. Record measurement window, render attempts, changed frames/terminal writes, event-to-paint latency distribution, draw/write durations, queue behavior, wakeups and process CPU time. Exercise active changes with requested 6.06 ms (165 Hz) and faster frame budgets where measured render and terminal costs permit. A configured/requested cadence is not measured FPS or proof of physical terminal refresh. Set numeric latency/CPU thresholds from a recorded baseline; do not infer FPS from draw duration or configuration alone.",
+      "expected": "On the actual binary through PTY, wait for input, worker updates and real active-animation deadlines; do not unconditionally poll or draw. Paint only dirty visible state, coalescing bursts while bounding work so input, worker events and paints progress. After the view and pending deadlines settle, a stable idle interval has no periodic redraws or wakeups; the upstream scanner cadence remains independent of render pacing. Record measurement window, render attempts, changed frames/terminal writes, event-to-paint latency distribution, draw/write durations, queue behavior, wakeups and process CPU time. Exercise active changes with requested 6.06 ms (165 Hz) and faster frame budgets where measured render and terminal costs permit. A configured/requested cadence is not measured FPS or proof of physical terminal refresh. Set numeric latency/CPU thresholds from a recorded baseline; do not infer FPS from draw duration or configuration alone. Reuse the VIS16 phantom-caret/prompt-blink scenario for cursor-safe frame lifecycle: first background/resize/clear and fragmented diff output cannot expose transient cursor positions, final input-owner placement precedes visible presentation, and repeated repaint cannot suppress/reset normal prompt blink. Validate synchronized support and a correct non-support fallback; one outer hide before the pinned backend's Show-before-MoveTo is not sufficient. Keep bounded event progress/latency and zero periodic product redraw at settled idle; host blink must not introduce a permanent TUI repaint timer. VIS16 actual frontend temporal blink evidence remains mandatory and distinct from raw PTY ordering/final frames; no duplicated tool matrix or new gate.",
       "sources": [
         "P08",
         "P09",
-        "U09"
+        "U09",
+        "P17",
+        "P20",
+        "P22",
+        "D11",
+        "D12"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",

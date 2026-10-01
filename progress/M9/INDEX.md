@@ -2,4 +2,4 @@
 
 Plan: ../../roadmap/M9.md
 
-- [T44](T44/INDEX.md) [blocked] — TUI pixel parity с opencode v2.0.12, включая Approve (VIS36), question (VIS37), DCP (VIS38), child/Subagents/Shell/Terminals (VIS39), MCP modal/startup (VIS19/VIS40), tab hover-marquee (VIS41), plugin/service errors (VIS42), provider retry (VIS43), Middle Click tab close (VIS44); latest: 0084.md.
+- [T44](T44/INDEX.md) [blocked] — TUI pixel parity с opencode v2.0.12, включая Approve (VIS36), question (VIS37), DCP (VIS38), child/Subagents/Shell/Terminals (VIS39), MCP modal/startup (VIS19/VIS40), tab hover-marquee (VIS41), plugin/service errors (VIS42), provider retry (VIS43), Middle Click tab close (VIS44), tool-output phantom caret / prompt blink (VIS16/VIS31); latest: 0084.md.
