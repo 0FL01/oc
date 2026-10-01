@@ -118,10 +118,13 @@ pub(crate) fn render(
     let failed = card.state != "completed" && card.state != "started";
     if failed {
         out.push(frame(vec![Span::styled(
-            if card.state == "unknown" {
-                "# Patch outcome unknown"
-            } else {
-                "# Patch failed"
+            match (card.name.as_str(), card.state.as_str()) {
+                ("write", "unknown") => "# Write outcome unknown",
+                ("edit", "unknown") => "# Edit outcome unknown",
+                (_, "unknown") => "# Patch outcome unknown",
+                ("write", _) => "# Write failed",
+                ("edit", _) => "# Edit failed",
+                _ => "# Patch failed",
             },
             base.fg(theme.error()),
         )]));
@@ -145,9 +148,11 @@ pub(crate) fn render(
             out.push(Line::plain(""));
         }
         out.push(frame(Vec::new()));
-        let label = match file.operation {
-            PatchOperation::Create => "# Created",
-            PatchOperation::Delete => "# Deleted",
+        let label = match (card.name.as_str(), file.operation) {
+            ("write", _) => "# Wrote",
+            ("edit", _) => "← Edit",
+            (_, PatchOperation::Create) => "# Created",
+            (_, PatchOperation::Delete) => "# Deleted",
             _ => "← Patched",
         };
         let path = file.destination.as_ref().unwrap_or(&file.path);

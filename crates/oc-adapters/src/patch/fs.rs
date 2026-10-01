@@ -21,6 +21,17 @@ pub(super) struct Snapshot {
     identity: (u64, u64, i64, i64, i64, i64),
 }
 
+impl Snapshot {
+    pub(super) fn hash_identity(&self, hash: &mut impl sha2::Digest) {
+        hash.update(self.identity.0.to_le_bytes());
+        hash.update(self.identity.1.to_le_bytes());
+        hash.update(self.identity.2.to_le_bytes());
+        hash.update(self.identity.3.to_le_bytes());
+        hash.update(self.identity.4.to_le_bytes());
+        hash.update(self.identity.5.to_le_bytes());
+    }
+}
+
 fn identity(meta: &Metadata) -> (u64, u64, i64, i64, i64, i64) {
     (
         meta.dev(),

@@ -89,7 +89,7 @@ impl Fixture {
             std::fs::create_dir_all(home.join(".config/opencode")).unwrap();
         }
         std::fs::create_dir_all(&project).unwrap();
-        std::fs::write(project.join("opencode.json"), serde_json::json!({"model":"fixture/m", "provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":self.base,"apiKey":"fixture"},"models":{"m":{"limit":{"context":65536,"output":4096}}}}},"permission":{"bash":"ask","apply_patch":"ask","subagent":"allow"},"agent":{"title":{"disable":true},"helper":{"mode":"subagent","prompt":"Use shell.","permission":{"bash":"ask"}}}}).to_string()).unwrap();
+        std::fs::write(project.join("opencode.json"), serde_json::json!({"model":"fixture/gpt-fixture", "provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":self.base,"apiKey":"fixture"},"models":{"gpt-fixture":{"limit":{"context":65536,"output":4096}}}}},"permission":{"bash":"ask","apply_patch":"ask","subagent":"allow"},"agent":{"title":{"disable":true},"helper":{"mode":"subagent","prompt":"Use shell.","permission":{"bash":"ask"}}}}).to_string()).unwrap();
         let (app, guard, _) = oc_adapters::application::spawn_with_env(
             &project,
             &self.root.path().join("data"),

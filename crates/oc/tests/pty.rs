@@ -31,7 +31,7 @@ const DEADLINE: Duration = Duration::from_secs(15);
 const READY: &str = "Untitled session";
 /// Alternate-screen leave sequence: proof the terminal was restored.
 const ALT_LEAVE: &[u8] = b"\x1b[?1049l";
-const FIXTURE_MODEL: &str = "pty-unseen-model";
+const FIXTURE_MODEL: &str = "gpt-pty-unseen-model";
 
 /// Real native Responses traffic, isolated from authoring-agent configuration.
 /// Echo is scripted by this HTTP peer, never by a product mock provider.

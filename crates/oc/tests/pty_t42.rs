@@ -30,7 +30,7 @@ const DEADLINE: Duration = Duration::from_secs(20);
 const READY: &str = "Untitled session";
 /// Alternate-screen leave sequence: proof the terminal was restored.
 const ALT_LEAVE: &[u8] = b"\x1b[?1049l";
-const MODEL: &str = "t42-model";
+const MODEL: &str = "gpt-t42-model";
 /// Global instruction marker: must survive every Location switch.
 const GLOBAL_RULE: &str = "T42_GLOBAL_RULE_7a1";
 /// Project-local instruction markers: exactly one may be live at a time.

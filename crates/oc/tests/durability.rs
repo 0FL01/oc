@@ -22,7 +22,7 @@ const NEXT_PROMPT: &str = "AUD06 fresh prompt after process kill";
 const ANSWER: &str = "fresh configured response after recovery";
 const CALL: &str = "aud06-shell-call";
 const ITEM: &str = "aud06-shell-item";
-const MODEL: &str = "durability-unseen-model";
+const MODEL: &str = "gpt-durability-unseen-model";
 
 #[test]
 fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {

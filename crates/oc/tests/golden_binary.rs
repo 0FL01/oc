@@ -30,7 +30,7 @@ use std::time::{Duration, Instant};
 use serde_json::{Value, json};
 
 const BIN: &str = env!("CARGO_BIN_EXE_oc");
-const MODEL: &str = "golden-model";
+const MODEL: &str = "gpt-golden-model";
 const SESSION_A: &str = "s-golden-a";
 const SESSION_B: &str = "s-golden-b";
 const POLL: Duration = Duration::from_millis(10);

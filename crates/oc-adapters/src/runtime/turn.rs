@@ -585,7 +585,10 @@ impl<'a> Runtime<'a> {
         let resources: Vec<_> = raw
             .iter()
             .map(|r| {
-                if matches!(call.name.as_str(), "read" | "apply_patch") {
+                if matches!(
+                    crate::config::legacy_key(&call.name),
+                    "read" | "apply_patch"
+                ) {
                     permission_path(policy.root, r)
                 } else {
                     r.clone()
@@ -614,16 +617,20 @@ impl<'a> Runtime<'a> {
             .iter()
             .all(|r| policy.effect(&call.name, r) == Permission::Allow)
         {
-            if matches!(call.name.as_str(), "shell" | "bash") || compression_plan.is_some() {
-                let shell_cwd = if matches!(call.name.as_str(), "shell" | "bash") {
-                    crate::approval::prepare(ctx, call, &resources).await?.3
+            if matches!(call.name.as_str(), "shell" | "bash" | "edit" | "write")
+                || compression_plan.is_some()
+            {
+                let (patch_preimage, shell_cwd) = if compression_plan.is_none() {
+                    let (_, _, preimage, cwd) =
+                        crate::approval::prepare(ctx, call, &resources).await?;
+                    (preimage, cwd)
                 } else {
-                    None
+                    (None, None)
                 };
                 permitted.permit = Some(InvocationPermit {
                     call: call.clone(),
                     resources,
-                    patch_preimage: None,
+                    patch_preimage,
                     shell_cwd,
                     compression_plan,
                 });
@@ -908,11 +915,12 @@ impl<'a> Runtime<'a> {
                 );
             }
         }
-        let mut tool_defs = builtin_tool_defs();
+        let mut tool_defs = selected_tool_defs(&selection.id);
         tool_defs.retain(|tool| policy.tool_visible(&tool.name));
         if !compress_available {
             tool_defs.retain(|tool| tool.name != COMPRESS_TOOL);
         }
+        fixed_input.extend(file_tool_guidance(&tool_defs));
         let subagents = workspace.subagents.clone();
         if let Some(catalog) = &subagents
             && policy.tool_visible(SUBAGENT_TOOL)
@@ -1165,11 +1173,12 @@ impl<'a> Runtime<'a> {
                 .with_mcp(&attached.entries);
             let mut fixed_input = lane.fixed_input.clone();
             fixed_input.extend(mcp_instruction_input(attached, &policy));
-            let mut tool_defs = builtin_tool_defs();
+            let mut tool_defs = selected_tool_defs(&selection.id);
             tool_defs.retain(|tool| policy.tool_visible(&tool.name));
             if !compress_available {
                 tool_defs.retain(|tool| tool.name != COMPRESS_TOOL);
             }
+            fixed_input.extend(file_tool_guidance(&tool_defs));
             if let Some(catalog) = &subagents
                 && policy.tool_visible(SUBAGENT_TOOL)
             {
@@ -2195,6 +2204,7 @@ impl<'a> Runtime<'a> {
                     ACTIVE_CONTEXT_BYTES_CAP.saturating_sub(read_context_bytes),
                     read_log_base,
                     params.catalog,
+                    &tool_defs,
                 )
                 .await;
             tool_event(
@@ -2503,6 +2513,7 @@ impl<'a> Runtime<'a> {
         read_bytes: usize,
         read_log_base: usize,
         catalog: &ModelCatalog,
+        request_tools: &[ToolDef],
     ) -> Result<(Vec<CallRecord>, bool, bool), RuntimeError> {
         let mut records = Vec::new();
         let mut projection_changed = false;
@@ -2516,7 +2527,33 @@ impl<'a> Runtime<'a> {
             };
             // Keep the original provider identifier in the durable operation id.
             let op = format!("{turn_id}-r{round}-c{i}-{id}");
-            let mut guarded = self.guard_patch(unit.clone());
+            let mut guarded = unit.clone();
+            if let Assembled::Call(call) = &mut guarded
+                && matches!(call.name.as_str(), "edit" | "write")
+                && let Some(path) = call.arguments["path"].as_str()
+                && (path == "~" || path.starts_with("~/"))
+                && let Some(home) = self.parent_env.get("HOME")
+            {
+                call.arguments["path"] = std::path::Path::new(home)
+                    .join(path.strip_prefix("~/").unwrap_or(""))
+                    .to_string_lossy()
+                    .into_owned()
+                    .into();
+            }
+            guarded = self.guard_patch(guarded);
+            if let Assembled::Call(call) = &guarded
+                && matches!(call.name.as_str(), "apply_patch" | "edit" | "write")
+                && !request_tools.iter().any(|tool| tool.name == call.name)
+            {
+                guarded = Assembled::Failed(CallFailure {
+                    id: call.id.clone(),
+                    error: if policy.effect(&call.name, "*") == Permission::Deny {
+                        format!("denied {}", call.name)
+                    } else {
+                        "file tool excluded by issuing request".into()
+                    },
+                });
+            }
             // Dispatch default-current before exact-resource common admission.
             if let Assembled::Call(call) = &mut guarded
                 && matches!(
@@ -3186,6 +3223,15 @@ impl<'a> Runtime<'a> {
                         patch_effects = effects;
                         (output_state(&output), output)
                     }
+                    Assembled::Call(call) if matches!(call.name.as_str(), "edit" | "write") => {
+                        let Assembled::Call(prepared_call) = &guarded else {
+                            unreachable!("admitted mutation")
+                        };
+                        let (output, effects) =
+                            crate::tools::tool_mutation_typed(ctx, prepared_call);
+                        patch_effects = effects;
+                        (output_state(&output), output)
+                    }
                     Assembled::Call(call)
                         if matches!(call.name.as_str(), "read" | "glob" | "grep") =>
                     {
@@ -3456,7 +3502,26 @@ impl<'a> Runtime<'a> {
         let Assembled::Call(call) = &unit else {
             return unit;
         };
+        if !matches!(call.name.as_str(), "apply_patch" | "edit" | "write") {
+            return unit;
+        }
         if call.name != "apply_patch" {
+            let path = call
+                .arguments
+                .get("path")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            if crate::dcp::path_is_protected(&self.protected.patterns, path)
+                || crate::dcp::path_is_protected(
+                    &self.protected.patterns,
+                    &permission_path(Some(&self.roots.project), path),
+                )
+            {
+                return Assembled::Failed(CallFailure {
+                    id: call.id.clone(),
+                    error: "mutation refused: protected path".into(),
+                });
+            }
             return unit;
         }
         let patch = call

@@ -140,7 +140,7 @@ class Fixture:
                     length = int(self.headers['Content-Length'])
                     assert 0 < length <= 1024*1024
                     request = json.loads(self.rfile.read(length))
-                    assert self.path == '/v1/responses' and request['model'] == 'fixture-model'
+                    assert self.path == '/v1/responses' and request['model'] == 'gpt-fixture-model'
                     assert self.headers['Authorization'] == 'Bearer synthetic-canary'
                     title = any(item.get('role') == 'developer' and any(part.get('text') == TITLE for part in item.get('content', []) if isinstance(part, dict)) for item in request['input'])
                     with fixture.lock:
@@ -179,10 +179,10 @@ class Fixture:
     def configure(self):
         base = self.relay.ready['provider_base'] if self.relay else f'http://127.0.0.1:{self.server.server_port}/v1'
         key = bounded.PLACEHOLDER if self.relay else 'synthetic-canary'
-        value = {'model': 'fixture/fixture-model', 'compaction': {'auto': False},
+        value = {'model': 'fixture/gpt-fixture-model', 'compaction': {'auto': False},
                  'permission': {'read': 'allow', 'edit': 'allow', 'apply_patch': 'allow', 'shell': 'allow', 'bash': 'allow'},
                  'provider': {'fixture': {'npm': '@ai-sdk/openai', 'options': {'baseURL': base, 'apiKey': key},
-                             'models': {'fixture-model': {'limit': {'context': 65536, 'output': 2048}}}}}}
+                              'models': {'gpt-fixture-model': {'limit': {'context': 65536, 'output': 2048}}}}}}
         (self.home/'config/opencode/opencode.json').write_text(json.dumps(value))
 
     def response(self, number, request):

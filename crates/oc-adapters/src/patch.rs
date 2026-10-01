@@ -11,7 +11,7 @@
 //! the first runtime failure stops the plan and returns the partial outcome
 //! — earlier commits stand, never auto-rolled back, never reported success.
 //! Preimage = hunk context + removals matched exactly; stale content is a
-//! conflict, not a fuzzy merge. No `write`/`edit` registry entries exist.
+//! conflict, not a fuzzy merge. Native edit/write share prepared commits here.
 
 use std::path::{Path, PathBuf};
 
@@ -22,8 +22,9 @@ use crate::files::{Files, glob_match};
 
 mod effects;
 mod fs;
+pub(crate) mod mutation;
 
-/// Single model-visible tool name; `write`/`edit` must never appear.
+/// Legacy strict-patch registry helper; runtime selects its working file family.
 pub const MODEL_TOOL_NAMES: &[&str] = &["apply_patch"];
 /// Patch text cap (mirrors `tool_argument_bytes` 2 MiB).
 pub const PATCH_BYTES_CAP: usize = 2 * 1024 * 1024;
@@ -1159,6 +1160,7 @@ fn apply_patch_inner(
             hash.update(op.path().as_bytes());
             hash.update([u8::from(prepared.before.is_some())]);
             if let Some(before) = &prepared.before {
+                before.hash_identity(&mut hash);
                 hash.update(before.bytes.len().to_le_bytes());
                 hash.update(&before.bytes);
                 hash.update(before.mode.to_le_bytes());
@@ -1240,6 +1242,34 @@ fn execute_op(
     effects: &mut oc_core::patch::PatchEffects,
 ) -> Result<(), PatchError> {
     let rel = op.path();
+    commit_prepared(
+        root,
+        rel,
+        match op {
+            FileOp::Add { .. } => "add",
+            FileOp::Update { .. } => "update",
+            FileOp::Delete { .. } => "delete",
+        },
+        op.move_to(),
+        prepared,
+        policy,
+        done,
+        effects,
+    )
+}
+
+// One filesystem/effect owner for strict patch and native text mutations.
+#[allow(clippy::too_many_arguments)]
+fn commit_prepared(
+    root: &fs::Root,
+    rel: &str,
+    kind: &'static str,
+    move_to: Option<&str>,
+    prepared: &Prepared,
+    policy: &dyn WritePolicy,
+    done: &mut Vec<FileResult>,
+    effects: &mut oc_core::patch::PatchEffects,
+) -> Result<(), PatchError> {
     policy.check(rel)?;
     let io = |_| PatchError::Io {
         path: rel.to_string(),
@@ -1270,11 +1300,7 @@ fn execute_op(
     done.push(FileResult {
         path: rel.to_string(),
         new_path: None,
-        op: match op {
-            FileOp::Add { .. } => "add",
-            FileOp::Update { .. } => "update",
-            FileOp::Delete { .. } => "delete",
-        },
+        op: kind,
         hash_before: prepared
             .before
             .as_ref()
@@ -1293,7 +1319,7 @@ fn execute_op(
     entry.sync().map_err(io)?;
     if let Some(target) = &prepared.target {
         let updated = entry.snapshot().map_err(io)?;
-        policy.check(op.move_to().expect("target"))?;
+        policy.check(move_to.expect("target"))?;
         let target = root.entry(target, true).map_err(io)?;
         if !entry.unchanged(&updated).map_err(io)? {
             return Err(PatchError::Conflict {
@@ -1302,10 +1328,10 @@ fn execute_op(
             });
         }
         entry.move_to(&target).map_err(io)?;
-        done.last_mut().expect("committed update").new_path = op.move_to().map(str::to_string);
+        done.last_mut().expect("committed update").new_path = move_to.map(str::to_string);
         if effects.total_files <= oc_core::patch::EFFECT_FILES_CAP {
             let file = effects.files.last_mut().expect("committed effect");
-            file.destination = op.move_to().map(str::to_string);
+            file.destination = move_to.map(str::to_string);
             file.operation = oc_core::patch::PatchOperation::Move;
         }
         #[cfg(test)]

@@ -24,6 +24,8 @@ use oc_core::context_plan::ProtectedSpec;
 mod approval_lifecycle;
 #[path = "fixtures/background_lifecycle.rs"]
 mod background_lifecycle;
+#[path = "runtime/file_mutations.rs"]
+mod file_mutations;
 #[path = "runtime/model_session_tools.rs"]
 mod model_session_tools;
 #[path = "fixtures/question_lifecycle.rs"]
@@ -376,7 +378,7 @@ fn make_harness(permissions: BTreeMap<String, Permission>) -> (Harness, Generati
     let catalog = ModelCatalog {
         provider: "test".to_string(),
         models: [(
-            "m".to_string(),
+            "gpt-fixture".to_string(),
             serde_json::json!({"limit": {"context": 1_000_000, "output": 100_000}}),
         )]
         .into_iter()
@@ -485,7 +487,7 @@ fn params<'c>(
         prompt: prompt.to_string(),
         invocation: None,
         catalog: &harness.catalog,
-        model_id: "m".to_string(),
+        model_id: "gpt-fixture".to_string(),
         variant: None,
         max_output: 1_000,
         provider,
@@ -787,11 +789,11 @@ async fn check_application_patch_replay(line: &str, count: usize) {
         Duration::from_millis(5),
     );
     let config = serde_json::json!({
-        "model": "fixture/fixture-model",
+        "model": "fixture/gpt-fixture-model",
         "provider": {"fixture": {
             "npm": "@ai-sdk/openai",
             "options": {"baseURL": base, "apiKey": "test-key"},
-            "models": {"fixture-model": {
+            "models": {"gpt-fixture-model": {
                 "name": "DTO fixture",
                 "limit": {"context": 65536, "output": 4096},
             }},

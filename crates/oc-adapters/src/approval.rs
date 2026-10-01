@@ -139,7 +139,7 @@ pub(crate) fn grant_resources(project: &Path, action: &str, resources: &[String]
             .map(|r| format!("{}{r}", crate::tools::shell_call::COMMAND_GRANT_PREFIX))
             .collect();
     }
-    if !matches!(action, "read" | "apply_patch") {
+    if !matches!(crate::config::legacy_key(action), "read" | "apply_patch") {
         return resources.to_vec();
     }
     let checkout = project
@@ -197,6 +197,19 @@ pub(crate) async fn prepare(
                     .ok_or("missing patch")?,
             )
             .map_err(|e| format!("patch preflight: {}", e.error))?;
+            hash.update(&digest);
+            patch_preimage = Some(digest);
+            ApprovalPreview::Patch {
+                files: proposed.files,
+                total_files: proposed.total_files,
+                truncated: proposed.truncated,
+            }
+        }
+        "edit" | "write" => {
+            let input = crate::patch::mutation::Input::parse(&call.name, &call.arguments)?;
+            let (proposed, digest) =
+                crate::patch::mutation::preview(&roots.project, &roots.data, &input)
+                    .map_err(|error| format!("mutation preflight: {error}"))?;
             hash.update(&digest);
             patch_preimage = Some(digest);
             ApprovalPreview::Patch {
@@ -296,7 +309,7 @@ pub(crate) fn save_patterns(action: &str, resources: &[String]) -> Vec<String> {
         return vec![];
     }
     if !matches!(
-        action,
+        crate::config::legacy_key(action),
         "read"
             | "apply_patch"
             | "shell"

@@ -905,14 +905,14 @@ impl Fixture {
         std::fs::write(
             config_dir.join("opencode.json"),
             json!({
-                "model": "fixture/dry-run-model",
+                "model": "fixture/gpt-dry-run-model",
                 "permissions": permissions,
                 "dcp": {"enabled": true},
                 "provider": {"fixture": {
                     "npm": "@ai-sdk/openai",
                     "options": {"baseURL": peer.url, "apiKey": "dry-run-key",
                                 "timeout": false, "setCacheKey": false},
-                    "models": {"dry-run-model": {"name": "Dry run",
+                    "models": {"gpt-dry-run-model": {"name": "Dry run",
                         "limit": {"context": 128_000, "output": 8_000}}}
                 }},
                 "mcp": mcp_section
@@ -928,7 +928,7 @@ impl Fixture {
             peer: Some(peer),
             mcp,
             config_dir: Some(config_dir),
-            model: "fixture/dry-run-model".into(),
+            model: "fixture/gpt-dry-run-model".into(),
             variant: None,
             envelope: None,
             unavailable_warnings: AtomicUsize::new(0),
@@ -1405,7 +1405,7 @@ fn live_bounded_dry_run_branches() {
         .preflight(campaign.remaining())
         .expect("offline preflight");
     let campaign = bounded_campaign(&with_mcp, config.has_search(), campaign);
-    let report = campaign.summary("dry-run", "fixture/dry-run-model", None);
+    let report = campaign.summary("dry-run", "fixture/gpt-dry-run-model", None);
     emit_report(&report, "dry-run");
     require_complete(&campaign);
     assert!(
@@ -1431,7 +1431,7 @@ fn live_bounded_dry_run_branches() {
         .preflight(campaign.remaining())
         .expect("offline preflight");
     let campaign = bounded_campaign(&without_mcp, config.has_search(), campaign);
-    let report = campaign.summary("dry-run-no-mcp", "fixture/dry-run-model", None);
+    let report = campaign.summary("dry-run-no-mcp", "fixture/gpt-dry-run-model", None);
     emit_report(&report, "dry-run-no-mcp");
     assert_eq!(
         report["counts"]["failed"], 0,
@@ -1521,9 +1521,15 @@ fn bounded_exact_slash_model_variant_config_and_unknown_limits() {
 fn bounded_discovery_selected_campaign_uses_product_catalog() {
     let mut fixture = Fixture::dry_run(true);
     fixture.peer = Some(Peer::with_catalog(json!({"object": "list", "data": [{
-        "id": "org/discovered", "context_length": 128000, "max_completion_tokens": 8000
+        "id": "org/gpt-discovered", "context_length": 128000, "max_completion_tokens": 8000
     }]})));
-    select_fixture(&mut fixture, "ludka2", "org/discovered", None, json!({}));
+    select_fixture(
+        &mut fixture,
+        "ludka2",
+        "org/gpt-discovered",
+        None,
+        json!({}),
+    );
     let campaign = Campaign::new();
     let config = fixture
         .preflight(campaign.remaining())
@@ -1543,7 +1549,8 @@ fn bounded_discovery_selected_campaign_uses_product_catalog() {
     assert!(
         requests
             .iter()
-            .all(|request| request["model"] == "org/discovered" && request["reasoning"].is_null())
+            .all(|request| request["model"] == "org/gpt-discovered"
+                && request["reasoning"].is_null())
     );
 }
 

@@ -313,7 +313,10 @@ async fn t47_unknown_limits_use_configured_caps_without_variant_overlay() {
     ] {
         let (mut harness, _) = make_harness(allow_all());
         let entry = serde_json::json!({"limit": limit, "variants": {"low": {"reasoningEffort": "low"}, "custom": {"reasoningEffort": "deep"}}});
-        harness.catalog.models.insert("m".into(), entry.clone());
+        harness
+            .catalog
+            .models
+            .insert("gpt-fixture".into(), entry.clone());
         let mut generation = oc_adapters::config::assemble(&[oc_adapters::config::Source {
             path: "test.json".into(), trusted: true,
             text: serde_json::json!({"provider":{"test":{"options":{"apiKey":"test-key", "nativeFallbackLimits":{"context":16_384,"output":256}}}}}).to_string(),
@@ -330,7 +333,7 @@ async fn t47_unknown_limits_use_configured_caps_without_variant_overlay() {
         assert_eq!(report.warnings.len(), 1);
         assert!(report.warnings[0].contains("unknown"));
         assert!(report.warnings[0].contains("native fallback caps (context=16384, output=256)"));
-        assert_eq!(harness.catalog.models["m"], entry);
+        assert_eq!(harness.catalog.models["gpt-fixture"], entry);
         let expected_output = limit
             .get("output")
             .and_then(serde_json::Value::as_u64)
@@ -360,10 +363,10 @@ async fn t47_unknown_limits_use_configured_caps_without_variant_overlay() {
 #[tokio::test]
 async fn v04_model_change_projects_public_history_without_foreign_tool_state() {
     let (mut harness, generation) = make_harness(allow_all());
-    harness
-        .catalog
-        .models
-        .insert("other".into(), harness.catalog.models["m"].clone());
+    harness.catalog.models.insert(
+        "other".into(),
+        harness.catalog.models["gpt-fixture"].clone(),
+    );
     let runtime = runtime_of(&harness, generation, Vec::new());
     runtime.create_session("model-change").unwrap();
     let (base, _, requests) = Fake::start_recording(
@@ -380,9 +383,12 @@ async fn v04_model_change_projects_public_history_without_foreign_tool_state() {
         Duration::ZERO,
     );
     for (index, (model, prompt)) in [
-        ("m", "expanded review instructions with original config"),
+        (
+            "gpt-fixture",
+            "expanded review instructions with original config",
+        ),
         ("other", "second public input"),
-        ("m", "third public input"),
+        ("gpt-fixture", "third public input"),
     ]
     .into_iter()
     .enumerate()
@@ -472,7 +478,7 @@ async fn t47_admission_counts_tool_schemas_and_rechecks_tool_results() {
         harness
             .catalog
             .models
-            .insert("m".into(), serde_json::json!({}));
+            .insert("gpt-fixture".into(), serde_json::json!({}));
         generation.providers.insert(
             "test".into(),
             serde_json::from_value(serde_json::json!({

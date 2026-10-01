@@ -63,13 +63,13 @@ async fn scenario(
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let address = listener.local_addr().unwrap();
     let mut configuration = serde_json::json!({
-        "model":"fixture/route/model/with/slashes", "default_agent":agent,
+        "model":"fixture/route/gpt-model/with/slashes", "default_agent":agent,
         "agent":{agent.clone():{"description":"Review","mode":"primary","prompt":"Review carefully"},
                  "title":{"mode":"subagent","prompt":"Generate a short session title. Output only the title."}},
         "permissions":{"read":"allow","apply_patch":"allow"},
         "provider":{"fixture":{"name":provider_name, "npm":"@ai-sdk/openai",
           "options":{"baseURL":format!("http://{address}/v1"),"apiKey":"fixture-secret"},
-           "models":{"route/model/with/slashes":{"name":model_name,"cost":price.map(|(input,output)|serde_json::json!({"input":input,"output":output})),"limit":{"context":32768,"output":4096}}}}}
+           "models":{"route/gpt-model/with/slashes":{"name":model_name,"cost":price.map(|(input,output)|serde_json::json!({"input":input,"output":output})),"limit":{"context":32768,"output":4096}}}}}
     });
     if label == "Changed" {
         configuration["agent"]
@@ -77,8 +77,9 @@ async fn scenario(
             .unwrap()
             .remove("title");
     } else {
-        configuration["agent"]["title"]["model"] = "fixture/route/model/with/slashes#brief".into();
-        configuration["provider"]["fixture"]["models"]["route/model/with/slashes"]["variants"] =
+        configuration["agent"]["title"]["model"] =
+            "fixture/route/gpt-model/with/slashes#brief".into();
+        configuration["provider"]["fixture"]["models"]["route/gpt-model/with/slashes"]["variants"] =
             serde_json::json!({"brief":{"reasoningEffort":"low"}});
     }
     std::fs::write(config.join("opencode.json"), configuration.to_string()).unwrap();
@@ -140,7 +141,7 @@ async fn scenario(
             }
             let request: serde_json::Value =
                 serde_json::from_slice(&bytes[end..end + length]).unwrap();
-            assert_eq!(request["model"], "route/model/with/slashes");
+            assert_eq!(request["model"], "route/gpt-model/with/slashes");
             let title_request = request["tools"] == serde_json::json!([])
                 && request["max_output_tokens"] == 256
                 && request["input"][0]["role"] == "developer"
@@ -579,7 +580,7 @@ async fn scenario(
         serde_json::json!({
             "provider":{"fixture":{"name":"Local B provider","npm":"@ai-sdk/openai",
                 "options":{"baseURL":format!("http://{address}/v1"),"apiKey":"fixture-secret"},
-                "models":{"route/model/with/slashes":{"name":"Local B model"}}}}
+                "models":{"route/gpt-model/with/slashes":{"name":"Local B model"}}}}
         })
         .to_string(),
     )

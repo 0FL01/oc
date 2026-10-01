@@ -274,7 +274,7 @@ fn bounded_native_restart_and_helper_restart_share_real_attempts() {
     let id = Envelope::initialize(&root.path().join("campaign"));
     let targets = manifest(&peer, &mcp);
     let guard = Envelope::start(id.clone(), &targets, true).unwrap();
-    let mut fixture = Fixture::guarded("fixture/dry-run-model".into(), None, guard);
+    let mut fixture = Fixture::guarded("fixture/gpt-dry-run-model".into(), None, guard);
     fixture.preflight(CALL_TIMEOUT).unwrap();
     let (ok, detail) = fixture.run(
         &fixture.project(),
@@ -351,14 +351,14 @@ fn bounded_guarded_five_step_campaign_preserves_offline_gates() {
     let root = tempfile::tempdir().unwrap();
     let id = Envelope::initialize(&root.path().join("campaign"));
     let guard = Envelope::start(id.clone(), &manifest(&peer, &mcp), true).unwrap();
-    let fixture = Fixture::guarded("fixture/dry-run-model".into(), None, guard);
+    let fixture = Fixture::guarded("fixture/gpt-dry-run-model".into(), None, guard);
     let campaign = Campaign::new();
     let config = fixture.preflight(campaign.remaining()).unwrap();
     let campaign = bounded_campaign(&fixture, config.has_search(), campaign);
     assert!(
         campaign.passed(),
         "guarded offline steps: {}; accounting={}; actual_mcp_calls={}",
-        campaign.summary("offline", "fixture/dry-run-model", None),
+        campaign.summary("offline", "fixture/gpt-dry-run-model", None),
         inspect(&id).unwrap(),
         mcp.calls().len()
     );
@@ -403,7 +403,7 @@ fn bounded_native_r4_complete_path_uses_same_trusted_envelope() {
     targets["mcp"]["crw"] = json!({"url":crw.url, "headers":{}});
     targets["mcp"]["unavailable"] = json!({"url":unavailable.url, "headers":{}});
     let guard = Envelope::start(id.clone(), &targets.to_string(), true).unwrap();
-    let fixture = Fixture::guarded("fixture/dry-run-model".into(), None, guard);
+    let fixture = Fixture::guarded("fixture/gpt-dry-run-model".into(), None, guard);
     fixture.restrict_r4();
     let report = r4_report(&fixture);
     assert_eq!(
@@ -451,7 +451,7 @@ fn bounded_native_r4_http_failure_reports_safe_actual_receipts() {
     targets["mcp"]["crw"] = json!({"url":crw.url, "headers":{}});
     targets["mcp"]["unavailable"] = json!({"url":unavailable.url, "headers":{}});
     let guard = Envelope::start(id.clone(), &targets.to_string(), true).unwrap();
-    let fixture = Fixture::guarded("fixture/dry-run-model".into(), None, guard);
+    let fixture = Fixture::guarded("fixture/gpt-dry-run-model".into(), None, guard);
     fixture.restrict_r4();
     let report = r4_report(&fixture);
     assert_eq!(report["status"], "non-success");

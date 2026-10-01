@@ -456,7 +456,7 @@ fn dcp_call_has_protected_path(name: &str, arguments: &str, config: &DcpConfig) 
         }
     }
     let Ok(value) = serde_json::from_str::<serde_json::Value>(arguments) else {
-        return name == "apply_patch";
+        return matches!(name, "apply_patch" | "edit" | "write");
     };
     if name == "apply_patch"
         && let Some(patch) = value.get("patchText").and_then(|value| value.as_str())
@@ -466,6 +466,14 @@ fn dcp_call_has_protected_path(name: &str, arguments: &str, config: &DcpConfig) 
                 .iter()
                 .any(|path| crate::dcp::path_is_protected(&config.protected_file_patterns, path))
         });
+    }
+    if matches!(name, "edit" | "write") {
+        return value
+            .get("path")
+            .and_then(serde_json::Value::as_str)
+            .is_none_or(|path| {
+                crate::dcp::path_is_protected(&config.protected_file_patterns, path)
+            });
     }
     contains_path(&value, &config.protected_file_patterns)
 }
@@ -1096,3 +1104,6 @@ impl<'a> Runtime<'a> {
         ))
     }
 }
+#[cfg(test)]
+#[path = "file_tool_tests.rs"]
+mod file_tool_tests;

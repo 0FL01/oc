@@ -142,7 +142,7 @@ fn make_harness(permissions: BTreeMap<String, Permission>) -> (Harness, Generati
     let catalog = ModelCatalog {
         provider: "test".to_string(),
         models: [(
-            "m".to_string(),
+            "gpt-fixture".to_string(),
             serde_json::json!({"limit": {"context": 1_000_000, "output": 100_000}}),
         )]
         .into_iter()
@@ -220,7 +220,7 @@ fn params<'c>(
         prompt: prompt.to_string(),
         invocation: None,
         catalog: &harness.catalog,
-        model_id: "m".to_string(),
+        model_id: "gpt-fixture".to_string(),
         variant: None,
         max_output: 1_000,
         provider,
@@ -535,7 +535,7 @@ async fn e2e01_seeded_coding_fix() {
     let catalog = ModelCatalog {
         provider: "test".to_string(),
         models: [(
-            "m".to_string(),
+            "gpt-fixture".to_string(),
             serde_json::json!({"limit": {"context": 1_000_000, "output": 100_000}}),
         )]
         .into_iter()
@@ -600,7 +600,7 @@ async fn e2e01_seeded_coding_fix() {
             prompt: "fix the add bug and run tests".to_string(),
             invocation: None,
             catalog: &catalog,
-            model_id: "m".to_string(),
+            model_id: "gpt-fixture".to_string(),
             variant: None,
             max_output: 1_000,
             provider: provider_of(&base),

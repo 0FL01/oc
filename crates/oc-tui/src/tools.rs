@@ -233,6 +233,7 @@ impl ToolRender {
         match name {
             "shell" | "bash" => ToolRender::Shell(shell_render(name, value.as_ref(), output)),
             "apply_patch" => ToolRender::Patch(patch_render(value.as_ref(), output, state)),
+            "edit" | "write" => ToolRender::Patch(Default::default()),
             "subagent" => ToolRender::Subagent(subagent_render(value.as_ref(), output)),
             "read" => ToolRender::Inline(InlineRender::Read {
                 path: string_arg(value.as_ref(), "path"),

@@ -7,10 +7,10 @@
 //! tools, invalid JSON and replayed terminals never execute; duplicates
 //! refuse the whole batch before any side effect.
 //!
-//! Registry (and only registry): `read`, `glob`, `grep`, `apply_patch`, `shell`,
+//! Registry (and only registry): `read`, `glob`, `grep`, `apply_patch`, `edit`, `write`, `shell`,
 //! `webfetch`, `skill`, `compress`, plus hidden `bash(argv)` compatibility and
-//! the per-lane `subagent` tool. No
-//! `write`/`edit` entries exist. Reasoning/opaque
+//! the per-lane `subagent` tool.
+//! Model-selected `write`/`edit` share patch's mutation owner. Reasoning/opaque
 //! provider items accumulate in [`TurnLog`] (durable JSON,
 //! same-model/provider replay boundary) and are stripped from the UI
 //! projection.
@@ -33,12 +33,14 @@ use crate::storage::Db;
 pub mod read;
 pub(crate) mod shell_call;
 
-/// Model-visible tool names; `write`/`edit` must never appear here.
+/// Executable built-ins; the model-selected request view narrows file tools.
 pub const MODEL_TOOL_NAMES: &[&str] = &[
     "read",
     "glob",
     "grep",
     "apply_patch",
+    "edit",
+    "write",
     "shell",
     "webfetch",
     "skill",
@@ -170,7 +172,7 @@ pub(crate) fn permission_resources(call: &ToolCall) -> Result<Vec<String>, ToolE
             })
     };
     Ok(match call.name.as_str() {
-        "read" => vec![string("path")?],
+        "read" | "edit" | "write" => vec![string("path")?],
         "glob" | "grep" => vec![string("pattern")?],
         "webfetch" => vec![string("url")?],
         "skill" => vec![string("id")?],
@@ -537,12 +539,12 @@ pub struct ToolRoots {
     pub data: std::path::PathBuf,
 }
 
-struct PolicyBridge<'a>(&'a dyn ToolPolicy);
+struct PolicyBridge<'a>(&'a dyn ToolPolicy, &'a str);
 
 impl WritePolicy for PolicyBridge<'_> {
     fn check(&self, path: &str) -> Result<(), PatchError> {
         self.0
-            .check_resource("apply_patch", path)
+            .check_resource(self.1, path)
             .map_err(|_| PatchError::Denied {
                 path: path.to_string(),
             })
@@ -597,6 +599,7 @@ async fn execute_call(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
         "read" => tool_read(ctx, call),
         "glob" | "grep" => execute_search(ctx.files, ctx.policy, ctx.cancel, call).1,
         "apply_patch" => tool_patch(ctx, call),
+        "edit" | "write" => tool_mutation_typed(ctx, call).0,
         "shell" | "bash" => execute_shell_typed(ctx, call).await.1,
         "webfetch" => tool_webfetch(ctx, call).await,
         "skill" => tool_skill(ctx, call),
@@ -630,6 +633,9 @@ pub(crate) fn validate_call(call: &ToolCall) -> Result<(), String> {
                 .map_err(|reason| format!("invalid arguments for grep: {reason}"));
         }
         "apply_patch" => args.as_object().is_some_and(|a| a.len() == 1) && nonempty("patchText"),
+        "edit" | "write" => {
+            return crate::patch::mutation::Input::parse(&call.name, args).map(|_| ());
+        }
         "shell" | "bash" => {
             return shell_call::invocation(call, &BTreeMap::new())
                 .map(|_| ())
@@ -1052,7 +1058,7 @@ fn tool_patch_impl(
     let Some(roots) = ctx.roots.as_ref() else {
         return ("error: tool apply_patch failed: no roots".to_string(), None);
     };
-    let bridge = PolicyBridge(ctx.policy);
+    let bridge = PolicyBridge(ctx.policy, &call.name);
     let (result, effects) = crate::patch::apply_patch_with_approved_preimage(
         &roots.project,
         &roots.data,
@@ -1061,6 +1067,39 @@ fn tool_patch_impl(
         ctx.policy.approved_patch_preimage(),
     );
     (patch_outcome(result), Some(effects))
+}
+
+pub(crate) fn tool_mutation_typed(
+    ctx: &ToolContext<'_>,
+    call: &ToolCall,
+) -> (String, Option<oc_core::patch::PatchEffects>) {
+    if ctx.cancel.load(std::sync::atomic::Ordering::Acquire) {
+        return ("error: cancelled".into(), None);
+    }
+    if let Err(error) = ctx.policy.check_call(call) {
+        return (format!("error: {error}"), None);
+    }
+    let input = match crate::patch::mutation::Input::parse(&call.name, &call.arguments) {
+        Ok(input) => input,
+        Err(error) => return (format!("error: {error}"), None),
+    };
+    let Some(roots) = &ctx.roots else {
+        return ("error: mutation roots missing".into(), None);
+    };
+    let (result, effects) = crate::patch::mutation::execute(
+        &roots.project,
+        &roots.data,
+        &input,
+        &PolicyBridge(ctx.policy, &call.name),
+        ctx.policy.approved_patch_preimage(),
+    );
+    (
+        match result {
+            Ok(output) => output.to_string(),
+            Err(error) => format!("error: {error}"),
+        },
+        Some(effects),
+    )
 }
 
 pub(crate) fn patch_outcome(result: Result<Vec<FileResult>, ApplyFailure>) -> String {
@@ -1568,6 +1607,8 @@ impl TurnLog {
 
 #[cfg(test)]
 mod tests {
+    #[path = "file_mutations.rs"]
+    mod file_mutations;
     #[path = "shell.rs"]
     mod foreground;
     #[path = "search.rs"]
@@ -1659,7 +1700,7 @@ mod tests {
     }
 
     #[test]
-    fn tool10_registry_has_no_write_edit() {
+    fn tool10_registry_has_working_mutation_families() {
         assert_eq!(
             MODEL_TOOL_NAMES,
             &[
@@ -1667,6 +1708,8 @@ mod tests {
                 "glob",
                 "grep",
                 "apply_patch",
+                "edit",
+                "write",
                 "shell",
                 "webfetch",
                 "skill",
@@ -1677,8 +1720,8 @@ mod tests {
                 "opencode_session_move"
             ]
         );
-        assert!(!MODEL_TOOL_NAMES.contains(&"write"));
-        assert!(!MODEL_TOOL_NAMES.contains(&"edit"));
+        assert!(MODEL_TOOL_NAMES.contains(&"write"));
+        assert!(MODEL_TOOL_NAMES.contains(&"edit"));
     }
 
     #[test]

@@ -118,7 +118,7 @@ async fn ret01_runtime_retry_never_replays_committed_effect() {
 async fn ret01_partial_continuation_budget_refusal_settles_without_another_send() {
     let (mut harness, mut generation) = make_harness(allow_all());
     harness.catalog.models.insert(
-        "m".into(),
+        "gpt-fixture".into(),
         serde_json::json!({"limit":{"context":16384,"output":1000}}),
     );
     generation.compaction.auto = false;
@@ -215,7 +215,7 @@ async fn fresh_turn_commits_root_binding_selection_before_ack_and_streams_normal
     let (harness, generation) = make_harness(permissions);
     let runtime = runtime_of(&harness, generation, Vec::new());
     let selection_key = "tui.selection.session:[\"/project\",\"test\",\"fresh\"]";
-    let selection = r#"{"agent":null,"models":{"":{"id":"m","variant":null}},"epoch":0}"#;
+    let selection = r#"{"agent":null,"models":{"":{"id":"gpt-fixture","variant":null}},"epoch":0}"#;
     let (base, hits, requests) = Fake::start_recording(
         vec![
             sse_tool_call("denied-read", "read", &serde_json::json!({"path":"secret"}))
@@ -289,7 +289,7 @@ async fn fresh_turn_commits_root_binding_selection_before_ack_and_streams_normal
     assert_eq!(report.calls[0].output, "error: denied read");
     assert_eq!(*callback_order.lock().unwrap(), ["accepted", "finished"]);
     assert_eq!(*hits.lock().unwrap(), 2);
-    assert_eq!(requests.lock().unwrap()[0]["model"], "m");
+    assert_eq!(requests.lock().unwrap()[0]["model"], "gpt-fixture");
     assert_eq!(
         function_output(&requests.lock().unwrap()[1], "denied-read"),
         Some("error: denied read")
@@ -503,7 +503,7 @@ async fn rejected_fresh_turn_leaves_no_root_or_selection_and_can_retry() {
     ));
     let mut tiny_catalog = harness.catalog.clone();
     tiny_catalog.models.insert(
-        "m".into(),
+        "gpt-fixture".into(),
         serde_json::json!({"limit":{"context":1,"output":1}}),
     );
     let mut over_budget = params("retry", "prompt", &harness, provider_of(&base), &NO_CANCEL);
@@ -661,7 +661,8 @@ fn root_location_creation_rolls_back_on_pref_failure_and_retries() {
 #[tokio::test]
 async fn accepted_model_switch_is_public_only_and_does_not_add_provider_requests() {
     let (mut harness, generation) = make_harness(allow_all());
-    harness.catalog.models.get_mut("m").unwrap()["variants"] = serde_json::json!({"default": {}});
+    harness.catalog.models.get_mut("gpt-fixture").unwrap()["variants"] =
+        serde_json::json!({"default": {}});
     harness.catalog.models.insert(
         "next".into(),
         serde_json::json!({

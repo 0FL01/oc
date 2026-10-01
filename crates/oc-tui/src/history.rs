@@ -652,7 +652,9 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
             topic: row.dcp_topic.clone(),
             ..Default::default()
         }))
-    } else if row.name == "apply_patch" && row.patch_effects.is_some() {
+    } else if matches!(row.name.as_str(), "apply_patch" | "edit" | "write")
+        && row.patch_effects.is_some()
+    {
         ToolRender::Patch(Default::default())
     } else {
         ToolRender::parse(&row.name, row.input.as_deref(), output, &row.state)

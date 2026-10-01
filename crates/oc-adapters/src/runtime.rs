@@ -382,7 +382,9 @@ impl ToolPolicy for RuntimePolicy<'_> {
 
     fn check_resource(&self, tool: &str, resource: &str) -> Result<(), ToolError> {
         let normalized;
-        let resource = if matches!(tool, "read" | "apply_patch") && resource != "*" {
+        let resource = if matches!(crate::config::legacy_key(tool), "read" | "apply_patch")
+            && resource != "*"
+        {
             normalized = permission_path(self.root, resource);
             normalized.as_str()
         } else {
@@ -547,6 +549,16 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
             }),
         },
         ToolDef {
+            name: "write".into(),
+            description: "Write a project text file, overwriting if it exists and creating missing parent directories. content preserves supplied newlines and EOF; an existing or supplied UTF-8 BOM is retained once. Use edit for partial changes. Shared mutation permissions, no-follow/data-root/preimage guards and bounded confirmed diffs apply; no preceding read call is required.".into(),
+            parameters: serde_json::json!({"type":"object","additionalProperties":false,"required":["path","content"],"properties":{"path":{"type":"string"},"content":{"type":"string"}}}),
+        },
+        ToolDef {
+            name: "edit".into(),
+            description: "Edit an existing project text file by replacing oldString with newString. Omit Read line-number prefixes and preserve indentation. oldString must be nonempty and differ from newString; newString may be empty to delete text. UNIQUE match is required unless replaceAll is true. Exact nonoverlapping matches precede typographic normalization, then trailing-whitespace line matching. CRLF/BOM and actual EOF are preserved. Shared mutation permission/preimage/no-follow/bounded-diff safeguards apply; no preceding read call is required.".into(),
+            parameters: serde_json::json!({"type":"object","additionalProperties":false,"required":["path","oldString","newString"],"properties":{"path":{"type":"string"},"oldString":{"type":"string"},"newString":{"type":"string"},"replaceAll":{"type":"boolean","default":false}}}),
+        },
+        ToolDef {
             name: "webfetch".to_string(),
             description: "Read-only HTTP/HTTPS GET. format text|markdown|html defaults to markdown; HTML converts to readable Unicode with useful structure, other textual MIME stays original. timeout is seconds (>0, maximum120, default30), one total DNS/redirect/body/conversion deadline. Returns original/final URL, status, content type and requested format metadata. Native 1MiB body/output caps and per-hop actual-dial public-egress guard apply. No browser/JS/search, cookies, auth or inherited proxy.".to_string(),
             parameters: serde_json::json!({"type":"object", "properties":{
@@ -596,6 +608,38 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
             }),
         },
     ]
+}
+
+/// Exact pinned OC2 predicate; this selects tools only, never provider routing.
+pub(crate) fn selected_tool_defs(model_id: &str) -> Vec<ToolDef> {
+    let patch =
+        model_id.contains("gpt-") && !model_id.contains("oss") && !model_id.contains("gpt-4");
+    builtin_tool_defs()
+        .into_iter()
+        .filter(|tool| match tool.name.as_str() {
+            "apply_patch" => patch,
+            "edit" | "write" => !patch,
+            _ => true,
+        })
+        .collect()
+}
+
+fn file_tool_guidance(tools: &[ToolDef]) -> Option<InputItem> {
+    let names = tools
+        .iter()
+        .filter(|tool| matches!(tool.name.as_str(), "apply_patch" | "edit" | "write"))
+        .map(|tool| tool.name.as_str())
+        .collect::<Vec<_>>();
+    if names.is_empty() {
+        return None;
+    }
+    Some(InputItem::message(
+        InputRole::Developer,
+        format!(
+            "Current request file-mutation tools: {}. Use only this request's advertised tools; permission and preimage admission still apply.",
+            names.join(", ")
+        ),
+    ))
 }
 
 /// Rough token estimate: the bytes/4 heuristic, not a counter for any
