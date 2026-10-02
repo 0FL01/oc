@@ -2,7 +2,7 @@
 
 Status: active
 Source: владелец после RECON и параллельного аудита утвердил план 2026-09-29; «единая логика хранения кред, без деприкейт фич», будущий Codex OAuth и custom llama.cpp/ludka2 учтены как границы общего owner.
-Last updated: 2026-09-29
+Last updated: 2026-10-02
 Task: T53 (todo; утверждение и доставка плана не являются implementation PASS).
 
 ## Objective
@@ -13,6 +13,13 @@ Native `oc` поддерживает `opencode-go`: public models.dev catalog, C
 admitted custom providers, не ломая OpenProxy и не требуя фиктивного ключа для
 явно anonymous local server. Будущий OAuth помещается в тот же storage contract,
 но Codex login/refresh и другие OAuth flows в этой задаче не реализуются.
+
+Owner-approved RECON уточнение 2026-10-02: host OC1 TS config — набор примеров,
+не истина поведения. Нормализация и wires следуют pinned OC2 v2.0.12; admitted
+custom Responses/Messages/Chat providers поддерживают явные localhost **и LAN**
+connections. Свои тонкие adapters поверх existing reqwest/SSE предпочтительны;
+provider/agent framework вне scope, узкий crate допустим только при доказанном blocker
+и сохранении existing transport/runtime contracts.
 
 ## Execution Directive
 
@@ -28,6 +35,7 @@ required outcome is resolved and affected constraints remain satisfied.
 - R1: один credential owner и явная auth policy для Go/custom providers.
   - Source: требование владельца о едином non-legacy storage и уточнение про llama.cpp/ludka2/будущий Codex OAuth; donor credential/integration owners ниже.
   - Acceptance: GO01 доказывает общий native SQLite owner, labeled accounts add/activate/rename/remove и restart; tagged Key/OAuth material без `auth.json`/import/dual-write. Auth None отличается от missing Key и unsupported OAuth; Go и custom precedence/endpoint authority соответствуют таблице ниже. Нет автоматической отправки stored/default-env key на новый endpoint. Safe DTO и secret form не раскрывают material.
+  - Acceptance clarification (2026-10-02): static Messages `authToken` — Key material с Bearer scheme, не OAuth execution; `apiKey` — x-api-key, оба вместе диагностируются. Explicit admitted localhost/LAN scope действует во всех lanes/discovery, не ослабляя credential/trust/redirect admission.
   - Primary evidence: synthetic-secret owner/storage tests с reopen, transactional activation/removal, precedence/scope refusal и zero unauthorized requests.
   - Status: pending
   - Evidence: pending — evidence/T53/report.md.
@@ -35,6 +43,7 @@ required outcome is resolved and affected constraints remain satisfied.
 - R2: public Go catalog из models.dev, независимый от credentials.
   - Source: «модели фетчить с models.dev»; donor models-dev normalization, approved audit simplification.
   - Acceptance: GO02 доказывает bounded fetch/parse/cache/last-good, no-key browsing, finite package-to-protocol mapping и реализованные reasoning overlays. Public refresh не подтверждает key и не снимает request auth rejection; retired/deprecated choice остаётся явно unavailable, без fallback/local resurrection.
+  - Acceptance clarification (2026-10-02): source-derived legacy `provider` и canonical `providers` fixtures дают одинаковые normalized connection/model/variant facts и captured wire. Model package/API ID, overlays/headers/body, capabilities/compatibility и variants следуют precedence ниже; custom static/configured discovery и public Go не смешиваются.
   - Primary evidence: source fixtures + fake-clock/client catalog tests, включая coexistence с неизменным OpenProxy discovery.
   - Consumer clarification (owner-approved 2026-10-01 CLI plan): admitted Go/custom metadata is published into the same provider-qualified read-view consumed by T50/R7 `oc models`, TUI and model-facing lookup. Public/no-key visibility does not authorize generation; auth rejection, endpoint scope, retirement and local merge remain unchanged. T50 owns complete ID-only CLI output/TOOL18, T53 GO02 owns catalog fetch/cache and GO05 owns provider-qualified selection. Basic OpenProxy CLI does not wait for whole-T53 or new protocol/live qualification; no second catalog/cache/credential owner or CLI auth/bind command.
   - Status: pending
@@ -43,6 +52,7 @@ required outcome is resolved and affected constraints remain satisfied.
 - R3: три native wires и все Go request metadata lanes.
   - Source: «нюансы интеграции OpenCode Go, например хедеры»; pinned native AI routes и common model-request owner.
   - Acceptance: GO03 доказывает Responses/Chat/Messages text, complete tool roundtrip, reasoning/usage, terminal/error/cancel и повторное использование T54/RET01 typed provider-error policy: bounded pre-output retry либо continuation после записанного partial output, без replay effects. Every Go request lane получает immutable binding/metadata; custom providers переиспользуют admitted adapters, но не Go-only headers. Нет guessed route/model/paid fallback.
+  - Acceptance clarification (2026-10-02): exact per-wire options/chronological system/effort/cache/media semantics и synthetic host-shaped custom matrix из TEST_PLAN обязательны, а не только generic text smoke. Каждый adapter call — один physical attempt; Chat/Messages failures интегрируются с существующим retry owner.
   - Primary evidence: parameterized fake wire/runtime tests; captured requests main/follow-up/title/summary-compaction/child/retry и concurrent-session barriers.
   - Status: pending
   - Evidence: pending — evidence/T53/report.md.
@@ -50,6 +60,7 @@ required outcome is resolved and affected constraints remain satisfied.
 - R4: protocol-safe durable replay, DCP и forks.
   - Source: существующие immutable history/tool-causality contracts A02/A04/A07/A10 и необходимый multi-protocol boundary.
   - Acceptance: GO04 доказывает protocol/binding preservation через TurnLog, SQL projection, checkpoints и fork/reopen. Absent protocol читается как legacy Responses; explicit unknown protocol fail-safe. Incompatible opaque state не конвертируется/не отправляется другой deployment; raw rows и completed tool pairs сохраняются, unknown effects не переисполняются.
+  - Acceptance clarification (2026-10-02): chronology system/effort updates сохраняется через DCP/compact/fork/reopen. Next-request committed switch той же задачи сохраняет ordinary outcomes, но не alien opaque/signatures/checkpoints; prepared requests/tools сохраняют captured identity/view по T50.
   - Primary evidence: owning storage/runtime tests legacy/new logs → projection/DCP/fork → restart/next captured request, с raw-history integrity assertions.
   - Status: pending
   - Evidence: pending — evidence/T53/report.md.
@@ -70,9 +81,51 @@ required outcome is resolved and affected constraints remain satisfied.
 
 ### Credentials, connection config и authority
 
-Connection config остаётся admitted `provider.<id>`: protocol alias, `baseURL`,
-headers/timeouts/cache options и model source. Это не credential store. `/connect`
-управляет credentials для известного connection, не создаёт config-authoring UI.
+Connection config принимает legacy `provider.<id>` и canonical OC2 `providers.<id>`
+через одну нормализацию до merge/admission: package/protocol, `baseURL`, overlays,
+timeouts/cache options и model source. Это не credential store. `/connect` управляет
+credentials для известного connection, не создаёт config-authoring UI.
+
+#### Config/model normalization и precedence — GO02/GO03
+
+- Legacy provider `npm/options` → canonical `package/settings`, с `headers/body`
+  отдельно; SDK-compatible `extraBody` переносится в body по pinned alias rewrite.
+  Admitted legacy provider `api` → settings.baseURL поверх options.baseURL по migrate;
+  это local config input, не разрешение исполнять remote catalog `api`.
+  Model `id` → `modelID`, `provider.npm/api` → package/settings.baseURL, `options`
+  → overlays, `modalities/tool_call` → capabilities.input/output/tools, string/`{field}`
+  interleaved → compatibility.reasoningField; boolean interleaved не выдумывает field.
+  Legacy `reasoning` получает pinned unsupported diagnostic, не новое capability;
+  declared reasoning metadata/options отдельно и не синтезируют effort controls.
+  Variant map → ordered array `{id,settings,headers,body}`. Canonical input уже имеет
+  эти поля, limit/cost/name/disabled и provider canonical/env metadata.
+- Использовать existing admitted source order и provenance, merge supplied fields
+  same-ID provider/model и variant overlays, не wholesale replacement provider entry.
+  Settings/body recursively merge objects, headers merge case-insensitively. Effective
+  request overlay — provider → model → selected variant; model package wins over
+  provider package. Catalog/selection ID остаётся отдельным от API `modelID ?? id`.
+  T47 ordered view после merge, Default не добавляет variant overlay/inferred effort.
+  Auth resolution после overlay использует таблицу ниже, не donor credential priority.
+- При одновременных legacy/canonical roots в одном документе не угадывать precedence
+  конфликтующих connection/auth fields: safe diagnostic до effects. Это узкая native
+  conflict policy; эквивалентность раздельных форм и merge между sources проверяются
+  against pinned normalizer, не convenience текущего Rust parser.
+- Finite generic packages: `@ai-sdk/openai` и `@opencode/ai/providers/openai` → Responses;
+  `@ai-sdk/anthropic` и `@opencode/ai/providers/anthropic` → Messages;
+  `@ai-sdk/openai-compatible` и `@opencode/ai/providers/openai-compatible` → Chat.
+  Explicit unknown package unsupported до effects; omitted package сохраняет existing
+  admitted default. Compatible alias **не** делает auto Responses→Chat fallback;
+  другой wire требует нового explicit admitted package/binding, не probe/host/model guess.
+- Static custom catalogs сохраняют local-only IDs. Configured dynamic source использует
+  свой admitted discovery owner/source identity и successful-refresh retirement; наличие
+  compatible package не разрешает guessed `/models` probe. Existing ludka2 `/models`
+  oracle и Go public models.dev cache различны; raw remote api/env/headers не executable.
+- Validate recognized settings/compatibility и overlays на владельческой границе;
+  неподдержанная executable настройка имеет safe diagnostic, не silent Serde success.
+  Reserved auth/identity/stream/model/tool fields не обходят captured binding, policy,
+  validation/caps через headers/body. Provider `env` metadata не создаёт foreign fallback.
+
+#### Auth и endpoint authority
 
 - Один owner в существующем native Db; минимальная additive таблица:
   `id, provider_namespace, label, tagged_value_json, active, created_at`.
@@ -101,11 +154,26 @@ headers/timeouts/cache options и model source. Это не credential store. `/
 | --- | --- |
 | Built-in `opencode-go` | Active stored Key → `OPENCODE_API_KEY` → configured Key, только после Go authority admission. Catalog — models.dev; endpoint — trusted Go preset, не remote `api`. |
 | Existing `ludka2`/OpenProxy | Configured `apiKey` (включая admitted env/file substitution) сохраняет приоритет; scoped stored Key допустим при его отсутствии. Native клиент авторизуется перед proxy, upstream OAuth остаётся за OpenProxy. Exact base + `/responses`, discovery base + `/models`; prefix, headers/options/budgets/oracle неизменны, никакого `/v1` rewrite. |
-| Custom llama.cpp/compatible server | Admitted configured protocol/baseURL, static/custom catalog, explicit None либо Key. Для Chat пример prefix `http://127.0.0.1:8080/v1` + `/chat/completions`. Key source — explicit configured input, иначе scoped stored account; нет автоматического Go/OpenProxy env fallback. Loopback HTTP и dial/redirect/private-egress guards не расширяются до произвольной LAN. |
+| Custom Responses/Chat/Messages server | Admitted configured package/baseURL, static/custom catalog, explicit None либо Key. Exact base prefix + соответствующий suffix, без `/v1` rewrite. Key source — explicit configured input, иначе scoped stored account; нет автоматического Go/OpenProxy env fallback. Messages static `apiKey` → x-api-key, `authToken` → Bearer; оба вместе или competing auth headers — diagnostic, не OAuth flow. Explicit localhost/LAN HTTP(S) поддерживаются только по binding admission ниже. |
 
-Credential/model/config changes дают новый admitted binding generation. In-flight
-request/turn/title/child jobs держат cloned immutable binding; subsequent work использует
-новый. Public catalog fetch credential-free и не зависит от account mutation.
+Private endpoint exception привязана к явно configured и trusted/admitted connection
+с normalized scheme/host/port/base-path prefix и source provenance, не global
+`allow_private` bypass. Это supersedes прежнее loopback-only ограничение T53 только
+для выбранных custom connections. DNS/address и actual-peer/redirect проверки сохраняют
+узкий scoped admission; нельзя перейти к чужому origin/prefix или metadata/service
+endpoint вне разрешённого local/LAN scope. Lower-trust endpoint override проходит
+новую проверку по собственной provenance и не наследует разрешение/credentials.
+Узкая интерпретация LAN — private unicast RFC1918/IPv6 ULA плюс loopback;
+не blanket admission link-local/metadata, multicast, unspecified/reserved addresses.
+Main/follow-up/title/summary/child/retry и corresponding configured discovery используют
+один captured route admission. Webfetch/tool-network SSRF policy остаётся независимой;
+никакого нового grants/network framework или test-only env flag как production support.
+
+Credential/config changes дают новый admitted binding generation. Prepared requests,
+их tools/approval и already launched title/child jobs держат cloned immutable binding.
+Committed model/variant switch применяется на следующем request той же задачи по T50,
+с новой admission и compatible history; это не whole-turn model pin или config reload.
+Public catalog fetch credential-free и не зависит от account mutation.
 
 ### Go models.dev contract
 
@@ -136,9 +204,9 @@ request/turn/title/child jobs держат cloned immutable binding; subsequent 
 
 | Protocol | Go suffix/auth | Минимальный wire contract |
 | --- | --- | --- |
-| Responses | `/responses`, Bearer | Existing adapter; `store:false`, encrypted reasoning inclusion, exact selected effort/no overlay, native function outputs. |
-| Chat | `/chat/completions`, Bearer | Streamed usage, indexed tool argument assembly, interleaved reasoning compatibility; не копировать Responses `store/include` defaults. |
-| Messages | `/messages`, `x-api-key` | `max_tokens`, tool_use/tool_result, thinking/signature/redacted blocks; `anthropic-version: 2023-06-01`, merged `interleaved-thinking-2025-05-14` и только required feature betas. |
+| Responses | `/responses`, Bearer | Existing adapter; `store:false`, encrypted reasoning inclusion, exact selected reasoning.effort/no variant overlay, configured reasoning.summary/text.verbosity, max_output_tokens, native function outputs. Не вводить donor model-name reasoning defaults. |
+| Chat | `/chat/completions`, Bearer | Streamed usage и indexed/fragmented parallel tool arguments, validated complete IDs/JSON; compatibility.reasoningField (в том числе reasoning_content) и maxTokensField → max_tokens либо max_completion_tokens. Exact selected reasoning_effort; не копировать Responses store/include defaults и не угадывать dialect по модели/vendor hostname. |
+| Messages | `/messages`, `x-api-key` | Custom дополнительно static authToken Bearer; max_tokens в общем output budget, tool_use/tool_result, enabled budget_tokens/adaptive/disabled thinking и output_config.effort, signatures/redacted blocks только compatible. anthropic-version:2023-06-01, merged interleaved-thinking-2025-05-14 и только required feature betas; Go auth не меняется на custom scheme. |
 
 Every Go primary/tool-follow-up/title/summary-compaction/child/retry request несёт:
 `User-Agent: oc/<version>`, `x-opencode-client: oc`, `x-opencode-project` от stable
@@ -148,10 +216,33 @@ Every Go primary/tool-follow-up/title/summary-compaction/child/retry request н�
 retry его не пересоздаёт; case-insensitive overlay не перебивает authoritative
 Go identity/resolved auth и не оставляет competing auth scheme. Session/fork cache
 lineage отделена от affinity/deployment; выводится только через supported wire field.
-OpenProxy/custom cache и configured headers не меняются на Go policy.
+OpenProxy/custom configured headers не меняются на Go policy.
+
+Transport/cache distinctions фиксируются явно, не выдаются за OC1 SDK parity:
+`timeout:false` означает native отсутствие overall deadline, `chunkTimeout` — bounded
+idle timeout; numeric timeout/chunkTimeout задаются в milliseconds с validation,
+без отключения cancel/byte caps. В OC2 эти core fields stripped перед native package,
+старый SDK wrapper
+не oracle native timeout behavior. `setCacheKey` сохраняется как compatibility control,
+но его current Rust body hash не OC2 lineage: target key стабилен для session/fork
+root lineage. Responses emits supported prompt_cache_key; Chat только при
+compatibility.supportsPromptCacheKey, Messages использует explicit cache_control
+на tools/system/message parts, максимум четыре breakpoints по donor priority.
+Без enabled/supported cache нет invented wire field; lineage не auth/deployment identity.
 
 Нужен private finite Protocol enum и smallest common ordered text/reasoning/complete
-validated tool calls/linked results/usage seam; native opaque continuation отдельна.
+validated tool calls/linked results/usage, initial system + chronological system/effort
+seam; native opaque continuation отдельна. Chronological system — не новый initial
+prompt: Responses lowers developer update; Chat — escaped `<system-update>` user-text
+in-place; Messages native только при explicitly supported capability, иначе такой же
+lower-authority fallback. Effort markers сохраняются in-place только при declared
+per-message support; иначе strips markers и uses captured selected top-level effort.
+При supported path и совпадении final marker с captured selection top-level effort
+остаётся `previous` первого marker, updates lower in-place: Responses configuration_update
+либо Messages system/output_config.effort с required mid-conversation beta. Так новый
+effort не применяется до своего chronological change point. Reset/default сохраняет
+позицию; final-marker mismatch после fork/Revert strips markers и uses captured current
+top-level effort, не guessed model allowlist. T45/PRM01 потребляет этот wire seam.
 Share bounded transport/SSE framing, не Responses event state machine. Runtime/title
 readers больше не интерпретируют любой результат как Responses JSON. EOF/
 refusal/error/cancel без genuine terminal не становятся success и не исполняют
@@ -162,7 +253,8 @@ owner без replay исходной committed generation/effects и без но
 per-protocol retry-loop; backend Responses slice T54 не ждёт T53 целиком.
 Existing admitted text/image attachments и MCP results проходят protocol-specific
 lowering; unsupported modality отказывает явно, не превращается в текстовый success.
-Это сохранение A04/current capabilities, не добавление audio/video/PDF execution.
+Это сохранение A04/current text/image input и text output, не добавление audio/video/
+PDF execution, Images endpoint/image-generation output или hosted tools.
 
 New TurnLog сохраняет protocol + non-secret binding provenance. Одна compatibility
 rule для opaque history **и checkpoints**: provider/API model/protocol/deployment/
@@ -216,17 +308,25 @@ done dependency или claim общего pixel parity.
 и existing public paths соблюдают AGENTS/ARCHITECTURE, substantive unit tests отдельно.
 
 1. **Согласовать seams и fixtures.** Проверить минимальные qualified T51 readiness/safe
-   diagnostics и T47 ordered view; frozen protocol/auth/binding facts. Dirty код или
-   исторический task PASS не заменяют qualification нужного среза.
+   diagnostics и T47 ordered view; frozen legacy/canonical config, protocol/auth/binding
+   facts и synthetic host-shaped fixtures. Dirty код или исторический task PASS не
+   заменяют qualification нужного среза.
 2. **Независимые backend части:** credential owner в existing Db; public models.dev
    owner; protocol/history seam с legacy/SQL/fork/checkpoint fixtures. Порядок между
    ними свободный, state/secret ownership не дублируется.
-3. **Bindings/wires/startup.** Сначала провести existing Responses через seam, затем
+3. **Bindings/wires/startup.** Один config normalizer + source merge и scoped local/LAN
+   admission, затем сначала провести existing Responses через seam, затем
    Chat/Messages и Go metadata; каждый admitted wire подключить к T54/RET01
    typed error/headers и общему retry owner, не ждать whole T54/T44 task status,
    но не выдавать GO03 PASS без соответствующей квалификации. Provider-qualified
    optional selection/configless local startup используют готовые owner facts
    и immutable admitted binding.
+   KISS: existing provider.rs facade + coarse responses/chat/messages/transport owners
+   и existing failure.rs по реальным responsibilities; reuse HTTP/byte→SSE framing,
+   не универсальный JSON/event parser. Enum dispatch достаточно; smoke ProviderPort
+   не превращать в production framework. Full SDK/provider framework вне scope;
+   narrow crate допустим только при доказанном blocker к собственному thin layer и
+   сохранении one-attempt/cancel/caps/error/effect contracts.
 4. **Connect/models consumers.** Core typed actions/safe DTO → application owner →
    TUI commands/dialog/picker/input/live; headless consumes тот же resolver, без новых
    auth CLI commands. T50 model lookup и owner-approved `oc models` получают тот же
@@ -241,14 +341,20 @@ Db ownership), `models_dev.rs` (new), config/models/composition/provider_readine
 application/provider_catalog и application_selection; provider Chat/Messages seams,
 tools TurnLog, runtime turn/context/compaction, storage_dcp_view/storage_fork; core
 CoreApp/queries ModelRef и binary/TUI consumers. Naming follows фактическую раскладку,
-не обязательство создать файл на каждый тип. T51 seam paths из RECON ещё dirty;
-перед execution сверить владельческие commits, не переносить чужой diff вслепую.
+не обязательство создать файл на каждый тип. Перед execution сверить владельческие
+commits/текущий diff, не переносить чужую незакоммиченную работу вслепую.
 
 ## Current Checkpoint / State
 
 - 2026-09-29: read-only RECON + independent general audit завершены; frozen docs-only
   план утверждён с единым storage и custom-auth уточнением. Implementation NOT_STARTED;
-  R1–R6/GO01–GO06 pending, current active task остаётся T51, T44 PAUSED.
+  R1–R6/GO01–GO06 pending; **тогда** active была T51, T44 PAUSED.
+- 2026-10-02: host-shaped RECON при HEAD b9d02c090, dirty T50; owner утвердил plan-only
+  commit/push и explicit LAN + localhost. Canonical config, thin wires, dual Messages
+  auth, chronology/cache/compatibility уточнены; implementation/GO01–GO06 pending.
+  Active T50, T53 todo, T44 PAUSED, T55 safe-handoff priority/statuses unchanged.
+  T51 completed readiness baseline не доказывает новый DCP3.2.0 follow-up;
+  T45/R9 owns child semantics, не T53 и не whole-task prerequisite.
 - Next: после scheduling handoff проверить qualified T51 seam; подготовить R1
   synthetic credential/scope fixture, затем smallest owner/storage slice.
 - Route qualification risk: public recon выявил `qwen3.8-max`/`qwen3.7-plus` как
@@ -279,6 +385,11 @@ Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:
 `integration.ts`, `models-dev.ts`, `variant.ts`, `aisdk-native.ts`,
 `session/model-request.ts`; `packages/ai/src/protocols/` Chat/Responses/Messages;
 `packages/tui/src/component/dialog-integration.tsx`, `dialog-model.tsx` и `app.tsx`.
+Normalization/precedence: `packages/schema/src/config/provider.ts`,
+`packages/core/src/v1/config/{migrate,provider-options}.ts`, `provider.ts`,
+`model-resolver.ts`, `aisdk-native.ts`; generic `packages/ai/src/providers/`
+openai/openai-compatible/anthropic. Chronology/cache: `packages/ai/src/protocols/shared.ts`,
+`effort-updates.ts`, `route/client.ts`, `session/model-request.ts` и nearest protocol tests.
 Go — generic Console key integration, не Zen OAuth. Donor `auth.json` используется
 только legacy import migration; native T53 не читает/не пишет этот формат.
 Public sources: [models.dev API](https://models.dev/api.json),

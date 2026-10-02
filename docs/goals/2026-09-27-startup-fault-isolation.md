@@ -2,8 +2,12 @@
 
 Status: complete
 Source: владелец 2026-09-27 утвердил после RECON MCP/plugin/connect isolation; 2026-09-29 потребовал real-user E2E в текущей конфликтующей TS-config среде и strace, затем утвердил правки плана. Donor: OC2 v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`.
-Last updated: 2026-09-29
+Last updated: 2026-10-02
 Task: T51 (complete; current R1–R4 qualification — evidence/T51/report.md; not product READY or T44 visual PASS).
+
+Completion above is the delivered 2026-09-29 baseline. The owner-approved DCP3.2.0
+compatibility follow-up below is pending/NOT_RUN; this plan patch neither reopens
+the task in progress state nor labels the new spelling/semantics verified.
 
 ## Objective
 
@@ -104,6 +108,35 @@ required outcome is resolved and affected constraints remain satisfied.
 - Coordination: T46 owns MCP09/MCP10/MCP08, T51 owns CFG09/CFG10/UI07/E2E06; share a minimal
   diagnostic shape without whole-task done-dependencies. T44 independently owns VIS42
   and config/startup transitions in VIS19/VIS40. Existing detailed owners are unchanged.
+
+## DCP 3.2.0 compatibility follow-up — approved 2026-10-02, pending
+
+Source: owner approves host-config RECON corrections and current-branch commit/push.
+Host OC1 pins exact `@tarquinen/opencode-dcp@3.2.0`; config.rs::classify_plugin and
+dcp_auto.rs::resolve_dcp_module currently admit bare/3.1.15/latest, not3.2.0.
+Exact cached source is available under
+`~/.cache/opencode/packages/@tarquinen/opencode-dcp@3.2.0/node_modules/@tarquinen/opencode-dcp`;
+package version/license is3.2.0/AGPL-3.0-or-later. This is research evidence, not
+permission to execute/install the plugin or proof of native3.2.0 parity.
+
+1. Focused delta audit against pinned3.1.15: config/defaults, range/protections,
+   strategies, hooks/child behavior and nearest source fixtures. Record supported
+   semantics versus native differences and preserve/update provenance/AGPL notices
+   as required before publishing derivative changes. Do not change frozen baseline
+   or advertise new behavior merely because the alias can be parsed.
+2. Only after that qualification admit **exact3.2.0** in both classifier and module
+   resolver with shared fixtures. Unknown versions/ranges/lookalikes still reject
+   before file-as-code/import/process/network. Bare/latest stay fixed compiled aliases,
+   not registry resolution; requested package ≠ current compiled source revision.
+3. CFG09/CFG10 own admission/idempotence/safe requested-current inventory and diagnostics,
+   reload/reopen plus zero Node/Bun/resolver effects. Add focused receipts to the
+   existing T51 evidence surface without rewriting old reports/PASS. Actual child
+   `allowSubAgents`, isolation/protections/threshold behavior remains T45/R9/DCP10–DCP12;
+   alias qualification is neither full-version parity nor a whole-T45 dependency.
+
+T53 owns custom config/protocols/LAN, not this plugin gate. No new task/acceptance ID,
+generic version resolver or task-status/dependency change; active T50/T44 PAUSED and
+historical R1–R4 completion remain. Schedule the follow-up only at a safe handoff.
 
 ## Historical execution checkpoint
 

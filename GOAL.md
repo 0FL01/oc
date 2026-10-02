@@ -604,6 +604,40 @@ VIS06/VIS10/VIS17/VIS26/VIS39 после explicit resume; новых tasks/gates
 active T50/PAUSED T44, не затрагивает реализацию T50/CODE_MAP, T55 safe-handoff priority
 или historical evidence/statuses.
 
+## Owner clarification (2026-10-02 — custom providers / OC2 config / localhost и LAN)
+
+После host-config RECON владелец утвердил правки плана и commit/push текущей ветки;
+отдельно подтвердил **LAN и localhost**. Host OC1 TS — пример, pinned OC2 v2.0.12 —
+истина для нормализации/wires. [T53](docs/goals/2026-09-29-opencode-go-and-provider-auth.md)
+и existing GO01–GO06 уточняются без новых tasks/SDK frameworks:
+
+- Legacy `provider` и canonical `providers` → одна admitted connection/model view:
+  package/API modelID/capabilities/compatibility/array variants, source merge и
+  provider → model → selected variant settings/headers/body. Finite openai Responses,
+  anthropic Messages и openai-compatible Chat aliases не npm dependency и не
+  Responses→Chat fallback. Свои thin reqwest/SSE layers предпочтительны; crate только
+  при доказанном blocker без потери one-attempt/retry/cancel/caps/error ownership.
+- Custom Messages static apiKey/x-api-key либо authToken/Bearer, explicit None и
+  conflict diagnostics; authToken не включает OAuth. Trusted/admitted explicit local/
+  LAN HTTP(S) binding scoped по scheme/host/port/base prefix/provenance на discovery
+  и всех generation/auxiliary lanes, без inherited foreign key/lower-trust allowance.
+  Прежнее loopback-only ограничение T53 superseded только для этих bindings;
+  webfetch/tool-network SSRF guards и остальные security invariants не ослабляются.
+- Exact per-wire options/tools/usage/reasoning/media/cache, chronological system/effort,
+  full opaque/checkpoint compatibility и next-request same-task switch проверяются
+  captured fake wires + actual binary + existing final/bounded live GO06. Native
+  timeout/cache differences объявлены, vision ≠ image-generation output.
+- Exact DCP3.2.0 compatibility требует source-delta/semantic qualification и AGPL
+  provenance **до** admission обоих gates. T51 CFG09/CFG10 owns follow-up, не новый
+  PASS завершённого baseline; T45 R9/DCP10–DCP12 owns allowSubAgents/runtime semantics,
+  PRM01 — chronological prompt consumer. T46 MCP/config/wildcard regressions и T44
+  snapshot:false/snapshots:false conversation-only/visual scope сохраняются.
+
+Порядок/acceptance — [M8](roadmap/M8.md), `docs/CONFIG.md`, `docs/CONTRACTS.md`,
+`docs/TEST_PLAN.md`. Plan-only delivery не переключает active T50, не снимает PAUSED
+T44, не меняет T55 safe-handoff priority, completed T51/evidence или pinned baselines.
+Реализация новых outcomes pending/NOT_RUN; mandatory OpenProxy/A01–A13 gates остаются.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

@@ -130,6 +130,66 @@ qualified merely by accepted fields or old snapshot tests; their required runtim
 effects need current evidence. DCP12 proves default/threshold/config-resolution
 behavior, not completion of all these other outcomes.
 
+Host OC1 pin `@tarquinen/opencode-dcp@3.2.0` is a **pending** exact compatibility
+target, not a current admitted alias or baseline change. Admission/provenance follow-up
+is T51/CFG09/CFG10; actual `experimental.allowSubAgents` behavior remains T45/R9/
+DCP10–DCP12. A package spelling alone never qualifies child DCP or full3.2.0 parity.
+
+## Custom providers — T53 (approved clarification 2026-10-02; pending)
+
+The [T53 config/auth/wire contract](goals/2026-09-29-opencode-go-and-provider-auth.md)
+admits both OC1 legacy `provider` and OC2 canonical `providers` through one normalizer.
+Host config is an example; pinned OC2 schema/migration/requests are the oracle. This
+section describes the target, **not implemented Chat/Messages/canonical-config support**.
+
+- Legacy npm/options/model id/provider.npm/api/modalities/tool_call/interleaved/variant
+  maps normalize to package/settings/headers/body, API modelID, capabilities,
+  compatibility.reasoningField and array variants. Canonical provider/model/variant
+  supplied overlays merge in admitted source order; request order is provider → model
+  → selected variant, recursive settings/body and case-insensitive headers. Model
+  package overrides provider; catalog reference differs from API `modelID ?? id`.
+  Conflicting connection/auth values in mixed legacy/canonical roots in one document
+  receive a safe pre-effect diagnostic, a declared native conflict policy.
+  Canonical capabilities are tools/input/output; legacy reasoning has pinned
+  unsupported diagnostic, not an invented capability or implicit effort controls.
+  Legacy provider api overrides options.baseURL per pinned migration; remote catalog
+  api metadata is not an executable endpoint override.
+- Finite aliases `@ai-sdk/openai` → Responses, `@ai-sdk/anthropic` → Messages,
+  `@ai-sdk/openai-compatible` → Chat, plus their generic pinned OC2
+  `@opencode/ai/providers/{openai,anthropic,openai-compatible}` package identities.
+  They select Rust adapters, never npm downloads/JS host or Responses→Chat fallback.
+  Explicit unknown package or recognized unimplemented wire setting is diagnosed.
+- Custom configured auth input takes priority over scoped stored Key. Messages
+  `apiKey` sends x-api-key; static `authToken` sends Bearer and does not imply OAuth.
+  Both together, competing auth headers or explicit None with auth input conflict.
+  None must be explicit; localhost and absent key never infer it. Go preset precedence
+  stays separately frozen; remote metadata/env never authorizes foreign credentials.
+- Explicit trusted/admitted localhost **and LAN** HTTP(S) connections are scoped to
+  normalized scheme/host/port/base prefix and source provenance. The same immutable
+  binding admits discovery/main/follow-up/title/compaction/child/retry; lower-trust
+  overrides do not inherit allowance/secret. Peer/DNS/redirect restrictions remain
+  scoped, not globally disabled. This does not widen webfetch/tool-network policy.
+- Keep configured static models and source-qualified dynamic retirement semantics;
+  compatible alias alone never starts guessed discovery. Existing OpenProxy `/models`
+  oracle and Go public models.dev cache remain distinct, with one catalog read-view.
+  Thinking/effort/textVerbosity/reasoning_content and dialect max-token/cache fields
+  require actual protocol lowering, not only retaining metadata. Vision input/text
+  output remain; image-generation/audio/video/PDF are not added.
+- Preserve native timeout:false/no-overall-deadline, numeric timeout/chunkTimeout
+  milliseconds with validation and idle policy plus cancellation/byte caps. OC2's
+  native package strips these core settings; the old SDK wrapper is not native parity.
+  Keep setCacheKey compatibility control, but move key identity from request-body hash
+  to session/fork-root lineage; Responses prompt_cache_key, capability-gated Chat and
+  explicit Messages cache_control (max four breakpoints) have separate lowering.
+  No Go-only headers/cache policy leaks into custom bindings.
+
+Qualification uses synthetic host-shaped configs, not copied secrets: legacy/canonical
+equivalence, API-ID/overlay precedence, real tool roundtrips/variants, private-route
+admission, errors/cancel and protocol-switch/reopen. GO01–GO06 only T53; PRM01 consumes
+chronological system/effort and T50's next-request switch, without new tasks/frameworks.
+Snapshot false aliases remain T44 conversation-only target; compaction.auto works,
+legacy compaction.prune remains diagnosed unsupported, not imported OC1 pruning.
+
 ## Tool-output configuration — T50/R10/TOOL21 (approved 2026-10-01; pending)
 
 Frozen [tool-output contract](goals/2026-09-27-native-tool-parity.md#tool-output--r10tool21-approved-2026-10-01-pending)
@@ -244,6 +304,12 @@ text, not config instructions or automatic parent-history inheritance (R8).
 ## Native plugin classification
 
 До resolver/import/process/network классифицируются только exact identities. Bare `@tarquinen/opencode-dcp`, pinned `@tarquinen/opencode-dcp@3.1.15` и пользовательский exact alias `@tarquinen/opencode-dcp@latest` обозначают один compiled DCP module фиксированной repository revision: `@latest` здесь НЕ вызывает registry resolution и не меняет revision. Exact canonical `<effective-config-root>/{plugin,plugins}/openproxy-models.js` обозначает один compiled OpenProxy discovery module; файл не читается и не исполняется. Exact `@prevalentware/opencode-goal-plugin@0.1.49` из общей authoring-конфигурации даёт warning и нулевую runtime capability: код пакета не загружается. Basename вне admitted root, `.ts`, URL/arbitrary path, ranges, другие versions/packages и любой unknown JS/TS дают source-qualified `UnsupportedPlugin`. Duplicate aliases idempotent. Provider alias `@ai-sdk/openai` остаётся отдельным config domain, не plugin identity.
+
+Approved 2026-10-02 follow-up: exact3.2.0 may enter both classifier and DCP resolver
+only after source-delta/config/semantic qualification and AGPL provenance review,
+with truthful requested/current compiled identities. Current3.1.15 revision, latest
+alias semantics, unknown-version rejection and historical PASS remain unchanged.
+See [T51 follow-up](goals/2026-09-27-startup-fault-isolation.md#dcp-320-compatibility-follow-up--approved-2026-10-02-pending).
 
 R1/CFG09 admission isolates `UnsupportedPlugin` to the rejected request. The existing
 Core catalog exposes a bounded current-generation inventory in `TuiChrome.plugins`:

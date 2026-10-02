@@ -340,7 +340,8 @@ slices: [T53](goals/2026-09-29-opencode-go-and-provider-auth.md). Это future 
   Effective source/active/effective account публикуются safe DTO, не material.
 - Optional provider-qualified ModelRef проходит actions/preferences/UI/restart;
   unavailable selection не подменяется. Unready request отказывает до effects.
-  Credential/config/model changes создают новый binding; in-flight работа pinned.
+  Credential/config/model changes создают новый binding; prepared request/tools pinned,
+  committed model/variant применяется на next request той же задачи по T50.
 - Typed credential operations используют existing CoreApp/application/storage
   owners и expected generation; labels/summaries и acknowledgements safe, secret
   input ephemeral/redacted вне composer/history/drafts/Debug. Без RPC/auth framework.
@@ -348,6 +349,38 @@ slices: [T53](goals/2026-09-29-opencode-go-and-provider-auth.md). Это future 
   projections; opaque replay/checkpoints только compatible, raw history неизменна.
   Absence protocol — legacy Responses, explicit unknown — safe failure. Token bytes
   и session telemetry не deployment identity; no unknown-effect replay.
+
+Owner-approved 2026-10-02 clarification (still pending):
+
+- One normalized connection/model view accepts legacy `provider` and OC2 `providers`.
+  Package/API modelID, capabilities/compatibility, ordered variants and supplied
+  settings/headers/body follow source merge and provider → model → selected variant
+  precedence. Model package wins; catalog ID ≠ API ID. Reserved fields cannot override
+  auth/captured model/tools/caps; conflicting mixed-root auth/connection gets a safe
+  diagnostic. Finite generic SDK/native package aliases select Responses/Chat/Messages,
+  not npm execution, host-name routing or automatic protocol fallback.
+- Messages static apiKey/x-api-key versus authToken/Bearer is an explicit Key scheme;
+  both/competing schemes conflict, no OAuth execution. Explicit None remains anonymous.
+  Localhost/LAN HTTP(S) are permitted only by explicit trusted/admitted normalized
+  endpoint/source binding, shared across configured discovery and every request lane.
+  URL/lower-trust override inherits neither credential nor private-route admission;
+  DNS/peer/redirect scope and independent webfetch SSRF policy remain enforced.
+- Common ordered request/result semantics retain chronological system/effort updates,
+  complete ordinary call/result groups and neutral text/reasoning; protocol-native
+  opaque/signatures/checkpoints require full compatibility. Unsupported chronological
+  system uses escaped in-place lower-authority fallback, effort markers use selected
+  top-level effort unless explicitly supported; fork/Revert mismatch falls back safely.
+  Supported chronological effort keeps first marker's previous as top-level baseline
+  when final marker agrees with selection; updates apply only from their positions.
+  T50 committed switch affects the next request of the same task, never prepared
+  stream/tools/approval identity or already confirmed/unknown effects. PRM01 consumes
+  this seam; title/summary/child readers cannot assume Responses JSON.
+- Thin native adapters reuse transport/framing, not a universal JSON state machine
+  or new retry owner. Numeric/false overall timeout and idle chunkTimeout are native
+  policy, not old SDK-wrapper parity. Cache key uses session/fork-root lineage, not
+  per-body hash; Chat capability gate and Messages explicit ≤4 cache_control markers
+  prevent unsupported fields. Preserve configured controls/OpenProxy oracle and exact
+  selected wire reasoning/options; no model-name defaults or image-generation scope.
 
 ## Limits и context admission
 

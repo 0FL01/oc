@@ -172,6 +172,13 @@ owner assignment to earlier T24/T36/T40 or to T44 visual scenarios.
 - PRM01 proves the actual shared root/child base/custom/environment/tool/skill/AGENTS
   lanes and initial/nested/changed/removed/restart/compaction/Revert lifecycle within
   immutable-generation/trust boundaries. Existing R6/R7 profile/host fixtures remain.
+  The 2026-10-02 T53 seam clarification adds chronological system/effort captures,
+  distinct from initial system/top-level variant: protocol-native only with explicit
+  support, otherwise escaped in-place lower-authority system fallback or stripped
+  effort markers with captured selected effort. Reuse GO03/GO04 fork/reopen and
+  TOOL12 next-request receipts; no second wire parser or guessed model support.
+  For supported matching history assert first marker.previous at top level, with
+  subsequent effort changes lowered in position, never applied retroactively.
 - DCP10 checks child default true/false/off/manual/deny/Explore, parallel-session state
   isolation and active task/pack protection/release/safe recovery. Runtime protection
   does not outlive its task; current explicit user protections are not silently bypassed.
@@ -592,6 +599,12 @@ Doc/progress checks prove planning structure, never runtime/visual PASS.
   network for rejected plugin; healthy siblings and local application usable. Actual
   typed requested/current activation and safe provenance/error available before prompt
   and on reload/reopen; no generic JS/plugin framework or swallowed fatal local error.
+  Pending 2026-10-02 exact DCP3.2.0 follow-up first records source-delta/config/semantic
+  qualification and AGPL provenance, then admits both classifier/resolver gates with
+  requested/current compiled revision truth. Reject other versions/ranges/lookalikes;
+  bare/latest remain fixed compiled aliases. CFG10 shares safe diagnostics; T45 owns
+  actual child DCP10–DCP12 behavior. Historical T51 baseline PASS is unchanged and
+  does not qualify this new spelling or full3.2.0 parity.
 - **UI07:** discovery/connect/auth/credential failure at cold startup retains local TUI,
   history/model selection/diagnostics. Capture explicit selected identity and zero
   generation/tool effects for unavailable prompt/headless error. Admitted retry/refresh
@@ -1021,12 +1034,60 @@ planning/acceptance.json имеют только T53 как owner. Одна inte
 
 | ID | Минимальная primary evidence surface |
 | --- | --- |
-| GO01 | Synthetic Key/OAuth tagged storage + reopen; transactional account lifecycle, precedence и provider/endpoint authority. None vs missing Key vs unsupported OAuth; config URL change не получает старый secret, no-auth loopback capture без credential headers. Redaction/root/DB/WAL guarantees. |
-| GO02 | Public models.dev fixture/fake clock: no-key fetch без auth headers, source-qualified cache/stale single-flight/offline/last-good/atomic failures; route aliases, actual reasoning overlays, local merge/retirement и auth rejection independence. Existing OpenProxy oracle unaffected. |
-| GO03 | Parameterized fake server: все три protocols text/tool/reasoning/usage, bounded splits/terminal/error/cancel и typed HTTP/SSE/header lowering в единый T54/RET01 retry owner, включая safe continuation после partial output. Exact auth/defaults и captured metadata main/follow-up/title/summary-compaction/child/retry, concurrent identities/held binding. Custom Chat/None и OpenProxy regressions используют те же owner fixtures. |
-| GO04 | Legacy/new journal → SQL presentation/DCP/fork/reopen → next request: protocol/binding/checkpoint guards, ordered complete pairs/MCP indices и raw-history integrity; switch не переносит alien opaque items или unknown effects. |
+| GO01 | Synthetic Key/OAuth tagged storage + reopen; transactional account lifecycle, precedence и provider/endpoint authority. None vs missing Key vs unsupported OAuth; custom Messages apiKey/x-api-key vs static authToken/Bearer, both/competing-header conflict. Explicit trusted localhost/LAN capture без foreign credential inheritance, None без auth headers/dummy key. Redaction/root/DB/WAL guarantees. |
+| GO02 | Legacy provider/canonical providers equivalent config fixtures: package/API modelID/capabilities/compatibility/array variants, source/selected-overlay/header/body precedence and unknown/conflicting alias refusal. Public models.dev no-key fetch/cache/stale single-flight/offline/last-good/atomic failures, model-package override, actual reasoning overlays/merge/retirement/auth independence. Static custom/configured discovery/OpenProxy/public Go sources stay distinct; OpenProxy oracle unaffected. |
+| GO03 | Captured fake Responses/Chat/Messages host-shaped matrix below: actual text/tool/reasoning/usage/media/options/chronological system/effort/cache, bounded splits/terminal/error/cancel. Typed HTTP/SSE/header lowering into T54/RET01 pre-output retry/post-output continuation, one physical attempt per adapter call. Main/follow-up/both titles/summary/child/retry binding/metadata, concurrent identities and local/LAN admission; custom never gets Go-only headers. |
+| GO04 | Legacy/new journal → SQL presentation/DCP/compact/fork/reopen → next same-task switched request: full protocol/API model/deployment/auth-scope checkpoint guards, chronology, ordered complete pairs/MCP indices and raw-history integrity. No alien opaque/signature/checkpoint state, effect replay or forgotten archive resurrection; prepared requests/tools retain captured identity. |
 | GO05 | Actual-binary fresh offline/no-config/no-key PTY → masked cancel/paste → labeled accounts/source truth → acknowledged Go picker → explicit qualified selection → fake generation/cancel/reopen. Provider-ID collision, retired choice, pinned held request и headless zero-effect refusal; fatal policy/storage boundaries retain non-success. |
 | GO06 | Factual report final fmt/clippy/workspace tests/locked build/help + bounded real Go text/tool representative per protocol и known route-conflict probes. Fake/live/NOT_RUN и exact binding/counters различаются. |
+
+### Custom-provider fixture matrix — GO01–GO04 clarification 2026-10-02
+
+Use synthetic metadata/credentials and inert host-shaped identities, never copy the
+user's expanded config/secrets. Each row goes through the real legacy/canonical loader,
+normalized binding and captured request; tests do not route by these display names.
+
+| Example shape | Required primary assertions |
+| --- | --- |
+| a6api / openai | Exact prefixed `/responses`, configured Bearer/headers, distinct catalog/API ID, provider→model→variant overlay and textVerbosity/reasoningEffort lowering; Default adds no variant/inferred effort. Existing store:false/include/max_output_tokens/tool outputs and OpenProxy regressions remain. |
+| a6api-claude / anthropic | Configured static authToken sends only Bearer, apiKey alternative only x-api-key, both rejected; version/beta union, enabled budget/adaptive/disabled thinking and output_config.effort, budgeted max_tokens. Complete tool_use/tool_result, compatible signature/redacted replay and cached read/write usage; no Responses fields. |
+| llama.cpp / compatible | Explicit admitted RFC1918 LAN or localhost prefix, configured Key and separate explicit None fixture; no dummy/auth header for None, no guessed `/models` probe or foreign env fallback. Complete fragmented/parallel tool roundtrip + usage, configured maxTokensField, exact endpoint and no Responses store/include. |
+| llama-lain / compatible | API modelID distinct from catalog ID, declared interleaved.field → reasoningField reasoning_content replay, selected reasoning_effort and image input; no default inferred from reasoning:true/model name. Unsupported field/modality diagnostics are real non-success, not metadata-only acceptance. |
+
+Add only independent risks not already proven by those rows:
+
+- Config source merge/header casing/body/numeric timeout and mixed-root conflict:
+  inspect normalized facts and actual wire. Retain omitted/false timeout/native idle
+  semantics, byte/cancel caps and configured source options; invalid/unsupported
+  settings cannot disappear silently. Existing T47 limits/order and OpenProxy oracle
+  tests remain owners of their full matrices.
+- Shared local/LAN binding: deterministic resolver/address/peer and redirect fixtures
+  prove scoped permission/no foreign origin or prefix/credential inheritance; rebuilt
+  headless/PTY proves configured localhost works without test-only loopback flag.
+  All request lanes/configured discovery reuse admission; public models.dev gets no
+  private-route/auth authority. No dependency on the user's physical LAN or widening
+  webfetch policy for a green provider test.
+- Chronological updates: capture initial system separately from in-place Responses
+  developer/Chat escaped user-text/Messages explicitly supported native or fallback
+  updates. Effort markers use declared per-message support or strip with selected
+  top-level value; supported matching history keeps first marker.previous as initial
+  top-level effort and lowers updates in-place (Responses configuration_update or
+  Messages system/output_config.effort + required beta). Reset/default chronology
+  and fork/Revert mismatch stripping/current-effort fallback preserve ordering and
+  ordinary outcomes. PRM01 reuses the captures for the assembler consumer.
+- Cache: session/fork-root key remains stable when request body changes; Responses
+  emits supported prompt_cache_key, Chat only with supportsPromptCacheKey, Messages
+  uses explicit cache_control with at most four tools/system/messages breakpoints.
+  Disabled/unsupported caching emits no invented field; cache bytes not deployment
+  identity. Input vision is separate from out-of-scope image generation.
+- Each new Chat/Messages wire: one pre-output typed retry and one durably recorded
+  post-output continuation under the existing T54 owner, partial tool zero effects,
+  cancel/EOF/terminal/argument bounds, captured binding and counted physical requests.
+  Reuse RET01 policy cases, not another full retry-policy matrix on every layer.
+- GO04 next-request switch within one task, not a new user turn: completed text/tool
+  groups survive once, raw rows unchanged, incompatible opaque/signatures/checkpoints
+  absent after SQL/DCP/compact/fork/reopen. Prepared old request/tools remain captured;
+  no replay or automatic cold-archive load. Reuse TOOL12 barriers/current attribution.
 
 Не дублировать весь matrix на каждом layer и не добавлять тест на каждую ветку.
 Для owned new behavior нужны nearest targeted checks; final cross-crate gates —
