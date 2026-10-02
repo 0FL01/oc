@@ -1279,7 +1279,7 @@ recorded unavailable/protocol blocker не скрывать public catalog succe
 revoked Go key блокирует live только; supplied key не попадает в artifacts/logs/Git.
 Existing mandatory OpenProxy live gates остаются отдельной обязанностью.
 
-## Provider-error retry parity — T54/RET01 + T44/VIS43 (approved 2026-09-29; pending)
+## Provider-error retry parity — T54/RET01 baseline completed; T44/VIS43 pending
 
 [T54 frozen contract](goals/2026-09-29-provider-retry-parity.md) и RET01 в
 `planning/acceptance.json` имеют только T54 как owner. Старые PROV06/PROV07,
@@ -1299,17 +1299,59 @@ AUD11/AUD13 сохраняют владельцев/регрессии; GO03/T53
 Использовать уже действующие affected crate + финальные workspace gates выше.
 Fault injection только offline; новый paid campaign ради 429/5xx не нужен.
 Ограничение ≤24 физических запросов принадлежит явно допущенной live
-кампании, **не** production turn cap. Прежний `docs/CONTRACTS.md` обещал
-суммарный физический счётчик, но native `rounds` считал только успешные
-generations; RET01 обязан измерить выдачу всех запросов, согласовать её
-с logical step/round пределами без магического нового потолка. T30 FINAL
+кампании, **не** production turn cap. Физические requests и успешные logical
+steps считаются отдельно для accounting; owner amendment 2026-10-02 отменяет
+искусственную общую квоту steps, не finite retries одного ошибочного step. T30 FINAL
 ссылается на RET01, GO03 при допуске Chat/Messages и VIS43; никакого
 history-PASS или NOT_RUN→PASS по обновлению registry.
 
-## Completed Responses compatibility — T55/PROV09/PROV10 (2026-09-30; pending)
+### Long Horizon / late retry / span ownership (approved 2026-10-02; pending)
+
+1. **Round-removal (T45/R6/PRM01 runtime slice).** Rebuilt actual-binary offline
+   fixture admits 17 **sequential** tool-bearing generations, one dependent call
+   per generation, then a genuine final response, for root and an admitted child.
+   Assert matched outcomes in each next request and durable journal, finite fixture
+   effect count/no replay and cancellation. Do not batch 17 calls into <8 steps or
+   assert an `Incomplete` cutoff. Legacy steps/maxSteps receive explicit unsupported
+   donor-budget diagnostics, not a substitute cap/final no-tools request. Update
+   old test/live-budget calculations without enlarging the paid ≤24 envelope.
+2. **Additional RET01 evidence only.** Extend `runtime/turns.rs` / existing T54
+   actual-binary mixed/effect script: early eligible retry→success→long sequential
+   work→late429→automatic same-task continuation; late attempt2 proves reset.
+   Reuse the round-removal receipt. Add HTTP200 partial `response.failed`/RateLimit
+   to the existing partial case (absent/true override, no HTTP200 delay minimum),
+   not a second long campaign. Reuse MCP failed-result→next-request proof, adding
+   only a missing no-generation-retry assertion for optional RATE_LIMITED.
+   Existing quota/auth/cancel/exhaustion/unknown coverage stays; backend edit only
+   for a reproduced owner failure. Incident cause is not inferred from the OCR;
+   committed fixture-effect count is not a universal exactly-once guarantee.
+3. **Long Horizon qualification (T45/R9/DCP11/A10).** Removal alone cannot PASS:
+   resolve safe current-task closed boundary/raw-preserving checkpoint/hot restore
+   before eviction; current TurnLog overwrite/full partial reload is not bounded
+   recovery. Extend the existing mixed DCP11 workload within a growing task, with
+   equal hot state over increasing past steps. Measure retained/peak RAM, loaded
+   bytes/rows, checkpoint processing and DB/WAL/I/O; retry/model switch/compact/
+   restart preserve selected facts/effects, raw history and absent forgotten wire
+   data. Schema-free feasibility is not assumed, A10 thresholds/caps are not raised.
+4. **VIS43 seam, not a new visual campaign.** Existing PartState/query/event exposes
+   recorded optional owning span, original sequence and bounded current/latest
+   facts plus referenced metadata. Partial reasoning across a new span tests the
+   producer association; unknown legacy association is not guessed. Historical
+   completed failed-span retry does not confer busy/cancel authority. Nearest scoped
+   live/park/reopen/stale checks precede the same mandatory original/native paired
+   full styled-cell/PNG/cursor countdown/footer profiles above, after explicit T44
+   resume. New seam proof pending/NOT_RUN; T54 completion/status/report untouched.
+
+No new detailed IDs, task/store/retry framework/global limiter, duplicated policy
+matrix or paid failure campaign. Use existing owners and affected integration gates;
+active dirty T50 must reach safe handoff, PAUSED T44 is not resumed by this plan.
+
+## Completed Responses compatibility — T55/PROV09/PROV10 (baseline completed)
 
 [Frozen repair contract](goals/2026-09-30-responses-tool-compatibility.md),
-[current diagnosis](../evidence/T55/diagnosis.md). Detailed owners: PROV09/PROV10
+[historical diagnosis](../evidence/T55/diagnosis.md),
+[completed result](../evidence/T55/report.md). Ниже исходный метод qualification,
+не новое выполнение/NOT_RUN completed T55. Detailed owners: PROV09/PROV10
 only T55; existing PROV03/PROV04/PROV06/PROV08/RET01 and E2E02 keep their owners.
 Historical fake retry PASS cannot replace current native real-API tool evidence.
 
@@ -1319,8 +1361,9 @@ Historical fake retry PASS cannot replace current native real-API tool evidence.
 | PROV09 native | Rebuilt retained debug/release binaries, deterministic fake server headless and PTY. Actual apply_patch → read → final, exactly paired function_call_output, file bytes + durable operations, no retry on valid sparse completion; negative stream has zero tool effects. Reopen/restart preserves history and never replays settled/unknown effects. PTY proves backend behavior, not T44 pixel parity. |
 | PROV10 live | After offline gates, same actual native tool cycle on real OpenProxy in isolated fixture, first catalog-admitted incident `cx/gpt-6-luna`/`high`, then explicitly configured `.local/live.env` model/provider default (or explicit OC_TEST_VARIANT). Exact choices/deployment class/build commit and measured counters recorded safely. Verify tool intent/outcome + bytes + outbound result pairing + final + reopen; direct SSE/prose/mocked tools are not PASS. |
 
-Use the existing durable diagnosis campaign: **4/24 generation**, **0/4 MCP**,
-5 control requests consumed at the diagnostic checkpoint. Carry its identity and
+Use the existing campaign's **current durable ledger**, not the historical
+diagnostic checkpoint (**4/24 generation**, **0/4 MCP**, 5 control requests).
+Those counts are not today's remaining allowance. Carry its identity and
 ledger across restarts and into T27; never create a fresh ID to replenish allowance.
 The envelope must reserve+fsync each upstream request before connect, including
 title/compaction/children/retries; uncertain reservations remain spent. Explicit

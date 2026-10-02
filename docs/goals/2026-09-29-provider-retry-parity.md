@@ -79,8 +79,9 @@ required outcome is resolved and affected constraints remain satisfied.
     A01–A13, PROV07/AUD11/AUD13, T53/GO03, docs/TEST_PLAN.md.
   - Acceptance: один счётчик фактически выданных физических generation HTTP
     requests у owning operation охватывает retries, связанные child/compaction
-    и title; logical step/round caps не считаются скрытыми физическими
-    запросами и не подменяются тестовым бюджетом ≤24. Сохраняются binding,
+    и title как accounting, не production stop quota. Owner amendment
+    2026-10-02 отдельно отменяет успешный round/step cap под T45/R6/R9;
+    finite failure allowance сохраняется, тестовый бюджет ≤24 его не подменяет. Сохраняются binding,
     модель, auth/headers и config generation без fallback; cancel, safe
     checkpoint, input/output caps, DCP/history и response-close-before-tool
     admission. Root/child шага используют ту же policy со своим allowance,
@@ -164,7 +165,41 @@ Expected consumers: `runtime/turn.rs`, `runtime_compaction.rs`,
 `application.rs`, `oc-core/src/{core_app.rs,queries.rs}`,
 `oc-tui/src/{app.rs,messages.rs,app/live.rs}`, `oc/src/{headless.rs,tui_cmd.rs}`;
 называть новые файлы по фактическим seams, не по типам. Один mutation owner;
-перед execution сверить активную T51 dirty работу и qualified readiness seam.
+для новых срезов сверить активную T50 dirty работу и qualified readiness seam,
+не reopening completed T51/T54.
+
+## Long-workflow follow-up — approved 2026-10-02, pending
+
+Read-only RECON/audit confirms the existing typed finite retry owner and successful
+generation reset. Ten tool calls, remaining subscription quota and an `incomplete`
+footer do not establish a missing retry, provider throttle, MCP failure or crash.
+Incident cause remains unresolved until the actual executable/version/protocol and
+available safe turn/span/retry/dispatch facts identify it. Persisted retry facts do
+not retain full headers; do not promise historical recovery or add telemetry by default.
+
+- Extend existing `tests/runtime/turns.rs` and `evidence/T54/native_runtime.py`
+  effect/mixed fixture rather than duplicate policy/exhaustion/quota/auth/cancel
+  matrices. Earlier eligible retry → successful step → long sequential workflow →
+  late HTTP429 → automatic wait/continuation of the **same task** must show the
+  late step starting at attempt **2**, proving allowance reset. Reuse T45's
+  >16-step runtime receipt; count tools, logical steps and physical requests separately.
+- Explicit HTTP200 SSE `response.failed`/RateLimit after partial output is a short
+  extension of the existing partial case (or the same script), not another long
+  campaign. Use absent/true `x-should-retry`; typed rate limit still obeys false.
+  HTTP200 `Retry-After` does not provide a delay minimum. Preserve partial span,
+  new continuation span and the fixture's committed effect without replay; this
+  does not claim general exactly-once external effects.
+- Reuse the existing MCP failed-result→next-model-request case; add only a missing
+  assertion that recognized optional `RATE_LIMITED` remains a paired failed tool
+  result, not generation `retry_scheduled` or automatic tool retry. No free-text
+  error parsing, model quota inference or new global request limiter.
+- Change backend only at a reproduced violation of the provider facts, retry policy
+  or continuation owner. If these narrow regressions pass, no retry runtime edit.
+  T53 consumes the same policy; T44/VIS43 separately qualifies footer/countdown.
+
+Completed T54 baseline/status/report and RET01 ownership stay unchanged; these
+additive regressions are pending/NOT_RUN until scheduled qualification with the
+runtime slice. No new task/gate/store/retry framework or paid failure campaign.
 
 ## Historical planning checkpoint / state
 

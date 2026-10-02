@@ -58,12 +58,12 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Status: pending
   - Evidence:
 
-- R6: Primary-agent profiles match pinned OC2 v2.0.12.
+- R6: Primary-agent profiles match pinned OC2 v2.0.12 except the owner-approved Long Horizon step-budget divergence.
   - Source: owner-approved 2026-09-27 RECON/plan for Build, Plan and custom Markdown profiles; pinned references below.
   - Owner: T45 backend/CLI; T44 consumes the same owner-backed catalog/selection under VIS06/VIS10/VIS17. No second task-state engine or circular completion dependency.
   - Acceptance: built-in Build and Plan, configured overrides and default_agent selection/fallback follow OC2. Build is the initial default unless a valid configured default wins. Plan edit restrictions, explicit-user-request plan-directory exception, enter/leave reminders and context reconciliation after compaction/Revert work through real runtime operations, including reopen. Switching agents, not an implementation request in the prompt, leaves Plan.
   - Acceptance: custom Markdown discovery supports global/project agent/agents and compatibility mode/modes roots, pinned recursion/ID derivation/source order and native/legacy frontmatter. Absent mode defaults to primary for a new profile; primary/subagent/all eligibility is preserved. Later definitions merge supplied fields rather than replacing the whole profile; permissions follow pinned ordered composition within the preserved native authority boundaries.
-  - Acceptance: system/body instructions, model/variant, request settings/headers/body, steps, color, mode/hidden/disabled have actual execution/presentation semantics, not silent acceptance. Native and compatibility forms are checked against the donor importer/migration rather than guessed from V1 docs. Hidden/disabled/subagent-only profiles follow donor picker/cycle/default eligibility; explicit addressing is checked separately.
+  - Acceptance: system/body instructions, model/variant, request settings/headers/body, color, mode/hidden/disabled have actual execution/presentation semantics, not silent acceptance. Native and compatibility forms are checked against the donor importer/migration rather than guessed from V1 docs. Hidden/disabled/subagent-only profiles follow donor picker/cycle/default eligibility; explicit addressing is checked separately. Owner amendment 2026-10-02 supersedes donor steps/legacy maxSteps stop semantics: diagnose that unsupported constraint with source/field, do not clamp or force a final no-tools request. Successful-step count is accounting, not admission; configured steps support is not a prerequisite for round removal.
   - Acceptance: headless run --agent selects/switches the profile before prompting; omission preserves an existing session's profile. Session selection, instructions and model/variant remain truthful through switch/reopen/reload, without silent substitution of Build.
   - Acceptance supplement (owner-approved 2026-10-01 built-ins): register Build/Plan as primary and General/Explore as subagent before configured transforms; no custom-file prerequisite or primary-only exposure of subagents. Qualify the actual Plan policy/reminder lifecycle and common default MCP authority described below, not merely a custom profile named plan or a picker label. Explicit central/parent/profile restrictions remain authoritative; the requested MCP default also applies to Plan, without redefining it as a shell/MCP sandbox.
   - Acceptance supplement (owner-approved 2026-10-01): consume a real listed reference from [T50/R7 `oc models`](2026-09-27-native-tool-parity.md#cli-models--r7tool18-approved-2026-10-01-pending) in canonical `agents.<id>.model`, legacy `agent` normalization, and Markdown global/project agent/agents roots. Pinned grammar uses the first `/` as provider separator, preserves further slashes in model ID, and admits `provider/model#variant` or structured selection. Separate legacy variant joins a string model only if it has no embedded `#`; embedded/structured native choice wins, per donor importer/migration, not current parser convenience. Listing does not write/bind profiles, choose defaults or widen permissions. Missing/retired model or disabled variant remains explicit, with generation/tool refusal before effects and no provider/model fallback.
@@ -135,6 +135,59 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance/evidence supplement (2026-10-02): consume T53/GO03's ordered chronological system/effort seam, distinct from initial system and top-level variant selection. PRM01 captures actual root/child instruction order with Responses developer updates, Chat escaped in-place user-text fallback and Messages native updates only when explicitly supported, otherwise the same lower-authority fallback. Unsupported or final-marker-mismatched effort history strips markers and uses captured current effort; supported matching history retains first marker.previous as top-level baseline and lowers updates, including reset/default, in position. Reuse GO03/GO04 wire/reopen receipts rather than own a second protocol/history parser; no guessed model allowlist or lost completed tool outcomes.
   - Status: pending
   - Evidence:
+
+### Long Horizon runtime and retry follow-up — approved 2026-10-02, pending
+
+Source: owner rejects artificial round limits for this Long Horizon harness after
+read-only RECON and independent retry/runtime/UI audits. This amends R6/R9 within
+existing PRM01/DCP11/A10, not a new task, gate or reopening of completed T54.
+
+1. **Independent round-removal slice (R6/runtime).** Remove `MAX_ROUNDS`,
+   `ROUND_CAP`, `TurnParams.max_rounds`, its clamp and round-limit `Incomplete`
+   branch in `runtime.rs`/`runtime/turn.rs`; update root/child constructors in
+   `application.rs`/`runtime/turn.rs`, obsolete fixtures and round-limit diagnostic.
+   Keep meaningful counters as accounting, not stop authority. Do not introduce
+   donor `agent.steps` or forced final `toolChoice:none`. Preserve finite per-step
+   failure policy, cancellation, resource admission, depth/concurrency and effects.
+   Actual rebuilt binary must complete **17 sequential tool-bearing steps**, one
+   causally dependent call per response, then a genuine final response, in root
+   and an admitted child. Verify next-request results, durable outcomes, cancel and
+   no replay of the fixture's committed effect. Batched 12+ calls over a few steps
+   do not test the old caps; >16-step success is not full Long Horizon/A10 PASS.
+2. **Required current-task hot/raw seam (R9/DCP11/A10).** Before resident eviction,
+   resolve the concrete blocker in existing runtime/storage/checkpoint owners:
+   full `TurnLog` grows; `checkpoint_turn` replaces `turns.result`; separate tool
+   records and conversation versions do not preserve the full canonical prefix;
+   current compaction boundaries protect the started turn, and partial retry
+   reloads its entire journal. Define a safe closed intra-task boundary, independent
+   durable raw preservation and bounded committed hot continuation/restore.
+   Reuse DCP/checkpoint mechanisms where sufficient, but schema-free feasibility
+   is **not proved**. Do not trim raw JSON, preselect a new store or raise byte/
+   descriptor caps. Retry, model switch, DCP, compact and recovery must retain
+   current facts/effects without full-archive reload or forgotten-data resurrection.
+   Compare equal hot states over growing past steps; measure retained/peak RAM,
+   checkpoint work and DB/WAL/I/O amplification using DCP11/A10's existing workload.
+3. **Narrow retry regression, not speculative backend rewrite.** Reuse
+   [RET01 follow-up](2026-09-29-provider-retry-parity.md#long-workflow-follow-up--approved-2026-10-02-pending)
+   alongside the runtime slice: earlier retry → success → longer work → later429
+   proves reset; explicit partial SSE throttle extends the existing mixed case.
+   Fix only a RED at the actual failure/retry/continuation owner. RET01 keeps T54
+   ownership and historical evidence; no duplicate policy matrix or paid campaign.
+4. **Presentation seam only where needed.** T44/VIS43 consumes recorded owning
+   span IDs through existing bounded PartState query/event and a latest/current
+   window with referenced span metadata; a 192-span/240-part query limit is not a
+   runtime stop. Verify unfinished-reasoning attribution across partial continuation
+   at its producer before claiming reliable ownership. No new persistence/event
+   family or string/ordinal inference. Footer/countdown and paired qualification
+   remain [VIS43](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#provider-error-retry-footer--vis43),
+   not a whole-T44 prerequisite for backend or Long Horizon completion.
+
+Scheduling: safe handoff from active dirty T50 first; T44 stays PAUSED until explicit
+resume, T54/T55 completed baselines and execution statuses stay intact. Slices 1/3
+can qualify independently of 2 and whole-T45/T44; **Long Horizon** requires 2's
+measured bounded retention/recovery, not merely removal of a numeric stop. Existing
+DCP12 config-off controls remain separate; no new successful-work quota substitutes
+for them or for irreducible resource failure. New qualification pending/NOT_RUN.
 
 ### Built-in profiles / default MCP access — approved 2026-10-01, pending
 

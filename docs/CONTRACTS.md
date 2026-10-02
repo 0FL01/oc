@@ -115,8 +115,13 @@ effects не replay и не превращаются в успех. EOF/failed/u
 поддержанные compaction auxiliary paths имеют свою finite allowance.
 
 Physical generation request counter включает фактически выданные attempts,
-follow-ups/children/compaction/title и участвует в пределах owning turn;
-logical round/step cap и finite retry allowances остаются отдельными.
+follow-ups/children/compaction/title как accounting, не production stop quota.
+Owner amendment 2026-10-02 отменяет искусственный общий round/step cap
+для root/child Long Horizon; finite retries ошибочного logical step остаются.
+Donor `agent.steps`/legacy `maxSteps` и forced final `toolChoice:none` не
+заменяют снятый cap; соответствующий config получает явную source/field
+диагностику неподдержанной donor step-budget семантики. Срез и bounded
+hot/raw продолжение — T45/R6/R9, без ослабления resource/security guards.
 Существующий test-campaign ceiling ≤24 requests — не новый production cap;
 adapter/OpenProxy/SDK не получают второго retry слоя. Durable retry descriptor
 на assistant-span — история и UI, не разрешение на dispatch после crash;

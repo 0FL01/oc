@@ -1770,6 +1770,29 @@ VIS43 mandatory NOT_RUN/evidence empty until actual paired qualification.
 Neither a plan commit nor RET01 PASS resumes/finishes T44 or proves full
 provider-retry visual parity; no new task/progress engine or historical PASS.
 
+**2026-10-02 audit clarification — minimum presentation seam (pending).** Native
+currently renders `Retry scheduled/due` by the prompt, not donor AssistantRetry's
+assistant-owned 1s countdown. Existing journal `display_parts.span` records ownership
+and storage resolves it, but PartState drops the ID. Expose an optional owning span
+ID in the same bounded query/event; preserve original sequence after omitted parts,
+and treat missing/legacy ownership as unknown. `sequence` is a display ordinal,
+not RequestIdentity's wire input index; never infer identity from ordinals, models
+or safe error strings. No new persistence/schema/event family or retry authority.
+
+The current oldest-first 192-span/240-part windows may omit the latest active span;
+they are presentation bounds, not runtime round stops. Serve a bounded current/latest
+window with each part's referenced span metadata and current active facts. Historical
+completed failed-span retry after successful continuation remains display only,
+never busy/cancel/dispatch authority. Before claiming reliable attribution, extend
+the nearest partial-continuation test for an unfinished reasoning tail followed by
+new-span reasoning; the producer's append branch currently checks reasoning_closed
+without verifying the current span. Fix the producer only if that scenario is RED.
+
+Reuse the existing span/tab/reopen/stale-event tests, then the mandatory paired
+countdown/footer frames above. No additional UI matrix/campaign, whole-T45/T44
+completion dependency or status/PASS change; current-task hot/raw boundedness is
+T45/R9/DCP11/A10-owned, and T54 completed baseline does not qualify this seam.
+
 ## Middle Click tab close — VIS44
 
 **Owner-approved 2026-09-30; T44 / R5 / V04; implementation pending.** Источник —

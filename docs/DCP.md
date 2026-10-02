@@ -420,6 +420,25 @@ closed-work marker rather than introduce a second forget tool or alternate schem
 
 ### Real wire and resident-memory removal
 
+**Current-task seam (2026-10-02 audit; pending):** renewal also applies inside one
+long-running root/child task, not only between user turns. Current `TurnLog` retains
+all request/span/part/input/opaque history; `checkpoint_turn` overwrites the complete
+`turns.result`. Evicting that prefix and checkpointing it would lose canonical raw
+history; tool-operation rows and conversation versions are not its full archive.
+Current compaction uses message boundaries and protects the started turn, while
+partial continuation reloads the whole journal. Existing DCP wire filtering alone
+does not establish bounded resident retention.
+
+Resolve a safe closed intra-task boundary, independent durable raw preservation
+and bounded committed hot restoration at the existing runtime/storage/checkpoint
+owner **before eviction**. Reuse mechanisms where sufficient; schema-free feasibility
+is not established. No second history store/service is chosen in advance, and raw
+records, current in-flight groups, effects and effective protections cannot be
+discarded to obtain boundedness. Qualify retry/model switch/DCP/compact/recovery
+against the same hot view without full historical reload. Measure checkpoint
+processing/I/O and peak/retained RAM at equal hot state with increasing past steps.
+The independent removal of 8/16 round stops in T45/R6 is not DCP11/A10 PASS.
+
 Forgetting applies to the actual provider continuation, not only the ordinary
 message-text projection. Closed tool-call/result/reasoning groups, obsolete media,
 opaque items and associated hot marks leave as complete groups when their span is

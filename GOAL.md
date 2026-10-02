@@ -736,6 +736,37 @@ fake-service сценарий с нулём служебных строк в д�
 T50/dirty shell-output work, PAUSED T44, T55 priority, completed T51/T46, исторические
 evidence/baselines и execution statuses неизменны. Это доставка плана, не runtime PASS.
 
+## Owner amendment (2026-10-02 — Long Horizon без round stops / retry follow-up)
+
+После RECON и параллельного аудита владелец утвердил исправленный план:
+успешные root/child LLM/tool steps не имеют искусственной общей квоты.
+Убрать default8/clamp16 и round-limit `Incomplete`, не повышать потолок
+и не вводить donor `agent.steps`/`toolChoice:none` как замену или prerequisite.
+Старые требования step-budget parity узко superseded. Finite retries одного
+ошибочного logical step, cancel/backoff, context/byte/security/child-depth/
+concurrency/no-unknown-replay guards сохраняются.
+
+[T45/R6/R9](docs/goals/2026-09-21-config-compat-and-subagents.md#long-horizon-runtime-and-retry-follow-up--approved-2026-10-02-pending)
+разделяет независимый round-removal срез (17 последовательных tool-bearing
+steps и настоящий final request, root и child) и обязательный bounded
+current-task hot/raw seam под DCP11/A10. Один лишь >16-step успех не даёт
+Long Horizon PASS: raw journal нельзя терять при eviction/checkpoint, а
+retry/restart/model switch/compact не должны перечитывать весь забытый архив.
+Готового as-is seam не доказано; короткий design у существующих owners
+предшествует реализации, без заранее выбранного нового store/framework.
+
+Retry уже реализован; OCR не устанавливает причину Mars-инцидента.
+[RET01 follow-up](docs/goals/2026-09-29-provider-retry-parity.md#long-workflow-follow-up--approved-2026-10-02-pending)
+переиспользует tests для early retry → success → long workflow → late429
+с allowance reset и короткого partial SSE failure, не новый retry engine.
+[T44/VIS43](tui-recovery/T44_CONTRACT_AMENDMENT.md#provider-error-retry-footer--vis43)
+получает минимальный recorded-span DTO/latest-window seam; countdown/footer
+и прежние paired styled-cell/PNG/cursor gates остаются отдельными после resume.
+Метод/порядок — `docs/TEST_PLAN.md`, `roadmap/M8.md` и `roadmap/M9.md`.
+Новых tasks/IDs/paid campaigns нет; active T50/dirty work, PAUSED T44,
+completed T54/T55, execution statuses и historical PASS неизменны.
+Новые срезы pending/NOT_RUN, эта правка не меняет runtime.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

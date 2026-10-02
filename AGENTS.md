@@ -12,6 +12,7 @@
 ## Границы продукта
 
 - Rust 2024, небольшой workspace, KISS/YAGNI. Ядро не зависит от UI; в production нет Node/Bun/JS-host. Внешний MCP через npx — только явная пользовательская зависимость.
+- [Long Horizon](docs/LONG_HORIZON.md) — явная дивергенция форка: без искусственных round/step stops; finite failure retries и resource/security guards сохраняются. DCP Compress встроен, отключаем через config; решение не означает implementation PASS.
 - OpenProxy подключается нативным Responses adapter. `@ai-sdk/openai` — alias конфигурации, не npm dependency. Не зашивать model IDs, reasoning allowlists по именам и vendor-specific маршруты; discovery сверять с владельческим кодом в `references/`.
 - Файловые tools выбираются по OC2 predicate: `apply_patch` либо `edit`/`write`; T50/R1/R9 в `GOAL.md` требует live switch перед следующим request той же задачи, не только новым user turn. Prepared request и его tools сохраняют captured model/view; picker draft отличается от committed selection. Это узкое model-name exception, не provider/reasoning routing. Shell не sandbox; raw history неизменна, DCP меняет provider projection.
 
