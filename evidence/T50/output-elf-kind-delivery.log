@@ -1,0 +1,2 @@
+target/debug/oc:   ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=ea5c9752a0278df560116d4fab65a53f76bfb464, with debug_info, not stripped
+target/release/oc: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=88e7e547c432e85847a3955f7de5ec8033dbe4c3, stripped

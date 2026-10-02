@@ -1,0 +1,22 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 42.50s
+     Running unittests src/lib.rs (target/debug/deps/oc_adapters-ed9aaed69dd516e3)
+
+running 1 test
+test config::tool_output_tests::tool21_invalid_output_limits_fail_before_generation_publication ... FAILED
+
+failures:
+
+---- config::tool_output_tests::tool21_invalid_output_limits_fail_before_generation_publication stdout ----
+
+thread 'config::tool_output_tests::tool21_invalid_output_limits_fail_before_generation_publication' (4082326) panicked at crates/oc-adapters/src/config/tool_output_tests.rs:7:9:
+invalid tool_output accepted: null
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    config::tool_output_tests::tool21_invalid_output_limits_fail_before_generation_publication
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 438 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p oc-adapters --lib`

@@ -375,6 +375,10 @@ impl Db {
                 let new_op = format!("{new}:op:{}", op_ids.len());
                 tx.execute("INSERT INTO tool_operations(id,session_id,turn_id,name,state,input,output) VALUES (?1,?2,?3,?4,?5,?6,?7)",params![new_op,root,new,name,state,input,output])?;
                 tx.execute("INSERT INTO patch_effects(op_id,metadata) SELECT ?1,metadata FROM patch_effects WHERE op_id=?2",params![new_op,op])?;
+                // Copy bounded native control/effect facts, never the cold file
+                // or its session capability. Original references remain causal
+                // text; the fork's new operation does not own the resource.
+                tx.execute("INSERT INTO events(session_id,kind,payload) SELECT ?1,kind,json_set(payload,'$.operation',?2) FROM events WHERE session_id=?3 AND kind IN ('tool_output_question','tool_output_execution') AND json_valid(payload) AND length(CAST(payload AS BLOB))<=?5 AND json_extract(payload,'$.operation')=?4",params![root,new_op,source,op,(oc_core::question::RESULT_BYTES_CAP+1024) as i64])?;
                 operation_ids.insert(op.clone(), new_op.clone());
                 op_ids.insert(op, new_op);
             }

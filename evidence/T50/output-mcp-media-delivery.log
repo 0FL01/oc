@@ -1,0 +1,13 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+   Compiling oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)
+   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.48s
+     Running tests/mcp_application.rs (target/debug/deps/mcp_application-770636e9a66d200b)
+
+running 3 tests
+test media::mcp12_actual_binary_mixed_media_reaches_next_responses_request_with_exact_call_graph ... ok
+test media::mcp12_actual_stdio_restart_replays_durable_media_without_another_tool_call ... ok
+test media::mcp12_media_permissions_and_sensitive_binary_never_publish_partial_success ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 38 filtered out; finished in 2.16s
+

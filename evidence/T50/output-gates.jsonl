@@ -1,0 +1,409 @@
+{"name": "owner7", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool21_"], "exit": 0, "seconds": 29.275, "log": "evidence/T50/output-owner7.log", "bytes": 1692}
+{"name": "fmt1", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.334, "log": "evidence/T50/output-fmt1.log", "bytes": 0}
+{"name": "clippy1", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 101, "seconds": 20.518, "log": "evidence/T50/output-clippy1.log", "bytes": 1945}
+{"name": "fmt2", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.324, "log": "evidence/T50/output-fmt2.log", "bytes": 0}
+{"name": "clippy2", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 101, "seconds": 20.818, "log": "evidence/T50/output-clippy2.log", "bytes": 881}
+{"name": "fmt3", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.286, "log": "evidence/T50/output-fmt3.log", "bytes": 0}
+{"name": "clippy3", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 101, "seconds": 8.379, "log": "evidence/T50/output-clippy3.log", "bytes": 575}
+{"name": "fmt4", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.328, "log": "evidence/T50/output-fmt4.log", "bytes": 0}
+{"name": "clippy4", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 101, "seconds": 11.68, "log": "evidence/T50/output-clippy4.log", "bytes": 1178}
+{"name": "fmt5", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.391, "log": "evidence/T50/output-fmt5.log", "bytes": 0}
+{"name": "clippy5", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 0, "seconds": 4.663, "log": "evidence/T50/output-clippy5.log", "bytes": 146}
+{"name": "shell-fix1", "phase": "started", "owned_pid_pgid": 4155791, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-5xdfeyb4"}
+{"name": "shell-fix1", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool13_conversion_retains_pid_admission_capture_and_final_view_after_removal"], "exit": 0, "seconds": 29.55, "log": "evidence/T50/output-shell-fix1.log", "bytes": 454}
+{"name": "history-fix1", "phase": "started", "owned_pid_pgid": 4156465, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-oyrrab2o"}
+{"name": "history-fix1", "command": ["cargo", "test", "-p", "oc-adapters", "--test", "context_bounds", "--locked", "aud34_tool_output_beyond_preview_is_retrievable"], "exit": 0, "seconds": 29.961, "log": "evidence/T50/output-history-fix1.log", "bytes": 409}
+{"name": "precompile1", "phase": "started", "owned_pid_pgid": 4157248, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-cug6zlon"}
+{"name": "precompile1", "command": ["cargo", "test", "--workspace", "--locked", "--no-run"], "exit": 0, "seconds": 80.344, "log": "evidence/T50/output-precompile1.log", "bytes": 3498}
+{"name": "owner8", "phase": "started", "owned_pid_pgid": 4189109, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-8m0rcw_2"}
+{"name": "owner8", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool21_"], "exit": 101, "seconds": 11.392, "log": "evidence/T50/output-owner8.log", "bytes": 1015}
+{"name": "owner9", "phase": "started", "owned_pid_pgid": 4190463, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-jjepuknb"}
+{"name": "owner9", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool21_"], "exit": 101, "seconds": 42.74, "log": "evidence/T50/output-owner9.log", "bytes": 2461}
+{"name": "owner10", "phase": "started", "owned_pid_pgid": 4542, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-p044_jji"}
+{"name": "owner10", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool21_"], "exit": 0, "seconds": 27.151, "log": "evidence/T50/output-owner10.log", "bytes": 1812}
+{"name": "fmt6", "phase": "started", "owned_pid_pgid": 5200, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-bohfneg2"}
+{"name": "fmt6", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.489, "log": "evidence/T50/output-fmt6.log", "bytes": 0}
+{"name": "clippy6", "phase": "started", "owned_pid_pgid": 5247, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-rvc6e1vz"}
+{"name": "clippy6", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 101, "seconds": 13.756, "log": "evidence/T50/output-clippy6.log", "bytes": 1035}
+{"name": "fmt7", "phase": "started", "owned_pid_pgid": 7293, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-w4ijoiba"}
+{"name": "fmt7", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.425, "log": "evidence/T50/output-fmt7.log", "bytes": 0}
+{"name": "clippy7", "phase": "started", "owned_pid_pgid": 7342, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-i6i0_0v9"}
+{"name": "clippy7", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 0, "seconds": 22.133, "log": "evidence/T50/output-clippy7.log", "bytes": 267}
+{"name": "precompile2", "phase": "started", "owned_pid_pgid": 7771, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-0v6634dy"}
+{"name": "precompile2", "command": ["cargo", "test", "--workspace", "--locked", "--no-run"], "exit": 0, "seconds": 94.718, "log": "evidence/T50/output-precompile2.log", "bytes": 3498}
+{"name": "workspace2", "phase": "started", "owned_pid_pgid": 15195, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-ej0zvihf"}
+{"name": "workspace2", "command": ["cargo", "test", "--workspace", "--locked", "--no-fail-fast"], "exit": 124, "seconds": 890.02, "log": "evidence/T50/output-workspace2.log", "bytes": 131992}
+{"name": "format-cursor", "phase": "started", "owned_pid_pgid": 74142, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-wh7oa61j"}
+{"name": "format-cursor", "command": ["cargo", "fmt", "--all"], "exit": 0, "seconds": 2.689, "log": "evidence/T50/output-format-cursor.log", "bytes": 0}
+{"name": "owner-cursor", "phase": "started", "owned_pid_pgid": 74194, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-dicrisl1"}
+{"name": "owner-cursor", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool21_"], "exit": 0, "seconds": 42.565, "log": "evidence/T50/output-owner-cursor.log", "bytes": 1924}
+{"name": "fmt-final1", "phase": "started", "owned_pid_pgid": 75472, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-ejnmcmkl"}
+{"name": "fmt-final1", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.435, "log": "evidence/T50/output-fmt-final1.log", "bytes": 0}
+{"name": "clippy-final1", "phase": "started", "owned_pid_pgid": 75504, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-uvy437_u"}
+{"name": "clippy-final1", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 0, "seconds": 19.907, "log": "evidence/T50/output-clippy-final1.log", "bytes": 267}
+{"name": "precompile3", "phase": "started", "owned_pid_pgid": 75930, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-b4og63kv"}
+{"name": "precompile3", "command": ["cargo", "test", "--workspace", "--locked", "--no-run"], "exit": 0, "seconds": 81.204, "log": "evidence/T50/output-precompile3.log", "bytes": 3498}
+{"name": "workspace3", "phase": "started", "owned_pid_pgid": 83173, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-sui848pi"}
+{"name": "workspace3", "command": ["cargo", "test", "--workspace", "--locked", "--no-fail-fast"], "exit": 0, "seconds": 897.449, "log": "evidence/T50/output-workspace3.log", "bytes": 132485}
+{"name": "format-served", "phase": "started", "owned_pid_pgid": 113082, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-xbzyc9lp"}
+{"name": "format-served", "command": ["cargo", "fmt", "--all"], "exit": 0, "seconds": 2.598, "log": "evidence/T50/output-format-served.log", "bytes": 0}
+{"name": "owner-served", "phase": "started", "owned_pid_pgid": 113135, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-f1vypulj"}
+{"name": "owner-served", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool21_"], "exit": 0, "seconds": 31.855, "log": "evidence/T50/output-owner-served.log", "bytes": 1924}
+{"name": "fmt-final2", "phase": "started", "owned_pid_pgid": 113815, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-9kqfrt_l"}
+{"name": "fmt-final2", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.446, "log": "evidence/T50/output-fmt-final2.log", "bytes": 0}
+{"name": "clippy-final2", "phase": "started", "owned_pid_pgid": 113866, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-cbiv_sk4"}
+{"name": "clippy-final2", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 0, "seconds": 17.597, "log": "evidence/T50/output-clippy-final2.log", "bytes": 267}
+{"name": "precompile4", "phase": "started", "owned_pid_pgid": 114304, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-d51v93uk"}
+{"name": "precompile4", "command": ["cargo", "test", "--workspace", "--locked", "--no-run"], "exit": 0, "seconds": 46.212, "log": "evidence/T50/output-precompile4.log", "bytes": 3498}
+{"name": "workspace4", "phase": "started", "owned_pid_pgid": 121088, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-x39mers4"}
+{"name": "workspace4", "command": ["cargo", "test", "--workspace", "--locked", "--no-fail-fast"], "exit": 124, "seconds": 898.02, "log": "evidence/T50/output-workspace4.log", "bytes": 112879}
+{"name": "aud12-timing", "phase": "started", "owned_pid_pgid": 142458, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-cf70rv91"}
+{"name": "aud12-timing", "command": ["cargo", "test", "-p", "oc", "--test", "responses", "--locked", "aud12_binary_delta_before_terminal_and_silent_stream_sigint"], "exit": 101, "seconds": 1.576, "log": "evidence/T50/output-aud12-timing.log", "bytes": 810}
+{"name": "aud12-syscall", "phase": "started", "owned_pid_pgid": 148256, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-bsxhby5s"}
+{"name": "aud12-syscall", "command": ["strace", "-f", "-tt", "-e", "trace=signal,fsync,fdatasync,exit_group,epoll_wait", "-o", "evidence/T50/output-aud12-syscall-trace.log", "target/debug/deps/responses-f48d1c8c0373760f", "--exact", "aud12_binary_delta_before_terminal_and_silent_stream_sigint", "--nocapture"], "exit": 0, "seconds": 1.521, "log": "evidence/T50/output-aud12-syscall.log", "bytes": 184}
+{"name": "format-cancel", "phase": "started", "owned_pid_pgid": 150365, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-3mhqvg9f"}
+{"name": "format-cancel", "command": ["cargo", "fmt", "--all"], "exit": 0, "seconds": 2.524, "log": "evidence/T50/output-format-cancel.log", "bytes": 0}
+{"name": "aud12-fixed", "phase": "started", "owned_pid_pgid": 150399, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-0e71uahq"}
+{"name": "aud12-fixed", "command": ["cargo", "test", "-p", "oc", "--test", "responses", "--locked", "aud12_binary_delta_before_terminal_and_silent_stream_sigint"], "exit": 0, "seconds": 6.814, "log": "evidence/T50/output-aud12-fixed.log", "bytes": 392}
+{"name": "fmt-final3", "phase": "started", "owned_pid_pgid": 150776, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-slxqihms"}
+{"name": "fmt-final3", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.428, "log": "evidence/T50/output-fmt-final3.log", "bytes": 0}
+{"name": "clippy-final3", "phase": "started", "owned_pid_pgid": 150827, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-b8a3tccp"}
+{"name": "clippy-final3", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 0, "seconds": 2.59, "log": "evidence/T50/output-clippy-final3.log", "bytes": 128}
+{"name": "precompile5", "phase": "started", "owned_pid_pgid": 150884, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-indprjx3"}
+{"name": "precompile5", "command": ["cargo", "test", "--workspace", "--locked", "--no-run"], "exit": 0, "seconds": 4.915, "log": "evidence/T50/output-precompile5.log", "bytes": 3359}
+{"name": "workspace5", "phase": "started", "owned_pid_pgid": 151336, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-yj3i0djt"}
+{"name": "workspace5", "command": ["cargo", "test", "--workspace", "--locked", "--no-fail-fast"], "exit": 124, "seconds": 898.019, "log": "evidence/T50/output-workspace5.log", "bytes": 120258}
+{"name": "format-scan", "phase": "started", "owned_pid_pgid": 179655, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-aqyff2z8"}
+{"name": "format-scan", "command": ["cargo", "fmt", "--all"], "exit": 0, "seconds": 2.63, "log": "evidence/T50/output-format-scan.log", "bytes": 0}
+{"name": "owner-scan", "phase": "started", "owned_pid_pgid": 179723, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-j93bbtwm"}
+{"name": "owner-scan", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool21_"], "exit": 0, "seconds": 30.372, "log": "evidence/T50/output-owner-scan.log", "bytes": 1924}
+{"name": "fmt-final4", "phase": "started", "owned_pid_pgid": 180390, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-0ybbotr1"}
+{"name": "fmt-final4", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.384, "log": "evidence/T50/output-fmt-final4.log", "bytes": 0}
+{"name": "clippy-final4", "phase": "started", "owned_pid_pgid": 180480, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-wuyw3mt_"}
+{"name": "clippy-final4", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 0, "seconds": 15.537, "log": "evidence/T50/output-clippy-final4.log", "bytes": 267}
+{"name": "precompile6", "phase": "started", "owned_pid_pgid": 180840, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-b8rx5nb3"}
+{"name": "precompile6", "command": ["cargo", "test", "--workspace", "--locked", "--no-run"], "exit": 0, "seconds": 51.235, "log": "evidence/T50/output-precompile6.log", "bytes": 3498}
+{"name": "workspace6", "phase": "started", "owned_pid_pgid": 187660, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-iphvpkrf"}
+{"name": "workspace6", "command": ["cargo", "test", "--workspace", "--locked", "--no-fail-fast"], "exit": 124, "seconds": 898.009, "log": "evidence/T50/output-workspace6.log", "bytes": 120367}
+{"name": "python47", "phase": "started", "owned_pid_pgid": 211129, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-y1z4zsdh"}
+{"name": "python47", "command": ["env", "PYTHONPATH=scripts", "python3", "-m", "unittest", "-v", "test_bounded_live", "test_code_size", "test_progress", "test_check_docs"], "exit": 0, "seconds": 10.235, "log": "evidence/T50/output-python47.log", "bytes": 6329}
+{"name": "docs-readonly", "phase": "started", "owned_pid_pgid": 211569, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-h7ye7uus"}
+{"name": "docs-readonly", "command": ["python3", "scripts/check_docs.py"], "exit": 0, "seconds": 0.168, "log": "evidence/T50/output-docs-readonly.log", "bytes": 131}
+{"name": "advisory", "phase": "started", "owned_pid_pgid": 211570, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-1huwy7rb"}
+{"name": "advisory", "command": ["python3", "scripts/code_size.py", "--base", "b9d02c09023f64992f7f29feaacce13ed56ca126", "--changed"], "exit": 0, "seconds": 1.484, "log": "evidence/T50/output-advisory.log", "bytes": 3874}
+{"name": "workspace7", "phase": "started", "owned_pid_pgid": 213389, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-41_8vuhw"}
+{"name": "workspace7", "command": ["cargo", "test", "--workspace", "--locked", "--no-fail-fast"], "exit": 124, "seconds": 898.017, "log": "evidence/T50/output-workspace7.log", "bytes": 120463}
+{"name": "format-publication", "phase": "started", "owned_pid_pgid": 237440, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-tk35ccfm"}
+{"name": "format-publication", "command": ["cargo", "fmt", "--all"], "exit": 0, "seconds": 2.739, "log": "evidence/T50/output-format-publication.log", "bytes": 0}
+{"name": "owner-publication", "phase": "started", "owned_pid_pgid": 237512, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-4p90g_45"}
+{"name": "owner-publication", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool21_"], "exit": 0, "seconds": 30.484, "log": "evidence/T50/output-owner-publication.log", "bytes": 1924}
+{"name": "fmt-final5", "phase": "started", "owned_pid_pgid": 238200, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-cd41l6gc"}
+{"name": "fmt-final5", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.484, "log": "evidence/T50/output-fmt-final5.log", "bytes": 0}
+{"name": "clippy-final5", "phase": "started", "owned_pid_pgid": 238230, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-3j97ivs4"}
+{"name": "clippy-final5", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 0, "seconds": 17.127, "log": "evidence/T50/output-clippy-final5.log", "bytes": 267}
+{"name": "precompile7", "phase": "started", "owned_pid_pgid": 238660, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-9k4675x3"}
+{"name": "precompile7", "command": ["cargo", "test", "--workspace", "--locked", "--no-run"], "exit": 0, "seconds": 53.931, "log": "evidence/T50/output-precompile7.log", "bytes": 3498}
+{"name": "workspace8", "phase": "started", "owned_pid_pgid": 245700, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-gotbe4f6"}
+{"name": "workspace8", "command": ["cargo", "test", "--workspace", "--locked", "--no-fail-fast"], "exit": 124, "seconds": 898.018, "log": "evidence/T50/output-workspace8.log", "bytes": 68669}
+{"name": "format-fixture", "phase": "started", "owned_pid_pgid": 271526, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-q7q0j_qv"}
+{"name": "format-fixture", "command": ["cargo", "fmt", "--all"], "exit": 0, "seconds": 2.539, "log": "evidence/T50/output-format-fixture.log", "bytes": 0}
+{"name": "webfetch-fixture", "phase": "started", "owned_pid_pgid": 271596, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-pyaxsae3"}
+{"name": "webfetch-fixture", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_responsive", "--", "--exact", "webfetch::format_tests::tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_responsive"], "exit": 0, "seconds": 24.767, "log": "evidence/T50/output-webfetch-fixture.log", "bytes": 459}
+{"name": "fmt-final6", "phase": "started", "owned_pid_pgid": 272280, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-y4jrlfqm"}
+{"name": "fmt-final6", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.586, "log": "evidence/T50/output-fmt-final6.log", "bytes": 0}
+{"name": "clippy-final6", "phase": "started", "owned_pid_pgid": 272319, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-5quiqpna"}
+{"name": "clippy-final6", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 0, "seconds": 10.208, "log": "evidence/T50/output-clippy-final6.log", "bytes": 147}
+{"name": "precompile8", "phase": "started", "owned_pid_pgid": 272512, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-8fmbu4lx"}
+{"name": "precompile8", "command": ["cargo", "test", "--workspace", "--locked", "--no-run"], "exit": 0, "seconds": 22.089, "log": "evidence/T50/output-precompile8.log", "bytes": 3378}
+{"name": "workspace9", "phase": "started", "owned_pid_pgid": 273385, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-xc151ccl"}
+{"name": "workspace9", "command": ["cargo", "test", "--workspace", "--locked", "--no-fail-fast"], "exit": 124, "seconds": 898.012, "log": "evidence/T50/output-workspace9.log", "bytes": 106694}
+{"name": "build-debug", "phase": "started", "owned_pid_pgid": 293775, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-m49q8nyl"}
+{"name": "build-debug", "command": ["cargo", "build", "--locked"], "exit": 0, "seconds": 18.447, "log": "evidence/T50/output-build-debug.log", "bytes": 193}
+{"name": "build-release", "phase": "started", "owned_pid_pgid": 294487, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-hg6fidlb"}
+{"name": "build-release", "command": ["cargo", "build", "--release", "--locked"], "exit": 0, "seconds": 143.722, "log": "evidence/T50/output-build-release.log", "bytes": 257}
+{"name": "help-debug", "phase": "started", "owned_pid_pgid": 296736, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-ibdgxi2x"}
+{"name": "help-debug", "command": ["target/debug/oc", "--help"], "exit": 0, "seconds": 0.023, "log": "evidence/T50/output-help-debug.log", "bytes": 717}
+{"name": "help-release", "phase": "started", "owned_pid_pgid": 296744, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-qrshard5"}
+{"name": "help-release", "command": ["target/release/oc", "--help"], "exit": 0, "seconds": 0.007, "log": "evidence/T50/output-help-release.log", "bytes": 717}
+{"name": "native-common-debug", "phase": "started", "owned_pid_pgid": 296752, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-gbeb6iw1"}
+{"name": "native-common-debug", "command": ["python3", "evidence/T50/native_tool_output_common.py", "target/debug/oc"], "exit": 1, "seconds": 7.639, "log": "evidence/T50/output-native-common-debug.log", "bytes": 1142}
+{"name": "native-common-diagnose", "phase": "started", "owned_pid_pgid": 297518, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-mft3m3my"}
+{"name": "native-common-diagnose", "command": ["python3", "evidence/T50/native_tool_output_common.py", "target/debug/oc", "--case", "head"], "exit": 1, "seconds": 2.397, "log": "evidence/T50/output-native-common-diagnose.log", "bytes": 419}
+{"name": "native-common-diagnose2", "phase": "started", "owned_pid_pgid": 297976, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-_twlxoy9"}
+{"name": "native-common-diagnose2", "command": ["python3", "evidence/T50/native_tool_output_common.py", "target/debug/oc", "--case", "head"], "exit": 1, "seconds": 2.285, "log": "evidence/T50/output-native-common-diagnose2.log", "bytes": 442}
+{"name": "format-redactor", "phase": "started", "owned_pid_pgid": 299744, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-c7wg_u2d"}
+{"name": "format-redactor", "command": ["cargo", "fmt", "--all"], "exit": 0, "seconds": 2.792, "log": "evidence/T50/output-format-redactor.log", "bytes": 0}
+{"name": "owner-redactor", "phase": "started", "owned_pid_pgid": 299834, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-je5uyssg"}
+{"name": "owner-redactor", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool21_"], "exit": 0, "seconds": 32.55, "log": "evidence/T50/output-owner-redactor.log", "bytes": 1924}
+{"name": "fmt-final7", "phase": "started", "owned_pid_pgid": 300545, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-21xrplus"}
+{"name": "fmt-final7", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.809, "log": "evidence/T50/output-fmt-final7.log", "bytes": 0}
+{"name": "clippy-final7", "phase": "started", "owned_pid_pgid": 300577, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-tf8hntjh"}
+{"name": "clippy-final7", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 0, "seconds": 16.47, "log": "evidence/T50/output-clippy-final7.log", "bytes": 267}
+{"name": "precompile9", "phase": "started", "owned_pid_pgid": 300940, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-n4t51jln"}
+{"name": "precompile9", "command": ["cargo", "test", "--workspace", "--locked", "--no-run"], "exit": 0, "seconds": 58.18, "log": "evidence/T50/output-precompile9.log", "bytes": 3498}
+{"name": "format-join", "phase": "started", "owned_pid_pgid": 308989, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-8qfzerec"}
+{"name": "format-join", "command": ["cargo", "fmt", "--all"], "exit": 0, "seconds": 2.996, "log": "evidence/T50/output-format-join.log", "bytes": 0}
+{"name": "webfetch-join", "phase": "started", "owned_pid_pgid": 309059, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-5r7ns5x1"}
+{"name": "webfetch-join", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_responsive"], "exit": 101, "seconds": 27.067, "log": "evidence/T50/output-webfetch-join.log", "bytes": 1115}
+{"name": "webfetch-join2", "phase": "started", "owned_pid_pgid": 311255, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-1yf0d8r3"}
+{"name": "webfetch-join2", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_responsive"], "exit": 0, "seconds": 0.724, "log": "evidence/T50/output-webfetch-join2.log", "bytes": 384}
+{"name": "fmt-final9", "phase": "started", "owned_pid_pgid": 311269, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-jv9tai68"}
+{"name": "fmt-final9", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.742, "log": "evidence/T50/output-fmt-final9.log", "bytes": 0}
+{"name": "clippy-final9", "phase": "started", "owned_pid_pgid": 311344, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-y9vectmo"}
+{"name": "clippy-final9", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 0, "seconds": 10.383, "log": "evidence/T50/output-clippy-final9.log", "bytes": 147}
+{"name": "precompile11", "phase": "started", "owned_pid_pgid": 311484, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-_ooef92m"}
+{"name": "precompile11", "command": ["cargo", "test", "--workspace", "--locked", "--no-run"], "exit": 0, "seconds": 22.989, "log": "evidence/T50/output-precompile11.log", "bytes": 3378}
+{"name": "workspace10", "phase": "started", "owned_pid_pgid": 312433, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-7xpa__r1"}
+{"name": "workspace10", "command": ["cargo", "test", "--workspace", "--locked", "--no-fail-fast"], "exit": 124, "seconds": 898.019, "log": "evidence/T50/output-workspace10.log", "bytes": 106872}
+{"name": "build-debug2", "phase": "started", "owned_pid_pgid": 334483, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-f9iuvyuz"}
+{"name": "build-debug2", "command": ["cargo", "build", "--locked"], "exit": 0, "seconds": 7.369, "log": "evidence/T50/output-build-debug2.log", "bytes": 192}
+{"name": "build-release2", "phase": "started", "owned_pid_pgid": 335108, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-cv9brqds"}
+{"name": "build-release2", "command": ["cargo", "build", "--release", "--locked"], "exit": 0, "seconds": 137.462, "log": "evidence/T50/output-build-release2.log", "bytes": 257}
+{"name": "help-debug2", "phase": "started", "owned_pid_pgid": 336914, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-v289y16q"}
+{"name": "help-debug2", "command": ["target/debug/oc", "--help"], "exit": 0, "seconds": 0.041, "log": "evidence/T50/output-help-debug2.log", "bytes": 717}
+{"name": "help-release2", "phase": "started", "owned_pid_pgid": 336923, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-ykz2v99x"}
+{"name": "help-release2", "command": ["target/release/oc", "--help"], "exit": 0, "seconds": 0.022, "log": "evidence/T50/output-help-release2.log", "bytes": 717}
+{"name": "native-common-debug2", "phase": "started", "owned_pid_pgid": 336931, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-uw8xrxj5"}
+{"name": "native-common-debug2", "command": ["python3", "evidence/T50/native_tool_output_common.py", "target/debug/oc"], "exit": 1, "seconds": 8.317, "log": "evidence/T50/output-native-common-debug2.log", "bytes": 1128}
+{"name": "native-common-debug3", "phase": "started", "owned_pid_pgid": 337657, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-2f81ov8f"}
+{"name": "native-common-debug3", "command": ["python3", "evidence/T50/native_tool_output_common.py", "target/debug/oc"], "exit": 0, "seconds": 8.077, "log": "evidence/T50/output-native-common-debug3.log", "bytes": 2265}
+{"name": "native-common-release3", "phase": "started", "owned_pid_pgid": 337926, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-sv4cv259"}
+{"name": "native-common-release3", "command": ["python3", "evidence/T50/native_tool_output_common.py", "target/release/oc"], "exit": 0, "seconds": 4.946, "log": "evidence/T50/output-native-common-release3.log", "bytes": 2267}
+{"name": "media-debug", "phase": "started", "owned_pid_pgid": 338544, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-eskkbmh4"}
+{"name": "media-debug", "command": ["python3", "evidence/T50/native_read.py", "target/debug/oc", "--case", "image_dcp"], "exit": 0, "seconds": 1.827, "log": "evidence/T50/output-media-debug.log", "bytes": 190}
+{"name": "media-release", "phase": "started", "owned_pid_pgid": 338595, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-_6m85id_"}
+{"name": "media-release", "command": ["python3", "evidence/T50/native_read.py", "target/release/oc", "--case", "image_dcp"], "exit": 0, "seconds": 1.136, "log": "evidence/T50/output-media-release.log", "bytes": 190}
+{"name": "question-debug", "phase": "started", "owned_pid_pgid": 338623, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-eivijt2n"}
+{"name": "question-debug", "command": ["python3", "evidence/T50/native_question.py", "target/debug/oc"], "exit": 0, "seconds": 13.544, "log": "evidence/T50/output-question-debug.log", "bytes": 1526}
+{"name": "question-release", "phase": "started", "owned_pid_pgid": 338981, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-x_5dxqid"}
+{"name": "question-release", "command": ["python3", "evidence/T50/native_question.py", "target/release/oc"], "exit": 0, "seconds": 10.098, "log": "evidence/T50/output-question-release.log", "bytes": 1528}
+{"name": "shell-controls-debug", "phase": "started", "owned_pid_pgid": 339384, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-gewi9t1t"}
+{"name": "shell-controls-debug", "command": ["python3", "evidence/T50/native_shell_controls.py", "target/debug/oc"], "exit": 0, "seconds": 8.418, "log": "evidence/T50/output-shell-controls-debug.log", "bytes": 2843}
+{"name": "shell-controls-release", "phase": "started", "owned_pid_pgid": 339770, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-5liyd3gn"}
+{"name": "shell-controls-release", "command": ["python3", "evidence/T50/native_shell_controls.py", "target/release/oc"], "exit": 0, "seconds": 7.059, "log": "evidence/T50/output-shell-controls-release.log", "bytes": 2845}
+{"name": "search-debug", "phase": "started", "owned_pid_pgid": 340353, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-a5fcpoi5"}
+{"name": "search-debug", "command": ["python3", "evidence/T50/native_search.py", "target/debug/oc", "--question-supported", "--model-session-supported", "--session-move-supported"], "exit": 0, "seconds": 14.268, "log": "evidence/T50/output-search-debug.log", "bytes": 9639}
+{"name": "search-release", "phase": "started", "owned_pid_pgid": 340795, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-xwgni_rn"}
+{"name": "search-release", "command": ["python3", "evidence/T50/native_search.py", "target/release/oc", "--question-supported", "--model-session-supported", "--session-move-supported"], "exit": 0, "seconds": 10.027, "log": "evidence/T50/output-search-release.log", "bytes": 9641}
+{"name": "fork-debug", "phase": "started", "owned_pid_pgid": 341053, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-kw9n5urv"}
+{"name": "fork-debug", "command": ["python3", "evidence/T50/native_background.py", "target/debug/oc", "--review-only", "fork", "--question-supported", "--shell-controls-supported"], "exit": 0, "seconds": 2.894, "log": "evidence/T50/output-fork-debug.log", "bytes": 312}
+{"name": "fork-release", "phase": "started", "owned_pid_pgid": 341117, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-otgpfxrv"}
+{"name": "fork-release", "command": ["python3", "evidence/T50/native_background.py", "target/release/oc", "--review-only", "fork", "--question-supported", "--shell-controls-supported"], "exit": 0, "seconds": 1.728, "log": "evidence/T50/output-fork-release.log", "bytes": 314}
+{"name": "compact-debug", "phase": "started", "owned_pid_pgid": 341199, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-9my53tlw"}
+{"name": "compact-debug", "command": ["python3", "evidence/T50/native_live_model_switch.py", "target/debug/oc", "--case", "compact"], "exit": 0, "seconds": 2.33, "log": "evidence/T50/output-compact-debug.log", "bytes": 501}
+{"name": "compact-release", "phase": "started", "owned_pid_pgid": 341258, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-1w6eyidz"}
+{"name": "compact-release", "command": ["python3", "evidence/T50/native_live_model_switch.py", "target/release/oc", "--case", "compact"], "exit": 0, "seconds": 1.17, "log": "evidence/T50/output-compact-release.log", "bytes": 503}
+{"name": "workspace11", "phase": "started", "owned_pid_pgid": 342931, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-0n_t7p1j"}
+{"name": "workspace11", "command": ["cargo", "test", "--workspace", "--locked", "--no-fail-fast"], "exit": 124, "seconds": 898.016, "log": "evidence/T50/output-workspace11.log", "bytes": 106959}
+{"name": "tui-qualification", "phase": "started", "owned_pid_pgid": 368309, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-1i0so96i"}
+{"name": "tui-qualification", "command": ["cargo", "test", "-p", "oc-tui", "--lib", "--locked", "--no-fail-fast"], "exit": 0, "seconds": 77.296, "log": "evidence/T50/output-tui-qualification.log", "bytes": 37795}
+{"name": "audit-final", "phase": "started", "owned_pid_pgid": 373687, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-wb6lhvgu"}
+{"name": "audit-final", "command": ["python3", "evidence/T50/audit_tool_output_common.py"], "exit": 0, "seconds": 0.719, "log": "evidence/T50/output-audit-final.log", "bytes": 21171}
+{"name": "audit-final2", "phase": "started", "owned_pid_pgid": 374103, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-vzzclz6n"}
+{"name": "audit-final2", "command": ["python3", "evidence/T50/audit_tool_output_common.py"], "exit": 0, "seconds": 0.419, "log": "evidence/T50/output-audit-final2.log", "bytes": 28471}
+{"name": "audit-summary", "phase": "started", "owned_pid_pgid": 377072, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-k8rhttaw"}
+{"name": "audit-summary", "command": ["python3", "evidence/T50/audit_tool_output_common.py"], "exit": 0, "seconds": 0.367, "log": "evidence/T50/output-audit-summary.log", "bytes": 1856}
+{"name": "format-held-output", "phase": "started", "owned_pid_pgid": 378240, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-glyhevet"}
+{"name": "format-held-output", "command": ["cargo", "fmt", "--all"], "exit": 0, "seconds": 2.583, "log": "evidence/T50/output-format-held-output.log", "bytes": 0}
+{"name": "held-output-fixed", "phase": "started", "owned_pid_pgid": 378292, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-jqb0bsst"}
+{"name": "held-output-fixed", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool13_held_owned_shell_output_is_readable_before_terminal"], "exit": 0, "seconds": 14.816, "log": "evidence/T50/output-held-output-fixed.log", "bytes": 436}
+{"name": "fmt-final10", "phase": "started", "owned_pid_pgid": 378776, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-acra7_fm"}
+{"name": "fmt-final10", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.644, "log": "evidence/T50/output-fmt-final10.log", "bytes": 0}
+{"name": "clippy-final10", "phase": "started", "owned_pid_pgid": 378847, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-4bh15gq5"}
+{"name": "clippy-final10", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 0, "seconds": 9.936, "log": "evidence/T50/output-clippy-final10.log", "bytes": 146}
+{"name": "precompile12", "phase": "started", "owned_pid_pgid": 379567, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-f446xtu2"}
+{"name": "precompile12", "command": ["cargo", "test", "--workspace", "--locked", "--no-run"], "exit": 0, "seconds": 13.625, "log": "evidence/T50/output-precompile12.log", "bytes": 3378}
+{"name": "workspace12", "phase": "started", "owned_pid_pgid": 380149, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-nipgdl3k"}
+{"name": "workspace12", "command": ["cargo", "test", "--workspace", "--locked", "--no-fail-fast"], "exit": 124, "seconds": 898.017, "log": "evidence/T50/output-workspace12.log", "bytes": 106959}
+{"name": "build-debug3", "phase": "started", "owned_pid_pgid": 401771, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-yf7v_fef"}
+{"name": "build-debug3", "command": ["cargo", "build", "--locked"], "exit": 0, "seconds": 0.417, "log": "evidence/T50/output-build-debug3.log", "bytes": 72}
+{"name": "build-release3", "phase": "started", "owned_pid_pgid": 401787, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-p2lydg9c"}
+{"name": "build-release3", "command": ["cargo", "build", "--release", "--locked"], "exit": 0, "seconds": 0.677, "log": "evidence/T50/output-build-release3.log", "bytes": 62}
+{"name": "help-debug3", "phase": "started", "owned_pid_pgid": 401798, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-ujmwame2"}
+{"name": "help-debug3", "command": ["target/debug/oc", "--help"], "exit": 0, "seconds": 0.069, "log": "evidence/T50/output-help-debug3.log", "bytes": 717}
+{"name": "help-release3", "phase": "started", "owned_pid_pgid": 401805, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-dxpq13ca"}
+{"name": "help-release3", "command": ["target/release/oc", "--help"], "exit": 0, "seconds": 0.077, "log": "evidence/T50/output-help-release3.log", "bytes": 717}
+{"name": "native-common-debug-final", "phase": "started", "owned_pid_pgid": 402282, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-yhrh4quq"}
+{"name": "native-common-debug-final", "command": ["python3", "evidence/T50/native_tool_output_common.py", "target/debug/oc"], "exit": 0, "seconds": 8.802, "log": "evidence/T50/output-native-common-debug-final.log", "bytes": 2265}
+{"name": "native-common-release-final", "phase": "started", "owned_pid_pgid": 402592, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-0ayxu89w"}
+{"name": "native-common-release-final", "command": ["python3", "evidence/T50/native_tool_output_common.py", "target/release/oc"], "exit": 0, "seconds": 5.311, "log": "evidence/T50/output-native-common-release-final.log", "bytes": 2267}
+{"name": "media-debug-final", "phase": "started", "owned_pid_pgid": 402796, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-42nzkg5y"}
+{"name": "media-debug-final", "command": ["python3", "evidence/T50/native_read.py", "target/debug/oc", "--case", "image_dcp"], "exit": 0, "seconds": 1.884, "log": "evidence/T50/output-media-debug-final.log", "bytes": 190}
+{"name": "media-release-final", "phase": "started", "owned_pid_pgid": 402826, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-c6zh731m"}
+{"name": "media-release-final", "command": ["python3", "evidence/T50/native_read.py", "target/release/oc", "--case", "image_dcp"], "exit": 0, "seconds": 1.035, "log": "evidence/T50/output-media-release-final.log", "bytes": 190}
+{"name": "question-debug-final", "phase": "started", "owned_pid_pgid": 402850, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-b2sgcymb"}
+{"name": "question-debug-final", "command": ["python3", "evidence/T50/native_question.py", "target/debug/oc"], "exit": 0, "seconds": 13.21, "log": "evidence/T50/output-question-debug-final.log", "bytes": 1526}
+{"name": "question-release-final", "phase": "started", "owned_pid_pgid": 403221, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-s0ogr5ld"}
+{"name": "question-release-final", "command": ["python3", "evidence/T50/native_question.py", "target/release/oc"], "exit": 0, "seconds": 10.696, "log": "evidence/T50/output-question-release-final.log", "bytes": 1528}
+{"name": "shell-controls-debug-final", "phase": "started", "owned_pid_pgid": 403586, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-4sqd7g23"}
+{"name": "shell-controls-debug-final", "command": ["python3", "evidence/T50/native_shell_controls.py", "target/debug/oc"], "exit": 0, "seconds": 8.487, "log": "evidence/T50/output-shell-controls-debug-final.log", "bytes": 2843}
+{"name": "shell-controls-release-final", "phase": "started", "owned_pid_pgid": 403994, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-emzxygsh"}
+{"name": "shell-controls-release-final", "command": ["python3", "evidence/T50/native_shell_controls.py", "target/release/oc"], "exit": 0, "seconds": 7.223, "log": "evidence/T50/output-shell-controls-release-final.log", "bytes": 2845}
+{"name": "search-debug-final", "phase": "started", "owned_pid_pgid": 404516, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-lq0fl2kb"}
+{"name": "search-debug-final", "command": ["python3", "evidence/T50/native_search.py", "target/debug/oc", "--question-supported", "--model-session-supported", "--session-move-supported"], "exit": 0, "seconds": 13.53, "log": "evidence/T50/output-search-debug-final.log", "bytes": 9639}
+{"name": "search-release-final", "phase": "started", "owned_pid_pgid": 404808, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-d2a8s6cf"}
+{"name": "search-release-final", "command": ["python3", "evidence/T50/native_search.py", "target/release/oc", "--question-supported", "--model-session-supported", "--session-move-supported"], "exit": 0, "seconds": 10.511, "log": "evidence/T50/output-search-release-final.log", "bytes": 9641}
+{"name": "fork-debug-final", "phase": "started", "owned_pid_pgid": 405095, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-_ncfyakm"}
+{"name": "fork-debug-final", "command": ["python3", "evidence/T50/native_background.py", "target/debug/oc", "--review-only", "fork", "--question-supported", "--shell-controls-supported"], "exit": 0, "seconds": 3.011, "log": "evidence/T50/output-fork-debug-final.log", "bytes": 312}
+{"name": "fork-release-final", "phase": "started", "owned_pid_pgid": 405158, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-sho2pnsk"}
+{"name": "fork-release-final", "command": ["python3", "evidence/T50/native_background.py", "target/release/oc", "--review-only", "fork", "--question-supported", "--shell-controls-supported"], "exit": 0, "seconds": 1.84, "log": "evidence/T50/output-fork-release-final.log", "bytes": 314}
+{"name": "compact-debug-final", "phase": "started", "owned_pid_pgid": 405254, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-h9cptx6d"}
+{"name": "compact-debug-final", "command": ["python3", "evidence/T50/native_live_model_switch.py", "target/debug/oc", "--case", "compact"], "exit": 0, "seconds": 2.446, "log": "evidence/T50/output-compact-debug-final.log", "bytes": 501}
+{"name": "compact-release-final", "phase": "started", "owned_pid_pgid": 405293, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-4ft3v9fn"}
+{"name": "compact-release-final", "command": ["python3", "evidence/T50/native_live_model_switch.py", "target/release/oc", "--case", "compact"], "exit": 0, "seconds": 1.291, "log": "evidence/T50/output-compact-release-final.log", "bytes": 503}
+{"name": "format-mcp-owner", "phase": "started", "owned_pid_pgid": 415644, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-atg40aqn"}
+{"name": "format-mcp-owner", "command": ["cargo", "fmt", "--all"], "exit": 0, "seconds": 2.642, "log": "evidence/T50/output-format-mcp-owner.log", "bytes": 0}
+{"name": "owner-delivery", "phase": "started", "owned_pid_pgid": 415688, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-8vt5d7_g"}
+{"name": "owner-delivery", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool21_"], "exit": 0, "seconds": 36.314, "log": "evidence/T50/output-owner-delivery.log", "bytes": 1924}
+{"name": "mcp-media-delivery", "phase": "started", "owned_pid_pgid": 416473, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-a1ahi2rh"}
+{"name": "mcp-media-delivery", "command": ["cargo", "test", "-p", "oc", "--test", "mcp_application", "--locked", "mcp12_"], "exit": 0, "seconds": 18.8, "log": "evidence/T50/output-mcp-media-delivery.log", "bytes": 765}
+{"name": "fmt-delivery", "phase": "started", "owned_pid_pgid": 417721, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-3pk8u6dr"}
+{"name": "fmt-delivery", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.857, "log": "evidence/T50/output-fmt-delivery.log", "bytes": 0}
+{"name": "clippy-delivery", "phase": "started", "owned_pid_pgid": 417772, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-lkyr5q0c"}
+{"name": "clippy-delivery", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 0, "seconds": 16.487, "log": "evidence/T50/output-clippy-delivery.log", "bytes": 267}
+{"name": "build-debug-delivery", "phase": "started", "owned_pid_pgid": 418201, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-qed20ric"}
+{"name": "build-debug-delivery", "command": ["cargo", "build", "--locked"], "exit": 0, "seconds": 8.454, "log": "evidence/T50/output-build-debug-delivery.log", "bytes": 192}
+{"name": "build-release-delivery", "phase": "started", "owned_pid_pgid": 418807, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-mzvhw44l"}
+{"name": "build-release-delivery", "command": ["cargo", "build", "--release", "--locked"], "exit": 0, "seconds": 144.795, "log": "evidence/T50/output-build-release-delivery.log", "bytes": 257}
+{"name": "help-debug-delivery", "phase": "started", "owned_pid_pgid": 420645, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-8iuae36r"}
+{"name": "help-debug-delivery", "command": ["target/debug/oc", "--help"], "exit": 0, "seconds": 0.025, "log": "evidence/T50/output-help-debug-delivery.log", "bytes": 717}
+{"name": "help-release-delivery", "phase": "started", "owned_pid_pgid": 420655, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-g17lluqn"}
+{"name": "help-release-delivery", "command": ["target/release/oc", "--help"], "exit": 0, "seconds": 0.013, "log": "evidence/T50/output-help-release-delivery.log", "bytes": 717}
+{"name": "native-common-debug-delivery", "phase": "started", "owned_pid_pgid": 421655, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-4mkoq3y5"}
+{"name": "native-common-debug-delivery", "command": ["python3", "evidence/T50/native_tool_output_common.py", "target/debug/oc"], "exit": 0, "seconds": 8.505, "log": "evidence/T50/output-native-common-debug-delivery.log", "bytes": 2265}
+{"name": "native-common-release-delivery", "phase": "started", "owned_pid_pgid": 421891, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-24zu2now"}
+{"name": "native-common-release-delivery", "command": ["python3", "evidence/T50/native_tool_output_common.py", "target/release/oc"], "exit": 0, "seconds": 5.106, "log": "evidence/T50/output-native-common-release-delivery.log", "bytes": 2267}
+{"name": "media-debug-delivery", "phase": "started", "owned_pid_pgid": 422097, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-3y3f5zo4"}
+{"name": "media-debug-delivery", "command": ["python3", "evidence/T50/native_read.py", "target/debug/oc", "--case", "image_dcp"], "exit": 0, "seconds": 1.785, "log": "evidence/T50/output-media-debug-delivery.log", "bytes": 190}
+{"name": "media-release-delivery", "phase": "started", "owned_pid_pgid": 422142, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-495klez6"}
+{"name": "media-release-delivery", "command": ["python3", "evidence/T50/native_read.py", "target/release/oc", "--case", "image_dcp"], "exit": 0, "seconds": 1.028, "log": "evidence/T50/output-media-release-delivery.log", "bytes": 190}
+{"name": "question-debug-delivery", "phase": "started", "owned_pid_pgid": 422169, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-u2s2dn2z"}
+{"name": "question-debug-delivery", "command": ["python3", "evidence/T50/native_question.py", "target/debug/oc"], "exit": 0, "seconds": 13.49, "log": "evidence/T50/output-question-debug-delivery.log", "bytes": 1526}
+{"name": "question-release-delivery", "phase": "started", "owned_pid_pgid": 422564, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-287cmfli"}
+{"name": "question-release-delivery", "command": ["python3", "evidence/T50/native_question.py", "target/release/oc"], "exit": 0, "seconds": 10.318, "log": "evidence/T50/output-question-release-delivery.log", "bytes": 1528}
+{"name": "shell-controls-debug-delivery", "phase": "started", "owned_pid_pgid": 422907, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-ovjnnacw"}
+{"name": "shell-controls-debug-delivery", "command": ["python3", "evidence/T50/native_shell_controls.py", "target/debug/oc"], "exit": 0, "seconds": 8.553, "log": "evidence/T50/output-shell-controls-debug-delivery.log", "bytes": 2843}
+{"name": "shell-controls-release-delivery", "phase": "started", "owned_pid_pgid": 423279, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-u7j_t2ro"}
+{"name": "shell-controls-release-delivery", "command": ["python3", "evidence/T50/native_shell_controls.py", "target/release/oc"], "exit": 0, "seconds": 7.218, "log": "evidence/T50/output-shell-controls-release-delivery.log", "bytes": 2845}
+{"name": "search-debug-delivery", "phase": "started", "owned_pid_pgid": 423892, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-v7es6goj"}
+{"name": "search-debug-delivery", "command": ["python3", "evidence/T50/native_search.py", "target/debug/oc", "--question-supported", "--model-session-supported", "--session-move-supported"], "exit": 0, "seconds": 13.858, "log": "evidence/T50/output-search-debug-delivery.log", "bytes": 9639}
+{"name": "search-release-delivery", "phase": "started", "owned_pid_pgid": 424208, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-qk1gncyx"}
+{"name": "search-release-delivery", "command": ["python3", "evidence/T50/native_search.py", "target/release/oc", "--question-supported", "--model-session-supported", "--session-move-supported"], "exit": 0, "seconds": 10.39, "log": "evidence/T50/output-search-release-delivery.log", "bytes": 9641}
+{"name": "fork-debug-delivery", "phase": "started", "owned_pid_pgid": 424518, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-nei4xaad"}
+{"name": "fork-debug-delivery", "command": ["python3", "evidence/T50/native_background.py", "target/debug/oc", "--review-only", "fork", "--question-supported", "--shell-controls-supported"], "exit": 0, "seconds": 2.932, "log": "evidence/T50/output-fork-debug-delivery.log", "bytes": 312}
+{"name": "fork-release-delivery", "phase": "started", "owned_pid_pgid": 424583, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-h5c6ullg"}
+{"name": "fork-release-delivery", "command": ["python3", "evidence/T50/native_background.py", "target/release/oc", "--review-only", "fork", "--question-supported", "--shell-controls-supported"], "exit": 0, "seconds": 1.727, "log": "evidence/T50/output-fork-release-delivery.log", "bytes": 314}
+{"name": "compact-debug-delivery", "phase": "started", "owned_pid_pgid": 424642, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-9kus3_aq"}
+{"name": "compact-debug-delivery", "command": ["python3", "evidence/T50/native_live_model_switch.py", "target/debug/oc", "--case", "compact"], "exit": 0, "seconds": 2.496, "log": "evidence/T50/output-compact-debug-delivery.log", "bytes": 501}
+{"name": "compact-release-delivery", "phase": "started", "owned_pid_pgid": 424693, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-nkj6635j"}
+{"name": "compact-release-delivery", "command": ["python3", "evidence/T50/native_live_model_switch.py", "target/release/oc", "--case", "compact"], "exit": 0, "seconds": 1.24, "log": "evidence/T50/output-compact-release-delivery.log", "bytes": 503}
+{"name": "python47-final", "phase": "started", "owned_pid_pgid": 424718, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-6od5rdl4"}
+{"name": "python47-final", "command": ["env", "PYTHONPATH=scripts", "python3", "-m", "unittest", "-v", "test_bounded_live", "test_code_size", "test_progress", "test_check_docs"], "exit": 0, "seconds": 11.925, "log": "evidence/T50/output-python47-final.log", "bytes": 6329}
+{"name": "docs-readonly-final", "phase": "started", "owned_pid_pgid": 425196, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-k4413aaf"}
+{"name": "docs-readonly-final", "command": ["python3", "scripts/check_docs.py"], "exit": 0, "seconds": 0.174, "log": "evidence/T50/output-docs-readonly-final.log", "bytes": 131}
+{"name": "progress-readonly-final", "phase": "started", "owned_pid_pgid": 425200, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-c2_98o50"}
+{"name": "progress-readonly-final", "command": ["python3", "scripts/progress.py", "check"], "exit": 0, "seconds": 0.219, "log": "evidence/T50/output-progress-readonly-final.log", "bytes": 59}
+{"name": "diff-final", "phase": "started", "owned_pid_pgid": 425225, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-uuevy9zn"}
+{"name": "diff-final", "command": ["git", "diff", "--check"], "exit": 0, "seconds": 0.477, "log": "evidence/T50/output-diff-final.log", "bytes": 0}
+{"name": "advisory-final", "phase": "started", "owned_pid_pgid": 425266, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-tfcqj_c4"}
+{"name": "advisory-final", "command": ["python3", "scripts/code_size.py", "--base", "b9d02c09023f64992f7f29feaacce13ed56ca126", "--changed"], "exit": 0, "seconds": 1.98, "log": "evidence/T50/output-advisory-final.log", "bytes": 3996}
+{"name": "elf-kind-delivery", "phase": "started", "owned_pid_pgid": 426156, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-44iyeprb"}
+{"name": "elf-kind-delivery", "command": ["file", "target/debug/oc", "target/release/oc"], "exit": 0, "seconds": 0.068, "log": "evidence/T50/output-elf-kind-delivery.log", "bytes": 467}
+{"name": "audit-delivery", "phase": "started", "owned_pid_pgid": 426159, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-w8622hzr"}
+{"name": "audit-delivery", "command": ["python3", "evidence/T50/audit_tool_output_common.py"], "exit": 0, "seconds": 0.586, "log": "evidence/T50/output-audit-delivery.log", "bytes": 2517}
+{"name": "question-onecopy-red", "phase": "started", "owned_pid_pgid": 444546, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-e47w08xw"}
+{"name": "question-onecopy-red", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool21_actual_oversized_question"], "exit": 101, "seconds": 5.899, "log": "evidence/T50/output-question-onecopy-red.log", "bytes": 1246}
+{"name": "question-onecopy-red2", "phase": "started", "owned_pid_pgid": 446289, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-tfmln1qj"}
+{"name": "question-onecopy-red2", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool21_actual_oversized_question"], "exit": 101, "seconds": 21.476, "log": "evidence/T50/output-question-onecopy-red2.log", "bytes": 1112}
+{"name": "format-resume", "phase": "started", "owned_pid_pgid": 449756, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-3rom4e_6"}
+{"name": "format-resume", "command": ["cargo", "fmt", "--all"], "exit": 0, "seconds": 2.797, "log": "evidence/T50/output-format-resume.log", "bytes": 0}
+{"name": "owner-resume", "phase": "started", "owned_pid_pgid": 449791, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-bdcp6w3w"}
+{"name": "owner-resume", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool21_"], "exit": 101, "seconds": 44.125, "log": "evidence/T50/output-owner-resume.log", "bytes": 2691}
+{"name": "question-onecopy-red3", "phase": "started", "owned_pid_pgid": 451758, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-rrvp0u2j"}
+{"name": "question-onecopy-red3", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool21_actual_oversized_question"], "exit": 101, "seconds": 17.999, "log": "evidence/T50/output-question-onecopy-red3.log", "bytes": 1125}
+{"name": "format-resume2", "phase": "started", "owned_pid_pgid": 453702, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-xn6iqd5z"}
+{"name": "format-resume2", "command": ["cargo", "fmt", "--all"], "exit": 0, "seconds": 2.493, "log": "evidence/T50/output-format-resume2.log", "bytes": 0}
+{"name": "owner-resume2", "phase": "started", "owned_pid_pgid": 453735, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-5q32w194"}
+{"name": "owner-resume2", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool21_"], "exit": 101, "seconds": 30.182, "log": "evidence/T50/output-owner-resume2.log", "bytes": 55837}
+{"name": "owner-resume3", "phase": "started", "owned_pid_pgid": 454814, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-y5mpendn"}
+{"name": "owner-resume3", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool21_"], "exit": 0, "seconds": 24.608, "log": "evidence/T50/output-owner-resume3.log", "bytes": 2044}
+{"name": "fetch-resume", "phase": "started", "owned_pid_pgid": 455418, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-9uw9w1va"}
+{"name": "fetch-resume", "command": ["cargo", "test", "-p", "oc-adapters", "--lib", "--locked", "tool17_", "--", "--nocapture"], "exit": 0, "seconds": 1.042, "log": "evidence/T50/output-fetch-resume.log", "bytes": 1100}
+{"name": "fmt-resumed-current", "phase": "started", "owned_pid_pgid": 458037, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-_dmb_xmt"}
+{"name": "fmt-resumed-current", "command": ["cargo", "fmt", "--all", "--check"], "exit": 0, "seconds": 2.7, "log": "evidence/T50/output-fmt-resumed-current.log", "bytes": 0}
+{"name": "clippy-resumed-current", "phase": "started", "owned_pid_pgid": 458088, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-opz16iii"}
+{"name": "clippy-resumed-current", "command": ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"], "exit": 0, "seconds": 23.04, "log": "evidence/T50/output-clippy-resumed-current.log", "bytes": 267}
+{"name": "workspace-resumed-current", "phase": "started", "owned_pid_pgid": 458618, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-juqnw0yt"}
+{"name": "workspace-resumed-current", "command": ["cargo", "test", "--workspace", "--locked", "--no-fail-fast"], "exit": 0, "seconds": 1011.05, "log": "evidence/T50/output-workspace-resumed-current.log", "bytes": 132800}
+{"name": "mcp-media-resumed-current", "phase": "started", "owned_pid_pgid": 486905, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-rhm5n7e0"}
+{"name": "mcp-media-resumed-current", "command": ["cargo", "test", "-p", "oc", "--test", "mcp_application", "--locked", "mcp12_"], "exit": 0, "seconds": 2.783, "log": "evidence/T50/output-mcp-media-resumed-current.log", "bytes": 570}
+{"name": "build-debug-resumed-current", "phase": "started", "owned_pid_pgid": 486972, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-pj311dfq"}
+{"name": "build-debug-resumed-current", "command": ["cargo", "build", "--locked"], "exit": 0, "seconds": 9.035, "log": "evidence/T50/output-build-debug-resumed-current.log", "bytes": 192}
+{"name": "build-release-resumed-current", "phase": "started", "owned_pid_pgid": 487640, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-mh2_e_uz"}
+{"name": "build-release-resumed-current", "command": ["cargo", "build", "--release", "--locked"], "exit": 0, "seconds": 137.611, "log": "evidence/T50/output-build-release-resumed-current.log", "bytes": 257}
+{"name": "help-debug-resumed-current", "phase": "started", "owned_pid_pgid": 489337, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-zhezfwxk"}
+{"name": "help-debug-resumed-current", "command": ["target/debug/oc", "--help"], "exit": 0, "seconds": 0.041, "log": "evidence/T50/output-help-debug-resumed-current.log", "bytes": 717}
+{"name": "help-release-resumed-current", "phase": "started", "owned_pid_pgid": 489344, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-fdxd4g9b"}
+{"name": "help-release-resumed-current", "command": ["target/release/oc", "--help"], "exit": 0, "seconds": 0.02, "log": "evidence/T50/output-help-release-resumed-current.log", "bytes": 717}
+{"name": "question-oversized-debug-resumed", "phase": "started", "owned_pid_pgid": 489466, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-6cprcs8c"}
+{"name": "question-oversized-debug-resumed", "command": ["python3", "evidence/T50/native_tool_output_question.py", "target/debug/oc"], "exit": 1, "seconds": 8.83, "log": "evidence/T50/output-question-oversized-debug-resumed.log", "bytes": 4210}
+{"name": "question-oversized-debug-diagnose", "phase": "started", "owned_pid_pgid": 490175, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-o5sd65c9"}
+{"name": "question-oversized-debug-diagnose", "command": ["python3", "evidence/T50/native_tool_output_question.py", "target/debug/oc"], "exit": 1, "seconds": 8.771, "log": "evidence/T50/output-question-oversized-debug-diagnose.log", "bytes": 4306}
+{"name": "question-oversized-debug-resumed2", "phase": "started", "owned_pid_pgid": 490901, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-gbyuypc0"}
+{"name": "question-oversized-debug-resumed2", "command": ["python3", "evidence/T50/native_tool_output_question.py", "target/debug/oc"], "exit": 0, "seconds": 1.727, "log": "evidence/T50/output-question-oversized-debug-resumed2.log", "bytes": 414}
+{"name": "question-oversized-release-resumed2", "phase": "started", "owned_pid_pgid": 490948, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-_2_4nk54"}
+{"name": "question-oversized-release-resumed2", "command": ["python3", "evidence/T50/native_tool_output_question.py", "target/release/oc"], "exit": 0, "seconds": 0.974, "log": "evidence/T50/output-question-oversized-release-resumed2.log", "bytes": 416}
+{"name": "native-common-debug-resumed", "phase": "started", "owned_pid_pgid": 490970, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-lq__w5nj"}
+{"name": "native-common-debug-resumed", "command": ["python3", "evidence/T50/native_tool_output_common.py", "target/debug/oc"], "exit": 0, "seconds": 7.82, "log": "evidence/T50/output-native-common-debug-resumed.log", "bytes": 2265}
+{"name": "native-common-release-resumed", "phase": "started", "owned_pid_pgid": 491239, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-u7ovau2y"}
+{"name": "native-common-release-resumed", "command": ["python3", "evidence/T50/native_tool_output_common.py", "target/release/oc"], "exit": 0, "seconds": 4.952, "log": "evidence/T50/output-native-common-release-resumed.log", "bytes": 2267}
+{"name": "question-debug-resumed", "phase": "started", "owned_pid_pgid": 491848, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-a8mxnk_j"}
+{"name": "question-debug-resumed", "command": ["python3", "evidence/T50/native_question.py", "target/debug/oc"], "exit": 0, "seconds": 12.793, "log": "evidence/T50/output-question-debug-resumed.log", "bytes": 1526}
+{"name": "question-release-resumed", "phase": "started", "owned_pid_pgid": 492182, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-1882hwlr"}
+{"name": "question-release-resumed", "command": ["python3", "evidence/T50/native_question.py", "target/release/oc"], "exit": 0, "seconds": 9.93, "log": "evidence/T50/output-question-release-resumed.log", "bytes": 1528}
+{"name": "shell-controls-debug-resumed", "phase": "started", "owned_pid_pgid": 492542, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-hmzds0ay"}
+{"name": "shell-controls-debug-resumed", "command": ["python3", "evidence/T50/native_shell_controls.py", "target/debug/oc"], "exit": 0, "seconds": 8.345, "log": "evidence/T50/output-shell-controls-debug-resumed.log", "bytes": 2843}
+{"name": "shell-controls-release-resumed", "phase": "started", "owned_pid_pgid": 492933, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-s33r_tel"}
+{"name": "shell-controls-release-resumed", "command": ["python3", "evidence/T50/native_shell_controls.py", "target/release/oc"], "exit": 0, "seconds": 7.057, "log": "evidence/T50/output-shell-controls-release-resumed.log", "bytes": 2845}
+{"name": "media-debug-resumed", "phase": "started", "owned_pid_pgid": 493286, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-eo076lcc"}
+{"name": "media-debug-resumed", "command": ["python3", "evidence/T50/native_read.py", "target/debug/oc", "--case", "image_dcp"], "exit": 0, "seconds": 1.729, "log": "evidence/T50/output-media-debug-resumed.log", "bytes": 190}
+{"name": "media-release-resumed", "phase": "started", "owned_pid_pgid": 493312, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-4rrxpied"}
+{"name": "media-release-resumed", "command": ["python3", "evidence/T50/native_read.py", "target/release/oc", "--case", "image_dcp"], "exit": 0, "seconds": 1.023, "log": "evidence/T50/output-media-release-resumed.log", "bytes": 190}
+{"name": "python47-resumed", "phase": "started", "owned_pid_pgid": 494402, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-o96h_v1e"}
+{"name": "python47-resumed", "command": ["env", "PYTHONPATH=scripts", "python3", "-m", "unittest", "-v", "test_bounded_live", "test_code_size", "test_progress", "test_check_docs"], "exit": 0, "seconds": 10.58, "log": "evidence/T50/output-python47-resumed.log", "bytes": 6329}
+{"name": "docs-readonly-resumed", "phase": "started", "owned_pid_pgid": 494846, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-ph9t_lj3"}
+{"name": "docs-readonly-resumed", "command": ["python3", "scripts/check_docs.py"], "exit": 0, "seconds": 0.167, "log": "evidence/T50/output-docs-readonly-resumed.log", "bytes": 131}
+{"name": "progress-readonly-resumed", "phase": "started", "owned_pid_pgid": 494848, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-0dz6h1bt"}
+{"name": "progress-readonly-resumed", "command": ["python3", "scripts/progress.py", "check"], "exit": 0, "seconds": 0.167, "log": "evidence/T50/output-progress-readonly-resumed.log", "bytes": 59}
+{"name": "diff-resumed", "phase": "started", "owned_pid_pgid": 494850, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-vj_u3syn"}
+{"name": "diff-resumed", "command": ["git", "diff", "--check"], "exit": 0, "seconds": 0.179, "log": "evidence/T50/output-diff-resumed.log", "bytes": 0}
+{"name": "advisory-resumed", "phase": "started", "owned_pid_pgid": 494879, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-w0ugyt9x"}
+{"name": "advisory-resumed", "command": ["python3", "scripts/code_size.py", "--base", "b9d02c09023f64992f7f29feaacce13ed56ca126", "--changed"], "exit": 0, "seconds": 1.278, "log": "evidence/T50/output-advisory-resumed.log", "bytes": 4117}
+{"name": "audit-resumed", "phase": "started", "owned_pid_pgid": 495244, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-0mw9pda2"}
+{"name": "audit-resumed", "command": ["python3", "evidence/T50/audit_tool_output_common.py"], "exit": 0, "seconds": 0.527, "log": "evidence/T50/output-audit-resumed.log", "bytes": 2305}
+{"name": "fork-debug-resumed", "phase": "started", "owned_pid_pgid": 495799, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-ikotbzcb"}
+{"name": "fork-debug-resumed", "command": ["python3", "evidence/T50/native_background.py", "target/debug/oc", "--review-only", "fork", "--question-supported", "--shell-controls-supported"], "exit": 0, "seconds": 2.68, "log": "evidence/T50/output-fork-debug-resumed.log", "bytes": 312}
+{"name": "fork-release-resumed", "phase": "started", "owned_pid_pgid": 495849, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-fn_tiao_"}
+{"name": "fork-release-resumed", "command": ["python3", "evidence/T50/native_background.py", "target/release/oc", "--review-only", "fork", "--question-supported", "--shell-controls-supported"], "exit": 0, "seconds": 1.779, "log": "evidence/T50/output-fork-release-resumed.log", "bytes": 314}
+{"name": "compact-debug-resumed", "phase": "started", "owned_pid_pgid": 495905, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-d69d02dm"}
+{"name": "compact-debug-resumed", "command": ["python3", "evidence/T50/native_live_model_switch.py", "target/debug/oc", "--case", "compact"], "exit": 0, "seconds": 2.389, "log": "evidence/T50/output-compact-debug-resumed.log", "bytes": 501}
+{"name": "compact-release-resumed", "phase": "started", "owned_pid_pgid": 495932, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-gptednm3"}
+{"name": "compact-release-resumed", "command": ["python3", "evidence/T50/native_live_model_switch.py", "target/release/oc", "--case", "compact"], "exit": 0, "seconds": 1.229, "log": "evidence/T50/output-compact-release-resumed.log", "bytes": 503}
+{"name": "question-oversized-debug-final", "phase": "started", "owned_pid_pgid": 496742, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-9y9ul8d_"}
+{"name": "question-oversized-debug-final", "command": ["python3", "evidence/T50/native_tool_output_question.py", "target/debug/oc"], "exit": 0, "seconds": 1.877, "log": "evidence/T50/output-question-oversized-debug-final.log", "bytes": 468}
+{"name": "question-oversized-release-final", "phase": "started", "owned_pid_pgid": 496769, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-v97h2sjf"}
+{"name": "question-oversized-release-final", "command": ["python3", "evidence/T50/native_tool_output_question.py", "target/release/oc"], "exit": 0, "seconds": 1.026, "log": "evidence/T50/output-question-oversized-release-final.log", "bytes": 470}
+{"name": "search-debug-resumed", "phase": "started", "owned_pid_pgid": 498894, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-nx3na2o6"}
+{"name": "search-debug-resumed", "command": ["python3", "evidence/T50/native_search.py", "target/debug/oc", "--question-supported", "--model-session-supported", "--session-move-supported"], "exit": 0, "seconds": 13.573, "log": "evidence/T50/output-search-debug-resumed.log", "bytes": 9639}
+{"name": "search-release-resumed", "phase": "started", "owned_pid_pgid": 499167, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-eb7t6_tu"}
+{"name": "search-release-resumed", "command": ["python3", "evidence/T50/native_search.py", "target/release/oc", "--question-supported", "--model-session-supported", "--session-move-supported"], "exit": 0, "seconds": 10.393, "log": "evidence/T50/output-search-release-resumed.log", "bytes": 9641}
+{"name": "elf-kind-resumed", "phase": "started", "owned_pid_pgid": 510128, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-nxh7a3vd"}
+{"name": "elf-kind-resumed", "command": ["file", "target/debug/oc", "target/release/oc"], "exit": 0, "seconds": 0.037, "log": "evidence/T50/output-elf-kind-resumed.log", "bytes": 467}
+{"name": "docs-return", "phase": "started", "owned_pid_pgid": 510130, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-4jtaqqlr"}
+{"name": "docs-return", "command": ["python3", "scripts/check_docs.py"], "exit": 1, "seconds": 0.333, "log": "evidence/T50/output-docs-return.log", "bytes": 67}
+{"name": "progress-return", "phase": "started", "owned_pid_pgid": 511850, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-ma8ha149"}
+{"name": "progress-return", "command": ["python3", "scripts/progress.py", "check"], "exit": 2, "seconds": 0.117, "log": "evidence/T50/output-progress-return.log", "bytes": 67}
+{"name": "diff-return", "phase": "started", "owned_pid_pgid": 512648, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-yw7qgyzq"}
+{"name": "diff-return", "command": ["git", "diff", "--check"], "exit": 0, "seconds": 0.168, "log": "evidence/T50/output-diff-return.log", "bytes": 0}
+{"name": "audit-resumed-final", "phase": "started", "owned_pid_pgid": 512672, "owned_temporary": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-1nc6_bad"}
+{"name": "audit-resumed-final", "command": ["python3", "evidence/T50/audit_tool_output_common.py"], "exit": 0, "seconds": 0.569, "log": "evidence/T50/output-audit-resumed-final.log", "bytes": 2305}

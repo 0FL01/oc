@@ -1,0 +1,35 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 39.17s
+     Running unittests src/lib.rs (target/debug/deps/oc_adapters-ed9aaed69dd516e3)
+
+running 6 tests
+test config::tool_output_tests::tool21_invalid_output_limits_fail_before_generation_publication ... ok
+test config::tool_output_tests::tool21_latest_complete_section_defaults_and_provenance ... ok
+test storage::tool_output::tests::tool21_registered_identity_swap_interruption_and_blob_orphan_quota ... ok
+test storage::tool_output::tests::tool21_registered_stream_cap_redaction_leases_and_shared_quota ... ok
+test tools::output::tests::tool21_donor_count_utf8_head_tail_and_tiny_limits ... FAILED
+test tools::output::tests::tool21_prepared_envelope_retains_controls_no_metadata_bypass ... FAILED
+
+failures:
+
+---- tools::output::tests::tool21_donor_count_utf8_head_tail_and_tiny_limits stdout ----
+
+thread 'tools::output::tests::tool21_donor_count_utf8_head_tail_and_tiny_limits' (4093618) panicked at crates/oc-adapters/src/tools/output/tests.rs:13:5:
+assertion `left == right` failed
+  left: ("é\n二", true)
+ right: ("二", true)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tools::output::tests::tool21_prepared_envelope_retains_controls_no_metadata_bypass stdout ----
+
+thread 'tools::output::tests::tool21_prepared_envelope_retains_controls_no_metadata_bypass' (4093619) panicked at crates/oc-adapters/src/tools/output/tests.rs:69:5:
+assertion failed: text.starts_with("failure\n")
+
+
+failures:
+    tools::output::tests::tool21_donor_count_utf8_head_tail_and_tiny_limits
+    tools::output::tests::tool21_prepared_envelope_retains_controls_no_metadata_bypass
+
+test result: FAILED. 4 passed; 2 failed; 0 ignored; 0 measured; 436 filtered out; finished in 6.70s
+
+error: test failed, to rerun pass `-p oc-adapters --lib`

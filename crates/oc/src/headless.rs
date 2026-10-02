@@ -109,12 +109,15 @@ pub async fn run_once_to_writers(
                 .await
                 .map_err(|e| e.to_string())?;
             let mut rx = app.subscribe();
+            // Keep the listener registered across acknowledgement and event
+            // delivery; recreating ctrl_c futures can lose SIGINT in that gap.
+            let mut interrupts=tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt()).map_err(|e|e.to_string())?;
             let submit = app.submit(session.clone(), prompt);
             tokio::pin!(submit);
             let turn = tokio::select! {
                 result = &mut submit => result.map_err(|e| e.to_string())?,
-                signal = tokio::signal::ctrl_c() => {
-                    signal.map_err(|e| e.to_string())?;
+                signal = interrupts.recv() => {
+                    signal.ok_or("interrupt signal stream closed")?;
                     app.cancel(session.clone()).await.map_err(|e| e.to_string())?;
                     let _ = submit.await;
                     return Ok(130);
@@ -124,8 +127,8 @@ pub async fn run_once_to_writers(
             loop {
                 let event = tokio::select! {
                     event = rx.recv() => event.map_err(|e| e.to_string())?,
-                    signal = tokio::signal::ctrl_c() => {
-                        signal.map_err(|e| e.to_string())?;
+                    signal = interrupts.recv() => {
+                        signal.ok_or("interrupt signal stream closed")?;
                         app.cancel(session.clone()).await.map_err(|e| e.to_string())?;
                         continue;
                     }

@@ -564,14 +564,17 @@ async fn fetch_body(
     let mut current = parse_request_url(url)?;
     let resolver: Arc<dyn reqwest::dns::Resolve> =
         Arc::new(GuardedResolver::new(lookup, opts.allow_loopback));
-    let client = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::none())
-        .no_proxy()
-        .user_agent(crate::WEB_USER_AGENT)
-        .connect_timeout(opts.connect_timeout)
-        .dns_resolver(resolver.clone())
-        .build()
-        .map_err(|_| FetchError::Transport)?;
+    // The held-body fixture supplies the exact guarded client at this private
+    // construction seam, separating system TLS initialization from body timing.
+    // Production always constructs inside the already-running total deadline.
+    #[cfg(test)]
+    let prepared = format_tests::take_prepared_client();
+    #[cfg(not(test))]
+    let prepared: Option<reqwest::Client> = None;
+    let client = match prepared {
+        Some(client) => client,
+        None => guarded_client(opts, resolver.clone())?,
+    };
 
     let mut hops = 0usize;
     loop {
@@ -645,6 +648,20 @@ async fn fetch_body(
             body.body,
         ));
     }
+}
+
+fn guarded_client(
+    opts: FetchOptions,
+    resolver: Arc<dyn reqwest::dns::Resolve>,
+) -> Result<reqwest::Client, FetchError> {
+    reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .no_proxy()
+        .user_agent(crate::WEB_USER_AGENT)
+        .connect_timeout(opts.connect_timeout)
+        .dns_resolver(resolver)
+        .build()
+        .map_err(|_| FetchError::Transport)
 }
 
 struct CappedBody {

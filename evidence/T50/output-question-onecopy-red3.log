@@ -1,0 +1,22 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 17.73s
+     Running unittests src/lib.rs (target/debug/deps/oc_adapters-ed9aaed69dd516e3)
+
+running 1 test
+test storage::tool_output::tests::tool21_actual_oversized_question_has_one_cold_payload_and_restart_presentation ... FAILED
+
+failures:
+
+---- storage::tool_output::tests::tool21_actual_oversized_question_has_one_cold_payload_and_restart_presentation stdout ----
+
+thread 'storage::tool_output::tests::tool21_actual_oversized_question_has_one_cold_payload_and_restart_presentation' (452268) panicked at crates/oc-adapters/src/storage_tool_output/tests.rs:51:5:
+question event duplicates the complete cold payload: 56151
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    storage::tool_output::tests::tool21_actual_oversized_question_has_one_cold_payload_and_restart_presentation
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 451 filtered out; finished in 0.17s
+
+error: test failed, to rerun pass `-p oc-adapters --lib`

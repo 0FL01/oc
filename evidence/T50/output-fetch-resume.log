@@ -1,0 +1,16 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.38s
+     Running unittests src/lib.rs (target/debug/deps/oc_adapters-ed9aaed69dd516e3)
+
+running 6 tests
+test tools::tests::webfetch::tool17_model_independent_schema_defaults_and_units ... ok
+test tools::tests::webfetch::tool17_strict_format_seconds_and_known_options_before_io ... ok
+test webfetch::format_tests::tool17_dns_is_inside_total_deadline ... ok
+test webfetch::format_tests::tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_responsive ... held-body phase: guarded client construction 49.870709ms precedes unchanged request/body deadline
+held-body phase: guarded client construction 100.040971ms precedes unchanged request/body deadline
+held-body phase: guarded client construction 65.422394ms precedes unchanged request/body deadline
+ok
+test webfetch::format_tests::tool17_parser_caps_and_deadline_refuse_partial_success ... ok
+test webfetch::format_tests::tool17_unicode_structure_and_honest_mime ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 446 filtered out; finished in 0.49s
+

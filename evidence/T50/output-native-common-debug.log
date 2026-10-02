@@ -1,0 +1,5 @@
+{"case": "chain", "status": "FAIL", "error": "['Expecting value: line 1 column 1 (char 0)']"}
+{"case": "head", "status": "FAIL", "error": "['Expecting value: line 1 column 1 (char 0)']"}
+{"case": "quota", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "request_bytes": [9003, 10941], "native_tool_rows": [["skill", "failed", 1722]], "resources": [[0, "Quota"]], "logging_failure_facts": 1, "retained_resource_bytes": 0, "shell_full_producer": "NEXT"}
+{"case": "fault_effect", "status": "PASS", "provider_requests": 3, "main_requests": 2, "auxiliary_requests": 1, "request_bytes": [9003, 13616], "native_tool_rows": [["shell", "failed", 4333]], "resources": [[70001, "Interrupted"]], "logging_failure_facts": 1, "retained_resource_bytes": 70001, "shell_full_producer": "NEXT"}
+{"binary": "/home/opencode/ai/oc/target/debug/oc", "sha256_before": "63cf28d1411a392da62cd36dc2f988d27a3c794b9326778fcf1adfefeffa12af", "sha256_after": "63cf28d1411a392da62cd36dc2f988d27a3c794b9326778fcf1adfefeffa12af", "failures": 2, "owned_cleanup": "all processes/HTTP handler threads joined before exact TempDir cleanup"}

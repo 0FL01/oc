@@ -494,7 +494,7 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
             parameters: schema(
                 serde_json::json!({
                     "path": {"type": "string"},
-                    "offset": {"type": "integer", "minimum":1, "maximum":1000000, "default":1},
+                    "offset": {"type": "integer", "minimum":1, "maximum":crate::storage::tool_output::CAP+1, "default":1,"description":"Ordinary files: at most 1000000; exact registered tool-output artifacts: bounded by the 16 MiB capture extent."},
                     "limit": {"type": "integer", "minimum":1, "maximum":2000, "default":2000},
                 }),
                 &["path"],

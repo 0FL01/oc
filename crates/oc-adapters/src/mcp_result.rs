@@ -41,17 +41,8 @@ pub(crate) enum ResultError {
 /// leave a visible prefix. This is literal configured-value redaction, not a
 /// guarantee against an adversarial server encoding a secret in ordinary data.
 pub(crate) fn redact(text: &str, secrets: &[String]) -> String {
-    let mut secrets: Vec<&str> = secrets
-        .iter()
-        .map(String::as_str)
-        .filter(|s| !s.is_empty())
-        .collect();
-    secrets.sort_unstable_by_key(|secret| std::cmp::Reverse(secret.len()));
-    secrets.dedup();
     let mut text = text.to_string();
-    for secret in secrets {
-        text = text.replace(secret, "[redacted]");
-    }
+    crate::tools::output::redact_string(&mut text, secrets);
     text.retain(|c| !c.is_control() || matches!(c, '\n' | '\t'));
     text
 }

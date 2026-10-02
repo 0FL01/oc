@@ -355,6 +355,7 @@ fn make_harness(data: tempfile::TempDir, project: tempfile::TempDir) -> Harness 
 
 fn generation() -> Generation {
     Generation {
+        tool_output: Default::default(),
         compaction: Default::default(),
         config_diagnostics: Vec::new(),
         animations: None,

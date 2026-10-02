@@ -350,11 +350,10 @@ impl Runtime<'_> {
                         remote_mcp_failure(error, cancel)
                     },
                     |output| {
-                        let text = output.display().to_owned();
-                        if output.needs_native_log() {
-                            *native_result = Some(output);
-                        }
-                        ("completed", text)
+                        // The common boundary prepares the owned native DTO
+                        // before deriving display text; no extra full clone here.
+                        *native_result = Some(output);
+                        ("completed", String::new())
                     },
                 ),
             AttachedServer::Stdio(client) => client
@@ -384,11 +383,8 @@ impl Runtime<'_> {
                         stdio_mcp_failure(error, cancel)
                     },
                     |output| {
-                        let text = output.display().to_owned();
-                        if output.needs_native_log() {
-                            *native_result = Some(output);
-                        }
-                        ("completed", text)
+                        *native_result = Some(output);
+                        ("completed", String::new())
                     },
                 ),
         };

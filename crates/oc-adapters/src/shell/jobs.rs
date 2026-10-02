@@ -17,6 +17,10 @@ pub(crate) struct Provenance {
     pub operation: String,
     pub location: String,
     pub generation: u64,
+    #[serde(default)]
+    pub output_limits: crate::config::ToolOutputLimits,
+    #[serde(default)]
+    pub output_source: String,
     pub agent: Option<String>,
     pub agent_digest: Option<String>,
     pub model: String,
@@ -114,6 +118,12 @@ pub(crate) struct Outcome {
     pub stdout_bytes: u64,
     #[serde(default)]
     pub stderr_bytes: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stdout_recent: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stderr_recent: Option<String>,
+    #[serde(default)]
+    pub output_prepared: bool,
 }
 
 impl Outcome {
@@ -132,6 +142,9 @@ impl Outcome {
             diagnostic: Some(diagnostic.into()),
             stdout_bytes: 0,
             stderr_bytes: 0,
+            stdout_recent: None,
+            stderr_recent: None,
+            output_prepared: false,
         }
     }
 
@@ -160,6 +173,9 @@ impl Outcome {
                 diagnostic: None,
                 stdout_bytes: out.stdout.len() as u64,
                 stderr_bytes: out.stderr.len() as u64,
+                stdout_recent: None,
+                stderr_recent: None,
+                output_prepared: false,
             },
             Err(error) => {
                 let mut outcome = Self::unknown(&format!("shell supervisor: {error}"));
@@ -320,7 +336,16 @@ impl Jobs {
         slot: tokio::sync::OwnedSemaphorePermit,
     ) -> Result<String, StorageError> {
         self.launch_mode(
-            shell, env, argv, cwd, timeout, approved, provenance, slot, false,
+            shell,
+            env,
+            argv,
+            cwd,
+            timeout,
+            approved,
+            provenance,
+            slot,
+            false,
+            Vec::new(),
         )
         .await
     }
@@ -337,6 +362,7 @@ impl Jobs {
         provenance: Provenance,
         slot: tokio::sync::OwnedSemaphorePermit,
         foreground: bool,
+        output_secrets: Vec<String>,
     ) -> Result<String, StorageError> {
         let id = provenance.operation.clone();
         self.db.admit_shell_job_mode(&provenance, foreground)?;
@@ -354,6 +380,7 @@ impl Jobs {
             ..Control::default()
         }));
         let owned_control = control.clone();
+        let output_provenance = provenance.clone();
         let task = tokio::task::spawn_blocking(move || {
             let result = shell.execute_pinned_started(
                 &env,
@@ -385,6 +412,70 @@ impl Jobs {
             let mut outcome = Outcome::from_result(result);
             outcome.stdout_bytes = owned_capture.stdout.lock().expect("stdout capture").total;
             outcome.stderr_bytes = owned_capture.stderr.lock().expect("stderr capture").total;
+            let p = &output_provenance;
+            let context = crate::tools::output::Context {
+                db: &db,
+                operation: &operation,
+                session: &p.session,
+                location: &p.location,
+                generation: p.generation,
+                source: &p.output_source,
+                limits: p.output_limits,
+                secrets: output_secrets,
+            };
+            crate::tools::output::redact_string(&mut outcome.stdout, &context.secrets);
+            crate::tools::output::redact_string(&mut outcome.stderr, &context.secrets);
+            if let Some(diagnostic) = outcome.diagnostic.as_mut() {
+                crate::tools::output::redact_string(diagnostic, &context.secrets);
+            }
+            let text_bytes = outcome
+                .stdout
+                .len()
+                .saturating_add(outcome.stderr.len())
+                .saturating_add(if outcome.stderr.is_empty() { 0 } else { 10 });
+            let text_lines = crate::tools::output::lines(&outcome.stdout)
+                + crate::tools::output::lines(&outcome.stderr)
+                + u64::from(!outcome.stderr.is_empty());
+            if text_bytes > p.output_limits.bytes() || text_lines > p.output_limits.max_lines as u64
+            {
+                let recent_cap = (crate::storage::TOOL_OP_PREVIEW_BYTES - 128) / 2;
+                outcome.stdout_recent = Some(recent(&outcome.stdout, recent_cap));
+                outcome.stderr_recent = Some(recent(&outcome.stderr, recent_cap));
+                // These are separately admitted bounded UI stream facts, not
+                // the provider text or a second full capture owner.
+                for text in [&mut outcome.stdout_recent, &mut outcome.stderr_recent]
+                    .into_iter()
+                    .flatten()
+                {
+                    *text = recent(text, recent_cap);
+                }
+                // Move the retained producer strings into one admitted text
+                // owner; do not clone a multi-megabyte Outcome into text().
+                let mut retained = std::mem::take(&mut outcome.stdout);
+                outcome.output_prepared = true;
+                if !outcome.stderr.is_empty() {
+                    retained.push_str("\n[stderr]\n");
+                    retained.push_str(&std::mem::take(&mut outcome.stderr));
+                }
+                let prepared = context.prepare(
+                    retained,
+                    true,
+                    outcome.stdout_truncated || outcome.stderr_truncated,
+                    None,
+                );
+                outcome.stdout = prepared.text;
+                outcome.stderr.clear();
+                if prepared.logging_failed {
+                    db.record_output_execution(&operation, &outcome.state)?;
+                    if outcome.state != "unknown" {
+                        outcome.state = "failed".into();
+                    }
+                    outcome.diagnostic = Some(
+                        "tool output capture failed; execution facts/exit retained; not replayed"
+                            .into(),
+                    );
+                }
+            }
             let mut control = owned_control.lock().expect("shell control");
             let result = db.finish_shell_job(&operation, &outcome);
             control.finished = true;
@@ -522,8 +613,8 @@ impl Jobs {
             == "terminal"
         {
             let o = self.db.shell_job_outcome(session, id)?;
-            let stdout = recent(&o.stdout, cap);
-            let stderr = recent(&o.stderr, cap);
+            let stdout = recent(o.stdout_recent.as_deref().unwrap_or(&o.stdout), cap);
+            let stderr = recent(o.stderr_recent.as_deref().unwrap_or(&o.stderr), cap);
             let preview_truncated = o.stdout.len() > cap || o.stderr.len() > cap;
             (
                 o.state,

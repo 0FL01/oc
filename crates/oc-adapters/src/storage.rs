@@ -12,6 +12,7 @@
 use std::collections::HashSet;
 use std::fs::{self, File, OpenOptions};
 use std::io::Write as _;
+use std::os::unix::fs::MetadataExt as _;
 use std::os::unix::fs::PermissionsExt as _;
 use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -39,6 +40,8 @@ mod instructions;
 mod session_move;
 #[path = "storage_shell_jobs.rs"]
 mod shell_jobs;
+#[path = "storage_tool_output.rs"]
+pub(crate) mod tool_output;
 pub(crate) use session_move::MoveRecord;
 
 /// Bounded page projection retaining the exact persisted message identity.
@@ -290,6 +293,8 @@ pub struct Db {
     blob_dir: PathBuf,
     quota_bytes: u64,
     conn: Arc<Mutex<Connection>>,
+    output_dir: Arc<File>,
+    output_readers: Arc<Mutex<std::collections::HashMap<String, usize>>>,
     // Fields drop in declaration order: release ownership after SQLite closes.
     _lock: Arc<RootLock>,
 }
@@ -498,17 +503,35 @@ impl Db {
         Self::session_list_schema(&conn)?;
         Self::shell_jobs_schema(&conn)?;
         Self::session_move_schema(&conn)?;
+        Self::tool_output_schema(&conn)?;
+        let output_path = root.join("tool-output");
+        match fs::create_dir(&output_path) {
+            Ok(()) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(error) => return Err(error.into()),
+        }
+        let output_dir = tool_output::open_directory(&output_path)?;
+        if output_dir.metadata()?.uid() != fs::metadata(&root)?.uid() {
+            return Err(StorageError::UnsafeRoot(
+                "tool output directory owner".into(),
+            ));
+        }
+        output_dir.set_permissions(fs::Permissions::from_mode(0o700))?;
         // Same journal, indexed anchor lookup: history paging must not parse
         // every archived turn. Legacy non-JSON results are excluded safely.
         conn.execute_batch("CREATE INDEX IF NOT EXISTS turns_display_anchor ON turns(session_id, COALESCE(json_extract(result,'$.assistant_message'),json_extract(result,'$.user_message'))) WHERE json_valid(result)")?;
 
-        Ok(Self {
+        let db = Self {
             root,
             blob_dir,
             quota_bytes,
             conn: Arc::new(Mutex::new(conn)),
+            output_dir: Arc::new(output_dir),
+            output_readers: Arc::new(Mutex::new(std::collections::HashMap::new())),
             _lock: Arc::new(lock),
-        })
+        };
+        db.expire_tool_outputs(tool_output::timestamp())?;
+        Ok(db)
     }
 
     // Completion workers retain this same connection and flock. This cannot open
@@ -519,6 +542,8 @@ impl Db {
             blob_dir: self.blob_dir.clone(),
             quota_bytes: self.quota_bytes,
             conn: self.conn.clone(),
+            output_dir: self.output_dir.clone(),
+            output_readers: self.output_readers.clone(),
             _lock: self._lock.clone(),
         }
     }
@@ -914,7 +939,7 @@ impl Db {
         }
         tx.execute_batch("CREATE TEMP TABLE IF NOT EXISTS deleting_family(id TEXT PRIMARY KEY); DELETE FROM deleting_family;")?;
         tx.execute("INSERT INTO deleting_family WITH RECURSIVE family(id) AS (SELECT ?1 UNION SELECT s.id FROM sessions s JOIN family f ON s.parent_id=f.id) SELECT id FROM family", [session])?;
-        let busy: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM turns WHERE session_id IN deleting_family AND status='started') OR EXISTS(SELECT 1 FROM shell_jobs j WHERE session_id IN deleting_family AND (phase!='terminal' OR (message_id IS NULL AND (NOT EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload=j.operation_id) OR EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload=j.operation_id)))))", [], |r| r.get(0))?;
+        let busy: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM turns WHERE session_id IN deleting_family AND status='started') OR EXISTS(SELECT 1 FROM tool_output_resources WHERE session_id IN deleting_family AND state='Active') OR EXISTS(SELECT 1 FROM shell_jobs j WHERE session_id IN deleting_family AND (phase!='terminal' OR (message_id IS NULL AND (NOT EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload=j.operation_id) OR EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload=j.operation_id)))))", [], |r| r.get(0))?;
         if busy {
             return Err(StorageError::Io(std::io::Error::other(
                 "session family active",
@@ -990,6 +1015,7 @@ impl Db {
             "conversation_exclusions",
             "conversation_state",
             "turn_acceptances",
+            "tool_output_resources",
             "shell_jobs",
             "tool_operations",
             "events",
@@ -1241,7 +1267,7 @@ impl Db {
                          THEN substr(output, 1, ?4) ELSE output END,
                     length(CAST(output AS BLOB)), archive_rowid,
                     (SELECT metadata FROM patch_effects WHERE op_id=conversation_tools.id),
-                    CASE WHEN name='question' THEN substr(output,1,131136) ELSE NULL END
+                    CASE WHEN name='question' THEN COALESCE((SELECT COALESCE(json_extract(e.payload,'$.result'),json_extract(e.payload,'$.question_resource')) FROM events e WHERE e.session_id=conversation_tools.session_id AND e.kind='tool_output_question' AND json_extract(e.payload,'$.operation')=conversation_tools.id LIMIT 1),substr(output,1,131136)) ELSE NULL END
                FROM conversation_tools
               WHERE session_id = ?1 AND (?2 IS NULL OR archive_rowid < ?2)
               ORDER BY archive_rowid DESC LIMIT ?3",
@@ -1264,7 +1290,8 @@ impl Db {
                     None
                 };
                 Ok(ToolOpRow {
-                    question: oc_core::question::QuestionResult::from_output(
+                    question: self.question_presentation_in(
+                        &conn,
                         &name,
                         &row.get::<_, String>(3)?,
                         row.get::<_, Option<String>>(9)?.as_deref(),
@@ -1308,6 +1335,11 @@ impl Db {
         offset: usize,
         limit: usize,
     ) -> Result<(String, i64, Option<i64>), StorageError> {
+        if let Some(resource) = self.output_for_operation(op)? {
+            return self
+                .open_tool_output(&resource.session, &resource.path)?
+                .byte_page(offset, limit);
+        }
         let conn = self.conn.lock().expect("db mutex");
         Self::read_tool_op_output_on(&conn, op, offset, limit)
     }
@@ -1379,6 +1411,13 @@ impl Db {
         if !belongs {
             return Err(StorageError::OperationNotFound);
         }
+        drop(conn);
+        if let Some(resource) = self.output_for_operation(op)? {
+            return self
+                .open_tool_output(session, &resource.path)?
+                .byte_page(offset, limit.clamp(4, TOOL_OP_PREVIEW_BYTES));
+        }
+        let conn = self.conn.lock().expect("db mutex");
         Self::read_tool_op_output_on(&conn, op, offset, limit.clamp(4, TOOL_OP_PREVIEW_BYTES))
     }
 
@@ -1438,7 +1477,7 @@ impl Db {
                          THEN substr(output, 1, ?3) ELSE output END,
                     length(CAST(output AS BLOB)), rowid,
                     (SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id),
-                    CASE WHEN name='question' THEN substr(output,1,131136) ELSE NULL END
+                    CASE WHEN name='question' THEN COALESCE((SELECT COALESCE(json_extract(e.payload,'$.result'),json_extract(e.payload,'$.question_resource')) FROM events e WHERE e.session_id=tool_operations.session_id AND e.kind='tool_output_question' AND json_extract(e.payload,'$.operation')=tool_operations.id LIMIT 1),substr(output,1,131136)) ELSE NULL END
                FROM tool_operations
               WHERE session_id = ?1 ORDER BY rowid ASC LIMIT ?2",
         )?;
@@ -1460,7 +1499,8 @@ impl Db {
                     None
                 };
                 Ok(ToolOpRow {
-                    question: oc_core::question::QuestionResult::from_output(
+                    question: self.question_presentation_in(
+                        &conn,
                         &name,
                         &row.get::<_, String>(3)?,
                         row.get::<_, Option<String>>(9)?.as_deref(),
@@ -2530,7 +2570,7 @@ impl Db {
                 // Input is structured JSON: cutting it at the output-preview
                 // boundary destroys patch/path metadata. Serve complete admitted
                 // input within the turn budget, otherwise honestly omit it.
-                let view=conn.query_row("SELECT rowid,name,state,CASE WHEN length(CAST(input AS BLOB))<=?4 THEN input ELSE NULL END,substr(output,1,?3),length(CAST(output AS BLOB)),(SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id),CASE WHEN name='question' THEN substr(output,1,131136) ELSE NULL END FROM tool_operations WHERE id=?1 AND turn_id=?2",params![op,id,TOOL_OP_PREVIEW_BYTES as i64,budget.saturating_sub(TOOL_OP_PREVIEW_BYTES) as i64],|r| {
+                let view=conn.query_row("SELECT rowid,name,state,CASE WHEN length(CAST(input AS BLOB))<=?4 THEN input ELSE NULL END,substr(output,1,?3),length(CAST(output AS BLOB)),(SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id),CASE WHEN name='question' THEN COALESCE((SELECT COALESCE(json_extract(e.payload,'$.result'),json_extract(e.payload,'$.question_resource')) FROM events e WHERE e.session_id=tool_operations.session_id AND e.kind='tool_output_question' AND json_extract(e.payload,'$.operation')=tool_operations.id LIMIT 1),substr(output,1,131136)) ELSE NULL END FROM tool_operations WHERE id=?1 AND turn_id=?2",params![op,id,TOOL_OP_PREVIEW_BYTES as i64,budget.saturating_sub(TOOL_OP_PREVIEW_BYTES) as i64],|r| {
                     let bytes=r.get::<_,Option<i64>>(5)?.unwrap_or(0);
                     let (output,output_truncated)=bound_preview(r.get(4)?,bytes);
                     let dcp = Self::dcp_run_in(&conn,session,op).map_err(|_| rusqlite::Error::InvalidQuery)?;
@@ -2539,7 +2579,7 @@ impl Db {
                     let dcp_topic = if name == "compress" { dcp.as_ref().map(|run|run.topic.clone()).or_else(||crate::dcp::presentation_topic(&name,input.as_deref())) } else { None };
                     let raw: Option<String> = r.get(7)?;
                     let state: String = r.get(2)?;
-                    let question = oc_core::question::QuestionResult::from_output(&name, &state, raw.as_deref());
+                    let question = self.question_presentation_in(&conn, &name, &state, raw.as_deref());
                     Ok(ToolOpView{question,dcp_topic,dcp,patch_effects:decode_patch_effects(r.get(6)?),op:op.to_string(),rowid:r.get(0)?,name,state,input,output,output_bytes:bytes,output_truncated})
                 }).optional()?;
                 if let Some(mut view) = view {
@@ -3257,7 +3297,7 @@ impl Db {
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => false,
             Err(err) => return Err(err.into()),
         };
-        let mut used = data.len() as u64;
+        let mut used = (data.len() as u64).saturating_add(self.output_disk_bytes()?);
         for entry in fs::read_dir(&self.blob_dir)? {
             let entry = entry?;
             let meta = fs::symlink_metadata(entry.path())?;

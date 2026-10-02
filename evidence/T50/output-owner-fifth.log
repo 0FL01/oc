@@ -1,0 +1,38 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+error[E0609]: no field `selection_generation` on type `oc_core::queries::CatalogSnapshot`
+   --> crates/oc-adapters/src/application/tests.rs:149:48
+    |
+149 |         assert!(reloaded.generation > original.selection_generation);
+    |                                                ^^^^^^^^^^^^^^^^^^^^ unknown field
+    |
+help: one of the expressions' fields has a field of the same name
+    |
+149 |         assert!(reloaded.generation > original.chrome.selection_generation);
+    |                                                +++++++
+
+error[E0308]: mismatched types
+    --> crates/oc-adapters/src/tools/output/tests.rs:113:46
+     |
+ 113 |     db.record_tool_outcome("q", "completed", &prepared.text)
+     |        -------------------                   ^^^^^^^^^^^^^^ expected `Option<&str>`, found `&String`
+     |        |
+     |        arguments to this method are incorrect
+     |
+     = note:   expected enum `std::option::Option<&str>`
+             found reference `&std::string::String`
+note: method defined here
+    --> crates/oc-adapters/src/storage.rs:3178:12
+     |
+3178 |     pub fn record_tool_outcome(
+     |            ^^^^^^^^^^^^^^^^^^^
+...
+3182 |         output: Option<&str>,
+     |         --------------------
+help: try wrapping the expression in `Some`
+     |
+ 113 |     db.record_tool_outcome("q", "completed", Some(&prepared.text))
+     |                                              +++++              +
+
+Some errors have detailed explanations: E0308, E0609.
+For more information about an error, try `rustc --explain E0308`.
+error: could not compile `oc-adapters` (lib test) due to 2 previous errors

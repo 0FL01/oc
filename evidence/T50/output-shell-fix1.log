@@ -1,0 +1,9 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 27.59s
+     Running unittests src/lib.rs (target/debug/deps/oc_adapters-ed9aaed69dd516e3)
+
+running 1 test
+test shell::jobs::tests::tool13_conversion_retains_pid_admission_capture_and_final_view_after_removal ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 448 filtered out; finished in 1.86s
+

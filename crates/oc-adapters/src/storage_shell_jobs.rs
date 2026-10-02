@@ -304,6 +304,14 @@ impl Db {
         if !owned {
             return Err(StorageError::OperationNotFound);
         }
+        drop(conn);
+        if let Some(resource) = self.output_for_operation(operation)? {
+            return self
+                .open_tool_output(session, &resource.path)?
+                .byte_page(offset, limit.clamp(4, TOOL_OP_PREVIEW_BYTES))
+                .map(Some);
+        }
+        let conn = self.conn.lock().expect("db mutex");
         let raw: Option<String> = conn.query_row(
             "SELECT outcome FROM shell_jobs WHERE session_id=?1 AND operation_id=?2 AND phase='terminal'",
             params![session,operation],|r|r.get::<_,String>(0)).optional()?;

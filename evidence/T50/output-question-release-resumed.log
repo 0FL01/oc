@@ -1,0 +1,16 @@
+{"binary": "/home/opencode/ai/oc/target/release/oc", "sha256_before": "9a427ad382c7969de945e76fd86ff3bfc36656764d20f4cabab72274169ad162"}
+{"case": "headless", "status": "PASS", "requests": 1, "operation_rows": 1}
+{"case": "headless_auto", "status": "PASS", "requests": 1, "operation_rows": 1}
+{"case": "headless_ask_auto", "status": "PASS", "requests": 1, "operation_rows": 1}
+{"case": "deny", "status": "PASS", "requests": 2}
+{"case": "general_ceiling", "status": "PASS", "requests": 4}
+{"case": "explore_ceiling", "status": "PASS", "requests": 4}
+{"case": "invalid_empty_questions", "status": "PASS", "requests": 2}
+{"case": "single", "status": "PASS", "requests": 2, "typed_answers": [["Other"]], "dismissed": false}
+{"case": "single_custom_auto", "status": "PASS", "requests": 2, "typed_answers": [["custom answer"]], "dismissed": false}
+{"case": "multiple_submit", "status": "PASS", "requests": 2, "typed_answers": [["Native", "Other"]], "dismissed": false}
+{"case": "ordered_questions", "status": "PASS", "requests": 2, "typed_answers": [["Other"], ["custom"]], "dismissed": false}
+{"case": "child_origin_consumer", "status": "PASS", "requests": 4, "typed_answers": [["Native"]], "dismissed": false}
+{"case": "dismiss_queued_effect", "status": "PASS", "requests": 1, "typed_answers": null, "dismissed": true}
+{"case": "unanswered_restart_unknown", "status": "PASS", "requests": 1, "typed_answers": null, "dismissed": false}
+{"sha256_after": "9a427ad382c7969de945e76fd86ff3bfc36656764d20f4cabab72274169ad162", "cases": 14}

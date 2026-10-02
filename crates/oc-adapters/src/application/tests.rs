@@ -120,6 +120,38 @@ mod review_tests {
     }
 
     #[tokio::test]
+    async fn tool21_failed_output_reload_keeps_published_generation_and_safe_diagnostics() {
+        let root = tempfile::tempdir().unwrap();
+        let global = root.path().join("global");
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        for path in [&global, &project, &data] {
+            std::fs::create_dir_all(path).unwrap();
+        }
+        let model = serde_json::json!({"model":"fixture/m","tool_output":{"max_lines":20,"max_bytes":4096},"provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"dummy"},"models":{"m":{}}}}});
+        std::fs::write(global.join("opencode.json"), model.to_string()).unwrap();
+        let env = BTreeMap::from([(
+            "OPENCODE_CONFIG_DIR".into(),
+            global.to_string_lossy().into_owned(),
+        )]);
+        let (app, guard, _) = spawn_with_env(&project, &data, env).await.unwrap();
+        let original = app.catalog().await.unwrap();
+        std::fs::write(
+            project.join("opencode.jsonc"),
+            r#"{"tool_output":{"max_bytes":"DO_NOT_LEAK"}}"#,
+        )
+        .unwrap();
+        let error = app.reload_location().await.unwrap_err();
+        assert!(!error.to_string().contains("DO_NOT_LEAK"));
+        assert_eq!(app.catalog().await.unwrap(), original);
+        std::fs::write(project.join("opencode.jsonc"), r#"{"tool_output":{}}"#).unwrap();
+        let reloaded = app.reload_location().await.unwrap();
+        assert!(reloaded.generation > original.chrome.selection_generation);
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[tokio::test]
     async fn terminal_copy_and_animations_follow_global_location_switch_and_reload() {
         let root = tempfile::tempdir().unwrap();
         let global = root.path().join("global");

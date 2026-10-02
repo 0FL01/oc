@@ -1,0 +1,2 @@
+{"case": "compact", "status": "PASS", "primary_requests": 3, "summaries": 1, "auxiliary_requests": 1, "commits": 2, "request_models": ["gpt-fixture", "gpt-fixture"], "tool_rows": 0, "owned_cleanup": "all process/PTY/HTTP owners joined before exact TempDir cleanup"}
+{"binary": "/home/opencode/ai/oc/target/debug/oc", "sha256_before": "cddd13141f4953caa2125dab8336ab00b8d679034fff5b50501d8541a52ad8a8", "sha256_after": "cddd13141f4953caa2125dab8336ab00b8d679034fff5b50501d8541a52ad8a8", "failures": 0}

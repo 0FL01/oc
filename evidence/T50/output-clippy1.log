@@ -1,0 +1,32 @@
+    Checking oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+error: the variable `inspected` is used as a loop counter
+   --> crates/oc-adapters/src/storage_tool_output.rs:377:9
+    |
+377 |         for entry in fs::read_dir(self.root.join("tool-output"))? {
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using: `for (inspected, entry) in fs::read_dir(self.root.join("tool-output"))?.enumerate()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#explicit_counter_loop
+    = note: `-D clippy::explicit-counter-loop` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::explicit_counter_loop)]`
+
+error: calling `as_bytes` after slicing a string
+   --> crates/oc-adapters/src/storage_tool_output.rs:490:32
+    |
+490 |                     .write_all(text[..kept].as_bytes())
+    |                                ^^^^^^^^^^^^^^^^^^^^^^^ help: try: `&text.as_bytes()[..kept]`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#sliced_string_as_bytes
+    = note: `-D clippy::sliced-string-as-bytes` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::sliced_string_as_bytes)]`
+
+error: the variable `n` is used as a loop counter
+  --> crates/oc-adapters/src/tools/output.rs:93:9
+   |
+93 |         for line in without_terminal.rsplit('\n') {
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using: `for (n, line) in without_terminal.rsplit('\n').enumerate()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#explicit_counter_loop
+
+error: could not compile `oc-adapters` (lib) due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `oc-adapters` (lib test) due to 3 previous errors

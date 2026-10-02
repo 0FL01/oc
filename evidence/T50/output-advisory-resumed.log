@@ -1,0 +1,36 @@
+34 files; 37526 physical lines; 1455548 UTF-8 bytes
+crates/oc-adapters/src/runtime/turn.rs: {'lines': 3866, 'bytes': 172880} (source) delta={'lines': 182, 'bytes': 8731}
+crates/oc-adapters/src/storage.rs: {'lines': 3690, 'bytes': 155673} (mixed/unknown) delta={'lines': 40, 'bytes': 2719}
+crates/oc-adapters/tests/runtime/turns.rs: {'lines': 3687, 'bytes': 131081} (test) delta={'lines': 2, 'bytes': 98}
+crates/oc-adapters/src/config.rs: {'lines': 2434, 'bytes': 91189} (mixed/unknown) delta={'lines': 16, 'bytes': 586}
+crates/oc-adapters/src/tools.rs: {'lines': 2417, 'bytes': 86948} (mixed/unknown) delta={'lines': 15, 'bytes': 485}
+crates/oc-adapters/tests/runtime/tool_lifecycle.rs: {'lines': 2050, 'bytes': 76624} (test) delta={'lines': 1, 'bytes': 45}
+crates/oc-adapters/src/runtime.rs: {'lines': 1998, 'bytes': 83957} (mixed/unknown) delta={'lines': 0, 'bytes': 154}
+crates/oc-adapters/src/storage/tests.rs: {'lines': 1675, 'bytes': 61330} (test) delta={'lines': 0, 'bytes': 6}
+crates/oc-adapters/tests/subagent.rs: {'lines': 1552, 'bytes': 54390} (test) delta={'lines': 1, 'bytes': 41}
+crates/oc-adapters/src/storage_fork.rs: {'lines': 1519, 'bytes': 66654} (mixed/unknown) delta={'lines': 4, 'bytes': 643}
+crates/oc-adapters/src/application/tests.rs: {'lines': 1455, 'bytes': 60602} (test) delta={'lines': 32, 'bytes': 1651}
+crates/oc-adapters/src/webfetch.rs: {'lines': 1424, 'bytes': 49672} (mixed/unknown) delta={'lines': 17, 'bytes': 627}
+crates/oc-adapters/tests/runtime.rs: {'lines': 1000, 'bytes': 37340} (test) delta={'lines': 1, 'bytes': 41}
+crates/oc-adapters/src/shell/jobs.rs: {'lines': 885, 'bytes': 31665} (mixed/unknown) delta={'lines': 91, 'bytes': 4086}
+crates/oc-adapters/tests/e2e_offline.rs: {'lines': 756, 'bytes': 26853} (test) delta={'lines': 2, 'bytes': 82}
+crates/oc-adapters/tests/soak.rs: {'lines': 741, 'bytes': 27493} (test) delta={'lines': 2, 'bytes': 82}
+crates/oc-adapters/src/storage_tool_output.rs: {'lines': 714, 'bytes': 27214} (mixed/unknown) delta={'lines': 714, 'bytes': 27214}
+crates/oc-adapters/tests/context_bounds.rs: {'lines': 673, 'bytes': 25093} (test) delta={'lines': 1, 'bytes': 41}
+crates/oc-adapters/src/mcp_result/media.rs: {'lines': 612, 'bytes': 22547} (mixed/unknown) delta={'lines': 250, 'bytes': 9094}
+crates/oc-adapters/src/tools/output.rs: {'lines': 548, 'bytes': 20796} (mixed/unknown) delta={'lines': 548, 'bytes': 20796}
+crates/oc-adapters/src/shell/jobs/tests.rs: {'lines': 460, 'bytes': 17968} (test) delta={'lines': 17, 'bytes': 761}
+crates/oc-adapters/src/runtime/mcp.rs: {'lines': 394, 'bytes': 15344} (source) delta={'lines': -4, 'bytes': -120}
+crates/oc-adapters/tests/e2e_live.rs: {'lines': 369, 'bytes': 13730} (test) delta={'lines': 2, 'bytes': 90}
+crates/oc-adapters/src/storage_tool_output/tests.rs: {'lines': 356, 'bytes': 13153} (test) delta={'lines': 356, 'bytes': 13153}
+crates/oc-adapters/src/storage_shell_jobs.rs: {'lines': 341, 'bytes': 15100} (mixed/unknown) delta={'lines': 8, 'bytes': 344}
+crates/oc-adapters/src/mcp_result.rs: {'lines': 310, 'bytes': 12028} (mixed/unknown) delta={'lines': -9, 'bytes': -262}
+crates/oc-adapters/src/webfetch/format_tests.rs: {'lines': 292, 'bytes': 10696} (test) delta={'lines': 71, 'bytes': 2899}
+crates/oc/src/headless.rs: {'lines': 272, 'bytes': 10829} (mixed/unknown) delta={'lines': 3, 'bytes': 304}
+crates/oc-adapters/src/tools/read.rs: {'lines': 259, 'bytes': 9631} (source) delta={'lines': 6, 'bytes': 189}
+crates/oc-adapters/src/tools/output/tests.rs: {'lines': 240, 'bytes': 8524} (test) delta={'lines': 240, 'bytes': 8524}
+crates/oc-adapters/src/storage_tool_output/access.rs: {'lines': 179, 'bytes': 7468} (source) delta={'lines': 179, 'bytes': 7468}
+crates/oc-adapters/src/config/diagnostic.rs: {'lines': 173, 'bytes': 4523} (source) delta={'lines': 3, 'bytes': 65}
+crates/oc-adapters/src/models/tool_tests.rs: {'lines': 132, 'bytes': 4978} (test) delta={'lines': 1, 'bytes': 41}
+crates/oc-adapters/src/config/tool_output_tests.rs: {'lines': 53, 'bytes': 1575} (test) delta={'lines': 53, 'bytes': 1575}
+Advisory only; renames appear as old deleted + new path. Details: --json.

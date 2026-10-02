@@ -1,0 +1,9 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 24.33s
+     Running unittests src/lib.rs (target/debug/deps/oc_adapters-ed9aaed69dd516e3)
+
+running 1 test
+test webfetch::format_tests::tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_responsive ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 450 filtered out; finished in 0.30s
+

@@ -125,6 +125,12 @@ impl Outcome {
     }
 }
 pub(crate) fn parse(call: &ToolCall) -> Result<(&str, u64, usize), String> {
+    parse_with_offset_cap(call, 1_000_000)
+}
+pub(crate) fn parse_with_offset_cap(
+    call: &ToolCall,
+    offset_cap: u64,
+) -> Result<(&str, u64, usize), String> {
     let args = call
         .arguments
         .as_object()
@@ -143,8 +149,8 @@ pub(crate) fn parse(call: &ToolCall) -> Result<(&str, u64, usize), String> {
     let offset = match args.get("offset") {
         Some(n) => n
             .as_u64()
-            .filter(|n| (1..=1_000_000).contains(n))
-            .ok_or("read offset must be 1..1000000")?,
+            .filter(|n| (1..=offset_cap).contains(n))
+            .ok_or_else(|| format!("read offset must be 1..{offset_cap}"))?,
         None => 1,
     };
     let limit = match args.get("limit") {

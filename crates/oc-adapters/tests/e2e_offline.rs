@@ -149,6 +149,7 @@ fn make_harness(permissions: BTreeMap<String, Permission>) -> (Harness, Generati
         .collect(),
     };
     let generation = Generation {
+        tool_output: Default::default(),
         compaction: Default::default(),
         config_diagnostics: Vec::new(),
         animations: None,
@@ -542,6 +543,7 @@ async fn e2e01_seeded_coding_fix() {
         .collect(),
     };
     let generation = Generation {
+        tool_output: Default::default(),
         compaction: Default::default(),
         config_diagnostics: Vec::new(),
         animations: None,

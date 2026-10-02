@@ -1,0 +1,2 @@
+{"case": "head", "status": "FAIL", "error": "['unbounded tool projection', 'unexpected title/aux request']"}
+{"binary": "/home/opencode/ai/oc/target/debug/oc", "sha256_before": "9a265dd04e286c13eeb842a5ecc03d5c02b3c7375d135b7d7c3a4be9578b38da", "sha256_after": "9a265dd04e286c13eeb842a5ecc03d5c02b3c7375d135b7d7c3a4be9578b38da", "failures": 1, "owned_cleanup": "all processes/HTTP handler threads joined before exact TempDir cleanup"}

@@ -1,0 +1,84 @@
+{
+  "elf_sha256": {
+    "debug": "cddd13141f4953caa2125dab8336ab00b8d679034fff5b50501d8541a52ad8a8",
+    "release": "9a427ad382c7969de945e76fd86ff3bfc36656764d20f4cabab72274169ad162"
+  },
+  "first_wrapper_cleanup_timing": {
+    "output-clippy5.log": 1790905935.6307392,
+    "output-workspace1.log.gz": 1790907002.364894
+  },
+  "logs": [
+    {
+      "completed_target_counts": 38,
+      "completed_target_seconds": 877.67,
+      "exact_log_bytes": 106959,
+      "failed": 1,
+      "failed_tests": [
+        "webfetch::format_tests::tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_responsive"
+      ],
+      "ignored": 10,
+      "name": "output-workspace12.log.gz",
+      "passed": 1007,
+      "stored_bytes": 27750
+    },
+    {
+      "completed_target_counts": 1,
+      "completed_target_seconds": 12.61,
+      "exact_log_bytes": 2044,
+      "failed": 0,
+      "failed_tests": [],
+      "ignored": 0,
+      "name": "output-owner-resume3.log",
+      "passed": 16,
+      "stored_bytes": 2044
+    },
+    {
+      "completed_target_counts": 42,
+      "completed_target_seconds": 918.54,
+      "exact_log_bytes": 132800,
+      "failed": 0,
+      "failed_tests": [],
+      "ignored": 10,
+      "name": "output-workspace-resumed-current.log.gz",
+      "passed": 1442,
+      "stored_bytes": 34104
+    },
+    {
+      "completed_target_counts": 1,
+      "completed_target_seconds": 1.67,
+      "exact_log_bytes": 570,
+      "failed": 0,
+      "failed_tests": [],
+      "ignored": 0,
+      "name": "output-mcp-media-resumed-current.log",
+      "passed": 3,
+      "stored_bytes": 570
+    },
+    {
+      "completed_target_counts": 42,
+      "completed_target_seconds": 894.03,
+      "exact_log_bytes": 132485,
+      "failed": 0,
+      "failed_tests": [],
+      "ignored": 10,
+      "name": "output-workspace3.log.gz",
+      "passed": 1441,
+      "stored_bytes": 34029
+    },
+    {
+      "completed_target_counts": 1,
+      "completed_target_seconds": 0.49,
+      "exact_log_bytes": 1100,
+      "failed": 0,
+      "failed_tests": [],
+      "ignored": 0,
+      "name": "output-fetch-resume.log",
+      "passed": 6,
+      "stored_bytes": 1100
+    }
+  ],
+  "owned_aggregate_bytes": 912285,
+  "owned_file_count": 232,
+  "remaining_recorded_temporaries": [],
+  "unclassified_owned_prefix_directories": []
+}

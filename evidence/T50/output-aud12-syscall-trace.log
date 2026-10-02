@@ -1,0 +1,528 @@
+148259 08:13:15.377864 rt_sigaction(SIGPIPE, {sa_handler=SIG_IGN, sa_mask=[PIPE], sa_flags=SA_RESTORER|SA_RESTART, sa_restorer=0x7fd486fc8df0}, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+148259 08:13:15.378860 rt_sigaction(SIGSEGV, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+148259 08:13:15.378952 sigaltstack(NULL, {ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148259 08:13:15.379762 sigaltstack({ss_sp=0x7fd4872a7000, ss_flags=0, ss_size=8192}, NULL) = 0
+148259 08:13:15.379937 rt_sigaction(SIGSEGV, {sa_handler=0x5564ba4b40c0, sa_mask=[], sa_flags=SA_RESTORER|SA_ONSTACK|SA_SIGINFO, sa_restorer=0x7fd486fc8df0}, NULL, 8) = 0
+148259 08:13:15.380039 rt_sigaction(SIGBUS, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+148259 08:13:15.380177 rt_sigaction(SIGBUS, {sa_handler=0x5564ba4b40c0, sa_mask=[], sa_flags=SA_RESTORER|SA_ONSTACK|SA_SIGINFO, sa_restorer=0x7fd486fc8df0}, NULL, 8) = 0
+148259 08:13:15.381003 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148259 08:13:15.381206 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148259 08:13:15.381661 rt_sigaction(SIGRT_1, {sa_handler=0x7fd4870194b0, sa_mask=[], sa_flags=SA_RESTORER|SA_ONSTACK|SA_RESTART|SA_SIGINFO, sa_restorer=0x7fd486fc8df0}, NULL, 8) = 0
+148259 08:13:15.381762 rt_sigprocmask(SIG_UNBLOCK, [RTMIN RT_1], NULL, 8) = 0
+148259 08:13:15.381960 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148259 08:13:15.382151 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148262 08:13:15.382318 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148262 08:13:15.382920 sigaltstack(NULL, {ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148262 08:13:15.383088 sigaltstack({ss_sp=0x7fd4872a2000, ss_flags=0, ss_size=8192}, NULL) = 0
+148262 08:13:15.384506 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148262 08:13:15.384594 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148262 08:13:15.385069 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148262 08:13:15.385225 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148263 08:13:15.385351 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148263 08:13:15.385705 sigaltstack(NULL, {ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148263 08:13:15.385880 sigaltstack({ss_sp=0x7fd48729f000, ss_flags=0, ss_size=8192},  <unfinished ...>
+148262 08:13:15.385908 rt_sigprocmask(SIG_BLOCK, ~[],  <unfinished ...>
+148263 08:13:15.385934 <... sigaltstack resumed>NULL) = 0
+148262 08:13:15.385957 <... rt_sigprocmask resumed>[], 8) = 0
+148264 08:13:15.386077 rt_sigprocmask(SIG_BLOCK, NULL, ~[KILL STOP], 8) = 0
+148264 08:13:15.386143 rt_sigaction(SIGPIPE, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=SA_RESTORER, sa_restorer=0x7fd486fc8df0}, NULL, 8) = 0
+148264 08:13:15.386266 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148262 08:13:15.386559 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148264 08:13:15.393856 rt_sigaction(SIGPIPE, {sa_handler=SIG_IGN, sa_mask=[PIPE], sa_flags=SA_RESTORER|SA_RESTART, sa_restorer=0x7fc2af7b8df0}, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+148264 08:13:15.396199 rt_sigaction(SIGSEGV, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+148264 08:13:15.396303 sigaltstack(NULL, {ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148264 08:13:15.396497 sigaltstack({ss_sp=0x7fc2afa97000, ss_flags=0, ss_size=8192}, NULL) = 0
+148264 08:13:15.396629 rt_sigaction(SIGSEGV, {sa_handler=0x56551b793470, sa_mask=[], sa_flags=SA_RESTORER|SA_ONSTACK|SA_SIGINFO, sa_restorer=0x7fc2af7b8df0}, NULL, 8) = 0
+148264 08:13:15.396715 rt_sigaction(SIGBUS, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+148264 08:13:15.396787 rt_sigaction(SIGBUS, {sa_handler=0x56551b793470, sa_mask=[], sa_flags=SA_RESTORER|SA_ONSTACK|SA_SIGINFO, sa_restorer=0x7fc2af7b8df0}, NULL, 8) = 0
+148264 08:13:15.397113 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148264 08:13:15.397274 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148264 08:13:15.399340 rt_sigaction(SIGRT_1, {sa_handler=0x7fc2af8094b0, sa_mask=[], sa_flags=SA_RESTORER|SA_ONSTACK|SA_RESTART|SA_SIGINFO, sa_restorer=0x7fc2af7b8df0}, NULL, 8) = 0
+148264 08:13:15.399413 rt_sigprocmask(SIG_UNBLOCK, [RTMIN RT_1], NULL, 8) = 0
+148264 08:13:15.399632 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148264 08:13:15.399827 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148265 08:13:15.399954 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148264 08:13:15.400098 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148264 08:13:15.400316 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148266 08:13:15.400418 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148265 08:13:15.400583 sigaltstack(NULL,  <unfinished ...>
+148264 08:13:15.400599 rt_sigprocmask(SIG_BLOCK, ~[],  <unfinished ...>
+148265 08:13:15.400642 <... sigaltstack resumed>{ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148264 08:13:15.400673 <... rt_sigprocmask resumed>[], 8) = 0
+148264 08:13:15.400856 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148265 08:13:15.400886 sigaltstack({ss_sp=0x7fc2afa92000, ss_flags=0, ss_size=8192},  <unfinished ...>
+148264 08:13:15.400902 <... rt_sigprocmask resumed>NULL, 8) = 0
+148266 08:13:15.400915 sigaltstack(NULL,  <unfinished ...>
+148265 08:13:15.400925 <... sigaltstack resumed>NULL) = 0
+148266 08:13:15.400939 <... sigaltstack resumed>{ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148267 08:13:15.401029 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148264 08:13:15.401137 rt_sigprocmask(SIG_BLOCK, ~[],  <unfinished ...>
+148266 08:13:15.401176 sigaltstack({ss_sp=0x7fc2afa8f000, ss_flags=0, ss_size=8192},  <unfinished ...>
+148264 08:13:15.401212 <... rt_sigprocmask resumed>[], 8) = 0
+148266 08:13:15.401258 <... sigaltstack resumed>NULL) = 0
+148267 08:13:15.401364 sigaltstack(NULL, {ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148264 08:13:15.401466 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148268 08:13:15.401530 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148264 08:13:15.401557 <... rt_sigprocmask resumed>NULL, 8) = 0
+148268 08:13:15.401572 <... rt_sigprocmask resumed>NULL, 8) = 0
+148267 08:13:15.401610 sigaltstack({ss_sp=0x7fc2afa8c000, ss_flags=0, ss_size=8192}, NULL) = 0
+148264 08:13:15.401791 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148268 08:13:15.401946 sigaltstack(NULL,  <unfinished ...>
+148264 08:13:15.401971 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148268 08:13:15.402000 <... sigaltstack resumed>{ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148264 08:13:15.402029 <... rt_sigprocmask resumed>NULL, 8) = 0
+148269 08:13:15.402096 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148268 08:13:15.402176 sigaltstack({ss_sp=0x7fc2aed6e000, ss_flags=0, ss_size=8192}, NULL) = 0
+148265 08:13:15.402268 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148264 08:13:15.402350 rt_sigprocmask(SIG_BLOCK, ~[],  <unfinished ...>
+148265 08:13:15.402367 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148264 08:13:15.402382 <... rt_sigprocmask resumed>[], 8) = 0
+148265 08:13:15.402399 <... rt_sigprocmask resumed>NULL, 8) = 0
+148269 08:13:15.402496 sigaltstack(NULL, {ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148264 08:13:15.402582 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148265 08:13:15.402619 epoll_wait(3,  <unfinished ...>
+148264 08:13:15.402650 <... rt_sigprocmask resumed>NULL, 8) = 0
+148270 08:13:15.402700 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148269 08:13:15.402767 sigaltstack({ss_sp=0x7fc2aeb6a000, ss_flags=0, ss_size=8192}, NULL) = 0
+148267 08:13:15.402878 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148269 08:13:15.402955 rt_sigprocmask(SIG_BLOCK, ~[],  <unfinished ...>
+148268 08:13:15.402995 rt_sigprocmask(SIG_BLOCK, ~[],  <unfinished ...>
+148267 08:13:15.403029 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148269 08:13:15.403043 <... rt_sigprocmask resumed>[], 8) = 0
+148268 08:13:15.403063 <... rt_sigprocmask resumed>[], 8) = 0
+148269 08:13:15.403087 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148268 08:13:15.403102 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148269 08:13:15.403119 <... rt_sigprocmask resumed>NULL, 8) = 0
+148266 08:13:15.403128 rt_sigprocmask(SIG_BLOCK, ~[],  <unfinished ...>
+148268 08:13:15.403154 <... rt_sigprocmask resumed>NULL, 8) = 0
+148266 08:13:15.403172 <... rt_sigprocmask resumed>[], 8) = 0
+148267 08:13:15.403230 <... rt_sigprocmask resumed>NULL, 8) = 0
+148266 08:13:15.403262 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148270 08:13:15.403290 sigaltstack(NULL, {ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148266 08:13:15.403382 <... rt_sigprocmask resumed>NULL, 8) = 0
+148270 08:13:15.403527 sigaltstack({ss_sp=0x7fc2aeb67000, ss_flags=0, ss_size=8192}, NULL) = 0
+148270 08:13:15.403638 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148270 08:13:15.403733 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148264 08:13:15.423704 fsync(16)        = 0
+148264 08:13:15.427620 fsync(17)        = 0
+148264 08:13:15.432684 fsync(16)        = 0
+148264 08:13:15.436783 fsync(11)        = 0
+148264 08:13:15.443107 fsync(16)        = 0
+148264 08:13:15.444906 fsync(18)        = 0
+148264 08:13:15.445959 fsync(16)        = 0
+148264 08:13:15.452525 fsync(16)        = 0
+148264 08:13:15.456167 fsync(16)        = 0
+148264 08:13:15.458955 fsync(16)        = 0
+148264 08:13:15.461790 fsync(16)        = 0
+148264 08:13:15.464680 fsync(16)        = 0
+148264 08:13:15.467326 fsync(16)        = 0
+148264 08:13:15.471656 fsync(16)        = 0
+148264 08:13:15.474118 fsync(16)        = 0
+148264 08:13:15.476595 fsync(16)        = 0
+148264 08:13:15.479363 fsync(16)        = 0
+148264 08:13:15.482719 fsync(16)        = 0
+148264 08:13:15.484986 fsync(16)        = 0
+148264 08:13:15.487814 fsync(16)        = 0
+148264 08:13:15.490294 fsync(16)        = 0
+148264 08:13:15.492679 fsync(16)        = 0
+148264 08:13:15.495204 fsync(16)        = 0
+148264 08:13:15.497506 fsync(16)        = 0
+148264 08:13:15.499486 fsync(16)        = 0
+148264 08:13:15.502112 fsync(16)        = 0
+148264 08:13:15.504811 fsync(16)        = 0
+148264 08:13:15.507884 fsync(16)        = 0
+148264 08:13:15.516391 fsync(16)        = 0
+148264 08:13:15.519671 fsync(16)        = 0
+148264 08:13:15.522332 fsync(16)        = 0
+148264 08:13:15.525291 fsync(16)        = 0
+148264 08:13:15.527893 fsync(16)        = 0
+148264 08:13:15.535462 fsync(16)        = 0
+148264 08:13:15.539017 fsync(16)        = 0
+148264 08:13:15.541334 fsync(16)        = 0
+148264 08:13:15.544055 fsync(16)        = 0
+148264 08:13:15.548093 fsync(16)        = 0
+148264 08:13:15.556159 fsync(16)        = 0
+148264 08:13:15.559201 fsync(16)        = 0
+148264 08:13:15.564454 fsync(16)        = 0
+148264 08:13:15.566941 fsync(16)        = 0
+148264 08:13:15.569342 fsync(16)        = 0
+148264 08:13:15.572926 fsync(16)        = 0
+148264 08:13:15.580723 fsync(16)        = 0
+148264 08:13:15.585132 fsync(16)        = 0
+148264 08:13:15.587567 fsync(16)        = 0
+148264 08:13:15.590769 fsync(16)        = 0
+148264 08:13:15.594024 fsync(16)        = 0
+148264 08:13:15.597917 fsync(16)        = 0
+148264 08:13:15.601522 fsync(16)        = 0
+148264 08:13:15.605119 fsync(16)        = 0
+148270 08:13:15.610568 fsync(16)        = 0
+148270 08:13:15.621851 fsync(16)        = 0
+148270 08:13:15.626045 fsync(16)        = 0
+148270 08:13:15.628355 fsync(16)        = 0
+148270 08:13:15.632064 fsync(16)        = 0
+148270 08:13:15.635108 fsync(16)        = 0
+148270 08:13:15.639828 fsync(16)        = 0
+148270 08:13:15.645329 fsync(16)        = 0
+148270 08:13:15.647992 fsync(16)        = 0
+148270 08:13:15.653784 fsync(16)        = 0
+148270 08:13:15.666399 fsync(16)        = 0
+148270 08:13:15.671590 fsync(16)        = 0
+148270 08:13:15.681857 fsync(16)        = 0
+148264 08:13:15.687470 rt_sigaction(SIGINT, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+148264 08:13:15.687678 rt_sigaction(SIGINT, {sa_handler=0x56551b662950, sa_mask=[], sa_flags=SA_RESTORER|SA_RESTART|SA_SIGINFO, sa_restorer=0x7fc2af7b8df0}, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+148270 08:13:15.708679 fsync(16)        = 0
+148270 08:13:15.714829 fsync(16)        = 0
+148270 08:13:15.723572 fsync(16)        = 0
+148270 08:13:15.731551 fsync(16)        = 0
+148270 08:13:15.735470 fsync(16)        = 0
+148265 08:13:15.740257 <... epoll_wait resumed>[{events=EPOLLIN, data=0}], 1024, -1) = 1
+148265 08:13:15.740390 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, -1) = 1
+148265 08:13:15.909631 epoll_wait(3,  <unfinished ...>
+148270 08:13:15.910800 fsync(16 <unfinished ...>
+148265 08:13:15.911816 <... epoll_wait resumed>[], 1024, 2) = 0
+148265 08:13:15.911925 epoll_wait(3,  <unfinished ...>
+148270 08:13:15.913419 <... fsync resumed>) = 0
+148265 08:13:15.914620 <... epoll_wait resumed>[{events=EPOLLOUT, data=0x7fc290037a80}], 1024, 8) = 1
+148265 08:13:15.916582 epoll_wait(3, [], 1024, 3) = 0
+148263 08:13:15.920780 rt_sigprocmask(SIG_BLOCK, ~[],  <unfinished ...>
+148265 08:13:15.920827 epoll_wait(3,  <unfinished ...>
+148263 08:13:15.920855 <... rt_sigprocmask resumed>[], 8) = 0
+148265 08:13:15.920877 <... epoll_wait resumed>[{events=EPOLLIN, data=0}], 1024, 11) = 1
+148263 08:13:15.920895 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148265 08:13:15.920906 epoll_wait(3,  <unfinished ...>
+148263 08:13:15.920916 <... rt_sigprocmask resumed>NULL, 8) = 0
+148265 08:13:15.921456 <... epoll_wait resumed>[{events=EPOLLIN|EPOLLOUT, data=0x7fc290037a80}], 1024, 11) = 1
+148267 08:13:15.922327 epoll_wait(3,  <unfinished ...>
+148265 08:13:15.923805 fsync(16)        = 0
+148267 08:13:15.932875 <... epoll_wait resumed>[], 1024, 10) = 0
+148267 08:13:15.933002 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, -1) = 1
+148267 08:13:15.933399 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148267 08:13:15.933510 epoll_wait(3, [], 1024, 11) = 0
+148267 08:13:15.945444 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148267 08:13:15.945646 epoll_wait(3, [], 1024, 11) = 0
+148267 08:13:15.957421 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148267 08:13:15.957536 epoll_wait(3, [], 1024, 11) = 0
+148267 08:13:15.968953 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 7) = 1
+148267 08:13:15.969069 epoll_wait(3, [], 1024, 7) = 0
+148267 08:13:15.976253 epoll_wait(3, [], 1024, 3) = 0
+148267 08:13:15.981128 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148267 08:13:15.981257 epoll_wait(3, [], 1024, 10) = 0
+148267 08:13:15.991744 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148267 08:13:15.991847 epoll_wait(3, [], 1024, 11) = 0
+148267 08:13:16.003262 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 10) = 1
+148267 08:13:16.003385 epoll_wait(3, [], 1024, 10) = 0
+148267 08:13:16.013814 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148267 08:13:16.013926 epoll_wait(3, [], 1024, 11) = 0
+148267 08:13:16.025425 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148267 08:13:16.025715 epoll_wait(3, [], 1024, 11) = 0
+148267 08:13:16.039226 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 0) = 1
+148267 08:13:16.039427 epoll_wait(3, [], 1024, 8) = 0
+148267 08:13:16.047916 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148267 08:13:16.048092 epoll_wait(3, [], 1024, 11) = 0
+148267 08:13:16.065021 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 6) = 1
+148267 08:13:16.065207 epoll_wait(3, [], 1024, 6) = 0
+148267 08:13:16.071569 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148267 08:13:16.074419 epoll_wait(3, [], 1024, 8) = 0
+148267 08:13:16.082897 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148267 08:13:16.083091 epoll_wait(3, [], 1024, 11) = 0
+148267 08:13:16.097031 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 7) = 1
+148267 08:13:16.097145 epoll_wait(3, [], 1024, 7) = 0
+148267 08:13:16.104712 epoll_wait(3, [], 1024, 3) = 0
+148267 08:13:16.108122 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148267 08:13:16.108224 epoll_wait(3, [], 1024, 10) = 0
+148267 08:13:16.119188 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148267 08:13:16.119310 epoll_wait(3,  <unfinished ...>
+148270 08:13:16.120451 fsync(16)        = 0
+148267 08:13:16.123711 <... epoll_wait resumed>[{events=EPOLLOUT, data=0x7fc290099200}], 1024, 10) = 1
+148267 08:13:16.124252 epoll_wait(3, [], 1024, 5) = 0
+148267 08:13:16.132422 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148267 08:13:16.132774 epoll_wait(3, [{events=EPOLLIN|EPOLLOUT, data=0x7fc290099200}], 1024, 11) = 1
+148267 08:13:16.133028 epoll_wait(3, [{events=EPOLLIN|EPOLLOUT, data=0x7fc290099200}], 1024, 11) = 1
+148267 08:13:16.133165 epoll_wait(3, [{events=EPOLLIN|EPOLLOUT, data=0x7fc290099200}], 1024, 11) = 1
+148267 08:13:16.135888 epoll_wait(3, [], 1024, 0) = 0
+148268 08:13:16.136690 epoll_wait(3,  <unfinished ...>
+148267 08:13:16.141254 fsync(16 <unfinished ...>
+148262 08:13:16.142496 kill(148264, SIGINT) = 0
+148264 08:13:16.142985 --- SIGINT {si_signo=SIGINT, si_code=SI_USER, si_pid=148259, si_uid=1003} ---
+148268 08:13:16.143171 <... epoll_wait resumed>[{events=EPOLLIN, data=0x1}], 1024, 8) = 1
+148264 08:13:16.143200 rt_sigreturn({mask=[]}) = 202
+148268 08:13:16.143783 epoll_wait(3,  <unfinished ...>
+148267 08:13:16.144424 <... fsync resumed>) = 0
+148267 08:13:16.147810 fsync(16)        = 0
+148267 08:13:16.151147 fsync(16)        = 0
+148267 08:13:16.159307 fsync(16)        = 0
+148267 08:13:16.168376 fsync(11)        = 0
+148268 08:13:16.175439 <... epoll_wait resumed>[{events=EPOLLIN, data=0}], 1024, 5766424) = 1
+148269 08:13:16.175886 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192},  <unfinished ...>
+148270 08:13:16.175934 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192},  <unfinished ...>
+148269 08:13:16.175957 <... sigaltstack resumed>NULL) = 0
+148268 08:13:16.175985 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192},  <unfinished ...>
+148270 08:13:16.176017 <... sigaltstack resumed>NULL) = 0
+148267 08:13:16.176032 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192},  <unfinished ...>
+148265 08:13:16.176051 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192},  <unfinished ...>
+148268 08:13:16.176064 <... sigaltstack resumed>NULL) = 0
+148269 08:13:16.176076 rt_sigprocmask(SIG_BLOCK, ~[RT_1],  <unfinished ...>
+148267 08:13:16.176094 <... sigaltstack resumed>NULL) = 0
+148269 08:13:16.176109 <... rt_sigprocmask resumed>NULL, 8) = 0
+148265 08:13:16.176124 <... sigaltstack resumed>NULL) = 0
+148268 08:13:16.176171 rt_sigprocmask(SIG_BLOCK, ~[RT_1], NULL, 8) = 0
+148269 08:13:16.176270 +++ exited with 0 +++
+148265 08:13:16.176289 rt_sigprocmask(SIG_BLOCK, ~[RT_1], NULL, 8) = 0
+148268 08:13:16.176363 +++ exited with 0 +++
+148267 08:13:16.176454 rt_sigprocmask(SIG_BLOCK, ~[RT_1], NULL, 8) = 0
+148270 08:13:16.176725 rt_sigprocmask(SIG_BLOCK, ~[RT_1], NULL, 8) = 0
+148267 08:13:16.176783 +++ exited with 0 +++
+148265 08:13:16.176793 +++ exited with 0 +++
+148270 08:13:16.176990 +++ exited with 0 +++
+148266 08:13:16.177008 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192}, NULL) = 0
+148266 08:13:16.177129 rt_sigprocmask(SIG_BLOCK, ~[RT_1], NULL, 8) = 0
+148266 08:13:16.177290 +++ exited with 0 +++
+148264 08:13:16.177337 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192}, NULL) = 0
+148264 08:13:16.177498 exit_group(130)  = ?
+148264 08:13:16.180133 +++ exited with 130 +++
+148262 08:13:16.180183 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=148264, si_uid=1003, si_status=130, si_utime=14 /* 0.14 s */, si_stime=8 /* 0.08 s */} ---
+148262 08:13:16.213150 fsync(7)         = 0
+148262 08:13:16.216079 fsync(9)         = 0
+148262 08:13:16.216462 fsync(7)         = 0
+148263 08:13:16.229185 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192}, NULL) = 0
+148263 08:13:16.229656 rt_sigprocmask(SIG_BLOCK, ~[RT_1], NULL, 8) = 0
+148263 08:13:16.229876 +++ exited with 0 +++
+148262 08:13:16.230250 fsync(7)         = 0
+148262 08:13:16.230931 fsync(6)         = 0
+148262 08:13:16.239642 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148262 08:13:16.239868 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148292 08:13:16.239934 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148292 08:13:16.240082 sigaltstack(NULL, {ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148292 08:13:16.240235 sigaltstack({ss_sp=0x7fd48729f000, ss_flags=0, ss_size=8192}, NULL) = 0
+148262 08:13:16.240531 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148293 08:13:16.240768 rt_sigprocmask(SIG_BLOCK, NULL, ~[KILL STOP], 8) = 0
+148293 08:13:16.240859 rt_sigaction(SIGPIPE, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=SA_RESTORER, sa_restorer=0x7fd486fc8df0}, NULL, 8) = 0
+148293 08:13:16.241046 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148262 08:13:16.241397 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148293 08:13:16.249750 rt_sigaction(SIGPIPE, {sa_handler=SIG_IGN, sa_mask=[PIPE], sa_flags=SA_RESTORER|SA_RESTART, sa_restorer=0x7f417a004df0}, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+148293 08:13:16.250594 rt_sigaction(SIGSEGV, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+148293 08:13:16.250682 sigaltstack(NULL, {ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148293 08:13:16.250871 sigaltstack({ss_sp=0x7f417a2e3000, ss_flags=0, ss_size=8192}, NULL) = 0
+148293 08:13:16.251036 rt_sigaction(SIGSEGV, {sa_handler=0x5575db176470, sa_mask=[], sa_flags=SA_RESTORER|SA_ONSTACK|SA_SIGINFO, sa_restorer=0x7f417a004df0}, NULL, 8) = 0
+148293 08:13:16.251118 rt_sigaction(SIGBUS, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+148293 08:13:16.251191 rt_sigaction(SIGBUS, {sa_handler=0x5575db176470, sa_mask=[], sa_flags=SA_RESTORER|SA_ONSTACK|SA_SIGINFO, sa_restorer=0x7f417a004df0}, NULL, 8) = 0
+148293 08:13:16.251443 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148293 08:13:16.251647 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148293 08:13:16.253714 rt_sigaction(SIGRT_1, {sa_handler=0x7f417a0554b0, sa_mask=[], sa_flags=SA_RESTORER|SA_ONSTACK|SA_RESTART|SA_SIGINFO, sa_restorer=0x7f417a004df0}, NULL, 8) = 0
+148293 08:13:16.253817 rt_sigprocmask(SIG_UNBLOCK, [RTMIN RT_1], NULL, 8) = 0
+148293 08:13:16.253986 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148293 08:13:16.254289 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148294 08:13:16.254353 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148293 08:13:16.254515 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148293 08:13:16.254677 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148295 08:13:16.254758 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148294 08:13:16.254802 sigaltstack(NULL, {ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148293 08:13:16.254952 rt_sigprocmask(SIG_BLOCK, ~[],  <unfinished ...>
+148294 08:13:16.254978 sigaltstack({ss_sp=0x7f417a2de000, ss_flags=0, ss_size=8192}, NULL) = 0
+148293 08:13:16.255049 <... rt_sigprocmask resumed>[], 8) = 0
+148295 08:13:16.255233 sigaltstack(NULL,  <unfinished ...>
+148293 08:13:16.255277 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148295 08:13:16.255298 <... sigaltstack resumed>{ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148296 08:13:16.255325 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148293 08:13:16.255340 <... rt_sigprocmask resumed>NULL, 8) = 0
+148296 08:13:16.255362 <... rt_sigprocmask resumed>NULL, 8) = 0
+148295 08:13:16.255424 sigaltstack({ss_sp=0x7f417a2db000, ss_flags=0, ss_size=8192}, NULL) = 0
+148293 08:13:16.255501 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148296 08:13:16.255626 sigaltstack(NULL, {ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148293 08:13:16.255707 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148297 08:13:16.255724 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148293 08:13:16.255743 <... rt_sigprocmask resumed>NULL, 8) = 0
+148297 08:13:16.255758 <... rt_sigprocmask resumed>NULL, 8) = 0
+148296 08:13:16.255808 sigaltstack({ss_sp=0x7f417a2d8000, ss_flags=0, ss_size=8192}, NULL) = 0
+148295 08:13:16.255910 rt_sigprocmask(SIG_BLOCK, ~[],  <unfinished ...>
+148294 08:13:16.255927 rt_sigprocmask(SIG_BLOCK, ~[],  <unfinished ...>
+148296 08:13:16.255952 rt_sigprocmask(SIG_BLOCK, ~[],  <unfinished ...>
+148295 08:13:16.255970 <... rt_sigprocmask resumed>[], 8) = 0
+148296 08:13:16.256005 <... rt_sigprocmask resumed>[], 8) = 0
+148294 08:13:16.256021 <... rt_sigprocmask resumed>[], 8) = 0
+148295 08:13:16.256033 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148296 08:13:16.256062 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148294 08:13:16.256078 rt_sigprocmask(SIG_SETMASK, [],  <unfinished ...>
+148296 08:13:16.256104 <... rt_sigprocmask resumed>NULL, 8) = 0
+148295 08:13:16.256115 <... rt_sigprocmask resumed>NULL, 8) = 0
+148294 08:13:16.256139 <... rt_sigprocmask resumed>NULL, 8) = 0
+148297 08:13:16.256196 sigaltstack(NULL,  <unfinished ...>
+148296 08:13:16.256216 epoll_wait(3,  <unfinished ...>
+148297 08:13:16.256236 <... sigaltstack resumed>{ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148293 08:13:16.256266 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148297 08:13:16.256378 sigaltstack({ss_sp=0x7f41795ba000, ss_flags=0, ss_size=8192}, NULL) = 0
+148293 08:13:16.256452 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148298 08:13:16.256536 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148293 08:13:16.256656 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148298 08:13:16.256823 sigaltstack(NULL, {ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148293 08:13:16.256934 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148299 08:13:16.256987 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148298 08:13:16.257026 sigaltstack({ss_sp=0x7f41793b6000, ss_flags=0, ss_size=8192}, NULL) = 0
+148298 08:13:16.257104 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148298 08:13:16.257170 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148299 08:13:16.257321 sigaltstack(NULL, {ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+148299 08:13:16.257455 sigaltstack({ss_sp=0x7f41793b3000, ss_flags=0, ss_size=8192}, NULL) = 0
+148299 08:13:16.257524 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148299 08:13:16.257578 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148297 08:13:16.258886 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148297 08:13:16.258959 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148293 08:13:16.281375 fsync(16)        = 0
+148293 08:13:16.284210 fsync(17)        = 0
+148293 08:13:16.284660 fsync(16)        = 0
+148293 08:13:16.285338 fsync(11)        = 0
+148293 08:13:16.295977 fsync(16)        = 0
+148293 08:13:16.298288 fsync(18)        = 0
+148293 08:13:16.299728 fsync(16)        = 0
+148293 08:13:16.303838 fsync(16)        = 0
+148293 08:13:16.309252 fsync(16)        = 0
+148293 08:13:16.311623 fsync(16)        = 0
+148293 08:13:16.313913 fsync(16)        = 0
+148293 08:13:16.316081 fsync(16)        = 0
+148293 08:13:16.321336 fsync(16)        = 0
+148293 08:13:16.322972 fsync(16)        = 0
+148293 08:13:16.324270 fsync(16)        = 0
+148293 08:13:16.325574 fsync(16)        = 0
+148293 08:13:16.326911 fsync(16)        = 0
+148293 08:13:16.328408 fsync(16)        = 0
+148293 08:13:16.330002 fsync(16)        = 0
+148293 08:13:16.331754 fsync(16)        = 0
+148293 08:13:16.333468 fsync(16)        = 0
+148293 08:13:16.334952 fsync(16)        = 0
+148293 08:13:16.336470 fsync(16)        = 0
+148293 08:13:16.337872 fsync(16)        = 0
+148293 08:13:16.339514 fsync(16)        = 0
+148293 08:13:16.341137 fsync(16)        = 0
+148293 08:13:16.342611 fsync(16)        = 0
+148293 08:13:16.344040 fsync(16)        = 0
+148293 08:13:16.345361 fsync(16)        = 0
+148293 08:13:16.347075 fsync(16)        = 0
+148293 08:13:16.348817 fsync(16)        = 0
+148293 08:13:16.351326 fsync(16)        = 0
+148293 08:13:16.353972 fsync(16)        = 0
+148293 08:13:16.357153 fsync(16)        = 0
+148293 08:13:16.359661 fsync(16)        = 0
+148293 08:13:16.361517 fsync(16)        = 0
+148293 08:13:16.363090 fsync(16)        = 0
+148293 08:13:16.364887 fsync(16)        = 0
+148293 08:13:16.366811 fsync(16)        = 0
+148293 08:13:16.368636 fsync(16)        = 0
+148293 08:13:16.370689 fsync(16)        = 0
+148293 08:13:16.374836 fsync(16)        = 0
+148293 08:13:16.376665 fsync(16)        = 0
+148293 08:13:16.378312 fsync(16)        = 0
+148293 08:13:16.385493 fsync(16)        = 0
+148293 08:13:16.392399 fsync(16)        = 0
+148293 08:13:16.395433 fsync(16)        = 0
+148293 08:13:16.404176 fsync(16)        = 0
+148293 08:13:16.410426 fsync(16)        = 0
+148293 08:13:16.413469 fsync(16)        = 0
+148293 08:13:16.418087 fsync(16)        = 0
+148293 08:13:16.422390 fsync(16)        = 0
+148297 08:13:16.430666 fsync(16)        = 0
+148297 08:13:16.433180 fsync(16)        = 0
+148297 08:13:16.436928 fsync(16)        = 0
+148297 08:13:16.439013 fsync(16)        = 0
+148297 08:13:16.441204 fsync(16)        = 0
+148297 08:13:16.444639 fsync(16)        = 0
+148297 08:13:16.446609 fsync(16)        = 0
+148297 08:13:16.448164 fsync(16)        = 0
+148297 08:13:16.450139 fsync(16)        = 0
+148297 08:13:16.452174 fsync(16)        = 0
+148297 08:13:16.458938 fsync(16)        = 0
+148297 08:13:16.461336 fsync(16)        = 0
+148297 08:13:16.471378 fsync(16)        = 0
+148293 08:13:16.473003 rt_sigaction(SIGINT, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+148293 08:13:16.473117 rt_sigaction(SIGINT, {sa_handler=0x5575db045950, sa_mask=[], sa_flags=SA_RESTORER|SA_RESTART|SA_SIGINFO, sa_restorer=0x7f417a004df0}, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+148297 08:13:16.495267 fsync(16)        = 0
+148297 08:13:16.503519 fsync(16)        = 0
+148297 08:13:16.513321 fsync(16)        = 0
+148297 08:13:16.520457 fsync(16)        = 0
+148297 08:13:16.523910 fsync(16)        = 0
+148296 08:13:16.527578 <... epoll_wait resumed>[{events=EPOLLIN, data=0}], 1024, -1) = 1
+148296 08:13:16.527931 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, -1) = 1
+148296 08:13:16.643831 epoll_wait(3,  <unfinished ...>
+148297 08:13:16.643987 fsync(16)        = 0
+148296 08:13:16.647548 <... epoll_wait resumed>[{events=EPOLLOUT, data=0x7f4164038180}], 1024, 10) = 1
+148296 08:13:16.647638 epoll_wait(3, [], 1024, 6) = 0
+148292 08:13:16.653950 rt_sigprocmask(SIG_BLOCK, ~[], [], 8) = 0
+148292 08:13:16.654032 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+148296 08:13:16.654424 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148296 08:13:16.655358 epoll_wait(3, [], 1024, 10) = 0
+148296 08:13:16.666286 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148296 08:13:16.666380 epoll_wait(3, [], 1024, 11) = 0
+148296 08:13:16.677854 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148296 08:13:16.680952 epoll_wait(3, [], 1024, 8) = 0
+148296 08:13:16.689353 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148296 08:13:16.689547 epoll_wait(3, [], 1024, 11) = 0
+148296 08:13:16.701136 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 1) = 1
+148296 08:13:16.701234 epoll_wait(3, [], 1024, 1) = 0
+148296 08:13:16.702382 epoll_wait(3, [], 1024, 10) = 0
+148296 08:13:16.714481 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148296 08:13:16.714711 epoll_wait(3, [], 1024, 10) = 0
+148296 08:13:16.728851 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 7) = 1
+148296 08:13:16.728969 epoll_wait(3, [], 1024, 7) = 0
+148296 08:13:16.736325 epoll_wait(3, [{events=EPOLLIN, data=0}], 1024, 11) = 1
+148296 08:13:16.736435 epoll_wait(3,  <unfinished ...>
+148297 08:13:16.740774 fsync(16)        = 0
+148296 08:13:16.743118 <... epoll_wait resumed>[{events=EPOLLOUT, data=0x7f416410d080}], 1024, 11) = 1
+148296 08:13:16.743759 epoll_wait(3, [], 1024, 3) = 0
+148296 08:13:16.748719 epoll_wait(3, [], 1024, 2) = 0
+148296 08:13:16.752497 epoll_wait(3, [{events=EPOLLIN|EPOLLOUT, data=0x7f416410d080}], 1024, 8) = 1
+148296 08:13:16.753302 epoll_wait(3, [{events=EPOLLIN|EPOLLOUT, data=0x7f416410d080}], 1024, 7) = 1
+148296 08:13:16.757524 epoll_wait(3, [], 1024, 0) = 0
+148297 08:13:16.757708 epoll_wait(3, [], 1024, 2) = 0
+148297 08:13:16.759854 epoll_wait(3,  <unfinished ...>
+148296 08:13:16.761669 fsync(16 <unfinished ...>
+148262 08:13:16.762620 kill(148293, SIGINT) = 0
+148293 08:13:16.762698 --- SIGINT {si_signo=SIGINT, si_code=SI_USER, si_pid=148259, si_uid=1003} ---
+148297 08:13:16.762791 <... epoll_wait resumed>[{events=EPOLLIN, data=0x1}], 1024, 5766662) = 1
+148293 08:13:16.762834 rt_sigreturn({mask=[]}) = 202
+148297 08:13:16.762953 epoll_wait(3,  <unfinished ...>
+148296 08:13:16.763118 <... fsync resumed>) = 0
+148296 08:13:16.766211 fsync(16)        = 0
+148296 08:13:16.768969 fsync(16)        = 0
+148297 08:13:16.773570 <... epoll_wait resumed>[{events=EPOLLIN, data=0}], 1024, 5766659) = 1
+148298 08:13:16.773779 epoll_wait(3, [{events=EPOLLOUT, data=0x7f4164038180}], 1024, -1) = 1
+148298 08:13:16.773896 epoll_wait(3,  <unfinished ...>
+148296 08:13:16.776902 fsync(16)        = 0
+148296 08:13:16.788385 fsync(11)        = 0
+148298 08:13:16.793270 <... epoll_wait resumed>[{events=EPOLLIN, data=0}], 1024, -1) = 1
+148297 08:13:16.793645 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192},  <unfinished ...>
+148296 08:13:16.793681 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192},  <unfinished ...>
+148297 08:13:16.793722 <... sigaltstack resumed>NULL) = 0
+148296 08:13:16.793735 <... sigaltstack resumed>NULL) = 0
+148296 08:13:16.794283 rt_sigprocmask(SIG_BLOCK, ~[RT_1], NULL, 8) = 0
+148298 08:13:16.794415 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192}, NULL) = 0
+148296 08:13:16.794555 +++ exited with 0 +++
+148298 08:13:16.794568 rt_sigprocmask(SIG_BLOCK, ~[RT_1], NULL, 8) = 0
+148299 08:13:16.794678 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192}, NULL) = 0
+148294 08:13:16.794728 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192}, NULL) = 0
+148297 08:13:16.794784 rt_sigprocmask(SIG_BLOCK, ~[RT_1],  <unfinished ...>
+148299 08:13:16.794801 rt_sigprocmask(SIG_BLOCK, ~[RT_1], NULL, 8) = 0
+148297 08:13:16.794835 <... rt_sigprocmask resumed>NULL, 8) = 0
+148298 08:13:16.795013 +++ exited with 0 +++
+148299 08:13:16.795024 +++ exited with 0 +++
+148297 08:13:16.795052 +++ exited with 0 +++
+148294 08:13:16.795424 rt_sigprocmask(SIG_BLOCK, ~[RT_1], NULL, 8) = 0
+148294 08:13:16.795739 +++ exited with 0 +++
+148295 08:13:16.795990 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192}, NULL) = 0
+148295 08:13:16.796135 rt_sigprocmask(SIG_BLOCK, ~[RT_1], NULL, 8) = 0
+148295 08:13:16.796333 +++ exited with 0 +++
+148293 08:13:16.796372 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192}, NULL) = 0
+148293 08:13:16.796523 exit_group(130)  = ?
+148293 08:13:16.800184 +++ exited with 130 +++
+148262 08:13:16.800249 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=148293, si_uid=1003, si_status=130, si_utime=11 /* 0.11 s */, si_stime=6 /* 0.06 s */} ---
+148262 08:13:16.810783 fsync(7)         = 0
+148262 08:13:16.813025 fsync(9)         = 0
+148262 08:13:16.815095 fsync(7)         = 0
+148292 08:13:16.827870 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192}, NULL) = 0
+148292 08:13:16.828065 rt_sigprocmask(SIG_BLOCK, ~[RT_1], NULL, 8) = 0
+148292 08:13:16.828283 +++ exited with 0 +++
+148262 08:13:16.828514 fsync(7)         = 0
+148262 08:13:16.828951 fsync(6)         = 0
+148262 08:13:16.833880 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192}, NULL) = 0
+148262 08:13:16.834172 rt_sigprocmask(SIG_BLOCK, ~[RT_1], NULL, 8) = 0
+148262 08:13:16.834306 +++ exited with 0 +++
+148259 08:13:16.837332 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192}, NULL) = 0
+148259 08:13:16.837512 exit_group(0)    = ?
+148259 08:13:16.838071 +++ exited with 0 +++

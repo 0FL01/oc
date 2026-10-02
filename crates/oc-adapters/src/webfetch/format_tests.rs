@@ -2,6 +2,39 @@ use super::*;
 use std::sync::atomic::AtomicUsize;
 
 static ACTIVE: AtomicUsize = AtomicUsize::new(0);
+
+// Single-use, thread-local injection at the existing client construction seam.
+// The current-thread held-body test uses the real guarded HTTP client but excludes
+// synchronous system TLS root initialization from its distinct 80-ms body phase.
+// No production deadline is moved; total DNS/redirect deadline tests do not inject.
+thread_local! {
+    static PREPARED_CLIENT: std::cell::RefCell<Option<reqwest::Client>> = const { std::cell::RefCell::new(None) };
+}
+pub(super) fn take_prepared_client() -> Option<reqwest::Client> {
+    PREPARED_CLIENT.with(|slot| slot.borrow_mut().take())
+}
+struct PreparedClient;
+impl PreparedClient {
+    fn new(opts: FetchOptions) -> Self {
+        let started = Instant::now();
+        let resolver = Arc::new(GuardedResolver::new(
+            Arc::new(SystemResolver),
+            opts.allow_loopback,
+        ));
+        let client = guarded_client(opts, resolver).unwrap();
+        eprintln!(
+            "held-body phase: guarded client construction {:?} precedes unchanged request/body deadline",
+            started.elapsed()
+        );
+        PREPARED_CLIENT.with(|slot| assert!(slot.borrow_mut().replace(client).is_none()));
+        Self
+    }
+}
+impl Drop for PreparedClient {
+    fn drop(&mut self) {
+        let _ = take_prepared_client();
+    }
+}
 pub(super) static JOINS: AtomicUsize = AtomicUsize::new(0);
 pub(super) struct Worker;
 impl Worker {
@@ -144,29 +177,35 @@ async fn tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_resp
         let (release, hold) = tokio::sync::oneshot::channel::<()>();
         let (request, seen) = tokio::sync::oneshot::channel::<()>();
         let peer = tokio::spawn(async move {
-            let (mut socket, _) = listener.accept().await.unwrap();
-            let mut buffer = [0; 4096];
-            let bytes = socket.read(&mut buffer).await.unwrap();
-            assert!(
-                bytes > 0
-                    && std::str::from_utf8(&buffer[..bytes])
-                        .unwrap()
-                        .starts_with("GET ")
-            );
-            request.send(()).unwrap();
-            if mode == "conversion" {
-                let body = "<p>é &amp; 🦀</p>".repeat(40000);
-                socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).as_bytes()).await.unwrap();
-                socket.write_all(body.as_bytes()).await.unwrap();
-            } else {
-                socket
+            let exchange = async {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let mut buffer = [0; 4096];
+                let bytes = socket.read(&mut buffer).await.unwrap();
+                assert!(
+                    bytes > 0
+                        && std::str::from_utf8(&buffer[..bytes])
+                            .unwrap()
+                            .starts_with("GET ")
+                );
+                request.send(()).unwrap();
+                if mode == "conversion" {
+                    let body = "<p>é &amp; 🦀</p>".repeat(40000);
+                    socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).as_bytes()).await.unwrap();
+                    socket.write_all(body.as_bytes()).await.unwrap();
+                } else {
+                    socket
                     .write_all(
                         b"HTTP/1.1 200 OK\r\nContent-Length: 100\r\nConnection: close\r\n\r\nheld",
                     )
                     .await
                     .unwrap();
+                }
+                std::future::pending::<()>().await;
+            };
+            tokio::select! {
+                () = exchange => {},
+                _ = hold => {},
             }
-            let _ = hold.await;
         });
         let cancel = AtomicBool::new(false);
         let opts = FetchOptions {
@@ -175,18 +214,26 @@ async fn tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_resp
             ..FetchOptions::default()
         };
         let before = JOINS.load(Ordering::SeqCst);
+        let _prepared_client = PreparedClient::new(opts);
         let ticks = AtomicUsize::new(0);
         let steering = async {
-            seen.await.unwrap();
+            if seen.await.is_err() {
+                cancel.store(true, Ordering::Release);
+                return false;
+            }
             if mode == "conversion" {
-                tokio::time::timeout(Duration::from_secs(1), async {
+                if tokio::time::timeout(Duration::from_secs(1), async {
                     while ACTIVE.load(Ordering::SeqCst) == 0 {
                         ticks.fetch_add(1, Ordering::SeqCst);
                         tokio::time::sleep(Duration::from_millis(1)).await;
                     }
                 })
                 .await
-                .unwrap();
+                .is_err()
+                {
+                    cancel.store(true, Ordering::Release);
+                    return false;
+                }
             } else {
                 tokio::time::sleep(Duration::from_millis(20)).await;
                 ticks.fetch_add(1, Ordering::SeqCst);
@@ -194,11 +241,37 @@ async fn tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_resp
             if mode != "deadline" {
                 cancel.store(true, Ordering::Release);
             }
+            true
         };
         let started = Instant::now();
-        let (result, ()) = tokio::join!(
-            fetch_formatted(&url, opts, FetchFormat::Markdown, &cancel),
-            steering
+        // Fetch may exhaust its total deadline before the peer receives GET.
+        // Bound the fixture's separate rendezvous as well, and always join the
+        // peer before asserting; dropping a JoinHandle would detach it.
+        let mut work = std::pin::pin!(async {
+            tokio::join!(
+                fetch_formatted(&url, opts, FetchFormat::Markdown, &cancel),
+                steering
+            )
+        });
+        let joined = tokio::time::timeout(Duration::from_millis(1500), &mut work).await;
+        if joined.is_err() {
+            cancel.store(true, Ordering::Release);
+        }
+        release.send(()).unwrap();
+        let peer_result = peer.await;
+        let (result, saw_request) = match joined {
+            Ok(result) => result,
+            Err(error) => {
+                // Releasing the peer closes an unfulfilled GET rendezvous.
+                // Keep ownership of fetch and its conversion join on failure.
+                let _ = work.await;
+                panic!("fetch/steering rendezvous exceeded existing deadline: {error}");
+            }
+        };
+        peer_result.unwrap();
+        assert!(
+            saw_request,
+            "held-body fixture must receive GET and conversion start"
         );
         assert_eq!(
             result,
@@ -215,7 +288,5 @@ async fn tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_resp
             JOINS.load(Ordering::SeqCst) - before,
             usize::from(mode == "conversion")
         );
-        release.send(()).unwrap();
-        peer.await.unwrap();
     }
 }

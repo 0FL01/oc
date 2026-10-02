@@ -1,0 +1,45 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+error[E0599]: no method named `uid` found for struct `Metadata` in the current scope
+   --> crates/oc-adapters/src/storage.rs:513:35
+    |
+513 |         if output_dir.metadata()?.uid() != fs::metadata(&root)?.uid() {
+    |                                   ^^^
+    |
+   --> /rustc/254b59607d4417e9dffbc307138ae5c86280fe4c/library/std/src/os/unix/fs.rs:627:8
+    |
+    = note: the method is available for `Metadata` here
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `MetadataExt` which provides `uid` is implemented but not in scope; perhaps you want to import it
+    |
+ 12 + use std::os::unix::fs::MetadataExt;
+    |
+help: there is a method `gid` with a similar name
+    |
+513 -         if output_dir.metadata()?.uid() != fs::metadata(&root)?.uid() {
+513 +         if output_dir.metadata()?.gid() != fs::metadata(&root)?.uid() {
+    |
+
+error[E0599]: no method named `uid` found for struct `Metadata` in the current scope
+   --> crates/oc-adapters/src/storage.rs:513:65
+    |
+513 |         if output_dir.metadata()?.uid() != fs::metadata(&root)?.uid() {
+    |                                                                 ^^^
+    |
+   --> /rustc/254b59607d4417e9dffbc307138ae5c86280fe4c/library/std/src/os/unix/fs.rs:627:8
+    |
+    = note: the method is available for `Metadata` here
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `MetadataExt` which provides `uid` is implemented but not in scope; perhaps you want to import it
+    |
+ 12 + use std::os::unix::fs::MetadataExt;
+    |
+help: there is a method `gid` with a similar name
+    |
+513 -         if output_dir.metadata()?.uid() != fs::metadata(&root)?.uid() {
+513 +         if output_dir.metadata()?.uid() != fs::metadata(&root)?.gid() {
+    |
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `oc-adapters` (lib test) due to 2 previous errors

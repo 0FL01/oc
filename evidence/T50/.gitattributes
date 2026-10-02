@@ -1,0 +1,2 @@
+# Immutable captured command output may end with test-runner blank lines.
+output-*.log whitespace=-blank-at-eof

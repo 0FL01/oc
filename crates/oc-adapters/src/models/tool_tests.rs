@@ -31,6 +31,7 @@ fn tool18_lookup_group_family_page_merge_and_redaction() {
     use super::*;
     use serde_json::json;
     let mut generation = crate::config::Generation {
+        tool_output: Default::default(),
         providers: BTreeMap::new(),
         mcp: BTreeMap::new(),
         permissions: BTreeMap::new(),

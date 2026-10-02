@@ -16,7 +16,12 @@ use thiserror::Error;
 
 pub(crate) mod diagnostic;
 pub(crate) mod mcp;
+pub use crate::tools::output::Limits as ToolOutputLimits;
 pub use mcp::McpTimeouts;
+
+#[cfg(test)]
+#[path = "config/tool_output_tests.rs"]
+mod tool_output_tests;
 
 /// Typed config errors with field-level diagnostics (no secrets in messages).
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
@@ -388,6 +393,7 @@ impl ConversationKeybinds {
 /// Effective immutable generation (T07 subset).
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Generation {
+    pub tool_output: ToolOutputLimits,
     pub config_diagnostics: Vec<oc_core::queries::ConfigDiagnostic>,
     pub compaction: crate::compaction::CompactionConfig,
     /// Explicit animation preference from the ordered config sources.
@@ -790,6 +796,8 @@ fn assemble_with_admission(
     let mut animations = None;
     let mut compaction = crate::compaction::CompactionConfig::default();
     let mut compaction_source = None;
+    let mut tool_output = ToolOutputLimits::default();
+    let mut tool_output_source = None;
     let mut config_diagnostics = Vec::new();
     let mut compaction_provenance = BTreeMap::new();
 
@@ -835,6 +843,10 @@ fn assemble_with_admission(
                 reason: "must be a boolean".to_string(),
             })?);
             animations_source = Some(source.path.clone());
+        }
+        if let Some(value) = obj.get("tool_output") {
+            tool_output = ToolOutputLimits::parse(value)?;
+            tool_output_source = Some(source.path.clone());
         }
         if let Some(value) = obj.get("compaction") {
             let (normalized, mut notes) = compaction.merge_from(&source.path, value);
@@ -1009,9 +1021,13 @@ fn assemble_with_admission(
     }
     provenance.extend(compaction_provenance);
     provenance.extend(mcp_provenance);
+    if let Some(source) = tool_output_source {
+        provenance.insert("tool_output".into(), source);
+    }
 
     Ok((
         Generation {
+            tool_output,
             config_diagnostics,
             compaction,
             animations,

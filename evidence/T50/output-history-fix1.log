@@ -1,0 +1,9 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 29.45s
+     Running tests/context_bounds.rs (target/debug/deps/context_bounds-c70a35a44764c765)
+
+running 1 test
+test aud34_tool_output_beyond_preview_is_retrievable ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.36s
+

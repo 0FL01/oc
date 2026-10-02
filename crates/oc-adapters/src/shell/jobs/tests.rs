@@ -66,6 +66,8 @@ impl Held {
                     operation: id.into(),
                     location: self.project.to_string_lossy().into(),
                     generation: 17,
+                    output_limits: Default::default(),
+                    output_source: "defaults".into(),
                     agent: None,
                     agent_digest: None,
                     model: "gpt-fixture-issuing-request".into(),
@@ -76,6 +78,7 @@ impl Held {
                 },
                 self.jobs.reserve().unwrap(),
                 foreground,
+                Vec::new(),
             )
             .await
             .unwrap();
@@ -279,6 +282,8 @@ async fn tool13_held_owned_shell_output_is_readable_before_terminal() {
             operation: "operation".into(),
             location: project.to_string_lossy().into(),
             generation: 7,
+            output_limits: Default::default(),
+            output_source: "defaults".into(),
             agent: None,
             agent_digest: None,
             model: "fixture".into(),
@@ -295,7 +300,17 @@ async fn tool13_held_owned_shell_output_is_readable_before_terminal() {
     while !project.join("entered").exists() && Instant::now() < deadline {
         tokio::time::sleep(Duration::from_millis(5)).await;
     }
-    let live = jobs.output("source", "operation", 0, 1024).unwrap();
+    // The process's file barrier does not order the independent drain reader.
+    // Observe actual owner output within the SAME original three-second bound.
+    let mut live = jobs.output("source", "operation", 0, 1024).unwrap();
+    while !live
+        .as_ref()
+        .is_some_and(|(text, _, _)| text.contains("live-held-output"))
+        && Instant::now() < deadline
+    {
+        tokio::time::sleep(Duration::from_millis(5)).await;
+        live = jobs.output("source", "operation", 0, 1024).unwrap();
+    }
     std::fs::write(project.join("release"), b"").unwrap();
     jobs.changed().await;
     jobs.shutdown().await.unwrap();
@@ -382,6 +397,8 @@ async fn tool13_cancelled_owner_wait_keeps_worker_then_failed_join_is_durable_an
         operation: "operation".into(),
         location: "/project".into(),
         generation: 1,
+        output_limits: Default::default(),
+        output_source: "defaults".into(),
         agent: None,
         agent_digest: None,
         model: "synthetic".into(),

@@ -602,6 +602,21 @@ impl<'a> Runtime<'a> {
             return Err(format!("denied {}", call.name).into());
         }
         let mut permitted = policy.clone();
+        // Exact registered artifacts use the same Ask/Deny owner but their
+        // structural provenance comes from Db, never a Files root-wide grant.
+        let artifact = matches!(call.name.as_str(), "read" | "grep")
+            && call.arguments["path"]
+                .as_str()
+                .is_some_and(|path| self.db.is_tool_output_path(path));
+        if artifact {
+            let path = call.arguments["path"].as_str().expect("artifact path");
+            if policy.search_path_denied(path) {
+                return Err("denied read: artifact".into());
+            }
+            self.db.open_tool_output(session, path).map_err(
+                |_| "registered artifact unavailable, expired, unauthorized, or identity changed",
+            )?;
+        }
         if call.name == SUBAGENT_TOOL {
             crate::tools::preflight_subagent(ctx, call).map_err(|e| match e {
                 ToolError::Failed { reason, .. } => reason,
@@ -656,8 +671,29 @@ impl<'a> Runtime<'a> {
                 break;
             }
         }
-        let (preview, digest, patch_preimage, shell_cwd) =
-            crate::approval::prepare(ctx, call, &resources).await?;
+        let prepare = || async {
+            if artifact {
+                let path = call.arguments["path"].as_str().expect("artifact path");
+                let resource = self
+                    .db
+                    .open_tool_output(session, path)
+                    .map_err(|_| "artifact prerequisites changed".to_owned())?
+                    .resource
+                    .clone();
+                Ok((
+                    ApprovalPreview::Resource {
+                        values: resources.clone(),
+                    },
+                    serde_json::to_string(&resource)
+                        .map_err(|_| "invalid artifact identity".to_owned())?,
+                    None,
+                    None,
+                ))
+            } else {
+                crate::approval::prepare(ctx, call, &resources).await
+            }
+        };
+        let (preview, digest, patch_preimage, shell_cwd) = prepare().await?;
         if !saved {
             let events = self
                 .compaction_events
@@ -706,7 +742,7 @@ impl<'a> Runtime<'a> {
         if cancel.load(Ordering::Acquire) {
             return Err("approval cancelled".into());
         }
-        let (_, rechecked, _, _) = crate::approval::prepare(ctx, call, &resources).await?;
+        let (_, rechecked, _, _) = prepare().await?;
         if digest != rechecked {
             return Err("approval prerequisites changed".into());
         }
@@ -732,6 +768,30 @@ impl<'a> Runtime<'a> {
             compression_plan,
         });
         Ok(permitted)
+    }
+
+    fn validate_tool_call(&self, call: &crate::tools::ToolCall) -> Result<(), String> {
+        if matches!(call.name.as_str(), "read" | "grep")
+            && call.arguments["path"]
+                .as_str()
+                .is_some_and(|path| self.db.is_tool_output_path(path))
+        {
+            if call.name == "read" {
+                crate::tools::read::parse_with_offset_cap(
+                    call,
+                    crate::storage::tool_output::CAP + 1,
+                )
+                .map(|_| ())
+            } else {
+                crate::tools::parse_grep_args_with_offset_cap(
+                    call,
+                    crate::storage::tool_output::CAP,
+                )
+                .map(|_| ())
+            }
+        } else {
+            crate::tools::validate_call(call)
+        }
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -2628,6 +2688,8 @@ impl<'a> Runtime<'a> {
         catalog: &ModelCatalog,
         request_tools: &[ToolDef],
     ) -> Result<(Vec<CallRecord>, bool, bool), RuntimeError> {
+        let captured_output = self.current.read().expect("generation lock").clone();
+        let output_secrets = super::mcp::mcp_redactions(&captured_output.config, &self.parent_env);
         let mut records = Vec::new();
         let mut projection_changed = false;
         let mut permission_rejected = false;
@@ -2673,7 +2735,7 @@ impl<'a> Runtime<'a> {
                     call.name.as_str(),
                     "opencode_session_rename" | "opencode_session_move"
                 )
-                && crate::tools::validate_call(call).is_ok()
+                && self.validate_tool_call(call).is_ok()
                 && call.arguments.get("sessionID").is_none()
             {
                 call.arguments["sessionID"] = session.into();
@@ -2703,7 +2765,7 @@ impl<'a> Runtime<'a> {
                 && !cancel.load(Ordering::Acquire)
                 && let Assembled::Call(call) = &mut guarded
                 && call.name == "opencode_session_move"
-                && crate::tools::validate_call(call).is_ok()
+                && self.validate_tool_call(call).is_ok()
             {
                 let (raw, target) =
                     crate::tools::move_input(&call.arguments).expect("validated move");
@@ -2761,8 +2823,7 @@ impl<'a> Runtime<'a> {
                     if !permission_rejected
                         && !cancel.load(Ordering::Acquire)
                         && structural.is_ok()
-                        && (!is_builtin(&call.name)
-                            || crate::tools::validate_call(call).is_ok()) =>
+                        && (!is_builtin(&call.name) || self.validate_tool_call(call).is_ok()) =>
                 {
                     self.admit_tool(
                         session,
@@ -2836,13 +2897,13 @@ impl<'a> Runtime<'a> {
             let mut rejection = match &guarded {
                 Assembled::Failed(failure) => Some(("failed", format!("error: {}", failure.error))),
                 Assembled::Call(call)
-                    if is_builtin(&call.name) && crate::tools::validate_call(call).is_err() =>
+                    if is_builtin(&call.name) && self.validate_tool_call(call).is_err() =>
                 {
                     Some((
                         "failed",
                         format!(
                             "error: {}",
-                            crate::tools::validate_call(call).expect_err("invalid shape")
+                            self.validate_tool_call(call).expect_err("invalid shape")
                         ),
                     ))
                 }
@@ -3200,8 +3261,10 @@ impl<'a> Runtime<'a> {
             let mut patch_effects = None;
             let mut native_mcp_result = None;
             let mut native_read_result = None;
+            let mut shell_text_prepared = false;
             let mut read_directory = false;
-            let (state, output) = if let Some(rejection) = rejection {
+            let mut artifact_source = None;
+            let (mut state, output) = if let Some(rejection) = rejection {
                 rejection
             } else {
                 match unit {
@@ -3346,6 +3409,48 @@ impl<'a> Runtime<'a> {
                         (output_state(&output), output)
                     }
                     Assembled::Call(call)
+                        if matches!(call.name.as_str(), "read" | "grep")
+                            && call.arguments["path"]
+                                .as_str()
+                                .is_some_and(|path| self.db.is_tool_output_path(path)) =>
+                    {
+                        let db = self.db.shared_handle();
+                        let source_session = session.to_owned();
+                        let call = call.clone();
+                        let limits = captured_output.config.tool_output;
+                        let worker_cancel =
+                            Arc::new(AtomicBool::new(cancel.load(Ordering::Acquire)));
+                        struct CancelArtifactOnDrop(Arc<AtomicBool>);
+                        impl Drop for CancelArtifactOnDrop {
+                            fn drop(&mut self) {
+                                self.0.store(true, Ordering::Release);
+                            }
+                        }
+                        let _cleanup = CancelArtifactOnDrop(worker_cancel.clone());
+                        let token = worker_cancel.clone();
+                        let mut task = tokio::task::spawn_blocking(move || {
+                            db.artifact_call(&source_session, &call, limits, &token)
+                        });
+                        let result = loop {
+                            tokio::select! {
+                                result = &mut task => break result,
+                                () = tokio::time::sleep(Duration::from_millis(5)) => if cancel.load(Ordering::Acquire) {worker_cancel.store(true,Ordering::Release);}
+                            }
+                        };
+                        if cancel.load(Ordering::Acquire) {
+                            ("cancelled", "error: cancelled".into())
+                        } else {
+                            match result {
+                                Ok(Ok((output, source))) => {
+                                    artifact_source = Some(source);
+                                    ("completed", output)
+                                }
+                                Ok(Err(error)) => ("failed", format!("error: {error}")),
+                                Err(_) => ("failed", "error: artifact worker failed".into()),
+                            }
+                        }
+                    }
+                    Assembled::Call(call)
                         if matches!(call.name.as_str(), "read" | "glob" | "grep") =>
                     {
                         // Same bounded spawn_blocking/join strategy as foreground
@@ -3456,6 +3561,14 @@ impl<'a> Runtime<'a> {
                                 operation: op.clone(),
                                 location: self.location.clone(),
                                 generation: self.generation_id(),
+                                output_limits: captured_output.config.tool_output,
+                                output_source: crate::config::mcp::safe_source_id(
+                                    captured_output
+                                        .config
+                                        .provenance
+                                        .get("tool_output")
+                                        .map_or("native defaults", String::as_str),
+                                ),
                                 agent: turn_log.display["agent"].as_str().map(str::to_owned),
                                 agent_digest: turn_log.agent_digest.clone(),
                                 model: turn_log.requests.last().map_or_else(
@@ -3488,6 +3601,7 @@ impl<'a> Runtime<'a> {
                                     provenance,
                                     shell_slot.take().expect("shell reservation before intent"),
                                     !invocation.background,
+                                    output_secrets.clone(),
                                 )
                                 .await
                             {
@@ -3500,7 +3614,7 @@ impl<'a> Runtime<'a> {
                                     match outcome {
                                         Ok(None) => ("completed", serde_json::json!({"status":"running", "shellID":shell_id,
                                             "truncated":false,"output":"Background command launched. You will be notified automatically when it completes. DO NOT poll; continue independent work or end your response."}).to_string()),
-                                        Ok(Some(outcome)) => outcome.tool_result(),
+                                        Ok(Some(outcome)) => {shell_text_prepared=outcome.output_prepared;outcome.tool_result()},
                                         Err(_) => ("unknown", "error: shell supervisor interrupted; effect unknown; not replayed".into()),
                                     }
                                 }
@@ -3528,6 +3642,70 @@ impl<'a> Runtime<'a> {
                     Assembled::Failed(_) => unreachable!("assembly failure rejected above"),
                 }
             };
+            // One publication boundary BEFORE provider/TurnLog/outcome copies.
+            // Reload is safe-boundary only; busy model switches do not alter this
+            // captured config generation or re-limit historical facts.
+            let published = &captured_output;
+            let source = crate::config::mcp::safe_source_id(
+                published
+                    .config
+                    .provenance
+                    .get("tool_output")
+                    .map_or("native defaults", String::as_str),
+            );
+            let preparation = crate::tools::output::Context {
+                db: self.db,
+                operation: &op,
+                session,
+                location: &self.location,
+                generation: published.id,
+                source: &source,
+                limits: published.config.tool_output,
+                secrets: output_secrets.clone(),
+            };
+            if matches!(name, "shell" | "bash") {
+                artifact_source = self.db.output_for_operation(&op)?;
+            }
+            let (output, logging_failed) = if let Some(native) = native_mcp_result.as_mut() {
+                match native.prepare_common(&preparation) {
+                    Ok(failed) => (native.display().to_owned(), failed),
+                    Err(_) => {
+                        native_mcp_result = None;
+                        ("error: common MCP text preparation failed; original execution not repeated".into(),true)
+                    }
+                }
+            } else if name == "question" && state == "completed" {
+                let prepared = preparation.prepare_question(output)?;
+                (prepared.text, prepared.logging_failed)
+            } else if matches!(name, "shell" | "bash") {
+                let prepared = preparation.prepare_shell(
+                    output,
+                    shell_text_prepared,
+                    artifact_source.as_ref(),
+                );
+                (prepared.text, prepared.logging_failed)
+            } else if artifact_source.is_some() && matches!(name, "read" | "grep") {
+                // The descriptor-held access owner already applies this captured
+                // common text budget. Preserve validated extent/cursor notices;
+                // never recursively archive pages of the same cold resource.
+                let prepared = preparation.prepare_page(output);
+                (prepared.text, prepared.logging_failed)
+            } else {
+                let prepared = preparation.prepare_envelope(
+                    output,
+                    matches!(name, "shell" | "bash"),
+                    artifact_source.as_ref(),
+                );
+                (prepared.text, prepared.logging_failed)
+            };
+            if logging_failed {
+                self.db.record_output_execution(&op, state)?;
+                state = if state == "unknown" {
+                    "unknown"
+                } else {
+                    "failed"
+                };
+            }
             // Failure here leaves started/unknown; never continue the batch.
             turn_log
                 .input
@@ -3547,7 +3725,11 @@ impl<'a> Runtime<'a> {
                         output: output.clone(),
                     }
                 });
-            if name == "read" && state == "completed" && !cancel.load(Ordering::Acquire) {
+            if name == "read"
+                && artifact_source.is_none()
+                && state == "completed"
+                && !cancel.load(Ordering::Acquire)
+            {
                 let instruction_generation = turn_log.display["config_generation"]
                     .as_u64()
                     .ok_or(RuntimeError::Storage)?;

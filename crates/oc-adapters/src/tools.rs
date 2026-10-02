@@ -780,7 +780,15 @@ fn parse_glob_args(call: &ToolCall) -> Result<crate::files::search::GlobOptions<
     Ok(options)
 }
 
-fn parse_grep_args(call: &ToolCall) -> Result<crate::files::search::GrepOptions<'_>, String> {
+pub(crate) fn parse_grep_args(
+    call: &ToolCall,
+) -> Result<crate::files::search::GrepOptions<'_>, String> {
+    parse_grep_args_with_offset_cap(call, SEARCH_OFFSET_CAP)
+}
+pub(crate) fn parse_grep_args_with_offset_cap(
+    call: &ToolCall,
+    offset_cap: u64,
+) -> Result<crate::files::search::GrepOptions<'_>, String> {
     let args = call
         .arguments
         .as_object()
@@ -800,7 +808,7 @@ fn parse_grep_args(call: &ToolCall) -> Result<crate::files::search::GrepOptions<
             !pattern.is_empty() && pattern.len() <= crate::files::SEARCH_PATTERN_BYTES_CAP
         })
         .ok_or_else(|| "missing pattern".to_string())?;
-    let (offset, limit) = parse_search_page(args)?;
+    let (offset, limit) = parse_search_page_with_offset_cap(args, offset_cap)?;
     let options = crate::files::search::GrepOptions {
         pattern,
         path: search_string(args, "path")?.unwrap_or("."),
@@ -873,11 +881,17 @@ fn search_preflight_for(
 fn parse_search_page(
     args: &serde_json::Map<String, serde_json::Value>,
 ) -> Result<(usize, usize), String> {
+    parse_search_page_with_offset_cap(args, SEARCH_OFFSET_CAP)
+}
+fn parse_search_page_with_offset_cap(
+    args: &serde_json::Map<String, serde_json::Value>,
+    offset_cap: u64,
+) -> Result<(usize, usize), String> {
     let offset = match args.get("offset") {
         Some(value) => value
             .as_u64()
-            .filter(|offset| *offset <= SEARCH_OFFSET_CAP)
-            .ok_or_else(|| format!("offset must be between 0 and {SEARCH_OFFSET_CAP}"))?,
+            .filter(|offset| *offset <= offset_cap)
+            .ok_or_else(|| format!("offset must be between 0 and {offset_cap}"))?,
         None => 0,
     };
     let limit = match args.get("limit") {
@@ -1437,6 +1451,7 @@ pub struct TurnLog {
 
 mod mcp_log;
 mod model_history;
+pub(crate) mod output;
 
 impl TurnLog {
     /// Start an empty log for a turn.

@@ -1,0 +1,70 @@
+{
+  "elf_sha256": {
+    "debug": "384cced23175cb212c48bc0996050a8791f29f2d757fa34609a88a298d21eb8e",
+    "release": "ba0ce21c1b8f31b8d16a017a71265841ba507274ad537c3c42bc2386abcc54e6"
+  },
+  "first_wrapper_cleanup_timing": {
+    "output-clippy5.log": 1790905935.6307392,
+    "output-workspace1.log.gz": 1790907002.364894
+  },
+  "logs": [
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 1924,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-owner-redactor.log",
+      "passed": 15,
+      "stored_bytes": 1924
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 37795,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-tui-qualification.log",
+      "passed": 433,
+      "stored_bytes": 37795
+    },
+    {
+      "completed_target_counts": 38,
+      "exact_log_bytes": 106872,
+      "failed": 1,
+      "ignored": 10,
+      "name": "output-workspace10.log",
+      "passed": 1007,
+      "stored_bytes": 106872
+    },
+    {
+      "completed_target_counts": 42,
+      "exact_log_bytes": 132485,
+      "failed": 0,
+      "ignored": 10,
+      "name": "output-workspace3.log.gz",
+      "passed": 1441,
+      "stored_bytes": 34029
+    },
+    {
+      "completed_target_counts": 38,
+      "exact_log_bytes": 106959,
+      "failed": 1,
+      "ignored": 10,
+      "name": "output-workspace11.log",
+      "passed": 1007,
+      "stored_bytes": 106959
+    }
+  ],
+  "owned_aggregate_bytes": 887949,
+  "owned_file_count": 142,
+  "remaining_recorded_temporaries": [],
+  "unclassified_owned_prefix_directories": [
+    {
+      "mtime": 1790905935.77074,
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-b6_jhi6m"
+    },
+    {
+      "mtime": 1790929230.7265177,
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-k8rhttaw"
+    }
+  ]
+}

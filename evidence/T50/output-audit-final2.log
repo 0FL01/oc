@@ -1,0 +1,1247 @@
+{
+  "elf_sha256": {
+    "debug": "384cced23175cb212c48bc0996050a8791f29f2d757fa34609a88a298d21eb8e",
+    "release": "ba0ce21c1b8f31b8d16a017a71265841ba507274ad537c3c42bc2386abcc54e6"
+  },
+  "logs": [
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 1924,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-owner-cursor.log",
+      "passed": 15,
+      "stored_bytes": 1924
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-6.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-14.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 147,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-clippy-final9.log",
+      "passed": 0,
+      "stored_bytes": 147
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 1032,
+      "failed": 1,
+      "ignored": 0,
+      "name": "output-red-behavior.log",
+      "passed": 0,
+      "stored_bytes": 1032
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-7.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 1924,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-owner-publication.log",
+      "passed": 15,
+      "stored_bytes": 1924
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 810,
+      "failed": 1,
+      "ignored": 0,
+      "name": "output-aud12-timing.log",
+      "passed": 0,
+      "stored_bytes": 810
+    },
+    {
+      "completed_target_counts": 38,
+      "exact_log_bytes": 112879,
+      "failed": 1,
+      "ignored": 10,
+      "name": "output-workspace4.log.gz",
+      "passed": 1007,
+      "stored_bytes": 29276
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 507,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-native-red.log",
+      "passed": 0,
+      "stored_bytes": 507
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 267,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-clippy-final2.log",
+      "passed": 0,
+      "stored_bytes": 267
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 2843,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-shell-controls-debug.log",
+      "passed": 0,
+      "stored_bytes": 2843
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 575,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-clippy3.log",
+      "passed": 0,
+      "stored_bytes": 575
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-2.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 38,
+      "exact_log_bytes": 120258,
+      "failed": 0,
+      "ignored": 10,
+      "name": "output-workspace5.log.gz",
+      "passed": 1008,
+      "stored_bytes": 31009
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 1526,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-question-debug.log",
+      "passed": 0,
+      "stored_bytes": 1526
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 1528,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-question-release.log",
+      "passed": 0,
+      "stored_bytes": 1528
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fmt-final6.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 314,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fork-release.log",
+      "passed": 0,
+      "stored_bytes": 314
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-3.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fmt-final4.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 3498,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-precompile6.log",
+      "passed": 0,
+      "stored_bytes": 3498
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-13.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 3498,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-precompile9.log",
+      "passed": 0,
+      "stored_bytes": 3498
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 881,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-clippy2.log",
+      "passed": 0,
+      "stored_bytes": 881
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 717,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-help-debug.log",
+      "passed": 0,
+      "stored_bytes": 717
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-4.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 1924,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-owner-redactor.log",
+      "passed": 15,
+      "stored_bytes": 1924
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 1812,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-owner10.log",
+      "passed": 14,
+      "stored_bytes": 1812
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fmt7.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 39,
+      "exact_log_bytes": 131992,
+      "failed": 0,
+      "ignored": 10,
+      "name": "output-workspace2.log.gz",
+      "passed": 1440,
+      "stored_bytes": 33967
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 2265,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-native-common-debug3.log",
+      "passed": 0,
+      "stored_bytes": 2265
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 3271,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-red.log",
+      "passed": 0,
+      "stored_bytes": 3271
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-scan.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 2311,
+      "failed": 1,
+      "ignored": 0,
+      "name": "output-owner-sixth.log",
+      "passed": 12,
+      "stored_bytes": 2311
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 717,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-help-debug2.log",
+      "passed": 0,
+      "stored_bytes": 717
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 267,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-clippy-final7.log",
+      "passed": 0,
+      "stored_bytes": 267
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fmt-final1.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 435,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-native-red-behavior-2.log",
+      "passed": 0,
+      "stored_bytes": 435
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 192,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-build-debug2.log",
+      "passed": 0,
+      "stored_bytes": 192
+    },
+    {
+      "completed_target_counts": 42,
+      "exact_log_bytes": 157484,
+      "failed": 16,
+      "ignored": 10,
+      "name": "output-workspace1.log.gz",
+      "passed": 1423,
+      "stored_bytes": 37515
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 37795,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-tui-qualification.log",
+      "passed": 433,
+      "stored_bytes": 37795
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 717,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-help-release2.log",
+      "passed": 0,
+      "stored_bytes": 717
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 1924,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-owner-scan.log",
+      "passed": 15,
+      "stored_bytes": 1924
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 419,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-native-common-diagnose.log",
+      "passed": 0,
+      "stored_bytes": 419
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fmt1.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 2845,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-shell-controls-release.log",
+      "passed": 0,
+      "stored_bytes": 2845
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 35243,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-aud12-syscall-trace.log",
+      "passed": 0,
+      "stored_bytes": 35243
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fmt-final7.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 2461,
+      "failed": 1,
+      "ignored": 0,
+      "name": "output-owner9.log",
+      "passed": 13,
+      "stored_bytes": 2461
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 1692,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-owner7.log",
+      "passed": 13,
+      "stored_bytes": 1692
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 717,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-help-release.log",
+      "passed": 0,
+      "stored_bytes": 717
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 190,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-media-debug.log",
+      "passed": 0,
+      "stored_bytes": 190
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 146,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-clippy5.log",
+      "passed": 0,
+      "stored_bytes": 146
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-fixture.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 38,
+      "exact_log_bytes": 106872,
+      "failed": 1,
+      "ignored": 10,
+      "name": "output-workspace10.log",
+      "passed": 1007,
+      "stored_bytes": 106872
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-audit-final2.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 312,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fork-debug.log",
+      "passed": 0,
+      "stored_bytes": 312
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 2009,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-owner-fourth.log",
+      "passed": 0,
+      "stored_bytes": 2009
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 190,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-media-release.log",
+      "passed": 0,
+      "stored_bytes": 190
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 267,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-clippy-final1.log",
+      "passed": 0,
+      "stored_bytes": 267
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 3378,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-precompile11.log",
+      "passed": 0,
+      "stored_bytes": 3378
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 392,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-aud12-fixed.log",
+      "passed": 1,
+      "stored_bytes": 392
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 193,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-build-debug.log",
+      "passed": 0,
+      "stored_bytes": 193
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-10.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-served.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fmt6.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fmt-final2.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 3359,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-precompile5.log",
+      "passed": 0,
+      "stored_bytes": 3359
+    },
+    {
+      "completed_target_counts": 42,
+      "exact_log_bytes": 132485,
+      "failed": 0,
+      "ignored": 10,
+      "name": "output-workspace3.log.gz",
+      "passed": 1441,
+      "stored_bytes": 34029
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fmt-final3.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-11.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fmt3.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 1115,
+      "failed": 1,
+      "ignored": 0,
+      "name": "output-webfetch-join.log",
+      "passed": 0,
+      "stored_bytes": 1115
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 454,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-shell-fix1.log",
+      "passed": 1,
+      "stored_bytes": 454
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 1202,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-owner-first.log",
+      "passed": 0,
+      "stored_bytes": 1202
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-5.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 640,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-native-red-behavior.log",
+      "passed": 0,
+      "stored_bytes": 640
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fmt-final9.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-redactor.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 442,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-native-common-diagnose2.log",
+      "passed": 0,
+      "stored_bytes": 442
+    },
+    {
+      "completed_target_counts": 38,
+      "exact_log_bytes": 106959,
+      "failed": 1,
+      "ignored": 10,
+      "name": "output-workspace11.log",
+      "passed": 1007,
+      "stored_bytes": 106959
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 1035,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-clippy6.log",
+      "passed": 0,
+      "stored_bytes": 1035
+    },
+    {
+      "completed_target_counts": 19,
+      "exact_log_bytes": 68669,
+      "failed": 0,
+      "ignored": 7,
+      "name": "output-workspace8.log.gz",
+      "passed": 278,
+      "stored_bytes": 17804
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 147,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-clippy-final6.log",
+      "passed": 0,
+      "stored_bytes": 147
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 131,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-docs-readonly.log",
+      "passed": 0,
+      "stored_bytes": 131
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 257,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-build-release.log",
+      "passed": 0,
+      "stored_bytes": 257
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fmt2.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 3874,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-advisory.log",
+      "passed": 0,
+      "stored_bytes": 3874
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 1142,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-native-common-debug.log",
+      "passed": 0,
+      "stored_bytes": 1142
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-9.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 1178,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-clippy4.log",
+      "passed": 0,
+      "stored_bytes": 1178
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-publication.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 1908,
+      "failed": 2,
+      "ignored": 0,
+      "name": "output-owner-third.log",
+      "passed": 4,
+      "stored_bytes": 1908
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 3240,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-owner-second.log",
+      "passed": 0,
+      "stored_bytes": 3240
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 267,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-clippy-final4.log",
+      "passed": 0,
+      "stored_bytes": 267
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 409,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-history-fix1.log",
+      "passed": 1,
+      "stored_bytes": 409
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-16.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-8.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 38,
+      "exact_log_bytes": 120367,
+      "failed": 0,
+      "ignored": 10,
+      "name": "output-workspace6.log.gz",
+      "passed": 1008,
+      "stored_bytes": 31029
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 3378,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-precompile8.log",
+      "passed": 0,
+      "stored_bytes": 3378
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 384,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-webfetch-join2.log",
+      "passed": 1,
+      "stored_bytes": 384
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 503,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-compact-release.log",
+      "passed": 0,
+      "stored_bytes": 503
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fmt5.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 3498,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-precompile1.log",
+      "passed": 0,
+      "stored_bytes": 3498
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 128,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-clippy-final3.log",
+      "passed": 0,
+      "stored_bytes": 128
+    },
+    {
+      "completed_target_counts": 38,
+      "exact_log_bytes": 106694,
+      "failed": 1,
+      "ignored": 10,
+      "name": "output-workspace9.log",
+      "passed": 1007,
+      "stored_bytes": 106694
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 21171,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-audit-final.log",
+      "passed": 0,
+      "stored_bytes": 21171
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 3498,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-precompile7.log",
+      "passed": 0,
+      "stored_bytes": 3498
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 1015,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-owner8.log",
+      "passed": 0,
+      "stored_bytes": 1015
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 3498,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-precompile4.log",
+      "passed": 0,
+      "stored_bytes": 3498
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fmt4.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 3498,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-precompile3.log",
+      "passed": 0,
+      "stored_bytes": 3498
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-join.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 9641,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-search-release.log",
+      "passed": 0,
+      "stored_bytes": 9641
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 1945,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-clippy1.log",
+      "passed": 0,
+      "stored_bytes": 1945
+    },
+    {
+      "completed_target_counts": 38,
+      "exact_log_bytes": 120463,
+      "failed": 0,
+      "ignored": 10,
+      "name": "output-workspace7.log.gz",
+      "passed": 1008,
+      "stored_bytes": 31046
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 501,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-compact-debug.log",
+      "passed": 0,
+      "stored_bytes": 501
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 184,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-aud12-syscall.log",
+      "passed": 1,
+      "stored_bytes": 184
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 267,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-clippy7.log",
+      "passed": 0,
+      "stored_bytes": 267
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 459,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-webfetch-fixture.log",
+      "passed": 1,
+      "stored_bytes": 459
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-cursor.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-15.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 3498,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-precompile2.log",
+      "passed": 0,
+      "stored_bytes": 3498
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 6329,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-python47.log",
+      "passed": 0,
+      "stored_bytes": 6329
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 1128,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-native-common-debug2.log",
+      "passed": 0,
+      "stored_bytes": 1128
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 2267,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-native-common-release3.log",
+      "passed": 0,
+      "stored_bytes": 2267
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-cancel.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 9639,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-search-debug.log",
+      "passed": 0,
+      "stored_bytes": 9639
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-format-12.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 257,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-build-release2.log",
+      "passed": 0,
+      "stored_bytes": 257
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 0,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-fmt-final5.log",
+      "passed": 0,
+      "stored_bytes": 0
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 267,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-clippy-final5.log",
+      "passed": 0,
+      "stored_bytes": 267
+    },
+    {
+      "completed_target_counts": 1,
+      "exact_log_bytes": 1924,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-owner-served.log",
+      "passed": 15,
+      "stored_bytes": 1924
+    },
+    {
+      "completed_target_counts": 0,
+      "exact_log_bytes": 1705,
+      "failed": 0,
+      "ignored": 0,
+      "name": "output-owner-fifth.log",
+      "passed": 0,
+      "stored_bytes": 1705
+    }
+  ],
+  "owned_aggregate_bytes": 858596,
+  "owned_file_count": 141,
+  "remaining_recorded_temporaries": [
+    "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-vzzclz6n"
+  ],
+  "unclassified_owned_prefix_directories": [
+    {
+      "mtime": 1790928991.19717,
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-vzzclz6n"
+    },
+    {
+      "mtime": 1790905935.77074,
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-gate-b6_jhi6m"
+    }
+  ]
+}

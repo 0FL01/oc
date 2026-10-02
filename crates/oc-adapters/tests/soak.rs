@@ -202,6 +202,7 @@ fn make_harness() -> (Harness, Generation) {
         .collect(),
     };
     let generation = Generation {
+        tool_output: Default::default(),
         compaction: Default::default(),
         config_diagnostics: Vec::new(),
         providers: BTreeMap::new(),
@@ -487,6 +488,7 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
     assert_eq!(cancelled.status, TurnStatus::Cancelled);
     // One degraded MCP server: visible warning, turn still completes.
     let bad = Generation {
+        tool_output: Default::default(),
         compaction: Default::default(),
         config_diagnostics: Vec::new(),
         providers: BTreeMap::new(),

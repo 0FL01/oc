@@ -825,6 +825,7 @@ for line in sys.stdin:
 
     runtime
         .reload(Generation {
+            tool_output: Default::default(),
             compaction: Default::default(),
             config_diagnostics: Vec::new(),
             animations: None,

@@ -1,0 +1,22 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 25.41s
+     Running unittests src/lib.rs (target/debug/deps/oc_adapters-ed9aaed69dd516e3)
+
+running 1 test
+test webfetch::format_tests::tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_responsive ... FAILED
+
+failures:
+
+---- webfetch::format_tests::tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_responsive stdout ----
+
+thread 'webfetch::format_tests::tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_responsive' (309635) panicked at crates/oc-adapters/src/webfetch/format_tests.rs:234:17:
+fetch/steering rendezvous exceeded existing deadline: deadline has elapsed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    webfetch::format_tests::tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_responsive
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 450 filtered out; finished in 1.50s
+
+error: test failed, to rerun pass `-p oc-adapters --lib`

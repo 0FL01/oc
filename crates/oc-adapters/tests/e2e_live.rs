@@ -137,6 +137,7 @@ async fn live_workflow_harness() {
         &db,
         "work",
         oc_adapters::config::Generation {
+            tool_output: Default::default(),
             compaction: Default::default(),
             config_diagnostics: Vec::new(),
             animations: None,
@@ -279,6 +280,7 @@ async fn live_workflow_harness() {
         &db,
         "work",
         oc_adapters::config::Generation {
+            tool_output: Default::default(),
             compaction: Default::default(),
             config_diagnostics: Vec::new(),
             animations: None,

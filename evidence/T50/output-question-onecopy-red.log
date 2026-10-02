@@ -1,0 +1,21 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+error[E0616]: field `conn` of struct `storage::Db` is private
+   --> crates/oc-adapters/src/tools/output/tests.rs:120:31
+    |
+120 |     let event_bytes: i64 = db.conn.lock().unwrap().query_row(
+    |                               ^^^^ private field
+
+error[E0282]: type annotations needed
+   --> crates/oc-adapters/src/tools/output/tests.rs:121:105
+    |
+121 |         "SELECT max(length(CAST(payload AS BLOB))) FROM events WHERE kind='tool_output_question'", [], |r|r.get(0)).unwrap();
+    |                                                                                                         ^ - type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+121 |         "SELECT max(length(CAST(payload AS BLOB))) FROM events WHERE kind='tool_output_question'", [], |r: /* Type */|r.get(0)).unwrap();
+    |                                                                                                          ++++++++++++
+
+Some errors have detailed explanations: E0282, E0616.
+For more information about an error, try `rustc --explain E0282`.
+error: could not compile `oc-adapters` (lib test) due to 2 previous errors

@@ -1,0 +1,52 @@
+test_actual_http_status_receipts_are_additive_to_old_used_schema (test_bounded_live.EnvelopeTests.test_actual_http_status_receipts_are_additive_to_old_used_schema) ... ok
+test_actual_socket_limit_and_exact_forwarding (test_bounded_live.EnvelopeTests.test_actual_socket_limit_and_exact_forwarding) ... ok
+test_cancel_shutdown_reaps_workers_and_preserves_uncertain_attempt (test_bounded_live.EnvelopeTests.test_cancel_shutdown_reaps_workers_and_preserves_uncertain_attempt) ... ok
+test_concurrent_runner_processes_no_overshoot (test_bounded_live.EnvelopeTests.test_concurrent_runner_processes_no_overshoot) ... ok
+test_live_presence_without_explicit_opt_in_cannot_read_manifest_or_dispatch (test_bounded_live.EnvelopeTests.test_live_presence_without_explicit_opt_in_cannot_read_manifest_or_dispatch) ... ok
+test_malformed_or_unexpected_receipts_refuse_before_upstream (test_bounded_live.EnvelopeTests.test_malformed_or_unexpected_receipts_refuse_before_upstream) ... ok
+test_missing_corrupt_permissions_symlinks_relocation_and_io_fail_closed (test_bounded_live.EnvelopeTests.test_missing_corrupt_permissions_symlinks_relocation_and_io_fail_closed) ... ok
+test_ownership_pipe_shutdown_reaps_four_held_workers (test_bounded_live.EnvelopeTests.test_ownership_pipe_shutdown_reaps_four_held_workers) ... ok
+test_receipt_write_or_fsync_failure_never_refunds_or_redispatches (test_bounded_live.EnvelopeTests.test_receipt_write_or_fsync_failure_never_refunds_or_redispatches) ... ok
+test_rejects_unbounded_rpc_output_input_and_unknown_routes (test_bounded_live.EnvelopeTests.test_rejects_unbounded_rpc_output_input_and_unknown_routes) ... ok
+test_reservation_crash_is_consumed_on_restart (test_bounded_live.EnvelopeTests.test_reservation_crash_is_consumed_on_restart) ... ok
+test_stream_is_incremental_and_oversize_response_fails_bounded (test_bounded_live.EnvelopeTests.test_stream_is_incremental_and_oversize_response_fails_bounded) ... ok
+test_typed_transport_receipts_and_pre_dispatch_refusal_are_secret_free (test_bounded_live.EnvelopeTests.test_typed_transport_receipts_and_pre_dispatch_refusal_are_secret_free) ... ok
+test_base_staged_unstaged_new_rename_delete_and_deduplication (test_code_size.CodeSizeTests.test_base_staged_unstaged_new_rename_delete_and_deduplication) ... ok
+test_git_cli_io_and_invalid_encoding_errors_are_visible (test_code_size.CodeSizeTests.test_git_cli_io_and_invalid_encoding_errors_are_visible) ... ok
+test_physical_lines_and_unicode_bytes (test_code_size.CodeSizeTests.test_physical_lines_and_unicode_bytes) ... ok
+test_scope_roles_excluded_data_and_symlinks (test_code_size.CodeSizeTests.test_scope_roles_excluded_data_and_symlinks) ... ok
+test_warning_is_strictly_greater_and_exit_zero (test_code_size.CodeSizeTests.test_warning_is_strictly_greater_and_exit_zero) ... ok
+test_block_resume_retains_checkpoint (test_progress.JournalTests.test_block_resume_retains_checkpoint) ... ok
+test_bounded_index_preserves_all_leaves (test_progress.JournalTests.test_bounded_index_preserves_all_leaves) ... ok
+test_checkpoint_does_not_complete (test_progress.JournalTests.test_checkpoint_does_not_complete) ... ok
+test_dependency_and_single_active (test_progress.JournalTests.test_dependency_and_single_active) ... ok
+test_finish_requires_report_and_does_not_write_on_failure (test_progress.JournalTests.test_finish_requires_report_and_does_not_write_on_failure) ... ok
+test_initial_views_and_ready (test_progress.JournalTests.test_initial_views_and_ready) ... ok
+test_long_valid_note_still_fits_resume_budget (test_progress.JournalTests.test_long_valid_note_still_fits_resume_budget) ... ok
+test_missing_report_on_done_detected (test_progress.JournalTests.test_missing_report_on_done_detected) ... ok
+test_no_double_initialization (test_progress.JournalTests.test_no_double_initialization) ... ok
+test_note_byte_limit_and_required_sections (test_progress.JournalTests.test_note_byte_limit_and_required_sections) ... ok
+test_orphan_is_detected_not_deleted (test_progress.JournalTests.test_orphan_is_detected_not_deleted) ... ok
+test_path_escape_and_symlink_rejected (test_progress.JournalTests.test_path_escape_and_symlink_rejected) ... ok
+test_reopen_blocks_invalidating_completed_dependents (test_progress.JournalTests.test_reopen_blocks_invalidating_completed_dependents) ... ok
+test_stale_views_rebuild_without_state_change (test_progress.JournalTests.test_stale_views_rebuild_without_state_change) ... ok
+test_state_corruption_rejected (test_progress.JournalTests.test_state_corruption_rejected) ... ok
+test_cycle_rejected (test_check_docs.DocumentationTests.test_cycle_rejected) ... ok
+test_duplicate_reference_is_rejected (test_check_docs.DocumentationTests.test_duplicate_reference_is_rejected) ... ok
+test_duplicate_scenario_owner_rejected (test_check_docs.DocumentationTests.test_duplicate_scenario_owner_rejected) ... ok
+test_generic_objective_has_no_codex_size_cap (test_check_docs.DocumentationTests.test_generic_objective_has_no_codex_size_cap) ... ok
+test_goal_gate_cannot_shadow_a_detailed_test (test_check_docs.DocumentationTests.test_goal_gate_cannot_shadow_a_detailed_test) ... ok
+test_ignored_local_json_is_not_scanned (test_check_docs.DocumentationTests.test_ignored_local_json_is_not_scanned) ... ok
+test_jsonc_preserves_urls_and_comment_text_in_strings (test_check_docs.DocumentationTests.test_jsonc_preserves_urls_and_comment_text_in_strings) ... ok
+test_missing_a13_final_section_rejected (test_check_docs.DocumentationTests.test_missing_a13_final_section_rejected) ... ok
+test_missing_a13_goal_gate_rejected (test_check_docs.DocumentationTests.test_missing_a13_goal_gate_rejected) ... ok
+test_runner_specific_active_surface_rejected (test_check_docs.DocumentationTests.test_runner_specific_active_surface_rejected) ... ok
+test_shared_goal_gate_references_are_not_detailed_owners (test_check_docs.DocumentationTests.test_shared_goal_gate_references_are_not_detailed_owners) ... ok
+test_unassigned_scenario_rejected (test_check_docs.DocumentationTests.test_unassigned_scenario_rejected) ... ok
+test_unknown_goal_gate_is_rejected (test_check_docs.DocumentationTests.test_unknown_goal_gate_is_rejected) ... ok
+test_valid_package (test_check_docs.DocumentationTests.test_valid_package) ... ok
+
+----------------------------------------------------------------------
+Ran 47 tests in 10.042s
+
+OK

@@ -1,0 +1,2 @@
+{"case": "head", "status": "FAIL", "error": "['Expecting value: line 1 column 1 (char 0)']"}
+{"binary": "/home/opencode/ai/oc/target/debug/oc", "sha256_before": "63cf28d1411a392da62cd36dc2f988d27a3c794b9326778fcf1adfefeffa12af", "sha256_after": "63cf28d1411a392da62cd36dc2f988d27a3c794b9326778fcf1adfefeffa12af", "failures": 1, "owned_cleanup": "all processes/HTTP handler threads joined before exact TempDir cleanup"}

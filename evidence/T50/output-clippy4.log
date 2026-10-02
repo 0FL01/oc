@@ -1,0 +1,24 @@
+    Checking oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)
+    Checking oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Checking oc v0.1.0 (/home/opencode/ai/oc/crates/oc)
+error[E0063]: missing field `tool_output` in initializer of `oc_adapters::config::Generation`
+   --> crates/oc-adapters/tests/runtime/tool_lifecycle.rs:827:17
+    |
+827 |         .reload(Generation {
+    |                 ^^^^^^^^^^ missing `tool_output`
+
+error[E0063]: missing field `tool_output` in initializer of `oc_adapters::config::Generation`
+    --> crates/oc-adapters/tests/runtime/turns.rs:1252:17
+     |
+1252 |         .reload(Generation {
+     |                 ^^^^^^^^^^ missing `tool_output`
+
+error[E0063]: missing field `tool_output` in initializer of `oc_adapters::config::Generation`
+    --> crates/oc-adapters/tests/runtime/turns.rs:1289:25
+     |
+1289 |                 .reload(Generation {
+     |                         ^^^^^^^^^^ missing `tool_output`
+
+For more information about this error, try `rustc --explain E0063`.
+error: could not compile `oc-adapters` (test "runtime") due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...
