@@ -237,6 +237,41 @@ Use source-derived fixtures/captured fake-provider requests/actual binary and ex
 bounded live envelope, not days of paid prompts. Plan-only checks prove structure,
 not these runtime outcomes; executed historical reports remain unchanged.
 
+### DCP12 effective config controls (approved 2026-10-02; pending)
+
+Follow [switch/manual contract](DCP.md#compression-switch-and-effective-config-controls--t45r9dcp12-approved-2026-10-02-pending).
+DCP12/T45 owns new assertions; existing DCP05–DCP07 owners are not reassigned, and
+DCP10/CTX02/VIS38 retain their respective scopes. Use existing dcp_auto/config,
+composition/application/runtime, dcp_atomic/context_bounds and oc/tests/dcp_runtime
+targets; frozen fake-provider receipts precede relevant crate/workspace gates.
+
+1. No-file default true, explicit false/true, wrong type/unknown nested key and source
+   override have strict effective values/safe source-field diagnostics. Capture off
+   request tools and managed input: no compress schema/guidance/compression anchors/nudge;
+   CTX02 independent text-message IDs remain available. An unsolicited call fails
+   paired with zero new block/projection mutation; global off,
+   effective Deny/Ask and eligible-child opt-out cannot be bypassed by enabled=true.
+2. `/dcp-compress`/panel off/deny/commands-off rejection has zero Submit/provider
+   dispatch/new user turn/compression intent. Direct run_compress obeys global/tool
+   switches and effective permission. Off/on and restart preserve committed projection,
+   stable IDs/history/marks and configured Ask/Deny, without forgotten-data resurrection.
+3. With manual mode enabled, ordinary turn exposes no autonomous tool/nudge. Actual
+   admitted `/dcp-compress` uses typed scoped trigger/tool/anchors, commits a shrinking
+   summary and continues with retained control fact. Prompt/focus imitation cannot
+   authorize it; cancellation/denial/failure/completion releases scope. Ask uses real
+   consumer or headless pre-effect refusal; invalid/no-gain never becomes success.
+4. Rebuilt command/palette flow proves commands=false hides/disables both DCP commands
+   without disabling an otherwise available model tool or native compact. Stale panel
+   action rechecks owner state. Debug on/off receipts contain only metadata/counters,
+   never summary/arguments/credentials/raw response/private paths; mandatory errors stay.
+5. Reload/restart/Location and captured-view checks use existing immutable generation
+   barriers, not arbitrary file watching. Reuse DCP10/CTX02 root/child isolation and
+   preview. Source-derived cadence fixtures compare context/turn/iteration/last-user
+   timing and successful-compress cooldown, retaining 5/15/soft and native40%/55%/false.
+   Protection/default fixtures disclose native empty/shared lists, donor distinct
+   scopes and union versus replacement; do not silently change native roots/array
+   merge/explicit protections or claim full parity. VIS38 visuals remain separate.
+
 ### DCP11 hot replacement / optional cold / manual compact (approved 2026-09-30; pending)
 
 Use one frozen fake-provider campaign on the rebuilt actual binary, reusing

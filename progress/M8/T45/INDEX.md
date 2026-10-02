@@ -1,4 +1,4 @@
-# T45 — Остаток subagent system (T43 slices 5-8) и DCP defaults (DCP12)
+# T45 — Остаток subagent system (T43 slices 5-8), DCP defaults и effective config controls (DCP12)
 
 Status: blocked
 Spec: ../../../docs/goals/2026-09-21-config-compat-and-subagents.md

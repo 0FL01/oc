@@ -669,6 +669,31 @@ T46 completed baseline/evidence не переписываются; additive qual
 NOT_RUN. Active T50/PAUSED T44, T55 safe-handoff priority, IDs/dependencies/baselines
 и текущая dirty реализация сохраняются; plan checks не runtime PASS.
 
+## Owner clarification (2026-10-02 — DCP compress switch и реальные config controls)
+
+После DCP RECON владелец утвердил правки плана и commit/push текущей ветки.
+[T45/R9/DCP12](docs/DCP.md#compression-switch-and-effective-config-controls--t45r9dcp12-approved-2026-10-02-pending)
+получает native `compress.enabled` (boolean, missing=true) — hard off для новых
+model/manual/API compression, отдельно от общего `enabled` и `compress.permission`.
+Global off/effective Deny/child opt-out сильнее; true сохраняет Ask/Deny и не расширяет
+policy. Каталог/guidance/compression anchors/nudges/preview/preflight/dispatch согласованы;
+disabled manual request отказывает до Submit/provider/нового turn/intent.
+
+Настоящий manual mode разрешает только owner-admitted typed scoped `/dcp-compress`,
+не trigger по тексту prompt; commands.enabled реально управляет native DCP slash/
+completion/palette/dispatch, debug включает только safe metadata. Off/on сохраняет
+committed summaries/raw history и не воскрешает забытое; native compact и commit-time
+strategies остаются отдельными. Nudge timing/protection/default deltas требуют
+executable fixtures, native config roots/array replacement остаются объявленными
+отличиями. New switch отсутствует в original3.1.15/3.2.0; compiled baseline/AGPL и
+отдельный T51 version-admission follow-up не меняются.
+
+Порядок/qualification — [M8](roadmap/M8.md#effective-dcp-config-controls--t45r9dcp12-approved-2026-10-02-pending),
+`docs/CONFIG.md`, `docs/TEST_PLAN.md`, existing DCP12 с regression reuse DCP05–DCP07/
+DCP10/CTX02; historical detailed owners/evidence сохраняются. Реализация pending/
+NOT_RUN, не VIS38/all-T45/READY. Новых tasks/gates/paid campaign нет; active T50,
+dirty T50/CODE_MAP, PAUSED T44, T55 safe-handoff priority и execution statuses intact.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

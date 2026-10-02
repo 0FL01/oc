@@ -89,9 +89,134 @@ Dedup: одинаковые tool name+canonical arguments, оставить по
 
 ## Config surface
 
-Поддержать enabled; pruneNotification/type; commands.enabled/protectedTools; manualMode; turnProtection; protectedFilePatterns; compress range/permission/showCompression/summaryBuffer/min/max/model overrides/nudgeFrequency/iterationNudgeThreshold/nudgeForce/protectedTools/protectTags/protectUserMessages; strategies.deduplication/purgeErrors. `debug` включает только безопасные metadata logs. `pruneNotification` сохраняет off/minimal/detailed, не boolean; type — chat/toast. Display defaults detailed/chat, showCompression=false. Notification `toast` может отображаться как bounded transient TUI status notice — documented UI difference.
+Поддержать enabled; pruneNotification/type; commands.enabled/protectedTools; manualMode; turnProtection; protectedFilePatterns; compress enabled/range/permission/showCompression/summaryBuffer/min/max/model overrides/nudgeFrequency/iterationNudgeThreshold/nudgeForce/protectedTools/protectTags/protectUserMessages; strategies.deduplication/purgeErrors. `compress.enabled` — owner-approved native extension от 2026-10-02, pending, не поле pinned upstream. `debug` включает только безопасные metadata logs. `pruneNotification` сохраняет off/minimal/detailed, не boolean; type — chat/toast. Display defaults detailed/chat, showCompression=false. Notification `toast` может отображаться как bounded transient TUI status notice — documented UI difference.
 
 Config source order фиксируется отдельной source-derived fixture вместе с general config roots; `cli.json` сюда не входит. Sources проходят explicit trust boundary и остаются read-only. Native enabling не добавляет npm package. Supported aliases — exact `@tarquinen/opencode-dcp`, `@tarquinen/opencode-dcp@3.1.15` и пользовательский `@tarquinen/opencode-dcp@latest`; все три дают один instance repository-pinned compiled revision. Последний не резолвится через npm/registry. Semver ranges и другие versions — `UnsupportedPlugin` до package/network side effects.
+
+## Compression switch and effective config controls — T45/R9/DCP12 (approved 2026-10-02; pending)
+
+**Source/owner:** после RECON владелец утвердил правки плана, commit и push текущей
+ветки. Новый `compress.enabled` и найденные manual/commands/debug gaps принадлежат
+T45/R9/DCP12; DCP05–DCP07 сохраняют прежних владельцев и служат regression/source
+fixtures, DCP10 — child isolation, T44/VIS38 — отдельная presentation qualification.
+Новых tasks/gates, runtime config writes, npm host или paid campaign нет.
+
+### Source-derived snapshot, not runtime qualification
+
+Read-only RECON на HEAD `32fc02ba4031ba0a630e62873e7015caead2077f` с dirty T50:
+
+- `dcp_auto.rs::DcpConfig/load_config`: `compress.enabled` отсутствует и неизвестные
+  nested compress keys молча игнорируются; `commands_enabled`/`debug` принимаются,
+  но их runtime effects не подключены. Compiled defaults пока 50000/100000/true.
+- `runtime/turn.rs` и `runtime.rs::preflight_compression` скрывают/запрещают tool в
+  manual mode. `application.rs::compress_prompt`/`InboxMsg::Compress` всё равно
+  превращают `/dcp-compress` в ordinary Submit. Прямой `run_compress` проверяет
+  permission, но не global enabled/manual; один UI-only gate этого не исправляет.
+- Native nudge counter продвигается при подготовке requests и сбрасывается после
+  compression. Original context/turn/iteration anchors и last-user timing нельзя
+  считать эквивалентными только по числам 5/15 и старым synthetic tests.
+- Настраиваемые file/tool/tag/user/turn protections и strategies имеют consumers.
+  Notification/channel/showCompression уже подключены к typed TUI renderer, но
+  это не полный VIS38 PASS. `allowSubAgents:true` пока warning/ignore.
+- Original 3.1.15/3.2.0 не имеют `compress.enabled`; их compress surface/defaults
+  совпадают. `compress.permission:deny` снимает tool и system guidance; внутренние
+  `injectCompressNudges`/`injectMessageIds` также проверяют deny, несмотря на отсутствие
+  early return у внешнего chat-transform hook. Manual trigger не обходит permissions.
+
+Original references: [3.1.15 config](https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/config.ts),
+[registration](https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/index.ts),
+[manual command/hooks](https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/hooks.ts),
+[leaf nudge/ID gates](https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/messages/inject/inject.ts),
+[3.2.0 config comparison](https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/d637981555a18c3992472268a0657a948925d5fa/lib/config.ts).
+Это source comparison, не смена compiled baseline/AGPL provenance и не полный3.2.0 PASS.
+
+### Frozen switch/manual/command semantics
+
+Proposed native fragment — **не поддерживается текущим бинарником**:
+
+```json
+{
+  "enabled": true,
+  "compress": {"enabled": false, "permission": "ask"}
+}
+```
+
+1. `compress.enabled` — строго boolean, missing means true. False запрещает **все
+   новые compression operations**, включая explicit manual/API entry points; true
+   не меняет сохранённый permission и не расширяет central/profile/parent-child
+   authority. Global `enabled:false`, effective Deny и child opt-out сильнее switch.
+   Schema/catalog, managed guidance, compression anchors/nudges, preview, preflight
+   и dispatch используют одну effective availability. Не удалять слово compress из raw user/
+   profile/history text. Malformed switch — safe pre-effect config error; unknown
+   nested compress keys дают source/field-qualified warning, не silent acceptance.
+   Независимые stable text-message IDs CTX02 остаются видимыми при off/manual/deny;
+   removal касается compression-specific annotations, не capability context selection.
+2. Disabled `/dcp-compress`/panel trigger отказывает с безопасной причиной **до**
+   Submit/provider/нового user turn или compression intent. Stale/unsolicited model
+   call получает paired refusal без block/projection mutation. Read-only context/
+   stats остаются доступны при `commands.enabled:true`, с честной причиной off/deny.
+   Low-level `run_compress` не служит обходом global/tool switches или Ask/Deny.
+3. `manualMode.enabled:true` означает отсутствие автономных compression nudges/
+   invocation, но разрешает явно admitted `/dcp-compress` при enabled switches и
+   effective permission. Application owner передаёт typed session/generation-bound
+   manual trigger и только для его bounded turn/pass выставляет tool/closed anchors
+   и manual guidance. Не узнавать trigger по ключевым словам/focus/LLM-тексту;
+   произвольный Submit его не создаёт. Trigger не становится постоянным enable и
+   снимается по completion/cancel/denial/failure. Ask требует настоящего consumer;
+   headless без consumer отказывает до provider/effects, не auto-approves.
+   Superseded только blanket manual tool exclusion для explicit admitted trigger;
+   обычные autonomous/manual restrictions и automaticStrategies policy сохраняются.
+4. `commands.enabled:false` реально выключает `/dcp` и `/dcp-compress` в native
+   registration/completion/palette/dispatch; stale panel action проверяется у owner.
+   Это не switch самого model tool, strategies, native `/compact` или read-only
+   query API. Отдельное compression off не выключает остальные product commands.
+5. `debug:true` подключает metadata-only diagnostics у существующего trace owner;
+   false оставляет обычные mandatory error diagnostics. Не писать transcript,
+   arguments/summary bodies, env/keys/headers/raw responses или sensitive paths.
+   UI получает минимальные typed availability/reason facts через существующий query,
+   не отдельный policy calculator/store; VIS38 остаётся отдельным visual gate.
+6. Config принимается read-only по существующим source roots и публикуется на
+   безопасной config/Location generation boundary. Prepared request/tools/approval
+   сохраняют captured view; модельный live switch не является reload DCP-файла.
+   Off/on не декомпрессирует committed summaries, не сбрасывает durable history/
+   counters/marks и не воскрешает забытое. Настройки strategies сохраняются, но новый
+   pruning по-прежнему commit-time: отсутствие compress trigger не создаёт фонового
+   pruning worker. `/compact` остаётся отдельным механизмом с прежними guards.
+
+### Compatibility boundaries and qualification
+
+- Сохранить уже утверждённые native roots: replacement OPENCODE_CONFIG_DIR,
+  global→Location root→.opencode, inline→JSON→JSONC. Original добавляет config_dir
+  поверх global, ищет nearest ancestor .opencode и выбирает JSONC вместо JSON.
+  Native deep merge заменяет arrays, original объединяет protection arrays; это
+  объявленные отличия, не разрешение менять source precedence в switch-срезе.
+- Original command/strategy protections отличаются от compress output preservation;
+  compress defaults содержат task/skill/todowrite/todoread, command defaults — десять
+  donor tools. Native общий список сейчас пуст по умолчанию и смешивает command/
+  compress scopes. Freeze executable protection/default fixtures с реальным native
+  каталогом; не заявлять parity по accepted keys, не копировать несуществующие tool
+  names и не ослаблять explicit protections. Не менять defaults/array merge молча;
+  native forgetting/current protection lifecycle DCP11 остаётся authoritative.
+- Cadence fixtures сверяют original context/turn/iteration/last-user semantics с
+  native requests, сохраняя 5/15/soft, successful-compress cooldown и approved
+  40%/55%/false accounting. Исправлять установленный timing gap, не выдавать одинаковые
+  defaults за algorithm parity и не переносить archived reminders в hot state.
+- DCP12: no-file default/explicit true/false/wrong type/unknown nested key, source
+  override, Deny/Ask/global off и explicit manual trigger; fake-provider captured
+  requests доказывают отсутствие schema/guidance/compression anchors/nudge при off;
+  rejected manual command не создаёт provider dispatch/нового turn/block. Direct entry point
+  obeys switches; re-enable сохраняет Ask/Deny и committed projection.
+- Rebuilt actual binary: `/dcp`/`/dcp-compress` и palette после reload/restart/Location
+  switch, commands off при still-enabled model tool, metadata-only debug on/off;
+  DCP10/CTX02 reuse root/eligible-child isolation и truthful capability preview.
+  Нужны реальные successful manual compression и следующий request в manual mode,
+  не только API `run_compress`/успешный model prose. Regression targets: dcp_auto,
+  composition/application/runtime, dcp_atomic/context_bounds, oc/tests/dcp_runtime;
+  relevant crate/workspace gates по существующему TEST_PLAN, без новой paid нагрузки.
+
+Done этого среза — qualified flags, manual route и truthful consumers; не all-T45,
+DCP11, VIS38 или READY. Исполнение только после safe handoff active T50; T44 PAUSED,
+task IDs/dependencies/statuses, historical evidence и baseline остаются неизменными.
 
 ## Approved percentage defaults — T45/R9/DCP12 (pending)
 

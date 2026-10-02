@@ -202,7 +202,7 @@ Target configurable groups (qualification is required, parsing alone is not supp
 | Group | Fields and values |
 | --- | --- |
 | Core | `enabled`, `debug` (safe metadata only); `$schema` is metadata |
-| Compression | `compress.mode:range`, `permission:allow\|ask\|deny`, `minContextLimit`/`maxContextLimit` positive tokens or valid `X%`, `summaryBuffer`, `showCompression` |
+| Compression | native `compress.enabled` default true target; `compress.mode:range`, `permission:allow\|ask\|deny`, `minContextLimit`/`maxContextLimit` positive tokens or valid `X%`, `summaryBuffer`, `showCompression` |
 | Model policy | `compress.modelMinLimits`/`modelMaxLimits` exact provider/model maps; native `compress.modelOverrides` with minContextLimit/maxContextLimit/nudgeFrequency; no model-ID hardcoding |
 | Reminder policy | `compress.nudgeFrequency`, `iterationNudgeThreshold`, `nudgeForce:soft\|strong` (`hard` is not a config value) |
 | Protection | `compress.protectedTools`, `protectTags`, `protectUserMessages`, top-level `protectedFilePatterns` |
@@ -219,8 +219,27 @@ Explicit autoUpdate:true, customPrompts:true and message mode remain unsupported
 false does not enable an updater/prompt engine. Child gates are pending R9, and
 typed display modes/showCompression are pending T44/VIS38. Commands/debug are not
 qualified merely by accepted fields or old snapshot tests; their required runtime
-effects need current evidence. DCP12 proves default/threshold/config-resolution
-behavior, not completion of all these other outcomes.
+effects need current evidence. The percentage-default slice of DCP12 proves
+default/threshold/config-resolution behavior, not every control/display outcome;
+the approved effective-control supplement below separately qualifies its flags/routes.
+
+Owner-approved 2026-10-02 [effective controls](DCP.md#compression-switch-and-effective-config-controls--t45r9dcp12-approved-2026-10-02-pending)
+extend T45/R9/DCP12, implementation/qualification **pending**:
+
+- `compress.enabled:false` is a native hard off for new model/manual/API compression;
+  omission defaults true. It preserves permission choice, existing committed summaries
+  and immutable history, never overrides global off/Deny/child opt-out or Ask.
+- Disabled manual requests fail before Submit/provider. Manual mode instead allows
+  owner-admitted explicit `/dcp-compress` with a scoped typed trigger, not arbitrary
+  prompt text; autonomous calls/nudges remain off. Commands false really disables
+  native `/dcp` and `/dcp-compress`; debug true enables only safe metadata diagnostics.
+- Current `compress.enabled` is silently ignored, commands/debug effects are unwired,
+  and manual mode hides the tool that the current command asks the model to call.
+  Typed notification/channel/showCompression consumers exist; full VIS38 remains pending.
+- Keep admitted native root order and array replacement as declared donor differences;
+  protect-tool scopes/defaults and nudge timing need executable fixtures, not parser-only
+  parity claims. Unknown nested compress keys must get safe source/field diagnostics.
+  Examples/schema/help change with implementation; no user config rewrite or updater.
 
 Host OC1 pin `@tarquinen/opencode-dcp@3.2.0` is a **pending** exact compatibility
 target, not a current admitted alias or baseline change. Admission/provenance follow-up

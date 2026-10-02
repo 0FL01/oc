@@ -747,7 +747,7 @@
     {
       "id": "T45",
       "phase": "M8",
-      "title": "Остаток subagent system (T43 slices 5-8) и DCP defaults (DCP12)",
+      "title": "Остаток subagent system (T43 slices 5-8), DCP defaults и effective config controls (DCP12)",
       "depends_on": [],
       "tests": [
         "A02",
