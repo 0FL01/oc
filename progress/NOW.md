@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-01T22:54:33+00:00
+State updated: 2026-10-02T00:49:42+00:00
 Active: T50
 
 Сверить Git status/diff до выполнения команд.
@@ -12,15 +12,14 @@ Owner-approved selected R1–R10; detailed contract/slices in spec/M8. Shell com
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T50
 ## Result
-R2 shell controls verified: inventory/live output/selected kill/same-PID conversion.
+R7 catalog-only CLI verified; T50 active.
 ## Checks
-Workspace1419; parent8 + native10; Python47 PASS.
+Workspace1426; parent7 +62 ELF cases; Python47 PASS.
 ## Risks
-CLI/R10 and aggregate goal open; T44 paused.
+R10/T45/T53 open; T44 paused; paid allowance exhausted.
 ## Next
-Catalog-only CLI and common bounded output contract.
+Common bounded tool output and authorized cold artifacts.
 
 
 Ready (до 5): T53, T56

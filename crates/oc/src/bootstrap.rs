@@ -11,7 +11,11 @@ pub async fn run(args: Args) -> ExitCode {
     if args.smoke && args.command.is_none() {
         return legacy_smoke();
     }
-    oc_adapters::trace::init_default();
+    // The catalog command is read-only even under a fresh HOME. The ordinary
+    // startup trace creates/truncates files and belongs to application startup.
+    if !matches!(args.command, Some(Command::Models)) {
+        oc_adapters::trace::init_default();
+    }
     oc_adapters::trace::log(
         "startup.begin",
         &format!(
@@ -44,6 +48,9 @@ pub async fn run(args: Args) -> ExitCode {
         );
         return ExitCode::from(2);
     }
+    if matches!(args.command, Some(Command::Models)) {
+        return crate::models_cmd::run().await;
+    }
     let data_dir = match args
         .data_dir
         .clone()
@@ -61,6 +68,7 @@ pub async fn run(args: Args) -> ExitCode {
         }
     };
     match args.command {
+        Some(Command::Models) => unreachable!("catalog-only dispatch precedes storage"),
         None => crate::tui_cmd::run_tui(&data_dir, None, args.auto).await,
         Some(Command::Run {
             prompt,
@@ -100,6 +108,7 @@ fn subcommand_kind(command: &Option<Command>) -> &'static str {
         Some(Command::Run { .. }) => "run",
         Some(Command::Sessions { .. }) => "sessions",
         Some(Command::Tui { .. }) => "tui",
+        Some(Command::Models) => "models",
     }
 }
 

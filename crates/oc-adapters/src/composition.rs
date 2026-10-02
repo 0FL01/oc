@@ -17,7 +17,9 @@ use oc_core::queries::{
     NativePlugin, PluginEntry, PluginInventory, PluginStatus, ServiceAction, ServiceCode,
     ServiceDiagnostic, ServiceKind, ServiceStage, StartupNotice,
 };
+mod catalog;
 mod provider_readiness;
+pub use catalog::{CatalogListing, load_catalog};
 pub(crate) use provider_readiness::ProviderState;
 
 /// Fully built application configuration. Contains credentials and must not be logged.
@@ -206,10 +208,37 @@ fn config_class(error: &config::ConfigError) -> &'static str {
     }
 }
 
-async fn load_stages(
+struct AdmittedSources {
+    project: PathBuf,
+    global: Option<PathBuf>,
+    roots: Vec<PathBuf>,
+    admitted_roots: Vec<Option<AdmittedRoot>>,
+    sources: Vec<config::Source>,
+    source_authority: BTreeMap<String, (usize, PathBuf)>,
+}
+
+fn source_roots<'a>(
+    roots: &'a [Option<AdmittedRoot>],
+    authority: &BTreeMap<String, (usize, PathBuf)>,
+) -> BTreeMap<String, (&'a File, PathBuf)> {
+    authority
+        .iter()
+        .map(|(source, (index, directory))| {
+            (
+                source.clone(),
+                (
+                    &roots[*index].as_ref().expect("admitted source root").dir,
+                    directory.clone(),
+                ),
+            )
+        })
+        .collect()
+}
+
+fn admit_sources(
     project: &Path,
-    parent_env: BTreeMap<String, String>,
-) -> Result<Composition, LoadFailure> {
+    parent_env: &BTreeMap<String, String>,
+) -> Result<AdmittedSources, LoadFailure> {
     let project = project.canonicalize().map_err(|_| {
         failure(
             &project.to_string_lossy(),
@@ -269,9 +298,9 @@ async fn load_stages(
         .map(|root| admit_root(root, &project, root == roots.last().expect("local root")))
         .collect::<Result<_, _>>()?;
     let mut sources = Vec::new();
-    let mut source_roots = BTreeMap::new();
+    let mut source_authority = BTreeMap::new();
     let mut seen = HashSet::new();
-    for (root, admitted) in roots.iter().zip(&admitted_roots) {
+    for (index, (root, admitted)) in roots.iter().zip(&admitted_roots).enumerate() {
         let Some(admitted) = admitted else { continue };
         for name in ["opencode.json", "opencode.jsonc"] {
             let path = root.join(name);
@@ -308,24 +337,36 @@ async fn load_stages(
                         text.len()
                     ),
                 );
-                source_roots.insert(source_path.clone(), (&admitted.dir, directory));
                 sources.push(config::Source {
                     path: source_path,
                     text,
                     trusted: true,
                 });
+                source_authority
+                    .insert(canonical.to_string_lossy().into_owned(), (index, directory));
             }
         }
     }
-    if sources.is_empty() {
-        return Err(failure(
-            &project.to_string_lossy(),
-            &["document"],
-            ServiceStage::Config,
-            ServiceCode::MissingConfiguration,
-        ));
-    }
+    Ok(AdmittedSources {
+        project,
+        global,
+        roots,
+        admitted_roots,
+        sources,
+        source_authority,
+    })
+}
 
+struct DcpAdmission {
+    config: dcp_auto::DcpConfig,
+    warnings: Vec<String>,
+    sources: Vec<String>,
+}
+
+fn admit_dcp(
+    sources: &[config::Source],
+    admitted_roots: &[Option<AdmittedRoot>],
+) -> Result<DcpAdmission, LoadFailure> {
     // DCP config is native data, never executable plugin code. Inline `dcp`
     // fragments follow ordinary config precedence; standalone files then layer
     // at the same admitted roots (JSON before JSONC).
@@ -333,10 +374,10 @@ async fn load_stages(
     // Every admitted source that contributed a DCP fragment: an unsupported
     // option must name the file the owner has to edit, not just the field.
     let mut dcp_sources: Vec<String> = Vec::new();
-    for admitted in &admitted_roots {
+    for admitted in admitted_roots {
         let Some(admitted) = admitted else { continue };
         let root = &admitted.path;
-        for source in &sources {
+        for source in sources {
             if Path::new(&source.path).parent() != Some(root.as_path()) {
                 continue;
             }
@@ -430,24 +471,45 @@ async fn load_stages(
             return Err(error);
         }
     };
-    let dcp_protected = oc_core::context_plan::ProtectedSpec {
-        protect_user_messages: dcp_config.protect_user_messages,
-        protect_tags: dcp_config.protect_tags,
-        file_globs: dcp_config.protected_file_patterns.clone(),
-        protected_message_ids: BTreeSet::new(),
-    };
+    Ok(DcpAdmission {
+        config: dcp_config,
+        warnings: dcp_warnings,
+        sources: dcp_sources,
+    })
+}
 
+struct LocalSettings {
+    selected: Option<String>,
+    selected_source: String,
+    default_agent: Option<String>,
+    subagent_depth: u32,
+    enabled: Option<Vec<String>>,
+    disabled: Vec<String>,
+    native_modules: BTreeSet<String>,
+    plugins: PluginInventory,
+    plugin_issues: bool,
+    conversation_keybinds: config::ConversationKeybinds,
+}
+
+fn admit_settings(
+    sources: &[config::Source],
+    admitted_roots: &[Option<AdmittedRoot>],
+    parent_env: &BTreeMap<String, String>,
+    resolve_selection: bool,
+) -> Result<LocalSettings, LoadFailure> {
     let mut selected = None;
-    let mut selected_source = sources.last().expect("nonempty sources").path.clone();
+    let mut selected_source = sources
+        .last()
+        .map(|source| source.path.clone())
+        .unwrap_or_else(|| "native config".into());
     let mut default_agent = None;
     let mut subagent_depth: u32 = 1;
-    let mut enabled = None;
-    let mut disabled = Vec::new();
+    let (enabled, disabled) = catalog::provider_filters(sources)?;
     let mut native_modules = BTreeSet::new();
     let mut plugins = PluginInventory::default();
     let mut plugin_issues = false;
     let mut conversation_keybinds = config::ConversationKeybinds::default();
-    for source in &sources {
+    for source in sources {
         let value = match config::parse_jsonc(&source.text, &source.path) {
             Ok(value) => value,
             Err(error) => {
@@ -469,20 +531,25 @@ async fn load_stages(
             let model = model
                 .as_str()
                 .ok_or_else(|| invalid(&source.path, &["model"]))?;
-            selected = Some(
-                config::substitute(model, &source.path, false, &parent_env)
-                    .map_err(|error| config_error(&source.path, &error))?,
-            );
-            selected_source = source.path.clone();
+            // Catalog admission validates the known field's shape, but does
+            // not resolve unrelated selection templates or choose a model.
+            if resolve_selection {
+                selected = Some(
+                    config::substitute(model, &source.path, false, parent_env)
+                        .map_err(|error| config_error(&source.path, &error))?,
+                );
+                selected_source = source.path.clone();
+            }
         }
         if let Some(agent) = value.get("default_agent") {
-            default_agent = Some(
-                agent
-                    .as_str()
-                    .filter(|id| !id.trim().is_empty())
-                    .ok_or_else(|| invalid(&source.path, &["default_agent"]))?
-                    .to_string(),
-            );
+            let agent = agent
+                .as_str()
+                .filter(|id| !id.trim().is_empty())
+                .ok_or_else(|| invalid(&source.path, &["default_agent"]))?
+                .to_string();
+            if resolve_selection {
+                default_agent = Some(agent);
+            }
         }
         if let Some(experimental) = value.get("experimental") {
             let object = experimental
@@ -495,12 +562,6 @@ async fn load_stages(
                     .ok_or_else(|| invalid(&source.path, &["experimental", "subagent_depth"]))?;
                 subagent_depth = depth as u32;
             }
-        }
-        if let Some(list) = value.get("enabled_providers") {
-            enabled = Some(provider_ids(list, "enabled_providers", &source.path)?);
-        }
-        if let Some(list) = value.get("disabled_providers") {
-            disabled = provider_ids(list, "disabled_providers", &source.path)?;
         }
         if let Some(identities) = value.get("plugin") {
             let identities = provider_ids(identities, "plugin", &source.path)?;
@@ -565,6 +626,64 @@ async fn load_stages(
         }
     }
 
+    Ok(LocalSettings {
+        selected,
+        selected_source,
+        default_agent,
+        subagent_depth,
+        enabled,
+        disabled,
+        native_modules,
+        plugins,
+        plugin_issues,
+        conversation_keybinds,
+    })
+}
+
+async fn load_stages(
+    project: &Path,
+    parent_env: BTreeMap<String, String>,
+) -> Result<Composition, LoadFailure> {
+    let AdmittedSources {
+        project,
+        global,
+        roots,
+        admitted_roots,
+        sources,
+        source_authority,
+    } = admit_sources(project, &parent_env)?;
+    let source_roots = source_roots(&admitted_roots, &source_authority);
+    if sources.is_empty() {
+        return Err(failure(
+            &project.to_string_lossy(),
+            &["document"],
+            ServiceStage::Config,
+            ServiceCode::MissingConfiguration,
+        ));
+    }
+    let DcpAdmission {
+        config: dcp_config,
+        warnings: dcp_warnings,
+        sources: dcp_sources,
+    } = admit_dcp(&sources, &admitted_roots)?;
+    let dcp_protected = oc_core::context_plan::ProtectedSpec {
+        protect_user_messages: dcp_config.protect_user_messages,
+        protect_tags: dcp_config.protect_tags,
+        file_globs: dcp_config.protected_file_patterns.clone(),
+        protected_message_ids: BTreeSet::new(),
+    };
+    let LocalSettings {
+        selected,
+        selected_source,
+        mut default_agent,
+        subagent_depth,
+        enabled,
+        disabled,
+        native_modules,
+        plugins,
+        plugin_issues,
+        mut conversation_keybinds,
+    } = admit_settings(&sources, &admitted_roots, &parent_env, true)?;
     match &selected {
         Some(_) => trace::log("selected", "configured=true"),
         None => trace::log("selected", "model=none"),
@@ -1279,7 +1398,7 @@ async fn load_stages(
         model_id: model_id.to_string(),
         provider,
         provider_state,
-        project,
+        project: project.clone(),
         parent_env,
         instructions,
         instruction_roots,

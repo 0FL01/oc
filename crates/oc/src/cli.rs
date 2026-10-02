@@ -1,7 +1,7 @@
-//! Minimal CLI surface for T05.
+//! Native CLI surface.
 //!
-//! `run`/`sessions` arrive here; full `tui`/`models`/`config` arrive in
-//! M1/M2/M5. Bare `oc` on a terminal launches the same local TUI as
+//! `run`/`sessions`/`models`/`tui` share native owners.
+//! Bare `oc` on a terminal launches the same local TUI as
 //! `oc tui`; without a terminal it is an actionable usage error.
 
 use std::path::PathBuf;
@@ -27,9 +27,11 @@ pub struct Args {
     pub command: Option<Command>,
 }
 
-/// Headless and session commands.
+/// Native runtime and read-only catalog commands.
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// List all enabled admitted model references without selecting a model.
+    Models,
     /// Run one headless prompt through the local runtime.
     Run {
         /// User prompt text.

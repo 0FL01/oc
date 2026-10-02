@@ -31,6 +31,13 @@ python3 -m unittest discover -s scripts -p 'test_*.py'
 
 ## Карта активных документов
 
+Список точных включённых native model references: `target/debug/oc models` или
+`target/release/oc models`. Команда читает admitted config/catalog без выбора
+default model, открытия database, session/recovery или MCP/browser startup.
+IDs идут в stdout; diagnostics в stderr, обязательный discovery failure — nonzero.
+Static metadata доступна без generation key; это не проверка generation readiness.
+Подробности: `docs/CONFIG.md`, receipt `evidence/T50/cli-models.md`.
+
 - `GOAL.md` — конечный результат, критерии и статусы завершения.
 - `OPENCODE_RUST_MASTER_PLAN.md` — краткий product scope и неизменяемые границы.
 - `docs/ARCHITECTURE.md`, `docs/CONTRACTS.md` — устройство runtime и состояния.

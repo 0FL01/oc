@@ -84,11 +84,11 @@ pub(crate) fn execute(
             configured.map(|p| &p.models)
         };
         for (id, entry) in models.into_iter().flatten() {
-            if matching.len() >= 100_000 {
+            if matching.len() >= super::CATALOG_ROWS_CAP {
                 return Err("model lookup catalog capacity exceeded".into());
             }
             let model_name = entry.get("name").and_then(Value::as_str).unwrap_or(id);
-            if provider.len() + id.len() + model_name.len() > 12288 {
+            if provider.len() + id.len() + model_name.len() > super::CATALOG_LABEL_BYTES_CAP {
                 return Err("model lookup metadata capacity exceeded".into());
             }
             let text = format!("{provider}/{id} {model_name}").to_lowercase();

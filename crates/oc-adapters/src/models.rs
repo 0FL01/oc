@@ -11,6 +11,9 @@ use std::collections::BTreeMap;
 use thiserror::Error;
 
 pub(crate) mod lookup;
+// Shared full-catalog read projection bounds, independent of page/family consumers.
+pub(crate) const CATALOG_ROWS_CAP: usize = 100_000;
+pub(crate) const CATALOG_LABEL_BYTES_CAP: usize = 12288;
 
 /// Exact known effort ranks for the effective variants view.
 pub const STANDARD_VARIANTS: [&str; 7] =

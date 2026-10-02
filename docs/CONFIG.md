@@ -280,12 +280,12 @@ full skill bodies и sensitive paths.
 
 ## Commands — проектируемый CLI
 
-`oc`/`oc tui`: local TUI, no daemon. `oc run <prompt> --model <provider/model-id> [--variant name] [--json]` — headless. `oc sessions list`, `oc run --session ID <prompt>` — история/продолжение. Owner-approved target: **`oc models`** (без обязательного `list`), `oc config check`, `oc config explain`, `oc --version`, `oc --help`. Это раздел проектируемого CLI, не перечень уже реализованных flags/commands; current parser пока не содержит Models.
+`oc`/`oc tui`: local TUI, no daemon. `oc run <prompt> --model <provider/model-id> [--variant name] [--json]` — headless. `oc sessions list`, `oc run --session ID <prompt>` — история/продолжение. **`oc models`** (без обязательного `list`) — catalog-only список точных IDs. `oc config check` и `oc config explain` остаются проектируемыми командами; наличие модели в каталоге не подтверждает generation readiness.
 
-### CLI models и привязка профиля — approved 2026-10-01, pending
+### CLI models и привязка профиля
 
 [T50/R7/TOOL18](goals/2026-09-27-native-tool-parity.md#cli-models--r7tool18-approved-2026-10-01-pending)
-должен предоставить `oc models`: полный список включённых моделей поддерживаемых
+предоставляет `oc models`: полный список включённых моделей поддерживаемых
 admitted каталогов как точные `provider/model-id`, один ID на строку, стабильный
 лексикографический порядок. Пустой исправный каталог — пустой stdout/exit 0;
 diagnostics — stderr, incomplete required dynamic/fatal/output failures — nonzero.
@@ -298,7 +298,9 @@ Static/public metadata не требует generation key, authenticated OpenPro
 Pinned OC2 `opencode models` имеет ServerParams, а не OC1 positional provider/
 `--verbose`/`--refresh`. Прежнее проектируемое `oc models list [--refresh]` superseded;
 native server/standalone/JSON/filter/bind flags и compatibility alias не добавляются.
-Existing global `--data-dir` остаётся native storage control, не выбор провайдера.
+Existing global `--data-dir` принимается; catalog-only команда не открывает native
+database/data-root, не читает saved preferences и не запускает recovery.
+Например: `target/debug/oc --data-dir /path/to/native-data models`.
 
 Целевой путь пользователя: скопировать ID из `oc models`, затем вручную указать его
 в global `model`, canonical `agents.<id>.model` либо Markdown profile
@@ -322,8 +324,8 @@ T45/R6 квалифицирует `model: provider/model-id#variant`/structured 
 reference под своими контрактами. Actual ID → профиль → request → reopen/restart
 проверяется T45 на реальном TOOL18 CLI receipt; unavailable choice отказывает до
 effects без silent fallback. T53 подключает future Go/custom catalogs через тот же
-read-view после minimal catalog slice, без whole-task prerequisite. Реализация/
-qualification pending, historical tool lookup PASS не закрывает CLI/profile flow.
+read-view после minimal catalog slice, без whole-task prerequisite. CLI receipt:
+`evidence/T50/cli-models.md`; profile qualification остаётся T45/R6 pending.
 
 ### Общие CLI controls — проектируемый target
 

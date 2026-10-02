@@ -7,6 +7,7 @@ mod bootstrap;
 mod cli;
 mod clipboard;
 mod headless;
+mod models_cmd;
 mod tui_cmd;
 
 use clap::Parser as _;

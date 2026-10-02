@@ -730,6 +730,7 @@ pub(crate) fn assemble_admitted_with_terminal_copy(
             read_trusted_file_rooted(path, source, root, directory)
         },
         false,
+        false,
     )
     .map_err(|error| error.diagnostic)
 }
@@ -740,8 +741,31 @@ fn assemble_with_reader(
     enabled_providers: Option<&HashSet<String>>,
     reader: &impl Fn(&str, &str) -> Result<String, ConfigError>,
 ) -> Result<(Generation, Option<oc_core::queries::TerminalCopyMode>), ConfigError> {
-    assemble_with_admission(sources, env, enabled_providers, reader, true)
+    assemble_with_admission(sources, env, enabled_providers, reader, true, false)
         .map_err(|error| *error.error)
+}
+
+/// Catalog admission shares normalization/policy and pinned substitution authority,
+/// but resolves only the dynamic catalog binding and leaves MCP templates inert.
+pub(crate) fn assemble_catalog_admitted(
+    sources: &[Source],
+    env: &BTreeMap<String, String>,
+    dynamic: &HashSet<String>,
+    roots: &BTreeMap<String, (&File, PathBuf)>,
+) -> Result<Generation, oc_core::queries::ServiceDiagnostic> {
+    assemble_with_admission(
+        sources,
+        env,
+        Some(dynamic),
+        &|path, source| {
+            let (root, directory) = roots.get(source).ok_or_else(|| file_refused(source))?;
+            read_trusted_file_rooted(path, source, root, directory)
+        },
+        false,
+        true,
+    )
+    .map(|(generation, _)| generation)
+    .map_err(|error| error.diagnostic)
 }
 
 fn assemble_with_admission(
@@ -750,6 +774,7 @@ fn assemble_with_admission(
     enabled_providers: Option<&HashSet<String>>,
     reader: &impl Fn(&str, &str) -> Result<String, ConfigError>,
     require_credential: bool,
+    catalog_only: bool,
 ) -> Result<(Generation, Option<oc_core::queries::TerminalCopyMode>), diagnostic::LocatedError> {
     let mut providers: BTreeMap<String, (ProviderEntry, String)> = BTreeMap::new();
     // Unknown provider option keys: visible warnings, never a hard failure.
@@ -893,6 +918,19 @@ fn assemble_with_admission(
     let mut out_providers = BTreeMap::new();
     let mut provenance = BTreeMap::new();
     for (id, (entry, path)) in &providers {
+        if catalog_only {
+            if entry
+                .npm
+                .as_deref()
+                .is_some_and(|npm| npm != "@ai-sdk/openai")
+            {
+                // An inert foreign protocol never gains a catalog binding or
+                // permission to resolve its endpoint/credential templates.
+                continue;
+            }
+            validate_provider(id, entry)
+                .map_err(|error| diagnostic::LocatedError::new(path, error))?;
+        }
         if let Some(only) = enabled_providers
             && !only.contains(id)
         {
@@ -946,7 +984,7 @@ fn assemble_with_admission(
         let trusted = sources.iter().any(|s| s.path == *path && s.trusted);
         let mut entry = entry.clone();
         entry.timeouts = mcp_timeout.overlay(entry.timeouts);
-        if entry.enabled && entry.failure.is_none() {
+        if !catalog_only && entry.enabled && entry.failure.is_none() {
             activate_mcp_entry(id, path, trusted, &mut entry, env, reader)
                 .map_err(|error| diagnostic::LocatedError::new(path, error))?;
         }

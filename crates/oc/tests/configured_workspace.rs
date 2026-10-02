@@ -23,6 +23,9 @@ const B_AGENT_BODY: &str = "AUD15_PRIMARY_B_BODY_f93d2e";
 const OLD_SKILL_BODY: &str = "AUD17_PINNED_SKILL_OLD_31b624";
 const NEW_SKILL_BODY: &str = "AUD17_MUTATED_SKILL_NEW_a8315b";
 
+#[path = "configured_workspace/models_cli.rs"]
+mod models_cli;
+
 struct Fixture {
     _root: tempfile::TempDir,
     home: PathBuf,
