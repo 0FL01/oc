@@ -2202,6 +2202,117 @@ VIS12 остаётся mandatory **NOT_RUN/evidence empty**; R6 pending, акт�
 T55 safe-handoff priority не переключаются планом. Plan-only доставка не снимает
 PAUSED T44 и не переписывает historical PASS/baseline/statuses.
 
+## Mouse caret placement in prompt — VIS12 (2026-10-03)
+
+**Утверждено владельцем после read-only RECON:** явно включить в план TUI-паритета
+перемещение текстовой каретки (мигающей позиции вставки) одиночным кликом ЛКМ
+внутри редактируемого prompt. Пример владельца: `Проведи RECON, жду план` → клик
+в середину `RECON` → следующий ввод вставляется туда, а не в конец черновика.
+Общие R5/V05 формулировки про cursor/editor и VIS12 этого способа навигации
+явно не проверяли; это дополнение **существующего T44/R5/V05/VIS12**, не новый
+task/VIS ID. История Up/Down из предыдущего раздела остаётся обязательной.
+VIS16/VIS31 отдельно отвечают за phantom caret/blink и не заменяют этот сценарий.
+
+### Источники и фактический gap
+
+Pinned OC2 v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`, **U115**:
+`packages/tui/src/component/prompt/index.tsx:1736–1753,1806–1822` использует
+`TextareaRenderable`, отдельно обрабатывает content/cursor changes, запрещает
+mouse input при `disabled()`, фокусирует target на Left Down и раскрывает pasted
+extmark под текущим cursor offset. Обычная установка позиции принадлежит
+textarea/default mouse handling, не custom paste-expansion handler. Точную
+Down/Up фазу, привязку wide-cell/wrap/blank targets и selection-clearing проверить
+по **фактической pinned OpenTUI dependency и running original** до parity claims;
+этот source RECON сам по себе не является исполненным доказательством.
+
+Native на `464a6c38ebd870d7fafb88e3dc722e7157ec3f40`, **P23–P25**:
+
+- `oc-tui/src/app/input.rs::handle_mouse` (`:1190–1227`) обрабатывает в prompt
+  только chip expansion; общего перевода координат обычного текста в
+  `editor.cursor` нет. `observe_prompt_paint` (`:731–783`) сохраняет chip targets,
+  но не insertion stops видимых строк.
+- `editor.rs::layout` (`:523–565`) уже возвращает строки в raw draft offsets,
+  включая collapsed-chip projection; `PromptRow::positions/offset_at`
+  (`:789–810`) описывают legal grapheme insertion stops. `Editor::move_to` и
+  keyboard navigation остаются существующим владельцем cursor/selection.
+- `shell.rs:1583–1607,1647–1680` знает реальные text rect, display-cell padding
+  и first visible wrapped row (`start`); рисует caret из того же layout.
+  Устанавливать позицию по ширине внешнего prompt box либо byte длине нельзя.
+- Ближайший `app/tests/input.rs::vis07_paste_mouse_expands_only_live_painted_prompt_cells`
+  уже проверяет painted-chip/stale/resize/modal/toast guards; его prefix `vis07`
+  — историческое имя теста, не ownership нового сценария. Text-click qualification
+  принадлежит VIS12; существующие chip regressions не заменять новым happy-path.
+
+### Frozen behavior и границы
+
+1. **Обычный текст, Home и session.** Одиночный немодифицированный клик ЛКМ в
+   видимой доступной текстовой области prompt устанавливает каретку в legal
+   insertion position под указателем, в том числе внутри слова. Сам клик не
+   меняет draft bytes/chips/mentions, не вызывает submit/history recall/model
+   commit/provider/tool effects. Последующие Char/paste/Backspace/Delete работают
+   в выбранной позиции через тот же Editor; не ограничиваться аппаратным MoveTo.
+2. **Одна геометрия.** Hit map берётся из последней актуальной painted projection:
+   inner text rect, padding, wrapping, explicit newlines, visible-row offset,
+   clipping и Unicode display widths. Cursor всегда на extended-grapheme boundary,
+   не внутри UTF-8, combining sequence/emoji ZWJ или второй половины wide glyph.
+   Клики на wide cells, после последнего glyph, в пустой строке и на wrap boundary
+   повторяют квалифицированный original; внутри текста нет привязки только к
+   началу/концу слова. После resize/scroll/view/draft change старые координаты не
+   применяются к новой проекции; очередной paint восстанавливает valid targets.
+3. **Focus и слои.** Только реально доступный ordinary composer владеет кликом.
+   Modal/Search, permission/question form, completion overlay, toast и terminal
+   pane не пробиваются до underlying prompt; metadata/footer/borders/transcript
+   не являются его text targets. Hover без клика не двигает caret; Right/Middle
+   не получают Left-click действие. Busy само по себе не запрещает редактирование
+   доступного root draft и не меняет captured request; child/read-only/disabled
+   authority, terminal focus и имеющиеся guards сохраняются.
+4. **Совместимость.** Painted paste-chip hit сначала сохраняет существующее
+   expansion поведение/undo и raw text; ordinary text вокруг chip/mention получает
+   правильный raw offset. Клик во время keyboard selection применяет проверенную
+   donor cursor/selection семантику. Slash/@ подсказки пересчитываются для нового
+   caret, без stale completion result или скрытого выбора команды. Полные draft/
+   cursor/focus сохраняются через open/close dialog и переключение existing view.
+5. **Узкий scope.** Обязателен обычный одиночный click-to-position. Это не разрешение
+   на новый editor framework, отдельный store, JS/OpenTUI runtime, multi-cursor,
+   drag/double/triple-click editor-selection порт или новые clipboard modes.
+   Existing selection/copy/chip/undo/history, input bounds, terminal restoration,
+   configured cursor shape/color/blink/default и no-effect/no-replay остаются.
+
+### Ordered slice и обязательная квалификация
+
+1. После **explicit resume T44** сверить pinned textarea mouse semantics и
+   получить ближайший RED через реальный `shell::render`/paint, `handle_mouse`
+   и обычный key routing: `Проведи RECON, жду план` → click между C/O → Char `X`
+   → `Проведи RECXON, жду план`; без ручной установки `editor.cursor` в сценарии.
+2. Минимально расширить существующий `PaintedPrompt`/`observe_prompt_paint` и
+   mouse routing, используя `Editor::layout`/`PromptRow`/`move_to`. Не вводить
+   независимый wrap/Unicode алгоритм или public API только ради тестов. Сохранить
+   chip priority, selection/caret rules и invalidation старого painted state.
+3. Nearest editor/input/render regressions проверяют click + insert/delete/paste,
+   wrapped/newline/Unicode/empty-line/trailing-cell targets и unchanged raw text
+   до ввода. Для stale/modal/toast/chip reuse существующие assertions; добавить
+   только недостающий самостоятельный риск. Не дублировать весь negative suite.
+4. Один bounded rebuilt-binary fake-provider `pty_t39` interaction scenario
+   отправляет **реальные SGR Left Down/Up**, а не стрелки: Home и session,
+   RECON + typed X, wrapped/scrolled Unicode draft, resize/repaint, blocked
+   overlay и chip neighbor. Click/hover дают ноль новых generation/tool effects;
+   только отдельный Enter создаёт одну durable submission с точным edited text.
+   In-flight work/bindings не меняются от navigation; reopen сохранённого сообщения
+   проверяет submitted bytes без повторной генерации/tools. Reuse history/restore
+   и VIS16/VIS31 cursor regressions, не новый paid campaign или blink matrix.
+5. Затем running pinned-original/native **full styled-cell/PNG/cursor** before/
+   click/after-edit frames при identical fixture/profile (representative existing
+   80x24/120x40): ordinary mid-word, wrapped/scrolled Unicode, blank/end targets,
+   overlay ownership и restored composer. Legal raw position независимо
+   подтверждается subsequent edit/submitted text, а не картинкой каретки.
+   Source-only/native-golden/hardware-only PASS, cursor crop/mask и обход клика
+   клавиатурой недопустимы; missing runnable reference — BLOCKED_REFERENCE.
+
+VIS12 остаётся mandatory **NOT_RUN/evidence empty**; план не является runtime/
+visual PASS, не снимает PAUSED T44 и не переключает active T45. Existing IDs,
+dependencies, T55 priority, historical evidence/baselines/statuses и dirty T45
+код сохраняются. Общая full-T44 и A01–A13 приёмка не ослабляется.
+
 ## Обязательные результаты нового прохода
 
 V00–V09 из IMPLEMENTATION_GUIDE.md и все mandatory сценарии из актуального ACCEPTANCE.json:

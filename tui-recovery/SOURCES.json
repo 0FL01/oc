@@ -1281,6 +1281,42 @@
       "locator": "14–27,60–159 separate 200-entry ring with draft save/restore; mini/footer.prompt.tsx:928–975,1235–1257,1420–1440; mini/runtime.ts:475–488 resumed-history seed",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/mini/prompt.shared.ts",
       "purpose": "VIS12 Mini footer is a distinct surface with its own ring; explicitly out of scope for the native session/home composer slice"
+    },
+    {
+      "id": "U115",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/prompt/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "1736–1753 TextareaRenderable content/cursor wiring; 1806–1822 disabled mouse prevention, Left Down focus, current-offset pasted extmark expansion and cursor style",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/index.tsx#L1736-L1822",
+      "purpose": "VIS12 mouse caret placement uses textarea/default mouse handling, not only custom chip expansion; exact event phase/wide/wrap/blank/selection semantics still require pinned OpenTUI and running-original qualification, not source-only PASS"
+    },
+    {
+      "id": "P23",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/app/input.rs",
+      "commit": "464a6c38ebd870d7fafb88e3dc722e7157ec3f40",
+      "locator": "731–783 observe_prompt_paint stores chip-only targets; 1190–1227 Left Down resolves pasted chip expansion without ordinary-text cursor positioning; app/tests/input.rs:1324–1471 existing painted-chip/resize/stale/modal/toast regression",
+      "url": "https://github.com/0FL01/oc/blob/464a6c38ebd870d7fafb88e3dc722e7157ec3f40/crates/oc-tui/src/app/input.rs#L731-L783",
+      "purpose": "VIS12 current native mouse gap and existing paint identity/layer safeguards; extend this owner rather than introducing a parallel editor or replacing chip tests"
+    },
+    {
+      "id": "P24",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/editor.rs",
+      "commit": "464a6c38ebd870d7fafb88e3dc722e7157ec3f40",
+      "locator": "401–410 move_to cursor/anchor; 488–505 vertical_wrapped consumes raw insertion stops; 523–565 layout maps chip projection to raw offsets; 789–810 PromptRow positions/offset_at",
+      "url": "https://github.com/0FL01/oc/blob/464a6c38ebd870d7fafb88e3dc722e7157ec3f40/crates/oc-tui/src/editor.rs#L488-L565",
+      "purpose": "VIS12 reuse existing grapheme/cell/wrap/chip projection and one Editor cursor owner for ordinary mouse hit positioning"
+    },
+    {
+      "id": "P25",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/shell.rs",
+      "commit": "464a6c38ebd870d7fafb88e3dc722e7157ec3f40",
+      "locator": "1583–1607 inner text padding/width and first visible wrapped row passed to observe_prompt_paint; 1647–1680 same viewport paints input and hardware caret",
+      "url": "https://github.com/0FL01/oc/blob/464a6c38ebd870d7fafb88e3dc722e7157ec3f40/crates/oc-tui/src/shell.rs#L1583-L1680",
+      "purpose": "VIS12 painted text geometry/scroll and caret must agree; hardware MoveTo alone is not proof of the real insertion offset"
     }
   ],
   "external_primary_sources": [

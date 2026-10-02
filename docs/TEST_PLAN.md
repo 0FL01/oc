@@ -601,6 +601,42 @@ campaign. Missing runnable donor remains BLOCKED_REFERENCE.
 VIS12 mandatory NOT_RUN/evidence empty; plan approval does not resume PAUSED T44,
 switch active tasks, change T55 priority or rewrite historical evidence/baselines.
 
+## Prompt mouse caret placement — VIS12 (approved 2026-10-03; pending)
+
+Contract: [T44 amendment](../tui-recovery/T44_CONTRACT_AMENDMENT.md#mouse-caret-placement-in-prompt--vis12-2026-10-03).
+Only T44/R5/V05 owns this extension of VIS12; input history above stays mandatory.
+U115 grounds the donor textarea/focus/disabled/chip path, P23–P25 ground the native
+chip-only hit map and existing raw-grapheme layout. Qualify exact mouse event phase,
+wide/wrap/blank/end-cell and selection semantics against the pinned OpenTUI dependency
+and running OC2 before claiming parity, not from the paste handler alone.
+
+Nearest editor/input/render RED uses actual paint then `handle_mouse`, never direct
+cursor assignment: `Проведи RECON, жду план` -> click between C/O -> type X ->
+`Проведи RECXON, жду план`. Click itself preserves draft bytes/parts and subsequent
+Char/paste/Backspace/Delete operates at the new legal grapheme offset. Reuse one
+painted projection for text geometry/padding/wrap/visible scroll/Unicode; cover
+wide/combining/ZWJ, newlines, empty/trailing cells and resize/repaint. Reuse existing
+chip expansion, stale-map, overlay, selection and draft-restoration regressions;
+ordinary text adjacent to chips/mentions must use raw offsets, not visual labels.
+Modal/approval/question/completion/toast/terminal input must not leak through to
+the composer; hover and other mouse buttons do not cause Left-click positioning.
+
+One bounded rebuilt-binary fake-provider `pty_t39` interaction scenario sends real
+SGR Left Down/Up in Home/session, tests the mid-word edit plus wrapped/scrolled
+Unicode and resize/repaint/overlay/chip-neighbor routing. Navigation causes zero
+new provider/tool/submission/model-commit effects and does not affect captured busy
+work; only a separate Enter accepts the exact edited text once. Reopen verifies
+stored submitted bytes without replay. Keyboard arrows are not a mouse substitute.
+
+Then compare full running pinned-original/native styled-cell/PNG/cursor before/
+click/after-edit frames at representative established 80x24/120x40 profiles, including
+blank/end targets and overlay/restored focus. Verify actual insertion independently
+by edited/submitted text; hardware cursor output alone is not success. No crop/mask,
+source-only/native-golden PASS, new paid campaign or full selection-port matrix.
+VIS16/VIS31 blink/phantom/restoration requirements remain separate and unchanged.
+Missing runnable reference is BLOCKED_REFERENCE. VIS12 remains mandatory NOT_RUN/
+evidence empty; active T45, PAUSED T44, task statuses/dependencies and baselines intact.
+
 ## Middle Click tab close — VIS44 (approved 2026-09-30; pending)
 
 Only T44/R5/V04 owns VIS44 in `tui-recovery/ACCEPTANCE.json`; follow the dedicated

@@ -347,6 +347,33 @@ Paste — одно логическое действие, не миллион Ch
 ввести две строки через raw Ctrl+J, открыть palette и закрыть, убедиться что draft не потерян,
 затем один Enter → одна durable submission.
 
+### Mouse caret placement — VIS12 (R5/V05)
+
+Следовать [утверждённому mouse-caret slice](T44_CONTRACT_AMENDMENT.md#mouse-caret-placement-in-prompt--vis12-2026-10-03)
+после explicit resume T44; prompt history Up/Down остаётся отдельной обязательной
+частью VIS12. Сначала recheck pinned textarea/default mouse semantics (U115) и RED:
+render обычного prompt → реальный Left click между C/O в `RECON` → Char `X` меняет
+draft на `Проведи RECXON, жду план`, не добавляет X в конце. Cursor нельзя выставлять
+вручную в этом сценарии; hardware MoveTo без изменения Editor не закрывает контракт.
+
+P23–P25: расширить existing `PaintedPrompt`/`observe_prompt_paint` от chip-only к
+legal insertion stops видимых строк из `Editor::layout`/`PromptRow`, учитывая inner
+text rect/padding/first visible wrapped row. `handle_mouse` переводит valid painted
+hit в raw grapheme offset через existing Editor; один wrap/Unicode owner, без нового
+framework/store/public test API. Clip overpaint и сохраняй revision/session/view/
+generation/resize invalidation, chip expansion priority и actual input owner.
+Slash/@ suggestions следуют новому caret; modal/form/overlay/terminal click не
+двигает underlying composer. Hover и Right/Middle не вызывают Left-click navigation.
+
+Nearest regressions: ordinary click + edit/delete/paste, Unicode/wide/combining/ZWJ,
+wrap/newline/visible scroll, blank/end targets и existing chip/stale/overlay checks.
+Затем bounded rebuilt-binary fake-provider `pty_t39` с SGR Left Down/Up в Home/session:
+navigation не вызывает generation/tools/submit/model commit, отдельный Enter отправляет
+точный edited text один раз. Running pinned-original/native full styled-cell/PNG/cursor
+before/click/after-edit и independent text assertions обязательны; отсутствие runnable
+reference — BLOCKED_REFERENCE. Existing VIS16/VIS31 blink/restoration guards сохраняются,
+но сами по себе не доказывают click placement. Plan-only NOT_RUN, без paid campaign.
+
 ## V06. Markdown, reasoning и tools: одинаково live и после restart
 
 P06 — ручной parser subset, который прямо оставляет tables plain text. Это не соответствует
