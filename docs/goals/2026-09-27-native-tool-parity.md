@@ -1,7 +1,7 @@
 # Goal: Selected native tool parity with OC2
 
-Status: active
-Contract status means the owner-approved finish line is frozen; execution state belongs to progress/STATE.json. At the 2026-10-01 amendments T50 is active and T44 is PAUSED. Historical delivered slices do not qualify the new R2, model-dependent R1/R9 or tool-output R10 extensions.
+Status: complete
+All assigned R1–R10 and approved supplements are qualified in `evidence/T50/report.md`; execution state belongs to progress/STATE.json. The amendment text and its initial pending labels below remain the historical frozen source, not current status. T44 remains PAUSED; T45/T53/T56 and whole-product acceptance retain independent ownership.
 Source: owner-approved tool RECON and plan, 2026-09-27: omit built-in websearch and Code Mode, accept the remaining proposed tool work, then update the plan and commit/push. Donor OC2 v2.0.12 at `2670273ff17da96f85c5826ced57aa1b368754fa`.
 Additional source: owner request for OC2 TS edit/write for non-patch models, apply_patch for compatible GPT models, mandatory catalog removal/replacement after a user model switch, followed by detailed plan commit/push approval, 2026-10-01.
 Additional source: owner requires OC2 TS parity when switching models during an active task, approves the follow-up RECON and detailed plan commit/push, 2026-10-01. This supersedes whole-turn model pinning, not immutable Location/config generation or execution authority.
@@ -32,8 +32,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: removing tools means current built-in definitions/catalog/managed instructions, not deleting/translating old calls/results, arbitrary user/profile text or raw records, nor filtering namespaced MCP suffixes. Retain completed model-neutral call/result groups and actual tool outcomes in B's compatible bounded projection, including same-task continuation; current wire_history's model-mismatch fresh lane must not lose those results. Strip incompatible opaque/checkpoint state without translating tool names or reading forgotten archive. Reject a call excluded by the snapshot of the request that issued it, before filesystem effects with matched typed result/state; do not reject A's already issued apply_patch solely because the current selection is B/edit-write. No old call is newly executed from history. Request-log/assistant attribution records actual model/variant, not mutable selection or one invented model for the entire multi-request turn.
   - Acceptance: canonical shell uses the OC2 command schema. Preserve existing bash(argv/cwd/timeout_ms) compatibility through the same executor/admission owner; normalize permission identities without bypassing legacy Deny, saved-grant scope or structural ceilings. Do not advertise two interchangeable shell tools or silently reinterpret argv as command text. Per-tool names/descriptions/schemas and effective root/child capability previews stay truthful; Explore retains its native file/shell restrictions and separately approved own-history compress grant. The approved T45 built-ins/MCP amendment adds default Allow for all registered admitted MCP tools, not a claim that Explore/Plan sandbox external effects; explicit Deny/Ask remain authoritative and T45 owns the effective profile/default-policy qualification.
   - Primary evidence: TOOL12 source-derived fake-provider/actual-binary root and own-model-child catalogs, real file outcomes and PTY selection. Synthetic IDs cover exact predicate/exceptions/case. Provider/tool/approval barriers prove draft-only versus commit, blank Enter/captured ordering, GPT → non-GPT → GPT inside one active task without another prompt, completion/attribution of old-request tools, refreshed next-request budgets/tools/guidance/fingerprints and compatible causal history. Retry/compaction rebuild/restart and excluded-by-request-call zero effects reuse existing invariants. See the live-switch slices below and docs/TEST_PLAN.md; PRM01/profile/VAR01 and existing A05/A06/A13/PROV04 remain regressions, not duplicate owners or a paid matrix.
-  - Status: pending
-  - Evidence:
+   - Status: verified
+   - Evidence: `evidence/T50/file-mutations.md`, `evidence/T50/live-model-switch.md`, aggregate `evidence/T50/report.md`.
 
 - R2: Linux shell supports real command and owned foreground/background lifecycles.
   - Source: approved Linux shell parity proposal; donor shell schema and job/notification implementation.
@@ -45,8 +45,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - R10 dependency supplement: shared stdout/stderr drains stream admitted text to the registered artifact before discard and retain bounded recent/tail output in RAM. Foreground, background, final notices and the existing output viewer consume the same capture identity/status; preview truncation is distinct from incomplete artifact capture and process exit. TOOL13 owns lifecycle/control proof; common configuration/artifact/continuation proof is TOOL21, not a second shell owner.
   - Primary evidence: TOOL13 actual binary with process/provider barriers proves early background return/progress/automatic notice, normal foreground waiting, default/explicit/zero timeouts, cancel/shutdown, crash/delivery and credential exclusion; reuse TOOL05/TOOL06/AUD27/AUD28 and A10 measurements, not duplicate helper-only suites.
   - Primary evidence supplement: actual-binary PTY and owner assertions prove authoritative running inventory, output while the process is held, same-PID foreground conversion, selected-job kill, final output/status after inventory removal, independent sibling progress and correct child/source routing through move/reopen/restart. T44/VIS39 reuses these facts for Shell rows/output dialog geometry and keys; TERM01/T56 interactive PTY is separate, not TOOL13 completion or a whole-task dependency.
-  - Status: pending
-  - Evidence:
+   - Status: verified
+   - Evidence: `evidence/T50/foreground-shell.md`, `background-shell.md`, `shell-controls.md`, `shell-review.md`; aggregate `evidence/T50/report.md`.
 
 - R3: grep and glob expose the agreed OC2 search options.
   - Source: approved search parity proposal; pinned grep/glob schemas and filesystem behavior.
@@ -54,8 +54,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: grep supports regex (default) and literal:true, path file/directory scope, include glob, caseSensitive (default true) and limit. Pin a vetted engine compatible with the donor ripgrep syntax; do not invent a custom matcher or promise unsupported regex features. glob supports path, hidden (default false), pattern and limit with donor matching/hidden/ignore behavior. Existing deterministic pagination may remain as an explicit extension, with coherent ordering/truncation diagnostics.
   - Acceptance: validate patterns/options before scanning; malformed regex and exhausted scan/result budgets are explicit outcomes. Preserve own-data-root exclusion except R10's exact registered-artifact read/search route, canonical admitted path boundaries, no-follow regular-file checks and bounded entries/bytes/time. The 2026-10-02 external read/search amendment below permits explicit external_directory + glob/grep policy access outside Location; effective Allow dispatches without Ask, not an unconditional OutsideRoot refusal. Existing search read-Deny ceilings remain.
   - Primary evidence: TOOL14 pinned source-derived fixtures for regex/literal/case/path/include/hidden/ignore/options plus actual provider schemas/calls; TOOL01 and path/permission regressions remain authoritative.
-  - Status: pending
-  - Evidence:
+   - Status: verified
+   - Evidence: `evidence/T50/search.md`, `evidence/T50/external-read.md`; aggregate `evidence/T50/report.md`.
 
 - R4: question is a real application-owned user-question tool.
   - Source: approved question proposal; donor Question/Form tool, distinct from permission approval.
@@ -64,8 +64,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: headless without a question consumer returns actionable non-success and preserves history; it does not hang indefinitely. Permission autoaccept/--auto never fabricates user answers. Effective question Deny and General/Explore restrictions remain; reopen/restart cannot duplicate an answered form or reinterpret an unanswered form as approval.
   - Primary evidence: TOOL15 scripted model calls and actual PTY answers/multiple/free-form/dismiss/cancel, headless/--auto and restart assertions; real application state/result and call/result graph, not a screenshot-only question widget.
   - Delivery order (owner-approved 2026-09-27): first deliver this minimal backend/real answer-consumer slice and prove ordered answers in the next provider request (TOOL15); then execute [T44/VIS37](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#question-ui-parity--vis37) FormPrompt/transcript/replay and full paired styled-cell/PNG qualification using pinned U31–U33. Share the same fixture/runtime evidence, keep behavior and visual results separate; neither task depends on completion of the whole other task. Independent T44 work remains ready and only one journal task is active.
-  - Status: pending
-  - Evidence:
+   - Status: verified
+   - Evidence: `evidence/T50/question.md`; aggregate `evidence/T50/report.md`. Visual VIS37 stays separate.
 
 - R5: read supports text, directory listings and images with honest modality handling.
   - Source: approved read proposal; PDF remains outside the selected scope.
@@ -73,8 +73,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: path plus 1-based offset/limit reads text with line references or paged directory entries; donor default limit is 2000. Images supported by the selected Responses model are validated and delivered as real image content, not a success string containing only a path/base64 dump. Unsupported model/file modality, PDF, invalid images and over-budget content are actionable outcomes. Do not silently substitute text for unsupported media.
   - Acceptance: retain path/permission/symlink/own-data-root protections except R10's exact registered-artifact read/search route and the 2026-10-02 external read/search amendment below, byte/model budgets and bounded output. Explicit external_directory + read Allow admits bounded external file/listing access without Ask, including first access and restart. Successful project file/directory reads invoke the same admitted nested AGENTS lifecycle as T45/R10, with provenance and dedup; artifact and permitted external-cache reads are tool data, not automatic instruction/config discovery. Image handling does not introduce a second instruction loader or broader grants.
   - Primary evidence: TOOL16 actual binary text/directory pagination and captured image continuation, malformed/PDF/unsupported/over-budget cases; reuse PROV05/PRM01 rather than claiming user-image input tests already prove tool-image output.
-  - Status: pending
-  - Evidence:
+   - Status: verified
+   - Evidence: `evidence/T50/read.md`, `evidence/T50/external-read.md`; aggregate `evidence/T50/report.md`.
 
 - R6: webfetch supports the agreed formats and timeout semantics.
   - Source: approved fetch proposal; pinned webfetch schema/conversion.
@@ -82,8 +82,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: read-only GET with format:text|markdown|html, default markdown, and timeout in seconds (default 30, maximum 120). Convert HTML according to requested format, preserve readable Unicode and useful structure, and return truthful original/final URL, status/content type and format metadata. No websearch integration, JS rendering/browser, upload or inherited cookies/auth.
   - Acceptance: one total deadline covers DNS/hops/body/conversion; preserve actual-dial/redirect SSRF protection, response/output caps, credential exclusion and explicit test-only loopback admission. Requested format never bypasses egress/security or creates an unbounded serialization path.
   - Primary evidence: TOOL17 fake HTTP and actual model calls for all formats/defaults/timeout/redirects/Unicode; TOOL07/TOOL08/AUD25/AUD26 remain mandatory.
-  - Status: pending
-  - Evidence:
+   - Status: verified
+   - Evidence: `evidence/T50/webfetch.md`; aggregate `evidence/T50/report.md`.
 
 - R7: Native model lookup/session rename are available to the model, and users can list exact model references with `oc models`.
   - Source: approved native model/session tools proposal; donor opencode tool plugin. Owner-approved 2026-10-01 CLI models/profile-binding follow-up and pinned CLI models handler add the user-facing catalog consumer.
@@ -93,8 +93,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance supplement (2026-10-01): `oc models` lists exact provider-qualified IDs from all enabled supported admitted catalog sources, one per stdout line in deterministic lexical reference order. It needs neither `list` nor a default/session model, retains IDs containing additional slashes and does not collapse families or inherit lookup's default page limit. Empty healthy catalog is exit 0/empty stdout; safe diagnostics stay on stderr, fatal or incomplete required dynamic catalog/output failure is nonzero. Catalog-only config/trust/credential admission and the bounded discovery oracle remain; browsing metadata is not generation readiness. Full contract, errors, source comparison and ordered slices are below.
   - Primary evidence: TOOL18 captured direct schemas/results with static/dynamic/unknown metadata, paging and model retention; actual rename/reopen/restart and deny/foreign-target/no-effect assertions. No Code Mode or second catalog/store.
   - Primary evidence supplement: TOOL18 rebuilt debug/release subprocess stdout/stderr/exit and fake-service/effect counters for catalog-only listing, no-selection/static/dynamic/multi-provider/empty/failure cases and unchanged prefs/config/history. T45/R6 uses the captured listed reference in profile requests/reopen/restart; profile semantics stay T45-owned. Existing direct-tool evidence does not qualify the new CLI extension.
-  - Status: pending
-  - Evidence:
+   - Status: verified
+   - Evidence: `evidence/T50/model-session-tools.md`, `evidence/T50/cli-models.md`; aggregate `evidence/T50/report.md`.
 
 - R8: session_move durably changes the same session's Location at a safe boundary.
   - Source: approved session_move proposal and explicit supersession of permanent session-to-Location binding; pinned donor move/admission/projector.
@@ -104,8 +104,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: operations and running background jobs/children retain their original execution Location/generation and authority; a parent move does not silently migrate children or rewrite their task/pack provenance. Subsequent continuation respects actual child placement/lineage and explicit target admission. No move creates permission grants or drops sticky unknown-effect MCP quarantine. Restart deduplicates an already committed move and preserves pending safe-boundary intent without replaying shell/MCP/mutations; failed cleanup is never hidden.
   - Acceptance: ordinary SelectLocationSession/UI Location switching still selects/creates a target-scoped session. This distinct explicit move supersedes only the permanent-binding prohibition, not immutable Location/config-generation, trust or session-access guards; histories/reopen/UI metadata reflect actual placement and original operation provenance. R1's same-generation model switch is not permission for an in-flight Location/config move.
   - Primary evidence: TOOL19 provider/process barriers and actual binary A→B move preserve ID/history and show source/destination requests, blocked destination-dependent batch assumptions, invalid/untrusted/stale/no-effect cases, original background completion, child placement, quarantine and crash/restart around admission/apply. AUD14 is amended narrowly; existing UI06/A13/PRM01/CTX01/SUB02 and cleanup gates remain.
-  - Status: pending
-  - Evidence:
+   - Status: verified
+   - Evidence: `evidence/T50/session-move.md`; aggregate `evidence/T50/report.md`.
 
 - R9: Native edit/write provide the donor file contracts through the shared mutation owner.
   - Source: owner instruction and detailed RECON-plan approval, 2026-10-01; pinned core tool/plugin/edit.ts, write.ts and FileMutation helpers. This narrowly supersedes the old no-write/edit clause; apply_patch behavior itself is unchanged.
@@ -116,8 +116,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: prepare actual before/after preview before Ask, revalidate after the user wait and immediately before commit; a changed identity/bytes/absence preimage fails with no unapproved write. Persist exact-call intent before effects and truthful outcome/confirmed effects afterwards. Failure/partial/unknown/cancel/storage boundaries and restart never duplicate or reexecute mutations. No separate preceding read-tool invocation is required: mutation preparation reads its own bounded preimage under the mutation policy, as in OC2.
   - Acceptance: DCP and configured mutation protections check edit/write's parsed path, not oldString/newString/content as pseudo-paths; patch retains all source/destination affected_paths. Preserve protected tool/content/dedup/purge behavior, immutable raw history and bounded hot projection without old-schema resurrection. Persist result-derived presentation for live/reopen/restart; never reconstruct historical effects from present-day files or mutate through the renderer.
   - Primary evidence: TOOL20 source-derived edit/write fixtures prove schema/output, exact/normalized/line matching precedence, unique/all/no-match/ambiguity/empty-identical-old/empty-new, Unicode/CRLF/final-newline/BOM and write create/overwrite/empty/parents. Actual rebuilt binary/fake provider verifies bytes, durable matched call/results, confirmed diffs, Allow/Ask/Deny, changed approval preimage, path/data-root/protections and crash/reopen/no replay. Reuse TOOL02–TOOL04/TOOL09/TOOL10/AUD04–AUD06/AUD16/AUD42 and A10 without duplicating their entire matrices at every layer. VIS35/VIS36 visual results remain separate.
-  - Status: pending
-  - Evidence:
+   - Status: verified
+   - Evidence: `evidence/T50/file-mutations.md`; aggregate `evidence/T50/report.md`.
 
 - R10: Configurable tool-text previews retain readable filesystem artifacts without context bombs.
   - Source: owner-requested OC2 TS comparison and approved RECON plan, 2026-10-01; pinned tool-output/config/runner/shell sources below.
@@ -129,8 +129,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: model `read(path,offset,limit)` and `grep` on the exact registered artifact can find text beyond preview and the old ordinary-file 1 MiB ceiling. Session/authorized-lineage access, effective Deny/trust/provenance/no-follow/regular-file and scan/page/model caps remain; no broad native-root/blob/directory access or instruction discovery. References survive allowed model changes/restart/move without auto-loading payloads.
   - Acceptance: completed artifacts expire after7 days through the same owner, with active writer/reader leases protected, explicit expired/missing continuation and crash/orphan handling. This expirable resource class does not delete raw history or ordinary referenced blobs. Old raw records remain immutable; only universal full-inline publication of new oversized outputs is superseded.
   - Primary evidence: TOOL21 rebuilt debug/release binary with bounded fake provider executes a >1 MiB shell output, captures the next request's bounded preview/path, then actual read/grep → distant sentinel → useful continuation. Nearest source-derived config/line/byte/media fixtures and fault/restart/cancel/resource receipts are described in TEST_PLAN. Reuse TOOL13/TOOL16/AUD34/LOAD02/STORE04/A05/A10, retain historical ownership/evidence; helpers/UI SQLite continuation alone cannot qualify this path.
-  - Status: pending
-  - Evidence:
+   - Status: verified
+   - Evidence: `evidence/T50/tool-output-common.md`, `shell-output.md`, `shell-review.md`; aggregate `evidence/T50/report.md`.
 
 ### Constraints and non-goals
 
