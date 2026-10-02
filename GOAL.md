@@ -638,6 +638,37 @@ active T50/PAUSED T44, не затрагивает реализацию T50/CODE
 T44, не меняет T55 safe-handoff priority, completed T51/evidence или pinned baselines.
 Реализация новых outcomes pending/NOT_RUN; mandatory OpenProxy/A01–A13 gates остаются.
 
+## Owner clarification (2026-10-02 — MCP/permissions и внешний Allow без Ask)
+
+После сравнения host-shaped OC1 MCP/permission config с pinned OC2 владелец утвердил
+правки плана и commit/push; отдельно потребовал сохранить разрешение внешних доступов
+через `opencode.jsonc` **без Ask**. Владельцы: [T46/R6/MCP09](docs/goals/2026-09-22-mcp-attach-parity.md)
+— MCP normalization, [T45/R6/R8/CTX02](docs/goals/2026-09-21-config-compat-and-subagents.md)
+— ordered policy/effective views, [T50/R3/R5/TOOL14/TOOL16](docs/goals/2026-09-27-native-tool-parity.md#external-readsearch--r3r5tool14tool16-approved-2026-10-02-pending)
+— реальный внешний read/glob/grep через существующих path/policy/files owners.
+
+- Legacy MCP map и canonical `mcp.servers` сохраняют URL/headers/argv/cwd/environment,
+  enabled→disabled, staged timeouts/precedence и disabled zero-spawn. Native direct
+  exact-URL/no-OAuth/legacy-protocol differences объявлены, не импортируют CodeMode.
+- Legacy `permission` и canonical ordered `permissions` имеют last-match внутри
+  одной authority, но независимые native central/source/profile/parent ceilings
+  сохраняются. MCP wire/alias берутся из actual tools/list: bare server ID не wildcard.
+  Default all-registered-MCP Allow остаётся T45 target перед explicit narrowing;
+  schemas/preview/guidance/invocation не расходятся по policy.
+- Внешний конкретный read/list/search scope проверяет `external_directory` и action
+  read/glob/grep. Effective Allow на обоих выполняет tool сразу, без approval request,
+  ручного pre-opening/подтверждения каждого пути или дополнительного trust dialog.
+  Genuine Ask использует существующего consumer, Deny отказывает. Прежний Location-only
+  отказ superseded только для этого read/search slice; no-follow, data-root exclusion,
+  explicit Deny/parent-child ceilings, cancellation и scan/output/model caps остаются.
+  Нет внешних mutations, автоматического обхода HOME или discovery инструкций/config.
+
+Acceptance требует actual-binary разрешённых cache read/glob/grep с **нулём approval
+events**, повторения после restart и отдельных Ask/Deny/symlink/data-root negatives.
+T46 completed baseline/evidence не переписываются; additive qualification pending/
+NOT_RUN. Active T50/PAUSED T44, T55 safe-handoff priority, IDs/dependencies/baselines
+и текущая dirty реализация сохраняются; plan checks не runtime PASS.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

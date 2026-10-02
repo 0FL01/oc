@@ -240,6 +240,37 @@ existing actual-binary harnesses, no new paid/browser campaign. Full methodology
 New scenarios remain pending/NOT_RUN until rebuilt binary/effect evidence and the
 existing affected-crate/workspace gates; historical PASS is not sufficient.
 
+### MCP/permissions normalization and aliases — approved 2026-10-02; pending
+
+Owner approves the OC1-shaped config RECON plan. Extend R6/R8/CTX02, not the completed
+T43 warning baseline or a new permission engine. Pinned OC2 `config/normalize.ts:179–183,
+483–520`, `config/plugin/agent.ts:83–123,141–161`, `permission.ts:87–100,158–188,231–263`
+and `tool/mcp.ts:16–17,49–54` own normalization/evaluation/action identity:
+
+- Legacy tools/permission normalize before canonical ordered permissions; preserve
+  supplied action/resource order and last matching rule within one authority. Map
+  known legacy aliases only; arbitrary names are not inferred to be server grants.
+  Native source/central/profile/parent intersections and tools:false ceilings remain
+  explicit donor differences; later Allow cannot erase another authority's Deny/Ask.
+  Malformed security policy remains fatal, never omitted into a wider Allow default.
+- MCP action is the sanitized server_tool alias of an actual catalog entry, alongside
+  native collision-safe server__tool. `codex_web` Allow is exact, not server-wide;
+  `codex_web_*` is the explicit wildcard intent. `codex_search` Deny stays literal.
+  For server crw, tool scrape → crw_scrape; tool crw_scrape → crw_crw_scrape. Do not
+  guess the catalog from these examples. Broad crw_*/crw_crw_* Deny followed by matching
+  narrow scrape Allow wins inside that ruleset for both identity spellings, not two
+  conjunctive evaluations that discard the narrow override.
+- CTX02 captures schemas/preview/initialize guidance/invocation for actual synthetic
+  search/scrape/crw_scrape/non-scrape catalogs; narrow allowed tools call successfully
+  without Ask, denied calls have zero effects and absent whole-action schemas/guidance.
+  Genuine Ask/headless refusal and independent parent/profile/source ceilings remain.
+  The approved all-registered-MCP default is applied before these explicit restrictions.
+- Home-expanded external_directory cache rules are operational through T50/R3/R5,
+  not just accepted warning-free. Effective boundary+tool Allow needs no Ask or manual
+  path opening; CTX02 preview reflects it and genuine conditional restrictions. Reuse
+  TOOL14/TOOL16 successful external access/restart receipts; do not duplicate the files
+  executor or automatically load instructions/definitions from permitted cache trees.
+
 ### Constraints
 
 - C1: Rust 2024, modular monolith, core independent of UI, KISS/YAGNI; no Node/Bun/JS host in production.

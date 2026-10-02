@@ -7,7 +7,8 @@ Additional source: owner request for OC2 TS edit/write for non-patch models, app
 Additional source: owner requires OC2 TS parity when switching models during an active task, approves the follow-up RECON and detailed plan commit/push, 2026-10-01. This supersedes whole-turn model pinning, not immutable Location/config generation or execution authority.
 Additional source: owner asks whether `opencode models` is planned for obtaining model IDs to bind agent profiles/other uses; after pinned-original comparison approves detailed work-plan changes and commit/push in the current branch, 2026-10-01. R7 adds the user CLI catalog consumer, not an automatic profile binder.
 Additional source: owner requests comparison with original OC2 TS and our plans for tool-output line limits, separate filesystem logs with readable continuation, `opencode.jsonc` configuration and context-bomb protection; after read-only RECON approves the detailed work-plan amendment and commit/push in the current branch, 2026-10-01. R10/TOOL21 freezes that common pipeline; implementation is not requested by this plan delivery.
-Last updated: 2026-10-01
+Additional source: owner-approved MCP/permissions RECON work-plan delivery and commit/push, 2026-10-02; explicitly retain configured external read/search Allow without Ask, following pinned OC2 permission/file-access behavior.
+Last updated: 2026-10-02
 
 ## Objective
 
@@ -51,7 +52,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: approved search parity proposal; pinned grep/glob schemas and filesystem behavior.
   - Owner: T50, existing file/search executor and policy.
   - Acceptance: grep supports regex (default) and literal:true, path file/directory scope, include glob, caseSensitive (default true) and limit. Pin a vetted engine compatible with the donor ripgrep syntax; do not invent a custom matcher or promise unsupported regex features. glob supports path, hidden (default false), pattern and limit with donor matching/hidden/ignore behavior. Existing deterministic pagination may remain as an explicit extension, with coherent ordering/truncation diagnostics.
-  - Acceptance: validate patterns/options before scanning; malformed regex and exhausted scan/result budgets are explicit outcomes. Preserve own-data-root exclusion except R10's exact registered-artifact read/search route, canonical admitted path boundaries, no-follow regular-file checks and bounded entries/bytes/time. External-directory behavior outside native trust admission remains a declared difference, not an implied access grant.
+  - Acceptance: validate patterns/options before scanning; malformed regex and exhausted scan/result budgets are explicit outcomes. Preserve own-data-root exclusion except R10's exact registered-artifact read/search route, canonical admitted path boundaries, no-follow regular-file checks and bounded entries/bytes/time. The 2026-10-02 external read/search amendment below permits explicit external_directory + glob/grep policy access outside Location; effective Allow dispatches without Ask, not an unconditional OutsideRoot refusal. Existing search read-Deny ceilings remain.
   - Primary evidence: TOOL14 pinned source-derived fixtures for regex/literal/case/path/include/hidden/ignore/options plus actual provider schemas/calls; TOOL01 and path/permission regressions remain authoritative.
   - Status: pending
   - Evidence:
@@ -70,7 +71,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: approved read proposal; PDF remains outside the selected scope.
   - Owner: T50 file/result/provider boundary; T45 retains nested AGENTS instruction ownership.
   - Acceptance: path plus 1-based offset/limit reads text with line references or paged directory entries; donor default limit is 2000. Images supported by the selected Responses model are validated and delivered as real image content, not a success string containing only a path/base64 dump. Unsupported model/file modality, PDF, invalid images and over-budget content are actionable outcomes. Do not silently substitute text for unsupported media.
-  - Acceptance: retain path/permission/symlink/own-data-root protections except R10's exact registered-artifact read/search route, byte/model budgets and bounded output. Successful project file/directory reads invoke the same admitted nested AGENTS lifecycle as T45/R10, with provenance and dedup; artifact reads are tool data and never discover AGENTS from the native data root. Image handling does not introduce a second instruction loader or wider filesystem trust.
+  - Acceptance: retain path/permission/symlink/own-data-root protections except R10's exact registered-artifact read/search route and the 2026-10-02 external read/search amendment below, byte/model budgets and bounded output. Explicit external_directory + read Allow admits bounded external file/listing access without Ask, including first access and restart. Successful project file/directory reads invoke the same admitted nested AGENTS lifecycle as T45/R10, with provenance and dedup; artifact and permitted external-cache reads are tool data, not automatic instruction/config discovery. Image handling does not introduce a second instruction loader or broader grants.
   - Primary evidence: TOOL16 actual binary text/directory pagination and captured image continuation, malformed/PDF/unsupported/over-budget cases; reuse PROV05/PRM01 rather than claiming user-image input tests already prove tool-image output.
   - Status: pending
   - Evidence:
@@ -138,6 +139,46 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - Excluded: built-in websearch/provider integrations, Code Mode/execute, built-in browser, PDF, LSP, filesystem snapshots/undo, arbitrary shell terminal manager within T50. No Formatter/LSP subsystem is introduced merely because donor mutation tools call it; this slice ports the agreed file schemas/semantics under existing native boundaries. Owner-approved [T56](2026-10-01-native-session-terminals.md) narrowly adds explicit session-local interactive PTYs; it does not turn shell into a terminal tool or permit a daemon/credential inheritance. Explicit external MCP tools remain opt-in and permission-gated.
 - Historical audits/PASS and existing task statuses are not rewritten as implementation evidence. Native resource/trust/permission differences are explicit; no claim of identical donor internals or unlimited resources.
 - R10 narrows only full-inline publication of new oversized text, discard-before-shell-capture and the exact registered-artifact read/search exception. It does not permit native-root glob/directory reads, arbitrary blobs, tool-output execution, a new archive/daemon/credential owner, disabled media/transport caps, history rewriting or unknown-effect replay.
+
+## External read/search — R3/R5/TOOL14/TOOL16 (approved 2026-10-02; pending)
+
+Owner explicitly requires config-granted access without Ask. Pinned OC2
+`core/src/file-access.ts:99–166` resolves the external directory resource before the
+read permission; `permission.ts:231–263` returns immediately for Allow. Current native
+`Files::resolve` refuses ordinary outside-root read/glob/grep even when the config map
+loads. Parser/home-expansion success is not working cache access or runtime PASS.
+
+- Resolve the concrete user-supplied path/search scope under the existing pinned
+  Location/config generation; expand leading home paths and evaluate the normalized
+  absolute external resource (`directory/*`, file parent versus scan/list directory)
+  plus the actual read/glob/grep action/resource. Preserve ordered policy and independent
+  source/profile/parent ceilings. Existing source trust is not an additional per-path
+  interactive gate or a requirement to manually pre-open each cache directory.
+- **Effective Allow on both checks dispatches immediately with zero approval events**,
+  including first access, every matching file/scope and restart with unchanged config.
+  Do not replace Allow by Ask or retain an unconditional OutsideRoot failure solely
+  because the cache is outside Location. Genuine Ask uses the shared actual consumer;
+  headless without one refuses before data access, Deny has no protected read/scan.
+- Extend the existing descriptor-pinned file/search route narrowly, not the trusted
+  Location root or config discovery boundary. Keep no-follow/ancestor checks, native
+  data-root exclusion, per-file read-Deny, cancellation, page/scan/time/output/model
+  bounds and immutable running authority. external_directory is a boundary permission,
+  **not a read-only mode**; read/glob/grep must separately be allowed. These cache rules
+  grant no mutation/shell/MCP access or automatic whole-HOME crawl/instruction loading.
+  R10's exact registered artifact route remains distinct, not a broad data-root grant.
+- TOOL14/TOOL16 use synthetic Cargo/Python/UV/Go trees outside an isolated Location,
+  with the owner's four path patterns and Allow for read/glob/grep. Actual rebuilt
+  debug/release binary calls return real file text/listing/search sentinels and next
+  provider results, **zero approval requests and no saved grants**, then repeat after
+  restart. Explicit boundary/tool Ask/Deny, ungranted siblings, parent/profile narrowing,
+  symlink/data-root and budget/cancel negatives reuse existing protection/approval tests.
+
+Only the Location-only ordinary read/search prohibition is superseded for this slice;
+external mutations, automatic trust/discovery widening and new policy/files frameworks
+are not approved. TOOL14/TOOL16 remain T50-owned; T45 CTX02 consumes truthful capability
+facts, T46 MCP09 owns config transports. Implement after settling the current dirty
+slice at the scheduled safe handoff; T55 priority, active T50/PAUSED T44 and old evidence
+remain. Qualification pending/NOT_RUN; no new task, gate, paid campaign or runtime claim.
 
 ## Live model switching — R1/TOOL12 (approved 2026-10-01; pending)
 
@@ -502,6 +543,7 @@ and initial shell retention evidence do not prove the new filesystem/provider pa
 - A vetted regex/search dependency or existing ripgrep integration and a bounded Markdown converter may be chosen for R3/R6; pin/provenance/compile checks are required. No dependency is added by this plan-only delivery.
 - R7 CLI adds `oc/src/{cli,bootstrap}.rs` and a narrow command consumer, existing config/composition/catalog/metadata projection seams and actual-binary tests. Minimal provider-qualified read-only DTOs may extend the existing core query surface only as needed by real consumers; no full application/session startup, public API solely for tests, second catalog/store/cache, credential import or automatic config writer. T45/R6 retains binding normalization/selection ownership; T53 supplies its future catalog through the same seam.
 - R10 extends existing `config.rs::Generation`/loader, `tools.rs`/result and `runtime/{turn,context}.rs` publication, `storage.rs`/`storage_shell_jobs.rs`, `shell.rs`/`shell/jobs.rs` drains, `files.rs`/`files/read.rs`/search and resource/permission preparation. Typed core/application/UI continuation facts may extend minimally for actual consumers; media/MCP/fetch/skill lowering must use the same common preparation. Internal native schema migration/streaming artifact resources are allowed only under the existing Db owner, not a new store/archive/framework/crate or public test API. Tests remain beside owners/in existing runtime/storage/binary targets; CODE_MAP updates follow implementation, not this plan.
+- R3/R5 external read/search extends only the existing files/path/permission/resource-preparation seams and actual-binary fixtures. No trusted-root registry, additional interactive admission, external mutation owner, wider config/instruction loader or new persistence surface. T45 consumes the effective facts; no duplicate permission engine.
 - No private authoring config, secrets, deployment changes, paid search provisioning or executable runtime/config example edits in this plan update. Ordinary own-branch commit/push is required.
 
 ## Current Checkpoint and State
@@ -537,6 +579,7 @@ All links point to the admitted OC2 v2.0.12 commit; current native restrictions 
 
 ## Material Decision and Completion
 
+- 2026-10-02: owner approves MCP/permissions RECON plan commit/push and explicitly config-based external access without Ask. R3/R5/TOOL14/TOOL16 supersede only Location-only ordinary read/search refusal for explicit external_directory + tool policy. Allow performs real bounded read/glob/grep with zero approval events, first time and after restart; Ask/Deny/no-follow/data-root/ceilings/budgets remain. No external mutations/discovery widening, new task/gate/store/framework or runtime/status/PASS claim; current dirty work, T44 pause and T55 handoff priority preserved.
 - 2026-10-01: owner approves the detailed output RECON plan and commit/push in the current branch. Add R10/TOOL21 to existing T50: configurable2000-line/51200-byte common previews, registered streaming filesystem capture/read-search continuation, native16 MiB/shared2 GiB/7-day lifecycle and honest incomplete states. Supersede only full-inline publication of new oversized text, shell discard-before-capture and exact-artifact data-root read/search exclusion; preserve old raw history, permissions/redaction/media/transport/bounds/no replay and ordinary referenced blobs. TOOL13/TOOL16 and AUD34/LOAD02/STORE04 remain their original owners; no new task/store/paid campaign, T44 resume or runtime/status/PASS change. Current dirty slice and T55 priority preserved.
 - 2026-10-01: owner approves detailed CLI models/profile-binding work-plan delivery and commit/push on the current branch after comparison with pinned OC2. Extend R7/TOOL18 with `oc models`, exact complete ID stdout and selection-independent catalog-only admission. Supersede only projected models list/refresh spelling, preserve lookup schemas/paging and config/policy/discovery/credential contracts. T45/R6 verifies real bindings, T53 supplies future catalogs; no new tasks/gates/store/server/config writer or execution/PASS changes. Existing dirty code and T55 handoff priority are preserved.
 - 2026-10-01: follow-up owner instruction requires original OC2 switching during active work and detailed plan commit/push. Frozen boundary becomes a prepared request plus its tools, not the entire native turn. R1/TOOL12 now includes busy-allowed committed selection, local draft/captured commit/blank Enter, next-request adoption within the same task, retained compatible outcomes and real request/assistant attribution. Only model/variant busy refusal, whole-turn model pin and incompatible result-losing projection are superseded; config/Location generations, authority, policy, finite retry and no unknown-effect replay remain. T45/PRM01 and T44 VIS09/VIS29/VIS17/VIS35/VIS36 consume minimal slices; ownership/statuses/history/R8/T55 schedule unchanged, qualification pending.

@@ -179,6 +179,36 @@ or unknown tools; saved transcript effects are not present-day file reconstructi
 
 Project config/AGENTS, agent body, command template и skill body могут влиять на instruction/user/tool-result data, но не расширять trusted host boundary или central permissions. Agent restrictions только сужают policy, а admission всё равно повторяется при tool execution. Tool/MCP descriptions и fetched pages — untrusted input. Native extension — trusted code с правами процесса, не sandbox.
 
+### Ordered MCP policy / external Allow — T45/T50 (approved 2026-10-02; pending)
+
+Legacy permission and canonical ordered permissions preserve donor rule order and
+last matching action/resource **within one authority**. Native independent central/
+source/profile/parent ceilings remain conservative intersections, including tools:false;
+this is a declared OC2 difference, not a global Deny-first override of an in-layer
+broad Deny followed by narrow Allow. Invalid security policy remains non-success.
+MCP collision-safe wire server__tool and sanitized catalog-derived server_tool alias
+are matched in the same ordered authority for schemas/preview/guidance/invocation.
+Bare codex_web is exact, not a server grant; crw_*/crw_crw_* Deny then the matching
+scrape aliases' Allow permits only those tools within that ruleset. No guessed names,
+two conjunctive wire/alias policies or default-MCP bypass of explicit restrictions.
+T45/CTX02 owns effective-view/effect agreement; T46/MCP09 keeps config/client lifecycle.
+
+T50/R3/R5 narrows only ordinary read/glob/grep's Location-only refusal: normalize the
+explicit external scope, check external_directory's absolute directory/* resource
+and the actual tool action/resource through the same captured permission owner.
+**Effective Allow on both dispatches with zero approval events**, including first
+access and restart; no manual pre-opening, new trust dialog or per-path confirmation.
+Genuine Ask waits on the existing consumer before protected content read/search and
+fails headless without one; Deny never reads/scans the protected target. Source trust,
+parent/profile/read-Deny ceilings, descriptor/no-follow/ancestor/data-root checks and
+page/scan/time/output/model/cancellation bounds remain automatic safety checks, not
+additional Ask. external_directory is boundary permission, not read-only mode; this
+slice grants no external mutation/shell/MCP access, config/AGENTS discovery or HOME walk.
+R10 exact registered-artifact continuation is distinct and does not widen data-root
+directory/blob access. TOOL14/TOOL16 prove actual cache text/list/search + zero approval/
+saved-grant effects and restart, with separate Ask/Deny/path negatives; historical
+parser/permission PASS does not qualify this pending executor route.
+
 ### Approved T44 approval contract (VIS36; implementation pending)
 
 Application owns cancellable pending query/events and typed replies tied to actual

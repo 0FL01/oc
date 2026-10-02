@@ -2,7 +2,8 @@
 
 Status: complete (assigned T46 backend scope; T44/product qualification separate)
 Source: инструкция владельца 2026-09-22 и утверждённый после RECON план 2026-09-27 (MCP config/startup/failure parity), reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`).
-Last updated: 2026-09-29
+Additional source: owner-approved OC1-shaped MCP/permissions RECON plan and current-branch commit/push, 2026-10-02; pinned OC2 remains the normalization oracle. Existing completed backend baseline/status/evidence are unchanged; additive MCP09 qualification below is pending.
+Last updated: 2026-10-02
 
 ## Objective
 
@@ -79,9 +80,9 @@ required outcome is resolved and affected constraints remain satisfied.
 
 | Input | Required normalization/runtime outcome |
 | --- | --- |
-| `mcp.<name>` и `mcp.servers.<name>` | Один canonical domain; canonical запись побеждает legacy при совпадении имени в документе; в layered documents later server целиком заменяет same-name entry (не field-wise merge), global timeout merges supplied leaves отдельно. Pinned order/provenance и legacy серверы с именами servers/timeout различаются normalizer-ом. Invalid recognized entry диагностируется отдельно, не удаляет healthy siblings. |
+| `mcp.<name>` и `mcp.servers.<name>` | Один canonical domain; canonical запись побеждает legacy при совпадении имени в документе с safe conflict diagnostic; в layered documents later server целиком заменяет same-name entry (не field-wise merge), global timeout merges supplied leaves отдельно. Pinned order/provenance и typed legacy серверы с именами servers/timeout различаются normalizer-ом. Invalid recognized entry диагностируется отдельно, не удаляет healthy siblings. |
 | `type`, local `command`, remote `url`/`headers` | Typed local/remote shapes, argv без shell splitting, exact configured URL без probing/rewrite; headers case-insensitive/conflicts явны до network. Invalid entry остаётся failed. |
-| `enabled` → `disabled` | Legacy inversion; omitted activation follows pinned normalizer. Disabled не стартует/не требует credentials; malformed disabled record не маскирует ошибку, но не отменяет приложение. |
+| `enabled` → `disabled` | Legacy enabled:false → canonical disabled:true; enabled:true → omitted disabled. Canonical activation использует disabled, не enabled: canonical enabled:false само по себе не выключает server, перенос legacy entry под servers без inversion неверен. Omitted activation follows pinned normalizer; malformed recognized fields имеют safe diagnostics. Disabled не стартует/не требует credentials; malformed disabled record не маскирует ошибку, но не отменяет приложение. |
 | Local `cwd` | Omitted = effective workspace cwd; relative = resolve от Location workspace directory, не config-source directory. Absolute требует существующего canonical admission; никакого silent fallback, escape или нового доверия. |
 | Local `environment` | String map с действующими admitted substitutions. Наследовать environment **product process** и наложить overlay, включая PATH при разрешении executable. Только после command/resource/credential-domain admission; lower-trust command не получает higher-trust credentials вследствие inheritance. Не читать auth/config внешнего runner. |
 | Legacy numeric `timeout` | Positive milliseconds; migrate только в catalog/execution, startup отдельно. |
@@ -95,6 +96,35 @@ required outcome is resolved and affected constraints remain satisfied.
 canonical client_id/client_secret/scope/callback_port/redirect_uri/auth_server_metadata_url.
 Распознавание этих полей не обещает OAuth. `{file:}` остаётся no-follow/relative-only;
 absolute/`~/` file-reference parity и remote-workspace execution plane не добавляются.
+
+### MCP/permission config follow-up — approved 2026-10-02; pending
+
+MCP09 уточняется source-derived host-shaped equivalence fixture: legacy codex_web/
+crw remote с oauth:false и headers, disabled local chrome с argv/environment и
+numeric timeout, затем canonical servers/disabled/staged-timeout форма. Без real
+secrets, npx/browser или owner-config edits. Проверить normalized facts и реальный
+fake-client startup/launch, не только parser acceptance:
+
+- URL сохраняется буквально после admitted env substitution: codex_web suffix `/mcp`
+  принадлежит supplied URL; crw URL не получает `/mcp` или probe/query fallback.
+  Headers/substitutions и redaction проходят общий source-trust pipeline.
+- Numeric60,000/30,000/3,000 ms задают только catalog/execution; omitted startup
+  остаётся30,000. Global supplied leaves и per-server overlay проверяются отдельно
+  от later whole-server replacement; mixed same-name conflict diagnostic безопасен.
+- Native omitted/false codemode — direct/exact URL. Donor omitted/true CodeMode может
+  добавить `?codemode=false` и после initialize400/404 попробовать original URL;
+  donor codemode:false выбирает direct. Это declared native difference, не новый retry
+  разрешённого или unknown-effect tools/call. OAuth omission у donor допускает auth
+  discovery, false его выключает; native omitted/false остаются no-OAuth. Protocol
+  omission/legacy до2025-11-25 и unsupported auto/2026-07-28 остаются явными.
+- T45/CTX02 владеет permission names/defaults/filtering, не transport. Existing
+  T46 completed R1–R7/report подтверждают свой baseline, **не новые fixture assertions**.
+  Follow-up MCP09 qualification записывается отдельно при safe scheduled handoff;
+  его approval не reopen/finish task, не дублирует MCP08/MCP10/live/visual campaign.
+
+Oracle: pinned `schema/src/mcp.ts`, `core/src/config/normalize.ts:244–315`,
+`config/plugin/mcp.ts:39–55`, `mcp/client.ts:160–317`; nearest config normalization
+and MCP tests. Actual disabled zero-spawn/reload/restart counters reuse existing owners.
 
 ## Constraints
 

@@ -87,6 +87,98 @@ deadlines/retries/metadata and last-healthy publication remain intact. Async MCP
 startup/status/control and cleanup use the existing T46 resource owner. Native worker
 joins preserve typed cleanup/cap causes and discard unsafe legacy/panic payloads.
 
+## MCP/permissions compatibility — approved 2026-10-02; external access pending
+
+OC1 host config is an example; pinned OC2 v2.0.12 is the normalization oracle.
+[T46/MCP09 follow-up](goals/2026-09-22-mcp-attach-parity.md#mcppermission-config-follow-up--approved-2026-10-02-pending)
+keeps the completed backend baseline separate from new qualification. Canonical root
+`mcp.servers` uses `disabled`, not `enabled`; legacy enabled:false migrates to
+disabled:true. Moving entries without inversion is not equivalent. Scalar positive-ms
+timeout migrates only to catalog/execution, not startup; defaults are30,000/30,000/
+43,200,000 ms. Global supplied timeout leaves merge, per-server leaves override;
+later same-ID server replaces the whole entry, canonical wins mixed-root conflicts
+with a safe diagnostic. Typed legacy servers literally named servers/timeout remain
+distinct from canonical container/defaults keys.
+
+Canonical **direct-mode example** below preserves the supplied URLs/headers/argv/env
+and numeric timeout intent. `codemode:false` explicitly selects direct OC2 transport;
+it is not an automatic migration rewrite. Native omitted codemode remains direct,
+unlike donor default CodeMode query/fallback behavior. crw's URL gets no extra `/mcp`;
+oauth:false means no discovery, while native omitted OAuth is also no-OAuth (declared
+difference). Native protocol omitted/legacy negotiates up to2025-11-25; unsupported
+auto/2026-07-28 remains a per-entry capability failure. Disabled local chrome has zero
+npx/browser/spawn/network effects. Local cwd/env inherit only the admitted product
+execution context and overlay, not authoring-agent configuration.
+
+Canonical `permissions` is an ordered array. The legacy `permission` map is normalized
+before it, preserving rule order; later matching Allow overrides broad Deny **inside
+that authority only**. Independent native central/source/profile/parent ceilings and
+tools:false remain, not donor's unrestricted cross-layer last-Allow behavior. Malformed
+security policy is fatal, not skipped into Allow. MCP aliases come from actual tools/list:
+server crw + scrape → crw_scrape, crw + crw_scrape → crw_crw_scrape. `codex_web` matches
+that exact action, not all codex_web tools; explicitly use codex_web_* if that is the
+intended server-wide rule. Do not silently widen the user's literal rules.
+
+```jsonc
+{
+  "mcp": {
+    "servers": {
+      "codex_web": {
+        "type": "remote",
+        "url": "{env:LUDKA2_API_URL}/mcp",
+        "oauth": false,
+        "codemode": false,
+        "headers": { "Authorization": "Bearer {env:LUDKA2_API_KEY}" },
+        "timeout": { "catalog": 60000, "execution": 60000 }
+      },
+      "crw": {
+        "type": "remote",
+        "url": "{env:CRW_API_URL}",
+        "oauth": false,
+        "codemode": false,
+        "headers": { "Authorization": "Bearer {env:CRW_API_KEY}" },
+        "timeout": { "catalog": 30000, "execution": 30000 }
+      },
+      "chrome-devtools": {
+        "type": "local",
+        "command": ["npx", "-y", "chrome-devtools-mcp@latest", "--browser-url", "http://127.0.0.1:9222"],
+        "disabled": true,
+        "environment": { "npm_config_offline": "true" },
+        "timeout": { "catalog": 3000, "execution": 3000 }
+      }
+    }
+  },
+  "permissions": [
+    { "action": "codex_search", "resource": "*", "effect": "deny" },
+    { "action": "codex_web", "resource": "*", "effect": "allow" },
+    { "action": "crw_*", "resource": "*", "effect": "deny" },
+    { "action": "crw_crw_*", "resource": "*", "effect": "deny" },
+    { "action": "crw_scrape", "resource": "*", "effect": "allow" },
+    { "action": "crw_crw_scrape", "resource": "*", "effect": "allow" },
+    { "action": "external_directory", "resource": "~/.cargo/registry/src/*", "effect": "allow" },
+    { "action": "external_directory", "resource": "~/.local/lib/python*/site-packages/*", "effect": "allow" },
+    { "action": "external_directory", "resource": "~/.cache/uv/archive-v0/*/lib/python*/site-packages/*", "effect": "allow" },
+    { "action": "external_directory", "resource": "~/go/pkg/mod/*", "effect": "allow" },
+    { "action": "read", "resource": "*", "effect": "allow" },
+    { "action": "glob", "resource": "*", "effect": "allow" },
+    { "action": "grep", "resource": "*", "effect": "allow" }
+  ]
+}
+```
+
+These external patterns are not merely accepted syntax: [T50/R3/R5 target](goals/2026-09-27-native-tool-parity.md#external-readsearch--r3r5tool14tool16-approved-2026-10-02-pending)
+must perform real bounded read/glob/grep outside Location. Effective Allow for the
+home-expanded external directory resource **and** actual tool action executes without
+Ask, approval event, saved grant, manual pre-opening or per-path trust dialog, first
+time and after restart. Genuine Ask still needs the normal consumer; Deny/independent
+ceilings/no-follow/data-root/cancel/budgets still refuse or bound access. Boundary Allow
+alone is not read-only policy and does not grant mutations or arbitrary tools; it never
+adds a config/AGENTS source or starts an automatic HOME crawl. At RECON native ordinary
+outside-root tools still refuse: this external-access example is a pending target, not
+current runtime support. Existing T45 default MCP Allow/effective-view target remains
+separate from these literal configured restrictions; no executable examples or user
+files are rewritten by this plan.
+
 ## DCP configuration — approved target
 
 Native DCP already reads optional `dcp.json`/`dcp.jsonc`; no automatic creation or

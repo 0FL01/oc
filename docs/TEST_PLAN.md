@@ -154,6 +154,30 @@ executors/selector retain ownership. T44 VIS06/VIS10/VIS17/VIS26/VIS39 paired qu
 is separate after explicit resume; no new visual gate or whole-task completion cycle.
 Document validation is not runtime/visual PASS or permission to change progress statuses.
 
+### MCP ordered identities — CTX02 (approved 2026-10-02; pending)
+
+Use one source-derived legacy permission map/canonical ordered permissions pair.
+Assert canonical rules append after normalized legacy rules and last matching rule
+wins within the document, with native independent source/profile/parent/tools:false
+ceilings unchanged. Malformed security policy stays fatal. Actual fake catalog entries,
+not presumed host tool names, drive compatible sanitized server_tool/native server__tool:
+
+- Server codex_web/tool search proves bare codex_web Allow is not a server wildcard;
+  use an explicit codex_web_* rule to assert that separate intent. The native default
+  registered-MCP Allow is qualified independently, not attributed to this exact rule.
+- Server crw/tools scrape, crw_scrape and a non-scrape tool prove crw_*/crw_crw_* Deny
+  followed by narrow crw_scrape/crw_crw_scrape Allow. Actual allowed calls succeed with
+  zero approval requests; forbidden scripted calls produce zero tools/call effects.
+  Compare initial/follow-up schemas, delegation preview, initialize guidance and
+  invocation/resource admission through the same identity/effective policy owner.
+- Genuine Ask with a consumer versus no-consumer headless refusal, explicit source/
+  parent/profile Deny/Ask and catalog reload/restart reuse AUD42/SUB02/MCP08/MCP10
+  proofs. Neither allowed scrape nor default MCP access erases independent ceilings.
+  No CodeMode/server-name expansion, new policy framework or paid campaign.
+
+CTX02 remains solely T45-owned. TOOL14/TOOL16 external-access receipts below prove
+the executor; CTX02 only checks truthful external capability/conditional previews.
+
 ## T45 prompt/delegation/DCP qualification (approved 2026-09-27; pending)
 
 Detailed specs SUB01/SUB02/CTX01/CTX02/PRM01/DCP10/DCP11/DCP12 in planning/acceptance.json
@@ -590,6 +614,16 @@ Doc/progress checks prove planning structure, never runtime/visual PASS.
   survive; valid disabled stays disabled. Reuse CFG02/CFG04/AUD22/MCP04/MCP05. MCP04's
   credential-free local env clause is narrowly superseded by D21; shell TOOL05/AUD28
   remains minimal. No external runner-auth access or implied trust/credential grant.
+  The 2026-10-02 host-shaped follow-up pairs legacy codex_web/crw remote headers/
+  oauth:false and disabled chrome argv/environment/numeric timeout with canonical
+  servers/disabled/staged form. Preserve crw URL literally (no appended /mcp), actual
+  substitutions/redaction and disabled zero effects. Numeric60,000/30,000/3,000 migrate
+  catalog/execution only; omitted startup30,000 and global/per-server overlays remain.
+  Prove mixed canonical-wins conflicts/typed reserved server names and later whole-entry
+  replacement separately. Declare direct exact-URL versus donor CodeMode query/400–404
+  initialize fallback, omitted OAuth and unsupported protocol differences, not tool
+  retry permission. Reuse actual-binary zero-spawn/reload/restart counters. Completed
+  T46 baseline evidence/status stays unchanged; additive assertions pending/NOT_RUN.
 - **MCP10 + MCP08:** healthy/slow/failed barrier-controlled startup before first prompt,
   no all-server launch wait; responsive history/status, actual initialize/catalog
   counters and first/next request catalogs. Then real connect/disconnect/retry, close,
@@ -726,6 +760,7 @@ helper-only tests, fixture table tool names and document validation are insuffic
   TOOL05/TOOL06/AUD27/AUD28 and freeze A10 jobs/output/queue retention checks.
 - TOOL14 source fixtures cover regex/literal/path/include/case and glob hidden/ignore/
   scope/truncation with malformed/over-budget/path/permission negatives (TOOL01).
+  The 2026-10-02 external route below adds real config-authorized glob/grep without Ask.
 - TOOL15 exercises actual PTY option/multiple/free-form answers and dismissal, model
   continuation, stale replies/headless/--auto/cancel/restart. T50 behavior proves the
   real question owner and ordered answers in the next provider request. Deliver this
@@ -741,6 +776,7 @@ helper-only tests, fixture table tool names and document validation are insuffic
 - TOOL16 captures text/directory pages and real image tool-result continuation;
   PDF/unsupported/malformed/over-budget cases fail honestly. Reuse PROV05/PRM01,
   including nested AGENTS from directory reads, without a second loader.
+  External cache read/listing is separate tool data, not automatic AGENTS/config discovery.
 - TOOL17 checks webfetch text/markdown/html/defaults/metadata/total timeout with fake
   HTTP and actual model calls; TOOL07/TOOL08/AUD25/AUD26 SSRF/Unicode remain.
 - TOOL18 checks direct catalog lookup/static-dynamic-unknown metadata/paging/model
@@ -767,6 +803,37 @@ Run nearest targeted evidence per minimal slice, then affected crate/integration
 and mandatory final workspace gates, rebuilt debug/release binaries and existing
 bounded live envelope. No new paid search campaign or live-budget expansion. Keep
 historical reports and task statuses unchanged until real qualification.
+
+### External cache Allow without Ask — TOOL14/TOOL16 (approved 2026-10-02; pending)
+
+Contract: [T50/R3/R5](goals/2026-09-27-native-tool-parity.md#external-readsearch--r3r5tool14tool16-approved-2026-10-02-pending).
+Build synthetic Cargo registry, Python site-packages, UV archive/site-packages and
+Go module trees in isolated HOME **outside** Location; include unique file/search
+sentinels and forbidden sibling/data-root/symlink targets. Use the owner's four
+home/wildcard external_directory patterns plus read/glob/grep Allow in legacy and
+canonical config forms, through the actual loader/pinned authority, not a test bypass.
+
+1. Rebuilt debug/release binary + bounded fake provider invokes read text/directory
+   pages, glob and grep at concrete cache paths. Assert actual returned text/path/
+   search results and matched call-results in the next request, normalized absolute
+   directory/* boundary resources and actual tool resources. First access and repeated
+   matching scopes have **zero approval events/requests, no saved grants or manual
+   pre-opening**. Parsing success, OutsideRoot refusal or --auto answering Ask fails
+   this contract. Ordinary project read/search behavior remains unchanged.
+2. Restart/reopen with the same admitted config performs fresh explicit cache calls
+   with the same no-Ask result; no automatic archive/data-root read, HOME scan or
+   instruction/config discovery. Reuse T45 CTX02 preview and TOOL21 exact-artifact
+   receipts, without making arbitrary native-data paths eligible cache scopes.
+3. Separately exercise effective boundary Ask and action Ask (real consumer, then
+   headless no-consumer pre-content refusal), boundary/action Deny and ungranted
+   sibling, independent source/profile/parent/read-Deny ceilings, no-follow/ancestor
+   swap/data-root, scan/page/output/model limits and cancel/join. Existing path/
+   approval/search harnesses own these negatives; no duplicated broad audit matrix.
+   Path type/normalization checks are not protected content reads or an extra Ask.
+
+Nearest files/read/search, permission/runtime/approval checks precede actual-binary
+evidence and affected-crate/integration/final workspace gates. TOOL14/TOOL16 only T50;
+no new ID/task/framework/paid request, historical reports/statuses/baselines unchanged.
 
 ### Tool-output filesystem continuation — TOOL21 (approved 2026-10-01; pending)
 
