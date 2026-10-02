@@ -2703,6 +2703,49 @@ impl<'a> Runtime<'a> {
             // Keep the original provider identifier in the durable operation id.
             let op = format!("{turn_id}-r{round}-c{i}-{id}");
             let mut guarded = unit.clone();
+            // Paths use the captured product HOME/Location, never ambient runner
+            // environment or a later configuration generation.
+            if let Assembled::Call(call) = &mut guarded
+                && matches!(call.name.as_str(), "read" | "glob" | "grep")
+                && self.validate_tool_call(call).is_ok()
+                && !call.arguments["path"]
+                    .as_str()
+                    .is_some_and(|path| self.db.is_tool_output_path(path))
+            {
+                let path = call.arguments["path"].as_str().unwrap_or(".");
+                let expanded = if path == "~" || path.starts_with("~/") {
+                    self.parent_env.get("HOME").map(|home| {
+                        std::path::Path::new(home).join(path.strip_prefix("~/").unwrap_or(""))
+                    })
+                } else {
+                    Some(self.roots.project.join(path))
+                };
+                match expanded.and_then(|p| p.to_str().map(str::to_owned)) {
+                    Some(path) => match ctx.files.concrete_scope(&path) {
+                        Ok(path) => {
+                            let resource =
+                                if call.name == "read" && ctx.files.is_project_scope(&path) {
+                                    path.strip_prefix(&self.roots.project).unwrap_or(&path)
+                                } else {
+                                    &path
+                                };
+                            call.arguments["path"] = resource.to_string_lossy().into_owned().into();
+                        }
+                        Err(error) => {
+                            guarded = Assembled::Failed(CallFailure {
+                                id: call.id.clone(),
+                                error: error.to_string(),
+                            })
+                        }
+                    },
+                    None => {
+                        guarded = Assembled::Failed(CallFailure {
+                            id: call.id.clone(),
+                            error: "product HOME unavailable".into(),
+                        })
+                    }
+                }
+            }
             if let Assembled::Call(call) = &mut guarded
                 && matches!(call.name.as_str(), "edit" | "write")
                 && let Some(path) = call.arguments["path"].as_str()
@@ -2818,11 +2861,78 @@ impl<'a> Runtime<'a> {
                     Err(error) => structural = Err(error),
                 }
             }
+            let mut invocation_files = ctx.files.clone();
+            let mut external_admission = None;
+            if structural.is_ok()
+                && !permission_rejected
+                && !cancel.load(Ordering::Acquire)
+                && let Assembled::Call(call) = &guarded
+                && matches!(call.name.as_str(), "read" | "glob" | "grep")
+                && self.validate_tool_call(call).is_ok()
+                && let Some(path) = call.arguments["path"].as_str()
+                && !self.db.is_tool_output_path(path)
+            {
+                let absolute = ctx.files.concrete_scope(path).map_err(|e| e.to_string());
+                if let Ok(absolute) = absolute
+                    && !ctx.files.is_project_scope(&absolute)
+                {
+                    // An action Deny cannot cause protected reads or directory scans.
+                    let denied = crate::tools::permission_resources(call)
+                        .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?
+                        .iter()
+                        .any(|r| policy.effect(&call.name, r) == Permission::Deny);
+                    if denied || policy.search_path_denied(&absolute.to_string_lossy()) {
+                        structural = Err(format!("denied {}", call.name));
+                    } else {
+                        match ctx.files.pin_external(&absolute, call.name == "glob") {
+                            Err(error) => structural = Err(error.to_string()),
+                            Ok(files) => {
+                                let boundary = crate::tools::ToolCall {
+                                    id: call.id.clone(),
+                                    name: "external_directory".into(),
+                                    arguments: serde_json::json!({"directory":files.external_resource().expect("pinned boundary")}),
+                                };
+                                match self
+                                    .admit_tool(
+                                        session,
+                                        turn_id,
+                                        &op,
+                                        &boundary,
+                                        ctx,
+                                        policy,
+                                        cancel,
+                                        turn_log.display["agent"].as_str().map(str::to_string),
+                                        turn_log.agent_digest.clone(),
+                                    )
+                                    .await
+                                {
+                                    Ok(_) => invocation_files = files,
+                                    Err(error) => external_admission = Some(error),
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            let file_ctx = ToolContext {
+                files: &invocation_files,
+                shell: ctx.shell,
+                parent_env: ctx.parent_env,
+                webfetch_auth: ctx.webfetch_auth.clone(),
+                webfetch_allow_private: ctx.webfetch_allow_private,
+                policy: ctx.policy,
+                subagent: ctx.subagent,
+                snapshot: ctx.snapshot,
+                cancel: ctx.cancel,
+                roots: ctx.roots.clone(),
+            };
+            let ctx = &file_ctx;
             let mut admission = match &guarded {
                 Assembled::Call(call)
                     if !permission_rejected
                         && !cancel.load(Ordering::Acquire)
                         && structural.is_ok()
+                        && external_admission.is_none()
                         && (!is_builtin(&call.name) || self.validate_tool_call(call).is_ok()) =>
                 {
                     self.admit_tool(
@@ -2842,6 +2952,9 @@ impl<'a> Runtime<'a> {
             };
             if let Err(error) = structural {
                 admission = Err(error.into());
+            }
+            if let Some(error) = external_admission {
+                admission = Err(error);
             }
             if admission.is_ok()
                 && let Assembled::Call(call) = &guarded
@@ -3263,6 +3376,12 @@ impl<'a> Runtime<'a> {
             let mut native_read_result = None;
             let mut shell_text_prepared = false;
             let mut read_directory = false;
+            let read_path = match &guarded {
+                Assembled::Call(call) if call.name == "read" => {
+                    call.arguments["path"].as_str().map(str::to_owned)
+                }
+                _ => None,
+            };
             let mut artifact_source = None;
             let (mut state, output) = if let Some(rejection) = rejection {
                 rejection
@@ -3457,6 +3576,9 @@ impl<'a> Runtime<'a> {
                         // shell. Capture this invocation's immutable authority,
                         // not a reloaded generation or another session's token.
                         let files = ctx.files.clone();
+                        let Assembled::Call(call) = &guarded else {
+                            unreachable!("admitted file call")
+                        };
                         let call = call.clone();
                         let permissions = invocation_policy.permissions.clone();
                         let rules = invocation_policy.rules.cloned();
@@ -3727,6 +3849,7 @@ impl<'a> Runtime<'a> {
                 });
             if name == "read"
                 && artifact_source.is_none()
+                && invocation_files.external_resource().is_none()
                 && state == "completed"
                 && !cancel.load(Ordering::Acquire)
             {
@@ -3747,11 +3870,7 @@ impl<'a> Runtime<'a> {
                     .clone();
                 let (revision, facts) = self.db.instruction_view(session)?;
                 let mut desired = facts.into_iter().map(|f| f.source).collect::<Vec<_>>();
-                let path = match unit {
-                    Assembled::Call(call) => call.arguments["path"].as_str(),
-                    _ => None,
-                }
-                .expect("validated read path");
+                let path = read_path.as_deref().expect("validated read path");
                 let admitted = crate::instructions::after_read(
                     &roots,
                     &self.files,

@@ -32,6 +32,144 @@ fn consumer(
 }
 
 #[tokio::test]
+async fn external_read_shared_boundary_and_action_admission_emit_only_genuine_asks() {
+    use oc_adapters::permissions::PermissionRules;
+    use oc_core::core_app::CoreEvent;
+    for mode in [
+        "allow",
+        "boundary-ask",
+        "read-ask",
+        "source-deny",
+        "profile-deny",
+        "boundary-reject",
+        "boundary-cancel",
+    ] {
+        let asks = mode.ends_with("ask") || mode.ends_with("reject") || mode.ends_with("cancel");
+        let mut permissions = allow_all();
+        permissions.insert("external_directory".into(), Permission::Allow);
+        let (harness, mut generation) = make_harness(permissions);
+        let cache = tempfile::tempdir().unwrap();
+        let file = cache.path().join("fact.txt");
+        std::fs::write(&file, "before approval").unwrap();
+        generation.permission_rules = PermissionRules::from_config(&serde_json::json!({"permissions":[
+            {"action":"read","resource":"*","effect":if mode=="read-ask" {"ask"} else {"allow"}},
+            {"action":"external_directory","resource":"*","effect":"deny"},
+            {"action":"external_directory","resource":cache.path().join("*"),"effect":if asks && mode!="read-ask" {"ask"} else {"allow"}}
+        ]})).unwrap();
+        let ceiling = PermissionRules::from_config(
+            &serde_json::json!({"permission":{"external_directory":"deny"}}),
+        )
+        .unwrap();
+        if mode == "source-deny" {
+            generation.permission_rules.extend(ceiling);
+        } else if mode == "profile-deny" {
+            generation
+                .permission_rules
+                .narrow(&generation.permissions, &BTreeMap::new(), &ceiling);
+        }
+        let runtime = runtime_of(&harness, generation, vec![]);
+        let mut events = consumer(&runtime);
+        let cancel = AtomicBool::new(false);
+        runtime.create_session("external").unwrap();
+        let (base, _) = Fake::start(
+            vec![
+                sse_tool_call("external", "read", &serde_json::json!({"path":file}))
+                    + &sse_completed(),
+                sse_delta("done") + &sse_completed(),
+            ],
+            Duration::ZERO,
+        );
+        let reply = async {
+            if asks {
+                let request = next_request(&runtime).await;
+                assert!(harness.db.list_tool_ops("external").unwrap().is_empty());
+                assert_eq!(
+                    request.action,
+                    if mode != "read-ask" {
+                        "external_directory"
+                    } else {
+                        "read"
+                    }
+                );
+                assert_eq!(
+                    request.resources,
+                    [if mode != "read-ask" {
+                        cache.path().join("*")
+                    } else {
+                        file.clone()
+                    }
+                    .to_string_lossy()]
+                );
+                if mode != "read-ask" {
+                    assert!(request.save_patterns.is_empty());
+                }
+                std::fs::write(&file, "AFTER_SHARED_CONSUMER").unwrap();
+                if mode.ends_with("cancel") {
+                    cancel.store(true, Ordering::Release);
+                    return;
+                }
+                answer(
+                    &runtime,
+                    request,
+                    if mode.ends_with("reject") {
+                        ApprovalDecision::Reject { feedback: None }
+                    } else {
+                        ApprovalDecision::Once
+                    },
+                );
+            }
+        };
+        let (report, ()) = tokio::join!(
+            runtime.run_turn(params(
+                "external",
+                "invoke",
+                &harness,
+                provider_of(&base),
+                &cancel
+            )),
+            reply
+        );
+        let report = report.unwrap();
+        if mode.ends_with("reject") || mode.ends_with("cancel") {
+            assert_eq!(report.status, TurnStatus::Cancelled);
+            assert_eq!(
+                report.calls[0].state,
+                if mode.ends_with("reject") {
+                    "denied"
+                } else {
+                    "cancelled"
+                }
+            );
+            assert!(!report.calls[0].output.contains("AFTER_SHARED_CONSUMER"));
+        } else if mode.ends_with("deny") {
+            assert!(report.calls[0].output.contains("denied"));
+            assert!(!report.calls[0].output.contains("before approval"));
+        } else {
+            assert_eq!(report.calls[0].state, "completed");
+            assert!(report.calls[0].output.contains(if mode == "allow" {
+                "before approval"
+            } else {
+                "AFTER_SHARED_CONSUMER"
+            }));
+        }
+        let mut asked = 0;
+        while let Ok(event) = events.try_recv() {
+            if matches!(event, CoreEvent::PermissionAsked(_)) {
+                asked += 1;
+            }
+        }
+        assert_eq!(asked, usize::from(asks), "{mode}");
+        let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+        assert_eq!(
+            conn.query_row("SELECT count(*) FROM permission_grants", [], |r| r
+                .get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
+    }
+}
+
+#[tokio::test]
 async fn approval_webfetch_hostname_does_not_resolve_before_owner_reply_or_without_consumer() {
     for registered in [false, true] {
         let mut permissions = allow_all();

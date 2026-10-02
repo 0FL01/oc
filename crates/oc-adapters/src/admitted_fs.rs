@@ -35,7 +35,16 @@ fn open_resolved(dir: &File, relative: &Path, flags: i32, resolve: u64) -> io::R
     let path = CString::new(relative.as_os_str().as_bytes())
         .map_err(|_| io::Error::from(io::ErrorKind::InvalidInput))?;
     let how = OpenHow {
-        flags: (flags | libc::O_CLOEXEC | libc::O_NONBLOCK | libc::O_NOFOLLOW) as u64,
+        // openat2 rejects data-open flags with O_PATH. Metadata-only admission
+        // pins must not request read access (or a nonblocking data open).
+        flags: (flags
+            | libc::O_CLOEXEC
+            | libc::O_NOFOLLOW
+            | if flags & libc::O_PATH == 0 {
+                libc::O_NONBLOCK
+            } else {
+                0
+            }) as u64,
         mode: 0,
         resolve,
     };

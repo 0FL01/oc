@@ -179,6 +179,8 @@ pub(crate) fn permission_resources(call: &ToolCall) -> Result<Vec<String>, ToolE
         "subagent" => vec![string("agent")?],
         "opencode_session_rename" => vec![string("sessionID")?],
         "opencode_session_move" => vec![string("sessionID")?, string("directory")?],
+        // Internal boundary admission only; never an executable/catalog tool.
+        "external_directory" => vec![string("directory")?],
         "shell" => vec![string("command")?],
         "apply_patch" => {
             crate::patch::affected_paths(&string("patchText")?).map_err(|_| invalid())?

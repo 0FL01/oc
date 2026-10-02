@@ -203,8 +203,12 @@ async fn tool14_active_scan_cancel_refuses_partial_and_joins_before_next_query()
         }
     }
     for (name, phase) in [("grep", "hit"), ("glob", "candidate"), ("read", "read")] {
-        let (_tmp, mut files) = fixture();
-        fs::write(files.root.join("a.rs"), "NEEDLE\nNEEDLE\n").unwrap();
+        let (tmp, mut files) = fixture();
+        // Exercise the same joined worker/token bridge on an external invocation;
+        // internal active-scan guards use this identical owner and checkpoints.
+        let cache = tmp.path().join("cache");
+        fs::create_dir(&cache).unwrap();
+        fs::write(cache.join("a.rs"), "NEEDLE\nNEEDLE\n").unwrap();
         let (entered_tx, entered_rx) = tokio::sync::oneshot::channel();
         let (cancel_tx, cancel_rx) = tokio::sync::oneshot::channel();
         let (release_tx, release_rx) = std::sync::mpsc::channel();
@@ -223,7 +227,7 @@ async fn tool14_active_scan_cancel_refuses_partial_and_joins_before_next_query()
             &db,
             "work",
             Generation {
-                permissions: ["read", "grep", "glob", "shell"]
+                permissions: ["read", "grep", "glob", "shell", "external_directory"]
                     .into_iter()
                     .map(|n| (n.into(), Permission::Allow))
                     .collect(),
@@ -252,9 +256,9 @@ async fn tool14_active_scan_cancel_refuses_partial_and_joins_before_next_query()
         let stop = stopping.clone();
         let call = |id: &str, tool: &str, args: serde_json::Value| serde_json::json!({"type":"function_call","id":id,"call_id":id,"name":tool,"arguments":args.to_string(),"status":"completed"});
         let args = if name == "read" {
-            serde_json::json!({"path":"a.rs"})
+            serde_json::json!({"path":cache.join("a.rs")})
         } else {
-            serde_json::json!({"pattern":if name=="grep" {"NEEDLE"} else {"*.rs"}})
+            serde_json::json!({"pattern":if name=="grep" {"NEEDLE"} else {"*.rs"},"path":cache})
         };
         let script = vec![
             vec![

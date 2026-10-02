@@ -221,7 +221,7 @@ pub(crate) async fn prepare(
         "read" => {
             let path = ctx
                 .files
-                .resolve_path(call.arguments["path"].as_str().ok_or("missing path")?)
+                .search_scope(call.arguments["path"].as_str().ok_or("missing path")?)
                 .map_err(|e| e.to_string())?;
             hash.update(path.as_os_str().as_encoded_bytes());
             ApprovalPreview::Resource {
@@ -305,7 +305,7 @@ pub(crate) async fn prepare(
 /// Exact literal resources are safe to save only when they contain no wildcard
 /// metacharacters. This is separate from the actual policy resource set.
 pub(crate) fn save_patterns(action: &str, resources: &[String]) -> Vec<String> {
-    if action == "opencode_session_move" {
+    if matches!(action, "opencode_session_move" | "external_directory") {
         return vec![];
     }
     if !matches!(

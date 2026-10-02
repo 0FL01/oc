@@ -88,7 +88,7 @@ pub struct ReadResult {
 /// Single grep hit.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GrepHit {
-    /// Project-relative path with `/` separators.
+    /// Project-relative path, or normalized absolute admitted external path.
     pub path: String,
     /// 1-based line number.
     pub line: u64,
@@ -113,6 +113,8 @@ pub struct Files {
     root: PathBuf,
     data_root: PathBuf,
     read_root: Result<std::sync::Arc<File>, FileToolError>,
+    // Exact invocation-only external directory. Never a Location/discovery root.
+    external: Option<(PathBuf, std::sync::Arc<File>)>,
     #[cfg(test)]
     scan_barrier: Option<std::sync::Arc<ScanBarrier>>,
 }
@@ -262,6 +264,7 @@ impl Files {
             data_root: data_root.to_path_buf(),
             read_root: open_suggest_root(&normalize_suggest_root(project_root))
                 .map(std::sync::Arc::new),
+            external: None,
             #[cfg(test)]
             scan_barrier: None,
         })
@@ -478,10 +481,105 @@ impl Files {
         self.resolve(path)
     }
 
-    /// Lexical walk from the project root so `..` recursion keeps its real
-    /// landing (data root → `OwnDataRoot`, elsewhere outside → `OutsideRoot`),
-    /// no-follow symlink refusal, and own-data-root rejection for direct and
-    /// symlink-escape landings.
+    /// Lexical read/search target; no data IO and no expansion of mutation authority.
+    pub(crate) fn concrete_scope(&self, path: &str) -> Result<PathBuf, FileToolError> {
+        if path.is_empty() {
+            return Err(FileToolError::NotFound);
+        }
+        let abs = normalize_suggest_root(&self.root.join(path));
+        let data = normalize_suggest_root(&self.data_root);
+        if abs.starts_with(&data) {
+            return Err(FileToolError::OwnDataRoot);
+        }
+        Ok(abs)
+    }
+
+    pub(crate) fn is_project_scope(&self, path: &Path) -> bool {
+        path.starts_with(normalize_suggest_root(&self.root))
+    }
+
+    /// Pin all ancestors with O_PATH only. Boundary authorization and the actual
+    /// tool admission must precede opening directory entries or file bytes.
+    pub(crate) fn pin_external(&self, path: &Path, directory: bool) -> Result<Self, FileToolError> {
+        let slash = File::open("/").map_err(|_| FileToolError::Io)?;
+        let relative = path
+            .strip_prefix("/")
+            .map_err(|_| FileToolError::OutsideRoot)?;
+        let target = crate::admitted_fs::open_beneath_no_symlinks(&slash, relative, libc::O_PATH)
+            .map_err(|e| match e.raw_os_error() {
+            Some(libc::ELOOP) => FileToolError::SymlinkEscape,
+            Some(libc::ENOENT) => FileToolError::NotFound,
+            _ => FileToolError::Io,
+        })?;
+        let meta = target.metadata().map_err(|_| FileToolError::Io)?;
+        if meta.is_symlink() {
+            return Err(FileToolError::SymlinkEscape);
+        }
+        let is_dir = meta.is_dir();
+        let boundary = if directory || is_dir {
+            path
+        } else {
+            path.parent().ok_or(FileToolError::OutsideRoot)?
+        };
+        let pinned = if boundary == path {
+            target
+        } else {
+            crate::admitted_fs::open_beneath_no_symlinks(
+                &slash,
+                boundary.strip_prefix("/").expect("absolute boundary"),
+                libc::O_PATH | libc::O_DIRECTORY,
+            )
+            .map_err(|_| FileToolError::SymlinkEscape)?
+        };
+        let mut files = self.clone();
+        files.external = Some((boundary.to_path_buf(), std::sync::Arc::new(pinned)));
+        Ok(files)
+    }
+
+    pub(crate) fn external_resource(&self) -> Option<String> {
+        self.external
+            .as_ref()
+            .map(|(path, _)| path.join("*").to_string_lossy().into_owned())
+    }
+
+    fn open_read_scope(&self, path: &Path, flags: i32) -> Result<File, FileToolError> {
+        let (root, pinned) = if self.is_project_scope(path) {
+            (&self.root, self.read_root.as_ref().map_err(Clone::clone)?)
+        } else {
+            let (root, pinned) = self.external.as_ref().ok_or(FileToolError::OutsideRoot)?;
+            (root, pinned)
+        };
+        let relative = path
+            .strip_prefix(root)
+            .map_err(|_| FileToolError::OutsideRoot)?;
+        crate::admitted_fs::open_beneath_no_symlinks(
+            pinned,
+            if relative.as_os_str().is_empty() {
+                Path::new(".")
+            } else {
+                relative
+            },
+            flags,
+        )
+        .map_err(|e| match e.raw_os_error() {
+            Some(libc::ELOOP) => FileToolError::SymlinkEscape,
+            Some(libc::ENOENT) => FileToolError::NotFound,
+            _ => FileToolError::Io,
+        })
+    }
+
+    /// Read/search-only use of the explicitly pinned invocation directory.
+    fn resolve_read(&self, path: &str) -> Result<PathBuf, FileToolError> {
+        if let Some((external, _)) = &self.external {
+            let abs = self.concrete_scope(path)?;
+            if abs.starts_with(external) {
+                return Ok(abs);
+            }
+        }
+        self.resolve(path)
+    }
+
+    /// Lexical mutation/project walk. External read admission cannot widen it.
     fn resolve(&self, path: &str) -> Result<PathBuf, FileToolError> {
         if path.is_empty() {
             return Err(FileToolError::NotFound);
@@ -617,6 +715,9 @@ fn match_segment(pat: &str, text: &str) -> bool {
         }
     }
 }
+
+#[cfg(test)]
+mod external_tests;
 
 #[cfg(test)]
 mod tests {

@@ -100,7 +100,7 @@ deadlines/retries/metadata and last-healthy publication remain intact. Async MCP
 startup/status/control and cleanup use the existing T46 resource owner. Native worker
 joins preserve typed cleanup/cap causes and discard unsafe legacy/panic payloads.
 
-## MCP/permissions compatibility — approved 2026-10-02; external access pending
+## MCP/permissions compatibility — approved 2026-10-02
 
 OC1 host config is an example; pinned OC2 v2.0.12 is the normalization oracle.
 [T46/MCP09 follow-up](goals/2026-09-22-mcp-attach-parity.md#mcppermission-config-follow-up--approved-2026-10-02-pending)
@@ -179,18 +179,21 @@ intended server-wide rule. Do not silently widen the user's literal rules.
 }
 ```
 
-These external patterns are not merely accepted syntax: [T50/R3/R5 target](goals/2026-09-27-native-tool-parity.md#external-readsearch--r3r5tool14tool16-approved-2026-10-02-pending)
-must perform real bounded read/glob/grep outside Location. Effective Allow for the
+These external patterns authorize concrete bounded read/glob/grep outside Location
+through the [T50/R3/R5 route](goals/2026-09-27-native-tool-parity.md#external-readsearch--r3r5tool14tool16-approved-2026-10-02-pending). Effective Allow for the
 home-expanded external directory resource **and** actual tool action executes without
 Ask, approval event, saved grant, manual pre-opening or per-path trust dialog, first
 time and after restart. Genuine Ask still needs the normal consumer; Deny/independent
 ceilings/no-follow/data-root/cancel/budgets still refuse or bound access. Boundary Allow
 alone is not read-only policy and does not grant mutations or arbitrary tools; it never
-adds a config/AGENTS source or starts an automatic HOME crawl. At RECON native ordinary
-outside-root tools still refuse: this external-access example is a pending target, not
-current runtime support. Existing T45 default MCP Allow/effective-view target remains
-separate from these literal configured restrictions; no executable examples or user
-files are rewritten by this plan.
+adds a config/AGENTS source or starts an automatic HOME crawl. Leading `~` uses the
+captured product HOME; external read resources are normalized absolute paths, and
+boundary resources are the file's parent or listing/search directory plus `/*`.
+External directories are pinned for that invocation only. Mutations keep their
+existing Location boundary; arbitrary native-data-root reads remain excluded, with
+registered tool-output artifacts retaining their separate exact-identity route.
+See [external read/search evidence](../evidence/T50/external-read.md). Existing T45
+default MCP Allow/effective-view qualification remains separate.
 
 ## DCP configuration — approved target
 

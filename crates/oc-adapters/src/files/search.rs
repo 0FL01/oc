@@ -299,6 +299,11 @@ impl Files {
         budget: &mut Budget<'_>,
         allowed: &impl Fn(&Path) -> bool,
     ) -> Result<Vec<IgnoreLevel>, FileToolError> {
+        // External scans observe only their explicitly admitted subtree. Never
+        // load HOME/ancestor ignore files or discover additional roots.
+        if !self.is_project_scope(scope) {
+            return Ok(Vec::new());
+        }
         let relative = scope
             .strip_prefix(&self.root)
             .map_err(|_| FileToolError::OutsideRoot)?;
@@ -330,6 +335,9 @@ impl Files {
     }
 
     pub(crate) fn search_scope(&self, path: &str) -> Result<PathBuf, FileToolError> {
+        if self.external.is_some() {
+            return self.resolve_read(path);
+        }
         let relative = if Path::new(path).is_absolute() {
             Path::new(path)
                 .strip_prefix(&self.root)
@@ -356,7 +364,7 @@ impl Files {
         }
         budget.check()?;
         let scope = self.search_scope(options.path)?;
-        let root = open_suggest_root(&scope)?;
+        let root = self.open_read_scope(&scope, libc::O_RDONLY | libc::O_DIRECTORY)?;
         let mut paths = Vec::new();
         let mut levels = self.search_ancestors(&scope, &mut budget, &allowed)?;
         self.search_walk(
@@ -397,15 +405,17 @@ impl Files {
         // Pin every ancestor before examining file type. File scopes bypass ignore
         // filtering like rg's explicit file argument, but never data/policy guards.
         let parent = scope.parent().ok_or(FileToolError::OutsideRoot)?;
-        let parent_fd = open_suggest_root(parent)?;
-        let name = CString::new(scope.file_name().ok_or(FileToolError::NotFound)?.as_bytes())
-            .map_err(|_| FileToolError::NotFound)?;
-        let entry =
-            suggest_openat(&parent_fd, &name, libc::O_PATH).map_err(|_| FileToolError::NotFound)?;
+        // Directory scopes can equal the pinned external root: its parent is
+        // deliberately outside the invocation authority.
+        let entry = self.open_read_scope(&scope, libc::O_PATH)?;
         let meta = entry.metadata().map_err(|_| FileToolError::Io)?;
+        let parent_fd = if meta.is_dir() {
+            self.open_read_scope(&scope, libc::O_RDONLY | libc::O_DIRECTORY)?
+        } else {
+            self.open_read_scope(parent, libc::O_RDONLY | libc::O_DIRECTORY)?
+        };
         let (root, base, mut paths) = if meta.is_dir() {
-            let root = suggest_openat(&parent_fd, &name, libc::O_RDONLY | libc::O_DIRECTORY)
-                .map_err(|_| FileToolError::SymlinkEscape)?;
+            let root = parent_fd;
             let mut paths = Vec::new();
             let mut levels = self.search_ancestors(&scope, &mut budget, &allowed)?;
             self.search_walk(
@@ -472,10 +482,10 @@ impl Files {
     }
 
     fn relative_hit(&self, scope: &Path, path: &Path) -> String {
-        scope
-            .join(path)
+        let absolute = scope.join(path);
+        absolute
             .strip_prefix(&self.root)
-            .expect("admitted scope")
+            .unwrap_or(&absolute)
             .to_string_lossy()
             .into_owned()
     }

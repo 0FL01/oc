@@ -24,8 +24,7 @@ impl Files {
     ) -> Result<Content, FileToolError> {
         let budget = Budget::new(Some(cancel));
         budget.check()?;
-        let abs = self.resolve(path)?;
-        let root = normalize_suggest_root(&self.root);
+        let abs = self.resolve_read(path)?;
         let data = std::fs::canonicalize(&self.data_root)
             .unwrap_or_else(|_| normalize_suggest_root(&self.data_root));
         if abs.starts_with(&data) {
@@ -35,24 +34,7 @@ impl Files {
             return Err(FileToolError::InvalidPattern("read scope denied".into()));
         }
         budget.check()?;
-        let relative = abs
-            .strip_prefix(&root)
-            .map_err(|_| FileToolError::OutsideRoot)?;
-        let relative = if relative.as_os_str().is_empty() {
-            Path::new(".")
-        } else {
-            relative
-        };
-        let mut file = crate::admitted_fs::open_beneath_no_symlinks(
-            self.read_root.as_ref().map_err(Clone::clone)?,
-            relative,
-            libc::O_RDONLY,
-        )
-        .map_err(|error| match error.raw_os_error() {
-            Some(libc::ELOOP) => FileToolError::SymlinkEscape,
-            Some(libc::ENOENT) => FileToolError::NotFound,
-            _ => FileToolError::Io,
-        })?;
+        let mut file = self.open_read_scope(&abs, libc::O_RDONLY)?;
         budget.check()?;
         let meta = file.metadata().map_err(|_| FileToolError::Io)?;
         if meta.is_dir() {

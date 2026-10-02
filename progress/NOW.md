@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-02T15:17:53+00:00
+State updated: 2026-10-02T16:21:27+00:00
 Active: T50
 
 Сверить Git status/diff до выполнения команд.
@@ -12,14 +12,15 @@ Owner-approved selected R1–R10; detailed contract/slices in spec/M8. Shell com
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
+# External read/search qualification
 ## Result
-Full shell producer capture verified; T50 active.
+Both boundary and action Allow now dispatch outside-Location read/glob/grep without Ask.
 ## Checks
-Workspace1450; parent24 +26 native cases; Python47 PASS.
+Workspace1452/0/10; parent6 nearest tests,24 normal-ELF cases,Python47,fmt/Clippy/docs/progress/diff PASS.
 ## Risks
-Remaining amended tools/profile acceptance open; T44 paused; live allowance exhausted.
+No-follow, data-root and independent policy ceilings retained. T44 paused; live ledger exhausted.
 ## Next
-Reconcile remaining T50 obligations against current owner amendments.
+Review all T50 outcomes and close the assigned task only with current evidence.
 
 
 Ready (до 5): T53, T56
