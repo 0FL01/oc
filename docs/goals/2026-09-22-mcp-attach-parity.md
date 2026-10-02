@@ -1,8 +1,8 @@
 # Goal: MCP attach parity с opencode v2.0.12
 
-Status: complete (assigned T46 backend scope; T44/product qualification separate)
+Status: complete (assigned T46 backend baseline; additive MCP08/MCP09 pending; T44/product qualification separate)
 Source: инструкция владельца 2026-09-22 и утверждённый после RECON план 2026-09-27 (MCP config/startup/failure parity), reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`).
-Additional source: owner-approved OC1-shaped MCP/permissions RECON plan and current-branch commit/push, 2026-10-02; pinned OC2 remains the normalization oracle. Existing completed backend baseline/status/evidence are unchanged; additive MCP09 qualification below is pending.
+Additional source: owner-approved OC1-shaped MCP/permissions and audited MCP modal configured-name plans, 2026-10-02; pinned OC2 remains the oracle, not OC1 OCR. Existing completed backend baseline/status/evidence are unchanged; additive MCP08/MCP09 qualification below is pending.
 Last updated: 2026-10-02
 
 ## Objective
@@ -59,7 +59,7 @@ required outcome is resolved and affected constraints remain satisfied.
   - Source: owner-approved MCP modal plan 2026-09-27; pinned `packages/core/src/mcp/index.ts:380–447,593–609` and `packages/tui/src/component/dialog-mcp.tsx:37–175` (U50/U54).
   - Acceptance: MCP08 proves bounded current-Location/config-generation server snapshots, including disabled entries, from actual owner state; configured-enabled is not connected. Genuine pending/connected/disabled/failed and any typed auth-required outcome are not parsed from server names/free text. Actual async connect/disconnect/retry reuse existing clients/registry; connected requires initialize and catalog success, disconnect closes owned resources, catalog changes publish only at safe request boundaries. Reads/resize/cancel stay responsive during a turn instead of waiting behind its long-held MCP mutex. Pending actions are coalesced/revalidated by server/Location/generation, late completions cannot mutate a new generation. Failed attach remains visible per D13 without cancelling the turn; fatal cancellation/cleanup/caps remain. Runtime controls do not secretly rewrite config, auto-enable disabled browser, clear quarantine or replay uncertain tool effects. Reopen reads current state; restart rebuilds state from effective config, never restores stale connected labels or claims persisted runtime toggles. T44 consumes this slice and separately qualifies the modal; no all-T46 or reverse completion dependency.
   - Primary evidence: rebuilt actual binary + fake HTTP/stdio initialize/catalog/disconnect/retry counters and owned process cleanup, current/next request catalogs and Location/restart/late-action assertions under MCP08, reusing MCP07/AUD23/MCP05.
-  - Status: verified
+  - Status: verified (completed baseline; configured-label follow-up below pending/NOT_RUN)
   - Evidence: `evidence/T46/report.md`, `evidence/T46/lifecycle.md`; paired visual evidence belongs to T44/VIS40.
 
 - R6: donor-compatible config admission и настоящий local launch.
@@ -75,6 +75,58 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: rebuilt actual binary + barrier-controlled HTTP/stdio counters, pre-prompt PTY responsiveness, first/next request catalogs и owned cleanup; reuse MCP08/AUD23/A02/A10 без второго lifecycle registry.
   - Status: verified
   - Evidence: `evidence/T46/report.md`, `evidence/T46/lifecycle.md`; paired presentation separately T44/VIS19/VIS40.
+
+## R5 configured-label follow-up — approved 2026-10-02; pending
+
+После read-only RECON и независимого аудита владелец утвердил plan-only уточнение
+MCP08/VIS40: вместо `server-<hash>` в модалке нужны имена из эффективного конфига.
+Pinned OC2 `core/src/mcp/index.ts:491–500,583–587` и U50 используют configured map
+key, не handshake `serverInfo.name`; U54 уже покрывает этот source seam.
+
+1. **Display label отдельно от identity.** Переиспользовать
+   `McpServerSnapshot.name`: обычный безопасный ключ сохраняется точно, например
+   `chrome-devtools`, `codex_web`, `crw`, включая поддержанные Unicode/long names.
+   List/search/display sorting/details используют label; выбор и actions остаются
+   по opaque `id` и Location/generation/instance binding. Diagnostic identities,
+   tool/permission names и provenance не переименовывать. Не добавлять новый DTO,
+   titlecase/production allowlist/ASCII-only policy или заимствованный wire cap256.
+   Существующие config/snapshot/render bounds и source truncation сохраняются.
+2. **Защита до публикации.** Одной замены `safe_server_id` на raw key недостаточно:
+   существующий CFG10 regression допускает failed entry с ключом, равным credential.
+   Перед первым snapshot применить известные protected values из existing redaction
+   owners и cached admitted sources, включая recognized sensitive fields disabled/
+   failed/unsupported записей. Terminal controls/ANSI, raw endpoints, sensitive paths
+   и защищённые значения не попадают в label/DTO Debug/details/copy/investigate;
+   небезопасный label получает existing opaque fallback, не переписанный raw key.
+   Не читать inactive credential files или runner auth/config ради имени.
+3. **Activation не возвращает секрет в label.** Вновь разрешённые protected values
+   проверять против ключей всех nodes до последующей публикации, включая activation
+   refusal/entry failure. Уже masked `row.name` не восстанавливать из raw key в той
+   же generation/instance после disconnect/retry. Достаточны transient values и
+   существующее поле строки, без growing historical secret cache/persistent state.
+   Готового полного seam нет: private activation result/reporting boundary должен
+   передавать известные значения и на error exits; точную локальную форму выбрать
+   у existing config/composition/lifecycle owners, не создавать generic framework.
+   Это защита последующих publications, не claim очистки уже выданных snapshots.
+4. **Адресная проверка.** Расширить nearest `application/fatal_tests.rs` для initial
+   ordinary/credential-key projection и `application/mcp_tests.rs` для newly resolved
+   activation value, включая отказ: masked label/Debug, unchanged id, correct action
+   target и disabled sibling zero-spawn; последующие публикации не снимают masking.
+   Сохранить diagnostic-identity regression в `runtime/mcp/lifecycle/tests.rs`,
+   обновить helpers в application/runtime MCP tests и soak, которые считают name
+   diagnostic hash. Reuse legacy/canonical MCP09 fixtures, не новая normalization
+   matrix. Existing rebuilt-binary fake MCP scenario проверяет реальные labels и
+   адресата после filter/status refresh, отдельно от T44 styled-cell/PNG evidence.
+
+MCP08 label follow-up pending/NOT_RUN; completed R5/report не квалифицирует новые
+assertions. При разрешённом implementation handoff после active T50 использовать
+existing T46 reopen workflow с причиной и повторной проверкой dependencies, не
+новую задачу и не автоматический reopen от approval. T44 status presentation может
+исправляться независимо по уже доступному typed snapshot; совместная qualification
+ждёт нужных slices, не all-T46 completion. После explicit T44 resume сохранить
+clean-dialogue/tool-preview-first порядок; полный VIS40 остаётся открытым до всей
+existing mandatory приёмки. Новых tasks/gates/stores/campaigns нет; historical
+evidence, execution statuses, paused T44, security и no-unknown-replay неизменны.
 
 ## R6 field/capability matrix — approved target, not supported claim
 

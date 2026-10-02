@@ -1268,7 +1268,10 @@ Sources U50–U55 plus existing U02/U49; preserve pinned provenance/license noti
    Title is `MCP servers`, right label `esc`, input placeholder `Search`. With no
    configured rows/query show `No items available`; a nonempty query with no matches
    shows `No results found`. No extra Enabled/Disabled column or checkbox from OCR.
-   Server names come from current Location and are name-sorted, not production constants.
+   Server names are safe effective configured map keys from current Location, not
+   `server-<hash>` substitutes for ordinary names, handshake `serverInfo.name` or
+   production constants. Follow [MCP08 configured-label protection](../docs/goals/2026-09-22-mcp-attach-parity.md#r5-configured-label-follow-up--approved-2026-10-02-pending):
+   label-based search/sorting/detail titles; selection/actions retain opaque id/binding.
    A server with status disabled is selectable/connectable, not a disabled Select option.
 2. **Geometry, filter and selection.** Use existing medium Dialog: width60 capped by
    terminal width−2, horizontally centered/top at height/4, no added border, dialog
@@ -1294,7 +1297,8 @@ Sources U50–U55 plus existing U02/U49; preserve pinned provenance/license noti
    connected from enabled config, auth from arbitrary prose or success from a UI flag.
 4. **Colors and attributes.** Resolve v2 `surface("dialog")` (U49), not legacy tokens
    or raw hard-coded RGB. Unselected status colors: success connected, error failed,
-   warning needs_auth, muted pending/disabled; Connected retains source bold. Default
+   warning needs_auth, muted pending/disabled; Connected retains source bold even
+   under the focused foreground override, without making other footers bold. Default
    dark: text.base#eeeeee, muted#808080, success#7fd88f, error#e06c75, warning#f5a742,
    dialog background#141414. Focused row uses action.primary focused bg/fg (default
    dark #fab283/#0a0a0a), title bold; this overrides ordinary status color. When Tab
@@ -1354,6 +1358,29 @@ Sources U50–U55 plus existing U02/U49; preserve pinned provenance/license noti
    no crops/masks/tolerances or discarded capability rows to hide gaps. Report native
    unsupported-OAuth capability and sanitized-diagnostic differences before capture, preserve failed attempts
    and distinguish backend from visual results; this slice does not close T46 R4 live.
+
+**Audited slices — owner-approved 2026-10-02; pending/NOT_RUN.**
+
+- Label projection/protection belongs to T46/R5/MCP08; actual configured names and
+  their opaque action binding require additive evidence, not completed T46 baseline.
+- Basic status correction is an independent T44/R5 slice: use existing typed
+  `status` + `pending_action` to provide semantic tone/bold through the existing
+  Select footer, with unchanged defaults for other consumers. Apply the source
+  strings/icons above; any loading action, including disconnect, is `Connecting …`.
+  Never parse status text or invent needs_auth from an unsupported-OAuth error.
+  Existing row foreground override and intrinsic Connected bold are distinct.
+- Footer-action focus/hit regions/remaps and other existing VIS40 interaction debt
+  can follow separately; they are not prerequisites for correcting ordinary/selected
+  status colors, but full VIS40 stays open until they and paired qualification pass.
+- Extend the nearest renderer style test for glyph/fg/bg/bold, loading and selected
+  override, keeping unrelated Select footers unchanged; no new state×width×theme
+  matrix. Existing actual-binary fake-MCP and full paired profiles above add configured
+  name/search/details and independently verified action targets after filter/refresh.
+  Source-focused/footer-focused, long-name/resize and unsupported capability cases
+  remain existing full VIS40 requirements, not duplicate backend safety tests.
+- Preserve clean-dialogue/tool-preview-first after **explicit T44 resume**, active
+  T50 safe handoff and existing owners. No new task/gate/source ID or paid/browser
+  campaign; no whole-task dependency between independent label and basic style edits.
 
 VIS40 mandatory, NOT_RUN/evidence empty until actual qualification. Plan approval
 does not change task statuses, previous evidence or baseline. Independent T44 work
