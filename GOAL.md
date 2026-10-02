@@ -713,6 +713,20 @@ retryability остаются в details/copy/investigate, не в основн�
 policy/storage/recovery/cleanup/caps не скрываются; выбор модели не подменяется.
 Без удаления raw history, ослабления redaction или редактирования user config.
 
+[T44/R4–R5/VIS16/VIS17](tui-recovery/T44_CONTRACT_AMENDMENT.md#tool-preview-markers-and-genericmcp-parity--vis16vis17)
+дополняет этот срез утверждённым после OC2 RECON tool-preview parity: синтетические
+`[Part preview truncated]` и `[output preview truncated; full result retained]`
+не показывать в диалоге и в collapsed/expanded tool cards. Generic/MCP по умолчанию
+свёрнуты; клик раскрывает параметры и доступный bounded output, повторный — сворачивает.
+Shell не синтезирует `[truncated]` из одного лишь UI projection flag; OC2
+`(N earlier line[s])`, фактический payload (включая marker-like строки), ошибки и
+реальная неполнота capture остаются видимыми. Вместо служебных строк — компактный
+truthful indicator/details без дубля на каждый вызов. Минимальный T50/R10 structured
+presentation seam отделяет body/ref/capture от model-facing guidance, не меняя raw/
+provider text, artifact bounds/access и no-replay; expansion не обещает восстановить
+отброшенные bytes. Приёмка включает bounded fake-provider MCP/Shell PTY и существующие
+paired оригинал/native gates, не отдельную paid campaign.
+
 Первый пользовательский UI-срез после **explicit resume T44**; минимальные готовые
 T51/T46 owner facts, не whole-task backend dependencies. Приёмка — actual-binary
 fake-service сценарий с нулём служебных строк в диалоге и без повторных notifications,

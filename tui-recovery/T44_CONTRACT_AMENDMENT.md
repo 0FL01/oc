@@ -1612,6 +1612,109 @@ new schema/dependency/framework/store/paid campaign, progress execution-state ch
 historical report/checkpoint/baseline rewrite or relaxed VIS gates. VIS42/VIS17 remain
 mandatory NOT_RUN/evidence empty, T44 PAUSED; plan validation is not A08/A13/runtime PASS.
 
+## Tool-preview markers and Generic/MCP parity — VIS16/VIS17
+
+Owner-approved 2026-10-02 after read-only RECON of repeated MCP/Shell OCR markers and
+comparison with pinned OC2 v2.0.12. Approval is a plan patch and current-branch
+commit/push, not runtime delivery or T44 resume. Existing T44/R4–R5/V06/VIS16 owns
+tool-card presentation/interaction; VIS17 owns live/durable/reopen consistency. This
+extends the first clean-dialogue UI slice **after explicit resume**, preserving active
+T50/dirty shell-output work, T55 safe-handoff priority and completed T51/T46.
+
+### Source-grounded difference
+
+- Native RECON base `2acd10fb86539dc66d04738291da7e45a97bfc95`, with T50/R10 shell
+  changes dirty: `oc-tui/src/history.rs` adds standalone `[Part preview truncated]`
+  for a truncated PartState, while `tools.rs::inline_rows`/`patch_block` add
+  `[output preview truncated; full result retained]` for output_truncated. Storage
+  history projection can set both flags for one tool result, so even collapsed MCP
+  calls get duplicate technical rows. `shell_output` synthesizes `[truncated]` from
+  either shell producer truncation or UI output_truncated, conflating distinct loss.
+- U108: OC2 `GenericTool` starts collapsed, clicking expands input key/value pairs
+  and available output, second click collapses. ToolPart supplies display text;
+  GenericTool does not render metadata.truncated. Shell reads metadata.shellID for
+  its background route, not metadata.truncated. Native presently has Explored/Shell
+  expansion but no equivalent generic/MCP output toggle. This is source RECON only.
+- U109: Shell shares command/output line/character budgets and retains the tail with
+  `(N earlier line[s])`. Keep that donor collapse label: it is not the unwanted
+  native preview warning. Shell expansion shows available output; background pages
+  stay bounded and can truthfully report earlier output omitted.
+- U110/U111: donor common preparation and Shell capture insert producer notices
+  (`... N lines/bytes truncated; full content saved to … ...` and
+  `[output truncated; full output saved to: …]`) into result text. Expanded generic
+  output or a retained Shell tail can contain these; OC2 does not globally strip
+  truncation strings. Exact `[truncated]` is not this donor Shell producer notice.
+  Native retains its R10 non-bypass/cap/access safety differences, not donor's
+  metadata.truncated bypass or an unconditional full-capture claim.
+- Current native R10 preparation also adds model-facing `[tool output: …]` guidance
+  to result text. ToolCard/ToolOpView lack typed output-reference/capture provenance;
+  transcript Shell expansion uses the recorded preview, while `/cards` has a separate
+  paged output query. A string filter cannot safely separate generated guidance from
+  payload or establish that every produced byte was saved.
+
+### Required presentation and invariants
+
+1. **Hide only generated UI markers.** Do not render synthetic
+   `[Part preview truncated]` or `[output preview truncated; full result retained]`
+   as dialogue rows or tool body text, collapsed or expanded, live or after completion,
+   paging, reopen and restart. Reuse compact viewing/card status and existing details,
+   without another transcript warning/toast or duplicate row per tool call. Ordinary
+   untruncated results have no truncation indication. Keep real projection flags and
+   distinguish available saved output from producer/cap/quota/IO/interruption loss;
+   incomplete capture remains visibly truthful, with safe extent/state/ref details.
+2. **Generic/MCP parity.** Default collapsed summary/status follows U108; click toggles
+   parameters and available bounded output, second click recollapses. Reuse existing
+   session-local expansion/selection/scroll owner; hover does not expand or steal prompt
+   caret. Keep failed/denied/cancelled/partial/unknown outcomes visible and distinguish
+   actual output from native model-facing guidance. Do not give ordinary Read a new
+   full-file expansion or imply that card expansion restores discarded output.
+3. **Shell parity, not blanket hiding.** UI projection truncation alone must not append
+   `[truncated]`. Keep `(N earlier line[s])`, actual stdout/stderr, producer text and
+   abnormal exit/signal/timeout/cancel/unknown. Real capture loss has an honest compact
+   status/details route, never a false full-result-retained promise. Expand only
+   available preview/pages under existing bounds, without eager cold-file loading.
+4. **Structured provenance, unchanged data.** T50/R10 supplies the smallest necessary
+   body/generated-guidance/ref/capture/projection facts through existing prepared
+   result, DTO/query/event owners; T44 renders them. Do not regex/keyword-strip tool or
+   LLM text: a payload can literally contain every marker above. Preserve raw stored/
+   provider text, artifacts, typed controls/media/errors, redaction, captured view,
+   operation identity, policy/resource access and caps. Legacy text without trustworthy
+   provenance stays actual recorded data, not a guessed suffix. No schema/store/service/
+   framework solely for UI, history rewrite, reexecution or automatic rehydration on
+   model switch/DCP/compact/restart. Minimal R10 seam readiness, not all-T50 completion,
+   precedes dependent UI consumption; no circular task dependency.
+
+### Ordered implementation and qualification
+
+1. Extend nearest `history.rs`/`tools.rs` and `messages/tests.rs` regressions that
+   currently assert synthetic notices. Cover one large generic/MCP result, actual
+   marker-like payload, and Shell projection-vs-capture loss; retain existing error/
+   bounds and `(N earlier lines)` proofs. Reuse `app/tests/transcript.rs` expansion/
+   completion/paging/resize cases, not a test per string or duplicated layer matrix.
+2. Expose minimal T50/R10 structured presentation facts from current output/storage
+   owners. Remove UI notice generation at history/card owners, stop conflating Shell
+   loss flags and add Generic/MCP toggle through existing transcript interactions.
+   Preserve VIS16 phantom-caret/prompt blink and VIS17 bounded replay guarantees.
+3. One bounded fake-provider/MCP rebuilt-binary PTY scenario: consecutive large MCP
+   results plus long Shell output; collapsed → expanded → recollapsed, completion,
+   paging/reopen/restart/resize. Assert no **generated** preview rows in reconstructed
+   dialogue/cards, available parameters/output, preserved literal marker text/errors,
+   honest incomplete capture and unchanged bounded artifact/page/no-replay behavior.
+   Share existing TOOL21/TOOL13 resource/capture receipts rather than rerunning their
+   backend fault matrix; `/cards` paging is not full-output restoration by card expand.
+4. Then running pinned-original/native paired full styled-cell/PNG/cursor frames at
+   established profiles prove generic/Shell collapse/expand and replay. U108–U111
+   are source references, not visual PASS. Predeclare compact native status and R10
+   bounded-resource differences; no masks/crops/native-golden substitute/new paid gate.
+   Method and scenario assertions: docs/TEST_PLAN.md tool-preview subsection.
+
+Plan-only envelope: GOAL, T44 spec/amendment/ACCEPTANCE/SOURCES, TEST_PLAN, T50/R10
+presentation-seam clarification, planning/tasks T44 title and live M8/M9 references;
+derived M9/T44 indexes change title only. Existing dirty runtime/config/evidence stays
+untouched. VIS16/VIS17 remain mandatory NOT_RUN/evidence empty, T44 PAUSED; canonical
+progress state, historical leaves/reports/baselines and gates unchanged. No runtime
+checks or implementation/PASS claims from documentation validation.
+
 ## Provider-error retry footer — VIS43
 
 Owner-approved 2026-09-29 after OC2 retry RECON and independent audit:

@@ -494,6 +494,27 @@ confirmed tool execution / owned shell drain
   causal results/references as selected by the current projection. None automatically
   reads/reinflates an artifact or forgotten archive; expired access is actionable.
 
+### T44 presentation seam (approved 2026-10-02; pending)
+
+[T44 VIS16/VIS17](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#tool-preview-markers-and-genericmcp-parity--vis16vis17)
+owns hiding generated UI preview notices and Generic/MCP collapse/expand parity, not
+tool-output storage or capture. R10 supplies only the necessary structured presentation
+facts through existing prepared-result/ToolOpView/query/event owners: available bounded
+body versus generated model-facing guidance, output ref/readable extent/capture state
+and UI projection loss. Reuse recorded R10 descriptors; no UI-only schema/store, marker
+parsing, duplicated archive or rewritten raw/provider result text. Legacy text without
+reliable provenance remains recorded data. Preserve typed errors/controls/media,
+redaction, captured generation/operation, exact resource admission and all limits.
+
+Projection truncation alone is not producer loss or a full-capture promise; an artifact
+may be capped, incomplete, failed or expired. Transcript expansion reads only available
+bounded data, `/cards` continues paged access, and neither silently inflates cold output
+into context or reruns the producer. Reuse TOOL21/TOOL13 receipts for resource/capture
+invariants; T44 separately qualifies presentation after explicit resume with
+the minimal ready seam, not an all-T50 done-dependency. Active T50/dirty shell work,
+PAUSED T44, T55 priority and historical evidence/statuses remain unchanged. Plan-only
+clarification, not TOOL21/VIS runtime PASS.
+
 ### Ordered implementation slices and qualification
 
 1. **Freeze typed seams/fixtures.** At one reviewed code base trace each local result

@@ -11,6 +11,7 @@ Additional source: follow-up owner requires original OC2 model-switch parity whi
 Additional source: owner-reported phantom caret over large highlighted tool output, explicit preservation of normal prompt caret blink under continuous repaint, and approval of plan commit/push, 2026-10-01. Existing VIS16/VIS31 own the temporal qualification; T44 remains PAUSED.
 Additional source: owner-approved OC2 --auto RECON and mode-completion plan commit/push, 2026-10-01. Existing T44/R5/VIS36 owns hidden CLI aliases, effective mode/pending/Settings/child qualification; basic native Once behavior already exists, full parity remains open and T44 PAUSED.
 Additional source: owner-reported technical config/plugin/provider warning spam before assistant answers, read-only RECON and approval of current-branch plan commit/push, 2026-10-02. Existing VIS42 owns clean dialogue/status/details/change-sensitive feedback; VIS17 owns compact truthful live-preview truncation indication. T44 remains PAUSED.
+Additional source: owner-reported repeated Part/output preview markers in MCP/Shell cards, pinned OC2 TS RECON and approval of current-branch plan commit/push, 2026-10-02. Existing VIS16/VIS17 own synthetic-marker suppression and Generic/MCP collapse/expand parity; T50/R10 supplies minimal structured presentation facts. T44 remains PAUSED.
 Last updated: 2026-10-02
 
 ## Objective
@@ -63,6 +64,21 @@ indicator outside answer text, only when actually truncated; existing bounds and
 access to saved parts remain. Actual-binary dialogue-region/notification assertions
 precede existing paired qualification; no new task/gate or historical PASS rewrite.
 Plan pending/NOT_RUN, active T50/dirty work and PAUSED T44 unchanged.
+
+Owner-approved tool-preview parity extension (2026-10-02):
+[VIS16/VIS17](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#tool-preview-markers-and-genericmcp-parity--vis16vis17)
+joins the clean-dialogue slice after explicit resume. Hide generated
+`[Part preview truncated]` and `[output preview truncated; full result retained]`
+in dialogue and collapsed/expanded cards; replace duplicate rows with compact truthful
+status/details. Generic/MCP starts collapsed and toggles parameters/available bounded
+output as pinned OC2. Shell projection loss alone does not synthesize `[truncated]`;
+retain donor `(N earlier line[s])`, real payload/producer notices/errors and honest
+incomplete-capture facts. T50/R10 exposes body/ref/capture/projection provenance through
+existing DTO/query/event owners, not text stripping or a new store/schema. Preserve
+raw/provider text, caps/redaction/access/no-replay; expansion does not imply full-file
+recovery. Nearest regressions and one bounded fake-provider actual-binary MCP/Shell
+PTY precede running-original/native full-frame qualification. No new gate/task,
+runtime PASS or change to active T50, PAUSED T44, T55 priority or historical evidence.
 
 Owner-approved canonical effort ordering (2026-09-27):
 [VIS09/VIS29](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#canonical-effort-ordering--vis09vis29)

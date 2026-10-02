@@ -733,6 +733,41 @@ provider/MCP startup; reuse CFG09/CFG10/UI07/MCP09/MCP10 state/effect/redaction 
 VIS42/VIS17 remain mandatory NOT_RUN/evidence empty until qualification. Plan-only
 validation does not resume T44, reopen completed T51/T46 or claim A08/A13 PASS.
 
+### Tool-preview markers and Generic/MCP parity — VIS16/VIS17 (approved 2026-10-02; pending)
+
+Contract: [T44 amendment](../tui-recovery/T44_CONTRACT_AMENDMENT.md#tool-preview-markers-and-genericmcp-parity--vis16vis17).
+Extend nearest history/tool rendering and transcript expansion/completion/paging tests;
+replace obsolete synthetic-notice expectations, not error/bounds assertions. One
+bounded rebuilt-binary fake-provider/MCP PTY scenario has consecutive large MCP
+results and long Shell output. Use existing fixtures/owners, no new framework/matrix.
+
+- **VIS16:** Generic/MCP starts collapsed; click shows parameters and available bounded
+  output, second click recollapses without stealing prompt caret/selection/scroll.
+  Neither collapsed nor expanded cards synthesize `[Part preview truncated]` or
+  `[output preview truncated; full result retained]`. Shell UI projection loss alone
+  does not add `[truncated]`; `(N earlier line[s])` still matches donor tail collapse.
+  Real payload containing those literal strings and producer notices remains visible
+  where that retained output is shown. Keep actual stderr/errors/abnormal outcomes and
+  truthful incomplete-capture status/details, never a false full-result promise.
+- **VIS17:** repeat generated-marker absence and available-output assertions at live
+  completion/page replacement, history paging, reopen/restart and resize. Expansion
+  does not imply recovery of discarded bytes or automatic cold-file loading; existing
+  `/cards` pages remain bounded. Compact projection/capture status uses structured
+  provenance, not text stripping; legacy ambiguous text stays recorded data. Raw stored/
+  provider output and artifacts are unchanged, no reexecution/rehydration. Reuse TOOL21/
+  TOOL13 cap/access/resource receipts and existing short-answer/eviction cases.
+- Assert reconstructed dialogue/card regions and structured provenance, not global
+  marker absence from raw PTY logs: literal payload and safe details may contain them.
+  Then existing running pinned-original/native full styled-cell/PNG/cursor captures
+  cover collapsed/expanded/recollapsed MCP/Shell and replay at established profiles.
+  U108–U111 ground source behavior only; predeclare native compact-status and R10
+  resource differences, retain VIS16 prompt-blink checks, no masks/crops/paid campaign
+  or native-golden visual PASS. Missing runnable donor remains BLOCKED_REFERENCE.
+
+Existing VIS16/VIS17 mandatory NOT_RUN/evidence empty and PAUSED T44 remain; this
+shares the first clean-dialogue slice after explicit resume, not a new task/gate or
+change to active T50, T55 priority, completed tasks or historical evidence/baselines.
+
 New runtime evidence requires targeted affected-crate checks and workspace fmt/clippy/
 tests/build at integration/final acceptance. A02/A03/A06/A08/A10/A13, T46 R4 and existing
 mandatory live gates remain; historical PASS is neither edited nor reused as new proof.

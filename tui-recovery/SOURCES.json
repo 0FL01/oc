@@ -1218,6 +1218,42 @@
       "locator": "531–559 MCP failed/needs_auth alerts once per state, resets after recovery and routes details/action to /mcps; no failure alert for pending",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/app.tsx#L531-L559",
       "purpose": "VIS42/VIS19/VIS40 brief state-transition feedback instead of repeated transcript diagnostics; no native OAuth execution or visual PASS from source alone"
+    },
+    {
+      "id": "U108",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "2461–2483 ToolPart display text; 2620–2669 GenericTool collapsed default and click input/output toggle without metadata.truncated display; 2870–3041 Shell metadata.shellID, bounded background pages and available-output expansion",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L2620-L2669",
+      "purpose": "VIS16/VIS17 generic/MCP summary and available-output parity; no extra native preview-warning rows or full-output recovery claim; source RECON, not visual PASS"
+    },
+    {
+      "id": "U109",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/util/collapse-tool-output.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "26–48 shared Shell command/output budget; 51–80 grapheme/cell command collapse; 83–95 retained tail and (N earlier line[s]) label; nearest test packages/tui/test/cli/tui/collapse-tool-output.test.ts:4–14",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/util/collapse-tool-output.ts#L26-L95",
+      "purpose": "VIS16 retains donor collapse label and actual retained producer text; helper/test source does not justify blanket truncation-string stripping or executed parity"
+    },
+    {
+      "id": "U110",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/tool-output.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "65–74 donor metadata.truncated bypass; 91–120 full-file write and producer text notice plus outputPath metadata",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool-output.ts#L65-L120",
+      "purpose": "VIS16/VIS17 distinguish genuine producer content from native generated UI notices; T50/R10 keeps non-bypass/resource/access safety, not donor unconditional full-capture assumptions"
+    },
+    {
+      "id": "U111",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/shell.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "226–245 captured Shell tail uses configured limits and appends [output truncated; full output saved to: …] in producer result text",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/shell.ts#L226-L245",
+      "purpose": "VIS16 does not synthesize [truncated] for UI projection-only loss or erase actual Shell payload; truthful native incomplete capture remains separate from exit/status"
     }
   ],
   "external_primary_sources": [
