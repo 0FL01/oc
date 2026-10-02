@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-10-02T16:27:24+00:00",
-  "current": null,
+  "updated_at": "2026-10-02T16:28:30+00:00",
+  "current": "T45",
   "tasks": {
     "T00": {
       "status": "done",
@@ -319,9 +319,9 @@
       "reopen_reason": null
     },
     "T45": {
-      "status": "blocked",
-      "last_seq": 2,
-      "latest": "progress/M8/T45/0002.md",
+      "status": "active",
+      "last_seq": 3,
+      "latest": "progress/M8/T45/0003.md",
       "evidence": null,
       "reopen_reason": null
     },
@@ -396,5 +396,5 @@
       "reopen_reason": null
     }
   },
-  "last_checkpoint_task": "T50"
+  "last_checkpoint_task": "T45"
 }

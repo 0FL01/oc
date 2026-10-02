@@ -1,26 +1,29 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-02T16:27:24+00:00
-Active: нет
+State updated: 2026-10-02T16:28:30+00:00
+Active: T45
 
 Сверить Git status/diff до выполнения команд.
+Task: T45 — Остаток subagent system (T43 slices 5-8), DCP defaults и effective config controls (DCP12)
+Spec: docs/goals/2026-09-21-config-compat-and-subagents.md
+Evidence target: evidence/T45/report.md
 
-Последний срез: T50 [done]; сверить незакоммиченный diff.
+Owner-approved R3/R6–R10; full contracts and ordered slices in spec/M8, historical T43 foreground prerequisites in 7895f43 retained without a circular done-dependency. R3: concurrent foreground and immediate background children, command agent/model/subagent/subtask routing including explicit false, bounded owned jobs/Ctrl+B/cancel/reap/durable recovery/notices with fresh child context and no unknown-effect replay. Typed live child/family/navigation/control, immutable launch versus current state and deduplicated delivery feed T44 VIS39/VIS26; native closed-response admission and one session execution owner remain. R6: Build/Plan/custom Markdown primary parity, recursive discovery/nested IDs/supplied-field merge/default mode/default_agent fallback, actual system/model/variant/request/color/hidden/disable and truthful eligibility; Long Horizon supersedes donor steps/maxSteps stop semantics with explicit unsupported-constraint diagnostics. Real Plan native file restrictions/narrow explicitly requested plan-directory work/enter-leave/compact-Revert-reopen reconciliation and run --agent selection before prompt. Exact model reference from T50 oc models through canonical agents/legacy agent/Markdown first-slash and embedded/structured/separate variant precedence -> actual request/restart/unavailable pre-effect refusal; TOOL18 only T50. Owner-approved 2026-10-01 builtin/MCP supplement: no-custom-profile Build/Plan primary and General/Explore subagent registration; shared default Allow for all actual configured/enabled/admitted/connected MCP actions BEFORE child narrowing, no ineffective child-only grant or search-name allowlist. Explicit central/parent/profile Ask/Deny/resources/tools:false, trust/quarantine and native Explore file/shell/question/delegation/General ceilings remain. Registry wire/legacy aliases agree across filtered initial/follow-up schemas, effective preview, initialize guidance and actual execution. Explore MCP Allow is a native donor difference, not external-effect sandboxing. CTX02/PRM01 qualify default search/arbitrary-tool calls and actual Plan lifecycle, no new gate. R7: bounded native rootless Linux host/workspace/date/actual shell context, shared base fallback/custom system/environment, unavailable-field handling and request/restart/Location proof. R8: optional exact quoted context_message_ids, parent active branch/revision/cutoff/budget validation before effects, immutable durable pack, stable IDs with DCP off and truthful automatic profile/AGENTS/tools/skills/MCP/compress preview, no parent transcript/system cloning. R9: child DCP default true with false/off/manual/Deny gates, own-history Explore compress, session isolation/active-task-pack protection/release/recovery. Infinite hot replacement/forgetting/recompression/manual compact without lifetime quota/nesting exhaustion/inactive-archive loading; optional user md/Git cold path, no resurrection or raw-history deletion. DCP12 omitted defaults40%/55%/summaryBuffer=false retain frequency5/iteration15/soft; numeric/percent/per-model/true-buffer overrides, read-only dcp.json/jsonc/inline precedence and one positive canonical model-budget/threshold/capacity owner feed runtime/panel, no context=0 or nudge-as-hard-cap. R10: one shared base/custom prompt/skills metadata/AGENTS baseline/nested-read/chronological updates and restart/compaction/Revert reconciliation; consume T50 selected-file-family and same-task model draft/commit request views without changing profile/Location authority. SUB01/SUB02/CTX01/CTX02/PRM01/DCP10/DCP11/DCP12 and existing gates require rebuilt actual-binary/fake-provider/effect/resource evidence plus workspace gates. T46 retains MCP clients/lifecycle, T50 executors/selector, T44 separate VIS06/VIS10/VIS17/VIS26/VIS39 after explicit resume; no all-task completion cycle/store/framework/new paid campaign. Preserve active T50 dirty work/T55 safe-handoff priority/PAUSED T44 and historical statuses/PASS/baseline; new qualification pending/NOT_RUN. 2026-10-02 R6/R8/CTX02 clarification: ordered legacy permission before canonical permissions, last-match within one authority while independent ceilings hold; actual registry wire/sanitized aliases, literal codex_web versus explicit codex_web_* and CRW broad-Deny/narrow-scrape-Allow agree across schemas/preview/guidance/effects. Allowed calls need no Ask, genuine Ask/headless/Deny remain. External cache capability preview consumes T50 TOOL14/TOOL16 successful no-Ask/restart receipts, not a second files owner; qualification pending. 2026-10-02 Long Horizon runtime slices: remove default8/clamp16/round-limit Incomplete and direct constructor/fixture/diagnostic assumptions, preserving finite per-failed-step retries and security/resource/depth/concurrency guards. PRM01 root/child each qualifies 17 sequential dependent tool-bearing steps plus genuine final response; no donor steps or forced no-tools substitute. Independently resolve the confirmed current-task TurnLog overwrite/full-reload hot/raw seam before eviction under R9/DCP11/A10; preserve canonical raw prefix and bounded committed hot restore, schema-free feasibility unproved. Equal hot state over growing past steps must have bounded RAM/checkpoint/I/O before Long Horizon PASS. Reuse T54 RET01 early-retry/success/late429 reset and partial SSE fixtures, fix only RED retry defects, RET01 ownership/completed baseline unchanged. Minimum existing PartState recorded-span/current-window seam feeds T44 VIS43; no new task/ID/store/event family/paid campaign or T44 resume.
 
-# T50 closeout
+Последний checkpoint этой задачи (проверить актуальность по Git):
+
+# T45 resume after tool parity
 ## Result
-Assigned R1–R10 and supplements qualified; selected native tool parity complete.
+T50 R1–R10 and supplements complete at2484c4a92; resume independent remaining T45 backend work.
 ## Checks
-Current workspace1452/0/10; fmt/Clippy/builds, normal native proofs, Python47/docs/progress/diff PASS.
+Latest tool-source workspace1452/0/10 and normal-ELF proofs qualified; Git local/remote agree.
 ## Risks
-Not whole GOAL/T44/paid parity. T44 paused; authorized T27 live ledger exhausted.
+T44 remains owner-paused. T27's actual live ledger is exhausted; no new paid allowance.
 ## Next
-Continue ready backend work through one active task; retain independent pending contracts.
+Implement the independently approved R6 numeric-round-stop removal and narrow RET01 regression first; hot/raw retention remains separately mandatory.
 
-
-Следующий шаг: проверить зависимости и начать первую ready-задачу.
 
 Ready (до 5): T53, T56
-Blocked: T27, T43, T44, T45
+Blocked: T27, T43, T44
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.
