@@ -86,15 +86,16 @@ impl Db {
         if occupied.len() >= MAX_TABS {
             return Err(refuse("tab capacity reached").into());
         }
-        // Check bytes before fetching TEXT. Includes all source turn/tool rows:
-        // oversized future records safely refuse instead of unbounded allocation.
+        // Admit the actual requested prefix before transferring any journal,
+        // including RAW. Future turns cannot inflate an earlier prefix copy.
         let (rows, bytes): (i64,i64) = tx.query_row(
-            "SELECT sum(n),sum(b) FROM (
+            "WITH prefix AS (SELECT t.id FROM conversation_turns t LEFT JOIN turn_acceptances a ON a.turn_id=t.id AND a.session_id=t.session_id LEFT JOIN conversation_messages m ON m.id=COALESCE(a.user_message,CASE WHEN json_valid(t.result) THEN json_extract(t.result,'$.user_message') END) WHERE t.session_id=?1 AND (m.seq<?2 OR m.seq IS NULL)) SELECT sum(n),sum(b) FROM (
               SELECT count(*) n,coalesce(sum(length(CAST(id AS BLOB))+length(CAST(role AS BLOB))+length(CAST(text AS BLOB))),0) b FROM messages WHERE session_id=?1 AND seq<?2
-              UNION ALL SELECT count(*),coalesce(sum(length(CAST(id AS BLOB))+length(CAST(status AS BLOB))+length(CAST(prompt AS BLOB))+coalesce(length(CAST(result AS BLOB)),0)),0) FROM turns WHERE session_id=?1
-              UNION ALL SELECT count(*),coalesce(sum(length(CAST(id AS BLOB))+coalesce(length(CAST(turn_id AS BLOB)),0)+length(CAST(state AS BLOB))+length(CAST(name AS BLOB))+coalesce(length(CAST(input AS BLOB)),0)+coalesce(length(CAST(output AS BLOB)),0)),0) FROM tool_operations WHERE session_id=?1
-              UNION ALL SELECT count(*),coalesce(sum(length(CAST(turn_id AS BLOB))+length(CAST(user_message AS BLOB))+length(CAST(model_ref AS BLOB))),0) FROM turn_acceptances WHERE session_id=?1
-              UNION ALL SELECT count(*),coalesce(sum(length(CAST(metadata AS BLOB))),0) FROM patch_effects WHERE op_id IN (SELECT id FROM tool_operations WHERE session_id=?1)
+               UNION ALL SELECT count(*),coalesce(sum(length(CAST(id AS BLOB))+length(CAST(status AS BLOB))+length(CAST(prompt AS BLOB))+coalesce(length(CAST(result AS BLOB)),0)),0) FROM turns WHERE id IN (SELECT id FROM prefix)
+               UNION ALL SELECT count(*),coalesce(sum(length(CAST(id AS BLOB))+coalesce(length(CAST(turn_id AS BLOB)),0)+length(CAST(state AS BLOB))+length(CAST(name AS BLOB))+coalesce(length(CAST(input AS BLOB)),0)+coalesce(length(CAST(output AS BLOB)),0)),0) FROM tool_operations WHERE session_id=?1 AND (turn_id IN (SELECT id FROM prefix) OR turn_id IS NULL)
+               UNION ALL SELECT count(*),coalesce(sum(length(CAST(turn_id AS BLOB))+length(CAST(user_message AS BLOB))+length(CAST(model_ref AS BLOB))),0) FROM turn_acceptances WHERE turn_id IN (SELECT id FROM prefix)
+               UNION ALL SELECT count(*),coalesce(sum(length(CAST(metadata AS BLOB))),0) FROM patch_effects WHERE op_id IN (SELECT id FROM tool_operations WHERE session_id=?1 AND (turn_id IN (SELECT id FROM prefix) OR turn_id IS NULL))
+               UNION ALL SELECT count(*),coalesce(sum(length(CAST(payload AS BLOB))+length(CAST(descriptor AS BLOB))+length(CAST(base_descriptor AS BLOB))),0) FROM turn_raw_segments WHERE turn_id IN (SELECT id FROM prefix)
               UNION ALL SELECT 0,coalesce(length(CAST(title AS BLOB)),0) FROM sessions WHERE id=?1)",
             params![source,cutoff], |r| Ok((r.get(0)?,r.get(1)?)))?;
         if rows > MAX_ROWS || bytes > MAX_BYTES || choice.len() as i64 > MAX_BYTES {
@@ -133,9 +134,9 @@ impl Db {
         let turns = tx
             .prepare(
                 "SELECT t.id,t.status,t.prompt,t.result,COALESCE(a.user_message,CASE WHEN json_valid(t.result) THEN json_extract(t.result,'$.user_message') END)
-                 FROM conversation_turns t LEFT JOIN turn_acceptances a ON a.turn_id=t.id AND a.session_id=t.session_id WHERE t.session_id=?1 ORDER BY t.archive_rowid",
+                 FROM conversation_turns t LEFT JOIN turn_acceptances a ON a.turn_id=t.id AND a.session_id=t.session_id LEFT JOIN conversation_messages m ON m.id=COALESCE(a.user_message,CASE WHEN json_valid(t.result) THEN json_extract(t.result,'$.user_message') END) WHERE t.session_id=?1 AND (m.seq<?2 OR m.seq IS NULL) ORDER BY t.archive_rowid",
             )?
-            .query_map([source], |r| {
+            .query_map(params![source,cutoff], |r| {
                 Ok((
                     r.get::<_, String>(0)?,
                     r.get::<_, String>(1)?,
@@ -201,9 +202,7 @@ impl Db {
                 };
                 if role != "assistant"
                     || *seq <= anchor_seq
-                    || messages
-                        .iter()
-                        .any(|row| row.1 == "user" && row.3 > anchor_seq && row.3 < *seq)
+                    || tx.query_row("SELECT EXISTS(SELECT 1 FROM turn_acceptances a JOIN conversation_messages m ON m.id=a.user_message WHERE a.session_id=?1 AND m.seq>?2 AND m.seq<?3)",params![source,anchor_seq,seq],|r|r.get::<_,bool>(0))?
                     || !assistant_owners.insert(assistant.to_string())
                 {
                     return Err(refuse("invalid assistant ownership").into());
@@ -246,7 +245,6 @@ impl Db {
                 }
             }
             let mut calls = HashSet::new();
-            let mut outputs = HashSet::new();
             for item in &wire.input {
                 match item {
                     crate::provider::InputItem::ProviderOutput(value)
@@ -263,17 +261,14 @@ impl Db {
                     crate::provider::InputItem::FunctionCallOutput { call_id, .. }
                     | crate::provider::InputItem::McpFunctionCallOutput { call_id, .. }
                     | crate::provider::InputItem::ReadFunctionCallOutput { call_id, .. } => {
-                        if !calls.contains(call_id.as_str()) {
+                        if !calls.remove(call_id.as_str()) {
                             return Err(refuse("wire output precedes call").into());
-                        }
-                        if !outputs.insert(call_id.as_str()) {
-                            return Err(refuse("duplicate wire output identity").into());
                         }
                     }
                     _ => {}
                 }
             }
-            if calls != outputs {
+            if !calls.is_empty() {
                 return Err(refuse("unpaired wire tool context").into());
             }
             prepared.push((old, status, prompt, anchor, log));
@@ -374,6 +369,7 @@ impl Db {
                 }
                 let new_op = format!("{new}:op:{}", op_ids.len());
                 tx.execute("INSERT INTO tool_operations(id,session_id,turn_id,name,state,input,output) VALUES (?1,?2,?3,?4,?5,?6,?7)",params![new_op,root,new,name,state,input,output])?;
+                tx.execute("UPDATE tool_operations SET (provider_call_id,call_occurrence,original_input_index)=(SELECT provider_call_id,call_occurrence,original_input_index FROM tool_operations WHERE id=?2) WHERE id=?1",params![new_op,op])?;
                 tx.execute("INSERT INTO patch_effects(op_id,metadata) SELECT ?1,metadata FROM patch_effects WHERE op_id=?2",params![new_op,op])?;
                 // Copy bounded native control/effect facts, never the cold file
                 // or its session capability. Original references remain causal
@@ -401,6 +397,7 @@ impl Db {
                 params![new, root, status, prompt, log.to_string()],
             )?;
             tx.execute("INSERT INTO turn_acceptances(turn_id,session_id,user_message,model_ref) VALUES (?1,?2,?3,?4)",params![new,root,anchor,model])?;
+            Self::copy_turn_raw_prefix(&tx, &old, &new, &ids, &op_ids, &seqs)?;
             turn_ids.insert(old, new);
         }
         context::copy(

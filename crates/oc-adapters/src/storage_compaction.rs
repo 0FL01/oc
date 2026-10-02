@@ -222,7 +222,7 @@ impl Db {
         Ok(())
     }
 
-    fn refresh_checkpoint_dcp_accounting(
+    pub(super) fn refresh_checkpoint_dcp_accounting(
         conn: &Connection,
         session: &str,
     ) -> Result<(), StorageError> {

@@ -3,11 +3,18 @@ use super::*;
 
 impl TurnLog {
     pub(crate) fn input_for(&self, model: &str, provider: &str) -> Vec<crate::provider::InputItem> {
-        self.input
-            .iter()
-            .enumerate()
-            .filter_map(|(index, item)| self.compatible_item(index, item, model, provider))
-            .collect()
+        let mut input = self
+            .working
+            .as_ref()
+            .and_then(|w| Self::from_json(w).ok())
+            .map_or_else(Vec::new, |w| w.input_for(model, provider));
+        input.extend(
+            self.input
+                .iter()
+                .enumerate()
+                .filter_map(|(index, item)| self.compatible_item(index, item, model, provider)),
+        );
+        input
     }
 
     pub(crate) fn instruction_input_for(
@@ -16,12 +23,20 @@ impl TurnLog {
         provider: &str,
         facts: &[crate::instructions::Fact],
     ) -> Vec<crate::provider::InputItem> {
-        crate::instructions::project_items(
+        let mut input = self
+            .working
+            .as_ref()
+            .and_then(|w| Self::from_json(w).ok())
+            .map_or_else(Vec::new, |w| {
+                w.instruction_input_for(model, provider, facts)
+            });
+        input.extend(crate::instructions::project_items(
             &self.input,
             &self.instruction_references,
             facts,
             |index, item| self.compatible_item(index, item, model, provider),
-        )
+        ));
+        input
     }
 
     fn compatible_item(
@@ -35,7 +50,7 @@ impl TurnLog {
             .requests
             .iter()
             .rev()
-            .find(|request| request.input_start <= index);
+            .find(|request| request.input_start <= self.original_input_index(index));
         let compatible = origin.map_or(
             self.model == model && self.provider == provider,
             |request| request.model.id == model && request.model.provider == provider,

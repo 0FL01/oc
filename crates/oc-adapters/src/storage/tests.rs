@@ -431,7 +431,8 @@ fn v02_bounded_projection_exposes_loss_and_legacy_availability() {
     assert_eq!(projection.parts.len(), 240);
     assert_eq!(projection.omitted_parts, 10);
     assert!(projection.truncated);
-    assert_eq!(projection.part_states[239].sequence, 239);
+    assert_eq!(projection.part_states[0].sequence, 10);
+    assert_eq!(projection.part_states[239].sequence, 249);
     db.record_tool_intent("op", "s", Some("t"), "apply_patch", &"x".repeat(70 * 1024))
         .unwrap();
     db.checkpoint_turn("t",&json!({"display_parts":[{"tool":"op"},{"message":0}],"input":[{"content":[{"type":"output_text","text":"é".repeat(70*1024)}]}]}).to_string()).unwrap();
@@ -985,7 +986,7 @@ fn child_schema_migration_is_idempotent_across_reopen() {
     let db = Db::open(&root).expect("reopen");
     assert_eq!(session_columns(&db), fresh, "reopen keeps the schema");
     // T50 adds the versioned background lifecycle without changing sessions.
-    assert_eq!(migrations(&db), vec![1, 3, 4, 5, 6, 7]);
+    assert_eq!(migrations(&db), vec![1, 3, 4, 5, 6, 7, 8]);
     let conn = db.conn.lock().expect("db mutex");
     let applied: String = conn
         .query_row(
@@ -1014,7 +1015,7 @@ fn child_schema_upgrades_legacy_database_to_same_schema() {
         .expect("legacy schema");
     }
     let db = Db::open(&root).expect("open legacy");
-    assert_eq!(migrations(&db), vec![1, 3, 4, 5, 6, 7]);
+    assert_eq!(migrations(&db), vec![1, 3, 4, 5, 6, 7, 8]);
     let legacy = db.session_meta("legacy").expect("legacy meta");
     assert_eq!(
         legacy,

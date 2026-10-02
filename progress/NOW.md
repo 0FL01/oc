@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-02T17:58:53+00:00
+State updated: 2026-10-02T22:57:04+00:00
 Active: T45
 
 Сверить Git status/diff до выполнения команд.
@@ -12,15 +12,15 @@ Owner-approved R3/R6–R10; full contracts and ordered slices in spec/M8, histor
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# Independent round-removal qualification
+# Closed current-task qualification
 ## Result
-Numeric successful-step stops removed; finite retries and effect guards retained.
+Immutable RAW segments and bounded HOT checkpoint committed atomically; page integrity and family deletion repaired.
 ## Checks
-Workspace1453/0/10; parent6 nearest tests,8 current normal-ELF scenarios,Python47/fmt/Clippy/docs/progress/diff PASS.
+Workspace1461/0/10; parent8 owner tests,12 normal-ELF workloads,Python47/fmt/Clippy/docs/progress/diff PASS.
 ## Risks
-Not Long Horizon/A10 or whole T45: current-task raw/hot bounded preservation remains mandatory.
+Not whole T45/DCP11/READY. T44 paused; authorized live allowance exhausted.
 ## Next
-Design and prove the existing-owner closed intra-task raw/hot seam before eviction; keep T44 paused and live allowance exhausted.
+Deliver this seam, then execute whole-past hot renewal/defaults/controls and remaining profile/child contracts.
 
 
 Ready (до 5): T53, T56

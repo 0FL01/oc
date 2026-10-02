@@ -42,6 +42,8 @@ mod session_move;
 mod shell_jobs;
 #[path = "storage_tool_output.rs"]
 pub(crate) mod tool_output;
+#[path = "storage_turn_history.rs"]
+mod turn_history;
 pub(crate) use session_move::MoveRecord;
 
 /// Bounded page projection retaining the exact persisted message identity.
@@ -295,6 +297,8 @@ pub struct Db {
     conn: Arc<Mutex<Connection>>,
     output_dir: Arc<File>,
     output_readers: Arc<Mutex<std::collections::HashMap<String, usize>>>,
+    // Actual payload transfers: HOT, explicit RAW page, bounded UI window.
+    history_reads: Arc<[std::sync::atomic::AtomicU64; 6]>,
     // Fields drop in declaration order: release ownership after SQLite closes.
     _lock: Arc<RootLock>,
 }
@@ -504,6 +508,7 @@ impl Db {
         Self::shell_jobs_schema(&conn)?;
         Self::session_move_schema(&conn)?;
         Self::tool_output_schema(&conn)?;
+        Self::apply_turn_history_schema(&conn)?;
         let output_path = root.join("tool-output");
         match fs::create_dir(&output_path) {
             Ok(()) => {}
@@ -528,6 +533,9 @@ impl Db {
             conn: Arc::new(Mutex::new(conn)),
             output_dir: Arc::new(output_dir),
             output_readers: Arc::new(Mutex::new(std::collections::HashMap::new())),
+            history_reads: Arc::new(std::array::from_fn(|_| {
+                std::sync::atomic::AtomicU64::new(0)
+            })),
             _lock: Arc::new(lock),
         };
         db.expire_tool_outputs(tool_output::timestamp())?;
@@ -544,6 +552,7 @@ impl Db {
             conn: self.conn.clone(),
             output_dir: self.output_dir.clone(),
             output_readers: self.output_readers.clone(),
+            history_reads: self.history_reads.clone(),
             _lock: self._lock.clone(),
         }
     }
@@ -2501,28 +2510,26 @@ impl Db {
             ..HistoryTurn::default()
         };
         // Bounded presentation window, not a runtime step/retry admission limit.
-        let mut spans = conn.prepare_cached("SELECT s.value FROM turns t,json_each(t.result,'$.spans') s WHERE t.id=?1 ORDER BY CAST(s.key AS INTEGER) LIMIT 192")?;
-        for raw in spans.query_map([&id], |r| r.get::<_, String>(0))? {
-            if let Ok(span) = serde_json::from_str::<oc_core::queries::AssistantSpan>(&raw?) {
-                turn.spans.push(span);
-            }
-        }
+        turn.spans = self.latest_turn_spans(&conn, &id)?;
         let total: Option<i64> = conn.query_row(
-            "SELECT json_array_length(result,'$.display_parts') FROM turns WHERE id=?1",
+            "SELECT COALESCE(json_extract(result,'$.raw_prefix.ends[4]'),0)+json_array_length(result,'$.display_parts') FROM turns WHERE id=?1",
             [&id],
             |r| r.get(0),
         )?;
         turn.legacy_text_only = total.is_none();
         // Per-turn part and byte serving budgets, independent of archive size.
-        let mut stmt=conn.prepare_cached("SELECT p.value FROM turns t, json_each(t.result,'$.display_parts') p WHERE t.id=?1 ORDER BY CAST(p.key AS INTEGER) LIMIT 240")?;
-        let refs = stmt.query_map([&id], |r| r.get::<_, String>(0))?;
+        let refs = self.latest_turn_parts(&conn, &id)?;
         // Reserve settled metadata before admitting any text or tool input.
         // Each effect is indivisible: replay uses the canonical producer DTO.
-        let reserved: i64 = conn.query_row("SELECT COALESCE(SUM(length(CAST(e.metadata AS BLOB))),0) FROM turns t,json_each(t.result,'$.display_parts') p JOIN patch_effects e ON e.op_id=p.value ->> '$.tool' WHERE t.id=?1 AND CAST(p.key AS INTEGER)<240", [&id], |r| r.get(0))?;
+        let mut reserved = 0i64;
+        for (_, _, part) in &refs {
+            if let Some(op) = part["tool"].as_str() {
+                reserved+=conn.query_row("SELECT COALESCE(SUM(length(CAST(metadata AS BLOB))),0) FROM patch_effects WHERE op_id=?1",[op],|r| r.get::<_,i64>(0))?;
+            }
+        }
         let mut effects_budget = oc_core::patch::EFFECT_PREVIEW_BYTES_CAP;
         let mut budget = effects_budget.saturating_sub(reserved as usize);
-        for (sequence, part) in refs.enumerate() {
-            let part: serde_json::Value = serde_json::from_str(&part?).unwrap_or_default();
+        for (sequence, ordinal, part) in refs {
             let mut state = PartState {
                 model_label: None,
                 sequence,
@@ -2530,9 +2537,25 @@ impl Db {
                 truncated: part["truncated"].as_bool().unwrap_or(false),
                 input_omitted: false,
             };
+            let older_span = if let Some(span_id) = part["span"].as_str()
+                && !turn.spans.iter().any(|s| s.id == span_id)
+            {
+                let raw: Option<Option<String>>=conn.query_row("WITH source AS (SELECT result AS payload FROM turns WHERE id=?1 AND ?3 IS NULL UNION ALL SELECT json_extract(payload,'$.journal') FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?3) SELECT CASE WHEN length(CAST(s.value AS BLOB))<=?4 THEN s.value END FROM source,json_each(source.payload,'$.spans') s WHERE s.value->>'$.id'=?2 LIMIT 1",params![id,span_id,ordinal,crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64],|r| r.get(0)).optional()?;
+                if raw == Some(None) {
+                    return Err(StorageError::CompressionConflict);
+                }
+                let raw = raw.flatten();
+                raw.as_deref()
+                    .map(serde_json::from_str::<oc_core::queries::AssistantSpan>)
+                    .transpose()
+                    .map_err(|_| StorageError::CompressionConflict)?
+            } else {
+                None
+            };
             if let Some(span) = part["span"]
                 .as_str()
                 .and_then(|id| turn.spans.iter().find(|s| s.id == id))
+                .or(older_span.as_ref())
             {
                 state.status = span.status.clone();
                 state.model_label = span
@@ -2551,14 +2574,17 @@ impl Db {
                     duration_ms: part["duration_ms"].as_u64(),
                 });
             } else if let Some(index) = part["message"].as_u64() {
-                let path = format!("$.input[{index}].content");
-                let bytes: i64 = conn.query_row("SELECT COALESCE(SUM(length(CAST(c.value ->> '$.text' AS BLOB))),0) FROM turns t,json_each(t.result,?2) c WHERE t.id=?1 AND c.value ->> '$.type'='output_text'",params![id,path],|r|r.get(0))?;
+                let path = format!(
+                    "$.{}input[{index}].content",
+                    if ordinal.is_some() { "journal." } else { "" }
+                );
+                let bytes: i64 = conn.query_row("WITH source AS (SELECT result AS payload FROM turns WHERE id=?1 AND ?3 IS NULL UNION ALL SELECT payload FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?3) SELECT COALESCE(SUM(length(CAST(c.value ->> '$.text' AS BLOB))),0) FROM source,json_each(source.payload,?2) c WHERE c.value ->> '$.type'='output_text'",params![id,path,ordinal],|r|r.get(0))?;
                 state.truncated |= bytes as usize > budget;
-                let mut texts=conn.prepare_cached("SELECT substr(c.value ->> '$.text',1,?3) FROM turns t,json_each(t.result,?2) c WHERE t.id=?1 AND c.value ->> '$.type'='output_text'")?;
+                let mut texts=conn.prepare_cached("WITH source AS (SELECT result AS payload FROM turns WHERE id=?1 AND ?4 IS NULL UNION ALL SELECT payload FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?4) SELECT substr(c.value ->> '$.text',1,?3) FROM source,json_each(source.payload,?2) c WHERE c.value ->> '$.type'='output_text'")?;
                 let mut text = String::new();
-                for item in
-                    texts.query_map(params![id, path, budget as i64], |r| r.get::<_, String>(0))?
-                {
+                for item in texts.query_map(params![id, path, budget as i64, ordinal], |r| {
+                    r.get::<_, String>(0)
+                })? {
                     let item = item?;
                     let kept =
                         item.floor_char_boundary(budget.saturating_sub(text.len()).min(item.len()));
@@ -2633,12 +2659,44 @@ impl Db {
     /// Read a turn's terminal status and result JSON (turn-log replay).
     pub fn turn_result(&self, turn: &str) -> Result<(String, Option<String>), StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        conn.query_row(
-            "SELECT status, result FROM turns WHERE id = ?1",
-            params![turn],
-            |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
-        )
-        .map_err(StorageError::Sqlite)
+        let bytes: i64 = conn.query_row(
+            "SELECT COALESCE(length(CAST(result AS BLOB)),0) FROM turns WHERE id=?1",
+            [turn],
+            |r| r.get(0),
+        )?;
+        if bytes < 0 || bytes as u64 > crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as u64 {
+            return Err(StorageError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "turn hot journal exceeds existing context byte budget",
+            )));
+        }
+        let descriptor: Option<String> = conn.query_row("SELECT CASE WHEN json_valid(result) THEN json_extract(result,'$.raw_prefix') END FROM turns WHERE id=?1", [turn], |r| r.get(0))?;
+        let prefix = descriptor
+            .as_deref()
+            .map(serde_json::from_str::<serde_json::Value>)
+            .transpose()
+            .map_err(|_| {
+                StorageError::Io(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "invalid raw prefix",
+                ))
+            })?;
+        let prefix =
+            crate::tools::turn_history::RawPrefix::parse(prefix.as_ref()).map_err(|e| {
+                StorageError::Io(std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+            })?;
+        Self::validate_raw_prefix(&conn, turn, prefix.as_ref())?;
+        let result = conn
+            .query_row(
+                "SELECT status, result FROM turns WHERE id = ?1",
+                params![turn],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
+            )
+            .map_err(StorageError::Sqlite)?;
+        if let Some(raw) = &result.1 {
+            self.count_history_read(0, raw.len());
+        }
+        Ok(result)
     }
 
     /// Apply the DCP v2 schema migration (idempotent, additive only).
@@ -3054,7 +3112,8 @@ impl Db {
         Ok(snapshot)
     }
 
-    /// Load durable tool projection decisions for one session.
+    /// Unit assertions only; production reads the indexed admitted wire window.
+    #[cfg(test)]
     pub(crate) fn load_dcp_tool_projection(
         &self,
         session: &str,
@@ -3063,6 +3122,7 @@ impl Db {
         Self::load_dcp_tool_projection_in(&conn, session)
     }
 
+    #[cfg(test)]
     pub(super) fn load_dcp_tool_projection_in(
         conn: &Connection,
         session: &str,
@@ -3165,7 +3225,8 @@ impl Db {
     ) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        tx.execute("INSERT INTO tool_operations(id,session_id,turn_id,name,state,input,output) VALUES(?1,?2,?3,?4,'started',?5,NULL)", params![op,session,turn,name,input])?;
+        let identity = Self::call_identity(op, turn, journal)?;
+        tx.execute("INSERT INTO tool_operations(id,session_id,turn_id,name,state,input,output,provider_call_id,call_occurrence,original_input_index) VALUES(?1,?2,?3,?4,'started',?5,NULL,?6,?7,?8)", params![op,session,turn,name,input,identity.as_ref().map(|v|&v.0),identity.as_ref().map(|v|v.1),identity.as_ref().map(|v|v.2)])?;
         let n = tx.execute(
             "UPDATE turns SET result=?2 WHERE id=?1 AND session_id=?3 AND status='started'",
             params![turn, journal, session],

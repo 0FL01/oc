@@ -23,7 +23,13 @@ impl Db {
         blocks: &[crate::dcp::CompressionBlock],
     ) -> Result<Option<Vec<String>>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        Self::presentation_wire_logs_in(&conn, session, after_seq, projected, blocks)
+        let result = Self::presentation_wire_logs_in(&conn, session, after_seq, projected, blocks)?;
+        if let Some(logs) = &result {
+            for raw in logs {
+                self.count_history_read(0, raw.len());
+            }
+        }
+        Ok(result)
     }
 
     fn presentation_wire_logs_in(
@@ -54,7 +60,17 @@ impl Db {
             WHERE t.session_id=?1 AND json_valid(t.result) AND m.seq>?2
           ), visible AS (
             SELECT json_object('turn_id',result->>'$.turn_id','model',result->>'$.model','provider',result->>'$.provider',
-              'agent_digest',result->>'$.agent_digest','user_message',id,'assistant_message',result->>'$.assistant_message',
+               'agent_digest',result->>'$.agent_digest','user_message',id,'assistant_message',result->>'$.assistant_message',
+               'raw_prefix',json(result->'$.raw_prefix'),'working',json(result->'$.working'),
+               'requests',json(COALESCE(result->>'$.requests','[]')),
+               'call_occurrences',json(COALESCE((SELECT json_group_object(
+                 (SELECT count(*) FROM json_each(logs.result,'$.input') i WHERE i.key<CAST(c.key AS INTEGER)
+                   AND (logs.id IN (SELECT value FROM json_each(?3)) OR NOT (i.value->>'$.type'='message' AND i.value->>'$.id' IS NULL AND i.value->>'$.phase' IS NULL AND i.value->>'$.status' IS NULL))
+                   AND (i.value->>'$.type'!='function_call' OR EXISTS(SELECT 1 FROM json_each(logs.result,'$.input') answered WHERE answered.value->>'$.type'='function_call_output' AND answered.value->>'$.call_id'=i.value->>'$.call_id'))),c.value)
+                  FROM json_each(logs.result,'$.call_occurrences') c WHERE EXISTS(SELECT 1 FROM json_each(logs.result,'$.input') original WHERE original.key=CAST(c.key AS INTEGER) AND original.value->>'$.type'='function_call' AND EXISTS(SELECT 1 FROM json_each(logs.result,'$.input') answered WHERE answered.value->>'$.type'='function_call_output' AND answered.value->>'$.call_id'=original.value->>'$.call_id'))),'{}')),
+               'input_origins',json(COALESCE((SELECT json_group_array(i.key+COALESCE(result->>'$.raw_prefix.ends[0]',0)) FROM json_each(result,'$.input') i
+                 WHERE (logs.id IN (SELECT value FROM json_each(?3)) OR NOT (i.value->>'$.type'='message' AND i.value->>'$.id' IS NULL AND i.value->>'$.phase' IS NULL AND i.value->>'$.status' IS NULL))
+                 AND (i.value->>'$.type'!='function_call' OR EXISTS(SELECT 1 FROM json_each(logs.result,'$.input') answered WHERE answered.value->>'$.type'='function_call_output' AND answered.value->>'$.call_id'=i.value->>'$.call_id'))),'[]')),
                'shell_notice_messages',json(CASE WHEN logs.id IN (SELECT value FROM json_each(?3)) THEN COALESCE(result->>'$.shell_notice_messages','[]') ELSE '[]' END),
                'instruction_references',json(COALESCE((SELECT json_group_array(json_object(
                  'event',a.value->>'$.event',
@@ -94,6 +110,14 @@ impl Db {
                 return Ok(None);
             }
             budget -= raw.len();
+            let value: serde_json::Value =
+                serde_json::from_str(&raw).map_err(|_| StorageError::CompressionConflict)?;
+            let turn = value["turn_id"]
+                .as_str()
+                .ok_or(StorageError::CompressionConflict)?;
+            let prefix = crate::tools::turn_history::RawPrefix::parse(value.get("raw_prefix"))
+                .map_err(|_| StorageError::CompressionConflict)?;
+            Self::validate_raw_prefix(conn, turn, prefix.as_ref())?;
             logs.push(raw);
         }
         Ok(Some(logs))

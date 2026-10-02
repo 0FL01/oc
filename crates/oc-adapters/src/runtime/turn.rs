@@ -1178,6 +1178,7 @@ impl<'a> Runtime<'a> {
         let mut overflow_recovered = false;
         let mut overflow_pending = false;
         let mut last_compacted_round = None;
+        let mut closed_boundary: Option<([usize; 7], i64)> = None;
         let mut retry_policy = retry::RetryPolicy::default();
         let mut retry_resuming = false;
         let mut prepared_model = selection.id.clone();
@@ -1257,7 +1258,7 @@ impl<'a> Runtime<'a> {
                     .iter()
                     .filter(|row| {
                         turn_log.user_message.as_deref() != Some(row.0.as_str())
-                            && !turn_log.shell_notice_messages.contains(&row.0)
+                            && !turn_log.represents_notice(&row.0)
                     })
                     .cloned()
                     .collect::<Vec<_>>();
@@ -1465,7 +1466,7 @@ impl<'a> Runtime<'a> {
                 &tool_defs,
             );
             let automatic_due = last_compacted_round != Some(rounds)
-                && !history.is_empty()
+                && (!history.is_empty() || closed_boundary.is_some())
                 && self
                     .compaction_estimate(
                         &params.session,
@@ -1488,14 +1489,31 @@ impl<'a> Runtime<'a> {
                     oc_core::compaction::CompactionReason::Automatic,
                 )?;
             }
+            // Only the settled response/all-outcomes capture is eligible. New
+            // notices and any retry continuation remain the unchanged open tail.
+            let eligible_past = if closed_boundary.is_some() {
+                let floor = self
+                    .db
+                    .session_checkpoint(&params.session)?
+                    .map_or(0, |(seq, _)| seq);
+                self.db
+                    .compaction_boundary(&params.session, floor, compaction_config.keep_tokens)?
+                    .is_some()
+            } else {
+                false
+            };
+            let hot_candidate = closed_boundary
+                .filter(|_| !eligible_past)
+                .map(|(counts, seq)| (&mut turn_log, counts, seq));
             let compacted = self
-                .deliver_compaction_bound(
+                .deliver_compaction_hot(
                     &params.session,
                     params.catalog,
                     &selection.id,
                     variant.as_deref(),
                     &params.provider,
                     Some(params.cancel),
+                    hot_candidate,
                 )
                 .await?;
             if params.cancel.load(Ordering::Relaxed) {
@@ -1528,6 +1546,13 @@ impl<'a> Runtime<'a> {
             }
             overflow_pending = false;
             if compacted {
+                if turn_log.raw_prefix.as_ref().is_some_and(|p| p.ends[0] > 0) && !eligible_past {
+                    closed_boundary = None;
+                    // Earlier output/calls remain explicitly readable in RAW;
+                    // the ongoing report retains only its current hot tail.
+                    text.clear();
+                    calls.clear();
+                }
                 last_compacted_round = Some(rounds);
                 let refreshed = self.active_projection(&params.session)?;
                 history = self.wire_history(
@@ -1556,7 +1581,15 @@ impl<'a> Runtime<'a> {
                     )?;
                 }
                 projected = refreshed.projected;
-                let raw_context: Vec<_> = history.iter().chain(&turn_log.input).cloned().collect();
+                let raw_context: Vec<_> = history
+                    .iter()
+                    .chain(
+                        turn_log
+                            .input_for(&selection.id, &params.catalog.provider)
+                            .iter(),
+                    )
+                    .cloned()
+                    .collect();
                 tool_projection = self
                     .db
                     .dcp_tool_projection_for_input(&params.session, &raw_context)?;
@@ -1684,7 +1717,7 @@ impl<'a> Runtime<'a> {
                         .map_or(String::new(), |variant| format!(" ({})", variant.name))
                 ),
                 span: turn_log.spans.last().expect("prepared span").id.clone(),
-                input_start: turn_log.input.len(),
+                input_start: turn_log.original_input_index(turn_log.input.len()),
                 context_limit: budget.context,
                 input_limit: budget.input,
                 output_limit: budget.output,
@@ -1704,6 +1737,8 @@ impl<'a> Runtime<'a> {
                     &tool_defs,
                 )),
             };
+            turn_log.display["history_read_counters"] =
+                serde_json::json!(self.db.history_read_counters());
             turn_log.spans.last_mut().expect("prepared span").request = Some(receipt.clone());
             turn_log.requests.push(receipt);
             self.db
@@ -2036,8 +2071,15 @@ impl<'a> Runtime<'a> {
                                         refreshed.after_seq,
                                     )?;
                                     projected = refreshed.projected;
-                                    let raw_context: Vec<_> =
-                                        history.iter().chain(&turn_log.input).cloned().collect();
+                                    let raw_context: Vec<_> = history
+                                        .iter()
+                                        .chain(
+                                            turn_log
+                                                .input_for(&selection.id, &params.catalog.provider)
+                                                .iter(),
+                                        )
+                                        .cloned()
+                                        .collect();
                                     tool_projection = self.db.dcp_tool_projection_for_input(
                                         &params.session,
                                         &raw_context,
@@ -2437,7 +2479,7 @@ impl<'a> Runtime<'a> {
                     .iter()
                     .filter(|row| {
                         turn_log.user_message.as_deref() != Some(row.0.as_str())
-                            && !turn_log.shell_notice_messages.contains(&row.0)
+                            && !turn_log.represents_notice(&row.0)
                     })
                     .cloned()
                     .collect::<Vec<_>>();
@@ -2454,6 +2496,7 @@ impl<'a> Runtime<'a> {
                     .then(|| dcp_config_input(&projected, &dcp_config))
                     .flatten();
             }
+            closed_boundary = Some((turn_log.closed_counts(), shell_notice_seq));
             if !units_have_calls(&units) {
                 break;
             }
@@ -3086,6 +3129,13 @@ impl<'a> Runtime<'a> {
             turn_log
                 .display_parts
                 .insert(position, serde_json::json!({"tool":op,"span":turn_log.spans.last().map(|span|span.id.as_str())}));
+            if let Some(index) = turn_log.input.iter().rposition(|item| matches!(item,InputItem::ProviderOutput(v) if v["type"]=="function_call" && v["call_id"].as_str()==Some(id.as_str()))) {
+                if let std::collections::btree_map::Entry::Vacant(entry)=turn_log.call_occurrences.entry(index) {
+                    let occurrence = self.db.next_call_occurrence(turn_id,id)?;
+                    entry.insert(occurrence);
+                }
+                turn_log.display_parts[position]["call_input_index"] = index.into();
+            }
             for (_, part) in positioned.iter_mut() {
                 if *part >= position {
                     *part += 1;

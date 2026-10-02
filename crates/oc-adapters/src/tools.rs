@@ -1422,6 +1422,13 @@ fn subagent_request(call: &ToolCall) -> Result<SubagentRequest, ToolError> {
 /// leaking foreign opaque state or mutating this journal.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TurnLog {
+    /// Fixed immutable original prefix; replay reads only the hot journal.
+    pub(crate) raw_prefix: Option<turn_history::RawPrefix>,
+    /// Selected task/checkpoint facts, never re-appended as original RAW.
+    pub(crate) working: Option<serde_json::Value>,
+    /// Only retained input origins/occurrences; never a lifetime call-id map.
+    pub(crate) input_origins: Vec<Option<usize>>,
+    pub(crate) call_occurrences: std::collections::BTreeMap<usize, u64>,
     /// Physical attempts and input provenance within this existing journal.
     pub requests: Vec<oc_core::queries::RequestIdentity>,
     pub(crate) instruction_references: Vec<crate::instructions::Reference>,
@@ -1454,11 +1461,16 @@ pub struct TurnLog {
 mod mcp_log;
 mod model_history;
 pub(crate) mod output;
+pub(crate) mod turn_history;
 
 impl TurnLog {
     /// Start an empty log for a turn.
     pub fn new(turn_id: &str, model: &str, provider: &str) -> Self {
         Self {
+            raw_prefix: None,
+            working: None,
+            input_origins: Vec::new(),
+            call_occurrences: std::collections::BTreeMap::new(),
             requests: Vec::new(),
             instruction_references: Vec::new(),
             spans: Vec::new(),
@@ -1511,6 +1523,19 @@ impl TurnLog {
             "shell_notice_messages": self.shell_notice_messages,
             "agent_digest": self.agent_digest,
         });
+        if let Some(prefix) = &self.raw_prefix {
+            value["raw_prefix"] = serde_json::to_value(prefix).expect("prefix serialization");
+        }
+        if let Some(working) = &self.working {
+            value["working"] = working.clone();
+        }
+        if !self.input_origins.is_empty() {
+            value["input_origins"] = serde_json::to_value(&self.input_origins).expect("origins");
+        }
+        if !self.call_occurrences.is_empty() {
+            value["call_occurrences"] =
+                serde_json::to_value(&self.call_occurrences).expect("occurrences");
+        }
         if !native_mcp.is_empty() {
             value["native_mcp_results"] = native_mcp.into();
         }
@@ -1522,7 +1547,32 @@ impl TurnLog {
 
     /// Deserialize from the turn row.
     pub fn from_json(value: &serde_json::Value) -> Result<Self, String> {
-        Ok(Self {
+        let raw_prefix = turn_history::RawPrefix::parse(value.get("raw_prefix"))?;
+        let working = value.get("working").filter(|w| !w.is_null()).cloned();
+        if let Some(working) = &working {
+            if working.get("working").is_some() || working.get("raw_prefix").is_some() {
+                return Err("nested hot working checkpoint".into());
+            }
+            let selected = Self::from_json(working)?;
+            if value["turn_id"] != selected.turn_id {
+                return Err("foreign hot working checkpoint".into());
+            }
+        }
+        let log = Self {
+            raw_prefix,
+            working,
+            input_origins: value
+                .get("input_origins")
+                .map(|v| serde_json::from_value(v.clone()))
+                .transpose()
+                .map_err(|_| "invalid input origins")?
+                .unwrap_or_default(),
+            call_occurrences: value
+                .get("call_occurrences")
+                .map(|v| serde_json::from_value(v.clone()))
+                .transpose()
+                .map_err(|_| "invalid call occurrences")?
+                .unwrap_or_default(),
             requests: value
                 .get("requests")
                 .map(|v| serde_json::from_value(v.clone()))
@@ -1589,7 +1639,9 @@ impl TurnLog {
                 .get("usage")
                 .and_then(|v| v.as_array())
                 .and_then(|a| Some((a.first()?.as_u64()?, a.get(1)?.as_u64()?))),
-        })
+        };
+        log.validate_history_coordinates()?;
+        Ok(log)
     }
 
     /// Replay opaque payloads at the continuation boundary.

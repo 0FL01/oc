@@ -219,9 +219,10 @@ pub(crate) fn dcp_call_identities(
         let calls = log
             .input
             .iter()
-            .filter_map(|item| match item {
+            .enumerate()
+            .filter_map(|(index, item)| match item {
                 InputItem::ProviderOutput(v) if v["type"] == "function_call" => {
-                    v["call_id"].as_str()
+                    v["call_id"].as_str().map(|id| (index, id))
                 }
                 _ => None,
             })
@@ -232,9 +233,16 @@ pub(crate) fn dcp_call_identities(
             .filter_map(|item| item.call_output().map(|(id, _)| id))
             .collect::<std::collections::BTreeSet<_>>();
         let mut local = BTreeMap::<String, u64>::new();
-        for id in calls {
+        for (index, id) in calls {
             let occurrence = local.entry(id.into()).or_default();
-            let identity = (log.turn_id.clone(), id.into(), *occurrence);
+            let identity = (
+                log.turn_id.clone(),
+                id.into(),
+                log.call_occurrences
+                    .get(&index)
+                    .copied()
+                    .unwrap_or(*occurrence),
+            );
             *occurrence += 1;
             if !include_pending && !answered.contains(id) {
                 continue;
@@ -247,9 +255,21 @@ pub(crate) fn dcp_call_identities(
     for raw in logs {
         let value = serde_json::from_str(raw).map_err(|_| RuntimeError::Storage)?;
         let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
+        if let Some(working) = &log.working {
+            add(
+                &TurnLog::from_json(working).map_err(|_| RuntimeError::Storage)?,
+                false,
+            );
+        }
         add(&log, false);
     }
     if let Some(log) = current {
+        if let Some(working) = &log.working {
+            add(
+                &TurnLog::from_json(working).map_err(|_| RuntimeError::Storage)?,
+                false,
+            );
+        }
         add(log, true);
     }
     Ok(result)
@@ -442,7 +462,7 @@ fn canonical_json(raw: &str) -> String {
         .unwrap_or_else(|_| raw.to_string())
 }
 
-fn dcp_call_has_protected_path(name: &str, arguments: &str, config: &DcpConfig) -> bool {
+pub(super) fn dcp_call_has_protected_path(name: &str, arguments: &str, config: &DcpConfig) -> bool {
     fn contains_path(value: &serde_json::Value, patterns: &[String]) -> bool {
         match value {
             serde_json::Value::String(value) => crate::dcp::path_is_protected(patterns, value),

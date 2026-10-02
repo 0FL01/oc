@@ -16,7 +16,8 @@ impl Db {
     ) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db lock");
         let tx = conn.transaction()?;
-        tx.execute("INSERT INTO tool_operations(id,session_id,turn_id,name,state,input,output) VALUES(?1,?2,?3,?4,?5,?6,?7)", params![op,session,turn,name,state,input,output])?;
+        let identity = Self::call_identity(op, turn, journal)?;
+        tx.execute("INSERT INTO tool_operations(id,session_id,turn_id,name,state,input,output,provider_call_id,call_occurrence,original_input_index) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)", params![op,session,turn,name,state,input,output,identity.as_ref().map(|v|&v.0),identity.as_ref().map(|v|v.1),identity.as_ref().map(|v|v.2)])?;
         let n = tx.execute(
             "UPDATE turns SET result=?2 WHERE id=?1 AND session_id=?3 AND status='started'",
             params![turn, journal, session],

@@ -226,6 +226,29 @@ impl Runtime<'_> {
         provider: &ResponsesConfig,
         caller_cancel: Option<&AtomicBool>,
     ) -> Result<bool, RuntimeError> {
+        self.deliver_compaction_hot(
+            session,
+            catalog,
+            model,
+            variant,
+            provider,
+            caller_cancel,
+            None,
+        )
+        .await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) async fn deliver_compaction_hot(
+        &self,
+        session: &str,
+        catalog: &ModelCatalog,
+        model: &str,
+        variant: Option<&str>,
+        provider: &ResponsesConfig,
+        caller_cancel: Option<&AtomicBool>,
+        mut current: Option<(&mut crate::tools::TurnLog, [usize; 7], i64)>,
+    ) -> Result<bool, RuntimeError> {
         if !self
             .compactions
             .lock()
@@ -280,6 +303,10 @@ impl Runtime<'_> {
             self.recover_publication_failure(&mut snapshot);
             return Err(error);
         }
+        if let Some((log, _, _)) = &current {
+            self.db
+                .checkpoint_turn(&log.turn_id, &log.to_json().to_string())?;
+        }
         let result = {
             let summary = self.summarize_session(
                 session,
@@ -289,6 +316,7 @@ impl Runtime<'_> {
                 provider,
                 &cancel,
                 &mut snapshot,
+                current.as_ref().map(|(log, counts, _)| (&**log, *counts)),
             );
             tokio::pin!(summary);
             tokio::select! {
@@ -311,7 +339,67 @@ impl Runtime<'_> {
             }
             Ok(Some(prepared)) => {
                 snapshot.state = CompactionState::Completed;
-                if self
+                if let Some((log, counts, notice_seq)) = current.as_mut() {
+                    let config = self.dcp_config.read().expect("dcp config").clone();
+                    let live_calls = self.db.live_shell_call_ids(&log.turn_id)?;
+                    let working = log
+                        .current_working_checkpoint(&snapshot.summary, *counts, |group| {
+                            group.iter().any(|item| {
+                                if let InputItem::ProviderOutput(v) = item
+                                    && v["type"] == "function_call"
+                                {
+                                    let name = v["name"].as_str().unwrap_or_default();
+                                    live_calls
+                                        .iter()
+                                        .any(|id| v["call_id"].as_str() == Some(id.as_str()))
+                                        || crate::dcp_auto::tool_is_protected(
+                                            &config.protected_tools,
+                                            name,
+                                        )
+                                        || crate::dcp_auto::tool_is_protected(
+                                            &config.dedup_protected_tools,
+                                            name,
+                                        )
+                                        || crate::dcp_auto::tool_is_protected(
+                                            &config.purge_protected_tools,
+                                            name,
+                                        )
+                                        || super::context::dcp_call_has_protected_path(
+                                            name,
+                                            v["arguments"].as_str().unwrap_or_default(),
+                                            &config,
+                                        )
+                                } else if config.protect_tags {
+                                    let text = serde_json::to_string(item).unwrap_or_default();
+                                    oc_core::context_plan::extract_protect_tags(&text)
+                                        .next()
+                                        .is_some()
+                                } else {
+                                    false
+                                }
+                            })
+                        })
+                        .map_err(|_| RuntimeError::Storage)?;
+                    let (segment, hot) = log
+                        .prepare_closed_segment(*counts, working, *notice_seq)
+                        .map_err(|_| RuntimeError::Storage)?;
+                    if self
+                        .db
+                        .commit_closed_turn_segment(
+                            log,
+                            &segment,
+                            &hot,
+                            Some((&snapshot, &prepared.removed)),
+                        )
+                        .is_ok()
+                    {
+                        **log = hot;
+                    } else {
+                        snapshot.state = CompactionState::Failed;
+                        snapshot.error =
+                            Some("closed turn checkpoint commit failed; context preserved".into());
+                    }
+                } else if self
                     .db
                     .commit_checkpoint(
                         &snapshot,
@@ -378,6 +466,7 @@ impl Runtime<'_> {
         provider: &ResponsesConfig,
         cancel: &AtomicBool,
         snapshot: &mut CompactionSnapshot,
+        current: Option<(&crate::tools::TurnLog, [usize; 7])>,
     ) -> Result<Option<PreparedCheckpoint>, RuntimeError> {
         self.validate_checkpoint_route(session, &catalog.provider, model, provider)?;
         snapshot.model = Some(oc_core::queries::ModelRef {
@@ -391,67 +480,116 @@ impl Runtime<'_> {
                 .db
                 .checkpoint_record(session)?
                 .is_some_and(|(_, _, _, opaque)| opaque.is_some());
-        let context = self.active_projection_inner(session, !recover_native)?;
-        let Some((cutoff, boundary)) = self.db.compaction_boundary(
-            session,
-            context.after_seq,
-            config.compaction.keep_tokens,
-        )?
-        else {
-            return Ok(None);
-        };
-        let mut prefix = Vec::new();
-        for row in context.projected {
-            let seq = self.db.message_seq(session, &row.0)?;
-            let block_seq = context
-                .blocks
+        let (boundary, history, removed) = if let Some((log, counts)) = current {
+            let mut prefix = log.clone();
+            prefix.input.truncate(counts[0]);
+            prefix.requests.truncate(counts[1]);
+            prefix.spans.truncate(counts[2]);
+            prefix.instruction_references.truncate(counts[5]);
+            // Consolidate the previously chosen checkpoint and bounded past
+            // window with current work, rather than pinning either forever.
+            let context = self.active_projection(session)?;
+            let anchor = log.user_message.as_deref().ok_or(RuntimeError::Storage)?;
+            let prior = context
+                .projected
                 .iter()
-                .find(|b| b.id == row.0)
-                .and_then(|b| b.members.last())
-                .map(|id| self.db.message_seq(session, id))
-                .transpose()?
-                .flatten();
-            if row.0 == "session-checkpoint" || seq.or(block_seq).is_some_and(|seq| seq <= cutoff) {
-                prefix.push(row);
+                .position(|row| row.0 == anchor)
+                .map_or(context.projected.as_slice(), |index| {
+                    &context.projected[..index]
+                });
+            let mut history = self.wire_history(
+                session,
+                prior,
+                &context.blocks,
+                model,
+                &catalog.provider,
+                Some("__compaction__"),
+                context.after_seq,
+            )?;
+            let mut removed = BTreeMap::new();
+            for item in &history {
+                if let InputItem::ProviderOutput(v) = item
+                    && v["type"] == "function_call"
+                    && let Some(id) = v["call_id"].as_str()
+                {
+                    *removed.entry(id.to_owned()).or_default() += 1;
+                }
             }
-        }
-        let mut history = self.wire_history(
-            session,
-            &prefix,
-            &context.blocks,
-            model,
-            &catalog.provider,
-            Some("__compaction__"),
-            context.after_seq,
-        )?;
-        let offset_history = if recover_native {
-            let after = self
-                .db
-                .session_checkpoint(session)?
-                .map(|(seq, _)| seq)
-                .unwrap_or(0);
-            self.wire_history(
+            let marks = self.db.dcp_tool_projection_for_input(session, &history)?;
+            apply_dcp_projection(&mut history, &marks);
+            history.extend(prefix.input_for(model, &catalog.provider));
+            (
+                log.user_message.clone().ok_or(RuntimeError::Storage)?,
+                history,
+                removed,
+            )
+        } else {
+            let context = self.active_projection_inner(session, !recover_native)?;
+            let Some((cutoff, boundary)) = self.db.compaction_boundary(
+                session,
+                context.after_seq,
+                config.compaction.keep_tokens,
+            )?
+            else {
+                return Ok(None);
+            };
+            let mut prefix = Vec::new();
+            for row in context.projected {
+                let seq = self.db.message_seq(session, &row.0)?;
+                let block_seq = context
+                    .blocks
+                    .iter()
+                    .find(|b| b.id == row.0)
+                    .and_then(|b| b.members.last())
+                    .map(|id| self.db.message_seq(session, id))
+                    .transpose()?
+                    .flatten();
+                if row.0 == "session-checkpoint"
+                    || seq.or(block_seq).is_some_and(|seq| seq <= cutoff)
+                {
+                    prefix.push(row);
+                }
+            }
+            let mut history = self.wire_history(
                 session,
                 &prefix,
                 &context.blocks,
                 model,
                 &catalog.provider,
                 Some("__compaction__"),
-                after,
-            )?
-        } else {
-            history.clone()
-        };
-        let mut removed = BTreeMap::<String, u64>::new();
-        for item in offset_history {
-            if let InputItem::ProviderOutput(v) = item
-                && v["type"] == "function_call"
-                && let Some(id) = v["call_id"].as_str()
-            {
-                *removed.entry(id.into()).or_default() += 1;
+                context.after_seq,
+            )?;
+            let offset_history = if recover_native {
+                let after = self
+                    .db
+                    .session_checkpoint(session)?
+                    .map(|(seq, _)| seq)
+                    .unwrap_or(0);
+                self.wire_history(
+                    session,
+                    &prefix,
+                    &context.blocks,
+                    model,
+                    &catalog.provider,
+                    Some("__compaction__"),
+                    after,
+                )?
+            } else {
+                history.clone()
+            };
+            let mut removed = BTreeMap::<String, u64>::new();
+            for item in offset_history {
+                if let InputItem::ProviderOutput(v) = item
+                    && v["type"] == "function_call"
+                    && let Some(id) = v["call_id"].as_str()
+                {
+                    *removed.entry(id.into()).or_default() += 1;
+                }
             }
-        }
-        apply_dcp_projection(&mut history, &self.db.load_dcp_tool_projection(session)?);
+            let marks = self.db.dcp_tool_projection_for_input(session, &history)?;
+            apply_dcp_projection(&mut history, &marks);
+            (boundary, history, removed)
+        };
         let base = models::select_model(catalog, model)
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
         let selection = models::select_variant(&base, variant)
@@ -478,7 +616,8 @@ impl Runtime<'_> {
             .clone();
         let mut retry_policy = retry::RetryPolicy::default();
         // Known overflow must use the durable transcript, never repeat native overflow.
-        if snapshot.reason != CompactionReason::Overflow
+        if current.is_none()
+            && snapshot.reason != CompactionReason::Overflow
             && let Some(strategy) = strategy
         {
             let route = crate::compaction::route_identity(&catalog.provider, model, provider)
