@@ -1254,6 +1254,33 @@
       "locator": "226–245 captured Shell tail uses configured limits and appends [output truncated; full output saved to: …] in producer result text",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/shell.ts#L226-L245",
       "purpose": "VIS16 does not synthesize [truncated] for UI projection-only loss or erase actual Shell payload; truthful native incomplete capture remains separate from exit/status"
+    },
+    {
+      "id": "U112",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/prompt/history.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "19–31 PromptInfo text/files/agents/skills/pasted/mode; 31 MAX 50; 33–46 parse newest-50; 48–50 consecutive JSON dedup; 60–114 shared provider, 63–71 JSONL path/self-heal, 77–87 move with emptyPrompt past newest, 88–111 append",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/prompt/history.tsx",
+      "purpose": "VIS12 shared session/home input-history owner, bound, dedup and draft-exit semantics; file path is implementation detail, behavior is the contract"
+    },
+    {
+      "id": "U113",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/prompt/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "1010–1083 history previous/next layers with boundary-first cursor and autocomplete disable; 1033–1040,1072–1079 text/parts/mode restore; 1286–1300 submit append incl shell; 1504–1517 clearPrompt retention append",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/index.tsx#L1010-L1083",
+      "purpose": "VIS12 Up/Down routing, focus priority, restore and recording paths; source-only oracle, not executed native parity"
+    },
+    {
+      "id": "U114",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/mini/prompt.shared.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "14–27,60–159 separate 200-entry ring with draft save/restore; mini/footer.prompt.tsx:928–975,1235–1257,1420–1440; mini/runtime.ts:475–488 resumed-history seed",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/mini/prompt.shared.ts",
+      "purpose": "VIS12 Mini footer is a distinct surface with its own ring; explicitly out of scope for the native session/home composer slice"
     }
   ],
   "external_primary_sources": [

@@ -180,12 +180,15 @@
     {
       "id": "VIS12",
       "step": "V05",
-      "title": "Multiline Unicode editor",
-      "expected": "Raw newline/cursor/history/paste/edit sequence preserves graphemes, drafts, selection and single durable Enter acceptance.",
+      "title": "Multiline Unicode editor with shared prompt input history",
+      "expected": "Raw newline/cursor/history/paste/edit sequence preserves graphemes, drafts, selection and single durable Enter acceptance. Follow T44 amendment Prompt input history parity — VIS12 (2026-10-03) and pinned U112/U113 with U02 history defaults: Home/session share one durable ordered input history (newest 50, consecutive-duplicate suppression, invalid/legacy drop) through the existing application/storage owner, without a new store/framework; session transcript window stays separate. Nonblank accepted prompts record before dispatch including shell/slash commands, blank Enter does not; clear-path follows donor retention without an invented threshold. Multiline Up/Down moves within draft first, then to raw edge, then history; autocomplete/modal/approval/question/mention own keys first. Recall restores text with existing file-chip/mention behavior under A13 text-mention limits, runs zero generation/tools, stays undoable, blocks older browsing after a recalled edit, and Down past newest restores the pre-browse draft as a disclosed native difference from donor emptyPrompt. Mini 200-ring (U114) is out of scope. Require nearest unit/input regressions, one bounded rebuilt-binary fake-provider PTY across session/Home/restart with Unicode/mention and autocomplete negative, then paired running-original/native full styled-cell/PNG/cursor at established profiles with labeled native differences; no crop/mask/native-golden PASS or paid campaign. Missing runnable reference is BLOCKED_REFERENCE.",
       "sources": [
         "P07",
         "P08",
-        "U02"
+        "U02",
+        "U112",
+        "U113",
+        "U114"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",

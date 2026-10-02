@@ -573,6 +573,34 @@ unmasked. No source-table/native-golden substitute, crop/mask, Cartesian matrix 
 paid campaign. Missing reference is BLOCKED_REFERENCE. Existing cases remain mandatory
 NOT_RUN/evidence empty; approval does not resume PAUSED T44 or switch active T50.
 
+## Prompt input history Up/Down — VIS12 (approved 2026-10-03; pending)
+
+Contract: [T44 amendment](../tui-recovery/T44_CONTRACT_AMENDMENT.md#prompt-input-history-parity--vis12-2026-10-03).
+Only T44/R5/V05 owns VIS12 in `tui-recovery/ACCEPTANCE.json`; U112/U113 ground the
+shared session/home composer contract, U114 grounds the out-of-scope Mini ring.
+
+Extend the nearest `oc-tui` editor/input regressions (boundary-first routing,
+shared owner supply, newest-50 bound, consecutive-dedup, Home/session sharing,
+configured `prompt.history.previous/next` overrides, autocomplete/modal/form
+priority, edited-recall refusal and Down draft-return), not a second history
+store or synthetic list in RED. Reuse the existing config/composition/events/input
+owners for canonical/legacy bindings with actionable diagnostics; defaults stay
+Up/Down with no new keymap engine.
+
+One bounded rebuilt-binary fake-provider `pty_t39` interaction scenario submits
+three prompts (multiline, Unicode, @mention), walks Up/Down within the session,
+then across Home/new session/restart, proves recall causes zero generation/tool
+effects until Enter and the wire carries the recalled text, and proves
+autocomplete/modal own Up/Down while busy work is untouched. Then existing
+running pinned-original/native full styled-cell/PNG/cursor captures at
+representative profiles cover idle draft, boundary moves, recalled rows,
+restored draft and restart cross-session; label native draft-return and
+text/mention-only differences unmasked, no crop/mask/native-golden PASS or paid
+campaign. Missing runnable donor remains BLOCKED_REFERENCE.
+
+VIS12 mandatory NOT_RUN/evidence empty; plan approval does not resume PAUSED T44,
+switch active tasks, change T55 priority or rewrite historical evidence/baselines.
+
 ## Middle Click tab close — VIS44 (approved 2026-09-30; pending)
 
 Only T44/R5/V04 owns VIS44 in `tui-recovery/ACCEPTANCE.json`; follow the dedicated

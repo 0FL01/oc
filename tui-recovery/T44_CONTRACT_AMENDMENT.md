@@ -2076,6 +2076,132 @@ Done этого bug slice = **нет фантомного caret И сохран�
 с intact focus/hover/expand/restoration. Plan-only commit/push не переключает active
 T50, не снимает PAUSED T44 и не переписывает historical evidence/PASS/baselines.
 
+## Prompt input history parity — VIS12 (2026-10-03)
+
+**Owner-approved plan slice; T44/R5/V05; implementation pending.** Владелец попросил
+проверить, учтена ли вставка прошлого сообщения по ↑/↓ как в shell, и при необходимости
+дополнить план паритетом с pinned OC2 v2.0.12. Базовое поведение уже покрыто R5/VIS12
+и existing native recall, но общий durable scope donor ранее не был расписан. Это
+детализация существующего VIS12, не новый VIS/task/gate/keyboard framework.
+
+#### RECON: donor session/home composer против native session-window recall
+
+Pinned OC2 `2670273ff17da96f85c5826ced57aa1b368754fa`:
+
+- **U02:** `packages/tui/src/config/keybind.ts:240–241` — `prompt.history.previous = up`,
+  `prompt.history.next = down`. Те же Up/Down заняты соседними composer-поверхностями
+  (`composer.subagent.*`, `composer.shell.*`, `composer.terminal.*`); история обычного
+  prompt — только одна из них.
+- **U112:** `packages/tui/src/prompt/history.tsx:19–31,60–114` — общий owner истории
+  ввода session/home composer. `PromptInfo` хранит text/files/agents/skills/pasted
+  и optional normal/shell mode; хранение — JSONL
+  `<TUI state path>/prompt-history.jsonl` (`:63–71`) с self-heal перезаписью валидных
+  записей. Лимит 50 (`MAX_HISTORY_ENTRIES`), срез newest-50 при parse (`:33–46`),
+  dedup только соседних идентичных записей по полному JSON (`:48–50,88–110`).
+  `move(-1|+1)` ходит по индексу; Down мимо newest возвращает `emptyPrompt()`
+  (`:77–87`), черновик до просмотра этот механизм не возвращает.
+- **U113:** `packages/tui/src/component/prompt/index.tsx:1010–1083` — слои
+  `prompt.history.previous/next`. Курсор не на границе ввода сначала двигается
+  внутри многострочного prompt (в начало/конец либо на строку вверх/вниз);
+  только Up при offset 0 и Down в конце текста вызывают `history.move`.
+  Оба слоя выключены при видимом autocomplete (`:1016–1017,1051–1052`).
+  Вызов восстанавливает text/parts/extmarks/mode (`:1033–1040,1072–1079`).
+  Непустой submit записывается перед dispatch, включая shell mode
+  (`:1286–1300`); `clearPrompt` дописывает черновик по retention-условию
+  (`:1504–1517`).
+- **U114 (out of scope):** Direct Mini footer использует отдельный in-memory ring
+  на 200 с сохранением черновика (`mini/prompt.shared.ts:14–27,60–159`,
+  `mini/footer.prompt.tsx:928–975,1235–1257,1420–1440`,
+  `mini/runtime.ts:475–488` из resumed session history). У native нет mini
+  поверхности; этот срез её не требует.
+
+Native на `83054c997e5f9c2f62815f685299bc44127da06e`:
+
+- `oc-tui/src/app/input.rs:786–807` boundary-first routing уже повторяет donor:
+  сначала движение внутри visual draft, затем к raw edge, только следующий
+  unselected arrow уходит в историю. `KeyAction::Up/Down` (`:2191–2208`) после
+  `prompt_vertical` вызывают `recall_history` (`:2303–2318`).
+- `recall_history` собирает entries из загруженного `window` текущей сессии
+  (только `role == "user"`), то есть session-scoped разговорная история, а не
+  общая durable input history Home/между сессиями/после restart.
+- `oc-tui/src/editor.rs:612–673` хранит pre-browse snapshot и возвращает его при
+  выходе вниз; chips/mentions восстанавливаются для draft, для recalled rows —
+  только `recent_mention` самой свежей записи (`:358–361,647–661`).
+- `ConversationKeybinds` (`oc-adapters/src/config.rs:231–326`) не читает
+  `prompt.history.previous/next` (dotted/legacy), поэтому пользовательский
+  remap истории сейчас невозможен.
+- Ближайшие тесты: `oc-tui/src/app/tests/input.rs:1474–1539` boundary-first,
+  `:1942–1963` empty-draft recall; `crates/oc/tests/pty_t39/interaction.rs:1205–1284`
+  PTY recall/submit/restore. Они доказывают session-window recall, не shared
+  durable scope оригинала.
+
+#### Frozen behavior и узкая граница
+
+1. **Один shared durable owner.** Home/session делят один ordered input-history
+   список у существующего application/storage owner; durability через restart,
+   видимость между сессиями и на Home. Лимит 50, dedup только соседних идентичных
+   записей, отсев invalid/legacy, срез newest-50 — как U112. Donor JSONL path —
+   деталь реализации, не требование: native переиспользует существующий Db owner,
+   без нового store/schema-framework. Окно разговорной истории сессии остаётся
+   отдельным; input history не читает/пишет raw messages напрямую.
+2. **Запись.** Непустой accepted prompt записывается до dispatch, включая shell и
+   slash-команды; пустой Enter (model commit без текста) не записывается.
+   Clear-path дописывает черновик только по donor retention-условию, без нового
+   порога из головы. Запись не запускает генерацию и не меняет draft/focus.
+3. **Маршрутизация.** Многострочный Up/Down сначала двигает caret внутри draft,
+   затем к raw edge, затем историю — существующий `prompt_vertical` freeze.
+   Активные autocomplete, modal, approval/question формы и @-overlay владеют
+   клавишами первыми; ни одно нажатие не выполняет и completion, и history шаг.
+   `prompt.history.previous/next` admit canonical/legacy overrides через
+   существующий config/composition/events/input owners (string shortcuts, comma
+   alternatives, leader resolution, none/false disabling; actionable diagnostics).
+   Defaults остаются Up/Down; без нового keymap engine.
+4. **Восстановление.** Вызов подменяет input text; существующие @file chip/extmark
+   правила сохраняются для резолвируемых записей, без расширения structured
+   skill/agent parts сверх A13 (mentions остаются текстом, skill body только через
+   native `skill`). Recall не выполняет генерацию/tools, является одной undoable
+   навигацией; правка recalled копии отдельно undoable. Отредактированная recalled
+   запись блокирует уход к более старым (pinned refusal); Down возвращает
+   pre-browse draft, не стирает его.
+5. **Выход вниз — объявленное отличие.** Down мимо newest возвращает pre-browse
+   unfinished draft (существующий native invariant и `vis07`/`v05` ожидания),
+   а не donor `emptyPrompt()`. Различие фиксируется явно в paired evidence, не
+   маскируется и не требует переписывания donor поведения молча.
+6. **Вне среза.** Mini 200-ring/draft-save, donor JSONL path, полные
+   files/agents/skills/pasted/mode parts и произвольный cross-process sync —
+   не требуются. Busy/read-only/child/Location guards, immutable raw history,
+   permissions/trust, bounded resources и no unknown-effect replay неизменны.
+
+#### Ordered slice и достаточная квалификация
+
+1. После safe scheduling handoff и **explicit resume T44** сначала расширить
+   ближайшие `editor.rs`/`app/tests/input.rs` regressions: shared owner supply,
+   50 newest bound, consecutive-dedup, Home/session sharing, boundary-first,
+   autocomplete/modal/form priority, configured previous/next overrides,
+   edited-recall refusal и Down draft-return. Не обходить owners синтетическим
+   списком в RED.
+2. Минимально расширить existing `ConversationKeybinds`/composition и
+   `events.rs`/`input.rs` routing для двух history actions; переиспользовать
+   существующий resolver/Location reload и effective footer/palette hints.
+   Никаких новых selection/config API/schema/store.
+3. Rebuilt-binary bounded fake-provider PTY (существующий `pty_t39`
+   interaction target): три submits подряд (multiline + Unicode + @mention),
+   Up×N/Down×M внутри сессии, переход Home/новая сессия/restart, recall без
+   генерации до Enter, wire после Enter несёт recalled текст. Отдельно negative:
+   autocomplete/modal владеют Up/Down; recall при busy не трогает in-flight
+   request.
+4. Парные running pinned-original/native full styled-cell/PNG/cursor при одной
+   fixture/profile на representative existing 80x24/120x40: idle draft,
+   boundary moves, recalled rows, restored draft, restart cross-session.
+   Unmasked donor `emptyPrompt` против native draft-return разница подписана;
+   attachment/text-only разница подписана; crop/mask/native-golden PASS,
+   Cartesian matrix и paid campaign запрещены. Недоступный runnable reference —
+   BLOCKED_REFERENCE, не PASS.
+
+VIS12 остаётся mandatory **NOT_RUN/evidence empty**; R6 pending, активная T45 и
+T55 safe-handoff priority не переключаются планом. Plan-only доставка не снимает
+PAUSED T44 и не переписывает historical PASS/baseline/statuses.
+
 ## Обязательные результаты нового прохода
 
 V00–V09 из IMPLEMENTATION_GUIDE.md и все mandatory сценарии из актуального ACCEPTANCE.json:
