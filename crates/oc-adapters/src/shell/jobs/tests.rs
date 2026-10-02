@@ -86,6 +86,20 @@ impl Held {
             while !self.project.join(format!("{id}.entered")).exists() {
                 tokio::time::sleep(Duration::from_millis(5)).await;
             }
+            // Producer file creation cannot order the two independent readers,
+            // especially now that admission includes durable writer backpressure.
+            // Keep the original five-second bound and observe actual drain facts.
+            if flood {
+                loop {
+                    let view = self.jobs.snapshot(source, id).unwrap();
+                    if view.stdout_cursor >= 1_100_000 + format!("live-{id}").len() as u64
+                        && view.stderr_cursor >= 1_100_000 + "live-stderr".len() as u64
+                    {
+                        break;
+                    }
+                    tokio::time::sleep(Duration::from_millis(5)).await;
+                }
+            }
         })
         .await
         .unwrap();
@@ -116,6 +130,7 @@ async fn tool13_conversion_retains_pid_admission_capture_and_final_view_after_re
     let pid = held.launch("fg", "source", true, true).await;
     let before = held.jobs.running("source").unwrap();
     let live = held.jobs.snapshot("source", "fg").unwrap();
+    let active_capture = held.db.output_for_operation("fg").unwrap().unwrap();
     let parent_cancel = AtomicBool::new(false);
     let mut wait = Box::pin(held.jobs.foreground("source", "fg", &parent_cancel));
     assert!(futures_util::poll!(&mut wait).is_pending());
@@ -133,6 +148,18 @@ async fn tool13_conversion_retains_pid_admission_capture_and_final_view_after_re
     let late = held.jobs.background("source", "fg").unwrap();
     held.jobs.deliver(&events).unwrap();
     held.jobs.shutdown().await.unwrap();
+    let terminal_capture = held.db.output_for_operation("fg").unwrap().unwrap();
+    assert_eq!(active_capture.id, terminal_capture.id);
+    assert_eq!(terminal_capture.generation, 17);
+    assert_eq!(
+        terminal_capture.state,
+        crate::storage::tool_output::CaptureState::Complete
+    );
+    assert!(terminal_capture.bytes > 2 * 1024 * 1024);
+    assert_eq!(
+        terminal_capture.shell.as_ref().unwrap().stdout_bytes,
+        final_view.stdout_cursor
+    );
     assert_eq!(before.len(), 1);
     assert!(!before[0].background);
     assert_eq!(before[0].pid, Some(pid));

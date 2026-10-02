@@ -118,6 +118,98 @@ pub(crate) struct Prepared {
     pub logging_failed: bool,
 }
 
+/// Shared incremental literal redaction. Callers supply bounded UTF-8 chunks;
+/// the unpublished suffix protects secrets split across producer reads.
+pub(crate) struct StreamRedactor {
+    pending: String,
+    secrets: Vec<String>,
+    prefixes: Vec<Vec<usize>>,
+    matched: Vec<usize>,
+}
+impl StreamRedactor {
+    pub(crate) fn has_pending(&self) -> bool {
+        !self.pending.is_empty()
+    }
+
+    pub(crate) fn new(secrets: Vec<String>) -> Self {
+        let secrets: Vec<String> = secrets.into_iter().filter(|s| !s.is_empty()).collect();
+        let prefixes = secrets
+            .iter()
+            .map(|secret| {
+                let bytes = secret.as_bytes();
+                let mut prefix = vec![0; bytes.len()];
+                for at in 1..bytes.len() {
+                    let mut n = prefix[at - 1];
+                    while n > 0 && bytes[at] != bytes[n] {
+                        n = prefix[n - 1];
+                    }
+                    if bytes[at] == bytes[n] {
+                        n += 1;
+                    }
+                    prefix[at] = n;
+                }
+                prefix
+            })
+            .collect();
+        let matched = vec![0; secrets.len()];
+        Self {
+            pending: String::new(),
+            secrets,
+            prefixes,
+            matched,
+        }
+    }
+    pub(crate) fn push(&mut self, text: &str, final_flush: bool) -> String {
+        self.pending.push_str(text);
+        // Incremental prefix matching is linear per known secret, including
+        // repetitive long keys. Only a possible secret suffix needs withholding;
+        // benign live output must not wait for an unrelated future read or EOF.
+        for ((secret, prefix), matched) in self
+            .secrets
+            .iter()
+            .zip(&self.prefixes)
+            .zip(&mut self.matched)
+        {
+            let pattern = secret.as_bytes();
+            for byte in text.bytes() {
+                while *matched > 0 && pattern[*matched] != byte {
+                    *matched = prefix[*matched - 1];
+                }
+                if pattern[*matched] == byte {
+                    *matched += 1;
+                }
+                if *matched == pattern.len() {
+                    *matched = prefix[*matched - 1];
+                }
+            }
+        }
+        let hold = self.matched.iter().copied().max().unwrap_or(0);
+        let mut end = if final_flush {
+            self.pending.len()
+        } else {
+            self.pending
+                .floor_char_boundary(self.pending.len().saturating_sub(hold))
+        };
+        loop {
+            let before = end;
+            for secret in &self.secrets {
+                for (at, _) in self.pending.match_indices(secret) {
+                    if at < end && at + secret.len() > end {
+                        end = at;
+                    }
+                }
+            }
+            if end == before || end == 0 {
+                break;
+            }
+        }
+        let mut admitted = self.pending[..end].to_owned();
+        redact_string(&mut admitted, &self.secrets);
+        self.pending.drain(..end);
+        admitted
+    }
+}
+
 #[derive(Clone)]
 pub(crate) struct Context<'a> {
     pub db: &'a Db,
@@ -241,7 +333,13 @@ impl Context<'_> {
         // known secret replacement precedes both disk and hot projection.
         redact_string(&mut text, &self.secrets);
         let (body, truncated) = preview(&text, self.limits, tail);
-        if !truncated {
+        if !truncated
+            && existing.is_none_or(|resource| {
+                resource.state == CaptureState::Complete
+                    && resource.admitted_bytes <= self.limits.max_bytes.min(SERVED_CAP) as u64
+                    && resource.admitted_lines <= self.limits.max_lines as u64
+            })
+        {
             return Prepared {
                 text,
                 logging_failed: false,
@@ -278,7 +376,6 @@ impl Context<'_> {
                         | CaptureState::RegisterFailure
                         | CaptureState::ArtifactCap
                         | CaptureState::Quota
-                        | CaptureState::Interrupted
                 );
                 (
                     format!(
@@ -324,6 +421,32 @@ impl Context<'_> {
         Prepared {
             text: format!("{body}{notice}"),
             logging_failed,
+        }
+    }
+
+    /// A stream has already admitted and captured its complete text. The hot
+    /// tail may itself fit the limit; resource facts still require a reference.
+    /// No second writer or cold payload is created, including on capture failure.
+    pub(crate) fn prepare_stream(
+        &self,
+        text: String,
+        resource: Option<&Resource>,
+        failure: Option<CaptureState>,
+    ) -> Prepared {
+        match resource {
+            Some(resource) => self.prepare(text, true, false, Some(resource)),
+            None => {
+                let (body, _) = preview(&text, self.limits, true);
+                Prepared {
+                    text: format!(
+                        "{body}\n[tool output: tail preview; capture {:?}; no usable path; original execution was not repeated; source {} generation {}]",
+                        failure.unwrap_or(CaptureState::Io),
+                        self.source,
+                        self.generation
+                    ),
+                    logging_failed: true,
+                }
+            }
         }
     }
 

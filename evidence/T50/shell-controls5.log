@@ -1,0 +1,17 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.67s
+     Running unittests src/lib.rs (target/debug/deps/oc_adapters-ed9aaed69dd516e3)
+
+running 10 tests
+test shell::jobs::output_tests::tool21_shell_cap_and_shared_quota_keep_draining_effects_and_bounded_hot_state ... ok
+test shell::jobs::output_tests::tool21_shell_captures_distant_stdout_before_recent_discard ... ok
+test shell::jobs::output_tests::tool21_shell_split_secret_utf8_observed_streams_live_lease_and_io_loss ... ok
+test shell::jobs::output_tests::tool21_shell_stalled_publication_has_no_queue_and_selected_cancel_joins ... ok
+test shell::jobs::tests::tool13_cancelled_owner_wait_keeps_worker_then_failed_join_is_durable_and_sticky ... ok
+test shell::jobs::tests::tool13_completion_before_conversion_returns_terminal_once_without_notice ... ok
+test shell::jobs::tests::tool13_conversion_retains_pid_admission_capture_and_final_view_after_removal ... ok
+test shell::jobs::tests::tool13_early_wake_cannot_strand_join_or_capacity_when_owner_returns_idle ... ok
+test shell::jobs::tests::tool13_held_owned_shell_output_is_readable_before_terminal ... ok
+test shell::jobs::tests::tool13_selected_child_kill_does_not_cancel_sibling_parent_or_foreign_source ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 446 filtered out; finished in 22.26s
+

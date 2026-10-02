@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-02T10:38:57+00:00
+State updated: 2026-10-02T15:17:53+00:00
 Active: T50
 
 Сверить Git status/diff до выполнения команд.
@@ -13,13 +13,13 @@ Owner-approved selected R1–R10; detailed contract/slices in spec/M8. Shell com
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-Common output/config/resource/access atomic verified; T50 active.
+Full shell producer capture verified; T50 active.
 ## Checks
-Workspace1442; parent22 +10 native cases; Python47 PASS.
+Workspace1450; parent24 +26 native cases; Python47 PASS.
 ## Risks
-Full shell capture/R10 open; T44 paused; paid allowance exhausted.
+Remaining amended tools/profile acceptance open; T44 paused; live allowance exhausted.
 ## Next
-Integrate the existing resource writer into real shell drains before discard.
+Reconcile remaining T50 obligations against current owner amendments.
 
 
 Ready (до 5): T53, T56

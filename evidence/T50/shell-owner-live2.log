@@ -1,0 +1,30 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.25s
+     Running unittests src/lib.rs (target/debug/deps/oc_adapters-ed9aaed69dd516e3)
+
+running 22 tests
+test application::tests::review_tests::tool21_failed_output_reload_keeps_published_generation_and_safe_diagnostics ... ok
+test config::tool_output_tests::tool21_invalid_output_limits_fail_before_generation_publication ... ok
+test config::tool_output_tests::tool21_latest_complete_section_defaults_and_provenance ... ok
+test shell::jobs::output_tests::tool21_shell_cap_and_shared_quota_keep_draining_effects_and_bounded_hot_state ... ok
+test shell::jobs::output_tests::tool21_shell_captures_distant_stdout_before_recent_discard ... ok
+test shell::jobs::output_tests::tool21_shell_logging_event_failure_keeps_durable_exit_and_effect_without_replay ... ok
+test shell::jobs::output_tests::tool21_shell_split_secret_utf8_observed_streams_live_lease_and_io_loss ... ok
+test shell::jobs::output_tests::tool21_shell_stalled_publication_has_no_queue_and_selected_cancel_joins ... ok
+test storage::tool_output::tests::tool21_actual_oversized_question_has_one_cold_payload_and_restart_presentation ... ok
+test storage::tool_output::tests::tool21_concurrent_blob_and_registered_writers_share_exclusive_quota ... ok
+test storage::tool_output::tests::tool21_distant_stream_continuation_lineage_restart_and_no_recursive_copy ... ok
+test storage::tool_output::tests::tool21_explicit_family_delete_respects_writer_and_orphan_reader_leases ... ok
+test storage::tool_output::tests::tool21_publication_fault_never_promises_unregistered_renamed_file ... ok
+test storage::tool_output::tests::tool21_registered_identity_swap_interruption_and_blob_orphan_quota ... ok
+test storage::tool_output::tests::tool21_registered_stream_cap_redaction_leases_and_shared_quota ... ok
+test tools::output::tests::tool21_donor_count_utf8_head_tail_and_tiny_limits ... ok
+test tools::output::tests::tool21_mcp_joined_text_metadata_not_bypass_structured_error_facts_survive ... ok
+test tools::output::tests::tool21_prepared_envelope_retains_controls_no_metadata_bypass ... ok
+test tools::output::tests::tool21_question_control_presentation_survives_common_limits ... ok
+test tools::output::tests::tool21_redaction_small_json_and_escaped_prose_stay_valid_and_served ... ok
+test tools::output::tests::tool21_stream_redactor_publishes_benign_live_suffix_and_protects_overlapping_secrets ... ok
+test tools::output::tests::tool21_structured_only_mcp_text_joins_cold_capture_and_escaped_hot_facts_are_bounded ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 436 filtered out; finished in 31.69s
+

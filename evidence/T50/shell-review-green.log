@@ -1,0 +1,10 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 30.92s
+     Running unittests src/lib.rs (target/debug/deps/oc_adapters-ed9aaed69dd516e3)
+
+running 2 tests
+test shell::jobs::output_tests::tool21_review_safe_publication_order_has_original_raw_read_provenance ... ok
+test shell::jobs::output_tests::tool21_review_short_interrupted_capture_is_explicit_without_falsifying_exit ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 458 filtered out; finished in 1.36s
+

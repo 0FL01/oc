@@ -1,0 +1,15 @@
+    Checking oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Checking oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)
+    Checking oc v0.1.0 (/home/opencode/ai/oc/crates/oc)
+error: this expression creates a reference which is immediately dereferenced by the compiler
+  --> crates/oc-adapters/src/shell/jobs/output_tests.rs:66:34
+   |
+66 |     db.record_tool_outcome("op", &state, Some(&text)).unwrap();
+   |                                  ^^^^^^ help: change this to: `state`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#needless_borrow
+   = note: `-D clippy::needless-borrow` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::needless_borrow)]`
+
+error: could not compile `oc-adapters` (lib test) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

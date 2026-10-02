@@ -7,6 +7,12 @@ use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 
 pub(crate) const ACTIVE_JOB_CAP: usize = 8;
+mod output;
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum Stream {
+    Stdout,
+    Stderr,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -124,6 +130,12 @@ pub(crate) struct Outcome {
     pub stderr_recent: Option<String>,
     #[serde(default)]
     pub output_prepared: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capture: Option<crate::storage::tool_output::Resource>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capture_facts: Option<crate::storage::tool_output::ShellStreams>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capture_failure: Option<crate::storage::tool_output::CaptureState>,
 }
 
 impl Outcome {
@@ -145,6 +157,9 @@ impl Outcome {
             stdout_recent: None,
             stderr_recent: None,
             output_prepared: false,
+            capture: None,
+            capture_facts: None,
+            capture_failure: None,
         }
     }
 
@@ -176,6 +191,9 @@ impl Outcome {
                 stdout_recent: None,
                 stderr_recent: None,
                 output_prepared: false,
+                capture: None,
+                capture_facts: None,
+                capture_failure: None,
             },
             Err(error) => {
                 let mut outcome = Self::unknown(&format!("shell supervisor: {error}"));
@@ -267,6 +285,7 @@ pub(super) struct Capture {
     pub(super) stdout: Arc<Mutex<DrainState>>,
     pub(super) stderr: Arc<Mutex<DrainState>>,
     pub(super) wake: Arc<tokio::sync::Notify>,
+    stream: Arc<Mutex<output::StreamCapture>>,
 }
 
 impl Capture {
@@ -275,7 +294,33 @@ impl Capture {
             stdout: Arc::default(),
             stderr: Arc::default(),
             wake,
+            stream: Arc::new(Mutex::new(output::StreamCapture::new())),
         })
+    }
+    pub(super) fn shared(&self) -> Self {
+        Self {
+            stdout: self.stdout.clone(),
+            stderr: self.stderr.clone(),
+            wake: self.wake.clone(),
+            stream: self.stream.clone(),
+        }
+    }
+
+    pub(super) fn ingest(&self, stream: Stream, bytes: &[u8], end: bool, complete: bool) {
+        let mut capture = self.stream.lock().expect("stream admission");
+        let admitted = capture.ingest(stream, bytes, end, complete);
+        let state = match stream {
+            Stream::Stdout => &self.stdout,
+            Stream::Stderr => &self.stderr,
+        };
+        let mut state = state.lock().expect("stream recent");
+        state.total = state.total.saturating_add(bytes.len() as u64);
+        output::retain(&mut state, &admitted);
+        if end {
+            state.done = true;
+        }
+        drop(state);
+        self.wake.notify_one();
     }
 
     fn text(&self) -> String {
@@ -382,6 +427,11 @@ impl Jobs {
         let owned_control = control.clone();
         let output_provenance = provenance.clone();
         let task = tokio::task::spawn_blocking(move || {
+            owned_capture
+                .stream
+                .lock()
+                .expect("stream admission")
+                .begin(&db, &output_provenance, output_secrets.clone());
             let result = shell.execute_pinned_started(
                 &env,
                 &argv,
@@ -390,7 +440,7 @@ impl Jobs {
                 ShellLimits {
                     timeout,
                     kill_grace: Duration::from_millis(500),
-                    retain_cap: RETAIN_CAP_BYTES,
+                    retain_cap: output::RECENT_CAP,
                 },
                 &owned_cancel,
                 Some(&approved),
@@ -409,10 +459,33 @@ impl Jobs {
                     Ok(())
                 },
             );
+            let producer_interrupted = result.as_ref().is_ok_and(|r| r.capture_interrupted);
             let mut outcome = Outcome::from_result(result);
+            let execution_state = outcome.state.clone();
+            let mut logging_failed = false;
             outcome.stdout_bytes = owned_capture.stdout.lock().expect("stdout capture").total;
             outcome.stderr_bytes = owned_capture.stderr.lock().expect("stderr capture").total;
             let p = &output_provenance;
+            let (tail, resource, capture_failed) = owned_capture
+                .stream
+                .lock()
+                .expect("stream admission")
+                .finish(
+                    &db,
+                    p,
+                    outcome.cancelled
+                        || outcome.timeout
+                        || outcome.signal.is_some()
+                        || producer_interrupted
+                        || outcome.state == "unknown",
+                );
+            outcome.capture_facts = Some(
+                owned_capture
+                    .stream
+                    .lock()
+                    .expect("stream admission")
+                    .facts(),
+            );
             let context = crate::tools::output::Context {
                 db: &db,
                 operation: &operation,
@@ -428,46 +501,37 @@ impl Jobs {
             if let Some(diagnostic) = outcome.diagnostic.as_mut() {
                 crate::tools::output::redact_string(diagnostic, &context.secrets);
             }
-            let text_bytes = outcome
-                .stdout
-                .len()
-                .saturating_add(outcome.stderr.len())
-                .saturating_add(if outcome.stderr.is_empty() { 0 } else { 10 });
-            let text_lines = crate::tools::output::lines(&outcome.stdout)
-                + crate::tools::output::lines(&outcome.stderr)
-                + u64::from(!outcome.stderr.is_empty());
-            if text_bytes > p.output_limits.bytes() || text_lines > p.output_limits.max_lines as u64
-            {
+            let oversized = resource.as_ref().is_some_and(|r| {
+                r.admitted_bytes > p.output_limits.bytes() as u64
+                    || r.admitted_lines > p.output_limits.max_lines as u64
+            });
+            outcome.capture = resource.clone();
+            outcome.capture_failure = owned_capture
+                .stream
+                .lock()
+                .expect("stream admission")
+                .failure();
+            // Producer loss is separate from a storage failure or leader exit.
+            // Even a short interrupted prefix must advertise its capture state.
+            let incomplete = resource
+                .as_ref()
+                .is_some_and(|r| r.state != crate::storage::tool_output::CaptureState::Complete);
+            if oversized || incomplete || capture_failed || outcome.cancelled || outcome.timeout {
                 let recent_cap = (crate::storage::TOOL_OP_PREVIEW_BYTES - 128) / 2;
                 outcome.stdout_recent = Some(recent(&outcome.stdout, recent_cap));
                 outcome.stderr_recent = Some(recent(&outcome.stderr, recent_cap));
                 // These are separately admitted bounded UI stream facts, not
                 // the provider text or a second full capture owner.
-                for text in [&mut outcome.stdout_recent, &mut outcome.stderr_recent]
-                    .into_iter()
-                    .flatten()
-                {
-                    *text = recent(text, recent_cap);
-                }
-                // Move the retained producer strings into one admitted text
-                // owner; do not clone a multi-megabyte Outcome into text().
-                let mut retained = std::mem::take(&mut outcome.stdout);
                 outcome.output_prepared = true;
-                if !outcome.stderr.is_empty() {
-                    retained.push_str("\n[stderr]\n");
-                    retained.push_str(&std::mem::take(&mut outcome.stderr));
-                }
-                let prepared = context.prepare(
-                    retained,
-                    true,
-                    outcome.stdout_truncated || outcome.stderr_truncated,
-                    None,
-                );
+                let prepared =
+                    context.prepare_stream(tail, resource.as_ref(), outcome.capture_failure);
                 outcome.stdout = prepared.text;
                 outcome.stderr.clear();
-                if prepared.logging_failed {
-                    db.record_output_execution(&operation, &outcome.state)?;
-                    if outcome.state != "unknown" {
+                if capture_failed
+                    || (prepared.logging_failed && !outcome.cancelled && !outcome.timeout)
+                {
+                    logging_failed = true;
+                    if matches!(outcome.state.as_str(), "completed" | "failed") {
                         outcome.state = "failed".into();
                     }
                     outcome.diagnostic = Some(
@@ -477,7 +541,15 @@ impl Jobs {
                 }
             }
             let mut control = owned_control.lock().expect("shell control");
-            let result = db.finish_shell_job(&operation, &outcome);
+            // Freeze known process effects/exit first. A failure recording the
+            // separate logging event must not replace them with invented unknown.
+            let result = db.finish_shell_job(&operation, &outcome).and_then(|()| {
+                if logging_failed {
+                    db.record_output_execution(&operation, &execution_state)
+                } else {
+                    Ok(())
+                }
+            });
             control.finished = true;
             if result.is_err() || outcome.state == "unknown" {
                 failed.store(true, Ordering::Release);
@@ -608,7 +680,7 @@ impl Jobs {
     ) -> Result<oc_core::queries::ShellSnapshot, StorageError> {
         let job = self.db.shell_job_identity(session, id)?;
         let phase = self.db.shell_job_phase(session, id)?;
-        let cap = (crate::storage::TOOL_OP_PREVIEW_BYTES - 128) / 2;
+        let cap = (crate::storage::TOOL_OP_PREVIEW_BYTES - 256) / 2;
         let (state, stdout, stderr, stdout_cursor, stderr_cursor, truncated) = if phase
             == "terminal"
         {
@@ -641,7 +713,7 @@ impl Jobs {
                 out.truncated || err.truncated || out.bytes.len() > cap || err.bytes.len() > cap,
             )
         };
-        let text = format!(
+        let mut text = format!(
             "status: {state}\n{stdout}{}{}",
             if stderr.is_empty() {
                 String::new()
@@ -650,6 +722,12 @@ impl Jobs {
             },
             if truncated { "\n[truncated]" } else { "" }
         );
+        if let Some(resource) = self.db.output_for_operation(id)? {
+            text.push_str(&format!(
+                "\n[capture {} {:?}, published {} bytes]",
+                resource.id, resource.state, resource.bytes
+            ));
+        }
         Ok(oc_core::queries::ShellSnapshot {
             job,
             state,
@@ -877,6 +955,8 @@ impl Drop for Jobs {
     }
 }
 
+#[cfg(test)]
+mod output_tests;
 #[cfg(test)]
 mod tests;
 

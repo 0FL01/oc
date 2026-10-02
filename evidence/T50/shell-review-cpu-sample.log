@@ -1,0 +1,308 @@
+    PID    PPID STAT %CPU COMMAND
+      1       0 Ss    0.2 systemd
+      2       0 S     0.0 kthreadd
+      3       2 S     0.0 pool_workqueue_release
+      4       2 I<    0.0 kworker/R-kvfree_rcu_reclaim
+      5       2 I<    0.0 kworker/R-rcu_gp
+      6       2 I<    0.0 kworker/R-sync_wq
+      7       2 I<    0.0 kworker/R-slub_flushwq
+      8       2 I<    0.0 kworker/R-netns
+     12       2 I     0.0 kworker/u24:0-netns
+     13       2 I<    0.0 kworker/R-mm_percpu_wq
+     14       2 I     0.0 rcu_tasks_kthread
+     15       2 I     0.0 rcu_tasks_rude_kthread
+     16       2 I     0.0 rcu_tasks_trace_kthread
+     17       2 S     0.0 ksoftirqd/0
+     18       2 I     0.0 rcu_preempt
+     19       2 S     0.0 rcu_exp_par_gp_kthread_worker/0
+     20       2 S     0.0 rcu_exp_gp_kthread_worker
+     21       2 S     0.0 migration/0
+     22       2 S     0.0 idle_inject/0
+     23       2 S     0.0 cpuhp/0
+     24       2 S     0.0 cpuhp/1
+     25       2 S     0.0 idle_inject/1
+     26       2 S     0.0 migration/1
+     27       2 S     0.0 ksoftirqd/1
+     30       2 S     0.0 cpuhp/2
+     31       2 S     0.0 idle_inject/2
+     32       2 S     0.0 migration/2
+     33       2 S     0.0 ksoftirqd/2
+     35       2 I<    0.0 kworker/2:0H-events_highpri
+     36       2 S     0.0 cpuhp/3
+     37       2 S     0.0 idle_inject/3
+     38       2 S     0.0 migration/3
+     39       2 S     0.0 ksoftirqd/3
+     42       2 S     0.0 cpuhp/4
+     43       2 S     0.0 idle_inject/4
+     44       2 S     0.0 migration/4
+     45       2 S     0.0 ksoftirqd/4
+     47       2 I<    0.0 kworker/4:0H-events_highpri
+     48       2 S     0.0 cpuhp/5
+     49       2 S     0.0 idle_inject/5
+     50       2 S     0.0 migration/5
+     51       2 S     0.0 ksoftirqd/5
+     53       2 I<    0.0 kworker/5:0H-events_highpri
+     69       2 S     0.0 kdevtmpfs
+     70       2 I<    0.0 kworker/R-inet_frag_wq
+     71       2 S     0.0 kauditd
+     72       2 S     0.0 khungtaskd
+     73       2 S     0.0 oom_reaper
+     74       2 I<    0.0 kworker/R-writeback
+     75       2 S     0.2 kcompactd0
+     76       2 SN    0.0 ksmd
+     77       2 SN    0.0 khugepaged
+     78       2 I<    0.0 kworker/R-kintegrityd
+     79       2 I<    0.0 kworker/R-kblockd
+     80       2 I<    0.0 kworker/R-blkcg_punt_bio
+     81       2 S     0.0 irq/9-acpi
+     84       2 I<    0.0 kworker/R-tpm_dev_wq
+     85       2 I<    0.0 kworker/R-edac-poller
+     86       2 I     0.0 kworker/u24:1
+     87       2 I<    0.0 kworker/R-devfreq_wq
+     88       2 I<    0.0 kworker/R-quota_events_unbound
+     91       2 I<    0.0 kworker/0:1H-kblockd
+     92       2 S     0.4 kswapd0
+    101       2 I<    0.0 kworker/R-kthrotld
+    105       2 I<    0.0 kworker/R-acpi_thermal_pm
+    106       2 I<    0.0 kworker/R-kstrp
+    108       2 I<    0.0 kworker/u31:0
+    109       2 I<    0.0 kworker/u32:0
+    110       2 I<    0.0 kworker/u33:0
+    111       2 I<    0.0 kworker/u34:0
+    112       2 I<    0.0 kworker/u35:0
+    113       2 I<    0.0 kworker/u36:0
+    114       2 I<    0.0 kworker/u37:0
+    167       2 I<    0.0 kworker/2:1H-kblockd
+    210       2 I<    0.0 kworker/1:1H-kblockd
+    242       2 I<    0.0 kworker/5:1H-kblockd
+    249       2 I<    0.0 kworker/R-ata_sff
+    250       2 S     0.0 scsi_eh_0
+    251       2 I<    0.0 kworker/R-scsi_tmf_0
+    252       2 S     0.0 scsi_eh_1
+    253       2 I<    0.0 kworker/R-scsi_tmf_1
+    256       2 I<    0.0 kworker/R-ttm
+    297       2 S     0.0 jbd2/vda3-8
+    298       2 I<    0.0 kworker/R-ext4-rsv-conversion
+    351       1 Ss    0.0 systemd-journal
+    402       1 Ssl   0.0 systemd-timesyn
+    409       1 Ss    0.0 systemd-udevd
+    448       2 S     0.0 psimon
+    481       2 I<    0.0 kworker/R-cryptd
+    627       2 I<    0.0 kworker/3:2H-kblockd
+    659       2 S     0.0 jbd2/vda2-8
+    660       2 I<    0.0 kworker/R-ext4-rsv-conversion
+    789       1 Ss    0.0 cron
+    790       1 Ss    0.0 dbus-daemon
+    799       1 Ssl   0.0 qemu-ga
+    802       1 Ss    0.0 systemd-logind
+    804       1 Ssl   0.8 warp-svc
+    825       1 S<    0.0 atopacctd
+    938       1 Ssl   0.8 containerd
+    940       1 Ss+   0.0 agetty
+    943       1 Ss    0.0 systemd
+    944       1 Ss    0.0 systemd
+    946       1 Ss    0.0 systemd
+    948       1 Ss    0.0 sshd
+    957     946 S     0.0 (sd-pam)
+    958     943 S     0.0 (sd-pam)
+    959     944 S     0.0 (sd-pam)
+    981       1 Ss    0.0 nginx
+   1094       1 Ssl   1.3 dockerd
+   2224       1 Sl    0.0 containerd-shim
+   2229       1 Sl    0.0 containerd-shim
+   2285       1 Sl    0.0 containerd-shim
+   2294       1 Sl    0.0 containerd-shim
+   2456       1 Sl    0.1 containerd-shim
+   2505       1 Sl    0.0 containerd-shim
+   2552       1 Sl    0.0 containerd-shim
+   2579       1 Sl    0.2 containerd-shim
+   2580    2229 Ss    0.0 docker-init
+   2585    2224 Ssl   0.2 redis-server
+   2647    2294 Ssl   0.0 xray
+   2750    2505 Ssl   0.0 mailpuff
+   2792    2285 Ss    0.0 nginx
+   2809    2456 Ssl   0.1 uvicorn
+   2897    2579 Ss    0.0 postgres
+   2903    2552 Ssl   0.0 ots
+   3049    1094 Sl    0.0 docker-proxy
+   3134    2580 Sl    0.0 repoxide-server
+   3253    1094 Sl    0.0 docker-proxy
+   3306    1094 Sl    0.0 docker-proxy
+   3389    1094 Sl    0.0 docker-proxy
+   3404    1094 Sl    0.0 docker-proxy
+   3433    1094 Sl    0.0 docker-proxy
+   3505    2792 S     0.0 nginx
+   3506    2792 S     0.0 nginx
+   3507    2792 S     0.0 nginx
+   3508    2792 S     0.0 nginx
+   3509    2792 S     0.0 nginx
+   3510    2792 S     0.0 nginx
+   3603    2897 Ss    0.0 postgres
+   3606    2897 Ss    0.0 postgres
+   3607    2897 Ss    0.0 postgres
+   3609    2897 Ss    0.0 postgres
+   3610    2897 Ss    0.0 postgres
+   3634    2897 Ss    0.0 postgres
+   3635    2897 Ss    0.0 postgres
+   3636    2897 Ss    0.0 postgres
+   4376       1 Ss    0.0 systemd
+   4378    4376 S     0.0 (sd-pam)
+   4513       1 Ss    0.0 ssh-agent
+  25315       1 Sl    0.0 containerd-shim
+  25350   25315 Ssl   0.0 authelia
+  25393    1094 Sl    0.0 docker-proxy
+  65628       1 Ssl   0.0 polkitd
+ 203747     944 Sl    0.0 containerd-shim
+ 203775  203747 Ss    0.0 docker-init
+ 203789  203775 S     0.0 sleep
+ 207946     948 Ss    0.0 sshd-session
+ 207958  207946 S     0.2 sshd-session
+ 207961  207958 Ss+   0.0 fish
+ 207963  207961 S+    0.1 sudo
+ 207965  207963 Ss    0.0 sudo
+ 207966  207965 S+    0.0 tmux: client
+ 208025     948 Ss    0.0 sshd-session
+ 208038  208025 S     0.2 sshd-session
+ 208040  208038 Ss+   0.0 fish
+ 208042  208040 S+    0.1 sudo
+ 208044  208042 Ss    0.0 sudo
+ 208045  208044 S+    0.0 tmux: client
+ 395799 2640310 Ss+   0.0 zsh
+ 429422 4097762 S     0.0 socat
+ 430267 4097762 S     0.0 socat
+ 440817       1 Ss    0.6 tmux: server
+ 441065  440817 Ss    0.0 zsh
+ 525807     948 Ss    0.0 sshd-session
+ 525839  525807 S     0.1 sshd-session
+ 525840  525839 Ss+   0.0 fish
+ 525842  525840 S+    0.0 sudo
+ 525844  525842 Ss    0.0 sudo
+ 525845  525844 S+    0.0 tmux: client
+ 525914 3115491 Rl+  42.2 opencode
+ 534260  440817 Ss    0.0 zsh
+ 546070       1 Ssl+  0.0 oc
+ 546223 1548011 Sl+   123 opencode
+ 597198       2 I     0.0 kworker/u29:3-events_unbound
+ 650934       2 I     0.0 kworker/u27:1-flush-254:0
+ 668193       1 Ssl+  0.0 oc
+ 698041       2 I     0.0 kworker/u29:2-events_unbound
+ 698983       2 I     0.0 kworker/u30:3-events_unbound
+ 699654       2 I     0.0 kworker/u25:0-events_unbound
+ 709347       2 I     0.0 kworker/u30:1-events_unbound
+ 716548       2 I     0.0 kworker/u27:0-ext4-rsv-conversion
+ 722190       2 I     0.0 kworker/u26:0-ext4-rsv-conversion
+ 723029       2 I     0.0 kworker/u28:0-flush-254:0
+ 731513       2 I     0.0 kworker/u27:3-events_unbound
+ 754271       2 I     0.0 kworker/u25:2-events_unbound
+ 755607       2 I     0.0 kworker/u26:1-events_unbound
+ 763807       2 I     0.0 kworker/2:1-cgroup_free
+ 764408       2 I     0.0 kworker/5:0-cgroup_free
+ 764938       2 I     0.0 kworker/0:0-cgroup_free
+ 765974       2 I     0.0 kworker/1:1-cgroup_release
+ 769718    2897 Ss    0.0 postgres
+ 771244       2 I     0.0 kworker/4:1-mm_percpu_wq
+ 772490       2 I     0.0 kworker/u25:1-events_unbound
+ 773159       2 I     0.0 kworker/3:2-cgroup_release
+ 773275    2897 Ss    0.0 postgres
+ 773276    2897 Ss    0.0 postgres
+ 773748       2 I     0.0 kworker/u30:0-events_unbound
+ 773830       2 I     0.0 kworker/u26:3
+ 774251    2897 Ss    0.0 postgres
+ 774877       2 I     0.0 kworker/u28:1-events_unbound
+ 775988       2 I     0.0 kworker/u29:1
+ 776071       2 I     0.0 kworker/u28:3-events_unbound
+ 778137       2 I     0.0 kworker/0:1-events
+ 779701       2 I     0.0 kworker/3:1-mm_percpu_wq
+ 781354       2 I     0.0 kworker/1:0-mm_percpu_wq
+ 783729       2 I     0.0 kworker/2:0-mm_percpu_wq
+ 784644       2 I     0.0 kworker/4:2-cgroup_free
+ 785314     948 Ss    0.0 sshd-session
+ 785345  785314 S     0.0 sshd-session
+ 785346  785345 Ss+   0.0 fish
+ 785348  785346 S+    0.0 sudo
+ 785350  785348 Ss    0.0 sudo
+ 785351  785350 S+    0.0 tmux: client
+ 786594       2 I     0.0 kworker/5:2-mm_percpu_wq
+ 787070  534260 Sl+   1.8 oc
+ 787348       2 I     0.0 kworker/u25:3
+ 787660       2 I     0.0 kworker/3:0-cgroup_release
+ 787967       2 I     0.0 kworker/0:2-ata_sff
+ 789044       2 I     0.0 kworker/u30:2
+ 789971       2 I     0.0 kworker/1:2-cgroup_free
+ 790404       2 I     0.0 kworker/4:0-cgroup_free
+ 790748       2 I     0.0 kworker/2:2
+ 791705  546223 Rs   60.0 python3
+ 791706 4097699 Dl   33.3 runc
+ 791718  791706 Ssl   0.0 runc:[2:INIT]
+ 791724  791705 Rs    0.0 ps
+ 939433  440817 Ss+   0.0 zsh
+ 969363       1 Sl    0.1 containerd-shim
+ 969388  969363 Ssl   0.0 fuel-bot
+1417027     943 Ssl   0.0 rootlesskit
+1417031     944 Ssl   0.0 rootlesskit
+1417065 1417031 Sl    0.0 exe
+1417077 1417027 Sl    0.0 exe
+1417149 1417027 S     0.0 slirp4netns
+1417151 1417031 S     0.0 slirp4netns
+1417166 1417065 Sl    0.0 dockerd
+1417174 1417077 Sl    0.0 dockerd
+1417214 1417166 Ssl   0.0 containerd
+1417216 1417174 Ssl   0.0 containerd
+1417618     946 Ssl   0.0 rootlesskit
+1417628 1417618 Sl    0.0 exe
+1417649 1417618 S     0.0 slirp4netns
+1417657 1417628 Sl    0.0 dockerd
+1417679 1417657 Ssl   0.0 containerd
+1417909     946 Ssl   0.0 node
+1417923 1417909 Sl    1.7 opencode
+1438610 1417923 Sl    0.0 ssh-mcp
+1522015       1 Ssl+  0.0 oc
+1548011  440817 Ss    0.0 zsh
+1548070     944 Ss    0.0 ssh-agent
+1984635 2640758 Sl+   0.7 docker
+2208332       2 I<    0.0 kworker/0:2H-kblockd
+2225209       1 Ssl+  0.0 oc
+2225236       1 Ssl+  0.0 oc
+2489378  440817 Ss+   0.0 zsh
+2554030     981 S     0.0 nginx
+2554031     981 S     0.0 nginx
+2554032     981 S     0.0 nginx
+2554033     981 S     0.0 nginx
+2554034     981 S     0.0 nginx
+2554035     981 S     0.0 nginx
+2587547       2 I<    0.0 kworker/1:0H
+2640310       1 Ss    0.1 tmux: server
+2640311 2640310 Ss+   0.0 zsh
+2640758 2640310 Ss    0.0 zsh
+2864390     944 Ss    0.0 dbus-daemon
+3115491  440817 Ss    0.0 zsh
+3156844       2 I<    0.0 kworker/3:0H
+3283974       1 Sl    0.1 containerd-shim
+3283999 3283974 Ss    0.0 tini
+3284037    1094 Sl    0.1 docker-proxy
+3284052 3283999 Sl    0.4 openproxy
+3376992  441065 Rl+  82.8 opencode
+3377054 3376992 SLl+  0.0 ssh-mcp
+3377055 3376992 SLl+  0.0 ssh-mcp
+3491600       2 I<    0.0 kworker/4:2H-kblockd
+3785360       1 S<Ls  0.0 atop
+3810891       2 I<    0.0 kworker/R-zswap-shrink
+3826240       2 S     0.0 psimon
+3934766     946 Ss    0.0 ssh-agent
+4097310       1 Sl    0.1 containerd-shim
+4097335 4097310 Ssl   0.0 crw-server
+4097376    1094 Sl    0.0 docker-proxy
+4097449       1 Sl    0.1 containerd-shim
+4097472 4097449 Ss    0.0 tini
+4097506 4097472 Sl    0.0 lightpanda
+4097565       1 Sl    0.1 containerd-shim
+4097591 4097565 Ssl   0.0 searxng
+4097699       1 Sl    0.1 containerd-shim
+4097724 4097699 Ssl   0.0 headless-shell
+4097730 4097591 S     0.0 python3
+4097731 4097591 Sl    0.0 searxng worker-
+4097762 4097724 S     0.0 socat
+4097764 4097724 S     0.0 headless-shell
+4097765 4097724 S     0.0 headless-shell
+4097782 4097764 Sl    0.0 headless-shell
+4097786 4097724 Sl    0.0 headless-shell

@@ -1,0 +1,3 @@
+  File "/home/opencode/ai/oc/evidence/T50/native_tool_output_common.py", line 118
+    if case in ("quota","shell_quota","shell_cap"):
+IndentationError: unexpected indent

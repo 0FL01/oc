@@ -87,6 +87,8 @@ pub struct ShellOutcome {
     pub cancelled: bool,
     /// Wall-clock elapsed.
     pub elapsed: Duration,
+    /// A drain window required disposing of a producer holding an output pipe.
+    pub capture_interrupted: bool,
 }
 
 /// Per-call limits (tests shrink these; product uses larger values).
@@ -339,12 +341,12 @@ impl Shell {
         let out = spawn_drain_live(
             child.process.stdout.take(),
             cap,
-            capture.map(|c| (&c.stdout, &c.wake)),
+            capture.map(|c| (c, jobs::Stream::Stdout)),
         );
         let err = spawn_drain_live(
             child.process.stderr.take(),
             cap,
-            capture.map(|c| (&c.stderr, &c.wake)),
+            capture.map(|c| (c, jobs::Stream::Stderr)),
         );
 
         let mut outcome_kind = OutcomeKind::Exited;
@@ -372,6 +374,7 @@ impl Shell {
         // Leader exit is not group completion: a descendant may still hold
         // the pipes open. A normal exit first gets a bounded drain window,
         // then the owned group is removed so the reader threads can finish.
+        let mut capture_interrupted = false;
         if outcome_kind == OutcomeKind::Exited {
             wait_drains(
                 &out,
@@ -380,6 +383,7 @@ impl Shell {
                 Instant::now() + limits.kill_grace,
             );
             if finish_group || !drains_finished(&out, &err, stdin_done.as_ref()) {
+                capture_interrupted = !drains_finished(&out, &err, stdin_done.as_ref());
                 kill_group(pid, limits.kill_grace);
             }
         }
@@ -408,6 +412,7 @@ impl Shell {
             timed_out: outcome_kind == OutcomeKind::TimedOut,
             cancelled: outcome_kind == OutcomeKind::Cancelled,
             elapsed: start.elapsed(),
+            capture_interrupted,
         })
     }
 
@@ -566,12 +571,13 @@ enum OutcomeKind {
 
 /// Bounded concurrent pipe drain shared with the supervisor.
 ///
-/// Retains `cap` bytes, keeps draining past the cap while flagging
-/// truncation (so a flooding child never blocks on a full pipe), and marks
-/// completion under the same lock. The supervisor reads partial output
-/// without ever joining the thread unboundedly.
+/// Jobs admit bytes to their registered writer before bounded recent retention;
+/// low-level one-shot callers retain their bounded prefix. Nonblocking pipe reads
+/// honor supervisor stop, and every owned reader joins before capture finalization.
 struct Drain {
     state: Arc<Mutex<DrainState>>,
+    stop: Arc<AtomicBool>,
+    join: Option<std::thread::JoinHandle<()>>,
 }
 
 #[derive(Default)]
@@ -587,63 +593,104 @@ impl Drain {
         self.state.lock().expect("drain state").done
     }
 
-    fn take(&self) -> (Vec<u8>, bool) {
-        let guard = self.state.lock().expect("drain state");
-        (guard.bytes.clone(), guard.truncated)
+    fn take(mut self) -> (Vec<u8>, bool) {
+        self.stop.store(true, Ordering::Release);
+        if let Some(join) = self.join.take() {
+            let _ = join.join();
+        }
+        let mut guard = self.state.lock().expect("drain state");
+        (std::mem::take(&mut guard.bytes), guard.truncated)
+    }
+}
+impl Drop for Drain {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::Release);
+        if let Some(join) = self.join.take() {
+            let _ = join.join();
+        }
     }
 }
 
-fn spawn_drain_live<R: Read + Send + 'static>(
+fn spawn_drain_live<R: Read + AsRawFd + Send + 'static>(
     pipe: Option<R>,
     cap: usize,
-    live: Option<(&Arc<Mutex<DrainState>>, &Arc<tokio::sync::Notify>)>,
+    live: Option<(&jobs::Capture, jobs::Stream)>,
 ) -> Drain {
     let state = live.map_or_else(
         || Arc::new(Mutex::new(DrainState::default())),
-        |(state, _)| state.clone(),
+        |(capture, stream)| match stream {
+            jobs::Stream::Stdout => capture.stdout.clone(),
+            jobs::Stream::Stderr => capture.stderr.clone(),
+        },
     );
-    let wake = live.map(|(_, wake)| wake.clone());
+    // Borrowed capture lives in the supervisor; the drain holds the same owned
+    // Arc via a scoped clone supplied by Jobs, not a second capture lifetime.
+    let live = live.map(|(capture, stream)| (capture.shared(), stream));
     let worker = state.clone();
-    std::thread::spawn(move || {
+    let stop = Arc::new(AtomicBool::new(false));
+    let stopping = stop.clone();
+    let join = std::thread::spawn(move || {
+        let mut complete = true;
         if let Some(mut pipe) = pipe {
-            let mut tmp = [0u8; 8192];
-            loop {
-                match pipe.read(&mut tmp) {
-                    Ok(0) | Err(_) => break,
-                    Ok(n) => {
-                        let mut guard = worker.lock().expect("drain state");
-                        guard.total = guard.total.saturating_add(n as u64);
-                        if wake.is_some() {
-                            // A bounded recent window uses the actual drain buffer, not
-                            // a second output copy or a transcript-derived approximation.
-                            let excess = guard.bytes.len().saturating_add(n).saturating_sub(cap);
-                            if excess > 0 {
-                                let drop = excess.min(guard.bytes.len());
-                                guard.bytes.drain(..drop);
-                                guard.truncated = true;
-                            }
+            // Nonblocking pipe reads permit bounded teardown even if an escaped
+            // descendant holds a descriptor. No detached reader survives return.
+            let fd = pipe.as_raw_fd();
+            // SAFETY: fd belongs to this drain's pipe and remains live here.
+            let flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
+            // SAFETY: modifies only the owned pipe's open-file status flags.
+            if flags < 0 || unsafe { libc::fcntl(fd, libc::F_SETFL, flags | libc::O_NONBLOCK) } < 0
+            {
+                complete = false;
+            } else {
+                let mut tmp = [0u8; 8192];
+                loop {
+                    if stopping.load(Ordering::Acquire) {
+                        complete = false;
+                        break;
+                    }
+                    match pipe.read(&mut tmp) {
+                        Ok(0) => break,
+                        Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                            std::thread::sleep(Duration::from_millis(2));
                         }
-                        let room = cap.saturating_sub(guard.bytes.len());
-                        if room == 0 {
-                            guard.truncated = true;
-                        } else {
-                            let take = n.min(room);
-                            guard.bytes.extend_from_slice(&tmp[..take]);
-                            if take < n {
-                                guard.truncated = true;
-                            }
+                        Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {}
+                        Err(_) => {
+                            complete = false;
+                            break;
                         }
-                        drop(guard);
-                        if let Some(wake) = &wake {
-                            wake.notify_one();
+                        Ok(n) => {
+                            if let Some((capture, stream)) = &live {
+                                capture.ingest(*stream, &tmp[..n], false, true);
+                                continue;
+                            }
+                            let mut guard = worker.lock().expect("drain state");
+                            guard.total = guard.total.saturating_add(n as u64);
+                            let room = cap.saturating_sub(guard.bytes.len());
+                            if room == 0 {
+                                guard.truncated = true;
+                            } else {
+                                let take = n.min(room);
+                                guard.bytes.extend_from_slice(&tmp[..take]);
+                                if take < n {
+                                    guard.truncated = true;
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-        worker.lock().expect("drain state").done = true;
+        if let Some((capture, stream)) = &live {
+            capture.ingest(*stream, &[], true, complete);
+        } else {
+            worker.lock().expect("drain state").done = true;
+        }
     });
-    Drain { state }
+    Drain {
+        state,
+        stop,
+        join: Some(join),
+    }
 }
 
 /// Write the bounded stdin payload off-thread; returns the completion flag.

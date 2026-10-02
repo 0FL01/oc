@@ -318,13 +318,13 @@ legacy compaction.prune remains diagnosed unsupported, not imported OC1 pruning.
 
 Frozen [tool-output contract](goals/2026-09-27-native-tool-parity.md#tool-output--r10tool21-approved-2026-10-01-pending)
 adds a root upstream-compatible section in admitted `opencode.json`/`opencode.jsonc`.
-At RECON HEAD8a4291d13 native `Generation`/loader ignore this section: this is an
-approved target, **not current configurable support**. Do not add it to executable
-examples or rewrite user configuration to imply otherwise.
+Native `Generation` admits this section with whole-section replacement, safe
+validation/provenance and atomic reload. Shell jobs capture it at launch and use
+the same settings for stream previews, conversion and terminal publication.
 
 ```jsonc
 {
-  // Target configuration; both fields are optional, defaults shown.
+  // Both fields are optional; defaults shown.
   "tool_output": {
     "max_lines": 2000,
     "max_bytes": 51200,
@@ -364,6 +364,15 @@ artifact ceiling16 MiB, existing shared storage quota default2 GiB and completed
 artifact TTL7 days are native safety differences, **not donor `tool_output` fields**
 or implemented TOML controls. Capture loss/IO/quota/expiry is explicit; no full-inline
 fallback, producer replay, arbitrary native-root access or automatic cold rehydration.
+Shell drains normalize/redact before retention, keep64 KiB recent text per stream
+and a64 KiB combined tail, and synchronously backpressure the existing writer with
+no writer queue. Artifact stdout/stderr labels describe serialized normalized/redacted
+publication, which can differ from raw reads when per-stream carry defers text.
+Fixed first/last Capture-ingress sequence and carry-release counters retain bounded
+original stream provenance, not a complete raw-arrival trace or OS emission order;
+counters distinguish admitted stream text,
+framed capture bytes and raw observed pipe bytes. Capture starts at launch, before
+the former1 MiB discard. Cancel/timeout/interrupted producers do not claim Complete.
 TOOL21 qualifies config → bounded provider result → filesystem → authorized read/grep
 continuation, reusing TOOL13/TOOL16/AUD34/LOAD02/STORE04. Parser success, a UI2048-byte
 preview and old SQLite continuation alone do not qualify this behavior.

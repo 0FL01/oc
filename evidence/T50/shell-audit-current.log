@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/home/opencode/ai/oc/evidence/T50/audit_shell_output.py", line 44, in <module>
+    assert not temporary,temporary
+           ^^^^^^^^^^^^^
+AssertionError: ['/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-shell-gate-gw7ls6a0']

@@ -1,0 +1,346 @@
+//! Stream admission owned by the existing Jobs Capture. No queue or worker:
+//! the two drain readers serialize safe text publication and bounded backpressure.
+//! Per-stream carry can defer text past the other stream's earlier publication.
+use super::*;
+use crate::storage::tool_output::{CaptureState, Resource, ShellStreams, Writer};
+use crate::tools::output::StreamRedactor;
+
+pub(super) const RECENT_CAP: usize = 65536;
+
+struct TextStream {
+    utf8: Vec<u8>,
+    redactor: StreamRedactor,
+    bytes: u64,
+    newlines: u64,
+    terminal_newline: bool,
+    suppress: bool,
+    first_read: Option<u64>,
+    last_read: Option<u64>,
+    carry_releases: u64,
+}
+impl TextStream {
+    fn new(secrets: Vec<String>) -> Self {
+        Self {
+            utf8: Vec::with_capacity(4),
+            redactor: StreamRedactor::new(secrets),
+            bytes: 0,
+            newlines: 0,
+            terminal_newline: false,
+            suppress: false,
+            first_read: None,
+            last_read: None,
+            carry_releases: 0,
+        }
+    }
+    fn admit(&mut self, bytes: &[u8], end: bool) -> String {
+        if self.suppress {
+            return String::new();
+        }
+        let carried = !self.utf8.is_empty() || self.redactor.has_pending();
+        // At most one drain read plus a three-byte UTF-8 carry. Invalid sequences
+        // normalize to U+FFFD; valid characters split across reads stay intact.
+        self.utf8.extend_from_slice(bytes);
+        let mut normalized = String::new();
+        let mut at = 0;
+        while at < self.utf8.len() {
+            match std::str::from_utf8(&self.utf8[at..]) {
+                Ok(text) => {
+                    normalized.push_str(text);
+                    at = self.utf8.len();
+                }
+                Err(error) => {
+                    let valid = error.valid_up_to();
+                    normalized.push_str(
+                        std::str::from_utf8(&self.utf8[at..at + valid]).expect("valid prefix"),
+                    );
+                    at += valid;
+                    match error.error_len() {
+                        Some(n) => {
+                            normalized.push('\u{fffd}');
+                            at += n;
+                        }
+                        None if end => {
+                            normalized.push('\u{fffd}');
+                            at = self.utf8.len();
+                        }
+                        None => break,
+                    }
+                }
+            }
+        }
+        self.utf8.drain(..at);
+        normalized.retain(|c| !c.is_control() || matches!(c, '\n' | '\r' | '\t'));
+        let admitted = self.redactor.push(&normalized, end);
+        if carried && !admitted.is_empty() {
+            self.carry_releases = self.carry_releases.saturating_add(1);
+        }
+        self.bytes = self.bytes.saturating_add(admitted.len() as u64);
+        self.newlines = self
+            .newlines
+            .saturating_add(admitted.bytes().filter(|b| *b == b'\n').count() as u64);
+        if !admitted.is_empty() {
+            self.terminal_newline = admitted.ends_with('\n');
+        }
+        admitted
+    }
+    fn lines(&self) -> u64 {
+        self.newlines + u64::from(self.bytes > 0 && !self.terminal_newline)
+    }
+}
+
+pub(super) struct StreamCapture {
+    writer: Option<Writer>,
+    resource: Option<Resource>,
+    stdout: TextStream,
+    stderr: TextStream,
+    last: Option<Stream>,
+    tail: String,
+    observed: u64,
+    lost: bool,
+    failure: Option<CaptureState>,
+    interrupted: bool,
+    admitted_bytes: u64,
+    admitted_newlines: u64,
+    last_newline: bool,
+}
+impl StreamCapture {
+    pub(super) fn new() -> Self {
+        Self {
+            writer: None,
+            resource: None,
+            stdout: TextStream::new(Vec::new()),
+            stderr: TextStream::new(Vec::new()),
+            last: None,
+            tail: String::new(),
+            observed: 0,
+            lost: false,
+            failure: None,
+            interrupted: false,
+            admitted_bytes: 0,
+            admitted_newlines: 0,
+            last_newline: false,
+        }
+    }
+    pub(super) fn begin(&mut self, db: &Db, p: &Provenance, secrets: Vec<String>) {
+        // Reuse the writer's credential-admission bound before compiling carries.
+        // If it cannot be honored, drain/count raw bytes but publish no unsafe text.
+        if secrets
+            .iter()
+            .try_fold(0usize, |n, s| n.checked_add(s.len()))
+            .is_none_or(|n| n > 65536)
+        {
+            self.lost = true;
+            self.failure = Some(CaptureState::Io);
+            self.stdout.suppress = true;
+            self.stderr.suppress = true;
+            return;
+        }
+        self.stdout = TextStream::new(secrets.clone());
+        self.stderr = TextStream::new(secrets.clone());
+        match db.begin_tool_output(
+            &p.operation,
+            &p.session,
+            &p.location,
+            p.generation,
+            &p.output_source,
+            Vec::new(),
+        ) {
+            Ok(writer) => self.writer = Some(writer),
+            Err(error) => {
+                self.lost = true;
+                self.failure = Some(failure_state(&error));
+            }
+        }
+    }
+    pub(super) fn ingest(
+        &mut self,
+        stream: Stream,
+        bytes: &[u8],
+        end: bool,
+        complete: bool,
+    ) -> String {
+        if !bytes.is_empty() {
+            self.observed = self.observed.saturating_add(1);
+        }
+        if end && !complete {
+            self.interrupted = true;
+        }
+        let input = match stream {
+            Stream::Stdout => &mut self.stdout,
+            Stream::Stderr => &mut self.stderr,
+        };
+        if !bytes.is_empty() {
+            input.first_read.get_or_insert(self.observed);
+            input.last_read = Some(self.observed);
+        }
+        let admitted = input.admit(bytes, end);
+        if !admitted.is_empty() {
+            let mut framed = String::new();
+            if self.last != Some(stream) {
+                if self.last.is_some() && !self.tail.ends_with('\n') {
+                    framed.push('\n');
+                }
+                framed.push_str(match stream {
+                    Stream::Stdout => "[stdout]\n",
+                    Stream::Stderr => "[stderr]\n",
+                });
+                self.last = Some(stream);
+            }
+            framed.push_str(&admitted);
+            self.admitted_bytes = self.admitted_bytes.saturating_add(framed.len() as u64);
+            self.admitted_newlines = self
+                .admitted_newlines
+                .saturating_add(framed.bytes().filter(|b| *b == b'\n').count() as u64);
+            self.last_newline = framed.ends_with('\n');
+            self.tail.push_str(&framed);
+            let drop = self
+                .tail
+                .ceil_char_boundary(self.tail.len().saturating_sub(RECENT_CAP));
+            self.tail.drain(..drop);
+            let facts = self.facts();
+            if let Some(writer) = self.writer.as_mut() {
+                writer.shell_facts(facts);
+                if let Err(error) = writer.append(&framed) {
+                    self.lost = true;
+                    let state = match error {
+                        StorageError::Sqlite(_) => CaptureState::RegisterFailure,
+                        _ => CaptureState::Io,
+                    };
+                    self.failure = Some(state);
+                    self.resource = self.writer.take().expect("writer").abandon(state);
+                }
+            }
+        }
+        admitted
+    }
+    pub(super) fn facts(&self) -> ShellStreams {
+        ShellStreams {
+            stdout_bytes: self.stdout.bytes,
+            stdout_lines: self.stdout.lines(),
+            stderr_bytes: self.stderr.bytes,
+            stderr_lines: self.stderr.lines(),
+            observed_chunks: self.observed,
+            format:
+                "stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order"
+                    .into(),
+            stdout_first_read: self.stdout.first_read,
+            stdout_last_read: self.stdout.last_read,
+            stderr_first_read: self.stderr.first_read,
+            stderr_last_read: self.stderr.last_read,
+            stdout_carry_releases: self.stdout.carry_releases,
+            stderr_carry_releases: self.stderr.carry_releases,
+        }
+    }
+    pub(super) fn finish(
+        &mut self,
+        db: &Db,
+        p: &Provenance,
+        interrupted: bool,
+    ) -> (String, Option<Resource>, bool) {
+        if let Some(mut writer) = self.writer.take() {
+            writer.shell_facts(self.facts());
+            let state = if interrupted || self.interrupted {
+                CaptureState::Interrupted
+            } else {
+                CaptureState::Complete
+            };
+            match writer.finish_state(state) {
+                Ok(resource) => self.resource = Some(resource),
+                Err(error) => {
+                    self.lost = true;
+                    self.failure = Some(failure_state(&error));
+                    // Final rename/registration may have failed. Only an actually
+                    // reopenable registered prefix may be advertised.
+                    self.resource = db
+                        .output_for_operation(&p.operation)
+                        .ok()
+                        .flatten()
+                        .and_then(|r| {
+                            db.open_tool_output(&p.session, &r.path)
+                                .ok()
+                                .map(|reader| reader.resource.clone())
+                        });
+                }
+            }
+        }
+        if db
+            .shell_output_facts(
+                &p.operation,
+                self.facts(),
+                self.admitted_bytes,
+                self.admitted_newlines + u64::from(self.admitted_bytes > 0 && !self.last_newline),
+                self.failure,
+            )
+            .is_err()
+        {
+            self.lost = true;
+            self.failure = Some(CaptureState::RegisterFailure);
+        }
+        self.resource = db
+            .output_for_operation(&p.operation)
+            .ok()
+            .flatten()
+            .and_then(|r| {
+                db.open_tool_output(&p.session, &r.path)
+                    .ok()
+                    .map(|reader| reader.resource.clone())
+            });
+        if self.resource.is_none() {
+            self.lost = true;
+            self.failure.get_or_insert(CaptureState::Io);
+        }
+        if self.lost
+            && self
+                .resource
+                .as_ref()
+                .is_some_and(|r| r.state == CaptureState::Active)
+        {
+            self.resource = None;
+        }
+        let failed = self.lost
+            || self.resource.as_ref().is_some_and(|r| {
+                matches!(
+                    r.state,
+                    CaptureState::Quota
+                        | CaptureState::ArtifactCap
+                        | CaptureState::Io
+                        | CaptureState::RegisterFailure
+                )
+            });
+        (
+            std::mem::take(&mut self.tail),
+            self.resource.clone(),
+            failed,
+        )
+    }
+    pub(super) fn failure(&self) -> Option<CaptureState> {
+        self.failure.or_else(|| {
+            self.resource.as_ref().map(|r| r.state).filter(|s| {
+                matches!(
+                    s,
+                    CaptureState::Quota
+                        | CaptureState::ArtifactCap
+                        | CaptureState::Io
+                        | CaptureState::RegisterFailure
+                )
+            })
+        })
+    }
+}
+
+fn failure_state(error: &StorageError) -> CaptureState {
+    match error {
+        StorageError::Sqlite(_) => CaptureState::RegisterFailure,
+        StorageError::StorageFull => CaptureState::Quota,
+        _ => CaptureState::Io,
+    }
+}
+
+pub(super) fn retain(state: &mut DrainState, text: &str) {
+    let mut bytes = String::from_utf8(std::mem::take(&mut state.bytes)).expect("admitted UTF-8");
+    bytes.push_str(text);
+    let drop = bytes.ceil_char_boundary(bytes.len().saturating_sub(RECENT_CAP));
+    state.truncated |= drop > 0;
+    bytes.drain(..drop);
+    state.bytes = bytes.into_bytes();
+}

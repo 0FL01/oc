@@ -39,11 +39,13 @@ def message(text):
 
 
 class SwitchNative(Native):
-    def __init__(self, binary, case):
+    def __init__(self, binary, case, shell_capture=False):
         super().__init__(binary, lambda *_: [])
         self.case, self.gates = case, [threading.Event() for _ in range(4)]
         self.arrived = [threading.Event() for _ in range(4)]
         self.summaries = []
+        self.shell_capture=shell_capture
+        self.shell_compact=False
         self.auxiliary = []
         self.stages = []
         owner = self
@@ -57,6 +59,8 @@ class SwitchNative(Native):
                 pass
 
             def do_POST(self):
+                with owner.request_counter_lock:
+                    owner.physical_requests+=1
                 try:
                     size = int(self.headers.get("content-length", 0))
                     assert 0 < size <= 1048576
@@ -71,6 +75,19 @@ class SwitchNative(Native):
                             self.send_header("Content-Type", "text/event-stream")
                             self.end_headers()
                             finish(self, [message("Synthetic title")])
+                            return
+                        if owner.shell_capture and owner.shell_compact:
+                            assert len(json.dumps(request).encode())<131072,"cold shell rehydrated for compact"
+                            # The immutable shell command itself names the distant
+                            # sentinel. Measure repeated body facts instead of
+                            # mistaking that legitimate call argument for rehydration.
+                            assert json.dumps(request).count("ordinary padded shell line")<200,"cold shell body rehydrated"
+                            owner.summaries.append(request)
+                            assert len(owner.summaries)==1
+                            self.send_response(200)
+                            self.send_header("Content-Type","text/event-stream")
+                            self.end_headers()
+                            finish(self,[message("## Work State\nShell executed once; bounded registered reference remains in raw history.")])
                             return
                         assert case == "compact", "unexpected auxiliary generation"
                         owner.summaries.append(request)
@@ -152,7 +169,10 @@ class SwitchNative(Native):
                         calls = [item("a-patch", "apply_patch", {"patchText":"*** Begin Patch\n*** Add File: file\n+once\n*** End Patch"}),
                                  item("a-excluded", "write", {"path":"unapproved-a", "content":"bad"})]
                         if case == "tool":
-                            calls.append(item("held-shell", "shell", {"command":"touch tool-started; while [ ! -f tool-release ]; do sleep .01; done"}))
+                            held="touch tool-started; while [ ! -f tool-release ]; do sleep .01; done"
+                            if owner.shell_capture:
+                                held="printf one >> shell.effect; python3 -c \"import sys;sys.stdout.write(('ordinary padded shell line '*4+'\\n')*12000+'SHELL_DISTANT_SENTINEL\\n'+('ordinary padded shell line '*4+'\\n')*12000)\"; touch tool-started; while [ ! -f tool-release ]; do sleep .01; done; printf final-shell-flush"
+                            calls.append(item("held-shell", "shell", {"command":held}))
                         finish(self, [{"type":"reasoning", "id":"a-reasoning", "encrypted_content":"A-opaque", "summary":[]}, message("A prepared"), *calls])
                     elif case == "compact":
                         assert step == 3 and request["model"] == A and len(owner.summaries) == 1
@@ -218,6 +238,8 @@ class SwitchNative(Native):
                           B:{"name":"B Text","limit":{"context":32768,"output":1536},"variants":{"low":{"reasoningEffort":"low"}}},
                           CHILD:{"limit":{"context":32768,"output":1536}}}}}
         }
+        if shell_capture:
+            config["tool_output"]={"max_lines":20,"max_bytes":4096}
         (self.home/"config/opencode/opencode.json").write_text(json.dumps(config))
 
     def __exit__(self, *args):

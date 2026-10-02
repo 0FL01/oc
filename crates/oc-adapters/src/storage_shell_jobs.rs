@@ -200,12 +200,17 @@ impl Db {
                 }
                 None => "shell admission interrupted; execution unknown; not replayed",
             };
-            self.finish_shell_job(
-                &operation,
-                &Outcome::unknown(&format!(
-                    "interrupted shell effect unknown; not replayed; {diagnostic}"
-                )),
-            )?;
+            let mut outcome = Outcome::unknown(&format!(
+                "interrupted shell effect unknown; not replayed; {diagnostic}"
+            ));
+            if let Some(resource) = self.output_for_operation(&operation)? {
+                outcome.capture = self
+                    .open_tool_output(&resource.session, &resource.path)
+                    .ok()
+                    .map(|reader| reader.resource.clone());
+                outcome.capture_facts = resource.shell;
+            }
+            self.finish_shell_job(&operation, &outcome)?;
         }
         Ok(())
     }
@@ -246,7 +251,8 @@ impl Db {
                     "status":result.state,"exit":result.exit,"signal":result.signal,"timeout":result.timeout,
                     "cancelled":result.cancelled,"truncated":result.stdout_truncated || result.stderr_truncated,
                     "output":output,"retainedOutputBytes":full.len(),"previewTruncated":kept<full.len(),
-                    "sourceLocation":provenance.location,"sourceGeneration":provenance.generation})
+                     "sourceLocation":provenance.location,"sourceGeneration":provenance.generation,
+                      "capture":result.capture,"captureFacts":result.capture_facts,"captureFailure":result.capture_failure})
             );
             let message = Self::insert_message(&tx, &session, "user", &text)?;
             let delivered = tx.execute(

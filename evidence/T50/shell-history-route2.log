@@ -1,0 +1,9 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.18s
+     Running tests/runtime.rs (target/debug/deps/runtime-4ef17f4c882d0b97)
+
+running 1 test
+test background_lifecycle::tool13_background_always_reopen_foreign_scope_and_retained_output ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 118 filtered out; finished in 1.61s
+

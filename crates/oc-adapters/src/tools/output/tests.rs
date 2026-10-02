@@ -1,6 +1,39 @@
 use super::*;
 
 #[test]
+fn tool21_stream_redactor_publishes_benign_live_suffix_and_protects_overlapping_secrets() {
+    let mut redactor = StreamRedactor::new(vec![
+        "possible-secret".into(),
+        "possible-secret-suffix".into(),
+    ]);
+    assert_eq!(redactor.push("LIVE-FG 二\n", false), "LIVE-FG 二\n");
+    assert_eq!(redactor.push("prefix possible-", false), "prefix ");
+    assert_eq!(redactor.push("secret", false), "");
+    assert_eq!(
+        redactor.push("-suffix benign live\n", false),
+        "[redacted] benign live\n"
+    );
+    assert_eq!(redactor.push("possible-", false), "");
+    assert_eq!(
+        redactor.push("", true),
+        "possible-",
+        "terminal nonsecret partial remains truthful"
+    );
+    let mut redactor = StreamRedactor::new(vec!["abc".into(), "bcde".into()]);
+    assert_eq!(redactor.push("abcd", false), "");
+    assert_eq!(redactor.push("e\n", false), "[redacted]de\n");
+    let mut redactor = StreamRedactor::new(vec!["a".repeat(16), format!("{}b", "a".repeat(16))]);
+    for _ in 0..100 {
+        let published = redactor.push(&"a".repeat(8192), false);
+        assert!(!published.contains(&"a".repeat(16)));
+        assert!(
+            redactor.pending.len() <= 32,
+            "repetitive secret prefixes cannot grow carry"
+        );
+    }
+}
+
+#[test]
 fn tool21_donor_count_utf8_head_tail_and_tiny_limits() {
     assert_eq!(lines("a\nb\n"), 2);
     assert_eq!(lines(""), 0);

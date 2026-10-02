@@ -1,0 +1,22 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 43.17s
+     Running tests/runtime.rs (target/debug/deps/runtime-4ef17f4c882d0b97)
+
+running 1 test
+test background_lifecycle::tool13_background_always_reopen_foreign_scope_and_retained_output ... FAILED
+
+failures:
+
+---- background_lifecycle::tool13_background_always_reopen_foreign_scope_and_retained_output stdout ----
+
+thread 'background_lifecycle::tool13_background_always_reopen_foreign_scope_and_retained_output' (601230) panicked at crates/oc-adapters/tests/fixtures/background_lifecycle.rs:445:10:
+called `Result::unwrap()` on an `Err` value: Diagnostic(ServiceDiagnostic { kind: Storage, service: "native", source: "source-171b1aa0/config", field: ["database"], stage: Query, code: StorageUnavailable, action: ReviewStorage })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    background_lifecycle::tool13_background_always_reopen_foreign_scope_and_retained_output
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 118 filtered out; finished in 0.94s
+
+error: test failed, to rerun pass `-p oc-adapters --test runtime`

@@ -1,0 +1,2 @@
+{"case": "shell_interrupted", "status": "FAIL", "error": "native short capture hot outcome hid interruption despite provider common preparation"}
+{"binary": "/home/opencode/ai/oc/target/debug/oc", "sha256_before": "757cdb5975f5af028286e416f65593762fa089cb264482e78f637e6a3331539c", "sha256_after": "757cdb5975f5af028286e416f65593762fa089cb264482e78f637e6a3331539c", "failures": 1, "owned_cleanup": "all processes/HTTP handler threads joined before exact TempDir cleanup"}

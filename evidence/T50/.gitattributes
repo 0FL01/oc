@@ -1,2 +1,6 @@
 # Immutable captured command output may end with test-runner blank lines.
 output-*.log whitespace=-blank-at-eof
+shell-*.log whitespace=-blank-at-eof
+# Captured terminal grids and unfinished RED test-runner lines are byte-exact.
+shell-native-controls-diagnose.log whitespace=-blank-at-eof,-blank-at-eol
+shell-review-red.log whitespace=-blank-at-eof,-blank-at-eol

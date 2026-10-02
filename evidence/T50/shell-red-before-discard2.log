@@ -1,0 +1,24 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 20.66s
+     Running unittests src/lib.rs (target/debug/deps/oc_adapters-ed9aaed69dd516e3)
+
+running 1 test
+test shell::jobs::output_tests::tool21_shell_captures_distant_stdout_before_recent_discard ... FAILED
+
+failures:
+
+---- shell::jobs::output_tests::tool21_shell_captures_distant_stdout_before_recent_discard stdout ----
+
+thread 'shell::jobs::output_tests::tool21_shell_captures_distant_stdout_before_recent_discard' (531339) panicked at crates/oc-adapters/src/shell/jobs/output_tests.rs:29:5:
+assertion `left == right` failed: recent-ring truncation must not mean producer loss
+  left: ProducerLimited
+ right: Complete
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    shell::jobs::output_tests::tool21_shell_captures_distant_stdout_before_recent_discard
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 452 filtered out; finished in 0.96s
+
+error: test failed, to rerun pass `-p oc-adapters --lib`

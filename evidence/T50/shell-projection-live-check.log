@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/home/opencode/ai/oc/evidence/T50/native_shell_projection.py", line 58, in <module>
+    print(json.dumps(run(binary)))
+                     ~~~^^^^^^^^
+  File "/home/opencode/ai/oc/evidence/T50/native_shell_projection.py", line 42, in run
+    until(lambda:len(native.summaries)==1 and native.rows("SELECT count(*) FROM session_compactions")==[(1,)],"manual compact did not durably finish")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/opencode/ai/oc/evidence/T50/native_background.py", line 130, in until
+    raise AssertionError(reason)
+AssertionError: manual compact did not durably finish

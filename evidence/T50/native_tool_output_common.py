@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""FIRST R10 common atomic: normal ELF, owned offline Responses, joined IO.
+"""R10 common plus full shell producer: normal ELF, offline Responses, joined IO.
 
 No paid endpoint, real HOME or authoring config. Bounded facts only are printed.
-The skill remains below its existing 1MiB snapshot cap. The large shell proof
-uses ONLY the retained legacy per-stream prefixes, marked ProducerLimited;
-the distant sentinel is in retained stderr beyond stdout's 1MiB byte prefix.
-It is NOT full shell producer capture.
+The skill remains below its existing 1MiB snapshot cap. The shell proof places
+the sentinel in stdout beyond its old1MiB discard boundary and outside the tail.
+Old receipts from the preceding common atomic remain historical.
 """
 import argparse
 import hashlib
@@ -44,7 +43,7 @@ def run(binary, case):
         distant = payload.splitlines().index("DISTANT_SENTINEL 二") + 1
         padding="é ordinary padded line 012345678901234567890123456789012345678901234567890123456789\n"
         # Keep the command bounded; repetitions occur inside the owned producer.
-        legacy="python3 -c \"import sys;sys.stdout.write('SYNTHETIC_COMMON_KEY\\n'+'x'*2097152);sys.stderr.write("+repr(padding)+"*1000+'DISTANT_SENTINEL 二\\n'+"+repr(padding)+"*5000+'next line\\n')\""
+        producer="python3 -c \"import sys,os;open('producer.pid','w').write(str(os.getpid()));open('effect.txt','a').write('effect\\n');sys.stdout.write('SYNTHETIC_COMMON_KEY\\n'+"+repr(padding)+"*22000+'DISTANT_SENTINEL 二\\n'+"+repr(padding)+"*22000+'next line\\n');sys.stderr.write('stderr independent fact\\n')\""
         requests, failures, outputs, auxiliary = [], [], {}, []
         phase, step, reference = "chain", 0, None
         process = None
@@ -90,14 +89,18 @@ def run(binary, case):
                             with sqlite3.connect(data / "oc.sqlite") as db:
                                 if case == "fault_effect":
                                     db.execute("CREATE TRIGGER fail_common_publication BEFORE UPDATE OF name ON tool_output_resources BEGIN SELECT RAISE(ABORT,'directed fixture failure'); END")
-                                elif case == "quota":
+                                elif case in ("quota","shell_quota"):
                                     orphan = data / "blobs/owned-common-orphan"
                                     with orphan.open("wb") as stream:
                                         stream.truncate(2 * 1024 * 1024 * 1024)
                             if case == "fault_effect":
                                 items = [call("shell", {"command": "printf 'effect\\n' >> effect.txt; python3 -c \"print('x'*70000)\"; exit 17"}, "effect")]
                             elif case=="chain":
-                                items = [call("shell", {"command":legacy}, "large")]
+                                items = [call("shell", {"command":producer}, "large")]
+                            elif case in ("shell_cap","shell_quota"):
+                                items=[call("shell",{"command":"head -c 20971520 /dev/zero | tr '\\000' x; printf 'effect\\n' >> effect.txt; printf 'final flush\\n'"},"large")]
+                            elif case=="shell_interrupted":
+                                items=[call("shell",{"command":"printf 'short prefix\\n'; printf 'effect\\n' >> effect.txt; (sleep 30; printf lost_suffix) &"},"large")]
                             else:
                                 items = [call("skill", {"id": "large"}, "large")]
                         elif case == "fault_effect":
@@ -105,7 +108,7 @@ def run(binary, case):
                             assert (project / "effect.txt").read_text() == "effect\n", "effect replay/loss"
                         elif step == 1:
                             text = outputs["large"]
-                            assert "[tool output:" in text and "DISTANT_SENTINEL" not in text
+                            assert "[tool output:" in text and "DISTANT_SENTINEL" not in text,"missing bounded capture notice: "+text[:1000]
                             match = re.search(r"read\(path=(\"[^\"]+\")", text)
                             assert match, "no actionable registered reference"
                             reference = json.loads(match[1])
@@ -114,14 +117,31 @@ def run(binary, case):
                             descriptor = json.loads(descriptor)
                             assert descriptor["path"] == reference and descriptor["bytes"] == extent
                             assert Path(reference).is_file() and Path(reference).stat().st_size == extent
-                            if case == "quota":
-                                assert state == "Quota" and extent == 0 and "capture Quota" in text
+                            if case=="shell_interrupted":
+                                assert state=="Interrupted" and 0<extent<4096
+                                assert "capture Interrupted" in text and "exit 0" in text,"wrong known exit/capture projection: "+text[:1000]
+                                assert "lost_suffix" not in text
+                                assert (project/"effect.txt").read_text()=="effect\n"
+                            elif case in ("quota","shell_quota","shell_cap"):
+                                expected="ArtifactCap" if case=="shell_cap" else "Quota"
+                                assert state==expected and extent==(16777216 if case=="shell_cap" else 0) and ("capture "+expected) in text
+                                if case!="quota":
+                                    assert descriptor["shell"]["stdout_bytes"]>20971520
+                                    assert (project/"effect.txt").read_text()=="effect\n"
                             else:
-                                assert state == ("ProducerLimited" if case=="chain" else "Complete")
+                                assert state == "Complete"
                                 assert extent > (1048576 if case=="chain" else 65536)
                                 with Path(reference).open("rb") as stream:
                                     assert b"SYNTHETIC_COMMON_KEY" not in stream.read(4096)
                                 if case=="chain":
+                                    assert descriptor["shell"]["stdout_bytes"]>2*1048576
+                                    assert descriptor["shell"]["stderr_bytes"]==len("stderr independent fact\n")
+                                    facts=descriptor["shell"]
+                                    assert "normalized/redacted publication" in facts["format"]
+                                    for stream in ("stdout","stderr"):
+                                        assert 1<=facts[stream+"_first_read"]<=facts[stream+"_last_read"]<=facts["observed_chunks"]
+                                    assert (project/"effect.txt").read_text()=="effect\n"
+                                    assert not Path("/proc/"+(project/"producer.pid").read_text()).exists(),"producer not reaped"
                                     with Path(reference).open(encoding="utf-8") as stream:
                                         distant=next(n for n,line in enumerate(stream,1) if "DISTANT_SENTINEL" in line)
                                 assert descriptor["generation"] >= 1 and descriptor["source"] != "native defaults"
@@ -138,6 +158,13 @@ def run(binary, case):
                                      call("write", {"path": reference, "content": "UNAUTHORIZED"}, "mutation-deny")]
                         elif step == 4:
                             assert all(outputs[key].startswith("error:") for key in ("sqlite-deny", "glob-deny", "mutation-deny")), "own-root boundary bypass"
+                    elif phase=="restart_short":
+                        historical=next(i["output"] for i in request["input"] if i.get("type")=="function_call_output" and i.get("call_id")=="large")
+                        assert "capture Interrupted" in historical,"historical small result hid interrupted capture"
+                        if step==0:
+                            items=[call("read",{"path":reference,"offset":1,"limit":2},"short-read")]
+                        else:
+                            assert "short prefix" in outputs["short-read"] and "Interrupted" in outputs["short-read"]
                     elif phase in ("restart","moved"):
                         label="restart-read" if phase=="restart" else "moved-read"
                         if step == 0:
@@ -199,6 +226,9 @@ def run(binary, case):
 
         try:
             invoke("Exercise admitted common result")
+            if case=="shell_interrupted":
+                phase,step="restart_short",0
+                invoke("Read the interrupted prefix after restart without replay")
             if case in ("chain","head"):
                 phase, step = "restart", 0
                 invoke("Read registered prefix after real restart")
@@ -218,15 +248,31 @@ def run(binary, case):
                 if case == "fault_effect":
                     outcome = json.loads(db.execute("SELECT outcome FROM shell_jobs").fetchone()[0])
                     assert outcome["exit"] == 17 and outcome["state"] == "failed" and logging >= 1
-                elif case == "quota":
+                elif case=="shell_interrupted":
+                    outcome=json.loads(db.execute("SELECT outcome FROM shell_jobs").fetchone()[0])
+                    process_identity=json.loads(db.execute("SELECT process FROM shell_jobs").fetchone()[0])
+                    assert outcome["exit"]==0 and outcome["state"]=="completed"
+                    assert outcome["output_prepared"] and "capture Interrupted" in outcome["stdout"],"native short capture hot outcome hid interruption despite provider common preparation"
+                    assert outcome.get("capture_failure") is None and logging==0
+                    assert not Path(f"/proc/{process_identity['pid']}").exists()
+                    assert rows[0][1]=="completed" and len(resources)==1
+                    assert (project/"effect.txt").read_text()=="effect\n"
+                elif case in ("quota","shell_cap","shell_quota"):
                     assert rows[0][1] == "failed" and logging == 1
+                    if case!="quota":
+                        outcome=json.loads(db.execute("SELECT outcome FROM shell_jobs").fetchone()[0])
+                        process_identity=json.loads(db.execute("SELECT process FROM shell_jobs").fetchone()[0])
+                        assert outcome["exit"]==0 and not Path(f"/proc/{process_identity['pid']}").exists()
+                        assert outcome["capture_failure"]==("ArtifactCap" if case=="shell_cap" else "Quota")
                 else:
                     assert len(resources) == 1, "recursive duplicate archive"
                     descriptor=json.loads(db.execute("SELECT descriptor FROM tool_output_resources").fetchone()[0])
                     assert descriptor["location"]==str(project),"move rewrote capture provenance"
             return {"case": case, "status": "PASS", "provider_requests": len(requests)+len(auxiliary),"main_requests":len(requests),"auxiliary_requests":len(auxiliary), "request_bytes": [r["bytes"] for r in requests],
                     "native_tool_rows": rows, "resources": resources, "logging_failure_facts": logging,
-                    "retained_resource_bytes": sum(r[0] for r in resources), "shell_full_producer": "NEXT"}
+                    "retained_resource_bytes": sum(r[0] for r in resources), "shell_full_producer": case=="chain",
+                    "effect_count":1 if case in ("chain","fault_effect","shell_cap","shell_quota","shell_interrupted") else 0,
+                    "producer_reaped":True if case in ("chain","shell_cap","shell_quota","shell_interrupted") else None}
         finally:
             if process is not None and process.poll() is None:
                 os.killpg(process.pid, signal.SIGKILL)
@@ -240,7 +286,7 @@ def run(binary, case):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("binary", type=Path)
-    parser.add_argument("--case", choices=("chain", "head", "quota", "fault_effect"))
+    parser.add_argument("--case", choices=("chain", "head", "quota", "fault_effect","shell_cap","shell_quota","shell_interrupted"))
     args = parser.parse_args()
     binary = args.binary.resolve()
     before = digest(binary)

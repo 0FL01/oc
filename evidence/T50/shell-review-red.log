@@ -1,0 +1,24 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 23.18s
+     Running unittests src/lib.rs (target/debug/deps/oc_adapters-ed9aaed69dd516e3)
+
+running 2 tests
+test shell::jobs::output_tests::tool21_review_safe_publication_order_has_original_raw_read_provenance ... 
+thread 'shell::jobs::output_tests::tool21_review_safe_publication_order_has_original_raw_read_provenance' (727040) panicked at crates/oc-adapters/src/shell/jobs/output_tests.rs:70:5:
+assertion failed: facts["format"].as_str().unwrap().contains("normalized/redacted publication")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test shell::jobs::output_tests::tool21_review_short_interrupted_capture_is_explicit_without_falsifying_exit ... 
+thread 'shell::jobs::output_tests::tool21_review_short_interrupted_capture_is_explicit_without_falsifying_exit' (727043) panicked at crates/oc-adapters/src/shell/jobs/output_tests.rs:30:5:
+short incomplete capture must still be prepared
+FAILED
+
+failures:
+
+failures:
+    shell::jobs::output_tests::tool21_review_safe_publication_order_has_original_raw_read_provenance
+    shell::jobs::output_tests::tool21_review_short_interrupted_capture_is_explicit_without_falsifying_exit
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 458 filtered out; finished in 1.33s
+
+error: test failed, to rerun pass `-p oc-adapters --lib`

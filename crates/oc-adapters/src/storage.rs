@@ -1335,7 +1335,7 @@ impl Db {
         offset: usize,
         limit: usize,
     ) -> Result<(String, i64, Option<i64>), StorageError> {
-        if let Some(resource) = self.output_for_operation(op)? {
+        if let Some(resource) = self.output_for_history(op)? {
             return self
                 .open_tool_output(&resource.session, &resource.path)?
                 .byte_page(offset, limit);
@@ -1412,7 +1412,7 @@ impl Db {
             return Err(StorageError::OperationNotFound);
         }
         drop(conn);
-        if let Some(resource) = self.output_for_operation(op)? {
+        if let Some(resource) = self.output_for_history(op)? {
             return self
                 .open_tool_output(session, &resource.path)?
                 .byte_page(offset, limit.clamp(4, TOOL_OP_PREVIEW_BYTES));

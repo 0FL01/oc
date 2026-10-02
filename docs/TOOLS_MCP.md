@@ -227,8 +227,9 @@ Tool output в историческом T40 срезе: UI-строка опер
 Owner-approved2026-10-01 [contract/RECON/ordered slices](goals/2026-09-27-native-tool-parity.md#tool-output--r10tool21-approved-2026-10-01-pending)
 narrowly supersedes full-inline publication for **new oversized admitted text**,
 discard-before-shell-capture and exact-artifact data-root read/search denial.
-Small inline results and legacy raw records stay unchanged/immutable. This is not
-implemented behavior at RECON HEAD8a4291d13; historical T40 evidence remains factual.
+Small inline results and legacy raw records stay unchanged/immutable. The common
+registered route and before-discard shell capture are native support; historical
+T40 evidence remains factual.
 
 - Common prepared-result boundary runs before provider input/new durable outcome/
   TurnLog/UI cloning for local built-ins, MCP text/structured-text projection, fetch
@@ -246,6 +247,15 @@ implemented behavior at RECON HEAD8a4291d13; historical T40 evidence remains fac
   share one capture identity/final flush. Slow/failing disk, quota/cap or endless flood
   never require unbounded queues; continue drain/cancel/reap with explicit capture loss.
   Process exit/effects and log capture state are separate, no auto-rerun to repair a log.
+  Recent stdout/stderr and the combined tail each retain at most64 KiB. Incremental
+  UTF-8 and per-stream secret carry precede disk/hot publication. The writer uses
+  synchronous backpressure with no pending output queue. Artifact boundary labels
+  record serialized normalized/redacted publication; per-stream carry can defer
+  stdout past already publishable stderr. Fixed first/last Capture-ingress sequences
+  and carry-release counters retain bounded raw-read provenance (not a complete
+  per-byte arrival trace or total OS emission order). Terminal
+  outcomes/background notices retain its same small typed descriptor. A live viewer
+  pages only durable published extents; terminal preparation never recaptures the tail.
 - Complete means all admitted text was captured, not full HTTP body rejected at input,
   media/base64, unredacted secrets or discarded producer bytes. Native artifact cap16 MiB,
   shared existing quota default2 GiB and completed TTL7 days are explicit differences

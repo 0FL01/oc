@@ -1,0 +1,14 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.96s
+     Running unittests src/lib.rs (target/debug/deps/oc_adapters-ed9aaed69dd516e3)
+
+running 6 tests
+test shell::jobs::tests::tool13_cancelled_owner_wait_keeps_worker_then_failed_join_is_durable_and_sticky ... ok
+test shell::jobs::tests::tool13_completion_before_conversion_returns_terminal_once_without_notice ... ok
+test shell::jobs::tests::tool13_conversion_retains_pid_admission_capture_and_final_view_after_removal ... ok
+test shell::jobs::tests::tool13_early_wake_cannot_strand_join_or_capacity_when_owner_returns_idle ... ok
+test shell::jobs::tests::tool13_held_owned_shell_output_is_readable_before_terminal ... ok
+test shell::jobs::tests::tool13_selected_child_kill_does_not_cancel_sibling_parent_or_foreign_source ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 454 filtered out; finished in 4.85s
+

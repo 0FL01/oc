@@ -38,6 +38,30 @@ pub(crate) struct Resource {
     pub admitted_bytes: u64,
     pub admitted_lines: u64,
     pub state: CaptureState,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shell: Option<ShellStreams>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub(crate) struct ShellStreams {
+    pub stdout_bytes: u64,
+    pub stdout_lines: u64,
+    pub stderr_bytes: u64,
+    pub stderr_lines: u64,
+    pub observed_chunks: u64,
+    pub format: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stdout_first_read: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stdout_last_read: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stderr_first_read: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stderr_last_read: Option<u64>,
+    #[serde(default)]
+    pub stdout_carry_releases: u64,
+    #[serde(default)]
+    pub stderr_carry_releases: u64,
 }
 
 pub(crate) struct Writer {
@@ -45,8 +69,7 @@ pub(crate) struct Writer {
     file: File,
     resource: Resource,
     name: String,
-    pending: String,
-    secrets: Vec<String>,
+    redactor: crate::tools::output::StreamRedactor,
     last_newline: bool,
     admitted_newlines: u64,
     published_newlines: u64,
@@ -243,6 +266,7 @@ impl Db {
             admitted_bytes: 0,
             admitted_lines: 0,
             state: CaptureState::Active,
+            shell: None,
         };
         file.sync_all()?;
         self.output_dir.sync_all()?;
@@ -269,8 +293,7 @@ impl Db {
             file,
             resource,
             name,
-            pending: String::new(),
-            secrets,
+            redactor: crate::tools::output::StreamRedactor::new(secrets),
             last_newline: false,
             admitted_newlines: 0,
             published_newlines: 0,
@@ -343,6 +366,53 @@ impl Db {
             .optional()?;
         raw.map(|raw| serde_json::from_str(&raw).map_err(|_| invalid()))
             .transpose()
+    }
+
+    /// Generic tool-history continuation preserves the original call result.
+    /// A shell's live resource does not supersede a native running control or
+    /// small inline result. Its distinct shell viewer always pages the resource.
+    pub(crate) fn output_for_history(&self, op: &str) -> Result<Option<Resource>, StorageError> {
+        let shell:Option<(bool,bool)>=self.conn.lock().expect("db mutex").query_row(
+                "SELECT (EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.session_id AND e.kind='shell_foreground' AND e.payload=j.operation_id) AND NOT EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.session_id AND e.kind='shell_background' AND e.payload=j.operation_id)),COALESCE(json_extract(outcome,'$.output_prepared'),0) FROM shell_jobs j WHERE operation_id=?1",
+            [op],|row|Ok((row.get(0)?,row.get(1)?))).optional()?;
+        if shell.is_some_and(|(foreground, prepared)| !foreground || !prepared) {
+            return Ok(None);
+        }
+        self.output_for_operation(op)
+    }
+
+    /// Final admitted counters after a failed shell writer still describe the
+    /// drained text, while extent/path/state remain the last durable resource.
+    pub(crate) fn shell_output_facts(
+        &self,
+        op: &str,
+        facts: ShellStreams,
+        bytes: u64,
+        lines: u64,
+        failure: Option<CaptureState>,
+    ) -> Result<(), StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let raw: Option<String> = conn
+            .query_row(
+                "SELECT descriptor FROM tool_output_resources WHERE operation_id=?1",
+                [op],
+                |r| r.get(0),
+            )
+            .optional()?;
+        if let Some(raw) = raw {
+            let mut resource: Resource = serde_json::from_str(&raw).map_err(|_| invalid())?;
+            resource.shell = Some(facts);
+            resource.admitted_bytes = bytes;
+            resource.admitted_lines = lines;
+            if resource.state == CaptureState::Active {
+                resource.state = failure.unwrap_or(CaptureState::Interrupted);
+            }
+            conn.execute(
+                "UPDATE tool_output_resources SET descriptor=?2,state=?3,completed=COALESCE(completed,?4) WHERE operation_id=?1",
+                params![op, serde_json::to_string(&resource).map_err(|_| invalid())?,format!("{:?}",resource.state),timestamp()],
+            )?;
+        }
+        Ok(())
     }
 
     pub(crate) fn is_tool_output_path(&self, path: &str) -> bool {
@@ -499,46 +569,15 @@ impl Writer {
         let mut start = 0;
         while start < text.len() {
             let end = text.floor_char_boundary((start + 8192).min(text.len()));
-            self.pending.push_str(&text[start..end]);
-            self.flush_redacted(false)?;
+            let admitted = self.redactor.push(&text[start..end], false);
+            self.write_admitted(&admitted)?;
             start = end;
         }
         self.publish_extent()
     }
 
-    fn flush_redacted(&mut self, final_flush: bool) -> Result<(), StorageError> {
-        let hold = self
-            .secrets
-            .iter()
-            .map(String::len)
-            .max()
-            .unwrap_or(0)
-            .saturating_sub(1);
-        let mut end = if final_flush {
-            self.pending.len()
-        } else {
-            self.pending
-                .floor_char_boundary(self.pending.len().saturating_sub(hold))
-        };
-        // A secret starting in the publishable prefix can end in the held suffix.
-        // Move the boundary to its start; the next chunk sees the whole secret.
-        for secret in &self.secrets {
-            if secret.is_empty() {
-                continue;
-            }
-            for (at, _) in self.pending.match_indices(secret) {
-                if at < end && at + secret.len() > end {
-                    end = at;
-                }
-            }
-        }
-        if end == 0 {
-            return Ok(());
-        }
-        let mut admitted = self.pending[..end].to_owned();
-        crate::tools::output::redact_string(&mut admitted, &self.secrets);
-        self.pending.drain(..end);
-        self.write_admitted(&admitted)
+    pub(crate) fn shell_facts(&mut self, facts: ShellStreams) {
+        self.resource.shell = Some(facts);
     }
 
     fn write_admitted(&mut self, text: &str) -> Result<(), StorageError> {
@@ -598,8 +637,17 @@ impl Writer {
         Ok(())
     }
 
-    pub(crate) fn finish(mut self, producer_limited: bool) -> Result<Resource, StorageError> {
-        self.flush_redacted(true)?;
+    pub(crate) fn finish(self, producer_limited: bool) -> Result<Resource, StorageError> {
+        self.finish_state(if producer_limited {
+            CaptureState::ProducerLimited
+        } else {
+            CaptureState::Complete
+        })
+    }
+
+    pub(crate) fn finish_state(mut self, terminal: CaptureState) -> Result<Resource, StorageError> {
+        let admitted = self.redactor.push("", true);
+        self.write_admitted(&admitted)?;
         self.publish_extent()?;
         let conn = self.db.conn.lock().expect("db mutex");
         self.db.verify_output_dir()?;
@@ -629,16 +677,45 @@ impl Writer {
             .to_string_lossy()
             .into_owned();
         if self.resource.state == CaptureState::Active {
-            self.resource.state = if producer_limited {
-                CaptureState::ProducerLimited
-            } else {
-                CaptureState::Complete
-            };
+            self.resource.state = terminal;
         }
         let raw = serde_json::to_string(&self.resource).map_err(|_| invalid())?;
         conn.execute("UPDATE tool_output_resources SET name=?2,descriptor=?3,extent=?4,state=?5,completed=?6 WHERE id=?1",params![self.resource.id,self.name,raw,self.resource.bytes as i64,format!("{:?}",self.resource.state),timestamp()])?;
         self.finished = true;
         Ok(self.resource.clone())
+    }
+
+    /// Freeze only the last durable prefix after an IO/registration failure.
+    /// The caller keeps draining but never restarts this writer or producer.
+    pub(crate) fn abandon(mut self, state: CaptureState) -> Option<Resource> {
+        self.freeze_prefix(state).ok()?;
+        self.finished = true;
+        self.db
+            .open_tool_output(&self.resource.session, &self.resource.path)
+            .ok()
+            .map(|reader| reader.resource.clone())
+    }
+    fn freeze_prefix(&mut self, state: CaptureState) -> Result<(), StorageError> {
+        let conn = self.db.conn.lock().expect("db mutex");
+        let raw: String = conn.query_row(
+            "SELECT descriptor FROM tool_output_resources WHERE id=?1",
+            [&self.resource.id],
+            |row| row.get(0),
+        )?;
+        self.resource = serde_json::from_str(&raw).map_err(|_| invalid())?;
+        self.file.set_len(self.resource.bytes)?;
+        self.file.sync_all()?;
+        self.resource.state = state;
+        conn.execute(
+            "UPDATE tool_output_resources SET descriptor=?2,state=?3,completed=?4 WHERE id=?1",
+            params![
+                self.resource.id,
+                serde_json::to_string(&self.resource).map_err(|_| invalid())?,
+                format!("{state:?}"),
+                timestamp()
+            ],
+        )?;
+        Ok(())
     }
 }
 
@@ -649,23 +726,7 @@ impl Drop for Writer {
         }
         // No execution restart. Registered published extent remains the only
         // readable prefix; an unregistered renamed orphan is never advertised.
-        if let Ok(conn) = self.db.conn.lock() {
-            // An append/publication failure must not promote unsynced bytes.
-            if let Ok(raw) = conn.query_row(
-                "SELECT descriptor FROM tool_output_resources WHERE id=?1",
-                [&self.resource.id],
-                |row| row.get::<_, String>(0),
-            ) && let Ok(published) = serde_json::from_str::<Resource>(&raw)
-            {
-                self.resource = published;
-                let _ = self.file.set_len(self.resource.bytes);
-                let _ = self.file.sync_all();
-            }
-            self.resource.state = CaptureState::Interrupted;
-            if let Ok(raw) = serde_json::to_string(&self.resource) {
-                let _=conn.execute("UPDATE tool_output_resources SET descriptor=?2,state='Interrupted',completed=?3 WHERE id=?1",params![self.resource.id,raw,timestamp()]);
-            }
-        }
+        let _ = self.freeze_prefix(CaptureState::Interrupted);
     }
 }
 

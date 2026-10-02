@@ -1,0 +1,39 @@
+   Compiling oc-adapters v0.1.0 (/home/opencode/ai/oc/crates/oc-adapters)
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `fs`
+ --> crates/oc-adapters/src/shell/jobs/output_tests.rs:7:5
+  |
+7 |     fs::create_dir(&project).unwrap();
+  |     ^^ use of unresolved module or unlinked crate `fs`
+  |
+  = note: module `crate::storage::tool_output::fs` exists but is inaccessible
+help: there is a crate or module with a similar name
+  |
+7 |     fs2::create_dir(&project).unwrap();
+  |       +
+help: consider importing one of these modules
+  |
+1 + use std::fs;
+  |
+1 + use tokio::fs;
+  |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `fs`
+  --> crates/oc-adapters/src/shell/jobs/output_tests.rs:47:16
+   |
+47 |     assert_eq!(fs::read_to_string(project.join("effect")).unwrap(), "effect");
+   |                ^^ use of unresolved module or unlinked crate `fs`
+   |
+   = note: module `crate::storage::tool_output::fs` exists but is inaccessible
+help: there is a crate or module with a similar name
+   |
+47 |     assert_eq!(fs2::read_to_string(project.join("effect")).unwrap(), "effect");
+   |                  +
+help: consider importing one of these modules
+   |
+ 1 + use std::fs;
+   |
+ 1 + use tokio::fs;
+   |
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `oc-adapters` (lib test) due to 2 previous errors

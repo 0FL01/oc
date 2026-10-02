@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/home/opencode/ai/oc/evidence/T50/native_shell_projection.py", line 44, in run
+    until(lambda:len(native.summaries)==1 and native.rows("SELECT count(*) FROM session_compactions")==[(1,)],"manual compact did not durably finish")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/opencode/ai/oc/evidence/T50/native_background.py", line 130, in until
+    raise AssertionError(reason)
+AssertionError: manual compact did not durably finish
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/opencode/ai/oc/evidence/T50/native_shell_projection.py", line 64, in <module>
+    print(json.dumps(run(binary)))
+                     ~~~^^^^^^^^
+  File "/home/opencode/ai/oc/evidence/T50/native_shell_projection.py", line 48, in run
+    raise AssertionError(f"{error}; main={len(native.requests)} summary={len(native.summaries)} auxiliary={len(native.auxiliary)} errors={native.errors} compactions={facts}") from error
+AssertionError: manual compact did not durably finish; main=3 summary=0 auxiliary=1 errors=['', '', ''] compactions=[{'state': 'running', 'error': None, 'reason': 'manual'}]

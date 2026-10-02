@@ -1,0 +1,36 @@
+{"binary": "/home/opencode/ai/oc/target/debug/oc", "sha256": "1363b17c48ef9a21e623c594016d66d9c9c07a2b74737b2094fba7169d1bfa3d"}
+Traceback (most recent call last):
+  File "/home/opencode/ai/oc/evidence/T50/native_shell_controls.py", line 99, in view
+    until(lambda: "status: running" in self.lower() and "LIVE-" + marker in self.lower(), "real live viewer lacks supervisor output: " + marker)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/opencode/ai/oc/evidence/T50/native_background.py", line 130, in until
+    raise AssertionError(reason)
+AssertionError: real live viewer lacks supervisor output: FG
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/opencode/ai/oc/evidence/T50/native_shell_controls.py", line 325, in <module>
+    if args.case is None or args.case == name: run(binary)
+                                               ~~~^^^^^^^^
+  File "/home/opencode/ai/oc/evidence/T50/native_shell_controls.py", line 152, in convert
+    native.list(); native.view("FG")
+                   ~~~~~~~~~~~^^^^^^
+  File "/home/opencode/ai/oc/evidence/T50/native_shell_controls.py", line 105, in view
+    raise AssertionError(str(error)+"; capture "+str(descriptor["bytes"])+" tail "+repr(tail)+"; screen "+self.lower()) from error
+AssertionError: real live viewer lacks supervisor output: FG; capture 1099993 tail 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'; screen                                                                                                               
+                                                                                                              
+                                                                                                              
+ ┌Shell · enter output · ctrl+b background · ctrl+d kill · esc back─────────────────────────────────────────┐ 
+ │tt50-background-1790944014028-643860-0-r1-c0-exact-fg-call · t50-background · generation 1                │ 
+ │/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924/t50-background-owned-zk56c6z7/project ·│ 
+ │status: running                                                                                           │ 
+ │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx│ 
+ │[truncated]                                                                                               │ 
+ │[capture tool_1790944014-643860-0 Active, published 1099993 bytes]                                        │ 
+ │                                                                                                          │ 
+ │                                                                                                          │ 
+ │                                                                                                          │ 
+ │                                                                                                          │ 
+ └──────────────────────────────────────────────────────────────────────────────────────────────────────────┘ 
+  Native runtime  ○ UI                                                                                        

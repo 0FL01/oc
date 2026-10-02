@@ -140,6 +140,8 @@ class Native:
         self.project.mkdir()
         self.project.joinpath("seed").write_text("fixture seed")
         self.requests, self.errors = [], []
+        self.physical_requests,self.auxiliary_requests=0,0
+        self.request_counter_lock=threading.Lock()
         self.process, self.fd, self.reader = None, None, None
         self.tail = bytearray()
         self.height = 34
@@ -154,12 +156,16 @@ class Native:
                 pass
 
             def do_POST(self):
+                with owner.request_counter_lock:
+                    owner.physical_requests+=1
                 try:
                     size = int(self.headers.get("content-length", "0"))
                     assert 0 < size <= 1048576
                     request = json.loads(self.rfile.read(size))
                     auxiliary = request.get("max_output_tokens") == 256 and not request.get("tools")
                     if auxiliary:
+                        with owner.request_counter_lock:
+                            owner.auxiliary_requests+=1
                         events = completed("Synthetic title")
                     else:
                         owner.requests.append(request)

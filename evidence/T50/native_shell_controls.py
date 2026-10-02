@@ -95,7 +95,14 @@ class Consumer(Native):
     def view(self, marker):
         self.pick(marker)
         self.send(b"\r")
-        until(lambda: "status: running" in self.lower() and "LIVE-" + marker in self.lower(), "real live viewer lacks supervisor output: " + marker)
+        try:
+            until(lambda: "status: running" in self.lower() and "LIVE-" + marker in self.lower(), "real live viewer lacks supervisor output: " + marker)
+        except AssertionError as error:
+            job=self.job_named(marker)
+            descriptor=json.loads(self.rows("SELECT descriptor FROM tool_output_resources WHERE operation_id=?",(job[0],))[0][0])
+            with Path(descriptor["path"]).open("rb") as archive:
+                archive.seek(max(0,descriptor["bytes"]-96));tail=archive.read(96).decode("utf-8","replace")
+            raise AssertionError(str(error)+"; capture "+str(descriptor["bytes"])+" tail "+repr(tail)+"; screen "+self.lower()) from error
 
     def jobs(self):
         return self.rows("SELECT operation_id,session_id,phase,provenance,process,outcome,delivery_id,message_id FROM shell_jobs ORDER BY rowid")
@@ -110,7 +117,8 @@ class Consumer(Native):
 
 
 def command(marker):
-    return (f"printf '%s' $$ > {marker}.pid; printf one >> {marker}.admission; printf 'LIVE-{marker}'; "
+    flood="head -c 1100000 /dev/zero | tr '\\000' x; printf '\\n'; " if marker=="FG" else ""
+    return (f"printf '%s' $$ > {marker}.pid; printf one >> {marker}.admission; "+flood+f"printf 'LIVE-{marker}'; "
             f"touch {marker}.entered; while [ ! -f {marker}.release ]; do sleep .01; done; "
             f"printf 'FINAL-{marker}'; touch {marker}.effect")
 
@@ -123,8 +131,13 @@ def snapshot(native, marker):
     assert provenance["location"] == str(native.project) and provenance["cwd"] == str(native.project)
     assert provenance["model"] == "gpt-shell-controls" and provenance["provider"] == "fixture"
     assert native.project.joinpath(marker + ".admission").read_text() == "one"
+    capture=native.rows("SELECT id,descriptor FROM tool_output_resources WHERE operation_id=?",(job[0],))
+    assert len(capture)==1
+    descriptor=json.loads(capture[0][1])
+    assert descriptor["operation"]==job[0] and descriptor["session"]==job[1]
+    assert descriptor["location"]==provenance["location"] and descriptor["generation"]==provenance["generation"]
     return {"operation": job[0], "source": job[1], "location": provenance["location"], "generation": provenance["generation"],
-            "model": provenance["model"], "pid": process["pid"]}
+            "model": provenance["model"], "pid": process["pid"],"capture_id":capture[0][0]}
 
 
 def convert(binary):
@@ -148,6 +161,11 @@ def convert(binary):
         assert snapshot(native, "FG") == receipt
         native.project.joinpath("FG.release").touch()
         job = native.terminal("FG", "completed")
+        descriptor=json.loads(native.rows("SELECT descriptor FROM tool_output_resources WHERE id=?",(receipt["capture_id"],))[0][0])
+        assert descriptor["state"]=="Complete" and descriptor["bytes"]>1048576
+        outcome=json.loads(job[5]);assert outcome["capture"]["id"]==receipt["capture_id"]
+        notice=json.loads(native.rows("SELECT text FROM messages WHERE id=?",(job[7],))[0][0].split("\n",1)[1])
+        assert notice["capture"]["id"]==receipt["capture_id"]
         until(lambda: "status: completed" in native.lower() and "FINAL-FG" in native.lower(), "already-open exact viewer lost final flush after running-list removal")
         assert "RUNNING" not in native.lower()
         native.send(b"\x02\x02\x04\x04")
@@ -163,7 +181,9 @@ def convert(binary):
         native.stop()
         assert not native.errors, native.errors
         print(json.dumps({"case": "same-pid-fg-conversion-live-final-repeat-reopen", "status": "PASS", **receipt,
-            "requests": 2, "intents": 1, "results": 1, "notices": 1, "effects": 1, "idlePOST": 0, "PTYrestored": native.restored}))
+            "requests": 2, "intents": 1, "results": 1, "notices": 1, "effects": 1, "idlePOST": 0, "PTYrestored": native.restored,
+            "capture_bytes":descriptor["bytes"],"capture_state":descriptor["state"],
+            "physical_requests":native.physical_requests,"auxiliary_requests":native.auxiliary_requests}))
 
 
 def child_kill_move(binary):
@@ -213,7 +233,8 @@ def child_kill_move(binary):
             native.stop()
             assert not native.errors, native.errors
             print(json.dumps({"case": "selected-child-kill-sibling-parent-move-original-capture", "status": "PASS", "child": child,
-                "sibling": sibling, "requests": 5, "jobs": 2, "notices": 1, "effects": 1, "parentInterrupted": False, "idlePOST": 0, "PTYrestored": native.restored}))
+                "sibling": sibling, "requests": 5, "jobs": 2, "notices": 1, "effects": 1, "parentInterrupted": False, "idlePOST": 0, "PTYrestored": native.restored,
+                "physical_requests":native.physical_requests,"auxiliary_requests":native.auxiliary_requests}))
         finally:
             continue_parent.set()
 
@@ -232,6 +253,7 @@ def cancelled_conversion(binary):
             native.list(); native.view("CANCEL")
             native.send(b"\x02\x04\x04\x02")
             native.terminal("CANCEL", "cancelled")
+            assert native.rows("SELECT state FROM tool_output_resources WHERE id=?",(receipt["capture_id"],))==[("Interrupted",)]
             assert busy.wait(5)
             assert native.rows("SELECT status FROM turns") == [("started",)]
             assert not native.project.joinpath("CANCEL.effect").exists()
@@ -240,7 +262,8 @@ def cancelled_conversion(binary):
             assert not Path(f"/proc/{receipt['pid']}").exists()
             native.stop()
             print(json.dumps({"case": "conversion-selected-cancel-repeat-parent-still-running", "status": "PASS", **receipt,
-                "requests": 2, "jobs": 1, "notices": 1, "effects": 0, "parentInterrupted": False, "PTYrestored": native.restored}))
+                "requests": 2, "jobs": 1, "notices": 1, "effects": 0, "parentInterrupted": False, "PTYrestored": native.restored,
+                "physical_requests":native.physical_requests,"auxiliary_requests":native.auxiliary_requests}))
         finally: release.set()
 
 
@@ -255,13 +278,15 @@ def crash_conversion(binary):
         until(native.settled, "converted await not released before crash")
         native.stop(crash=True); native.start()
         native.terminal("CRASH", "unknown")
+        assert native.rows("SELECT state FROM tool_output_resources WHERE id=?",(receipt["capture_id"],))==[("Interrupted",)]
         assert snapshot(native, "CRASH") == receipt
         assert len(native.requests) == 2 and not native.project.joinpath("CRASH.effect").exists()
         assert not Path(f"/proc/{receipt['pid']}").exists()
         native.stop(); native.start(); native.stop()
         assert native.rows("SELECT count(*) FROM events WHERE kind='shell_notice'") == [(1,)]
         print(json.dumps({"case": "converted-crash-recovery-unknown-never-replay", "status": "PASS", **receipt,
-            "requests": 2, "jobs": 1, "notices": 1, "effects": 0, "admissions": 1, "PTYrestored": native.restored}))
+            "requests": 2, "jobs": 1, "notices": 1, "effects": 0, "admissions": 1, "PTYrestored": native.restored,
+            "physical_requests":native.physical_requests,"auxiliary_requests":native.auxiliary_requests}))
 
 
 def completion(binary):
@@ -292,7 +317,8 @@ def completion(binary):
         until(lambda: not stat.exists() or stat.read_text().rsplit(") ", 1)[1].split()[0] == "Z", "owned final-flush descendant remained running")
         native.stop()
         print(json.dumps({"case": "completion-before-conversion-repeat-final-supervisor-drain", "status": "PASS", **receipt,
-            "descendant": descendant, "requests": 2, "jobs": 1, "results": 1, "notices": 0, "effects": 1, "PTYrestored": native.restored}))
+            "descendant": descendant, "requests": 2, "jobs": 1, "results": 1, "notices": 0, "effects": 1, "PTYrestored": native.restored,
+            "physical_requests":native.physical_requests,"auxiliary_requests":native.auxiliary_requests}))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,10 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.96s
+     Running tests/pty_t39.rs (target/debug/deps/pty_t39-d0266faa24959c9e)
+
+running 1 test
+test lifecycle::vis38_pty_dcp_equal_active_archive_resource_samples ... VIS38 S07 DCP archive=0 archive_source_bytes=0 rss_kb=46440 pss_kb=44251 hwm_kb=46440 os_tasks_threads=8 children=0 cpu_ticks=40 elapsed_ms=744 retained_bytes=93218 window_rows=10 queue_peak=0 queue_lagged=0 markdown_cache_peak=8007 frames=8 draw_max_ns=158218130 replay_requests=0 actual_runs=1 summary_page_limit=512
+VIS38 S07 DCP archive=3000 archive_source_bytes=49152000 rss_kb=49540 pss_kb=47229 hwm_kb=49540 os_tasks_threads=8 children=0 cpu_ticks=121 elapsed_ms=1700 retained_bytes=280800 window_rows=27 queue_peak=0 queue_lagged=0 markdown_cache_peak=14343 frames=8 draw_max_ns=444156097 replay_requests=0 actual_runs=1 summary_page_limit=512
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 13.31s
+

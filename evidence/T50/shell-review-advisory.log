@@ -1,0 +1,13 @@
+11 files; 10850 physical lines; 428665 UTF-8 bytes
+crates/oc-adapters/src/storage.rs: {'lines': 3690, 'bytes': 155669} (mixed/unknown) delta={'lines': 0, 'bytes': -4}
+crates/oc/tests/pty_t39/lifecycle.rs: {'lines': 1494, 'bytes': 60238} (test) delta={'lines': 1, 'bytes': 171}
+crates/oc-adapters/src/shell.rs: {'lines': 1219, 'bytes': 42742} (mixed/unknown) delta={'lines': 47, 'bytes': 2035}
+crates/oc-adapters/src/shell/jobs.rs: {'lines': 965, 'bytes': 34809} (mixed/unknown) delta={'lines': 80, 'bytes': 3144}
+crates/oc-adapters/src/storage_tool_output.rs: {'lines': 775, 'bytes': 30213} (mixed/unknown) delta={'lines': 61, 'bytes': 2999}
+crates/oc-adapters/src/tools/output.rs: {'lines': 671, 'bytes': 25275} (mixed/unknown) delta={'lines': 123, 'bytes': 4479}
+crates/oc-adapters/src/shell/jobs/output_tests.rs: {'lines': 583, 'bytes': 22689} (test) delta={'lines': 583, 'bytes': 22689}
+crates/oc-adapters/src/shell/jobs/tests.rs: {'lines': 487, 'bytes': 19244} (test) delta={'lines': 27, 'bytes': 1276}
+crates/oc-adapters/src/storage_shell_jobs.rs: {'lines': 347, 'bytes': 15554} (mixed/unknown) delta={'lines': 6, 'bytes': 454}
+crates/oc-adapters/src/shell/jobs/output.rs: {'lines': 346, 'bytes': 12414} (source) delta={'lines': 346, 'bytes': 12414}
+crates/oc-adapters/src/tools/output/tests.rs: {'lines': 273, 'bytes': 9818} (test) delta={'lines': 33, 'bytes': 1294}
+Advisory only; renames appear as old deleted + new path. Details: --json.

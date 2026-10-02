@@ -1373,9 +1373,10 @@ fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
     prepare.send(b"\x1b");
     wait_screen_row(&prepare, "answer:compressed", DEADLINE);
     wait_idle(&prepare);
-    prepare.send(b"\x03");
-    std::thread::sleep(POLL);
-    prepare.send(b"\x03");
+    // This is a resource probe, not a Ctrl+C lifecycle assertion. A second
+    // control byte can become SIGINT after the first restores terminal modes.
+    // Use the same explicit teardown as neighboring resource probes.
+    prepare.send(b"/quit\r");
     let (status, _) = prepare.wait_exit(DEADLINE);
     assert!(
         status.success() && prepare.restored(),
