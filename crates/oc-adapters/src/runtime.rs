@@ -37,10 +37,6 @@ use crate::tools::{
 mod compaction;
 mod retry;
 
-/// Max tool rounds per turn (bounded agent loop).
-pub const MAX_ROUNDS: u32 = 8;
-/// Hard cap for a caller-supplied round limit.
-pub const ROUND_CAP: u32 = 16;
 /// Max tool-output bytes kept in the turn report.
 pub const REPORT_OUTPUT_CAP: usize = 2_048;
 /// Max enabled MCP servers attached in one application generation.
@@ -863,8 +859,6 @@ pub struct TurnParams<'c> {
     pub provider: ResponsesConfig,
     /// Cancellation flag (also ends streaming promptly).
     pub cancel: &'c AtomicBool,
-    /// Max tool rounds (capped at [`ROUND_CAP`]).
-    pub max_rounds: u32,
 }
 
 #[derive(Clone, Default)]

@@ -2500,7 +2500,7 @@ impl Db {
             parts: Vec::new(),
             ..HistoryTurn::default()
         };
-        // 16 logical steps × (11 attempt spans + one overflow rebuild).
+        // Bounded presentation window, not a runtime step/retry admission limit.
         let mut spans = conn.prepare_cached("SELECT s.value FROM turns t,json_each(t.result,'$.spans') s WHERE t.id=?1 ORDER BY CAST(s.key AS INTEGER) LIMIT 192")?;
         for raw in spans.query_map([&id], |r| r.get::<_, String>(0))? {
             if let Ok(span) = serde_json::from_str::<oc_core::queries::AssistantSpan>(&raw?) {

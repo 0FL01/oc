@@ -192,7 +192,6 @@ async fn live_workflow_harness() {
                 max_output: 4_000,
                 provider: provider.clone(),
                 cancel: &NO_CANCEL,
-                max_rounds: 10,
             })
             .await
             .expect("coding turn");
@@ -235,7 +234,6 @@ async fn live_workflow_harness() {
                 max_output: 100,
                 provider: provider.clone(),
                 cancel: &NO_CANCEL,
-                max_rounds: 2,
             })
             .await
             .expect("next turn");
@@ -320,7 +318,6 @@ async fn live_workflow_harness() {
                 max_output: 100,
                 provider: provider.clone(),
                 cancel: &NO_CANCEL,
-                max_rounds: 2,
             })
             .await
             .expect("resumed turn");

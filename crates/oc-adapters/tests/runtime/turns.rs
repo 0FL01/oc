@@ -15,8 +15,7 @@ async fn ret01_runtime_mixed_retry_continues_partial_without_spending_rounds() {
         ],
         Duration::ZERO,
     );
-    let mut p = params("retry", "input", &harness, provider_of(&base), &NO_CANCEL);
-    p.max_rounds = 1;
+    let p = params("retry", "input", &harness, provider_of(&base), &NO_CANCEL);
     let report = runtime.run_turn(p).await.unwrap();
     assert_eq!(report.status, TurnStatus::Completed);
     assert_eq!(report.rounds, 1);
@@ -72,8 +71,10 @@ async fn ret01_runtime_retry_never_replays_committed_effect() {
                 "bash",
                 &serde_json::json!({"argv":["sh","-c","printf effect >> retry-effects"]}),
             ) + &sse_completed(),
-            sse_delta("partial"),
-            sse_delta("done") + &sse_completed(),
+            sse_delta("partial")
+                + &sse_reasoning("unfinished reasoning")
+                + "data: {\"type\":\"response.failed\",\"response\":{\"error\":{\"code\":\"rate_limit_exceeded\"}}}\n\n",
+            sse_reasoning("continuation reasoning") + &sse_delta("done") + &sse_completed(),
         ],
         Duration::ZERO,
     );
@@ -96,6 +97,23 @@ async fn ret01_runtime_retry_never_replays_committed_effect() {
     );
     assert_eq!(report.calls.len(), 1);
     assert!(function_output(&requests.lock().unwrap()[2], "once").is_some());
+    let (_, raw) = harness.db.turn_result(&report.turn_id).unwrap();
+    let log: serde_json::Value = serde_json::from_str(&raw.unwrap()).unwrap();
+    let reasoning = log["display_parts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|part| part.get("reasoning").is_some())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        reasoning.len(),
+        2,
+        "unfinished reasoning cannot merge across spans"
+    );
+    assert_eq!(reasoning[0]["span"], log["spans"][1]["id"]);
+    assert_eq!(reasoning[1]["span"], log["spans"][2]["id"]);
+    assert_eq!(log["spans"][1]["retry"]["attempt"], 2);
+    assert_eq!(log["spans"][1]["status"], "failed");
     let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
     assert_eq!(
         conn.query_row("SELECT count(*) FROM tool_operations", [], |r| r
@@ -993,7 +1011,7 @@ async fn aud11_terminal_semantics_preserve_non_success_and_truthful_length() {
 }
 
 #[tokio::test]
-async fn aud11_round_exhaustion_retains_output_without_replaying_effect_after_restart() {
+async fn ret01_long_work_resets_retry_and_retains_output_without_replay_after_restart() {
     let (mut harness, generation) = make_harness(allow_all());
     let runtime = runtime_of(&harness, generation.clone(), Vec::new());
     runtime.create_session("s").unwrap();
@@ -1002,33 +1020,46 @@ async fn aud11_round_exhaustion_retains_output_without_replaying_effect_after_re
         "bash",
         &serde_json::json!({"argv": ["/bin/sh", "-c", "printf 'once\\n' >> effects; printf durable-output"]}),
     );
-    let (base, hits, requests) = Fake::start_recording(
-        vec![
-            tool + &sse_completed(),
-            sse_delta("resumed") + &sse_completed(),
-        ],
-        Duration::ZERO,
-    );
-    let mut turn = params(
+    let throttle = "data: {\"type\":\"error\",\"error\":{\"code\":\"rate_limit_exceeded\"}}\n\n";
+    let mut script = vec![throttle.into(), tool + &sse_completed()];
+    for step in 2..=17 {
+        script.push(
+            sse_tool_call(
+                &format!("step-{step}"),
+                "bash",
+                &serde_json::json!({"argv":["sh","-c",format!("printf step-{step}")]}),
+            ) + &sse_completed(),
+        );
+    }
+    script.extend([
+        throttle.into(),
+        sse_delta("genuine final") + &sse_completed(),
+        sse_delta("resumed") + &sse_completed(),
+    ]);
+    let (base, hits, requests) = Fake::start_recording(script, Duration::ZERO);
+    let turn = params(
         "s",
         "record effect",
         &harness,
         provider_of(&base),
         &NO_CANCEL,
     );
-    turn.max_rounds = 1;
     let report = runtime.run_turn(turn).await.unwrap();
-    assert_eq!(report.status, TurnStatus::Incomplete);
-    assert_eq!(report.rounds, 1);
-    assert_eq!(report.calls.len(), 1);
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(report.rounds, 18);
+    assert_eq!(report.calls.len(), 17);
     assert_eq!(report.calls[0].state, "completed");
-    assert_eq!(*hits.lock().unwrap(), 1, "round budget must stop requests");
+    assert_eq!(
+        *hits.lock().unwrap(),
+        20,
+        "17 tool steps + genuine final + two retries"
+    );
     assert_eq!(
         std::fs::read_to_string(harness._project.path().join("effects")).unwrap(),
         "once\n"
     );
     let (status, raw) = harness.db.turn_result(&report.turn_id).unwrap();
-    assert_eq!(status, "incomplete");
+    assert_eq!(status, "completed");
     let journal: serde_json::Value = serde_json::from_str(&raw.unwrap()).unwrap();
     let input = journal["input"].as_array().unwrap();
     let output = input
@@ -1048,18 +1079,34 @@ async fn aud11_round_exhaustion_retains_output_without_replaying_effect_after_re
             .iter()
             .filter(|item| item["type"] == "function_call_output")
             .count(),
-        1
+        17
     );
     assert!(input.iter().any(|item| item["type"] == "function_call"
         && item["id"] == "fc_call_effect"
         && item["call_id"] == "call_effect"));
+    // A successful semantic start clears its active retry projection; the
+    // immutable scheduled events retain both physical-attempt facts.
+    let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    let retries = conn.prepare("SELECT json_extract(payload,'$.retry.attempt') FROM events WHERE kind='retry_scheduled' ORDER BY seq")
+        .unwrap().query_map([], |row| row.get::<_, i64>(0)).unwrap()
+        .collect::<Result<Vec<_>, _>>().unwrap();
+    assert_eq!(retries, [2, 2], "success resets the logical-step allowance");
+    for step in 2..=17 {
+        let request = &requests.lock().unwrap()[step];
+        let previous = if step == 2 {
+            "call_effect".to_string()
+        } else {
+            format!("step-{}", step - 1)
+        };
+        assert!(function_output(request, &previous).is_some());
+    }
 
     drop(runtime);
     drop(harness.db);
     harness.db = Db::open(harness._data.path()).unwrap();
     assert_eq!(
         harness.db.turn_result(&report.turn_id).unwrap().0,
-        "incomplete"
+        "completed"
     );
     let reopened: serde_json::Value =
         serde_json::from_str(&harness.db.turn_result(&report.turn_id).unwrap().1.unwrap()).unwrap();
@@ -1088,13 +1135,13 @@ async fn aud11_round_exhaustion_retains_output_without_replaying_effect_after_re
     let ops = harness.db.list_tool_ops("s").unwrap();
     assert_eq!(
         ops.len(),
-        1,
+        17,
         "restart must not execute the prior effect again"
     );
     assert_eq!(ops[0].state, "completed");
-    assert_eq!(*hits.lock().unwrap(), 2);
+    assert_eq!(*hits.lock().unwrap(), 21);
     let requests = requests.lock().unwrap();
-    let continuation = requests[1]["input"].as_array().unwrap();
+    let continuation = requests[20]["input"].as_array().unwrap();
     assert_eq!(
         continuation.iter().filter(|item| **item == output).count(),
         1
@@ -1139,14 +1186,13 @@ async fn aud11_review_length_terminal_only_call_has_no_effect_or_intent() {
             ],
             Duration::ZERO,
         );
-        let mut turn = params(
+        let turn = params(
             "length-tool",
             "test",
             &harness,
             provider_of(&base),
             &NO_CANCEL,
         );
-        turn.max_rounds = 1;
         let report = runtime.run_turn(turn).await.unwrap();
         let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
         let intents: i64 = sql
@@ -1168,18 +1214,11 @@ async fn aud11_review_length_terminal_only_call_has_no_effect_or_intent() {
                 "actual completed call dispatches once"
             );
         }
-        assert_eq!(
-            report.status,
-            if prior_done {
-                TurnStatus::Incomplete
-            } else {
-                TurnStatus::Failed
-            }
-        );
+        assert_eq!(report.status, TurnStatus::Failed);
         assert_eq!(
             *hits.lock().unwrap(),
-            1,
-            "prior done dispatches; terminal-only length rejection is local with no retry or intent"
+            if prior_done { 2 } else { 1 },
+            "prior done continues to terminal quota; terminal-only length rejection is local"
         );
     }
 }
@@ -1229,7 +1268,15 @@ async fn reload_applies_new_policy_and_guards_active_turn() {
     runtime.create_session("s").expect("create");
     // Default-deny: unlisted tools never run.
     let tool = sse_tool_call("i1", "read", &serde_json::json!({"path": "note.txt"}));
-    let (base, _) = Fake::start(vec![tool + &sse_completed()], Duration::ZERO);
+    let (base, _) = Fake::start(
+        vec![
+            tool.clone() + &sse_completed(),
+            sse_completed(),
+            tool + &sse_completed(),
+            sse_completed(),
+        ],
+        Duration::ZERO,
+    );
     std::fs::write(harness._project.path().join("note.txt"), "file-bytes").expect("seed");
     let report = runtime
         .run_turn(params(

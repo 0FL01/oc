@@ -296,7 +296,6 @@ mod vis38_review_tests {
                     allow_private: true,
                 },
                 cancel: &cancel,
-                max_rounds: 4,
             })
             .await
             .unwrap();

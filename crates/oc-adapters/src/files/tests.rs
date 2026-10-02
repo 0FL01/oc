@@ -352,7 +352,6 @@ async fn tool14_active_scan_cancel_refuses_partial_and_joins_before_next_query()
             max_output: 1000,
             provider: provider.clone(),
             cancel: &cancel,
-            max_rounds: 4,
         };
         let mut finishes = Vec::new();
         let (report, ()) = tokio::join!(

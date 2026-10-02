@@ -15,11 +15,11 @@ const TITLE_OUTPUT: u64 = 256;
 const CAMPAIGN_LIMIT: usize = 24;
 const _: () = assert!(MAIN_OUTPUT <= 2048 && TITLE_OUTPUT <= 2048);
 
-fn worst_case_requests() -> usize {
-    // One headless main turn, at most MAX_ROUNDS generations and one ancillary
-    // title generation; the adapter retries each at most MAX_ATTEMPTS times.
-    // The fixture has no subagents/MCP and denies all tool execution.
-    (oc_adapters::runtime::MAX_ROUNDS as usize + 1) * oc_adapters::provider::MAX_ATTEMPTS
+fn reserved_requests() -> usize {
+    // Historical T49 campaign reservation, not a production runtime maximum.
+    // Long Horizon removes successful-step quotas; any new live execution needs
+    // the existing external bounded-live governor, not a inferred loop ceiling.
+    18
 }
 
 fn reserve_once(path: &Path, model: &str, attempts: usize) -> std::io::Result<()> {
@@ -35,15 +35,15 @@ fn reserve_once(path: &Path, model: &str, attempts: usize) -> std::io::Result<()
 }
 
 #[test]
-fn single_run_worst_case_fits_campaign_and_reservation_survives_retry() {
-    assert!(worst_case_requests() <= CAMPAIGN_LIMIT);
+fn single_run_reservation_fits_campaign_and_survives_retry() {
+    assert!(reserved_requests() <= CAMPAIGN_LIMIT);
     let dir = tempfile::tempdir().unwrap();
     let ledger = dir.path().join("reservation");
-    reserve_once(&ledger, "fixture/model", worst_case_requests()).unwrap();
-    assert!(reserve_once(&ledger, "fixture/model", worst_case_requests()).is_err());
+    reserve_once(&ledger, "fixture/model", reserved_requests()).unwrap();
+    assert!(reserve_once(&ledger, "fixture/model", reserved_requests()).is_err());
     assert_eq!(
         serde_json::from_slice::<serde_json::Value>(&fs::read(ledger).unwrap()).unwrap()["reserved_generation_requests"],
-        worst_case_requests()
+        reserved_requests()
     );
 }
 
@@ -221,7 +221,7 @@ async fn one_shot_live_model_identity(rotated: bool) {
     let url = std::env::var("LUDKA2_API_URL").expect("product test API URL");
     let key = std::env::var("LUDKA2_API_KEY").expect("product test API key");
     assert!(!url.is_empty() && !key.is_empty());
-    assert!(worst_case_requests() <= CAMPAIGN_LIMIT);
+    assert!(reserved_requests() <= CAMPAIGN_LIMIT);
     // The fixed path is intentional: crashes and reruns cannot mint a new budget.
     // This file contains no secret or response content; never delete it to retry.
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -244,7 +244,7 @@ async fn one_shot_live_model_identity(rotated: bool) {
             previous["reserved_generation_requests"],
             oc_adapters::provider::MAX_ATTEMPTS
         );
-        assert!(oc_adapters::provider::MAX_ATTEMPTS + worst_case_requests() <= CAMPAIGN_LIMIT);
+        assert!(oc_adapters::provider::MAX_ATTEMPTS + reserved_requests() <= CAMPAIGN_LIMIT);
     }
     let fixture = tempfile::Builder::new()
         .prefix("t49-live-")
@@ -311,7 +311,7 @@ async fn one_shot_live_model_identity(rotated: bool) {
             "t49-live-reservation.json"
         }),
         &qualified,
-        worst_case_requests(),
+        reserved_requests(),
     )
     .expect("one-shot campaign already reserved; no automatic retry");
     let mut child = Command::new(env!("CARGO_BIN_EXE_oc"))

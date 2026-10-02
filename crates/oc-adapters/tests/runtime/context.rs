@@ -1618,6 +1618,7 @@ async fn provider_context_usage_survives_missing_round_usage_and_restart() {
                 "read",
                 &serde_json::json!({"path":"missing.txt"}),
             ) + &sse_completed_usage(7000, 34),
+            "data: {\"type\":\"error\",\"error\":{\"code\":\"insufficient_quota\"}}\n\n".into(),
             sse_tool_call(
                 "cancel-after-tool",
                 "read",
@@ -1667,13 +1668,11 @@ async fn provider_context_usage_survives_missing_round_usage_and_restart() {
         "a missing final round must not erase a known pair"
     );
 
-    let mut incomplete_params =
-        params("context", "third", &harness, provider_of(&base), &NO_CANCEL);
-    incomplete_params.max_rounds = 1;
-    let incomplete = runtime.run_turn(incomplete_params).await.unwrap();
-    assert_eq!(incomplete.status, TurnStatus::Incomplete);
-    assert_eq!(incomplete.usage, Some((7000, 34)));
-    assert_eq!(incomplete.context_usage, Some((7000, 34)));
+    let failed_params = params("context", "third", &harness, provider_of(&base), &NO_CANCEL);
+    let failed = runtime.run_turn(failed_params).await.unwrap();
+    assert_eq!(failed.status, TurnStatus::Failed);
+    assert_eq!(failed.usage, Some((7000, 34)));
+    assert_eq!(failed.context_usage, Some((7000, 34)));
 
     let cancelled_flag = AtomicBool::new(false);
     let cancelled = runtime
@@ -1699,7 +1698,7 @@ async fn provider_context_usage_survives_missing_round_usage_and_restart() {
     assert_eq!(cancelled.status, TurnStatus::Cancelled);
     assert_eq!(cancelled.usage, Some((8000, 45)));
     assert_eq!(cancelled.context_usage, Some((8000, 45)));
-    assert_eq!(*hits.lock().unwrap(), 6);
+    assert_eq!(*hits.lock().unwrap(), 7);
 
     drop(runtime);
     drop(harness.db);
@@ -1707,7 +1706,7 @@ async fn provider_context_usage_survives_missing_round_usage_and_restart() {
     for (id, context, expected_status) in [
         (fresh.turn_id, [6000, 763], "completed"),
         (next.turn_id, [4500, 21], "completed"),
-        (incomplete.turn_id, [7000, 34], "incomplete"),
+        (failed.turn_id, [7000, 34], "failed"),
         (cancelled.turn_id, [8000, 45], "cancelled"),
     ] {
         let (status, result) = reopened.turn_result(&id).unwrap();

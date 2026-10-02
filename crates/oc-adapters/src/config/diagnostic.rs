@@ -83,6 +83,9 @@ pub(crate) fn schema_field(field: &str) -> Vec<String> {
         "disabled_providers",
         "plugin",
         "agent",
+        "agents",
+        "steps",
+        "maxSteps",
         "command",
         "skill",
         "definitions",
@@ -111,7 +114,14 @@ pub(crate) fn schema_field(field: &str) -> Vec<String> {
     };
     let entry_domain = matches!(
         first,
-        "provider" | "mcp" | "agent" | "command" | "permissions" | "permission" | "tools"
+        "provider"
+            | "mcp"
+            | "agent"
+            | "agents"
+            | "command"
+            | "permissions"
+            | "permission"
+            | "tools"
     );
     let mut safe = vec![first.into()];
     for (index, part) in parts.take(5).enumerate() {

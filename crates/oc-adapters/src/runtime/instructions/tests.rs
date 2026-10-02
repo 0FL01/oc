@@ -78,7 +78,6 @@ async fn prm01_once_and_always_file_approvals_never_promote_source_ask() {
                 max_output: 1024,
                 provider,
                 cancel: &cancel,
-                max_rounds: 4,
             });
             let approve = async {
                 let request = tokio::time::timeout(Duration::from_secs(4), async {

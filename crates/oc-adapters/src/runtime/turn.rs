@@ -1173,7 +1173,7 @@ impl<'a> Runtime<'a> {
             .iter()
             .map(crate::instructions::Fact::input)
             .collect::<Vec<_>>();
-        let max_rounds = params.max_rounds.clamp(1, ROUND_CAP);
+        // Successful steps are accounting, never continuation admission.
         let mut rounds = 0u32;
         let mut overflow_recovered = false;
         let mut overflow_pending = false;
@@ -1640,7 +1640,7 @@ impl<'a> Runtime<'a> {
             let mut text_slots: Vec<TextSlot> = Vec::new();
             let mut active_text: Option<usize> = None;
             let mut reasoning_anchors: Vec<(usize, String)> = Vec::new();
-            let mut pending_tools = PendingToolStreams::new(rounds + 1);
+            let mut pending_tools = PendingToolStreams::new(rounds.saturating_add(1));
             if !retry_resuming
                 && let Some(previous) = turn_log.spans.last_mut()
                 && previous.completed.is_none()
@@ -1655,7 +1655,7 @@ impl<'a> Runtime<'a> {
                 turn_log.spans.push(oc_core::queries::AssistantSpan {
                     request: None,
                     id: next_turn_id("assistant", millis()),
-                    step: rounds + 1,
+                    step: rounds.saturating_add(1),
                     status: "started".into(),
                     started: millis(),
                     completed: None,
@@ -1836,6 +1836,8 @@ impl<'a> Runtime<'a> {
                                 active_text = None;
                                 reasoning_started.get_or_insert_with(std::time::Instant::now);
                                 if let Some(last) = turn_log.display_parts.last_mut()
+                                    && last["span"]
+                                        == turn_log.spans.last().expect("active span").id
                                     && let Some(text) =
                                         last.get("reasoning").and_then(|v| v.as_str())
                                     && !reasoning_closed
@@ -1938,7 +1940,9 @@ impl<'a> Runtime<'a> {
                         tool_event(
                             &turn_id,
                             &ToolCallEvent::ArgumentStream(
-                                oc_core::tool_stream::ToolStreamEvent::Clear { round: rounds + 1 },
+                                oc_core::tool_stream::ToolStreamEvent::Clear {
+                                    round: rounds.saturating_add(1),
+                                },
                             ),
                         );
                         if error.is_context_overflow()
@@ -2049,7 +2053,7 @@ impl<'a> Runtime<'a> {
                                     turn_log.spans.push(oc_core::queries::AssistantSpan {
                                         request: None,
                                         id: next_turn_id("assistant", millis()),
-                                        step: rounds + 1,
+                                        step: rounds.saturating_add(1),
                                         status: "started".into(),
                                         started: millis(),
                                         completed: None,
@@ -2088,7 +2092,7 @@ impl<'a> Runtime<'a> {
                     }
                 }
             };
-            rounds += 1;
+            rounds = rounds.saturating_add(1);
             retry_policy = retry::RetryPolicy::default();
             for event in pending_tools.flush() {
                 tool_event(&turn_id, &ToolCallEvent::ArgumentStream(event));
@@ -2453,22 +2457,6 @@ impl<'a> Runtime<'a> {
             if !units_have_calls(&units) {
                 break;
             }
-            if rounds >= max_rounds {
-                return self.commit_turn(
-                    &turn_log,
-                    turn_id,
-                    &params.session,
-                    TurnStatus::Incomplete,
-                    text,
-                    rounds,
-                    streamed_ms(streamed),
-                    usage,
-                    context_usage,
-                    calls,
-                    nudge_hint,
-                    &published,
-                );
-            }
         }
         let mut report = self.commit_turn(
             &turn_log,
@@ -2558,7 +2546,6 @@ impl<'a> Runtime<'a> {
             max_output,
             provider: provider.clone(),
             cancel,
-            max_rounds: MAX_ROUNDS,
         };
         self.run_turn_inner(
             params,

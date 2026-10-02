@@ -430,7 +430,6 @@ async fn compaction_auto_threshold_and_known_overflow_keep_tool_effect_once() {
                 max_output: 1024,
                 provider: provider.clone(),
                 cancel: &cancel,
-                max_rounds: 4,
             })
             .await
             .unwrap();
@@ -501,7 +500,6 @@ async fn compaction_auto_threshold_and_known_overflow_keep_tool_effect_once() {
                     max_output: 1024,
                     provider,
                     cancel: &cancel,
-                    max_rounds: 4,
                 })
                 .await
                 .unwrap();
@@ -573,7 +571,6 @@ async fn compaction_failed_overflow_summary_does_not_retry_the_main_request() {
             max_output: 1024,
             provider,
             cancel: &cancel,
-            max_rounds: 4,
         })
         .await
         .unwrap();
@@ -773,7 +770,6 @@ async fn compaction_native_opaque_route_checkpoint_without_summary_body() {
                 max_output: 1024,
                 provider: different.clone(),
                 cancel: &cancel,
-                max_rounds: 1
             })
             .await
             .is_err()
@@ -898,7 +894,6 @@ async fn compaction_auto_precancel_and_held_caller_cancel_install_no_checkpoint(
             max_output: 1024,
             provider,
             cancel: &cancel,
-            max_rounds: 4,
         });
         let cancelling = async {
             if mode != "precancel" {
@@ -1032,7 +1027,6 @@ async fn compaction_schema_inclusive_irreducible_mcp_admission_spends_no_summary
                 max_output: 1024,
                 provider: config(&listener),
                 cancel: &cancel,
-                max_rounds: 1,
             },
             &lane,
             &attached,

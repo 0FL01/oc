@@ -425,26 +425,23 @@ for line in sys.stdin:
         "bash",
         &serde_json::json!({"argv": ["/bin/sh", "-c", "printf 'B2\\n' >> order"]}),
     );
-    let (base, _) = Fake::start(
-        vec![first + &middle + &last + &sse_completed()],
-        Duration::ZERO,
-    );
+    let batch = first + &middle + &last + &sse_completed();
     let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
     for fault in ["", "intent", "outcome"] {
+        let (base, _) = Fake::start(vec![batch.clone(), sse_completed()], Duration::ZERO);
         std::fs::write(&order, "").unwrap();
         match fault {
             "intent" => sql.execute_batch("CREATE TRIGGER fail_mcp BEFORE INSERT ON tool_operations WHEN NEW.name = 'fixture__mark' BEGIN SELECT RAISE(ABORT, 'injected MCP intent'); END;").unwrap(),
             "outcome" => sql.execute_batch("CREATE TRIGGER fail_mcp BEFORE UPDATE ON tool_operations WHEN NEW.name = 'fixture__mark' BEGIN SELECT RAISE(ABORT, 'injected MCP outcome'); END;").unwrap(),
             _ => {},
         }
-        let mut p = params(
+        let p = params(
             "s",
             "ordered tools",
             &harness,
             provider_of(&base),
             &NO_CANCEL,
         );
-        p.max_rounds = 1;
         let result = runtime.run_turn(p).await;
         if fault.is_empty() {
             let report = result.unwrap();
@@ -571,7 +568,10 @@ async fn denied_and_ask_tools_fail_visibly() {
         let runtime = runtime_of(&harness, generation, Vec::new());
         runtime.create_session("s").expect("create");
         let tool = sse_tool_call("i1", "bash", &serde_json::json!({"argv": ["echo", "x"]}));
-        let (base, _) = Fake::start(vec![tool + &sse_completed()], Duration::ZERO);
+        let (base, _) = Fake::start(
+            vec![tool + &sse_completed(), sse_completed()],
+            Duration::ZERO,
+        );
         let result = runtime
             .run_turn(params("s", "run", &harness, provider_of(&base), &NO_CANCEL))
             .await;
@@ -603,7 +603,10 @@ async fn protected_patch_never_reaches_disk() {
         "apply_patch",
         &serde_json::json!({"patchText": patch}),
     );
-    let (base, _) = Fake::start(vec![tool + &sse_completed()], Duration::ZERO);
+    let (base, _) = Fake::start(
+        vec![tool + &sse_completed(), sse_completed()],
+        Duration::ZERO,
+    );
     let report = runtime
         .run_turn(params(
             "s",
@@ -886,9 +889,11 @@ for line in sys.stdin:
         if server == 'broken':
             print(json.dumps({'jsonrpc':'2.0','id':r['id'],'error':{'code':-32603,'message':'UNKNOWN-CANARY'}}),flush=True)
             continue
-        result={'tools':[] if server == 'empty' else [{'name':'query','inputSchema':{'type':'object','properties':{'fail':{'type':'boolean'}}}}]}
+        result={'tools':[] if server == 'empty' else [{'name':'query','inputSchema':{'type':'object','properties':{'fail':{'type':'boolean'},'throttle':{'type':'boolean'}}}}]}
     elif method == 'tools/call':
-        if r['params']['arguments'].get('fail'):
+        if r['params']['arguments'].get('throttle'):
+            result={'isError':True,'structuredContent':{'error':{'code':'RATE_LIMITED'}},'content':[{'type':'text','text':'UNKNOWN-CANARY'}]}
+        elif r['params']['arguments'].get('fail'):
             result={'isError':True,'structuredContent':{'error':{'code':'INVALID_ARGUMENTS'}},'content':[{'type':'text','text':'invalid argument: missing parameter query; UNKNOWN-CANARY PROVIDER-CANARY HEADER-CANARY'}]}
         else:
             result={'content':[{'type':'text','text':'Useful explanation '+sys.argv[2]},{'type':'resource','resource':{'uri':'file:///fixture','text':'Embedded content'}}],'structuredContent':{'answer':42,'echo':'PROVIDER-CANARY HEADER-CANARY','argvEcho':sys.argv[2],'token':'UNKNOWN-CANARY'}}
@@ -945,6 +950,11 @@ for line in sys.stdin:
         vec![
             sse_tool_call("data", "good__query", &serde_json::json!({}))
                 + &sse_tool_call("failed", "good__query", &serde_json::json!({"fail":true}))
+                + &sse_tool_call(
+                    "throttle",
+                    "good__query",
+                    &serde_json::json!({"throttle":true}),
+                )
                 + &sse_completed(),
             sse_delta("done") + &sse_completed(),
         ],
@@ -961,9 +971,31 @@ for line in sys.stdin:
         .await
         .unwrap();
     assert_eq!(report.status, TurnStatus::Completed);
-    assert_eq!(report.calls.len(), 2);
+    assert_eq!(report.calls.len(), 3);
     assert_eq!(report.calls[0].state, "completed");
     assert_eq!(report.calls[1].state, "failed");
+    assert_eq!(report.calls[2].state, "failed");
+    assert!(
+        report.calls[2]
+            .output
+            .contains("rate limited; wait before retrying")
+    );
+    assert_eq!(
+        harness.db.list_tool_ops("s").unwrap().len(),
+        3,
+        "no automatic MCP retry"
+    );
+    let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    assert_eq!(
+        conn.query_row(
+            "SELECT count(*) FROM events WHERE kind='retry_scheduled'",
+            [],
+            |row| row.get::<_, i64>(0)
+        )
+        .unwrap(),
+        0,
+        "MCP RATE_LIMITED is a failed tool result, not generation retry"
+    );
     assert!(
         report.calls[1]
             .output
@@ -1002,7 +1034,14 @@ for line in sys.stdin:
         .iter()
         .filter(|item| item["type"] == "function_call_output")
         .collect();
-    assert_eq!(outputs.len(), 2);
+    assert_eq!(outputs.len(), 3);
+    assert_eq!(outputs[2]["call_id"], "throttle");
+    assert!(
+        outputs[2]["output"]
+            .as_str()
+            .unwrap()
+            .contains("rate limited; wait before retrying")
+    );
     let data = outputs[0]["output"].as_str().unwrap();
     assert!(data.contains("Useful explanation"));
     assert!(data.contains("Embedded content"));
@@ -1705,23 +1744,25 @@ async fn unidentifiable_calls_append_only_at_intent_and_duplicate_call_ids_fail_
         "content":[{"type":"output_text", "text":"hello"}]});
     std::fs::write(harness._project.path().join("fixture.txt"), "present").unwrap();
     let (base, hits) = Fake::start(
-        vec![sse_completed_output(vec![call.clone(), message.clone()])],
+        vec![
+            sse_completed_output(vec![call.clone(), message.clone()]),
+            sse_completed(),
+        ],
         Duration::ZERO,
     );
-    let mut request = params(
+    let request = params(
         "unidentified-tool",
         "read",
         &harness,
         provider_of(&base),
         &NO_CANCEL,
     );
-    request.max_rounds = 1;
     let report = runtime.run_turn(request).await.unwrap();
-    assert_eq!(report.status, TurnStatus::Incomplete);
-    assert_eq!(report.rounds, 1);
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(report.rounds, 2);
     assert_eq!(report.calls.len(), 1);
     assert_eq!(report.calls[0].state, "completed");
-    assert_eq!(*hits.lock().unwrap(), 1);
+    assert_eq!(*hits.lock().unwrap(), 2);
     let (_, raw) = harness.db.turn_result(&report.turn_id).unwrap();
     let stored: serde_json::Value = serde_json::from_str(&raw.unwrap()).unwrap();
     let parts = stored["display_parts"].as_array().unwrap();

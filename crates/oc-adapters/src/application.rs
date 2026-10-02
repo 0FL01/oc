@@ -4100,7 +4100,6 @@ async fn worker(
                     max_output: 0,
                     provider: composition.provider.clone(),
                     cancel: &cancel,
-                    max_rounds: crate::runtime::MAX_ROUNDS,
                 };
                 let title_prompt = params.prompt.clone();
                 let mut ack = Some(ack);
@@ -4477,55 +4476,56 @@ async fn worker(
                         Ok(report) => report.warnings.clone(),
                         Err(_) => Vec::new(),
                     };
-                    let event = match result {
-                        Err(RuntimeError::Cancelled) => CoreEvent::TurnInterrupted {
-                            session: session.clone(),
-                            turn,
-                            partial: String::new(),
-                            duration_ms,
-                        },
-                        Ok(report) if report.status == TurnStatus::Completed => {
-                            CoreEvent::TurnFinished {
+                    let event =
+                        match result {
+                            Err(RuntimeError::Cancelled) => CoreEvent::TurnInterrupted {
                                 session: session.clone(),
                                 turn,
-                                text: report.text,
+                                partial: String::new(),
                                 duration_ms,
-                                warnings,
+                            },
+                            Ok(report) if report.status == TurnStatus::Completed => {
+                                CoreEvent::TurnFinished {
+                                    session: session.clone(),
+                                    turn,
+                                    text: report.text,
+                                    duration_ms,
+                                    warnings,
+                                }
                             }
-                        }
-                        Ok(report) if report.status == TurnStatus::Cancelled => {
-                            CoreEvent::TurnInterrupted {
+                            Ok(report) if report.status == TurnStatus::Cancelled => {
+                                CoreEvent::TurnInterrupted {
+                                    session: session.clone(),
+                                    turn,
+                                    partial: report.text,
+                                    duration_ms,
+                                }
+                            }
+                            Ok(report) if report.status == TurnStatus::Incomplete => {
+                                CoreEvent::TurnFailed {
+                                    session: session.clone(),
+                                    turn,
+                                    error: app_error(report.diagnostic.as_deref().unwrap_or(
+                                        "turn incomplete: provider response ended early",
+                                    )),
+                                    warnings,
+                                }
+                            }
+                            Ok(report) => CoreEvent::TurnFailed {
                                 session: session.clone(),
                                 turn,
-                                partial: report.text,
-                                duration_ms,
-                            }
-                        }
-                        Ok(report) if report.status == TurnStatus::Incomplete => {
-                            CoreEvent::TurnFailed {
+                                error: app_error(
+                                    report.diagnostic.as_deref().unwrap_or("provider error"),
+                                ),
+                                warnings,
+                            },
+                            Err(error) => CoreEvent::TurnFailed {
                                 session: session.clone(),
                                 turn,
-                                error: app_error(report.diagnostic.as_deref().unwrap_or(
-                                    "turn incomplete: response ended early or round limit reached",
-                                )),
+                                error: runtime_error(error),
                                 warnings,
-                            }
-                        }
-                        Ok(report) => CoreEvent::TurnFailed {
-                            session: session.clone(),
-                            turn,
-                            error: app_error(
-                                report.diagnostic.as_deref().unwrap_or("provider error"),
-                            ),
-                            warnings,
-                        },
-                        Err(error) => CoreEvent::TurnFailed {
-                            session: session.clone(),
-                            turn,
-                            error: runtime_error(error),
-                            warnings,
-                        },
-                    };
+                            },
+                        };
                     let _ = events.send(event);
                 }
                 if let Some(command) = conversation_change {

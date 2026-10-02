@@ -226,7 +226,6 @@ fn params<'c>(
         max_output: 1_000,
         provider,
         cancel,
-        max_rounds: 6,
     }
 }
 
@@ -607,7 +606,6 @@ async fn e2e01_seeded_coding_fix() {
             max_output: 1_000,
             provider: provider_of(&base),
             cancel: &NO_CANCEL,
-            max_rounds: 6,
         })
         .await
         .expect("turn");

@@ -631,6 +631,24 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
         origin: source.to_string(),
     };
 
+    // Both source spellings must explicitly diagnose the Long Horizon divergence,
+    // even while the remaining canonical profile semantics are a separate slice.
+    for domain in ["agent", "agents"] {
+        if let Some(agents) = config.get(domain).and_then(serde_json::Value::as_object) {
+            for (id, raw) in agents {
+                if let Some(object) = raw.as_object() {
+                    diagnose_step_constraints(
+                        &mut out.defs,
+                        source_path,
+                        domain,
+                        id,
+                        object.keys(),
+                    );
+                }
+            }
+        }
+    }
+
     if let Some(raw_agents) = config.get("agent") {
         if let Some(agents) = raw_agents.as_object() {
             for (id, raw) in agents {
@@ -650,6 +668,9 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                     ));
                     continue;
                 };
+                if object.contains_key("steps") || object.contains_key("maxSteps") {
+                    continue;
+                }
                 let allowed = [
                     "prompt",
                     "body",
@@ -1094,6 +1115,31 @@ fn insert_command(out: &mut Collector, root: &DefRoot, input: CommandInput, path
     );
 }
 
+fn diagnose_step_constraints<'a>(
+    defs: &mut LoadedDefs,
+    path: &Path,
+    domain: &str,
+    id: &str,
+    fields: impl Iterator<Item = &'a String>,
+) -> bool {
+    let mut unsupported = false;
+    for field in fields.filter(|field| matches!(field.as_str(), "steps" | "maxSteps")) {
+        let mut diagnostic = diag_code(
+            path,
+            &format!("{domain}.{id}.{field}"),
+            "successful-step constraints are unsupported by Long Horizon; remove this field",
+            oc_core::queries::ServiceCode::UnsupportedCapability,
+        );
+        diagnostic.failure.stage = oc_core::queries::ServiceStage::Capability;
+        defs.diagnostics.push(diagnostic);
+        unsupported = true;
+    }
+    unsupported
+}
+
+#[cfg(test)]
+mod step_tests;
+
 fn unsupported_field(
     fields: &BTreeMap<String, serde_json::Value>,
     allowed: &[&str],
@@ -1229,6 +1275,15 @@ fn load_entry(
                 }
             };
             if kind == "agent" {
+                if diagnose_step_constraints(
+                    &mut out.defs,
+                    &path,
+                    "agent",
+                    &id,
+                    frontmatter.fields.keys(),
+                ) {
+                    return;
+                }
                 if let Some(field) = unsupported_field(
                     &frontmatter.fields,
                     &[

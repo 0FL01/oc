@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-02T16:28:30+00:00
+State updated: 2026-10-02T17:58:53+00:00
 Active: T45
 
 Сверить Git status/diff до выполнения команд.
@@ -12,15 +12,15 @@ Owner-approved R3/R6–R10; full contracts and ordered slices in spec/M8, histor
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T45 resume after tool parity
+# Independent round-removal qualification
 ## Result
-T50 R1–R10 and supplements complete at2484c4a92; resume independent remaining T45 backend work.
+Numeric successful-step stops removed; finite retries and effect guards retained.
 ## Checks
-Latest tool-source workspace1452/0/10 and normal-ELF proofs qualified; Git local/remote agree.
+Workspace1453/0/10; parent6 nearest tests,8 current normal-ELF scenarios,Python47/fmt/Clippy/docs/progress/diff PASS.
 ## Risks
-T44 remains owner-paused. T27's actual live ledger is exhausted; no new paid allowance.
+Not Long Horizon/A10 or whole T45: current-task raw/hot bounded preservation remains mandatory.
 ## Next
-Implement the independently approved R6 numeric-round-stop removal and narrow RET01 regression first; hot/raw retention remains separately mandatory.
+Design and prove the existing-owner closed intra-task raw/hot seam before eviction; keep T44 paused and live allowance exhausted.
 
 
 Ready (до 5): T53, T56

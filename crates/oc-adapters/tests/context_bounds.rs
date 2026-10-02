@@ -410,7 +410,6 @@ fn params<'c>(
         max_output: 1_000,
         provider,
         cancel,
-        max_rounds: 2,
     }
 }
 
