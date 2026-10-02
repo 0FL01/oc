@@ -1200,6 +1200,24 @@
       "locator": "1736–1753 textarea gets cursorStyle=config.cursor and content/cursor changes separately",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/index.tsx#L1736-L1753",
       "purpose": "VIS16 real prompt cursor owner; source inspection does not qualify blink timing under continuous repaint"
+    },
+    {
+      "id": "U106",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/plugin/context.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "459–487 newly failing plugin-state comparison and brief toast with /plugins detail action; 539–562 equivalent server-plugin update feedback",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/plugin/context.tsx#L459-L487",
+      "purpose": "VIS42 change-sensitive plugin feedback outside dialogue; safe native summaries retain inventory/details, not donor raw targets or executed parity claim"
+    },
+    {
+      "id": "U107",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/app.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "531–559 MCP failed/needs_auth alerts once per state, resets after recovery and routes details/action to /mcps; no failure alert for pending",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/app.tsx#L531-L559",
+      "purpose": "VIS42/VIS19/VIS40 brief state-transition feedback instead of repeated transcript diagnostics; no native OAuth execution or visual PASS from source alone"
     }
   ],
   "external_primary_sources": [

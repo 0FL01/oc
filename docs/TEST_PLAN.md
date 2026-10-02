@@ -694,6 +694,45 @@ Doc/progress checks prove planning structure, never runtime/visual PASS.
   donor frame. No duplicate negative/theme×viewport×state matrix, masked rows, native-
   golden PASS or new paid/browser campaign. Missing reference stays BLOCKED_REFERENCE.
 
+### Clean dialogue and service diagnostics — VIS42/VIS17 (approved 2026-10-02; pending)
+
+Contract: [T44 amendment](../tui-recovery/T44_CONTRACT_AMENDMENT.md#clean-dialogue-and-service-diagnostics).
+Extend the closest existing startup/plugin/provider PTY fixtures and MCP snapshot
+tests, not another acceptance ID/framework. Use one bounded rebuilt-binary fake-service
+scenario combining DCP/legacy compaction diagnostics, an unsupported plugin and slow
+provider/MCP startup; reuse CFG09/CFG10/UI07/MCP09/MCP10 state/effect/redaction evidence.
+
+- **VIS42:** assert zero background service/config warning rows in the dialogue region
+  before first answer and between subsequent turns, including completion warnings.
+  Independently count brief notifications: identical snapshots, provider refresh,
+  unchanged reload and parked-tab updates cannot repeat the same problem. New/changed
+  failure and recovery followed by failure notify once; pending does not notify as an
+  error. Keep status/counts and all failed entries/details accessible, including bounded
+  inventory omissions. Opening safe details/copy/investigate preserves prompt/draft/
+  focus/cursor; no auto-submit, secret/ANSI/raw config identity or service launch.
+  Attempting unavailable selection yields one actionable request error and zero
+  generation/tool effects. Recovery clears only owned stale status and retains explicit
+  selection; stale Location/generation events cannot alter another view. Repeat the
+  dialogue/status assertion after reopen/restart and resize. Check the reconstructed
+  dialogue region and notification delivery, not absence of technical strings in the
+  entire PTY stream: details and headless stderr must still contain safe diagnostics.
+- **VIS17:** extend the existing bounded live-preview eviction scenario and short-answer
+  fixture. Real truncation shows one compact viewing-status indicator outside answer
+  text with working history/cards access; an untruncated answer has none. Preserve
+  live/history byte/part/model caps, recorded tool truncation/unknown states and no replay;
+  never claim discarded producer bytes are recoverable. Reopen renders actual saved
+  parts without persisting a synthetic truncation message as an assistant reply.
+- First nearest affected TUI/binary tests and actual rebuilt-binary PTY assertions;
+  then existing paired pinned-original/native full styled-cell/PNG/cursor captures for
+  startup, changed failure, details/back and recovery at established profiles. U106/U107
+  ground change-sensitive plugin/MCP toasts; U62–U65 ground inventory/status/details.
+  Predeclare compact native truncation indication and sanitized wording as named
+  differences, not invented donor components or masks. Reuse genuine failure/retry/
+  fatal/redaction/resource regressions; no duplicate backend matrix or paid calls.
+
+VIS42/VIS17 remain mandatory NOT_RUN/evidence empty until qualification. Plan-only
+validation does not resume T44, reopen completed T51/T46 or claim A08/A13 PASS.
+
 New runtime evidence requires targeted affected-crate checks and workspace fmt/clippy/
 tests/build at integration/final acceptance. A02/A03/A06/A08/A10/A13, T46 R4 and existing
 mandatory live gates remain; historical PASS is neither edited nor reused as new proof.

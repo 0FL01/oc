@@ -1477,8 +1477,9 @@ stay ready. Pinned OC2 commit unchanged; U60–U65 extend U50–U55/U02/U49.
    becomes ready and next request uses it. Preserve ordinary prompt/chips/cursor/focus
    on error/detail/back/reopen; late events cannot corrupt another Location/session.
 4. **Structured diagnostic/fatal native surface.** Show redacted source/field/service/
-   stage/safe-code/retryability and allowed next action, not raw exceptions or generic
-   Configuration load failed alone. Details/copy/investigate share safe owner payload;
+   stage/safe-code/retryability and allowed next action in safe details and fatal frames,
+   not background conversation rows (2026-10-02 clarification below), raw exceptions or
+   generic Configuration load failed alone. Details/copy/investigate share safe owner payload;
    no regex/keyword inference or auto-submit. Fatal trust/policy/storage/data-root/
    recovery/cleanup/caps remains non-success. Native fatal startup frame is a declared
    functional difference, not a nonexistent donor pixel reference; test exit/focus/
@@ -1501,6 +1502,115 @@ stay ready. Pinned OC2 commit unchanged; U60–U65 extend U50–U55/U02/U49.
 VIS42 mandatory NOT_RUN/evidence empty; VIS19/VIS40 remain open until current backend
 and paired qualification. No execution status/history/PASS rewrite. T46/T51 own backend
 scenarios, T44 owns VIS only; minimal slice dependencies have no circular task completion.
+
+## Clean dialogue and service diagnostics
+
+Owner-approved 2026-10-02 after read-only RECON of the reported OCR: technical
+config/plugin/provider warnings before the assistant response obstruct daily TUI use.
+Approval requests a plan patch and current-branch commit/push, not runtime changes or
+automatic resume. Existing T44/R5/V04/VIS42 owns diagnostic delivery/status/details;
+T44/R4/V06/VIS17 owns the compact live-preview indicator. VIS19/VIS40 retain MCP
+visibility and VIS43 retains actual provider retry; no new task or acceptance ID.
+
+### Source-grounded defect and reference
+
+- At recon HEAD `9d8b1b818`, `oc/src/tui_cmd.rs::service_warnings` converts current
+  config/plugin/provider diagnostics to full strings and calls `TuiState::push_warning`.
+  initial_state, refresh_provider_views, reload and Location adoption invoke this path;
+  refresh republishes the full set without comparison. `oc-tui/src/app.rs::push_warning`
+  creates synthetic `(warning: …)` transcript rows, not committed raw history records.
+- `app/live.rs::apply_catalog` also places full unavailable provider/selection diagnostics
+  in the replaceable note. `app/mcp.rs::apply_mcp_snapshot` has change comparison but
+  still appends diagnostics, potentially overlapping startup service delivery. Matching
+  turn-completion `TurnReport.warnings` is another path for background degradation.
+  Removing service_warnings alone does not close all of the reported behavior.
+- Pinned OC2 U106 (`plugin/context.tsx:459–487,539–562`) notifies newly failing plugin
+  states only and routes details to `/plugins`; U107 (`app.tsx:531–559`) alerts MCP
+  failed/needs-auth once per state and directs to `/mcps`. U62–U65 provide the existing
+  inventory/status/details reference. This is source RECON, not executed visual PASS.
+- `[Live preview truncated; durable parts remain available through history and /cards]`
+  is a separate projection-bound indicator from `app/transcript.rs`, not a config
+  warning. Local live-part eviction or a truncated owner projection can set it; OCR
+  alone does not establish why a particular short visible answer triggered it.
+
+### Required presentation
+
+1. **Clean dialogue.** Zero nonfatal background config/plugin/provider/MCP diagnostic
+   rows before the first answer or between later messages. Ignored DCP/legacy compaction
+   fields, unsupported plugins and discovery/catalog pending do not become assistant/
+   system-looking conversation text. Do not rewrite existing messages, stored outcomes
+   or model context; service warnings are presentation state, not durable conversation.
+2. **Visible, usable diagnostics outside dialogue.** Use existing compact status/counts
+   and safe Settings, `/plugins`, `/mcps` details. Show the real failed inventory and
+   omitted counts, not hidden rejected entries or fake healthy labels. Brief actionable
+   summaries can say that settings need review, a plugin is unavailable or the catalog
+   is loading; these examples define meaning, not a new localization requirement.
+   Source/field/stage/code/retryability, requested/current identities and full opaque
+   hashes stay in details/copy/investigate, not an expanded technical toast. Preserve
+   safe provenance and unsent investigation/focus/draft/cursor; no raw identity/config/
+   URL/env/ANSI disclosure, source reads/launches or automatic submission on detail open.
+3. **Change-sensitive delivery.** Identical snapshots, provider refresh, unchanged reload
+   and parked-tab updates cannot re-notify the same problem. Notify briefly once for
+   a new failure, changed cause, or a new failure after recovery; initial issues may
+   use one aggregate summary instead of one toast per entry. Pending is connection
+   status, not a failure alert. Recovery clears only that service's stale status, not
+   unrelated operation feedback. Use bounded current owner state scoped to Location/
+   service/source/cause; generation guards reject stale events, but an unchanged issue
+   does not re-alert merely because a generation was republished. No lifetime ledger,
+   second registry or permanent polling. The same background facts delivered through
+   startup, MCP snapshot or completed-turn warnings must not produce duplicate alerts;
+   route by existing structured owner facts/caller purpose, never warning-text regex.
+4. **Genuine failures remain loud.** A submitted unavailable request gives one concise
+   actionable error before generation/tool effects, with safe details accessible.
+   Keep explicit selection/no fallback, truthful tool failed/denied/cancelled/unknown
+   cards, actual generation errors and VIS43 retry-footer. Nonfatal turn-specific
+   feedback remains visible in its appropriate status/card surface; do not globally
+   delete push_warning callers or drop warnings without a replacement route. Fatal
+   trust/policy/storage/data-root/recovery/cleanup/caps and headless stderr/nonzero/
+   NDJSON remain unchanged. This supersedes only verbose/repeated background TUI rows,
+   not T51/T46 failure visibility/admission or D13 degradation.
+5. **VIS17 live-preview indication.** Replace the long synthetic line inside the answer
+   stream with one unobtrusive viewing-status indicator outside message text, present
+   only when the actual projection is truncated. Preserve working history/cards access
+   and bounded live/durable projections; distinguish saved parts from producer-discarded
+   bytes, never promise recovery of tool-truncated data. An untruncated short answer
+   has no indicator. No raising memory/part/model caps, history deletion, reexecution
+   or persistent assistant warning. Compact native indication is a predeclared display
+   difference, not a fabricated OC2 pixel reference.
+
+### Ordered execution and qualification
+
+First user-facing UI slice **after explicit T44 resume**, preserving active T50/dirty
+shell-output work and T55 safe-handoff priority. Use completed T51/T46 minimal owner
+facts without reopening their historical completion or waiting for whole backend tasks.
+
+1. Extend nearest binary `pty_t39/{plugin_admission,provider_readiness}.rs` and existing
+   startup/config/MCP fixtures to reproduce the mixed pre-answer spam and refresh path;
+   extend nearest TUI snapshot/delivery tests for repeated and changed states.
+2. Change only existing TUI/binary consumers: service_warnings/initial_state/provider
+   refresh/reload/Location, apply_catalog/app/mcp and matching completed-turn delivery;
+   reuse status/toast/details owners. Keep ownership/admission/error/redaction contracts.
+3. Move the VIS17 indicator at its transcript/status owner and extend the existing
+   `app/tests/lifecycle.rs` live-part eviction case plus a short untruncated answer.
+4. One bounded actual rebuilt-binary fake-service scenario proves zero service warning
+   rows in the dialogue, change-sensitive notification counts, accessible safe details,
+   pending/recovery status, unavailable pre-effect refusal and stale routing. Include
+   reopen/restart/resize and ordinary draft/focus/cursor restoration. Assert dialogue
+   region separately from detail screens/PTY logs; technical details must remain there.
+   Reuse CFG09/CFG10/UI07/MCP09/MCP10, genuine failures/VIS43 and A10 bound regressions,
+   not a new backend negative matrix. Preview indication shares existing eviction proof.
+5. Then existing running pinned-original/native full styled-cell/PNG/cursor captures
+   at established profiles prove status/brief alert/details/back/recovery; disclose
+   sanitized wording/compact native indicator before comparison, no masks/crops/fake
+   components/native-golden PASS. Method: docs/TEST_PLAN.md clean-dialogue subsection.
+
+Plan-only change envelope: GOAL, T44 spec/amendment/ACCEPTANCE/SOURCES, CONFIG/TEST_PLAN,
+planning/tasks, live M8/M9 scheduling references and the two derived M9/T44 indexes
+(title synchronization only; canonical progress state and checkpoint leaves unchanged).
+No production code, user config,
+new schema/dependency/framework/store/paid campaign, progress execution-state change,
+historical report/checkpoint/baseline rewrite or relaxed VIS gates. VIS42/VIS17 remain
+mandatory NOT_RUN/evidence empty, T44 PAUSED; plan validation is not A08/A13/runtime PASS.
 
 ## Provider-error retry footer — VIS43
 

@@ -10,7 +10,8 @@ Additional source: owner-approved OC2 model-dependent edit/write/apply_patch REC
 Additional source: follow-up owner requires original OC2 model-switch parity while an agent works and approves detailed plan commit/push, 2026-10-01; local picker draft/captured commit/blank Enter and request-boundary adoption within the same task supersede whole-turn model pin/busy refusal only. T50 TOOL12/T45 PRM01 backend receipts precede T44 VIS09/VIS29/VIS17/VIS35/VIS36 paired qualification; T44 remains PAUSED.
 Additional source: owner-reported phantom caret over large highlighted tool output, explicit preservation of normal prompt caret blink under continuous repaint, and approval of plan commit/push, 2026-10-01. Existing VIS16/VIS31 own the temporal qualification; T44 remains PAUSED.
 Additional source: owner-approved OC2 --auto RECON and mode-completion plan commit/push, 2026-10-01. Existing T44/R5/VIS36 owns hidden CLI aliases, effective mode/pending/Settings/child qualification; basic native Once behavior already exists, full parity remains open and T44 PAUSED.
-Last updated: 2026-10-01
+Additional source: owner-reported technical config/plugin/provider warning spam before assistant answers, read-only RECON and approval of current-branch plan commit/push, 2026-10-02. Existing VIS42 owns clean dialogue/status/details/change-sensitive feedback; VIS17 owns compact truthful live-preview truncation indication. T44 remains PAUSED.
+Last updated: 2026-10-02
 
 ## Objective
 
@@ -48,6 +49,20 @@ safe provenance/cause, no fake connected/active/sign-in labels. Selected-model f
 is not adopted. Truly fatal native startup frame has concrete safe cause/action and
 functional qualification, not invented donor pixel parity. VIS42 mandatory NOT_RUN;
 backend slice/effects precede paired presentation, no all-T46/T51 done-dependency.
+
+Owner-approved clean-dialogue extension (2026-10-02):
+[VIS42/VIS17](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#clean-dialogue-and-service-diagnostics)
+is the first user-facing UI slice after explicit T44 resume. Background config/plugin/
+provider/MCP diagnostics stay out of conversation rows: compact status/counts, brief
+change-sensitive notification and existing safe details/copy/investigate routes instead.
+Identical refresh/reload/parked-tab updates do not repeat notifications; pending is a
+status and recovery clears stale readiness feedback. Preserve genuine request/tool/
+generation errors, VIS43 retry, fatal boundaries, explicit selection and redaction.
+VIS17 replaces the long live-preview message with an unobtrusive viewing-status
+indicator outside answer text, only when actually truncated; existing bounds and
+access to saved parts remain. Actual-binary dialogue-region/notification assertions
+precede existing paired qualification; no new task/gate or historical PASS rewrite.
+Plan pending/NOT_RUN, active T50/dirty work and PAUSED T44 unchanged.
 
 Owner-approved canonical effort ordering (2026-09-27):
 [VIS09/VIS29](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#canonical-effort-ordering--vis09vis29)

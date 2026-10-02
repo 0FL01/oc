@@ -694,6 +694,34 @@ DCP10/CTX02; historical detailed owners/evidence сохраняются. Реа�
 NOT_RUN, не VIS38/all-T45/READY. Новых tasks/gates/paid campaign нет; active T50,
 dirty T50/CODE_MAP, PAUSED T44, T55 safe-handoff priority и execution statuses intact.
 
+## Owner amendment (2026-10-02 — чистый диалог / служебная диагностика TUI)
+
+После read-only RECON владелец утвердил правки плана и commit/push текущей ветки:
+технические config/plugin/provider/MCP предупреждения не должны засорять разговор
+перед ответом агента или повторяться при refresh. [T44/R5/VIS42](tui-recovery/T44_CONTRACT_AMENDMENT.md#clean-dialogue-and-service-diagnostics)
+владеет компактными статусами/счётчиками, кратким уведомлением о новой проблеме и
+безопасными подробностями в Settings, `/plugins` и `/mcps`. Pending — статус, не
+warning-реплика; неизменившиеся snapshots/reload/parked-tab updates не уведомляют
+повторно, recovery убирает устаревший статус. Полные opaque IDs/provenance/code/
+retryability остаются в details/copy/investigate, не в основной области диалога.
+
+[T44/R4/VIS17](tui-recovery/T44_CONTRACT_AMENDMENT.md#clean-dialogue-and-service-diagnostics)
+переносит длинную строку `Live preview truncated` в компактный индикатор просмотра
+вне текста ответа, сохраняя реальные bounds, truthful truncation и доступ к
+сохранённым данным. Обычный несокращённый ответ не показывает этот индикатор.
+Действительные ошибки запроса/tool/генерации, retry-footer VIS43 и fatal trust/
+policy/storage/recovery/cleanup/caps не скрываются; выбор модели не подменяется.
+Без удаления raw history, ослабления redaction или редактирования user config.
+
+Первый пользовательский UI-срез после **explicit resume T44**; минимальные готовые
+T51/T46 owner facts, не whole-task backend dependencies. Приёмка — actual-binary
+fake-service сценарий с нулём служебных строк в диалоге и без повторных notifications,
+затем существующие paired styled-cell/PNG/cursor gates; метод — `docs/TEST_PLAN.md`,
+порядок — [M8](roadmap/M8.md#clean-dialogue-and-service-diagnostics) / `roadmap/M9.md`.
+Новых tasks/gates/stores/frameworks/paid campaign нет. Plan pending/NOT_RUN: active
+T50/dirty shell-output work, PAUSED T44, T55 priority, completed T51/T46, исторические
+evidence/baselines и execution statuses неизменны. Это доставка плана, не runtime PASS.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

@@ -82,6 +82,19 @@ the category plus precise Stage/code, Source, Field and action; this is a declar
 native presentation difference, not donor pixel qualification. Headless diagnostics
 stay on stderr, errors are nonzero, and successful `--json` stdout stays NDJSON only.
 
+Owner-approved T44/VIS42 presentation target (2026-10-02, pending/NOT_RUN):
+[clean dialogue and service diagnostics](../tui-recovery/T44_CONTRACT_AMENDMENT.md#clean-dialogue-and-service-diagnostics).
+Nonfatal background config/plugin/provider/MCP diagnostics are not conversation rows.
+Use compact status/counts and a brief notification for a new or changed problem;
+unchanged refresh/reload/parked-view updates remain silent. Provider pending is a
+connection status, not a request error; recovery clears its stale status. Settings,
+`/plugins` and `/mcps` retain actual failed inventory and safe details/copy/investigate.
+Opaque IDs, source/field/stage/code/retryability belong in those details, not the normal
+dialogue or an expanded technical toast. Do not replace opaque values with unsafe raw
+config identities, add a hide-errors config switch, change headless stderr/NDJSON,
+or suppress genuine requested-operation failures/fatal boundaries. Existing T51
+backend completion does not verify this new T44 presentation contract.
+
 Selected-model/provider readiness is separate from local availability. Discovery
 deadlines/retries/metadata and last-healthy publication remain intact. Async MCP
 startup/status/control and cleanup use the existing T46 resource owner. Native worker
