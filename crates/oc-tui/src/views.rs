@@ -497,6 +497,7 @@ mod tests {
             accounting: None,
             estimated_tokens: 900,
             max_context: 1000,
+            reminders: None,
             turns_since_compress: 3,
             blocks: 2,
             compressions: 1,
@@ -507,7 +508,10 @@ mod tests {
         let turn = WorkerTurnId("t-dcp".to_string());
         state.begin_compress_turn(turn.clone());
         let lines = panel_lines(&state);
-        assert!(lines.iter().any(|l| l.contains("900/1K")), "{lines:?}");
+        assert!(
+            lines.iter().any(|l| l.contains("context 900 tokens")),
+            "{lines:?}"
+        );
         assert!(
             lines.iter().any(|l| l.contains("pending focus: draft")),
             "{lines:?}"

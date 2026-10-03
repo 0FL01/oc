@@ -18,6 +18,9 @@ use oc_adapters::storage::Db;
 use serde_json::{Value, json};
 
 const TIMEOUT: Duration = Duration::from_secs(10);
+
+#[path = "dcp_runtime/defaults.rs"]
+mod defaults;
 const POLL: Duration = Duration::from_millis(10);
 const MODEL: &str = "aud-dcp-runtime-model";
 const SESSION: &str = "s-aud19-21";

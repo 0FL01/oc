@@ -908,14 +908,9 @@ impl<'a> Runtime<'a> {
             && RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules)
                 .effect(COMPRESS_TOOL, "*")
                 != Permission::Deny;
-        let model_context = budget.context;
-        let dcp_model_key = format!("{}/{}", params.catalog.provider, selection.id);
-        let dcp_thresholds = dcp_config.effective_for_context(&dcp_model_key, model_context);
-        if dcp_thresholds.min_context > dcp_thresholds.max_context {
-            return Err(RuntimeError::InvalidArgs(
-                "effective DCP minContextLimit exceeds maxContextLimit".into(),
-            ));
-        }
+        dcp_config
+            .reminder_facts(&params.catalog.provider, &selection, budget)
+            .map_err(|error| RuntimeError::InvalidArgs(error.to_string()))?;
         let mut tool_projection = if fresh_selection.is_some() {
             Default::default()
         } else {
@@ -1282,13 +1277,10 @@ impl<'a> Runtime<'a> {
             let prepared_budget = models::budget(&selection, params.max_output, fallback);
             let budget = &prepared_budget;
             let model_context = budget.context;
-            let dcp_model_key = format!("{}/{}", params.catalog.provider, selection.id);
-            let thresholds = dcp_config.effective_for_context(&dcp_model_key, model_context);
-            if thresholds.min_context > thresholds.max_context {
-                return Err(RuntimeError::InvalidArgs(
-                    "effective DCP minContextLimit exceeds maxContextLimit".into(),
-                ));
-            }
+            let reminders = dcp_config
+                .reminder_facts(&params.catalog.provider, &selection, budget)
+                .map_err(|error| RuntimeError::InvalidArgs(error.to_string()))?;
+            let dcp_model_key = &reminders.model_key;
             let state_key = format!(
                 "dcp.nudge.{}\0{}\0{}",
                 params.session, params.catalog.provider, selection.id
@@ -1584,7 +1576,7 @@ impl<'a> Runtime<'a> {
                     evaluate(
                         &dcp_config,
                         state,
-                        &dcp_model_key,
+                        dcp_model_key,
                         model_context,
                         estimate,
                         active_summary_tokens(&projected),
@@ -1737,8 +1729,8 @@ impl<'a> Runtime<'a> {
                 input_limit: budget.input,
                 output_limit: budget.output,
                 estimated_input: request_estimate,
-                dcp_min_context: thresholds.min_context,
-                dcp_max_context: thresholds.max_context,
+                dcp_min_context: reminders.min_context,
+                dcp_max_context: reminders.max_context,
                 tool_fingerprint: crate::compaction::fingerprint(&tool_defs),
                 context_fingerprint: crate::compaction::fingerprint(&(
                     &crate::compaction::route_identity(

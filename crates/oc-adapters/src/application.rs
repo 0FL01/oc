@@ -3331,22 +3331,30 @@ fn query(
                 let estimated_tokens =
                     estimated_tokens.map(|tokens| tokens.saturating_add(checkpoint_tokens));
                 let selected = selection::for_turn(db, composition, effective, &session.0)?;
-                let model_context = composition
-                    .catalog
-                    .models
-                    .get(&selected.model_id)
-                    .and_then(|spec| spec.pointer("/limit/context"))
-                    .and_then(serde_json::Value::as_u64)
-                    .unwrap_or(0);
-                let thresholds = composition
+                let selection =
+                    crate::models::select_model(&composition.catalog, &selected.model_id)
+                        .and_then(|base| {
+                            crate::models::select_variant(&base, selected.variant.as_deref())
+                        })
+                        .map_err(app_error)?;
+                let fallback = composition
+                    .generation
+                    .providers
+                    .get(&composition.catalog.provider)
+                    .map(|provider| provider.options.native_fallback_limits)
+                    .unwrap_or_default();
+                let budget = crate::models::budget(&selection, 0, fallback);
+                let reminders = composition
                     .dcp_config
-                    .effective_for_context(&selected.model_id, model_context);
+                    .reminder_facts(&composition.catalog.provider, &selection, &budget)
+                    .map_err(app_error)?;
                 Ok(DcpSnapshot {
                     estimated_tokens_available: estimated_tokens.is_some(),
                     estimate_method: Default::default(),
                     accounting: accounting.clone(),
                     estimated_tokens: estimated_tokens.unwrap_or(0),
-                    max_context: thresholds.max_context,
+                    max_context: reminders.max_context,
+                    reminders: Some(Box::new(reminders)),
                     turns_since_compress,
                     blocks,
                     compressions: accounting.as_ref().map_or(0, |a| a.compressions),

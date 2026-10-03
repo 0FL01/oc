@@ -677,7 +677,9 @@ async fn aud20_nudge_cadence_and_model_compress_are_session_scoped() {
     let (harness, generation) = make_harness(allow_all());
     let dcp = DcpConfig {
         min_context: 1,
+        min_context_percent: None,
         max_context: 1,
+        max_context_percent: None,
         nudge_frequency: 2,
         iteration_threshold: 100,
         ..DcpConfig::default()
@@ -799,7 +801,9 @@ async fn aud20_nudge_cadence_survives_database_and_runtime_restart() {
     let (mut harness, generation) = make_harness(allow_all());
     let dcp = DcpConfig {
         min_context: 1,
+        min_context_percent: None,
         max_context: 1,
+        max_context_percent: None,
         nudge_frequency: 5,
         iteration_threshold: 100,
         ..DcpConfig::default()
@@ -859,7 +863,9 @@ async fn aud19_denied_compress_has_no_schema_anchor_or_nudge() {
     let (harness, generation) = make_harness(permissions);
     let dcp = DcpConfig {
         min_context: 1,
+        min_context_percent: None,
         max_context: 1,
+        max_context_percent: None,
         compress_permission: Some(Permission::Deny),
         ..DcpConfig::default()
     };
@@ -955,7 +961,9 @@ async fn aud20_summary_buffer_changes_effective_nudge_threshold() {
     let (harness, generation) = make_harness(allow_all());
     let mut dcp = DcpConfig {
         min_context: 500,
+        min_context_percent: None,
         max_context: 600,
+        max_context_percent: None,
         nudge_frequency: 1,
         summary_buffer: true,
         ..DcpConfig::default()

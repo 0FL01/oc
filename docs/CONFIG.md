@@ -208,10 +208,13 @@ Read-only regular UTF-8/no-follow/1 MiB and general trust/generation rules remai
 
 Approved T45/R9/DCP12 omitted-field defaults are compress.minContextLimit=`"40%"`,
 maxContextLimit=`"55%"`, summaryBuffer=false; frequency5/iteration15/soft unchanged.
-They are native policy additions, not pinned DCP 3.1.15 defaults. Current compiled
-defaults and examples/dcp.jsonc still use explicit 50000/100000/true until the
-corresponding implementation; do not use that sample to qualify no-config defaults
-or overwrite existing user settings. Semantics/evidence: [DCP.md](DCP.md#approved-percentage-defaults--t45r9dcp12-pending).
+They are implemented native policy additions, not pinned DCP 3.1.15 defaults.
+No DCP config file is required. examples/dcp.jsonc retains an explicit older
+50000/100000/true profile, not a no-config default oracle. Numeric overrides clear
+percentages; partial overrides keep omitted defaults. The panel reports reminders
+separately from positive model context/native fallback caps and budget warnings.
+Semantics: [DCP.md](DCP.md#approved-percentage-defaults--t45r9dcp12-pending);
+qualification: [percentage-default atomic](../evidence/T45/dcp-defaults.md).
 
 Target configurable groups (qualification is required, parsing alone is not support):
 

@@ -13,10 +13,14 @@ use thiserror::Error;
 
 use crate::config::Permission;
 
-/// Required-profile defaults (upstream-derived, see `examples/dcp.jsonc`).
-pub const DEFAULT_MIN_CONTEXT: u64 = 50_000;
-/// Required-profile defaults (upstream-derived).
-pub const DEFAULT_MAX_CONTEXT: u64 = 100_000;
+#[cfg(test)]
+#[path = "dcp_auto/defaults_tests.rs"]
+mod defaults_tests;
+
+/// Owner-approved native minimum percentage, in basis points (not donor parity).
+pub const DEFAULT_MIN_CONTEXT_PERCENT: u32 = 4_000;
+/// Owner-approved native upper reminder percentage, in basis points.
+pub const DEFAULT_MAX_CONTEXT_PERCENT: u32 = 5_500;
 /// Reminder cadence in iterations.
 pub const DEFAULT_NUDGE_FREQUENCY: u64 = 5;
 /// Iterations before the force path.
@@ -143,14 +147,14 @@ impl Default for DcpConfig {
         Self {
             enabled: true,
             compress_permission: None,
-            min_context: DEFAULT_MIN_CONTEXT,
-            min_context_percent: None,
-            max_context: DEFAULT_MAX_CONTEXT,
-            max_context_percent: None,
+            min_context: 1,
+            min_context_percent: Some(DEFAULT_MIN_CONTEXT_PERCENT),
+            max_context: 1,
+            max_context_percent: Some(DEFAULT_MAX_CONTEXT_PERCENT),
             nudge_frequency: DEFAULT_NUDGE_FREQUENCY,
             iteration_threshold: DEFAULT_ITERATION_THRESHOLD,
             nudge_force: NudgeForce::Soft,
-            summary_buffer: true,
+            summary_buffer: false,
             manual_mode: false,
             automatic_strategies: true,
             deduplication: true,
@@ -650,9 +654,36 @@ pub struct EffectiveThresholds {
 }
 
 impl DcpConfig {
-    /// Resolve thresholds for a model id (never hardcoded: caller supplies).
-    pub fn effective(&self, model: &str) -> EffectiveThresholds {
-        self.effective_for_context(model, self.max_context.max(self.min_context))
+    /// Shared runtime/query resolution using the existing selected model budget.
+    /// Invalid effective combinations fail before request/tool effects.
+    pub fn reminder_facts(
+        &self,
+        provider: &str,
+        selection: &crate::models::Selection,
+        budget: &crate::models::AdmissionBudget,
+    ) -> Result<oc_core::queries::DcpReminderFacts, DcpAutoError> {
+        let model_key = format!("{provider}/{}", selection.id);
+        let thresholds = self.effective_for_context(&model_key, budget.context);
+        if budget.context == 0 || thresholds.min_context > thresholds.max_context {
+            return Err(DcpAutoError::InvalidConfig {
+                reason:
+                    "effective DCP minContextLimit exceeds maxContextLimit or model context is zero"
+                        .into(),
+            });
+        }
+        Ok(oc_core::queries::DcpReminderFacts {
+            model_key,
+            model_context: budget.context,
+            context_from_fallback: selection
+                .entry
+                .pointer("/limit/context")
+                .and_then(serde_json::Value::as_u64)
+                .is_none_or(|value| value == 0),
+            budget_warning: budget.warning.clone(),
+            min_context: thresholds.min_context,
+            max_context: thresholds.max_context,
+            summary_buffer: self.summary_buffer,
+        })
     }
 
     /// Resolve absolute/percentage thresholds against the selected model context.
@@ -926,18 +957,16 @@ pub fn debug_line(event: &str, stats: &DcpStats) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        CallStatus, DEFAULT_MAX_CONTEXT, DEFAULT_MIN_CONTEXT, DcpAutoError, DcpConfig, DcpStats,
-        NudgeForce, NudgeState, ToolRecord, debug_line, dedup_calls, evaluate, load_config,
-        purge_errors, resolve_dcp_module,
+        CallStatus, DcpAutoError, DcpConfig, DcpStats, NudgeForce, NudgeState, ToolRecord,
+        debug_line, dedup_calls, evaluate, load_config, purge_errors, resolve_dcp_module,
     };
 
     #[test]
     fn dcp05_thresholds_frequency_turn_reset_no_accumulation() {
-        let config = DcpConfig::default();
-        assert_eq!(
-            (config.min_context, config.max_context),
-            (DEFAULT_MIN_CONTEXT, DEFAULT_MAX_CONTEXT)
-        );
+        let (config, _) =
+            load_config(&serde_json::json!({"minContextLimit": 50000, "maxContextLimit": 100000}))
+                .unwrap();
+        assert_eq!((config.min_context, config.max_context), (50_000, 100_000));
         let mut state = NudgeState::default();
         // Below threshold: silent at any iteration.
         for _ in 0..10 {
@@ -971,7 +1000,7 @@ mod tests {
             "pre-compression hard iteration state must not leak"
         );
         // Per-model override changes the cadence without code changes.
-        let fragment = serde_json::json!({"modelOverrides": {"m": {"nudgeFrequency": 2}}});
+        let fragment = serde_json::json!({"minContextLimit":50000,"maxContextLimit":100000,"modelOverrides": {"m": {"nudgeFrequency": 2}}});
         let (config, _) = load_config(&fragment).expect("config");
         let mut state = NudgeState::default();
         state.on_turn();
@@ -1061,8 +1090,14 @@ mod tests {
         }))
         .expect("config");
         assert_eq!(config.max_context, 80000);
-        assert_eq!(config.effective("m").max_context, 60000);
-        assert_eq!(config.effective("other").max_context, 80000);
+        assert_eq!(
+            config.effective_for_context("m", 100_000).max_context,
+            60000
+        );
+        assert_eq!(
+            config.effective_for_context("other", 100_000).max_context,
+            80000
+        );
         assert_eq!(warnings, vec!["unknown dcp key: mystery".to_string()]);
         assert!(
             load_config(&serde_json::json!({"minContextLimit": 9, "maxContextLimit": 8})).is_err()
@@ -1176,7 +1211,9 @@ mod tests {
 
         let mut buffered = DcpConfig {
             min_context: 50,
+            min_context_percent: None,
             max_context: 100,
+            max_context_percent: None,
             nudge_frequency: 1,
             summary_buffer: true,
             ..DcpConfig::default()

@@ -1258,6 +1258,25 @@ pub struct SkillCard {
     pub description: String,
 }
 
+/// Resolved DCP reminders, distinct from model/input admission capacity.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DcpReminderFacts {
+    /// Exact provider/model override key.
+    pub model_key: String,
+    /// Positive selected context or native fallback cap, never a DCP threshold.
+    pub model_context: u64,
+    /// True when model context metadata is missing or zero.
+    pub context_from_fallback: bool,
+    /// Existing model-budget warning (also diagnoses unknown output metadata).
+    pub budget_warning: Option<String>,
+    /// Effective minimum reminder tokens, including active summaries.
+    pub min_context: u64,
+    /// Effective upper reminder tokens, not an input ceiling.
+    pub max_context: u64,
+    /// Opt-in upper reminder subtraction of active summaries only.
+    pub summary_buffer: bool,
+}
+
 /// DCP context/stats snapshot (counts only, no transcript).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DcpSnapshot {
@@ -1269,8 +1288,10 @@ pub struct DcpSnapshot {
     pub accounting: Option<crate::dcp_view::DcpAccounting>,
     /// Estimated context tokens.
     pub estimated_tokens: u64,
-    /// Effective max context tokens.
+    /// Effective upper reminder tokens (legacy query field, not model capacity).
     pub max_context: u64,
+    /// Canonical current selection/budget facts; absent until the first owner query.
+    pub reminders: Option<Box<DcpReminderFacts>>,
     /// Turns since the last successful compression.
     pub turns_since_compress: u64,
     /// Stored compression blocks for the session.

@@ -117,13 +117,12 @@ impl DcpPanelState {
         let snapshot = &self.snapshot;
         let mut rows = vec![
             format!(
-                "context {}/{} tokens, {} turns since compress",
+                "context {} tokens, {} turns since compress",
                 if snapshot.estimated_tokens_available {
                     format_tokens(snapshot.estimated_tokens)
                 } else {
                     "unavailable".into()
                 },
-                format_tokens(snapshot.max_context),
                 snapshot.turns_since_compress
             ),
             format!(
@@ -131,6 +130,27 @@ impl DcpPanelState {
                 snapshot.blocks, snapshot.compressions, snapshot.nudges, snapshot.prunes
             ),
         ];
+        if let Some(facts) = &snapshot.reminders {
+            rows.push(format!(
+                "reminders min {} | max {} tokens | summary buffer {}",
+                format_tokens(facts.min_context),
+                format_tokens(facts.max_context),
+                facts.summary_buffer
+            ));
+            rows.push(format!(
+                "model {} | context {} tokens ({})",
+                facts.model_key,
+                format_tokens(facts.model_context),
+                if facts.context_from_fallback {
+                    "native fallback cap"
+                } else {
+                    "model metadata"
+                }
+            ));
+            if let Some(warning) = &facts.budget_warning {
+                rows.push(format!("budget: {warning}"));
+            }
+        }
         if let Some(accounting) = &snapshot.accounting {
             rows.push(format!(
                 "removed {} | active summary {} | net saved {} tokens",
@@ -208,6 +228,7 @@ mod tests {
             accounting: None,
             estimated_tokens: 900,
             max_context: 1000,
+            reminders: None,
             turns_since_compress: 3,
             blocks: 2,
             compressions: 1,
@@ -227,7 +248,10 @@ mod tests {
         let notice = panel.notice().expect("notice");
         assert!(notice.contains("400"), "{notice}");
         let rows = panel.panel_rows();
-        assert!(rows.iter().any(|row| row.contains("900/1K")), "{rows:?}");
+        assert!(
+            rows.iter().any(|row| row.contains("context 900 tokens")),
+            "{rows:?}"
+        );
         assert!(rows.iter().any(|row| row.contains("saved 400")), "{rows:?}");
     }
 
@@ -267,7 +291,7 @@ mod tests {
             ..Default::default()
         });
         let text = panel.panel_rows().join("\n");
-        assert!(text.contains("context unavailable/1M tokens"));
+        assert!(text.contains("context unavailable tokens"));
         assert!(text.contains("removed 1M | active summary 842 | net saved 999.1K tokens"));
         assert!(
             text.contains("UTF-16 length / 4, half-up fallback (legacy accounting incomplete)")
