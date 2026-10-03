@@ -241,6 +241,37 @@ Use source-derived fixtures/captured fake-provider requests/actual binary and ex
 bounded live envelope, not days of paid prompts. Plan-only checks prove structure,
 not these runtime outcomes; executed historical reports remain unchanged.
 
+### DCP 3.2.0 donor delta qualification (approved 2026-10-03; pending)
+
+Contract: [DCP upgrade](DCP.md#dcp-320-donor-upgrade--approved-2026-10-03-pending);
+target commit d637981555a18c3992472268a0657a948925d5fa. Translate source scenarios
+into nearest Rust owner tests, not execute/install the donor plugin. Fixtures retain
+source path/commit/license/normalization; adopted subset/native differences are explicit.
+
+| Source scenario | Existing checks, no new detailed owner |
+| --- | --- |
+| `v2-protection.test.ts` | DCP04/DCP06/DCP07 regressions and T45 DCP10: native read/edit/write paths, all parsed patch move endpoints, configured aliases and typed child-result metadata across compression/strategies; no CodeMode or prose-derived authority. |
+| `v2-messages.test.ts` | DCP02 regression and T45 DCP11: selected closed assistant/call/result groups, including ID-less results, leave together; retained signatures/media/provider metadata/native input and checkpoint-only base stay faithful. RAW is immutable; quoted data is not promoted to instructions. |
+| `compaction-nudges.test.ts` | DCP05 regression and T45 DCP12: anchored replay preserves existing anchors/cached prefix, creates no new anchor or later-content nudge, and advances logical cadence once. |
+| Relevant `v2-ids.test.ts` range/restart cases | DCP02 regression: native stable IDs/references survive restart/compaction and values beyond9999; no compact-ID migration, alias registry or cross-session acceptance. |
+
+Then rebuilt actual-binary fake-provider requests, SQLite and restart assertions prove
+effects, session isolation and actual next HOT. Reuse DCP10's root/parallel-child and
+DCP11's unfinished-task/equal-HOT growing-past workload: forgotten sentinels stay absent,
+kept facts remain usable, durable exact RAW survives, no child-archive resurrection or
+unknown-effect replay. DCP12 preserves native defaults40%/55%/false, child true and
+switch/manual/Ask/Deny rules, not donor defaults or its unsupported Ask limitation.
+Nearest affected-crate tests precede relevant integration/final workspace gates.
+
+Only after adopted-delta qualification, coordinated pin/admission CFG09/CFG10 receipts
+assert exact3.2.0/bare/latest/legacy3.1.15 idempotently bind one actual new revision,
+requested spelling is preserved, other versions/ranges/lookalikes reject before effects,
+reload/reopen stay truthful and Node/Bun/npm resolver counters are zero. Verify DCP-only
+lock/revision/provenance alignment without relabelling old T02/T51/3.1.15 receipts.
+No full-version, Long Horizon or visual PASS from revision/alias admission; T44 VIS38
+and short-terminal captures stay separate after explicit resume. No new paid campaign
+or whole-T45/T44 done-dependency; all new runtime outcomes remain pending.
+
 ### Selected context and unfinished-task renewal (approved 2026-10-03; pending)
 
 Use existing CTX01/CTX02/DCP10/DCP11 fixtures and owners; four scenario groups suffice:
@@ -765,12 +796,13 @@ Doc/progress checks prove planning structure, never runtime/visual PASS.
   network for rejected plugin; healthy siblings and local application usable. Actual
   typed requested/current activation and safe provenance/error available before prompt
   and on reload/reopen; no generic JS/plugin framework or swallowed fatal local error.
-  Pending 2026-10-02 exact DCP3.2.0 follow-up first records source-delta/config/semantic
-  qualification and AGPL provenance, then admits both classifier/resolver gates with
-  requested/current compiled revision truth. Reject other versions/ranges/lookalikes;
-  bare/latest remain fixed compiled aliases. CFG10 shares safe diagnostics; T45 owns
-  actual child DCP10–DCP12 behavior. Historical T51 baseline PASS is unchanged and
-  does not qualify this new spelling or full3.2.0 parity.
+  Pending exact DCP3.2.0 follow-up, refined2026-10-03: adopted T45/R9 semantic delta
+  qualifies before coordinated DCP pin/revision/AGPL provenance and both classifier/
+  resolver gates. Exact3.2.0/bare/latest/legacy3.1.15 share one current module; inventory
+  keeps requested/current revision truth, never claims two versioned runtimes. Reject
+  other versions/ranges/lookalikes; no npm resolution. CFG10 shares safe diagnostics;
+  T45 owns actual DCP10–DCP12 behavior. Historical T51 baseline PASS is unchanged and
+  does not qualify this new spelling/source revision, full3.2.0 or Long Horizon parity.
 - **UI07:** discovery/connect/auth/credential failure at cold startup retains local TUI,
   history/model selection/diagnostics. Capture explicit selected identity and zero
   generation/tool effects for unavailable prompt/headless error. Admitted retry/refresh

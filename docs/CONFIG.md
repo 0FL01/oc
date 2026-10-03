@@ -257,10 +257,13 @@ extend T45/R9/DCP12, implementation/qualification **pending**:
   parity claims. Unknown nested compress keys must get safe source/field diagnostics.
   Examples/schema/help change with implementation; no user config rewrite or updater.
 
-Host OC1 pin `@tarquinen/opencode-dcp@3.2.0` is a **pending** exact compatibility
-target, not a current admitted alias or baseline change. Admission/provenance follow-up
-is T51/CFG09/CFG10; actual `experimental.allowSubAgents` behavior remains T45/R9/
-DCP10–DCP12. A package spelling alone never qualifies child DCP or full3.2.0 parity.
+Host OC1 pin `@tarquinen/opencode-dcp@3.2.0` is not currently admitted. Owner-approved
+2026-10-03 [donor upgrade](DCP.md#dcp-320-donor-upgrade--approved-2026-10-03-pending)
+targets source3.2.0 after qualified T45/R9 semantic delta, not a pin change by this
+plan. T51/CFG09/CFG10 owns the coordinated exact admission/provenance follow-up;
+actual child/default/control behavior remains T45/DCP10–DCP12. Preserve native
+40%/55%/false, child default true, compress switch, Ask/Deny and declared source-root/
+array differences; a new package spelling never qualifies these or full3.2.0 parity.
 
 ## Custom providers — T53 (approved clarification 2026-10-02; pending)
 
@@ -441,10 +444,13 @@ text, not config instructions or automatic parent-history inheritance (R8).
 
 До resolver/import/process/network классифицируются только exact identities. Bare `@tarquinen/opencode-dcp`, pinned `@tarquinen/opencode-dcp@3.1.15` и пользовательский exact alias `@tarquinen/opencode-dcp@latest` обозначают один compiled DCP module фиксированной repository revision: `@latest` здесь НЕ вызывает registry resolution и не меняет revision. Exact canonical `<effective-config-root>/{plugin,plugins}/openproxy-models.js` обозначает один compiled OpenProxy discovery module; файл не читается и не исполняется. Exact `@prevalentware/opencode-goal-plugin@0.1.49` из общей authoring-конфигурации даёт warning и нулевую runtime capability: код пакета не загружается. Basename вне admitted root, `.ts`, URL/arbitrary path, ranges, другие versions/packages и любой unknown JS/TS дают source-qualified `UnsupportedPlugin`. Duplicate aliases idempotent. Provider alias `@ai-sdk/openai` остаётся отдельным config domain, не plugin identity.
 
-Approved 2026-10-02 follow-up: exact3.2.0 may enter both classifier and DCP resolver
-only after source-delta/config/semantic qualification and AGPL provenance review,
-with truthful requested/current compiled identities. Current3.1.15 revision, latest
-alias semantics, unknown-version rejection and historical PASS remain unchanged.
+Approved 2026-10-02 follow-up, refined 2026-10-03: exact3.2.0 may enter both classifier
+and DCP resolver only after source-delta/config/semantic qualification and AGPL review,
+coordinated with the qualified DCP source pin/revision. Until then current3.1.15 and
+admitted names stay unchanged. Afterwards bare/latest and legacy exact3.1.15 remain
+idempotent aliases of the same new compiled module, not npm resolution or a second
+3.1.15 runtime. Inventory preserves requested spelling versus actual current revision;
+unknown-version/range/lookalike rejection and historical PASS stay intact.
 See [T51 follow-up](goals/2026-09-27-startup-fault-isolation.md#dcp-320-compatibility-follow-up--approved-2026-10-02-pending).
 
 R1/CFG09 admission isolates `UnsupportedPlugin` to the rejected request. The existing

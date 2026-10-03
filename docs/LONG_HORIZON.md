@@ -76,6 +76,19 @@ admission snapshot, а не изобретение передачи контек
 
 DCP Compress — compiled-native часть `oc`, а не обязательный внешний
 JS/npm plugin host. Сохраняются pinned DCP provenance и AGPL уведомления.
+Утверждённый 2026-10-03 [donor upgrade](DCP.md#dcp-320-donor-upgrade--approved-2026-10-03-pending)
+на 3.2.0 — pending source-delta qualification; текущий compiled baseline ещё 3.1.15.
+Полезны OC2 protections, protocol-safe projection/compaction и anchored nudge replay,
+но donor TS adapter не заменяет Rust harness и не решает intentional forgetting.
+Его nested summaries/child-result preservation не становятся обязанностью пожизненно
+удерживать или снова загружать child transcript. Task/pack HOT обновляется ещё внутри
+той же задачи; ordinary restart/compact восстанавливают latest HOT, не исходный архив.
+Native defaults 40%/55%/summaryBuffer=false, child DCP=true и `compress.enabled`
+остаются утверждёнными отличиями; donor defaults и unsupported Ask не переносятся.
+Настоящий native Ask/Deny, resource/security guards и no unknown-effect replay intact;
+CodeMode, компактные donor IDs и visual qualification T44 не входят в этот upgrade.
+Смена source pin после квалификации не является Long Horizon/DCP11/A10 PASS.
+
 Пользователь может отключить DCP общим `enabled:false` в `dcp.json/jsonc`
 или inline `dcp` в admitted `opencode.json/jsonc`, например:
 

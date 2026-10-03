@@ -784,6 +784,26 @@ Retry уже реализован; OCR не устанавливает прич�
 completed T54/T55, execution statuses и historical PASS неизменны.
 Новые срезы pending/NOT_RUN, эта правка не меняет runtime.
 
+## Owner clarification (2026-10-03 — qualified DCP 3.2.0 donor upgrade)
+
+После read-only donor RECON владелец утвердил правки плана и current-branch commit/push,
+с сохранением [Long Horizon differences](docs/LONG_HORIZON.md). [T45/R9 upgrade](docs/DCP.md#dcp-320-donor-upgrade--approved-2026-10-03-pending)
+целится в DCP3.2.0 `d637981555a18c3992472268a0657a948925d5fa`/AGPL-3.0-or-later:
+input/metadata-aware protections, protocol-safe projection/compaction и nudge-anchor
+replay. Это reuse source semantics/fixtures в Rust, не TS/npm host или full parity.
+Intentional forgetting, latest-HOT recovery, renewal task/pack до завершения задачи,
+no round stops, native defaults/controls, Ask/Deny и unknown-effect safety сильнее
+donor retention/limitations. CodeMode и compact-ID migration вне среза; T44 VIS38
+и short-terminal presentation остаются отдельными после explicit resume.
+
+Текущая compiled revision/lock/admission ещё3.1.15. После квалификации принятой delta
+планируется согласованная смена только DCP source pin/revision/provenance и обоих exact
+gates через existing T51 CFG09/CFG10 follow-up; bare/latest и legacy3.1.15 сохраняются
+как truthful aliases одного текущего compiled module. Historical T02/T51/VIS38 evidence
+не переписывается, OC/OpenProxy pins не меняются. Порядок/метод — M8 и TEST_PLAN;
+новых tasks/gates/store/paid campaign нет. Plan-only pending: T45 active, T44 PAUSED,
+execution statuses и чужая dirty реализация сохранены, runtime/Long Horizon PASS нет.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

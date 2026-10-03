@@ -2,6 +2,79 @@
 
 Основа владельца: `compress` и подсказки агенту о сжатии. Source baseline: DCP 3.1.15, commit из `planning/baseline.lock.json`, AGPL-3.0-or-later. [D1–D4] в SOURCES. Это перенос функционального ядра, не npm package/auto-updater и не заявление о полном parity всех экспериментальных возможностей.
 
+## DCP 3.2.0 donor upgrade — approved 2026-10-03 (pending)
+
+После read-only RECON владелец утвердил правки плана и current-branch commit/push.
+Целевой donor — `Tarquinen/opencode-dynamic-context-pruning` v3.2.0, commit
+`d637981555a18c3992472268a0657a948925d5fa`, AGPL-3.0-or-later; источники —
+[3.2.0 source recon](SOURCES.md#dcp-320-upgrade-target). Compiled revision пока
+`11f6517780a502512a3467645074be447cb0369e` (3.1.15); эта plan-only правка не меняет
+`DCP_MODULE_REVISION`, operational lock или admitted aliases. Upgrade — квалификация
+узкой полезной source delta, не импорт TS plugin host и не full3.2.0 parity.
+
+### Reuse scope and preserved native differences
+
+- **Protections:** shared input/metadata-aware правила для OC2 file tools и child
+  results; donor aliases task/subagent, bash/shell, apply_patch/patch сопоставляются
+  реальному native каталогу. Parsed read/edit/write paths и все patch source/destination
+  paths остаются authoritative; donor regex не заменяет native parser/policy. Различать
+  command/strategy protection и compression output preservation. Child outcome берётся
+  у typed native result owner, не определяется regex по LLM prose или XML wrapper.
+- **Projection/compaction:** source-derived project/restore scenarios сохраняют
+  непрозрачные reasoning signatures, media, provider metadata, checkpoints и native
+  input вне выбранных групп. Закрытый assistant/tool-result набор удаляется целиком,
+  включая результаты без отдельного message ID; не разрывать retained/in-flight
+  protocol groups и не менять immutable RAW. Session/generation ownership остаётся
+  native; никаких global caches или загрузки child transcript ради сохранности result.
+- **Nudge replay:** compaction replay использует existing anchors без создания новых,
+  изменения cached prefix или добавления старого nudge к более позднему content.
+  Проверить native cadence/reset на фактических requests, не считать V2 hooks готовой
+  Rust-реализацией и не вводить второй context owner.
+- **Не переносить:** CodeMode/execute/nested toolCalls, npm dependencies/security
+  updates, новый compact-ID формат/alias table. Native durable MessageIds уже не имеют
+  9999 ceiling; сохранить публичные IDs и CTX selection. TS OC2 adapter не поддерживает
+  Ask, но native Ask с реальным consumer и Deny остаются обязательными.
+- **Long Horizon сильнее donor retention:** 3.2.0 не добавляет standalone forgetting
+  и не устраняет aging nested-summary dependencies. Не наследовать protected child
+  outputs как пожизненный verbatim груз и не реинъектировать забытый child archive.
+  Exact RAW admission/first delivery и renewable task/pack HOT внутри той же задачи,
+  latest-HOT recovery, no round stops и no unknown-effect replay сохраняются.
+  Donor defaults остаются 50000/100000/true и allowSubAgents=false; native target
+  40%/55%/false, child default true и `compress.enabled` не откатываются.
+
+### Qualification before coordinated pin/admission
+
+1. На safe handoff текущего dirty T45 HOT/context seam зафиксировать delta между
+   обоими pinned commits и fixtures нового donor: `tests/v2-protection.test.ts`,
+   `tests/v2-messages.test.ts`,
+   `tests/compaction-nudges.test.ts` и relevant range/restart cases из `tests/v2-ids.test.ts`.
+   Не мигрировать IDs ради запуска donor tests. Каждый adopted fixture сохраняет
+   source path/commit/license/normalization; source reading не является executable PASS.
+2. Три малых T45/R9 среза: protections → projection/compaction → anchored nudge replay.
+   Менять существующих config/runtime/storage owners только по доказанному RED;
+   достаточный native behavior квалифицировать без переписывания. Targeted Rust tests,
+   rebuilt actual-binary fake-provider wire/SQLite/restart checks и existing resource/
+   integration/workspace gates предшествуют baseline delivery. Reuse DCP02/DCP04–DCP07
+   как regressions и T45 DCP10–DCP12; не менять их owners или historical PASS.
+3. После квалификации принятой delta согласованно обновить `DCP_MODULE_REVISION` и
+   только DCP operational pin в `planning/baseline.lock.json`; OC/OpenProxy pins не
+   менять. Добавить новую fixture/derivative provenance к existing source records,
+   не переписать T02 `source-manifest` или прежнюю 3.1.15 display attribution. Сохранить
+   AGPL notices до push производного кода. Revision означает источник adopted subset,
+   не поддержку всех upstream features; support/difference matrix остаётся явной.
+4. В той же qualified delivery T51/CFG09/CFG10 follow-up обновляет **оба** exact gates
+   (`classify_plugin`, `resolve_dcp_module`): добавить exact3.2.0, сохранить bare/latest
+   и legacy exact3.1.15 как совместимые имена одного текущего compiled module.
+   Requested package ≠ current source revision; inventory не выдаёт legacy alias за
+   отдельный старый runtime. Unknown versions/ranges/lookalikes reject до effects,
+   aliases idempotent, без Node/Bun/npm resolution. Completed T51 evidence остаётся
+   historical; новые receipts additive, не whole-T45/T44 done-dependency.
+
+T44 остаётся PAUSED: VIS38/display и donor short-terminal fixes квалифицируются
+отдельно после explicit resume. V2 report hook с pending display не переопределяет
+утверждённый compression-card контракт. План не создаёт task/gate/store/framework,
+paid campaign или runtime PASS; execution statuses и текущая dirty реализация intact.
+
 ## Входит в goal
 
 Range compression с несколькими spans, stable message/block references, вложенные summaries, protected tool/file/user/tag content; system/tool instructions и context/turn/iteration nudges; deduplication, purgeErrors; эффективный DCP config; durable state и replay; `/dcp` context/stats/manual controls и `/dcp-compress [focus]`.

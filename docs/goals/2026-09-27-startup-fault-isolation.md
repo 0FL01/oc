@@ -119,15 +119,23 @@ Exact cached source is available under
 package version/license is3.2.0/AGPL-3.0-or-later. This is research evidence, not
 permission to execute/install the plugin or proof of native3.2.0 parity.
 
-1. Focused delta audit against pinned3.1.15: config/defaults, range/protections,
-   strategies, hooks/child behavior and nearest source fixtures. Record supported
-   semantics versus native differences and preserve/update provenance/AGPL notices
-   as required before publishing derivative changes. Do not change frozen baseline
-   or advertise new behavior merely because the alias can be parsed.
-2. Only after that qualification admit **exact3.2.0** in both classifier and module
-   resolver with shared fixtures. Unknown versions/ranges/lookalikes still reject
-   before file-as-code/import/process/network. Bare/latest stay fixed compiled aliases,
-   not registry resolution; requested package ≠ current compiled source revision.
+Owner clarification 2026-10-03 after donor RECON: this is now coordinated with a
+[qualified donor upgrade](../DCP.md#dcp-320-donor-upgrade--approved-2026-10-03-pending),
+not alias-only admission against an indefinitely frozen3.1.15 module. Target3.2.0
+commit is `d637981555a18c3992472268a0657a948925d5fa`; implementation pending.
+
+1. T45/R9 qualifies focused source delta against pinned3.1.15: protections, V2
+   project/restore/compaction and anchored nudge replay using nearest source fixtures.
+   Record adopted semantics versus native differences; preserve RAW/HOT/forgetting,
+   native defaults/controls, real Ask/Deny and typed child authority. No TS/CodeMode
+   runtime, compact-ID migration or full-version claim from source reading.
+2. Only after adopted-delta qualification coordinate compiled revision/DCP-only
+   operational lock/provenance and **exact3.2.0** in both classifier and module resolver.
+   Append new fixture/derivative provenance and preserve AGPL notices before publishing;
+   do not relabel T02 or historical3.1.15 evidence. Unknown versions/ranges/lookalikes
+   still reject before file-as-code/import/process/network. Bare/latest and legacy
+   exact3.1.15 remain idempotent names of one current compiled module, not registry
+   resolution or a second old runtime; requested package ≠ actual source revision.
 3. CFG09/CFG10 own admission/idempotence/safe requested-current inventory and diagnostics,
    reload/reopen plus zero Node/Bun/resolver effects. Add focused receipts to the
    existing T51 evidence surface without rewriting old reports/PASS. Actual child
@@ -135,8 +143,9 @@ permission to execute/install the plugin or proof of native3.2.0 parity.
    alias qualification is neither full-version parity nor a whole-T45 dependency.
 
 T53 owns custom config/protocols/LAN, not this plugin gate. No new task/acceptance ID,
-generic version resolver or task-status/dependency change; active T50/T44 PAUSED and
-historical R1–R4 completion remain. Schedule the follow-up only at a safe handoff.
+generic version resolver or task-status/dependency change; T45 active/T44 PAUSED and
+historical R1–R4 completion remain. Schedule only at the existing dirty T45 safe handoff;
+this plan does not reopen completed T51 or qualify runtime behavior.
 
 ## Historical execution checkpoint
 

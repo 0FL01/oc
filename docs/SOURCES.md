@@ -42,6 +42,33 @@ D4 read 2026-09-27: schema/defaultConfig/source paths, including upstream 50000/
 
 Пути для последующего executable recon (не весь код проверен в этой редакции): `lib/compress/`, `lib/hooks.ts`, `lib/messages/`, `lib/prompts/`, `lib/config.ts`, `tests/`, `LICENSE` на том же commit. Не копировать README вместо точного test case.
 
+## DCP 3.2.0 upgrade target
+
+Read-only RECON 2026-10-03: v3.2.0 is commit
+`d637981555a18c3992472268a0657a948925d5fa`, AGPL-3.0-or-later. Canonical repo is
+`Tarquinen/opencode-dynamic-context-pruning`; package repository metadata retains the
+redirected `Opencode-DCP` name. This is the approved pending donor target, not current
+compiled baseline or an executable comparison. D1–D4 and historical T02/VIS38
+provenance stay accurate; adopted fixtures/derivatives later append their own records.
+
+[D11] https://github.com/Tarquinen/opencode-dynamic-context-pruning/blob/d637981555a18c3992472268a0657a948925d5fa/package.json
+
+[D12] https://github.com/Tarquinen/opencode-dynamic-context-pruning/blob/d637981555a18c3992472268a0657a948925d5fa/lib/v2/index.ts
+
+[D13] https://github.com/Tarquinen/opencode-dynamic-context-pruning/blob/d637981555a18c3992472268a0657a948925d5fa/lib/v2/messages.ts
+
+[D14] https://github.com/Tarquinen/opencode-dynamic-context-pruning/blob/d637981555a18c3992472268a0657a948925d5fa/lib/protected-patterns.ts
+
+[D15] https://github.com/Tarquinen/opencode-dynamic-context-pruning/blob/d637981555a18c3992472268a0657a948925d5fa/tests/v2-protection.test.ts
+
+[D16] https://github.com/Tarquinen/opencode-dynamic-context-pruning/blob/d637981555a18c3992472268a0657a948925d5fa/tests/v2-messages.test.ts
+
+[D17] https://github.com/Tarquinen/opencode-dynamic-context-pruning/blob/d637981555a18c3992472268a0657a948925d5fa/tests/compaction-nudges.test.ts
+
+[D18] https://github.com/Tarquinen/opencode-dynamic-context-pruning/blob/d637981555a18c3992472268a0657a948925d5fa/tests/v2-ids.test.ts
+
+[D19] https://github.com/Tarquinen/opencode-dynamic-context-pruning/blob/d637981555a18c3992472268a0657a948925d5fa/lib/config.ts
+
 ## OpenProxy
 
 [P1] https://github.com/0FL01/openproxy/blob/4ef76dbce2cdbb85206cbe5e59acbad9d96ae387/contracts/lean-proxy.md

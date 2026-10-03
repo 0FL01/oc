@@ -4,7 +4,7 @@ State updated: 2026-10-02T22:57:04+00:00
 Active: T45
 
 Сверить Git status/diff до выполнения команд.
-Task: T45 — Остаток subagent system (T43 slices 5-8), DCP defaults и effective config controls (DCP12)
+Task: T45 — Остаток subagent system (T43 slices 5-8), DCP 3.2.0 donor qualification и defaults/controls (DCP12)
 Spec: docs/goals/2026-09-21-config-compat-and-subagents.md
 Evidence target: evidence/T45/report.md
 
