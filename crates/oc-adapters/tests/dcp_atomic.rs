@@ -403,6 +403,7 @@ fn nested_unknown_cycle_depth_and_size_fail_during_planning() {
     ));
 
     let block = |id: String, summary: String| CompressionBlock {
+        hot: None,
         id,
         session: "s".to_string(),
         topic: "nested".to_string(),

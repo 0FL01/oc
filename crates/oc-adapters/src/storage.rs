@@ -298,7 +298,7 @@ pub struct Db {
     output_dir: Arc<File>,
     output_readers: Arc<Mutex<std::collections::HashMap<String, usize>>>,
     // Actual payload transfers: HOT, explicit RAW page, bounded UI window.
-    history_reads: Arc<[std::sync::atomic::AtomicU64; 6]>,
+    history_reads: Arc<[std::sync::atomic::AtomicU64; 10]>,
     // Fields drop in declaration order: release ownership after SQLite closes.
     _lock: Arc<RootLock>,
 }
@@ -399,6 +399,8 @@ pub const ACTIVE_HISTORY_PAGE: usize = 256;
 /// Durable compression block row with ordered membership (T17).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompressionBlockRow {
+    /// Optional versioned native working selection.
+    pub hot: Option<String>,
     /// Block id (`b0001`, … per session).
     pub id: String,
     /// Owning session.
@@ -503,6 +505,7 @@ impl Db {
         conn.pragma_update(None, "foreign_keys", "ON")?;
         apply_schema(&conn)?;
         Self::compaction_schema(&conn)?;
+        Self::renewal_schema(&conn)?;
         Self::conversation_schema(&conn)?;
         Self::session_list_schema(&conn)?;
         Self::shell_jobs_schema(&conn)?;
@@ -1050,7 +1053,7 @@ impl Db {
                 tx.execute(&format!("DELETE FROM {table} WHERE {predicate}"), [])?;
             }
         }
-        tx.execute("DELETE FROM prefs WHERE key IN (SELECT 'tui.session_location.'||id FROM deleting_family) OR key IN (SELECT ?1||json_array(?2,id) FROM deleting_family) OR (substr(key,1,22)='tui.selection.session:' AND json_valid(substr(key,23)) AND json_extract(substr(key,23),'$[2]') IN deleting_family) OR EXISTS(SELECT 1 FROM deleting_family f WHERE substr(CAST(key AS BLOB),1,length(CAST('dcp.nudge.'||f.id||char(0) AS BLOB)))=CAST('dcp.nudge.'||f.id||char(0) AS BLOB))", params![TAB_ADOPTION_PREFIX,location])?;
+        tx.execute("DELETE FROM prefs WHERE key IN (SELECT 'tui.session_location.'||id FROM deleting_family) OR key IN (SELECT 'dcp.projection_owned.'||id FROM deleting_family) OR key IN (SELECT ?1||json_array(?2,id) FROM deleting_family) OR (substr(key,1,22)='tui.selection.session:' AND json_valid(substr(key,23)) AND json_extract(substr(key,23),'$[2]') IN deleting_family) OR EXISTS(SELECT 1 FROM deleting_family f WHERE substr(CAST(key AS BLOB),1,length(CAST('dcp.nudge.'||f.id||char(0) AS BLOB)))=CAST('dcp.nudge.'||f.id||char(0) AS BLOB))", params![TAB_ADOPTION_PREFIX,location])?;
         tx.execute("DELETE FROM sessions WHERE id IN deleting_family", [])?;
         tx.execute_batch("DELETE FROM deleting_family;")?;
         tx.commit()?;
@@ -1567,11 +1570,12 @@ impl Db {
     ) -> Result<Vec<(String, i64)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let mut stmt = conn.prepare_cached(
-            "SELECT cm.block_id, MIN(m.seq) FROM compression_members cm
+            "SELECT b.id,(SELECT MIN(m.seq) FROM conversation_messages m JOIN messages a ON a.id=b.start_msg JOIN messages z ON z.id=b.end_msg WHERE m.session_id=b.session_id AND m.seq>?2 AND m.seq BETWEEN a.seq AND z.seq) FROM compression_blocks b WHERE b.session_id=?1 AND b.hot IS NOT NULL AND json_valid(b.hot) AND json_extract(b.hot,'$.active')=1 AND json_extract(b.hot,'$.standalone')=1 AND EXISTS(SELECT 1 FROM conversation_messages m WHERE m.id=b.end_msg AND m.seq>?2)
+             UNION ALL SELECT cm.block_id, MIN(m.seq) FROM compression_members cm
                JOIN messages m ON m.id = cm.message_id
                JOIN compression_blocks b ON b.id = cm.block_id
-              WHERE b.session_id = ?1 AND m.seq > ?2
-              GROUP BY cm.block_id ORDER BY MIN(m.seq) ASC",
+               WHERE b.session_id = ?1 AND m.seq > ?2 AND (b.hot IS NULL OR json_extract(b.hot,'$.active')=1) AND COALESCE(json_extract(b.hot,'$.standalone'),0)=0
+               GROUP BY cm.block_id ORDER BY 2 ASC",
         )?;
         let rows = stmt.query_map(params![session, after_seq], |row| {
             Ok((row.get(0)?, row.get(1)?))
@@ -1596,21 +1600,56 @@ impl Db {
         after_seq: i64,
         budget: usize,
     ) -> Result<ActiveHistory, StorageError> {
+        self.active_history_range(session, after_seq, i64::MAX, budget)
+    }
+    pub(crate) fn active_history_range(
+        &self,
+        session: &str,
+        after_seq: i64,
+        until: i64,
+        budget: usize,
+    ) -> Result<ActiveHistory, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let mut rows: Vec<(String, String, String)> = Vec::new();
         let mut bytes: u64 = 0;
         let mut cursor = after_seq;
+        let intervals = Self::active_intervals_in(&conn, session, after_seq)?;
+        let mut rows_read = 0usize;
         loop {
+            if let Some((_, end)) = intervals
+                .iter()
+                .find(|(start, end)| cursor >= start.saturating_sub(1) && cursor < *end)
+            {
+                cursor = *end;
+                continue;
+            }
+            let gap_end = intervals
+                .iter()
+                .filter(|(start, _)| *start > cursor)
+                .map(|(start, _)| *start)
+                .min()
+                .unwrap_or(i64::MAX)
+                .min(until.saturating_add(1));
+            if cursor >= until {
+                break;
+            }
             let mut stmt = conn.prepare_cached(
-                "SELECT id, role, seq, length(CAST(text AS BLOB)), text FROM conversation_messages
-                       WHERE session_id = ?1 AND seq > ?2 AND role != 'model_switch'
-                    AND NOT EXISTS (SELECT 1 FROM compression_members cm
-                                     WHERE cm.message_id = conversation_messages.id)
+                "SELECT id, role, seq, length(CAST(text AS BLOB)), CASE WHEN SUM(length(CAST(text AS BLOB))) OVER(ORDER BY seq)<=?4 THEN text ELSE '' END FROM conversation_messages
+                       WHERE session_id = ?1 AND seq > ?2 AND seq<?5 AND role != 'model_switch'
+                     AND NOT EXISTS (SELECT 1 FROM compression_members cm JOIN compression_blocks cb ON cb.id=cm.block_id
+                                      WHERE cm.message_id = conversation_messages.id AND (cb.hot IS NULL OR json_extract(cb.hot,'$.active')=1))
+                     AND NOT EXISTS(SELECT 1 FROM compression_blocks cb JOIN messages a ON a.id=cb.start_msg JOIN messages z ON z.id=cb.end_msg WHERE cb.session_id=conversation_messages.session_id AND cb.hot IS NOT NULL AND json_valid(cb.hot) AND json_extract(cb.hot,'$.active')=1 AND json_extract(cb.hot,'$.standalone')=1 AND conversation_messages.seq BETWEEN a.seq AND z.seq)
                   ORDER BY seq ASC LIMIT ?3",
             )?;
             let page: Vec<(String, String, i64, i64, String)> = stmt
                 .query_map(
-                    params![session, cursor, ACTIVE_HISTORY_PAGE as i64],
+                    params![
+                        session,
+                        cursor,
+                        ACTIVE_HISTORY_PAGE as i64,
+                        budget.saturating_sub(bytes.min(usize::MAX as u64) as usize) as i64,
+                        gap_end
+                    ],
                     |row| {
                         Ok((
                             row.get(0)?,
@@ -1623,6 +1662,10 @@ impl Db {
                 )?
                 .collect::<Result<Vec<_>, _>>()?;
             if page.is_empty() {
+                if gap_end != i64::MAX && gap_end <= until {
+                    cursor = gap_end - 1;
+                    continue;
+                }
                 if rows.is_empty() && cursor == after_seq {
                     Self::require_session(&conn, session)?;
                 }
@@ -1632,35 +1675,27 @@ impl Db {
             for (id, role, seq, size, text) in page {
                 cursor = seq;
                 bytes = bytes.saturating_add(size.max(0) as u64);
-                rows.push((id, role, text));
-            }
-            if bytes > budget as u64 {
-                // Exact remaining totals without materialising any text.
-                let (extra_rows, extra_bytes): (i64, i64) = conn.query_row(
-                    "SELECT COUNT(*), COALESCE(SUM(length(CAST(text AS BLOB))), 0)
-                       FROM conversation_messages
-                      WHERE session_id = ?1 AND seq > ?2
-                        AND NOT EXISTS (SELECT 1 FROM compression_members cm
-                                         WHERE cm.message_id = conversation_messages.id)",
-                    params![session, cursor],
-                    |row| Ok((row.get(0)?, row.get(1)?)),
-                )?;
-                return Ok(ActiveHistory {
-                    rows_read: rows.len() + extra_rows.max(0) as usize,
-                    bytes: bytes.saturating_add(extra_bytes.max(0) as u64),
-                    rows: Vec::new(),
-                    overflow: true,
-                });
+                rows_read += 1;
+                if bytes <= budget as u64 {
+                    rows.push((id, role, text));
+                } else {
+                    rows.clear();
+                }
             }
             if !full_page {
-                break;
+                if gap_end != i64::MAX && gap_end <= until {
+                    cursor = gap_end - 1;
+                    continue;
+                } else {
+                    break;
+                }
             }
         }
         Ok(ActiveHistory {
-            rows_read: rows.len(),
+            rows_read,
             bytes,
             rows,
-            overflow: false,
+            overflow: bytes > budget as u64,
         })
     }
 
@@ -2739,6 +2774,7 @@ impl Db {
               CREATE TABLE IF NOT EXISTS dcp_run_identity(session_id TEXT PRIMARY KEY REFERENCES sessions(id), high_water INTEGER NOT NULL);
               INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (2, 't17');",
         )?;
+        Self::renewal_schema(&conn)?;
         Self::install_context_tracking(&conn)
     }
 
@@ -2768,9 +2804,9 @@ impl Db {
         let id = format!("b{:04}", max.unwrap_or(0) + 1);
         let now = now_rfc3339();
         tx.execute(
-            "INSERT INTO compression_blocks(id, session_id, topic, summary, start_msg, end_msg, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-            params![id, session, topic, summary, start_msg, end_msg, now],
+            "INSERT INTO compression_blocks(id, session_id, topic, summary, start_msg, end_msg, created_at,hot)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7,?8)",
+            params![id, session, topic, summary, start_msg, end_msg, now,serde_json::json!({"version":1,"active":!members.is_empty(),"standalone":false,"protected":[],"logs":[]}).to_string()],
         )?;
         for message_id in members {
             tx.execute(
@@ -2796,7 +2832,7 @@ impl Db {
         session: &str,
     ) -> Result<Vec<CompressionBlockRow>, StorageError> {
         let mut stmt = conn.prepare_cached(
-            "SELECT id, topic, summary, start_msg, end_msg FROM compression_blocks
+            "SELECT id, topic, summary, start_msg, end_msg,hot FROM compression_blocks
              WHERE session_id = ?1 ORDER BY id ASC",
         )?;
         let blocks = stmt.query_map(params![session], |row| {
@@ -2806,11 +2842,12 @@ impl Db {
                 row.get::<_, String>(2)?,
                 row.get::<_, String>(3)?,
                 row.get::<_, String>(4)?,
+                row.get::<_, Option<String>>(5)?,
             ))
         })?;
         let mut out = Vec::new();
         for block in blocks {
-            let (id, topic, summary, start_msg, end_msg) = block?;
+            let (id, topic, summary, start_msg, end_msg, hot) = block?;
             let mut members = conn.prepare_cached(
                 "SELECT cm.message_id FROM compression_members AS cm
                  LEFT JOIN messages AS m ON m.id = cm.message_id
@@ -2823,6 +2860,7 @@ impl Db {
                 member_ids.push(row?);
             }
             out.push(CompressionBlockRow {
+                hot,
                 id,
                 session: session.to_string(),
                 topic,
@@ -2968,6 +3006,29 @@ impl Db {
             if block.session != session || block.id != format!("b{number:04}") {
                 return Err(StorageError::CompressionConflict);
             }
+            if block.hot.is_some() {
+                let bounds:Option<(i64,i64)>=tx.query_row("SELECT a.seq,z.seq FROM conversation_messages a JOIN conversation_messages z ON z.session_id=a.session_id WHERE a.session_id=?1 AND a.id=?2 AND z.id=?3",params![session,block.start_msg,block.end_msg],|r|Ok((r.get(0)?,r.get(1)?))).optional()?;
+                let (start, end) = bounds.ok_or(StorageError::CompressionConflict)?;
+                if start > end {
+                    return Err(StorageError::CompressionConflict);
+                }
+                let mut overlaps=tx.prepare("SELECT b.id,a.seq,z.seq FROM compression_blocks b JOIN messages a ON a.id=b.start_msg JOIN messages z ON z.id=b.end_msg WHERE b.session_id=?1 AND a.seq<=?3 AND z.seq>=?2 AND (b.hot IS NOT NULL AND json_valid(b.hot) AND json_extract(b.hot,'$.active')=1 OR b.hot IS NULL AND EXISTS(SELECT 1 FROM compression_members cm WHERE cm.block_id=b.id)) LIMIT 4097")?;
+                for (index, row) in overlaps
+                    .query_map(params![session, start, end], |r| {
+                        Ok((
+                            r.get::<_, String>(0)?,
+                            r.get::<_, i64>(1)?,
+                            r.get::<_, i64>(2)?,
+                        ))
+                    })?
+                    .enumerate()
+                {
+                    let (id, a, z) = row?;
+                    if index >= 4096 || !consumed_set.contains(&id) || a < start || z > end {
+                        return Err(StorageError::CompressionConflict);
+                    }
+                }
+            }
             for member in &block.members {
                 if !candidate_members.insert(member.as_str()) {
                     return Err(StorageError::CompressionConflict);
@@ -2976,7 +3037,7 @@ impl Db {
                     .query_row(
                         "SELECT cm.block_id FROM compression_members AS cm
                          JOIN compression_blocks AS cb ON cb.id = cm.block_id
-                         WHERE cb.session_id = ?1 AND cm.message_id = ?2 LIMIT 1",
+                          WHERE cb.session_id = ?1 AND cm.message_id = ?2 AND (cb.hot IS NULL OR json_extract(cb.hot,'$.active')=1) LIMIT 1",
                         params![session, member],
                         |row| row.get::<_, String>(0),
                     )
@@ -3032,15 +3093,17 @@ impl Db {
 
         let now = now_rfc3339();
         for block in consumed_blocks {
-            tx.execute(
-                "DELETE FROM compression_members WHERE block_id = ?1",
-                [block],
-            )?;
+            let native = blocks.iter().any(|b| b.hot.is_some());
+            if native {
+                tx.execute("UPDATE compression_blocks SET hot=json_set(COALESCE(hot,'{\"version\":1,\"standalone\":false}'),'$.active',json('false'),'$.logs',json('[]')) WHERE id=?1",[block])?;
+            } else {
+                tx.execute("DELETE FROM compression_members WHERE block_id=?1", [block])?;
+            }
         }
         for block in blocks {
             tx.execute(
-                "INSERT INTO compression_blocks(id, session_id, topic, summary, start_msg, end_msg, created_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                "INSERT INTO compression_blocks(id, session_id, topic, summary, start_msg, end_msg, created_at,hot)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7,?8)",
                 params![
                     block.id,
                     session,
@@ -3049,33 +3112,43 @@ impl Db {
                     block.start_msg,
                     block.end_msg,
                     now
+                    ,block.hot
                 ],
             )?;
-            for member in &block.members {
+            for member in block.members.iter().filter(|_| block.hot.is_none()) {
                 tx.execute(
                     "INSERT INTO compression_members(block_id, message_id) VALUES (?1, ?2)",
                     params![block.id, member],
                 )?;
             }
         }
-        for (call_id, occurrence) in hidden_calls {
+        if let Some(replacement) = &measurement.replacement_projection {
+            Self::replace_compaction_marks(&tx, session, replacement, &measurement.retire_keys)?;
+        }
+        for (call_id, occurrence) in hidden_calls
+            .iter()
+            .filter(|_| measurement.replacement_projection.is_none())
+        {
             let occurrence =
                 i64::try_from(*occurrence).map_err(|_| StorageError::CompressionConflict)?;
             tx.execute(
-                "INSERT INTO dcp_tool_projection_v2(session_id, call_id, occurrence, action)
-                 VALUES (?1, ?2, ?3, 'hidden')
-                 ON CONFLICT(session_id, call_id, occurrence) DO UPDATE SET action = 'hidden'",
+                "INSERT INTO dcp_tool_projection_v2(session_id, call_id, occurrence, action,active)
+                 VALUES (?1, ?2, ?3, 'hidden',1)
+                 ON CONFLICT(session_id, call_id, occurrence) DO UPDATE SET action = 'hidden',active=1",
                 params![session, call_id, occurrence],
             )?;
         }
-        for (call_id, occurrence) in purged_calls {
+        for (call_id, occurrence) in purged_calls
+            .iter()
+            .filter(|_| measurement.replacement_projection.is_none())
+        {
             if !hidden_calls.contains(&(call_id.clone(), *occurrence)) {
                 let occurrence =
                     i64::try_from(*occurrence).map_err(|_| StorageError::CompressionConflict)?;
                 tx.execute(
-                    "INSERT INTO dcp_tool_projection_v2(session_id, call_id, occurrence, action)
-                     VALUES (?1, ?2, ?3, 'purged')
-                     ON CONFLICT(session_id, call_id, occurrence) DO UPDATE SET action = 'purged'",
+                    "INSERT INTO dcp_tool_projection_v2(session_id, call_id, occurrence, action,active)
+                     VALUES (?1, ?2, ?3, 'purged',1)
+                     ON CONFLICT(session_id, call_id, occurrence) DO UPDATE SET action = 'purged',active=1",
                     params![session, call_id, occurrence],
                 )?;
             }
@@ -3129,7 +3202,7 @@ impl Db {
     ) -> Result<DcpToolProjection, StorageError> {
         Self::require_session(conn, session)?;
         let mut statement = conn.prepare_cached(
-            "SELECT call_id, occurrence, action FROM dcp_tool_projection_v2 WHERE session_id = ?1",
+            "SELECT call_id, occurrence, action FROM dcp_tool_projection_v2 WHERE session_id = ?1 AND (active=1 OR(active IS NULL AND NOT EXISTS(SELECT 1 FROM prefs WHERE key='dcp.projection_owned.'||?1 AND value='true')))",
         )?;
         let rows = statement.query_map([session], |row| {
             Ok((

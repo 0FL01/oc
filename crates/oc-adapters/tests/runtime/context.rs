@@ -1148,7 +1148,7 @@ async fn aud20_compress_commits_only_eligible_strategy_projection() {
         .expect("durable old error output");
     assert!(exact_error.starts_with("error:"));
 
-    runtime
+    let first_projection = runtime
         .run_turn(params(
             "strategy",
             &format!(
@@ -1212,13 +1212,21 @@ async fn aud20_compress_commits_only_eligible_strategy_projection() {
     );
     assert_eq!(
         (runs[1].ordinal, runs[1].new_tools),
-        (2, 2),
-        "reused call ID and newly aged error are new occurrences; inherited pruning is excluded"
+        (2, 3),
+        "reused ID, newly aged error and prior closed projection-control pair are new removals; inherited pruning is excluded"
     );
-    assert_eq!(runs[1].cumulative.prunes, 4);
+    assert_eq!(runs[1].cumulative.prunes, 5);
     let requests = requests.lock().unwrap();
     assert_eq!(requests.len(), 11);
     let projected = &requests[5];
+    assert_eq!(
+        function_item_count(projected, "function_call", "strategy-compress"),
+        1
+    );
+    assert_eq!(
+        function_item_count(projected, "function_call_output", "strategy-compress"),
+        1
+    );
     assert_eq!(
         function_item_count(projected, "function_call", "dup-read"),
         1
@@ -1281,6 +1289,23 @@ async fn aud20_compress_commits_only_eligible_strategy_projection() {
     );
 
     let projected_again = &requests[9];
+    assert_eq!(
+        function_item_count(projected_again, "function_call", "strategy-compress"),
+        0
+    );
+    assert_eq!(
+        function_item_count(projected_again, "function_call_output", "strategy-compress"),
+        0
+    );
+    assert!(
+        harness
+            .db
+            .turn_result(&first_projection.turn_id)
+            .unwrap()
+            .1
+            .unwrap()
+            .contains("strategy-compress")
+    );
     assert_eq!(
         function_item_count(projected_again, "function_call", "dup-read"),
         1,

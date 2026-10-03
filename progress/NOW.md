@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-02T22:57:04+00:00
+State updated: 2026-10-03T09:47:04+00:00
 Active: T45
 
 Сверить Git status/diff до выполнения команд.
@@ -12,15 +12,14 @@ Owner-approved R3/R6–R10; full contracts and ordered slices in spec/M8, histor
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# Closed current-task qualification
 ## Result
-Immutable RAW segments and bounded HOT checkpoint committed atomically; page integrity and family deletion repaired.
+Whole-past hot renewal and actual /compact overflow recovery verified; RAW unchanged.
 ## Checks
-Workspace1461/0/10; parent8 owner tests,12 normal-ELF workloads,Python47/fmt/Clippy/docs/progress/diff PASS.
+1467/0/10 workspace; parent seven owner checks, eight native workloads, Python47, fmt/clippy/docs/progress/diff PASS.
 ## Risks
-Not whole T45/DCP11/READY. T44 paused; authorized live allowance exhausted.
+Whole T45/defaults/controls/task packs remain; T44 PAUSED, T27 allowance exhausted.
 ## Next
-Deliver this seam, then execute whole-past hot renewal/defaults/controls and remaining profile/child contracts.
+Qualify the next scoped DCP configuration/default/child availability consumer.
 
 
 Ready (до 5): T53, T56

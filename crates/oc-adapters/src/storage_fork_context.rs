@@ -82,6 +82,49 @@ pub(super) fn standalone_prefix_operations(
 }
 
 impl Import<'_> {
+    fn selection(&self, value: &mut serde_json::Value) -> Result<(), ForkError> {
+        let logs = value
+            .as_array_mut()
+            .ok_or_else(|| refuse("invalid historical selection"))?;
+        for log in logs {
+            if let Some(facts) = log.get_mut("legacy_protected") {
+                for fact in facts
+                    .as_array_mut()
+                    .ok_or_else(|| refuse("invalid legacy protection"))?
+                {
+                    if !matches!(fact["role"].as_str(), Some("user" | "content"))
+                        || !fact["text"].is_string()
+                    {
+                        return Err(refuse("invalid legacy protection").into());
+                    }
+                    fact["source_start"] = mapped(self.messages, &fact["source_start"])?.into();
+                    fact["source_end"] = mapped(self.messages, &fact["source_end"])?.into();
+                }
+                continue;
+            }
+            if let Some(fact) = log.get_mut("protected_message") {
+                fact["id"] = mapped(self.messages, &fact["id"])?.into();
+                if !matches!(fact["role"].as_str(), Some("user" | "assistant"))
+                    || !fact["text"].is_string()
+                {
+                    return Err(refuse("invalid historical protected message").into());
+                }
+                continue;
+            }
+            crate::tools::TurnLog::from_json(log)
+                .map_err(|_| refuse("invalid historical selected journal"))?;
+            log["turn_id"] = mapped(self.turns, &log["turn_id"])?.into();
+            if !log["user_message"].is_null() {
+                log["user_message"] = mapped(self.messages, &log["user_message"])?.into();
+            }
+            if let Some(notices) = log["shell_notice_messages"].as_array_mut() {
+                for notice in notices {
+                    *notice = mapped(self.messages, notice)?.into();
+                }
+            }
+        }
+        Ok(())
+    }
     fn context(&mut self, digest: &str) -> Result<String, ForkError> {
         if let Some(saved) = self.contexts.get(digest) {
             return Ok(saved.clone());
@@ -123,7 +166,24 @@ impl Import<'_> {
                         let authored = crate::dcp::authored_summary(summary);
                         let mut rebased = String::new();
                         let mut end = 0;
-                        for placeholder in crate::dcp::parse_block_placeholders(authored) {
+                        let mut hot = v
+                            .get(7)
+                            .filter(|v| !v.is_null())
+                            .map(|v| match v {
+                                serde_json::Value::Object(_) => Ok(v.clone()),
+                                serde_json::Value::String(raw) => {
+                                    serde_json::from_str::<serde_json::Value>(raw)
+                                        .map_err(|_| refuse("invalid historical hot metadata"))
+                                }
+                                _ => Err(refuse("invalid historical hot metadata")),
+                            })
+                            .transpose()?;
+                        let standalone = hot.as_ref().is_some_and(|h| h["standalone"] == true);
+                        for placeholder in crate::dcp::parse_block_placeholders(if standalone {
+                            ""
+                        } else {
+                            authored
+                        }) {
                             let target = if let Some(id) = self.blocks.get(&placeholder.block_id) {
                                 id.clone()
                             } else {
@@ -147,6 +207,21 @@ impl Import<'_> {
                         v[3] = rebased.into();
                         v[4] = mapped(self.messages, &v[4])?.into();
                         v[5] = mapped(self.messages, &v[5])?.into();
+                        if let Some(hot) = &mut hot {
+                            for fact in hot["protected"]
+                                .as_array_mut()
+                                .ok_or_else(|| refuse("invalid protected selection"))?
+                            {
+                                fact["id"] = mapped(self.messages, &fact["id"])?.into();
+                            }
+                            if let Some(facts) = hot.get("legacy_protected") {
+                                let mut selection = serde_json::json!([{"legacy_protected":facts}]);
+                                self.selection(&mut selection)?;
+                                hot["legacy_protected"] = selection[0]["legacy_protected"].take();
+                            }
+                            self.selection(&mut hot["logs"])?;
+                            v[7] = hot.to_string().into();
+                        }
                     }
                     1 => {
                         v[0] = mapped(&self.blocks, &v[0])?.into();
@@ -162,13 +237,17 @@ impl Import<'_> {
                         // primary key. Preserve it even if strings coincide.
                     }
                     5 => {
-                        let suffix = v[0]
-                            .as_str()
-                            .and_then(|key| {
-                                key.strip_prefix(&format!("dcp.nudge.{}\0", self.source))
-                            })
-                            .ok_or_else(|| refuse("invalid historical nudge scope"))?;
-                        v[0] = format!("dcp.nudge.{}\0{suffix}", self.root).into();
+                        if v[0].as_str() == Some(&format!("dcp.projection_owned.{}", self.source)) {
+                            v[0] = format!("dcp.projection_owned.{}", self.root).into();
+                        } else {
+                            let suffix = v[0]
+                                .as_str()
+                                .and_then(|key| {
+                                    key.strip_prefix(&format!("dcp.nudge.{}\0", self.source))
+                                })
+                                .ok_or_else(|| refuse("invalid historical nudge scope"))?;
+                            v[0] = format!("dcp.nudge.{}\0{suffix}", self.root).into();
+                        }
                     }
                     6 => {
                         v[0] = self.root.into();
@@ -217,6 +296,22 @@ impl Import<'_> {
                             )?;
                         }
                         v[5] = new_id.into();
+                        if let Some(raw) = v.get(6).filter(|v| !v.is_null()) {
+                            let mut selection: serde_json::Value = match raw {
+                                serde_json::Value::Array(_) => raw.clone(),
+                                serde_json::Value::String(raw) => serde_json::from_str(raw)
+                                    .map_err(|_| {
+                                        refuse("invalid historical checkpoint selection")
+                                    })?,
+                                _ => {
+                                    return Err(
+                                        refuse("invalid historical checkpoint selection").into()
+                                    );
+                                }
+                            };
+                            self.selection(&mut selection)?;
+                            v[6] = selection.to_string().into();
+                        }
                     }
                     7 => {
                         // Wire identities and the measured causal prefix are unchanged.

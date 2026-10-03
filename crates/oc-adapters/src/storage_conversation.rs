@@ -6,7 +6,7 @@ use oc_core::{domain::SessionId, session::CoreError};
 const TABLES: &[(&str, &str, &str)] = &[
     (
         "compression_blocks",
-        "id,session_id,topic,summary,start_msg,end_msg,created_at",
+        "id,session_id,topic,summary,start_msg,end_msg,created_at,hot",
         "session_id=?1",
     ),
     (
@@ -26,17 +26,17 @@ const TABLES: &[(&str, &str, &str)] = &[
     ),
     (
         "dcp_tool_projection_v2",
-        "session_id,call_id,occurrence,action",
+        "session_id,call_id,occurrence,action,active",
         "session_id=?1",
     ),
     (
         "prefs",
         "key,value,updated_at",
-        "substr(CAST(key AS BLOB),1,length(CAST('dcp.nudge.'||?1||char(0) AS BLOB)))=CAST('dcp.nudge.'||?1||char(0) AS BLOB)",
+        "(substr(CAST(key AS BLOB),1,length(CAST('dcp.nudge.'||?1||char(0) AS BLOB)))=CAST('dcp.nudge.'||?1||char(0) AS BLOB) OR key='dcp.projection_owned.'||?1)",
     ),
     (
         "session_checkpoint",
-        "session_id,boundary_message,summary,route,opaque,operation_id",
+        "session_id,boundary_message,summary,route,opaque,operation_id,selection",
         "session_id=?1",
     ),
     ("session_usage_anchor", "session_id,anchor", "session_id=?1"),
@@ -126,7 +126,28 @@ impl Db {
                 [kind as i64],
                 |r| r.get(0),
             )?;
-            if tracked {
+            let updated: bool = if tracked && matches!(kind, 0 | 4 | 5 | 6) {
+                let sql: Option<String> = conn
+                    .query_row(
+                        "SELECT sql FROM sqlite_master WHERE type='trigger' AND name=?1",
+                        [format!("conversation_track_{kind}_INSERT")],
+                        |r| r.get(0),
+                    )
+                    .optional()?;
+                sql.is_some_and(|sql| {
+                    if kind == 5 {
+                        sql.contains("dcp.projection_owned.")
+                    } else {
+                        sql.contains(&format!(
+                            "NEW.{}",
+                            columns.rsplit(',').next().expect("tracked columns")
+                        ))
+                    }
+                })
+            } else {
+                tracked
+            };
+            if updated {
                 continue;
             }
             let fields: Vec<_> = columns.split(',').collect();
@@ -150,14 +171,14 @@ impl Db {
                     format!("(SELECT session_id FROM compression_blocks WHERE id={alias}block_id)")
                 }
                 5 => format!(
-                    "CAST(substr(CAST({alias}key AS BLOB),11,instr(substr(CAST({alias}key AS BLOB),11),x'00')-1) AS TEXT)"
+                    "CASE WHEN substr({alias}key,1,21)='dcp.projection_owned.' THEN substr({alias}key,22) ELSE CAST(substr(CAST({alias}key AS BLOB),11,instr(substr(CAST({alias}key AS BLOB),11),x'00')-1) AS TEXT) END"
                 ),
                 _ => format!("{alias}session_id"),
             };
             let guard = |alias: &str| {
                 if kind == 5 {
                     format!(
-                        "substr(CAST({alias}key AS BLOB),1,10)=CAST('dcp.nudge.' AS BLOB) AND instr(CAST({alias}key AS BLOB),x'00')>10"
+                        "((substr(CAST({alias}key AS BLOB),1,10)=CAST('dcp.nudge.' AS BLOB) AND instr(CAST({alias}key AS BLOB),x'00')>10) OR substr({alias}key,1,21)='dcp.projection_owned.')"
                     )
                 } else {
                     "1".into()
@@ -165,9 +186,11 @@ impl Db {
             };
             // One-time migration captures only the currently real metadata;
             // legacy points without a historical version remain unavailable.
-            conn.execute_batch(&format!("INSERT OR IGNORE INTO conversation_objects(kind,payload) SELECT {kind},json_array({columns}) FROM {table} WHERE {};
+            if !tracked {
+                conn.execute_batch(&format!("INSERT OR IGNORE INTO conversation_objects(kind,payload) SELECT {kind},json_array({columns}) FROM {table} WHERE {};
               INSERT INTO conversation_versions SELECT {},{kind},json_array({}),o.id,(SELECT revision FROM conversation_revision),NULL FROM {table} JOIN conversation_objects o ON o.kind={kind} AND o.payload=json_array({}) WHERE {};
-              INSERT INTO conversation_tracked VALUES({kind});", guard(""), session(""), key(&format!("{table}.")), payload(&format!("{table}.")), guard(&format!("{table}."))))?;
+               INSERT INTO conversation_tracked VALUES({kind});", guard(""), session(""), key(&format!("{table}.")), payload(&format!("{table}.")), guard(&format!("{table}."))))?;
+            }
             for operation in ["INSERT", "UPDATE", "DELETE"] {
                 let close = if operation == "INSERT" {
                     String::new()
@@ -196,7 +219,7 @@ impl Db {
                     "DELETE" => guard("OLD."),
                     _ => guard("NEW."),
                 };
-                conn.execute_batch(&format!("CREATE TRIGGER conversation_track_{kind}_{operation} AFTER {operation} ON {table} WHEN {} BEGIN
+                conn.execute_batch(&format!("DROP TRIGGER IF EXISTS conversation_track_{kind}_{operation}; CREATE TRIGGER conversation_track_{kind}_{operation} AFTER {operation} ON {table} WHEN {} BEGIN
                   UPDATE conversation_revision SET revision=revision+1;
                   {close} {insert} END;",when))?;
             }

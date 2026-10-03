@@ -1191,7 +1191,6 @@ fn run_crash_atomicity_at_sqlite_sync() {
         arguments
     );
 
-    let expected_members: usize = ranges.iter().map(|range| range.members.len()).sum();
     let reopened_sqlite = DirectSqlite::open(&fixture.data().join("oc.sqlite"));
     let counts = reopened_sqlite.compression_counts();
     drop(reopened_sqlite);
@@ -1201,7 +1200,7 @@ fn run_crash_atomicity_at_sqlite_sync() {
         && operation.output.is_none()
     {
         ReopenedCompression::Absent
-    } else if counts == (ranges.len(), expected_members)
+    } else if counts == (ranges.len(), 0)
         && blocks.len() == ranges.len()
         && operation.state == "completed"
         && operation.output.is_some()
@@ -1219,8 +1218,18 @@ fn run_crash_atomicity_at_sqlite_sync() {
         for (block, requested) in blocks.iter().zip(&ranges) {
             assert_eq!(block.start_msg, requested.start);
             assert_eq!(block.end_msg, requested.end);
+            assert_eq!(requested.members.first(), Some(&block.start_msg));
+            assert_eq!(requested.members.last(), Some(&block.end_msg));
             assert_eq!(block.summary, requested.summary);
-            assert_eq!(block.members, requested.members);
+            assert!(
+                block.members.is_empty(),
+                "native coverage must not enumerate history"
+            );
+            let hot: Value =
+                serde_json::from_str(block.hot.as_deref().expect("native descriptor")).unwrap();
+            assert_eq!(hot["version"], 1);
+            assert_eq!(hot["active"], true);
+            assert_eq!(hot["standalone"], true);
         }
     }
 

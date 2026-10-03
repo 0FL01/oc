@@ -3,6 +3,15 @@ use super::*;
 use crate::shell::jobs::{Outcome, ProcessIdentity, Provenance};
 
 impl Db {
+    pub(crate) fn has_active_shell_jobs(&self, session: &str) -> Result<bool, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM shell_jobs WHERE session_id=?1 AND phase!='terminal')",
+            [session],
+            |r| r.get(0),
+        )
+        .map_err(Into::into)
+    }
     pub(super) fn shell_jobs_schema(conn: &Connection) -> Result<(), StorageError> {
         conn.execute_batch("BEGIN IMMEDIATE;
             CREATE TABLE IF NOT EXISTS shell_jobs(

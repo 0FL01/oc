@@ -2,6 +2,19 @@
 
 use super::*;
 
+fn protected_message(value: &serde_json::Value) -> Result<Message, RuntimeError> {
+    Ok(Message {
+        id: MessageId::new(value["id"].as_str().ok_or(RuntimeError::Storage)?)
+            .ok_or(RuntimeError::Storage)?,
+        role: match value["role"].as_str() {
+            Some("user") => Role::User,
+            Some("assistant") => Role::Assistant,
+            _ => return Err(RuntimeError::Storage),
+        },
+        text: value["text"].as_str().ok_or(RuntimeError::Storage)?.into(),
+    })
+}
+
 fn map_messages(history: &[(String, String, String)]) -> Result<Vec<Message>, RuntimeError> {
     let mut out = Vec::with_capacity(history.len());
     for (id, role, text) in history {
@@ -34,6 +47,7 @@ pub(super) fn dcp_config_input(
     let anchors = projected
         .iter()
         .enumerate()
+        .filter(|(_, (id, _, _))| !id.starts_with("session-checkpoint"))
         .map(|(index, (id, role, _))| {
             serde_json::json!({
                 "id": id,
@@ -507,6 +521,306 @@ pub(super) fn active_summary_tokens(projected: &[(String, String, String)]) -> u
 }
 
 impl<'a> Runtime<'a> {
+    pub(super) fn renew_compaction_selection(
+        &self,
+        session: &str,
+        context: &mut ActiveContext,
+    ) -> Result<(), RuntimeError> {
+        let spec = self.history_protection_spec(session)?;
+        let config = self.dcp_config.read().expect("dcp config").clone();
+        for block in &mut context.blocks {
+            let legacy = crate::dcp::select_legacy_protection(
+                &crate::dcp::legacy_protection(block).map_err(|_| RuntimeError::Storage)?,
+                &spec,
+            )
+            .map_err(|_| RuntimeError::Storage)?;
+            if let Some(hot) = &mut block.hot {
+                let logs = hot["logs"]
+                    .as_array()
+                    .ok_or(RuntimeError::Storage)?
+                    .iter()
+                    .map(serde_json::Value::to_string)
+                    .collect::<Vec<_>>();
+                hot["logs"] = self.select_history_facts(&logs, &config)?.into();
+                let facts = hot["protected"].as_array().ok_or(RuntimeError::Storage)?;
+                let mut selected = Vec::new();
+                let mut summary = crate::dcp::authored_summary(&block.summary).to_string();
+                for fact in facts {
+                    let message = protected_message(fact)?;
+                    if oc_core::context_plan::message_protected(&spec, &message) {
+                        summary.push_str(if message.role == oc_core::session::Role::User {
+                            crate::dcp::PROTECTED_USER_HEADING
+                        } else {
+                            crate::dcp::PROTECTED_CONTENT_HEADING
+                        });
+                        summary.push_str(&message.text);
+                        selected.push(fact.clone());
+                    }
+                }
+                hot["protected"] = selected.into();
+                crate::dcp::append_legacy_protection(&mut summary, &legacy)
+                    .map_err(|_| RuntimeError::Storage)?;
+                hot["legacy_protected"] = legacy.into();
+                block.summary = summary;
+            }
+        }
+        let by_id = context
+            .blocks
+            .iter()
+            .cloned()
+            .map(|b| (b.id.clone(), b))
+            .collect();
+        for row in &mut context.projected {
+            if context.blocks.iter().any(|b| b.id == row.0) {
+                row.2 = crate::dcp::expand_block(&by_id, &row.0, 0, &mut Vec::new())
+                    .map_err(|_| RuntimeError::Storage)?;
+            }
+        }
+        Ok(())
+    }
+    pub(super) fn history_protection_spec(
+        &self,
+        session: &str,
+    ) -> Result<ProtectedSpec, RuntimeError> {
+        let config = self.dcp_config.read().expect("dcp config");
+        Ok(ProtectedSpec {
+            protect_user_messages: config.protect_user_messages,
+            protect_tags: config.protect_tags,
+            file_globs: config.protected_file_patterns.clone(),
+            protected_message_ids: if config.turn_protection {
+                self.db
+                    .recent_completed_user_ids(session, config.turn_protection_turns)?
+                    .into_iter()
+                    .collect()
+            } else {
+                Default::default()
+            },
+        })
+    }
+    pub(super) fn selected_message_facts(
+        &self,
+        session: &str,
+        projected: &[(String, String, String)],
+        blocks: &[crate::dcp::CompressionBlock],
+    ) -> Result<Vec<serde_json::Value>, RuntimeError> {
+        let spec = self.history_protection_spec(session)?;
+        let mut legacy = Vec::new();
+        for block in blocks {
+            legacy.extend(
+                crate::dcp::select_legacy_protection(
+                    &crate::dcp::legacy_protection(block).map_err(|_| RuntimeError::Storage)?,
+                    &spec,
+                )
+                .map_err(|_| RuntimeError::Storage)?,
+            );
+        }
+        let mut candidates = projected
+            .iter()
+            .filter(|(_, role, _)| role == "user" || role == "assistant")
+            .map(|(id, role, text)| serde_json::json!({"id":id,"role":role,"text":text}))
+            .collect::<Vec<_>>();
+        for block in blocks {
+            if let Some(facts) = block.hot.as_ref().and_then(|h| h["protected"].as_array()) {
+                candidates.extend(facts.iter().cloned());
+            }
+        }
+        if projected.iter().any(|r| r.0 == "session-checkpoint")
+            && let Some(selection) = self.db.checkpoint_selection(session)?
+        {
+            for value in selection {
+                if let Some(fact) = value.get("protected_message") {
+                    candidates.push(fact.clone());
+                }
+                if let Some(facts) = value.get("legacy_protected") {
+                    legacy.extend(
+                        crate::dcp::select_legacy_protection(
+                            facts.as_array().ok_or(RuntimeError::Storage)?,
+                            &spec,
+                        )
+                        .map_err(|_| RuntimeError::Storage)?,
+                    );
+                }
+            }
+        }
+        let mut selected = Vec::new();
+        let mut bytes = 0usize;
+        for fact in legacy {
+            let value = serde_json::json!({"legacy_protected":[fact]});
+            if !selected.contains(&value) {
+                bytes =
+                    bytes.saturating_add(fact["text"].as_str().ok_or(RuntimeError::Storage)?.len());
+                selected.push(value);
+            }
+        }
+        if bytes > ACTIVE_CONTEXT_BYTES_CAP {
+            return Err(RuntimeError::ContextOverflow {
+                bytes: bytes as u64,
+                cap: ACTIVE_CONTEXT_BYTES_CAP,
+            });
+        }
+        for fact in candidates {
+            let message = protected_message(&fact)?;
+            if oc_core::context_plan::message_protected(&spec, &message)
+                && !selected
+                    .iter()
+                    .any(|v: &serde_json::Value| v["protected_message"]["id"] == fact["id"])
+            {
+                bytes = bytes.saturating_add(message.text.len());
+                if bytes > ACTIVE_CONTEXT_BYTES_CAP {
+                    return Err(RuntimeError::ContextOverflow {
+                        bytes: bytes as u64,
+                        cap: ACTIVE_CONTEXT_BYTES_CAP,
+                    });
+                }
+                selected.push(serde_json::json!({"protected_message":fact}));
+            }
+        }
+        Ok(selected)
+    }
+    pub(super) fn select_history_facts(
+        &self,
+        logs: &[String],
+        config: &DcpConfig,
+    ) -> Result<Vec<serde_json::Value>, RuntimeError> {
+        self.select_history_facts_with_producers(logs, config, false)
+    }
+    fn select_history_facts_with_producers(
+        &self,
+        logs: &[String],
+        config: &DcpConfig,
+        fresh_producers: bool,
+    ) -> Result<Vec<serde_json::Value>, RuntimeError> {
+        let mut result = Vec::new();
+        let mut bytes = 0usize;
+        for raw in logs {
+            let value: serde_json::Value =
+                serde_json::from_str(raw).map_err(|_| RuntimeError::Storage)?;
+            let fresh = fresh_producers && value["_dcp_block"].is_null();
+            let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
+            let live = self.db.live_shell_call_ids(&log.turn_id)?;
+            let selected = log
+                .selected_closed_groups(|group| {
+                    let projection_only = group.iter().any(|item| matches!(item, InputItem::ProviderOutput(v) if v["type"] == "function_call" && v["name"] == "compress"))
+                        && !group.iter().any(|item| matches!(item, InputItem::ProviderOutput(v) if v["type"] == "function_call" && v["name"] != "compress"));
+                    (fresh
+                        && !projection_only
+                        && group
+                            .iter()
+                            .any(|item| matches!(item, InputItem::ProviderOutput(v) if v["type"] != "message")))
+                        || group.iter().any(|item| match item {
+                            InputItem::ProviderOutput(v) if v["type"] == "function_call" => {
+                                let name = v["name"].as_str().unwrap_or_default();
+                                live.iter()
+                                    .any(|id| v["call_id"].as_str() == Some(id.as_str()))
+                                    || crate::dcp_auto::tool_is_protected(
+                                        &config.protected_tools,
+                                        name,
+                                    )
+                                    || crate::dcp_auto::tool_is_protected(
+                                        &config.dedup_protected_tools,
+                                        name,
+                                    )
+                                    || crate::dcp_auto::tool_is_protected(
+                                        &config.purge_protected_tools,
+                                        name,
+                                    )
+                                    || dcp_call_has_protected_path(
+                                        name,
+                                        v["arguments"].as_str().unwrap_or_default(),
+                                        config,
+                                    )
+                            }
+                            _ => {
+                                config.protect_tags
+                                    && oc_core::context_plan::extract_protect_tags(
+                                        &serde_json::to_string(item).unwrap_or_default(),
+                                    )
+                                    .next()
+                                    .is_some()
+                            }
+                        })
+                })
+                .map_err(|_| RuntimeError::Storage)?;
+            if !selected.input.is_empty() {
+                let value = selected.to_json();
+                bytes = bytes.saturating_add(value.to_string().len());
+                if bytes > ACTIVE_CONTEXT_BYTES_CAP {
+                    return Err(RuntimeError::ContextOverflow {
+                        bytes: bytes as u64,
+                        cap: ACTIVE_CONTEXT_BYTES_CAP,
+                    });
+                }
+                result.push(value);
+            }
+        }
+        Ok(result)
+    }
+    pub(super) fn projected_wire_logs(
+        &self,
+        session: &str,
+        after: i64,
+        projected: &[(String, String, String)],
+        blocks: &[crate::dcp::CompressionBlock],
+    ) -> Result<Vec<String>, RuntimeError> {
+        let mut logs = self
+            .db
+            .presentation_wire_logs(session, after, projected, blocks)?
+            .ok_or(RuntimeError::Storage)?;
+        for block in blocks
+            .iter()
+            .filter(|b| projected.iter().any(|r| r.0 == b.id))
+        {
+            if let Some(hot) = &block.hot {
+                for value in hot["logs"].as_array().ok_or(RuntimeError::Storage)? {
+                    let mut value = value.clone();
+                    value["_dcp_block"] = block.id.clone().into();
+                    logs.push(value.to_string());
+                }
+            }
+        }
+        if projected.iter().any(|r| r.0 == "session-checkpoint")
+            && let Some(selection) = self.db.checkpoint_selection(session)?
+        {
+            for mut value in selection {
+                if value.get("protected_message").is_some()
+                    || value.get("legacy_protected").is_some()
+                {
+                    continue;
+                }
+                value["_dcp_block"] = "session-checkpoint".into();
+                logs.push(value.to_string());
+            }
+        }
+        let mut keyed = Vec::new();
+        let mut bytes = 0usize;
+        for raw in logs {
+            bytes = bytes.saturating_add(raw.len());
+            if bytes > ACTIVE_CONTEXT_BYTES_CAP {
+                return Err(RuntimeError::ContextOverflow {
+                    bytes: bytes as u64,
+                    cap: ACTIVE_CONTEXT_BYTES_CAP,
+                });
+            }
+            let value: serde_json::Value =
+                serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?;
+            let key = value["_dcp_block"]
+                .as_str()
+                .or(value["user_message"].as_str())
+                .ok_or(RuntimeError::Storage)?;
+            let position = projected
+                .iter()
+                .position(|r| r.0 == key)
+                .ok_or(RuntimeError::Storage)?;
+            let seq = if let Some(anchor) = value["user_message"].as_str() {
+                self.db.message_seq(session, anchor)?.unwrap_or(0)
+            } else {
+                0
+            };
+            keyed.push((position, seq, raw));
+        }
+        keyed.sort_by_key(|(position, seq, _)| (*position, *seq));
+        Ok(keyed.into_iter().map(|(_, _, raw)| raw).collect())
+    }
     /// Execute a manual compress over validated ranges (same permission path).
     pub fn run_compress(
         &self,
@@ -650,16 +964,74 @@ impl<'a> Runtime<'a> {
             } else {
                 0
             });
+        self.active_projection_range(
+            session,
+            after_seq,
+            i64::MAX,
+            checkpoint,
+            ACTIVE_CONTEXT_BYTES_CAP,
+        )
+    }
+    pub(super) fn active_projection_range(
+        &self,
+        session: &str,
+        after_seq: i64,
+        until: i64,
+        checkpoint: bool,
+        budget: usize,
+    ) -> Result<ActiveContext, RuntimeError> {
+        self.active_projection_selected(session, after_seq, until, checkpoint, budget, true)
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn active_projection_selected(
+        &self,
+        session: &str,
+        after_seq: i64,
+        until: i64,
+        checkpoint: bool,
+        budget: usize,
+        retain_selection: bool,
+    ) -> Result<ActiveContext, RuntimeError> {
         let active = self
             .db
-            .active_history(session, after_seq, ACTIVE_CONTEXT_BYTES_CAP)?;
+            .active_history_range(session, after_seq, until, budget)?;
         if active.overflow {
             return Err(RuntimeError::ContextOverflow {
                 bytes: active.bytes,
                 cap: ACTIVE_CONTEXT_BYTES_CAP,
             });
         }
-        let mut blocks = self.db.active_compression_graph(session, after_seq)?;
+        let mut blocks = self
+            .db
+            .compaction_graph(session, after_seq, retain_selection)?;
+        let mut bounded = Vec::new();
+        for block in blocks {
+            if self
+                .db
+                .message_seq(session, &block.end_msg)?
+                .is_some_and(|seq| seq <= until)
+            {
+                bounded.push(block);
+            }
+        }
+        blocks = bounded;
+        if !retain_selection {
+            let by_id = blocks
+                .iter()
+                .cloned()
+                .map(|mut b| {
+                    b.summary = crate::dcp::authored_summary(&b.summary).to_owned();
+                    (b.id.clone(), b)
+                })
+                .collect();
+            for block in &mut blocks {
+                block.summary = crate::dcp::expand_block(&by_id, &block.id, 0, &mut Vec::new())
+                    .map_err(|_| RuntimeError::Storage)?;
+                block.hot = Some(
+                    serde_json::json!({"version":1,"active":true,"standalone":true,"protected":[],"logs":[]}),
+                );
+            }
+        }
         for (id, first, last) in self.db.block_window_endpoints(session, after_seq)? {
             if let Some(block) = blocks.iter_mut().find(|b| b.id == id) {
                 block.members.push(first.clone());
@@ -668,14 +1040,20 @@ impl<'a> Runtime<'a> {
                 }
             }
         }
-        let positions = self.db.block_positions(session, after_seq)?;
+        let mut positions = self.db.block_positions(session, after_seq)?;
+        positions.retain(|(id, _)| blocks.iter().any(|b| &b.id == id));
         let mut projected = crate::dcp::project_active_rows(&active.rows, &blocks, &positions)
             .map_err(|error| RuntimeError::InvalidArgs(error.to_string()))?;
         if checkpoint && let Some((_, summary)) = self.db.session_checkpoint(session)? {
             projected.insert(
                 0,
                 (
-                    "session-checkpoint".into(),
+                    if retain_selection {
+                        "session-checkpoint"
+                    } else {
+                        "session-checkpoint-summary"
+                    }
+                    .into(),
                     "developer".into(),
                     format!("<conversation-checkpoint>\n{summary}\n</conversation-checkpoint>"),
                 ),
@@ -724,7 +1102,11 @@ impl<'a> Runtime<'a> {
         spec: &ProtectedSpec,
         config: Option<&DcpConfig>,
     ) -> Result<crate::dcp::CompressionPlan, RuntimeError> {
-        let after_seq = self.active_rows(session)?.0;
+        let after_seq = self.db.prune_bound(session)?.map_or(0, |(_, seq)| seq).max(
+            self.db
+                .session_checkpoint(session)?
+                .map_or(0, |(seq, _)| seq),
+        );
         let (rows, graph, prune, next, revision) = self
             .db
             .compression_addressed_snapshot(session, after_seq, ranges)?;
@@ -795,13 +1177,7 @@ impl<'a> Runtime<'a> {
         )?;
         let instruction_facts = self.db.instruction_view(session)?.1;
         let current_instruction_input = current
-            .map(|log| {
-                crate::instructions::project(
-                    &log.input,
-                    &log.instruction_references,
-                    &instruction_facts,
-                )
-            })
+            .map(|log| log.instruction_input_for(&model, &provider, &instruction_facts))
             .unwrap_or_default();
         let current_input = current_instruction_input.as_slice();
         let raw_before = before_history
@@ -824,6 +1200,42 @@ impl<'a> Runtime<'a> {
         for block in &mut candidate {
             if plan.consumed_blocks.contains(&block.id) {
                 block.members.clear();
+            }
+        }
+        let before_logs = self.projected_wire_logs(
+            session,
+            context.after_seq,
+            &prior(before_rows),
+            &context.blocks,
+        )?;
+        for block in &mut plan.blocks {
+            let start = self
+                .db
+                .message_seq(session, &block.start_msg)?
+                .ok_or(RuntimeError::Storage)?;
+            let end = self
+                .db
+                .message_seq(session, &block.end_msg)?
+                .ok_or(RuntimeError::Storage)?;
+            let mut covered = Vec::new();
+            for raw in &before_logs {
+                let value: serde_json::Value =
+                    serde_json::from_str(raw).map_err(|_| RuntimeError::Storage)?;
+                let anchor = value["user_message"]
+                    .as_str()
+                    .ok_or(RuntimeError::Storage)?;
+                if self
+                    .db
+                    .message_seq(session, anchor)?
+                    .is_some_and(|seq| start <= seq && seq <= end)
+                {
+                    covered.push(raw.clone());
+                }
+            }
+            if let Some(hot) = &mut block.hot {
+                hot["logs"] = self
+                    .select_history_facts_with_producers(&covered, config, true)?
+                    .into();
             }
         }
         candidate.extend(plan.blocks.iter().cloned());
@@ -860,6 +1272,34 @@ impl<'a> Runtime<'a> {
             .chain(current_input)
             .cloned()
             .collect::<Vec<_>>();
+        let identities = dcp_call_identities(&before_logs, current)?;
+        let after_logs =
+            self.projected_wire_logs(session, context.after_seq, &prior(&after_rows), &candidate)?;
+        let after_identities = dcp_call_identities(&after_logs, current)?;
+        let after_keys = after_identities
+            .into_iter()
+            .map(|(key, id)| (id, key))
+            .collect::<BTreeMap<_, _>>();
+        let remap = |projection: &crate::storage::DcpToolProjection| {
+            let keys = |set: &std::collections::BTreeSet<crate::storage::DcpCallKey>| {
+                set.iter()
+                    .filter_map(|key| {
+                        identities
+                            .get(key)
+                            .and_then(|id| after_keys.get(id))
+                            .cloned()
+                    })
+                    .collect()
+            };
+            crate::storage::DcpToolProjection {
+                hidden: keys(&projection.hidden),
+                purged: keys(&projection.purged),
+            }
+        };
+        let candidate_projection = remap(&candidate_projection);
+        let delta = remap(&delta);
+        plan.measurement.retire_keys = identities.keys().cloned().collect();
+        plan.measurement.replacement_projection = Some(candidate_projection.clone());
         let before_calls = dcp_call_contents(&raw_before, &existing_projection);
         let after_calls = dcp_call_contents(&raw_after, &candidate_projection);
         let mut before_wire =
@@ -890,16 +1330,6 @@ impl<'a> Runtime<'a> {
         plan.measurement.removed = removed.saturating_sub(inherited);
         plan.measurement.net_saved = net_saved;
         plan.saved_tokens = net_saved;
-        let logs = self
-            .db
-            .presentation_wire_logs(
-                session,
-                context.after_seq,
-                &prior(before_rows),
-                &context.blocks,
-            )?
-            .ok_or(RuntimeError::Storage)?;
-        let identities = dcp_call_identities(&logs, current)?;
         let changed = before_calls
             .iter()
             .filter(|(key, value)| {
@@ -949,14 +1379,46 @@ impl<'a> Runtime<'a> {
         let move_epoch = self.db.session_move_epoch(session)?;
         let moved = move_epoch != 0;
         let instruction_facts = self.db.instruction_view(session)?.1;
-        let logs = self
-            .db
-            .presentation_wire_logs(session, after_seq, projected, blocks)?
-            .ok_or_else(|| {
-                RuntimeError::InvalidArgs(
-                    "active wire history exceeds bounded content budget".into(),
-                )
-            })?;
+        let logs = self.projected_wire_logs(session, after_seq, projected, blocks)?;
+        if projected.iter().any(|r| r.0 == "session-checkpoint")
+            && let Some(selection) = self.db.checkpoint_selection(session)?
+        {
+            let spec = self.history_protection_spec(session)?;
+            for value in selection {
+                if let Some(facts) = value.get("legacy_protected") {
+                    let chosen = crate::dcp::select_legacy_protection(
+                        facts.as_array().ok_or(RuntimeError::Storage)?,
+                        &spec,
+                    )
+                    .map_err(|_| RuntimeError::Storage)?;
+                    if !chosen.is_empty() {
+                        let mut text = String::new();
+                        crate::dcp::append_legacy_protection(&mut text, &chosen)
+                            .map_err(|_| RuntimeError::Storage)?;
+                        turns
+                            .entry("session-checkpoint".to_string())
+                            .or_insert_with(Vec::new)
+                            .push(InputItem::message(InputRole::Developer, text));
+                    }
+                }
+                if let Some(fact) = value.get("protected_message") {
+                    let message = protected_message(fact)?;
+                    if oc_core::context_plan::message_protected(&spec, &message) {
+                        turns
+                            .entry("session-checkpoint".to_string())
+                            .or_insert_with(Vec::new)
+                            .push(InputItem::message(
+                                if message.role == oc_core::session::Role::User {
+                                    InputRole::User
+                                } else {
+                                    InputRole::Assistant
+                                },
+                                message.text,
+                            ));
+                    }
+                }
+            }
+        }
         for raw in logs {
             let value: serde_json::Value =
                 serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?;
@@ -1056,10 +1518,13 @@ impl<'a> Runtime<'a> {
                 input.push(InputItem::ProviderOutput(
                     serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?,
                 ));
+                if let Some(items) = turns.remove(id) {
+                    input.extend(items);
+                }
                 continue;
             }
             if let Some(items) = turns.remove(id) {
-                if blocks.iter().any(|block| &block.id == id) {
+                if id == "session-checkpoint" || blocks.iter().any(|block| &block.id == id) {
                     input.push(InputItem::message(InputRole::System, text));
                 }
                 input.extend(items);
@@ -1098,30 +1563,25 @@ impl<'a> Runtime<'a> {
         blocks: &[crate::dcp::CompressionBlock],
         after_seq: i64,
     ) -> Result<Option<u64>, RuntimeError> {
-        let Some(logs) = self
-            .db
-            .presentation_wire_logs(session, after_seq, projected, blocks)?
-        else {
-            return Ok(None);
-        };
+        let logs = self.projected_wire_logs(session, after_seq, projected, blocks)?;
         let mut wire = Vec::new();
         let mut represented = std::collections::BTreeSet::new();
         for raw in logs {
             let value: serde_json::Value =
                 serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?;
             let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
-            if let Some(anchor) = log.user_message {
-                represented.insert(anchor);
+            if let Some(anchor) = &log.user_message {
+                represented.insert(anchor.clone());
             }
             if let Some(assistant) = value["assistant_message"].as_str() {
                 represented.insert(assistant.into());
             }
-            let answered = log
-                .input
+            let input = log.input_for(&log.model, &log.provider);
+            let answered = input
                 .iter()
                 .filter_map(|i| i.call_output().map(|(id, _)| id.to_owned()))
                 .collect::<std::collections::BTreeSet<_>>();
-            wire.extend(log.input.into_iter().filter(|i| {
+            wire.extend(input.into_iter().filter(|i| {
                 match i {
                     InputItem::ProviderOutput(v) if v["type"] == "function_call" => v["call_id"]
                         .as_str()

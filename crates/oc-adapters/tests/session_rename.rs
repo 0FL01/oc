@@ -495,7 +495,7 @@ async fn explicit_family_delete_is_atomic_busy_location_guarded_and_durable() {
         INSERT INTO events(session_id,kind,payload) VALUES ('fork-root','fork_provenance','root');
         INSERT INTO turns(id,session_id,status,prompt) VALUES ('root-turn','root','completed','settled');
         INSERT INTO turn_acceptances(turn_id,session_id,user_message,model_ref) VALUES ('root-turn','root','root-msg','fixture/m');
-        INSERT INTO compression_blocks VALUES ('block','root','topic','summary','root-msg','root-msg','1'); INSERT INTO compression_members VALUES ('block','root-msg');
+        INSERT INTO compression_blocks(id,session_id,topic,summary,start_msg,end_msg,created_at) VALUES ('block','root','topic','summary','root-msg','root-msg','1'); INSERT INTO compression_members VALUES ('block','root-msg');
         INSERT INTO prefs(key,value,updated_at) VALUES ('tui.selection.session:[\"project\",\"fixture\",\"child\"]','choice','1');").unwrap();
     assert!(
         app.session_list(String::new(), true)

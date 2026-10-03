@@ -509,7 +509,7 @@ mod tests {
             .lock()
             .unwrap()
             .execute(
-                "INSERT INTO dcp_tool_projection_v2 VALUES ('source','wire-call',0,'hidden')",
+                "INSERT INTO dcp_tool_projection_v2(session_id,call_id,occurrence,action) VALUES ('source','wire-call',0,'hidden')",
                 [],
             )
             .unwrap();

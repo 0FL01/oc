@@ -285,6 +285,7 @@ impl Db {
     }
 
     /// Exact-checkpoint CAS. Rollback preserves durable and resident old HOT.
+    #[cfg(test)]
     pub(crate) fn commit_closed_turn_segment(
         &self,
         old: &TurnLog,
@@ -293,6 +294,25 @@ impl Db {
         snapshot: Option<(
             &oc_core::compaction::CompactionSnapshot,
             &std::collections::BTreeMap<String, u64>,
+        )>,
+    ) -> Result<(), StorageError> {
+        self.commit_closed_turn_segment_selected(old, segment, hot, snapshot, &[], None)
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn commit_closed_turn_segment_selected(
+        &self,
+        old: &TurnLog,
+        segment: &serde_json::Value,
+        hot: &TurnLog,
+        snapshot: Option<(
+            &oc_core::compaction::CompactionSnapshot,
+            &std::collections::BTreeMap<String, u64>,
+        )>,
+        selection: &[serde_json::Value],
+        projection: Option<(
+            &crate::storage::DcpToolProjection,
+            &serde_json::Value,
+            &[crate::storage::DcpCallKey],
         )>,
     ) -> Result<(), StorageError> {
         let base: RawPrefix = serde_json::from_value(segment["base"].clone())
@@ -381,42 +401,53 @@ impl Db {
                 "DELETE FROM session_usage_anchor WHERE session_id=?1",
                 [&snapshot.session],
             )?;
-            // Remap only marks for the bounded removed current window. Coverage
-            // identities stay immutable; window-local marks cannot leak forward.
-            let new = call_window(hot)?
-                .into_iter()
-                .map(|((id, n), origin)| ((id.clone(), origin), (id, n)))
-                .collect::<std::collections::BTreeMap<_, _>>();
-            let mut retained = Vec::new();
-            // All past facts participated in the admitted consolidation above.
-            // Retire their marks, then remap the retained current window.
-            for (id, count) in past_removed {
-                tx.execute("DELETE FROM dcp_tool_projection_v2 WHERE session_id=?1 AND call_id=?2 AND occurrence<?3",params![snapshot.session,id,*count as i64])?;
-            }
-            for ((id, n), origin) in call_window(old)? {
-                let old_n = n + past_removed.get(&id).copied().unwrap_or(0);
-                let action: Option<String>=tx.query_row("SELECT action FROM dcp_tool_projection_v2 WHERE session_id=?1 AND call_id=?2 AND occurrence=?3",params![snapshot.session,id,old_n as i64],|r| r.get(0)).optional()?;
-                tx.execute("DELETE FROM dcp_tool_projection_v2 WHERE session_id=?1 AND call_id=?2 AND occurrence=?3",params![snapshot.session,id,old_n as i64])?;
-                if let Some(action) = action
-                    && let Some(key) = new.get(&(id, origin))
-                {
-                    retained.push((key.clone(), action));
+            if let Some((projection, progress, retire)) = projection {
+                Self::replace_compaction_marks(&tx, &snapshot.session, projection, retire)?;
+                Self::compaction_progress_in(&tx, &snapshot.session, progress)?;
+            } else {
+                // Remap only marks for the bounded removed current window. Coverage
+                // identities stay immutable; window-local marks cannot leak forward.
+                let new = call_window(hot)?
+                    .into_iter()
+                    .map(|((id, n), origin)| ((id.clone(), origin), (id, n)))
+                    .collect::<std::collections::BTreeMap<_, _>>();
+                let mut retained = Vec::new();
+                // All past facts participated in the admitted consolidation above.
+                // Retire their marks, then remap the retained current window.
+                for (id, count) in past_removed {
+                    tx.execute("DELETE FROM dcp_tool_projection_v2 WHERE session_id=?1 AND call_id=?2 AND occurrence<?3",params![snapshot.session,id,*count as i64])?;
+                }
+                for ((id, n), origin) in call_window(old)? {
+                    let old_n = n + past_removed.get(&id).copied().unwrap_or(0);
+                    let action: Option<String>=tx.query_row("SELECT action FROM dcp_tool_projection_v2 WHERE session_id=?1 AND call_id=?2 AND occurrence=?3",params![snapshot.session,id,old_n as i64],|r| r.get(0)).optional()?;
+                    tx.execute("DELETE FROM dcp_tool_projection_v2 WHERE session_id=?1 AND call_id=?2 AND occurrence=?3",params![snapshot.session,id,old_n as i64])?;
+                    if let Some(action) = action
+                        && let Some(key) = new.get(&(id, origin))
+                    {
+                        retained.push((key.clone(), action));
+                    }
+                }
+                for ((id, n), action) in retained {
+                    tx.execute(
+                        "INSERT INTO dcp_tool_projection_v2(session_id,call_id,occurrence,action) VALUES(?1,?2,?3,?4)",
+                        params![snapshot.session, id, n as i64, action],
+                    )?;
                 }
             }
-            for ((id, n), action) in retained {
-                tx.execute(
-                    "INSERT INTO dcp_tool_projection_v2 VALUES(?1,?2,?3,?4)",
-                    params![snapshot.session, id, n as i64, action],
-                )?;
-            }
             let boundary: Option<String> = tx.query_row("SELECT id FROM conversation_messages WHERE session_id=?1 AND seq<(SELECT seq FROM conversation_messages WHERE session_id=?1 AND id=?2) ORDER BY seq DESC LIMIT 1",params![snapshot.session,old.user_message],|r|r.get(0)).optional()?;
-            if let Some(boundary) = boundary {
+            if let Some(boundary) = &boundary {
                 tx.execute("INSERT INTO prune_marks VALUES(?1,?2,'turn-consolidation') ON CONFLICT(session_id) DO UPDATE SET up_to_msg=excluded.up_to_msg,created_at=excluded.created_at",params![snapshot.session,boundary])?;
+                Self::retire_compression_prefix(&tx, &snapshot.session, boundary)?;
             }
             tx.execute(
                 "DELETE FROM session_checkpoint WHERE session_id=?1",
                 [&snapshot.session],
             )?;
+            if !selection.is_empty()
+                && let Some(boundary) = boundary
+            {
+                tx.execute("INSERT INTO session_checkpoint(session_id,boundary_message,summary,operation_id,selection) VALUES(?1,?2,'',?3,?4)",params![snapshot.session,boundary,snapshot.id,serde_json::to_string(selection).map_err(|_|invalid("selected past facts"))?])?;
+            }
             Self::refresh_checkpoint_dcp_accounting(&tx, &snapshot.session)?;
         }
         tx.commit()?;

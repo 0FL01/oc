@@ -2,6 +2,9 @@ use super::*;
 use oc_core::queries::{ConversationAction, ModelRef};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+#[path = "runtime/compaction_renewal_tests.rs"]
+mod renewal_tests;
+
 #[path = "runtime/instructions/tests.rs"]
 mod instruction_tests;
 

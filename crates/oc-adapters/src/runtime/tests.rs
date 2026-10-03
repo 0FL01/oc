@@ -151,7 +151,12 @@ mod vis38_review_tests {
             .filter_map(|op| op.dcp)
             .next_back()
             .unwrap();
-        assert_eq!((run.new_messages, run.new_tools, run.removed), (0, 0, 0));
+        assert_eq!((run.new_messages, run.new_tools), (0, 0));
+        assert_eq!(
+            run.removed,
+            oc_core::dcp_view::estimate_content("retained public reasoning")
+                + oc_core::dcp_view::estimate_content("retained answer")
+        );
         assert!(run.net_saved > 0);
         assert_eq!(run.block_ids, second.blocks);
         let context = runtime.active_projection("s").unwrap();
@@ -187,12 +192,12 @@ mod vis38_review_tests {
         assert!(
             actual
                 .iter()
-                .any(|i| matches!(i,InputItem::ProviderOutput(v) if v["id"]=="reason-large"))
+                .all(|i| !matches!(i,InputItem::ProviderOutput(v) if v["id"]=="reason-large"))
         );
         assert!(
             actual
                 .iter()
-                .any(|i| matches!(i,InputItem::ProviderOutput(v) if v["id"]=="answer-large"))
+                .all(|i| !matches!(i,InputItem::ProviderOutput(v) if v["id"]=="answer-large"))
         );
         assert_eq!(db.read_history_full("s").unwrap(), raw);
     }
@@ -389,7 +394,7 @@ mod vis38_review_tests {
     }
 
     #[test]
-    fn recompression_keeps_inherited_verbatim_protection_without_covered_text() {
+    fn recompression_reselects_verbatim_protection_without_covered_text() {
         let project = tempfile::tempdir().unwrap();
         let data = tempfile::tempdir().unwrap();
         let db = Db::open(data.path()).unwrap();
@@ -416,7 +421,7 @@ mod vis38_review_tests {
             .run_compress(
                 "s",
                 &args(&report.blocks[0], &report.blocks[0], "short"),
-                &ProtectedSpec::default(),
+                &spec,
             )
             .unwrap();
         let context = runtime.active_projection("s").unwrap();
@@ -434,5 +439,20 @@ mod vis38_review_tests {
             .next_back()
             .unwrap();
         assert_eq!((run.new_messages, run.removed), (0, 0));
+        let released = runtime
+            .run_compress(
+                "s",
+                &args(&report.blocks[0], &report.blocks[0], "released"),
+                &ProtectedSpec::default(),
+            )
+            .unwrap();
+        let context = runtime.active_projection("s").unwrap();
+        let summary = context
+            .projected
+            .iter()
+            .find(|r| r.0 == released.blocks[0])
+            .unwrap();
+        assert!(!summary.2.contains(protected));
+        assert_eq!(db.read_history_full("s").unwrap()[0].2, protected);
     }
 }

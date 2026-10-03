@@ -218,6 +218,7 @@ pub(crate) fn after_read(
 
 /// Insert only latest typed facts at their original chronological positions.
 /// Stale facts remain immutable in storage, but are absent from provider input.
+#[cfg(test)]
 pub(crate) fn project(
     input: &[InputItem],
     references: &[Reference],

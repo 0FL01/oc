@@ -46,6 +46,33 @@ impl RawPrefix {
 }
 
 impl TurnLog {
+    /// Select original closed facts only; terminal task/checkpoint text is not
+    /// an irreducible current task. Selected copies keep issuing provenance.
+    pub(crate) fn selected_closed_groups(
+        &self,
+        keep: impl Fn(&[crate::provider::InputItem]) -> bool,
+    ) -> Result<Self, String> {
+        let mut selected = TurnLog::new(&self.turn_id, &self.model, &self.provider);
+        selected.user_message = self.user_message.clone();
+        selected.agent_digest = self.agent_digest.clone();
+        selected.display = self.display.clone();
+        if let Some(value) = &self.working {
+            let previous = TurnLog::from_json(value)?;
+            let start = if previous.input_origins.get(1) == Some(&None) {
+                2
+            } else {
+                1
+            };
+            selected.select_groups(&previous, start, previous.input.len(), &keep);
+        }
+        selected.select_groups(
+            self,
+            usize::from(self.raw_prefix.is_none()),
+            self.input.len(),
+            &keep,
+        );
+        Ok(selected)
+    }
     pub(crate) fn represents_notice(&self, id: &str) -> bool {
         if self.shell_notice_messages.iter().any(|notice| notice == id) {
             return true;
@@ -163,6 +190,12 @@ impl TurnLog {
                 .push(Some(source.original_input_index(index)));
             if let Some(n) = source.call_occurrences.get(&index) {
                 self.call_occurrences.insert(offset + index - start, *n);
+            } else if let crate::provider::InputItem::ProviderOutput(call) = item
+                && call["type"] == "function_call"
+                && let Some(id) = call["call_id"].as_str()
+            {
+                let n=source.input[..index].iter().filter(|i|matches!(i,crate::provider::InputItem::ProviderOutput(v) if v["type"]=="function_call"&&v["call_id"].as_str()==Some(id))).count() as u64;
+                self.call_occurrences.insert(offset + index - start, n);
             }
         }
         self.instruction_references.extend(

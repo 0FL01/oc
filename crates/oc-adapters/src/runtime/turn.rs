@@ -922,9 +922,6 @@ impl<'a> Runtime<'a> {
             self.db
                 .dcp_tool_projection_for_input(&params.session, &history)?
         };
-        let mut anchors = compress_available
-            .then(|| dcp_config_input(&projected, &dcp_config))
-            .flatten();
         let state_key = format!(
             "dcp.nudge.{}\0{}\0{}",
             params.session, params.catalog.provider, selection.id
@@ -1118,6 +1115,13 @@ impl<'a> Runtime<'a> {
         };
         accepted(&turn_id, accepted_turn.model_switch.as_ref());
         let user_message = accepted_turn.user_message;
+        let mut anchors = compress_available
+            .then(|| {
+                let mut rows = projected.clone();
+                rows.push((user_message.clone(), "user".into(), String::new()));
+                dcp_config_input(&rows, &dcp_config)
+            })
+            .flatten();
         let snapshot = workspace.skills;
         // Children retain the parent's exact admitted MCP capability view.
         let primary_request = self.db.session_meta(&params.session)?.parent_id.is_none();
@@ -1178,6 +1182,7 @@ impl<'a> Runtime<'a> {
         let mut overflow_recovered = false;
         let mut overflow_pending = false;
         let mut last_compacted_round = None;
+        let mut last_nudged_iteration = None;
         let mut closed_boundary: Option<([usize; 7], i64)> = None;
         let mut retry_policy = retry::RetryPolicy::default();
         let mut retry_resuming = false;
@@ -1417,48 +1422,6 @@ impl<'a> Runtime<'a> {
                 &projected_continuation,
                 &instruction_facts,
             );
-            let (nudge, persisted_nudge) = {
-                let estimate = estimate_tokens(
-                    &serde_json::to_string(&(
-                        fixed_input.as_slice(),
-                        projected_continuation.as_slice(),
-                    ))
-                    .map_err(|_| RuntimeError::Storage)?,
-                );
-                let summary_tokens = active_summary_tokens(&projected);
-                let mut states = self.nudge_state.lock().expect("nudge lock");
-                let state = states.entry(state_key.clone()).or_default();
-                let nudge = if compress_available {
-                    state.on_turn();
-                    evaluate(
-                        &dcp_config,
-                        state,
-                        &dcp_model_key,
-                        model_context,
-                        estimate,
-                        summary_tokens,
-                    )
-                } else {
-                    None
-                };
-                let persisted = serde_json::to_string(state).map_err(|_| RuntimeError::Storage)?;
-                (nudge, persisted)
-            };
-            self.db.set_pref(&state_key, &persisted_nudge)?;
-            let nudge_input = nudge.as_ref().map(|nudge| {
-                let force = match nudge.force {
-                    crate::dcp_auto::NudgeForce::Soft => "advisory",
-                    crate::dcp_auto::NudgeForce::Hard => "required before more work",
-                };
-                InputItem::message(
-                    InputRole::Developer,
-                    format!("DCP reminder ({force}): {}", nudge.text),
-                )
-            });
-            if let Some(nudge) = &nudge {
-                nudge_hint = Some(nudge.text.clone());
-                self.stats.lock().expect("stats lock").nudges_emitted += 1;
-            }
             let boundary_estimate = crate::compaction::estimate_context(
                 &fixed_input,
                 &projected_continuation,
@@ -1600,6 +1563,58 @@ impl<'a> Runtime<'a> {
                 // Rebuild the next primary through the same admission boundary.
                 continue 'step;
             }
+            // Compaction re-evaluation is the same logical primary iteration,
+            // not another nudge tick. Finite pre-output retries share it too.
+            let (nudge, persisted_nudge) = {
+                let estimate = estimate_tokens(
+                    &serde_json::to_string(&(
+                        fixed_input.as_slice(),
+                        projected_continuation.as_slice(),
+                    ))
+                    .map_err(|_| RuntimeError::Storage)?,
+                );
+                let mut states = self.nudge_state.lock().expect("nudge lock");
+                let state = states.entry(state_key.clone()).or_default();
+                let nudge = if compress_available {
+                    let iteration = (rounds, state_key.clone());
+                    if last_nudged_iteration.as_ref() != Some(&iteration) {
+                        state.on_turn();
+                        last_nudged_iteration = Some(iteration);
+                    }
+                    evaluate(
+                        &dcp_config,
+                        state,
+                        &dcp_model_key,
+                        model_context,
+                        estimate,
+                        active_summary_tokens(&projected),
+                    )
+                } else {
+                    None
+                };
+                (
+                    nudge,
+                    serde_json::to_string(state).map_err(|_| RuntimeError::Storage)?,
+                )
+            };
+            self.db.set_pref(&state_key, &persisted_nudge)?;
+            let nudge_input = nudge.as_ref().map(|nudge| {
+                InputItem::message(
+                    InputRole::Developer,
+                    format!(
+                        "DCP reminder ({}): {}",
+                        match nudge.force {
+                            crate::dcp_auto::NudgeForce::Soft => "advisory",
+                            crate::dcp_auto::NudgeForce::Hard => "required before more work",
+                        },
+                        nudge.text
+                    ),
+                )
+            });
+            if let Some(nudge) = &nudge {
+                nudge_hint = Some(nudge.text.clone());
+                self.stats.lock().expect("stats lock").nudges_emitted += 1;
+            }
             let continuation =
                 dcp_continuation(&history, &current_instruction_input, &tool_projection);
             crate::instructions::reconcile(&mut fixed_input, &continuation, &instruction_facts);
@@ -1739,6 +1754,8 @@ impl<'a> Runtime<'a> {
             };
             turn_log.display["history_read_counters"] =
                 serde_json::json!(self.db.history_read_counters());
+            turn_log.display["renewal_read_counters"] =
+                serde_json::json!(self.db.renewal_read_counters());
             turn_log.spans.last_mut().expect("prepared span").request = Some(receipt.clone());
             turn_log.requests.push(receipt);
             self.db

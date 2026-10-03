@@ -1390,11 +1390,11 @@ fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
         .dcp_run(session, &ops[0].op)
         .unwrap()
         .expect("actual committed resource operation");
-    // The manual route protects the last legacy anchor as unfinished. Its
-    // actual advertised closed span covers the other three seeded messages.
+    // The newly accepted manual turn is unfinished. All four prior legacy
+    // anchors are closed and advertised without duplicating the current prompt.
     assert_eq!(
         (run.new_messages, run.block_ids.len(), run.ordinal),
-        (3, 1, 1)
+        (4, 1, 1)
     );
     let raw_before = db.read_history_full(session).unwrap();
     drop(db);

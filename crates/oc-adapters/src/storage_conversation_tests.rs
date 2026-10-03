@@ -42,7 +42,7 @@ fn conversation_points_restore_dcp_branch_restart_and_admission_rollback() {
         .lock()
         .unwrap()
         .execute(
-            "INSERT INTO dcp_tool_projection_v2 VALUES ('s','call',0,'hidden')",
+            "INSERT INTO dcp_tool_projection_v2(session_id,call_id,occurrence,action) VALUES ('s','call',0,'hidden')",
             [],
         )
         .unwrap();

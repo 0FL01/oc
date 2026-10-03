@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-10-02T22:57:04+00:00",
+  "updated_at": "2026-10-03T09:47:04+00:00",
   "current": "T45",
   "tasks": {
     "T00": {
@@ -320,8 +320,8 @@
     },
     "T45": {
       "status": "active",
-      "last_seq": 5,
-      "latest": "progress/M8/T45/0005.md",
+      "last_seq": 6,
+      "latest": "progress/M8/T45/0006.md",
       "evidence": null,
       "reopen_reason": null
     },
