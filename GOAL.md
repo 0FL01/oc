@@ -151,6 +151,23 @@ immutability, trust/security или no unknown-effect replay. Самостоят
 не переключается plan patch. Реализация и qualification pending; historical PASS
 и source baseline неизменны.
 
+### Owner clarification (2026-10-03 — selected context / renewable active task)
+
+Владелец утвердил исправленный после параллельного аудита план T45/R8–R9 и
+current-branch commit/push. [Long Horizon differences](docs/LONG_HORIZON.md)
+теперь явно описывает optional context_message_ids как native extension относительно
+OC2 prompt-only delegation. Точный принятый task/pack остаётся неизменяемым в RAW
+и доставляется в первом child request; его HOT-представление может обновляться
+существующим `compress` на безопасной закрытой границе ещё до окончания той же задачи.
+Это supersedes blanket-защиту всего task/pack до terminal completion, не explicit
+user protections/permissions, trust, in-flight groups или no unknown-effect replay.
+Полезность фактов и смысловое завершение выбирает LLM, не harness по тексту/steps/time;
+`length`, error/cancel и технический Completed не доказывают успех. Новый done/release
+tool, классификатор или memory service не нужны. Точный контракт и приёмка —
+[R9 active-task renewal](docs/DCP.md#taskpack-hot-renewal-and-completion--approved-2026-10-03-pending),
+CTX01/CTX02/DCP10/DCP11. Plan-only: новая реализация/qualification pending,
+T45 active, T44 PAUSED, task statuses и historical evidence не меняются.
+
 ## Owner scope amendment (2026-09-27 — selected native tools)
 
 Утверждён [T50 tool contract](docs/goals/2026-09-27-native-tool-parity.md) и срезы

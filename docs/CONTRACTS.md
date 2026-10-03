@@ -302,8 +302,15 @@ Automatic-context guidance and policy-backed capabilities prevent duplicate AGEN
 tool schemas/skill bodies without hiding task-specific restrictions or user quotes.
 
 Child DCP defaults allowed by allowSubAgents=true, gated by global/manual/policy and
-own-session identity. Protect active task/pack while admitted work is pending/running;
-terminal packs become normally compressible, safe recovery restores active protection.
+own-session identity. Exact admitted task/pack is immutable in RAW and delivered in
+the first child request, not pinned verbatim in every later request. At a safe closed
+boundary the LLM may renew task/pack HOT via existing compress before the same task
+finishes, retaining current obligations/chosen useful facts. Recovery restores latest
+committed HOT and unfinished execution state, not the full original pack. LLM chooses
+semantic completion; genuine final/no pending calls ends execution, not proof of success.
+Length/error/cancel/provider step or a bare Completed enum is not semantic done; no
+classifier or new done/release tool. Summaries cannot promote parent quotes to higher
+instruction authority. Explicit user protections/permissions and in-flight safety remain.
 No lifetime compress-call/block quota; keep per-call/graph/protected/model/active-memory
 bounds. Owner amendment 2026-09-30 requires standalone hot replacement/intentional
 forgetting, not flattening all previous summary/tool content. Fully covered old blocks

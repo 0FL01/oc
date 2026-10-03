@@ -42,6 +42,36 @@ Raw history, результаты/effect state и provenance остаются du
 Пользовательские `.md`/Git заметки полностью опциональны: harness не требует
 их, не пишет/коммитит автоматически и не вводит скрытый archival recall.
 
+Уточнение владельца от 2026-10-03: LLM выбирает полезные факты, устаревшие
+подробности и момент финального ответа. Сжатие не ждёт завершения задачи:
+на безопасной закрытой границе существующий `compress` может обновить рабочее
+представление task/context pack внутри одной продолжающейся задачи. Точный
+исходник остаётся durable, но не становится постоянным verbatim грузом HOT.
+Runtime не угадывает смысловое «готово» по тексту, шагам или времени;
+`length`, error/cancel и окончание provider step не доказывают выполнение задачи.
+Явные user protections/permissions и in-flight safety сохраняются.
+Это уточнение плана, не claim реализации: [T45/R9](DCP.md#taskpack-hot-renewal-and-completion--approved-2026-10-03-pending).
+
+## Выбранные сообщения основного чата при делегировании
+
+Утверждённое native расширение позволяет оркестратору явно выбрать сообщения
+основного чата через optional `context_message_ids`. Ребёнку передаются точные
+поддержанные текстовые user/assistant сообщения с исходными ролями/provenance,
+в хронологическом порядке, как цитируемые пользовательские данные рядом с задачей,
+не как новые system/developer instructions. Без явного выбора parent transcript
+не копируется. Собственный профиль, environment, применимые AGENTS, tools и skill
+metadata ребёнка собираются отдельно; skill bodies загружаются через native `skill`.
+
+В pinned OC2 `packages/core/src/tool/plugin/subagent.ts:29–62` нужный контекст
+передаётся обычным текстом в `prompt`; отдельного выбора parent messages по IDs нет.
+`sessionID` продолжает собственную историю ребёнка, а не импортирует сообщения
+родителя. Отличие форка — точный runtime-selected пакет с provenance и неизменяемым
+admission snapshot, а не изобретение передачи контекста текстом.
+
+**Статус:** утверждено в [T45/R8, CTX01/CTX02](goals/2026-09-21-config-compat-and-subagents.md);
+реализация и qualification pending. Snapshot неизменяем в RAW, но его HOT-представление
+может обновляться по R9 без повторной подстановки всего исходного пакета.
+
 ## DCP Compress встроен и отключается через конфиг
 
 DCP Compress — compiled-native часть `oc`, а не обязательный внешний
@@ -62,9 +92,13 @@ Native `/compact` — отдельный механизм, не обязател
 продолжение не помещается, нужен честный отказ, а не silent truncate.
 
 **Статус, не обещание реализации:** native DCP и общий `enabled` уже имеют
-кодовые owners. Удаление round stops, bounded current-task hot/raw seam и
-полные off/manual/API guards, включая новый `compress.enabled`, ещё требуют
-реализации/qualification. Точный config-контракт и известные gaps —
+кодовые owners. Снятие successful-step round stops и bounded closed-current-task
+RAW/HOT seam реализованы и отдельно квалифицированы:
+[round removal](../evidence/T45/round-removal-short.md),
+[current-task RAW/HOT](../evidence/T45/hot-raw.md). Это не whole-past DCP11/A10,
+завершение Long Horizon или всей T45. Whole-past renewal, обновление task/pack HOT
+внутри незавершённой задачи и оставшиеся off/manual/API controls, включая
+`compress.enabled`, ещё требуют реализации/qualification. Точный config-контракт и gaps —
 [DCP controls](DCP.md#compression-switch-and-effective-config-controls--t45r9dcp12-approved-2026-10-02-pending).
 Приёмка Long Horizon требует измеренных bounded RAM/checkpoint/I/O при
 растущем прошлом и одинаковом hot state; прохождение 17 steps доказывает

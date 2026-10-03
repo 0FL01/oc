@@ -204,8 +204,12 @@ owner assignment to earlier T24/T36/T40 or to T44 visual scenarios.
   For supported matching history assert first marker.previous at top level, with
   subsequent effort changes lowered in position, never applied retroactively.
 - DCP10 checks child default true/false/off/manual/deny/Explore, parallel-session state
-  isolation and active task/pack protection/release/safe recovery. Runtime protection
-  does not outlive its task; current explicit user protections are not silently bypassed.
+  isolation and exact RAW admission/first delivery versus renewable task/pack HOT.
+  Prove compression before final completion of the same delegation, latest-HOT safe
+  recovery and successive packs without fixed-lane accumulation. Explicit user
+  protections/permissions and in-flight safety are not silently bypassed. Length,
+  error/cancel/provider-step or bare Completed is not semantic success; LLM chooses
+  useful memory/final handoff, without a new completion tool or prose classifier.
   DCP11 follows the [2026-09-30 hot/cold contract](DCP.md#infinite-hot-context--optional-cold-path--t45r9dcp11-pending):
   standalone replacement and deliberate forgetting, not lossless flattening. Freeze
   the mixed workload and its kept/forgotten control facts before qualification. No
@@ -236,6 +240,35 @@ owner assignment to earlier T24/T36/T40 or to T44 visual scenarios.
 Use source-derived fixtures/captured fake-provider requests/actual binary and existing
 bounded live envelope, not days of paid prompts. Plan-only checks prove structure,
 not these runtime outcomes; executed historical reports remain unchanged.
+
+### Selected context and unfinished-task renewal (approved 2026-10-03; pending)
+
+Use existing CTX01/CTX02/DCP10/DCP11 fixtures and owners; four scenario groups suffice:
+
+1. Foreground exact admission: DCP-off IDs, omitted field/fresh context, exact canonical
+   text/roles/provenance, chronological dedup, delimiter-like text as quoted user data,
+   no unselected history or authority promotion, including after checkpoint consolidation.
+2. One parameterized invalid-selection matrix: malformed/unknown/foreign/reverted/
+   future/unsupported and count/byte/actual-child-request model overflow. Fresh child
+   and existing-child continuation have no new child/input/approval/provider/tool effects;
+   a paired parent tool-error result is allowed. Include accepted/rejected budget edges.
+3. Same delegation remains nonterminal across compress → useful continuation → restart
+   → continuation. Forget predefined task/pack sentinels before its final response;
+   assert forgotten sentinels are absent from actual wire and resident HOT, kept control
+   obligations/facts remain present and usable, and exact durable RAW source is unchanged.
+   Successive sessionID packs enter once and do
+   not accumulate fixed lanes. Explicit historical selection may restore chosen text.
+   Reuse DCP11 small/large-past equal-HOT measurements, not another soak campaign.
+4. When the minimal SUB01/SUB02 background seam is ready, barriers plus parent edits/
+   Revert/compaction and restart prove frozen admission/digest, no duplicate insertion
+   or unknown-effect replay. A new selection uses its own branch/cutoff.
+
+Foreground admission needs only existing source/request owners; renewable-memory claims
+also require actual addressable intra-task ranges and latest-HOT recovery. Do not make
+all R3/PRM01/T45 or T44 completion a prerequisite. Final CTX01 background assertions
+remain pending until exercised. Nearest owner checks precede rebuilt actual-binary
+offline wire/SQLite/resource evidence and required integration/workspace gates; avoid
+duplicating each negative matrix at every layer or adding a new paid campaign.
 
 ### DCP12 effective config controls (approved 2026-10-02; pending)
 

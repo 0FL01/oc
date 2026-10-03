@@ -352,12 +352,13 @@ remains unverified. Do not invent a cap removal or blame nudge counters for it.
 - Scope all block/anchor/projection/nudge/protection state to session/generation.
   A child cannot compress parent/sibling IDs; parallel sessions cannot share cadence
   resets or protection changes. Fixed profile/environment/AGENTS lanes stay separate.
-- Current admitted delegation task/context pack is protected while pending/running,
-  without turning quoted user context into system authority. Terminal completion
-  releases the extra active-task protection; configured user/tag protections still
-  apply. Safe recovery reinstates it before requests. Continuation cannot accumulate
-  every old pack in permanent fixed lanes. Native compaction separately preserves/
-  reconstructs active requirements; irreducible budgets are explicit failures.
+- Exact task/context-pack admission remains immutable in RAW and is delivered in the
+  first child request. HOT task/pack text may be renewed during the same unfinished
+  task at a safe closed boundary, not pinned wholesale until terminal completion.
+  Recovery restores latest committed HOT and execution safety state. Explicit user/tag
+  protections still apply; native compaction follows the same retention/trust rules.
+  Continuation cannot accumulate every old pack in fixed lanes. See the 2026-10-03
+  clarification below; irreducible policy/context budgets remain explicit failures.
 - No default lifetime successful-call/block-count quota; stats are not admission
   counters. Invalid/no-gain calls do not spend a lifetime attempt. Per-call ranges/
   payload limits, cycle/ID/protection/tool-graph checks and active-memory/model/turn
@@ -378,6 +379,47 @@ DCP11 repeats compress/continue/recompress/restart and compares equal active con
 over growing inactive block archives with row/depth/peak/retained-state measurements.
 Keep A07/A10 thresholds and actual-binary cleanup. A finite frozen workload is
 evidence, not a product session-lifespan quota or proof of infinite resources.
+
+### Task/pack HOT renewal and completion — approved 2026-10-03 (pending)
+
+Owner clarification supersedes only blanket task/pack protection until terminal
+completion. R8's exact source snapshot/digest/provenance stays immutable in existing
+durable history; first child-request delivery stays exact. After delivery is established
+by the existing request/response lifecycle and a settled closed boundary exists, the
+LLM may use existing `compress` to replace selected task/pack HOT details with a
+standalone working summary while the same admission is still running. Preserve current
+obligations/chosen useful facts, not every obsolete task detail or selected quotation.
+
+Do not concatenate the pack into an irreducible first input or store an exact-payload
+field that is automatically loaded into each HOT projection. The current-task/context
+owner must expose genuinely addressable closed task/pack ranges: prior-turn-only anchors
+or guidance without eligible ranges do not satisfy this contract. Replacement commits
+atomically under existing revision/closed-group checks; invalid/no-gain leaves prior
+HOT intact. Safe recovery restores latest committed HOT and unfinished execution state,
+not the original full task/pack. New `sessionID` tasks admit their own pack once using
+native operation/task/call-occurrence identity, without permanent protected lanes.
+
+LLM chooses useful facts and semantic completion. A genuine final response without
+further calls/pending foreground batch ends that execution; runtime does not certify
+the user's goal has been achieved. Provider step completion, `length`, error/cancel or
+a bare `Completed` status is not semantic completion. No regex/keyword/round/time
+classifier, model acknowledgement, new done/release tool or memory service is required.
+Most importantly, HOT renewal does not wait for completion.
+
+The trusted harness envelope and model-authored summary payload have distinct authority.
+Summary/parent quotations remain conversation-derived data with provenance; a developer-
+role checkpoint must not upgrade them to developer/system instructions or impersonate
+live child messages. Adjust the existing projection boundary narrowly where necessary,
+not just its guidance. Actual child policy/instruction owners still enforce permissions,
+AGENTS, explicit user protections and in-flight protocol groups. Compression cannot
+erase unknown-effect state, replay tools or silently bypass disabled/manual/Deny rules.
+
+DCP10/CTX01 must prove exact first delivery plus compress/continue before final completion
+of the same delegation, unchanged RAW source, latest-HOT restart and successive packs
+without accumulation. Reuse DCP11's equal-HOT/growing-past measurements and existing
+actual-binary fixtures; no second soak/paid campaign. Full background snapshot evidence
+joins the minimal SUB01/SUB02 lifecycle when ready; foreground qualification does not
+wait for all R3/PRM01/T45 or T44. Implementation/qualification remain pending.
 
 ## Infinite hot context / optional cold path — T45/R9/DCP11 (pending)
 
@@ -420,14 +462,16 @@ closed-work marker rather than introduce a second forget tool or alternate schem
 
 ### Real wire and resident-memory removal
 
-**Current-task seam (2026-10-02 audit; pending):** renewal also applies inside one
-long-running root/child task, not only between user turns. Current `TurnLog` retains
-all request/span/part/input/opaque history; `checkpoint_turn` overwrites the complete
+**Current-task seam (2026-10-02 audit snapshot):** renewal also applies inside one
+long-running root/child task, not only between user turns. At audit, `TurnLog` retained
+all request/span/part/input/opaque history; `checkpoint_turn` overwrote the complete
 `turns.result`. Evicting that prefix and checkpointing it would lose canonical raw
-history; tool-operation rows and conversation versions are not its full archive.
-Current compaction uses message boundaries and protects the started turn, while
-partial continuation reloads the whole journal. Existing DCP wire filtering alone
-does not establish bounded resident retention.
+history; tool-operation rows and conversation versions were not its full archive.
+Compaction used message boundaries/protected started turns and partial continuation
+reloaded the whole journal. The closed-prefix RAW/bounded-HOT seam is now separately
+qualified in [current-task evidence](../evidence/T45/hot-raw.md); that receipt is not
+whole-past DCP11 or the new task/pack renewal qualification. Wire filtering alone does
+not establish bounded resident retention.
 
 Resolve a safe closed intra-task boundary, independent durable raw preservation
 and bounded committed hot restoration at the existing runtime/storage/checkpoint
@@ -447,10 +491,12 @@ in the new working summary, not every historical argument/output. The currently
 executing batch remains intact; durable known/unknown operation state is not replayed
 or erased by hot forgetting.
 
-Runtime-added task/pack protection has an owner and an active lifecycle. Preserve
-the admitted pending/running task, reinstate it before safe recovery requests, and
-release extra protection on terminal completion. Replaced tasks/requirements and
-completed packs do not survive through inherited fixed lanes/protected suffixes.
+Runtime-added task/pack safety has an owner and a delivery/closed-boundary scope,
+not an obligation to retain the whole original task until completion. Follow
+[active-task renewal](#taskpack-hot-renewal-and-completion--approved-2026-10-03-pending):
+preserve exact RAW admission/first delivery, renew selected HOT content even while
+running, and restore latest HOT plus execution state on recovery. Replaced requirements
+and obsolete packs do not survive through inherited fixed lanes/protected suffixes.
 Re-evaluate applicable effective user protections on the admitted scope/generation;
 do not carry obsolete protection solely because its bytes occur in an old summary,
 and do not silently override a still-explicit user policy. Default hot renewal does

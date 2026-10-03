@@ -149,9 +149,15 @@ T45/R9 extends T40 with repeated-compression qualification: no lifetime compress
 or block-count quota. Keep durable archive/stable IDs but load only active/addressed
 blocks and required dependencies; normalize repeated summaries transactionally so
 age does not become depth exhaustion. Bounds apply to active traversal/payload/model
-budget, not cumulative operations. Per-session active delegation task/pack protection
-is released on terminal completion and reinstated for safe recovery, never permanent
-fixed-lane growth. T36/T40 historical evidence does not prove this pending outcome.
+budget, not cumulative operations. Exact delegation task/pack admission stays immutable
+in RAW and is delivered in the first child request; its HOT projection is distinct and
+renewable by existing compress at a closed boundary before the same task completes.
+Do not append the pack to an irreducible first input or restore it verbatim on recovery:
+restore latest committed HOT plus unfinished execution state. LLM chooses useful facts
+and semantic completion; runtime enforces explicit policy/in-flight safety, not a done
+classifier. Summaries retain conversation-data authority, never promote parent quotes
+to developer/system instructions. See [active-task renewal](DCP.md#taskpack-hot-renewal-and-completion--approved-2026-10-03-pending).
+T36/T40 historical evidence does not prove this pending outcome.
 
 Первоначальные safety caps заданы в `examples/oc-rs.toml`; это новые product defaults, не upstream defaults и не benchmark-обещание. Memory budgets квалифицируются A10. У метрик не должно быть high-cardinality labels на каждый token/message. Лог по умолчанию — metadata; payload tracing требует отдельного opt-in и никогда не включает credentials.
 
