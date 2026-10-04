@@ -645,6 +645,7 @@ async fn spawn_stages(
         }
     };
     db.recover_shell_jobs()
+        .and_then(|_| db.recover_child_jobs())
         .and_then(|_| db.recover_interrupted_tools())
         .map_err(|_| {
             SpawnIssue::new(
@@ -1322,10 +1323,37 @@ enum SwitchAck {
 /// the session) before publication; a failure keeps the current Location.
 async fn start_worker(
     db: Db,
+    composition: Composition,
+    inbox: mpsc::Receiver<InboxMsg>,
+    events: broadcast::Sender<CoreEvent>,
+    ready: oneshot::Sender<Result<Vec<String>, SpawnIssue>>,
+) -> Result<(), oc_core::queries::ServiceDiagnostic> {
+    let children = crate::runtime::children::Jobs::new(&db);
+    let root = db.root().to_owned();
+    let result = start_worker_inner(
+        db,
+        composition,
+        inbox,
+        events.clone(),
+        ready,
+        children.clone(),
+    )
+    .await;
+    // Covers every return/failed publication, including errors after a move.
+    let joined = children.shutdown().await;
+    let delivered = children.deliver(Some(&events));
+    joined.map_err(|error| storage_diagnostic(&root, &error))?;
+    delivered.map_err(|error| storage_diagnostic(&root, &error))?;
+    result
+}
+
+async fn start_worker_inner(
+    db: Db,
     mut composition: Composition,
     mut inbox: mpsc::Receiver<InboxMsg>,
     events: broadcast::Sender<CoreEvent>,
     ready: oneshot::Sender<Result<Vec<String>, SpawnIssue>>,
+    children: Arc<crate::runtime::children::Jobs>,
 ) -> Result<(), oc_core::queries::ServiceDiagnostic> {
     let mut runtime = match build_runtime(&db, &composition) {
         Ok(runtime) => runtime,
@@ -1334,6 +1362,7 @@ async fn start_worker(
             return Ok(());
         }
     };
+    runtime.child_jobs = children;
     let mut effective = Effective::from_composition(&composition);
     effective.legacy_epoch = match selection::legacy_epoch(&db, &composition) {
         Ok(epoch) => epoch,
@@ -1445,6 +1474,15 @@ async fn start_worker(
         let outcome = match outcome {
             Ok(outcome) => outcome,
             Err(error) => {
+                let child_stop = runtime
+                    .child_jobs
+                    .shutdown()
+                    .await
+                    .map_err(|e| storage_diagnostic(db.root(), &e));
+                let child_delivery = runtime
+                    .child_jobs
+                    .deliver(Some(&events))
+                    .map_err(|e| storage_diagnostic(db.root(), &e));
                 let shell_stop = runtime
                     .shell_jobs
                     .shutdown()
@@ -1463,6 +1501,8 @@ async fn start_worker(
                 provider_stop?;
                 shell_stop?;
                 shell_delivery?;
+                child_stop?;
+                child_delivery?;
                 return Err(error);
             }
         };
@@ -1499,7 +1539,7 @@ async fn start_worker(
                     let next_registry = prepared.registry;
                     if current {
                         let provider_stop = provider_work.stop().await;
-                        let mcp_stop = runtime.shutdown_mcp().await.map_err(|e| {
+                        let mcp_stop = runtime.retire_or_shutdown_mcp().await.map_err(|e| {
                             runtime_issue(runtime.location(), &["mcp"], &e).diagnostic
                         });
                         while let Ok(result) = title_rx.try_recv() {
@@ -1556,7 +1596,7 @@ async fn start_worker(
                         if consumer {
                             next.register_question_consumer();
                         }
-                        next.shell_jobs = runtime.shell_jobs.clone();
+                        next.inherit_application_owners(&runtime);
                         sessions.remove(&record.source);
                         sessions.insert(record.directory.clone(), record.session.clone());
                         runtime = next;
@@ -1719,7 +1759,7 @@ async fn start_worker(
                 // The route and both decks have committed. Cleanup cannot turn
                 // that accepted route back into a refusal or an old view.
                 let provider_stop = provider_work.stop().await;
-                let mcp_stop = runtime.shutdown_mcp().await.map_err(|error| {
+                let mcp_stop = runtime.retire_or_shutdown_mcp().await.map_err(|error| {
                     runtime_issue(runtime.location(), &["mcp"], &error).diagnostic
                 });
                 while let Ok(result) = title_rx.try_recv() {
@@ -1737,7 +1777,7 @@ async fn start_worker(
                 next.start_mcp()
                     .map_err(|error| runtime_issue(next.location(), &["mcp"], &error).diagnostic)?;
                 let mut next = next;
-                next.shell_jobs = runtime.shell_jobs.clone();
+                next.inherit_application_owners(&runtime);
                 runtime = next;
                 composition = next_composition;
                 effective = next_effective;
@@ -1748,6 +1788,15 @@ async fn start_worker(
                 let _ = ack.send(Ok(receipt));
             }
             WorkerOutcome::Stop => {
+                runtime
+                    .child_jobs
+                    .shutdown()
+                    .await
+                    .map_err(|e| storage_diagnostic(db.root(), &e))?;
+                runtime
+                    .child_jobs
+                    .deliver(Some(&events))
+                    .map_err(|e| storage_diagnostic(db.root(), &e))?;
                 runtime.shell_jobs.shutdown().await.map_err(|_| {
                     runtime_issue(
                         runtime.location(),
@@ -1892,7 +1941,7 @@ async fn start_worker(
                         // The target generation is complete: only now drop the
                         // old Location's MCP resources and swap the state.
                         let provider_stop = provider_work.stop().await;
-                        let mcp_stop = runtime.shutdown_mcp().await.map_err(|error| {
+                        let mcp_stop = runtime.retire_or_shutdown_mcp().await.map_err(|error| {
                             runtime_issue(runtime.location(), &["mcp"], &error).diagnostic
                         });
                         // A title that actually completed while target
@@ -1922,7 +1971,7 @@ async fn start_worker(
                             next.register_approval_consumer(mode == 2);
                         }
                         let mut next = next;
-                        next.shell_jobs = runtime.shell_jobs.clone();
+                        next.inherit_application_owners(&runtime);
                         runtime = next;
                         location_epoch.fetch_add(1, Ordering::SeqCst);
                         let location = runtime.location().to_string();
@@ -3497,6 +3546,24 @@ fn query(
                 .map_err(|error| query_storage_error(db, error));
             let _ = ack.send(result);
         }
+        InboxMsg::ChildJobs { session, ack } => {
+            let result = db
+                .child_jobs(&session.0)
+                .map_err(|error| query_storage_error(db, error));
+            let _ = ack.send(result);
+        }
+        InboxMsg::InterruptChild {
+            session,
+            selected,
+            ack,
+        } => {
+            let result = if runtime.child_jobs.interrupt(&session.0, &selected) {
+                Ok(())
+            } else {
+                Err(CoreError::TurnBusy)
+            };
+            let _ = ack.send(result);
+        }
         InboxMsg::ShellSnapshot {
             session,
             shell_id,
@@ -3527,7 +3594,8 @@ fn query(
             let _ = ack.send(result);
         }
         InboxMsg::Cancel { session, ack } => {
-            let result = if runtime.shell_jobs.cancel_session(&session.0) {
+            let children = runtime.child_jobs.cancel_session(&session.0);
+            let result = if runtime.shell_jobs.cancel_session(&session.0) || children {
                 Ok(())
             } else {
                 Err(CoreError::TurnNotActive)
@@ -3620,6 +3688,15 @@ async fn worker(
             )
             .diagnostic
         })?;
+        runtime
+            .child_jobs
+            .reap()
+            .await
+            .map_err(|e| storage_diagnostic(db.root(), &e))?;
+        runtime
+            .child_jobs
+            .deliver(Some(events))
+            .map_err(|e| storage_diagnostic(db.root(), &e))?;
         if let Some(session) = runtime.pending_compaction() {
             let selected = match selection::for_turn(db, composition, effective, &session) {
                 Ok(selected) => selected,
@@ -3693,6 +3770,7 @@ async fn worker(
                 biased;
                 error = runtime.wait_mcp_failure() => return Err(runtime_issue(runtime.location(), &["mcp"], &error).diagnostic),
                 () = runtime.shell_jobs.changed() => { continue; }
+                () = runtime.child_jobs.changed() => { continue; }
                 Some(result) = title_rx.recv() => {
                     commit_automatic_title(db, events, title_work, result);
                     continue;
@@ -4449,6 +4527,10 @@ async fn worker(
                             () = runtime.shell_jobs.changed() => {
                                 runtime.shell_jobs.deliver(events).map_err(|_| runtime_issue(runtime.location(), &["shell", "delivery"], &RuntimeError::Storage).diagnostic)?;
                             }
+                            () = runtime.child_jobs.changed() => {
+                                runtime.child_jobs.reap().await.map_err(|e| storage_diagnostic(db.root(), &e))?;
+                                runtime.child_jobs.deliver(Some(events)).map_err(|e| storage_diagnostic(db.root(), &e))?;
+                            }
                             _ = runtime.wait_mcp_failure(), if !shutdown => {
                                 shutdown = true;
                                 cancel.store(true, Ordering::Relaxed);
@@ -4477,6 +4559,7 @@ async fn worker(
                                     cancel.store(true, Ordering::Relaxed);
                                     runtime.cancel_pending_approvals();
                                     runtime.shell_jobs.cancel_session(&target.0);
+                                    runtime.child_jobs.cancel_session(&target.0);
                                     let _ = ack.send(Ok(()));
                                 }
                                 Some(command @ InboxMsg::ChangeConversation { .. }) => {

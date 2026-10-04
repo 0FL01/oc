@@ -2621,7 +2621,9 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             CoreEvent::McpChanged(snapshot) => assert!(snapshot.servers.is_empty()),
             CoreEvent::ProviderChanged => panic!("unexpected native discovery in static fixture"),
-            CoreEvent::ShellNotice(_) | CoreEvent::ShellChanged { .. } => {
+            CoreEvent::ChildNotice(_)
+            | CoreEvent::ShellNotice(_)
+            | CoreEvent::ShellChanged { .. } => {
                 panic!("unexpected shell in reasoning-only fixture")
             }
             CoreEvent::TurnStarted { .. }

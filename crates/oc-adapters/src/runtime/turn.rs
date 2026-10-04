@@ -249,6 +249,7 @@ fn resolve_child_model(
 /// Foreground child runner for one calling turn.
 struct TurnSubagent<'r, 'a> {
     owning_operation: String,
+    turn_id: String,
     runtime: &'r Runtime<'a>,
     parent_session: String,
     parent_model_id: String,
@@ -312,6 +313,9 @@ impl TurnSubagent<'_, '_> {
             None => None,
             Some(id) => match self.runtime.db.session_meta(id) {
                 Ok(meta) if meta.parent_id.as_deref() == Some(self.parent_session.as_str()) => {
+                    self.runtime
+                        .open_session(id)
+                        .map_err(|error| failed(error.to_string()))?;
                     Some(meta)
                 }
                 Ok(_) => {
@@ -351,10 +355,19 @@ impl TurnSubagent<'_, '_> {
 
     async fn spawn_inner(&self, request: SubagentRequest) -> Result<SubagentOutcome, ToolError> {
         let (agent, model) = self.resolve_request(&request)?;
+        let child_id = request
+            .session_id
+            .clone()
+            .unwrap_or_else(|| self.runtime.new_child_id(&self.parent_session));
+        let reservation = self
+            .runtime
+            .child_jobs
+            .reserve(&self.parent_session, &child_id)?;
         let (child_session, fresh) = match &request.session_id {
             Some(id) => (id.clone(), false),
+            None if request.background => (child_id, true),
             None => {
-                let id = self.runtime.new_child_id(&self.parent_session);
+                let id = child_id;
                 self.runtime
                     .db
                     .create_child_session(
@@ -386,6 +399,47 @@ impl TurnSubagent<'_, '_> {
         } else {
             request.prompt.clone()
         };
+        if request.background {
+            let operation = self
+                .runtime
+                .db
+                .child_launch_operation(&self.turn_id, &request.call_id)
+                .map_err(|_| ToolError::Failed {
+                    tool: SUBAGENT_TOOL.into(),
+                    reason: "missing admitted subagent occurrence".into(),
+                })?;
+            let identity = oc_core::queries::ChildJob {
+                parent: oc_core::domain::SessionId(self.parent_session.clone()),
+                child: oc_core::domain::SessionId(child_session),
+                delivery_id: format!("subagent-notice:{operation}"),
+                operation,
+                generation: self.runtime.generation_id(),
+                location: self.runtime.location.clone(),
+                agent: agent.id.clone(),
+                model: model.stored(&self.catalog.provider),
+                description: request.description.clone(),
+                state: oc_core::queries::ChildState::Admitted,
+                result: None,
+                message_id: None,
+            };
+            return self
+                .runtime
+                .child_jobs
+                .launch(
+                    self.runtime.owned_child_snapshot(),
+                    agent.clone(),
+                    self.parent_lane.clone(),
+                    identity,
+                    prompt,
+                    model,
+                    self.catalog.clone(),
+                    self.provider.clone(),
+                    self.attached.clone(),
+                    reservation,
+                    fresh,
+                )
+                .await;
+        }
         let report = self
             .runtime
             .run_child_turn(
@@ -400,6 +454,7 @@ impl TurnSubagent<'_, '_> {
                 self.provider,
                 self.attached,
                 self.cancel,
+                None,
             )
             .await
             .map_err(|error| ToolError::Failed {
@@ -545,7 +600,7 @@ impl<'a> Runtime<'a> {
     ) -> Result<(), StorageError> {
         let events = self.compaction_events.lock().expect("events lock").clone();
         crate::application::commit_session_rename(
-            self.db,
+            &self.db,
             events.as_ref(),
             session,
             title,
@@ -605,11 +660,11 @@ impl<'a> Runtime<'a> {
         let prepared = match cached {
             Some(prepared) => prepared,
             None => {
-                crate::application::session_move::prepare(self.db, record, self.parent_env.clone())
+                crate::application::session_move::prepare(&self.db, record, self.parent_env.clone())
                     .await?
             }
         };
-        prepared.recheck(self.db)?;
+        prepared.recheck(&self.db)?;
         Ok(Some(prepared))
     }
 
@@ -1271,6 +1326,9 @@ impl<'a> Runtime<'a> {
             .map(|provider| provider.options.native_fallback_limits)
             .unwrap_or_default();
         'step: loop {
+            self.child_jobs.reap().await?;
+            self.child_jobs
+                .deliver(self.compaction_events.lock().expect("events").as_ref())?;
             if let Some(events) = self
                 .compaction_events
                 .lock()
@@ -1312,7 +1370,7 @@ impl<'a> Runtime<'a> {
             // Configuration, agent lane, route and issued batch remain captured.
             let (model_id, variant) = if primary_request {
                 crate::application::request_choice(
-                    self.db,
+                    &self.db,
                     &self.roots.project,
                     &params.catalog.provider,
                     &params.session,
@@ -1455,6 +1513,7 @@ impl<'a> Runtime<'a> {
                 &variant,
             ));
             let runner = subagents.as_ref().map(|catalog| TurnSubagent {
+                turn_id: turn_id.clone(),
                 owning_operation: lane
                     .owning_operation
                     .clone()
@@ -2645,7 +2704,7 @@ impl<'a> Runtime<'a> {
     /// lease (the parent turn already holds it). Parent cancellation propagates
     /// into a child-local token while every admitted future is joined.
     #[allow(clippy::too_many_arguments)]
-    async fn run_child_turn(
+    pub(super) async fn run_child_turn(
         &self,
         agent: &SubagentAgent,
         parent_lane: &TurnLane,
@@ -2658,6 +2717,7 @@ impl<'a> Runtime<'a> {
         provider: &ResponsesConfig,
         attached: &McpGeneration,
         cancel: &AtomicBool,
+        launch_started: Option<tokio::sync::oneshot::Sender<()>>,
     ) -> Result<TurnReport, RuntimeError> {
         let workspace = self.workspace.read().expect("workspace lock").clone();
         // Parent generation ∩ child agent rules: an agent rule can only make
@@ -2720,12 +2780,18 @@ impl<'a> Runtime<'a> {
         // A child's local dismissal/failure must not cancel siblings. The
         // parent token is propagated while the scoped future is joined.
         let child_cancel = AtomicBool::new(cancel.load(Ordering::Acquire));
+        let child_token = if launch_started.is_some() {
+            cancel
+        } else {
+            &child_cancel
+        };
         let params = TurnParams {
-            cancel: &child_cancel,
+            cancel: child_token,
             ..params
         };
         let started = std::time::Instant::now();
         let accepted_id = Mutex::new(None::<String>);
+        let mut launch_started = launch_started;
         use oc_core::core_app::{CoreEvent, WorkerTurnId};
         use oc_core::domain::SessionId;
         let events = self.compaction_events.lock().expect("events lock").clone();
@@ -2735,6 +2801,13 @@ impl<'a> Runtime<'a> {
             }
         };
         let mut accepted = |id: &str, notice: Option<&oc_core::queries::ModelSwitchNotice>| {
+            if let Some(started) = launch_started.take() {
+                if self.db.start_child_job(owning_operation, id).is_ok() {
+                    let _ = started.send(());
+                } else {
+                    child_token.store(true, Ordering::Release);
+                }
+            }
             *accepted_id.lock().expect("child acceptance lock") = Some(id.into());
             send(CoreEvent::TurnStarted {
                 session: SessionId(session.into()),
@@ -2765,7 +2838,7 @@ impl<'a> Runtime<'a> {
         let mut tools = |id: &str, event: &ToolCallEvent| {
             if let Some(events) = &events {
                 crate::application::publish_tool_event(
-                    self.db,
+                    &self.db,
                     events,
                     &SessionId(session.into()),
                     id,
@@ -2837,7 +2910,7 @@ impl<'a> Runtime<'a> {
     /// Unique child session id for one spawn (monotonic within the runtime).
     fn new_child_id(&self, parent: &str) -> String {
         let seq = self.subagent_seq.fetch_add(1, Ordering::Relaxed);
-        format!("{parent}-sub-{}-{seq}", millis())
+        format!("{parent}-sub-{}-{seq}", next_turn_id(parent, millis()))
     }
 
     /// Commit durable records under a freshness check, then report.
@@ -2951,7 +3024,7 @@ impl<'a> Runtime<'a> {
                     |unit| matches!(unit, Assembled::Call(call) if call.name == SUBAGENT_TOOL),
                 )
                 .count();
-            if child_end > i + 1 {
+            if child_end > i {
                 let (child_records, rejected) = self
                     .execute_foreground_children(
                         turn_id,
@@ -3125,7 +3198,7 @@ impl<'a> Runtime<'a> {
                         fingerprint: String::new(),
                     };
                     crate::application::session_move::prepare(
-                        self.db,
+                        &self.db,
                         record,
                         self.parent_env.clone(),
                     )
@@ -3325,14 +3398,14 @@ impl<'a> Runtime<'a> {
             }
             if admission.is_ok()
                 && let Some(prepared) = &prepared_move
-                && let Err(error) = prepared.recheck(self.db)
+                && let Err(error) = prepared.recheck(&self.db)
             {
                 admission = Err(error.into());
             }
             if admission.is_ok()
                 && let Some(prepared) = &prepared_move
                 && let Err(error) = crate::application::session_move::prepare(
-                    self.db,
+                    &self.db,
                     prepared.record.clone(),
                     self.parent_env.clone(),
                 )
@@ -3557,7 +3630,7 @@ impl<'a> Runtime<'a> {
                                     output: output.clone(),
                                 });
                                 record_tool_finish(
-                                    self.db, tool_event, &op, name, "failed", &output, turn_id,
+                                    &self.db, tool_event, &op, name, "failed", &output, turn_id,
                                     turn_log,
                                 )?;
                                 records.push(CallRecord {
@@ -3582,7 +3655,7 @@ impl<'a> Runtime<'a> {
                                 output: output.clone(),
                             });
                             record_tool_finish(
-                                self.db, tool_event, &op, name, "no_gain", &output, turn_id,
+                                &self.db, tool_event, &op, name, "no_gain", &output, turn_id,
                                 turn_log,
                             )?;
                             records.push(CallRecord {
@@ -3600,7 +3673,7 @@ impl<'a> Runtime<'a> {
                                 output: output.clone(),
                             });
                             record_tool_finish(
-                                self.db,
+                                &self.db,
                                 tool_event,
                                 &op,
                                 name,
@@ -3651,7 +3724,7 @@ impl<'a> Runtime<'a> {
                         let hidden = strategy_delta.hidden.iter().cloned().collect::<Vec<_>>();
                         let purged = strategy_delta.purged.iter().cloned().collect::<Vec<_>>();
                         let report = crate::dcp::commit_compression_with_projection(
-                            self.db,
+                            &self.db,
                             session,
                             plan,
                             Some(&metadata),
@@ -3700,7 +3773,7 @@ impl<'a> Runtime<'a> {
                             output: output.clone(),
                         });
                         record_tool_finish(
-                            self.db, tool_event, &op, name, "no_gain", &output, turn_id, turn_log,
+                            &self.db, tool_event, &op, name, "no_gain", &output, turn_id, turn_log,
                         )?;
                         records.push(CallRecord {
                             name: name.to_string(),
@@ -3716,7 +3789,7 @@ impl<'a> Runtime<'a> {
                             output: output.clone(),
                         });
                         record_tool_finish(
-                            self.db, tool_event, &op, name, "failed", &output, turn_id, turn_log,
+                            &self.db, tool_event, &op, name, "failed", &output, turn_id, turn_log,
                         )?;
                         records.push(CallRecord {
                             name: name.to_string(),
@@ -3746,7 +3819,7 @@ impl<'a> Runtime<'a> {
                     Assembled::Call(call) if call.name == "opencode_session_move" => {
                         let prepared = prepared_move.take().expect("move prepared before intent");
                         let record = prepared.record.clone();
-                        match prepared.recheck(self.db).and_then(|()| {
+                        match prepared.recheck(&self.db).and_then(|()| {
                             self.db
                                 .admit_session_move(&record)
                                 .map_err(|_| "move storage unavailable".into())
@@ -3862,7 +3935,7 @@ impl<'a> Runtime<'a> {
                                     output: output.clone(),
                                 });
                                 record_tool_finish(
-                                    self.db, tool_event, &op, name, "failed", &output, turn_id,
+                                    &self.db, tool_event, &op, name, "failed", &output, turn_id,
                                     turn_log,
                                 )?;
                                 return Err(error);
@@ -4135,7 +4208,7 @@ impl<'a> Runtime<'a> {
                     .map_or("native defaults", String::as_str),
             );
             let preparation = crate::tools::output::Context {
-                db: self.db,
+                db: &self.db,
                 operation: &op,
                 session,
                 location: &self.location,

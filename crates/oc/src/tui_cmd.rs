@@ -3222,6 +3222,7 @@ async fn handle_worker_event(
         return Ok(());
     }
     let owner = match &event {
+        CoreEvent::ChildNotice(notice) => &notice.job.parent,
         CoreEvent::ShellNotice(notice) => &notice.session,
         CoreEvent::ShellChanged { session }
         | CoreEvent::SessionMoved { session, .. }
@@ -3254,6 +3255,15 @@ async fn handle_worker_event(
         return Ok(());
     }
     match event {
+        CoreEvent::ChildNotice(notice) => {
+            if !state.is_busy() {
+                let page = app
+                    .history_page(notice.job.parent, None, None, HISTORY_PAGE_LIMIT)
+                    .await
+                    .map_err(|error| error.to_string())?;
+                state.refresh_completed_page(&page);
+            }
+        }
         CoreEvent::ShellChanged { .. } => unreachable!("handled above"),
         CoreEvent::SessionModelSelected { session, commit } => {
             state.apply_session_model_selected(&session, &commit)

@@ -364,11 +364,6 @@ async fn approval_structural_invalid_child_never_asks_saves_or_starts() {
             "no variants",
         ),
         (serde_json::json!({"agent":"bad-model"}), 1, "not available"),
-        (
-            serde_json::json!({"agent":"helper","background":true}),
-            1,
-            "background subagents",
-        ),
     ];
     for (permission, auto_once) in [
         (Permission::Ask, false),
@@ -915,7 +910,7 @@ async fn denied_subagent_creates_no_child_row() {
 }
 
 #[tokio::test]
-async fn unknown_primary_and_background_calls_fail_closed() {
+async fn unknown_and_primary_calls_fail_closed() {
     let (harness, generation) = make_harness(allow_all());
     let runtime = runtime_of(&harness, generation);
     runtime
@@ -936,13 +931,6 @@ async fn unknown_primary_and_background_calls_fail_closed() {
             serde_json::json!({"agent": "boss", "description": "Boss", "prompt": "go"}),
         ) + &sse_completed(),
         sse_delta("after boss") + &sse_completed(),
-        subagent_call(
-            "call-bg",
-            serde_json::json!({
-                "agent": "helper", "description": "Background", "prompt": "go", "background": true
-            }),
-        ) + &sse_completed(),
-        sse_delta("after background") + &sse_completed(),
     ]);
     let provider = provider_of(&base);
     let unknown = runtime
@@ -978,17 +966,6 @@ async fn unknown_primary_and_background_calls_fail_closed() {
             .contains("error: Agent boss cannot run as a subagent"),
         "got: {}",
         primary.calls[0].output
-    );
-    let background = runtime
-        .run_turn(params("parent", "three", &harness, provider, &NO_CANCEL))
-        .await
-        .expect("turn");
-    assert!(
-        background.calls[0]
-            .output
-            .contains("background subagents are not supported yet"),
-        "got: {}",
-        background.calls[0].output
     );
     assert!(
         harness
@@ -1549,5 +1526,7 @@ async fn cancel_mid_child_stream_cancels_child_and_parent() {
     assert_eq!(messages(&harness.db, "parent").len(), 1);
     assert!(!runtime.turn_active(), "lease released after cancellation");
 }
+#[path = "fixtures/background_children.rs"]
+mod background_children;
 #[path = "fixtures/foreground_children.rs"]
 mod foreground_children;

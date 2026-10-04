@@ -9,6 +9,10 @@ type Script = dyn Fn(Value) -> String + Send + Sync;
 
 #[tokio::test]
 async fn concurrent_child_effect_invalidates_other_child_approved_preimage() {
+    shared_child_preimage(false).await;
+}
+
+pub(super) async fn shared_child_preimage(background: bool) {
     use oc_core::approval::{ApprovalDecision, ApprovalReply};
     let (mut harness, generation) = make_harness(allow_all());
     harness.catalog.models.insert(
@@ -36,10 +40,10 @@ async fn concurrent_child_effect_invalidates_other_child_approved_preimage() {
             if outputs(&request).is_empty() {
                 subagent_call(
                     "guarded-call",
-                    serde_json::json!({"agent":"guarded","description":"Guarded","prompt":"GUARDED_TASK"}),
+                    serde_json::json!({"agent":"guarded","description":"Guarded","prompt":"GUARDED_TASK","background":background}),
                 ) + &subagent_call(
                     "sibling-call",
-                    serde_json::json!({"agent":"sibling","description":"Sibling","prompt":"SIBLING_TASK"}),
+                    serde_json::json!({"agent":"sibling","description":"Sibling","prompt":"SIBLING_TASK","background":background}),
                 ) + &sse_completed()
             } else {
                 sse_delta("parent") + &sse_completed()
@@ -91,6 +95,22 @@ async fn concurrent_child_effect_invalidates_other_child_approved_preimage() {
                 decision: ApprovalDecision::Once,
             })
             .unwrap();
+        if background {
+            wait_for(|| {
+                harness
+                    .db
+                    .children_of("parent")
+                    .unwrap()
+                    .iter()
+                    .all(|child| {
+                        harness.db.list_tool_ops(child).unwrap().len() == 1
+                            && messages(&harness.db, child)
+                                .iter()
+                                .any(|(role, text)| role == "assistant" && text == "child")
+                    })
+            })
+            .await;
+        }
     };
     let (result, ()) = tokio::join!(running, driver);
     assert_eq!(result.unwrap().status, TurnStatus::Completed);
@@ -117,14 +137,14 @@ async fn concurrent_child_effect_invalidates_other_child_approved_preimage() {
     assert!(runtime.pending_approvals().is_empty());
 }
 
-struct Peer {
-    base: String,
+pub(super) struct Peer {
+    pub(super) base: String,
     stop: Arc<AtomicBool>,
     thread: Option<std::thread::JoinHandle<()>>,
 }
 
 impl Peer {
-    fn start(script: impl Fn(Value) -> String + Send + Sync + 'static) -> Self {
+    pub(super) fn start(script: impl Fn(Value) -> String + Send + Sync + 'static) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         listener.set_nonblocking(true).unwrap();
         let base = format!("http://{}/v1", listener.local_addr().unwrap());
@@ -210,13 +230,13 @@ fn serve(mut stream: TcpStream, script: &Script) {
 }
 
 #[derive(Default)]
-struct Gate(Mutex<bool>, Condvar);
+pub(super) struct Gate(Mutex<bool>, Condvar);
 impl Gate {
-    fn release(&self) {
+    pub(super) fn release(&self) {
         *self.0.lock().unwrap() = true;
         self.1.notify_all();
     }
-    fn wait(&self) {
+    pub(super) fn wait(&self) {
         let (_guard, timed) = self
             .1
             .wait_timeout_while(self.0.lock().unwrap(), Duration::from_secs(5), |open| {
@@ -227,7 +247,7 @@ impl Gate {
     }
 }
 
-fn outputs(request: &Value) -> Vec<(String, String)> {
+pub(super) fn outputs(request: &Value) -> Vec<(String, String)> {
     request["input"]
         .as_array()
         .unwrap()
@@ -242,7 +262,7 @@ fn outputs(request: &Value) -> Vec<(String, String)> {
         .collect()
 }
 
-async fn received(
+pub(super) async fn received(
     rx: &mut tokio::sync::mpsc::UnboundedReceiver<(String, Value)>,
 ) -> (String, Value) {
     tokio::time::timeout(Duration::from_secs(5), rx.recv())
@@ -251,7 +271,7 @@ async fn received(
         .unwrap()
 }
 
-async fn wait_for(mut predicate: impl FnMut() -> bool) {
+pub(super) async fn wait_for(mut predicate: impl FnMut() -> bool) {
     tokio::time::timeout(Duration::from_secs(5), async {
         while !predicate() {
             tokio::time::sleep(Duration::from_millis(2)).await;
@@ -589,15 +609,7 @@ async fn child_question_dismissal_is_local_and_parent_cancel_joins_both_peers() 
 
 #[tokio::test]
 async fn batched_pre_effect_guards_and_child_budget_fail_without_sibling_cancellation() {
-    for case in [
-        "deny",
-        "ask",
-        "depth",
-        "model",
-        "budget",
-        "unclosed",
-        "background",
-    ] {
+    for case in ["deny", "ask", "depth", "model", "budget", "unclosed"] {
         let mut permissions = allow_all();
         if case == "deny" {
             permissions.insert("subagent".into(), Permission::Deny);
@@ -630,9 +642,6 @@ async fn batched_pre_effect_guards_and_child_budget_fail_without_sibling_cancell
                 }
                 if case == "budget" {
                     args["model"] = "test/tiny".into();
-                }
-                if case == "background" {
-                    args["background"] = true.into();
                 }
                 let second = if matches!(case, "model" | "budget") {
                     serde_json::json!({"agent":"helper","description":"B","prompt":"VALID_SIBLING"})

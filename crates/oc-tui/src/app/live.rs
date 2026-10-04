@@ -145,6 +145,7 @@ impl ScriptDriver {
                         state.push_note(&notice.text);
                     }
                 }
+                Ok(Ok(CoreEvent::ChildNotice(_))) => {}
                 Ok(Ok(CoreEvent::ShellChanged { .. })) => {
                     if state.shells_open()
                         && let Some(session) = state.attached_session().cloned()

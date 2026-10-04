@@ -24,6 +24,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 use thiserror::Error;
 
+#[path = "storage_children.rs"]
+mod children;
 #[path = "storage_compaction.rs"]
 mod compaction;
 #[path = "storage_conversation.rs"]
@@ -509,6 +511,7 @@ impl Db {
         Self::conversation_schema(&conn)?;
         Self::session_list_schema(&conn)?;
         Self::shell_jobs_schema(&conn)?;
+        Self::child_jobs_schema(&conn)?;
         Self::session_move_schema(&conn)?;
         Self::tool_output_schema(&conn)?;
         Self::apply_turn_history_schema(&conn)?;
@@ -992,6 +995,7 @@ impl Db {
         tx.execute_batch("CREATE TEMP TABLE IF NOT EXISTS deleting_family(id TEXT PRIMARY KEY); DELETE FROM deleting_family;")?;
         tx.execute("INSERT INTO deleting_family WITH RECURSIVE family(id) AS (SELECT ?1 UNION SELECT s.id FROM sessions s JOIN family f ON s.parent_id=f.id) SELECT id FROM family", [session])?;
         let busy: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM turns WHERE session_id IN deleting_family AND status='started') OR EXISTS(SELECT 1 FROM tool_output_resources WHERE session_id IN deleting_family AND state='Active') OR EXISTS(SELECT 1 FROM shell_jobs j WHERE session_id IN deleting_family AND (phase!='terminal' OR (message_id IS NULL AND (NOT EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload=j.operation_id) OR EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload=j.operation_id)))))", [], |r| r.get(0))?;
+        let busy = busy || tx.query_row("SELECT EXISTS(SELECT 1 FROM child_jobs WHERE parent_id IN deleting_family AND (state IN ('admitted','running') OR message_id IS NULL))",[],|r|r.get::<_,bool>(0))?;
         if busy {
             return Err(StorageError::Io(std::io::Error::other(
                 "session family active",
@@ -1069,6 +1073,7 @@ impl Db {
             "turn_acceptances",
             "tool_output_resources",
             "shell_jobs",
+            "child_jobs",
             "tool_operations",
             "events",
             "messages",
@@ -1087,6 +1092,8 @@ impl Db {
             if exists {
                 let predicate = if table == "compression_members" {
                     "block_id IN (SELECT id FROM compression_blocks WHERE session_id IN deleting_family)"
+                } else if table == "child_jobs" {
+                    "parent_id IN deleting_family"
                 } else {
                     "session_id IN deleting_family"
                 };

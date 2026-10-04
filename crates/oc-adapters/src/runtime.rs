@@ -34,6 +34,7 @@ use crate::tools::{
     SubagentRequest, SubagentRunner, ToolContext, ToolError, ToolPolicy, ToolRoots, TurnLog,
     assemble_calls, execute_batch,
 };
+pub(crate) mod children;
 #[path = "runtime_compaction.rs"]
 mod compaction;
 mod retry;
@@ -888,6 +889,7 @@ struct RuntimeWorkspace {
 ///
 /// The primary lane mirrors the published workspace. A child lane replaces
 /// the agent prompt and narrows permissions with the child agent's rules.
+#[derive(Clone)]
 struct TurnLane {
     manual_compression: bool,
     owning_operation: Option<String>,
@@ -956,12 +958,13 @@ struct ActiveContext {
 pub struct Runtime<'a> {
     prepared_moves: Mutex<BTreeMap<String, crate::application::session_move::Prepared>>,
     pub(crate) shell_jobs: Arc<crate::shell::jobs::Jobs>,
+    pub(crate) child_jobs: Arc<children::Jobs>,
     approvals: Arc<oc_core::approval::ApprovalQueue>,
     questions: Arc<oc_core::question::QuestionQueue>,
     compactions: Mutex<BTreeMap<String, compaction::Work>>,
     compaction_events: Mutex<Option<tokio::sync::broadcast::Sender<oc_core::core_app::CoreEvent>>>,
     native_compaction: RwLock<Option<Arc<dyn crate::compaction::NativeCompaction>>>,
-    db: &'a Db,
+    db: children::Database<'a>,
     location: String,
     current: RwLock<Arc<PublishedGeneration>>,
     provider_state: RwLock<Option<crate::composition::ProviderState>>,
@@ -1078,12 +1081,13 @@ impl<'a> Runtime<'a> {
         Ok(Self {
             prepared_moves: Mutex::new(BTreeMap::new()),
             shell_jobs: crate::shell::jobs::Jobs::new(db),
+            child_jobs: children::Jobs::new(db),
             approvals: Arc::new(oc_core::approval::ApprovalQueue::default()),
             questions: Arc::new(oc_core::question::QuestionQueue::default()),
             compactions: Mutex::new(BTreeMap::new()),
             compaction_events: Mutex::new(None),
             native_compaction: RwLock::new(None),
-            db,
+            db: children::Database::Borrowed(db),
             location: location.to_string(),
             current: RwLock::new(Arc::new(PublishedGeneration {
                 id: 1,
@@ -1221,6 +1225,9 @@ impl<'a> Runtime<'a> {
         if reply.binding.generation != self.generation_id()
             || reply.binding.location != self.location
         {
+            if let Some(source) = self.child_jobs.source_for(&reply.binding) {
+                return source.reply_question(reply);
+            }
             return Err(QuestionReplyError::BindingMismatch);
         }
         let events = self
@@ -1261,6 +1268,9 @@ impl<'a> Runtime<'a> {
         if request.binding.generation != self.generation_id()
             || request.binding.location != self.location
         {
+            if let Some(source) = self.child_jobs.source_for(&reply.binding) {
+                return source.reply_approval(reply);
+            }
             return Err(RuntimeError::InvalidArgs(
                 "stale approval generation".into(),
             ));
@@ -1523,7 +1533,7 @@ impl<'a> Runtime<'a> {
             return Err(RuntimeError::McpShutdown);
         }
         let mut config = self.current.read().expect("generation lock").config.clone();
-        if self.mcp_unsafe_retry.load(Ordering::SeqCst) {
+        if self.remote_retry_quarantined() {
             for (server, entry) in &mut config.mcp {
                 if entry.kind == "remote" && entry.enabled {
                     let source = config
@@ -1567,7 +1577,7 @@ impl<'a> Runtime<'a> {
         let server = self.mcp_owner().server_name(control, config)?;
         if control.action != oc_core::queries::McpAction::Disconnect
             && config.mcp[&server].kind == "remote"
-            && self.mcp_unsafe_retry.load(Ordering::SeqCst)
+            && self.remote_retry_quarantined()
         {
             return Err(RuntimeError::McpAttach {
                 server: "generation".into(),
@@ -1634,7 +1644,7 @@ impl<'a> Runtime<'a> {
         }
         self.retire_poisoned_mcp().await?;
         self.start_mcp()?;
-        if self.mcp_unsafe_retry.load(Ordering::SeqCst)
+        if self.remote_retry_quarantined()
             && self
                 .current
                 .read()
@@ -1657,7 +1667,7 @@ impl<'a> Runtime<'a> {
     /// Owner-only status, read after shutdown has retired any poisoned MCP
     /// generation. The application carries it across Location runtimes.
     pub(crate) fn remote_retry_quarantined(&self) -> bool {
-        self.mcp_unsafe_retry.load(Ordering::SeqCst)
+        self.mcp_unsafe_retry.load(Ordering::SeqCst) || self.child_jobs.remote_unknown()
     }
 
     pub(crate) fn quarantine_remote_retries(&self) {

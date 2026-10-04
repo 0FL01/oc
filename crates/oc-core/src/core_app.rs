@@ -162,6 +162,7 @@ pub enum CoreEvent {
     },
     /// Automatic shell result; history delivery is already committed.
     ShellNotice(crate::queries::ShellNotice),
+    ChildNotice(crate::queries::ChildNotice),
     /// Coalesced actual supervisor drain/lifecycle change; read current facts.
     ShellChanged {
         session: SessionId,
@@ -604,6 +605,15 @@ pub enum InboxMsg {
     ShellJobs {
         session: SessionId,
         ack: oneshot::Sender<Result<Vec<crate::queries::ShellJob>, CoreError>>,
+    },
+    ChildJobs {
+        session: SessionId,
+        ack: oneshot::Sender<Result<Vec<crate::queries::ChildJob>, CoreError>>,
+    },
+    InterruptChild {
+        session: SessionId,
+        selected: crate::queries::ChildJob,
+        ack: oneshot::Sender<Result<(), CoreError>>,
     },
     /// Current/final recent output with the original source identity and cursors.
     ShellSnapshot {
@@ -1299,6 +1309,37 @@ impl CoreApp {
         let (ack, receipt) = oneshot::channel();
         self.inbox
             .send(InboxMsg::ShellJobs { session, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        receipt.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Bounded actual child family generations, including current terminal state.
+    pub async fn child_jobs(
+        &self,
+        session: SessionId,
+    ) -> Result<Vec<crate::queries::ChildJob>, CoreError> {
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ChildJobs { session, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        receipt.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Interrupt precisely the selected child generation owned by this parent.
+    pub async fn interrupt_child(
+        &self,
+        session: SessionId,
+        selected: crate::queries::ChildJob,
+    ) -> Result<(), CoreError> {
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::InterruptChild {
+                session,
+                selected,
+                ack,
+            })
             .await
             .map_err(|_| CoreError::Shutdown)?;
         receipt.await.map_err(|_| CoreError::Shutdown)?
@@ -2075,6 +2116,12 @@ fn scripted_unsupported(message: InboxMsg) {
         InboxMsg::ShellJobs { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
+        InboxMsg::ChildJobs { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::InterruptChild { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::ShellSnapshot { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
@@ -2217,7 +2264,9 @@ mod tests {
                 | CoreEvent::ToolArgumentStream { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
-                CoreEvent::ShellNotice(_) | CoreEvent::ShellChanged { .. } => {
+                CoreEvent::ChildNotice(_)
+                | CoreEvent::ShellNotice(_)
+                | CoreEvent::ShellChanged { .. } => {
                     panic!("unexpected shell in scripted runtime")
                 }
                 CoreEvent::McpChanged(_) => panic!("unexpected MCP in scripted runtime"),
@@ -2541,7 +2590,9 @@ mod tests {
                 | CoreEvent::ToolArgumentStream { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
-                CoreEvent::ShellNotice(_) | CoreEvent::ShellChanged { .. } => {
+                CoreEvent::ChildNotice(_)
+                | CoreEvent::ShellNotice(_)
+                | CoreEvent::ShellChanged { .. } => {
                     panic!("unexpected shell in scripted runtime")
                 }
                 CoreEvent::McpChanged(_) => panic!("unexpected MCP in scripted runtime"),

@@ -1046,7 +1046,7 @@ impl<'a> Runtime<'a> {
         let hidden = delta.hidden.into_iter().collect::<Vec<_>>();
         let purged = delta.purged.into_iter().collect::<Vec<_>>();
         let report = crate::dcp::commit_compression_with_projection(
-            self.db,
+            &self.db,
             session,
             plan,
             Some(&metadata),

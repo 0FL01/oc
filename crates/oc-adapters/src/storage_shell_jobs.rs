@@ -296,7 +296,7 @@ impl Db {
         let conn = self.conn.lock().expect("db mutex");
         // Native notice admission follows the same branch visibility as every
         // other conversation input; raw immutable history is not the wire view.
-        let mut stmt = conn.prepare("SELECT m.id,m.text FROM shell_jobs j JOIN conversation_messages m ON m.id=j.message_id AND m.session_id=j.session_id WHERE j.session_id=?1 AND m.seq>?2 ORDER BY m.seq LIMIT 8")?;
+        let mut stmt = conn.prepare("SELECT m.id,m.text FROM conversation_messages m WHERE m.session_id=?1 AND m.seq>?2 AND (EXISTS(SELECT 1 FROM shell_jobs j WHERE j.message_id=m.id AND j.session_id=m.session_id) OR EXISTS(SELECT 1 FROM child_jobs j WHERE j.message_id=m.id AND j.parent_id=m.session_id)) ORDER BY m.seq LIMIT 8")?;
         Ok(stmt
             .query_map(params![session, after], |r| Ok((r.get(0)?, r.get(1)?)))?
             .collect::<Result<Vec<_>, _>>()?)

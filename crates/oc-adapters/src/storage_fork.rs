@@ -361,10 +361,16 @@ impl Db {
                 .collect::<Result<Vec<_>,_>>()?;
             let mut op_ids = HashMap::new();
             for (op, name, state, input, output) in ops {
+                // `running` is the immutable successful launch fact, not the
+                // child's current execution state. Copy only owner-proven facts;
+                // the fork gains neither a job nor a child capability. Native
+                // origin is retained through recursive forks.
+                let child_launch = state == "running" && name == crate::tools::SUBAGENT_TOOL && tx.query_row("SELECT EXISTS(SELECT 1 FROM events e JOIN child_jobs j ON j.operation_id=json_extract(e.payload,'$.origin_operation') WHERE e.session_id=?1 AND e.kind='subagent_launch' AND json_valid(e.payload) AND length(CAST(e.payload AS BLOB))<=8192 AND json_extract(e.payload,'$.operation')=?2 AND j.child_id=json_extract(e.payload,'$.childID') AND j.parent_id=json_extract(e.payload,'$.parentID') AND j.delivery_id=json_extract(e.payload,'$.deliveryID') AND json_extract(j.identity,'$.generation')=json_extract(e.payload,'$.generation') AND json_extract(j.identity,'$.location')=json_extract(e.payload,'$.location') AND json_valid(?3) AND json_extract(?3,'$.status')='running' AND json_extract(?3,'$.sessionID')=j.child_id AND json_extract(?3,'$.jobGeneration')=j.operation_id AND json_extract(?3,'$.deliveryID')=j.delivery_id)",params![source,op,output],|row|row.get::<_,bool>(0))?;
                 if !matches!(
                     state.as_str(),
                     "completed" | "failed" | "denied" | "cancelled" | "no_gain"
-                ) {
+                ) && !child_launch
+                {
                     return Err(refuse("unresolved tool outcome").into());
                 }
                 let new_op = format!("{new}:op:{}", op_ids.len());
@@ -375,6 +381,9 @@ impl Db {
                 // or its session capability. Original references remain causal
                 // text; the fork's new operation does not own the resource.
                 tx.execute("INSERT INTO events(session_id,kind,payload) SELECT ?1,kind,json_set(payload,'$.operation',?2) FROM events WHERE session_id=?3 AND kind IN ('tool_output_question','tool_output_execution') AND json_valid(payload) AND length(CAST(payload AS BLOB))<=?5 AND json_extract(payload,'$.operation')=?4",params![root,new_op,source,op,(oc_core::question::RESULT_BYTES_CAP+1024) as i64])?;
+                if child_launch {
+                    tx.execute("INSERT INTO events(session_id,kind,payload) SELECT ?1,kind,json_set(payload,'$.operation',?2) FROM events WHERE session_id=?3 AND kind='subagent_launch' AND json_valid(payload) AND length(CAST(payload AS BLOB))<=8192 AND json_extract(payload,'$.operation')=?4",params![root,new_op,source,op])?;
+                }
                 operation_ids.insert(op.clone(), new_op.clone());
                 op_ids.insert(op, new_op);
             }

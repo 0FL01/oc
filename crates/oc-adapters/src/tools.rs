@@ -375,6 +375,10 @@ pub fn to_input_items(outputs: &[FunctionCallOutput]) -> serde_json::Value {
 /// One validated foreground `subagent` call.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SubagentRequest {
+    /// Exact invoking provider call, resolved to its durable occurrence intent.
+    pub call_id: String,
+    /// Application-owned independent execution.
+    pub background: bool,
     /// Agent id to run in the child session.
     pub agent: String,
     /// Short child title (3-5 words upstream).
@@ -390,6 +394,13 @@ pub struct SubagentRequest {
 /// Terminal outcome of one foreground child turn.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SubagentOutcome {
+    /// Immutable successful launch, distinct from current child state.
+    Running {
+        session_id: String,
+        operation: String,
+        generation: u64,
+        delivery_id: String,
+    },
     /// Child completed; `text` is never empty (upstream `NO_TEXT` fallback).
     Completed {
         /// Child session id.
@@ -1352,6 +1363,7 @@ async fn tool_subagent(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
         Err(error) => return format!("error: {error}"),
     };
     match runner.spawn(request).await {
+        Ok(SubagentOutcome::Running { session_id, operation, generation, delivery_id }) => serde_json::json!({"sessionID":session_id,"status":"running","jobGeneration":operation,"sourceGeneration":generation,"deliveryID":delivery_id,"output":"The subagent is working independently in the background. You will be notified automatically when it finishes. DO NOT poll or duplicate this work; continue independent work or end your response."}).to_string(),
         Ok(SubagentOutcome::Completed { session_id, text }) => {
             format!(
                 "<subagent sessionID=\"{session_id}\" state=\"completed\">\n{text}\n</subagent>"
@@ -1379,18 +1391,6 @@ pub(crate) fn preflight_subagent(ctx: &ToolContext<'_>, call: &ToolCall) -> Resu
 }
 
 fn subagent_request(call: &ToolCall) -> Result<SubagentRequest, ToolError> {
-    if call
-        .arguments
-        .get("background")
-        .and_then(|value| value.as_bool())
-        == Some(true)
-    {
-        return Err(ToolError::Failed {
-            tool: "subagent".into(),
-            reason: "background subagents are not supported yet; no child session was created"
-                .into(),
-        });
-    }
     let string = |key: &str| {
         call.arguments
             .get(key)
@@ -1399,6 +1399,8 @@ fn subagent_request(call: &ToolCall) -> Result<SubagentRequest, ToolError> {
             .to_string()
     };
     Ok(SubagentRequest {
+        call_id: call.id.clone(),
+        background: call.arguments["background"].as_bool().unwrap_or(false),
         agent: string("agent"),
         description: string("description"),
         prompt: string("prompt"),

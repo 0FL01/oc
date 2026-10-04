@@ -242,7 +242,14 @@ class Native:
             if crash:
                 self.process.kill()
             else:
-                self.send(b"\x03\x03")
+                # Shutdown may already have completed between poll and write.
+                # Do not apply the interactive-send liveness assertion here;
+                # the final wait/exit-status check below still rejects failure.
+                try:
+                    os.write(self.fd, b"\x03\x03")
+                except OSError:
+                    if self.process.poll() is None:
+                        raise
             try:
                 self.process.wait(timeout=8)
             except subprocess.TimeoutExpired:

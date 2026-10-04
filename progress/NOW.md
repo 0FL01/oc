@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-04T11:00:30+00:00
+State updated: 2026-10-04T16:51:23+00:00
 Active: T45
 
 Сверить Git status/diff до выполнения команд.
@@ -13,13 +13,13 @@ Owner-approved R3/R6–R10; full contracts and ordered slices in spec/M8, histor
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-Concurrent foreground children, ordered join and scoped cancellation qualified.
+Owned background children and atomic admission/cancellation-safe joins qualified.
 ## Checks
-1500/0/10 workspace; parent subagent19/native4/Python47/fmt/Clippy/docs PASS.
+1513/0/10 workspace; parent32 owner/integration +18 normal ELF cases; Python47 PASS.
 ## Risks
-Background child jobs and family controls remain; T44 PAUSED, paid ledger exhausted.
+Safe unfinished recovery, same-job conversion and linked controls remain; T44 PAUSED.
 ## Next
-Implement application-owned background child lifecycle without replay or duplicate authority.
+Complete child recovery/foreground conversion/navigation using these existing owners.
 
 
 Ready (до 5): T53, T56

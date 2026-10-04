@@ -1362,6 +1362,42 @@ pub struct ShellNotice {
     pub text: String,
 }
 
+/// Execution state, independent of immutable subagent launch/tool metadata.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ChildState {
+    Admitted,
+    Running,
+    Completed,
+    Cancelled,
+    Error,
+    Unknown,
+}
+
+/// One bounded authoritative child generation; selection is an exact fence.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ChildJob {
+    pub parent: crate::domain::SessionId,
+    pub child: crate::domain::SessionId,
+    pub operation: String,
+    pub generation: u64,
+    pub location: String,
+    pub agent: String,
+    pub model: String,
+    pub description: String,
+    pub delivery_id: String,
+    pub state: ChildState,
+    pub result: Option<String>,
+    pub message_id: Option<String>,
+}
+
+/// Durable owner-authored completion, never user-authored instructions.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChildNotice {
+    pub job: ChildJob,
+    pub text: String,
+}
+
 /// Current supervisor-owned running job, independent of immutable tool results.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShellJob {

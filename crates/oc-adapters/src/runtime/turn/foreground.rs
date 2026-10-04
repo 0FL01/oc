@@ -183,6 +183,13 @@ impl Runtime<'_> {
             let mut state = refusal
                 .as_ref()
                 .map_or_else(|| output_state(&output), |(state, _)| *state);
+            if refusal.is_none()
+                && call.arguments["background"] == true
+                && serde_json::from_str::<serde_json::Value>(&output)
+                    .is_ok_and(|value| value["status"] == "running")
+            {
+                state = "running";
+            }
             let source = crate::config::mcp::safe_source_id(
                 published
                     .config
@@ -191,7 +198,7 @@ impl Runtime<'_> {
                     .map_or("native defaults", String::as_str),
             );
             let preparation = crate::tools::output::Context {
-                db: self.db,
+                db: &self.db,
                 operation: &op,
                 session,
                 location: &self.location,
@@ -223,7 +230,7 @@ impl Runtime<'_> {
                 emit_tool_finish(events, turn, &op, SUBAGENT_TOOL, state, &prepared.text);
             } else {
                 record_tool_finish(
-                    self.db,
+                    &self.db,
                     events,
                     &op,
                     SUBAGENT_TOOL,

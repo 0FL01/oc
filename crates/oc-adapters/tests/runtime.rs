@@ -867,7 +867,9 @@ async fn check_application_patch_replay(line: &str, count: usize) {
             CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             CoreEvent::McpChanged(snapshot) => assert!(snapshot.servers.is_empty()),
             CoreEvent::ProviderChanged => panic!("unexpected native discovery in static fixture"),
-            CoreEvent::ShellNotice(_) | CoreEvent::ShellChanged { .. } => {
+            CoreEvent::ChildNotice(_)
+            | CoreEvent::ShellNotice(_)
+            | CoreEvent::ShellChanged { .. } => {
                 panic!("unexpected shell in patch-only fixture")
             }
             CoreEvent::TurnPresentation { projection, .. } => checkpoints.push(projection),

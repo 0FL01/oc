@@ -315,7 +315,7 @@ impl Runtime<'_> {
         }
         let mut lease = McpCallLease {
             generation: attached,
-            db: self.db,
+            db: &self.db,
             op,
             turn,
             remote: matches!(server.client.as_ref(), AttachedServer::Remote(_)),
