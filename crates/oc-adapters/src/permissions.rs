@@ -27,6 +27,10 @@ pub struct PermissionRules {
     // Explore's native defaults yield only to actual registered MCP. User
     // constraints stay separate and never receive this exception.
     builtin_defaults: Vec<Vec<Rule>>,
+    // Narrow Plan baseline only fills missing central authority. Explicit
+    // central/profile/parent rules remain independently intersected.
+    builtin_grants: Vec<Rule>,
+    plan_ceilings: Vec<Vec<Rule>>,
 }
 
 fn strictest(a: Permission, b: Permission) -> Permission {
@@ -38,6 +42,77 @@ fn strictest(a: Permission, b: Permission) -> Permission {
 }
 
 impl PermissionRules {
+    pub(crate) fn has_plan_ceiling(&self) -> bool {
+        !self.builtin_grants.is_empty()
+    }
+
+    /// Native policy resources inside Location are relative. Preserve equivalent
+    /// absolute rules in the same ordered layers, only with a native Plan ceiling.
+    pub(crate) fn bind_plan_project(&mut self, project: &std::path::Path) {
+        let Some(grant) = self
+            .builtin_grants
+            .iter()
+            .find(|rule| rule.action == "apply_patch")
+        else {
+            return;
+        };
+        if grant.resource.starts_with("~/") {
+            // No captured HOME expanded this native baseline. A literal tilde
+            // directory beneath Location is not the user's Plan directory.
+            self.builtin_grants.clear();
+            for layer in &mut self.plan_ceilings {
+                layer.retain(|rule| {
+                    rule.effect != Permission::Allow || !rule.resource.starts_with("~/")
+                });
+            }
+            return;
+        }
+        if !std::path::Path::new(&grant.resource).starts_with(project) {
+            return;
+        }
+        let equivalent = |rule: &Rule| {
+            if !matches!(
+                rule.action.as_str(),
+                "*" | "apply_patch" | "external_directory"
+            ) {
+                return None;
+            }
+            let relative = std::path::Path::new(&rule.resource)
+                .strip_prefix(project)
+                .ok()?;
+            let resource = if relative.as_os_str().is_empty() {
+                ".".into()
+            } else {
+                relative.to_string_lossy().into_owned()
+            };
+            Some(Rule {
+                resource,
+                ..rule.clone()
+            })
+        };
+        for layer in self
+            .authorities
+            .iter_mut()
+            .chain(&mut self.constraints)
+            .chain(&mut self.plan_ceilings)
+        {
+            let mut original = std::mem::take(layer).into_iter().peekable();
+            while let Some(rule) = original.next() {
+                let alias = equivalent(&rule);
+                layer.push(rule);
+                if let Some(alias) = alias
+                    && original.peek() != Some(&alias)
+                {
+                    layer.push(alias);
+                }
+            }
+        }
+        for alias in self.builtin_grants.clone().iter().filter_map(equivalent) {
+            if !self.builtin_grants.contains(&alias) {
+                self.builtin_grants.push(alias);
+            }
+        }
+    }
     /// Parse the legacy singular, native plural (or native-profile map), and
     /// legacy boolean tool constraints without dropping order or resources.
     pub fn from_config(value: &serde_json::Value) -> Result<Self, ConfigError> {
@@ -99,6 +174,30 @@ impl PermissionRules {
         self.authorities.extend(other.authorities);
         self.constraints.extend(other.constraints);
         self.builtin_defaults.extend(other.builtin_defaults);
+        self.builtin_grants.extend(other.builtin_grants);
+        self.plan_ceilings.extend(other.plan_ceilings);
+    }
+
+    pub(super) fn plan_defaults() -> Self {
+        let mut rules = Self::from_config(&serde_json::json!({"permission":[
+            {"action":"edit","resource":"*","effect":"deny"},
+            {"action":"edit","resource":"~/.opencode/plan/*","effect":"allow"}
+        ]}))
+        .expect("builtin Plan ceiling");
+        rules.plan_ceilings = std::mem::take(&mut rules.authorities);
+        rules.builtin_grants = vec![
+            Rule {
+                action: "apply_patch".into(),
+                resource: "~/.opencode/plan/*".into(),
+                effect: Permission::Allow,
+            },
+            Rule {
+                action: "external_directory".into(),
+                resource: "~/.opencode/plan/*".into(),
+                effect: Permission::Allow,
+            },
+        ];
+        rules
     }
 
     pub(super) fn explore_defaults() -> Self {
@@ -123,7 +222,10 @@ impl PermissionRules {
             .authorities
             .iter_mut()
             .chain(&mut self.constraints)
+            .chain(&mut self.builtin_defaults)
+            .chain(&mut self.plan_ceilings)
             .flatten()
+            .chain(&mut self.builtin_grants)
         {
             if !matches!(
                 rule.action.as_str(),
@@ -161,6 +263,8 @@ impl PermissionRules {
         }
         self.constraints.extend(rules.constraints.clone());
         self.builtin_defaults.extend(rules.builtin_defaults.clone());
+        self.builtin_grants.extend(rules.builtin_grants.clone());
+        self.plan_ceilings.extend(rules.plan_ceilings.clone());
     }
 
     /// Add a native module's explicit grant, still bounded by existing rules.
@@ -190,7 +294,7 @@ impl PermissionRules {
         actions: &[&str],
         resource: &str,
     ) -> Permission {
-        self.evaluate_registered(fallback, actions, resource, false)
+        self.evaluate_registered(fallback, actions, resource, false, None)
     }
 
     /// Only an entry in the captured, connected registry supplies this grant.
@@ -200,30 +304,64 @@ impl PermissionRules {
         actions: &[&str],
         resource: &str,
         registered_mcp: bool,
+        project: Option<&std::path::Path>,
     ) -> Permission {
         let actions: Vec<_> = actions.iter().map(|action| legacy_key(action)).collect();
         let actions = actions.as_slice();
+        // One native path has both Location-relative and absolute spellings.
+        // Match both within each ordered authority, rather than intersecting an
+        // invented missing-match Ask or dropping an explicit rooted glob.
+        let project = project.filter(|_| {
+            self.has_plan_ceiling()
+                && !registered_mcp
+                && actions
+                    .iter()
+                    .any(|action| matches!(*action, "apply_patch" | "external_directory"))
+        });
+        let absolute = project.map(|root| root.join(resource).to_string_lossy().into_owned());
+        let relative = project
+            .and_then(|root| std::path::Path::new(resource).strip_prefix(root).ok())
+            .map(|path| path.to_string_lossy().into_owned());
+        let resources = [
+            resource,
+            absolute.as_deref().unwrap_or(resource),
+            relative.as_deref().unwrap_or(resource),
+        ];
         let mut effect = None;
         if self.authorities.is_empty() {
-            effect = evaluate_layer(&scalar_rules(fallback), actions, resource);
+            effect = evaluate_layer_resources(&scalar_rules(fallback), actions, &resources);
         } else {
             for layer in &self.authorities {
-                if let Some(next) = evaluate_layer(layer, actions, resource) {
+                if let Some(next) = evaluate_layer_resources(layer, actions, &resources) {
                     effect = Some(effect.map_or(next, |old| strictest(old, next)));
                 }
             }
         }
-        let mut effect = effect.unwrap_or(if registered_mcp {
-            Permission::Allow
-        } else {
-            Permission::Deny
-        });
+        let mut effect = effect
+            .or_else(|| {
+                self.builtin_grants
+                    .iter()
+                    .rev()
+                    .find(|rule| {
+                        actions.iter().any(|action| wildcard(action, &rule.action))
+                            && resources
+                                .iter()
+                                .any(|resource| wildcard(resource, &rule.resource))
+                    })
+                    .map(|rule| rule.effect)
+            })
+            .unwrap_or(if registered_mcp {
+                Permission::Allow
+            } else {
+                Permission::Deny
+            });
         for layer in self
             .constraints
             .iter()
+            .chain(&self.plan_ceilings)
             .chain(self.builtin_defaults.iter().filter(|_| !registered_mcp))
         {
-            if let Some(next) = evaluate_layer(layer, actions, resource) {
+            if let Some(next) = evaluate_layer_resources(layer, actions, &resources) {
                 effect = strictest(effect, next);
             }
         }
@@ -248,6 +386,7 @@ impl PermissionRules {
         authorities
             .iter()
             .chain(&self.constraints)
+            .chain(&self.plan_ceilings)
             .any(|layer| evaluate_layer(layer, &actions, resource) == Some(Permission::Deny))
     }
 
@@ -285,7 +424,7 @@ impl PermissionRules {
             }
         }
         let mut effect = effect.unwrap_or(Permission::Deny);
-        for layer in &self.constraints {
+        for layer in self.constraints.iter().chain(&self.plan_ceilings) {
             if let Some(next) = layer_effect(layer) {
                 effect = strictest(effect, next);
             }
@@ -310,6 +449,10 @@ impl PermissionRules {
             &self.authorities
         };
         let admitted = registered_mcp
+            || self
+                .builtin_grants
+                .iter()
+                .any(|rule| actions.iter().any(|action| wildcard(action, &rule.action)))
             || authorities.iter().flatten().any(|rule| {
                 actions
                     .iter()
@@ -318,6 +461,7 @@ impl PermissionRules {
         for layer in authorities
             .iter()
             .chain(&self.constraints)
+            .chain(&self.plan_ceilings)
             .chain(self.builtin_defaults.iter().filter(|_| !registered_mcp))
         {
             let matching: Vec<_> = layer
@@ -362,6 +506,14 @@ fn scalar_rules(map: &BTreeMap<String, Permission>) -> Vec<Rule> {
 }
 
 fn evaluate_layer(rules: &[Rule], actions: &[&str], resource: &str) -> Option<Permission> {
+    evaluate_layer_resources(rules, actions, &[resource])
+}
+
+fn evaluate_layer_resources(
+    rules: &[Rule],
+    actions: &[&str],
+    resources: &[&str],
+) -> Option<Permission> {
     let mut effect = None;
     for rule in rules {
         if actions
@@ -369,7 +521,10 @@ fn evaluate_layer(rules: &[Rule], actions: &[&str], resource: &str) -> Option<Pe
             .any(|action| wildcard(action, legacy_key(&rule.action)))
         {
             effect.get_or_insert(Permission::Ask);
-            if wildcard(resource, &rule.resource) {
+            if resources
+                .iter()
+                .any(|resource| wildcard(resource, &rule.resource))
+            {
                 effect = Some(rule.effect);
             }
         }

@@ -5,7 +5,7 @@ use std::fs::{File, Metadata};
 use std::io::{self, Read, Write};
 use std::os::fd::{AsRawFd, FromRawFd};
 use std::os::unix::ffi::OsStrExt;
-use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
+use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::{Component, Path};
 
 pub(super) struct Root(File);
@@ -70,11 +70,16 @@ impl Root {
         Ok((metadata.dev(), metadata.ino()))
     }
     pub fn new(root: &Path) -> io::Result<Self> {
-        std::fs::OpenOptions::new()
-            .read(true)
-            .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
-            .open(root)
-            .map(Self)
+        let slash = File::open("/")?;
+        let relative = root
+            .strip_prefix("/")
+            .map_err(|_| io::ErrorKind::InvalidInput)?;
+        crate::admitted_fs::open_beneath_no_symlinks(
+            &slash,
+            relative,
+            libc::O_RDONLY | libc::O_DIRECTORY,
+        )
+        .map(Self)
     }
 
     /// With create=false, an absent ancestor is returned as NotFound, but

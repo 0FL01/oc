@@ -858,15 +858,7 @@ fn apply_patch_inner(
         },
     })?;
 
-    let canonical_root = std::fs::canonicalize(project_root).map_err(|_| {
-        op_fail(
-            0,
-            "$patch",
-            PatchError::Io {
-                path: "$patch".into(),
-            },
-        )
-    })?;
+    let canonical_root = project_root.to_path_buf();
     let root = fs::Root::new(&canonical_root).map_err(|_| {
         op_fail(
             0,
@@ -892,7 +884,7 @@ fn apply_patch_inner(
                 reason: reason.to_string(),
             },
         };
-        let abs = match files.resolve_path(rel) {
+        let abs = match files.resolve_mutation(rel) {
             Ok(abs) => abs,
             Err(crate::files::FileToolError::OutsideRoot) => {
                 return Err(op_fail(
@@ -962,7 +954,7 @@ fn apply_patch_inner(
             });
         }
         if let Some(target) = op.move_to() {
-            if files.resolve_path(target).is_err() {
+            if files.resolve_mutation(target).is_err() {
                 return Err(op_fail(
                     idx,
                     target,
@@ -1010,7 +1002,7 @@ fn apply_patch_inner(
         }
         if let Some(target) = op.move_to() {
             let tabs = files
-                .resolve_path(target)
+                .resolve_mutation(target)
                 .map_err(|_| fail("unresolvable move target"))?;
             if std::fs::symlink_metadata(&tabs).is_ok() {
                 return Err(op_fail(
@@ -1347,7 +1339,7 @@ fn commit_prepared(
 }
 
 fn map_resolve(files: &Files, rel: &str) -> Result<PathBuf, PatchError> {
-    files.resolve_path(rel).map_err(|e| match e {
+    files.resolve_mutation(rel).map_err(|e| match e {
         crate::files::FileToolError::OutsideRoot => PatchError::OutsideRoot {
             path: rel.to_string(),
         },

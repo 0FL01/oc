@@ -3245,12 +3245,29 @@ fn query(
                 let mut selected = effective.clone();
                 selected.set_agent(composition, &id)?;
                 selected.admit_selection(composition)?;
+                let session = sessions.get(runtime.location());
+                let previous = session
+                    .map(|session| selection::for_turn(db, composition, effective, session))
+                    .transpose()?
+                    .unwrap_or_else(|| effective.clone());
+                let reminder = crate::plan::switched(
+                    previous.agent_id.as_deref(),
+                    selected.agent_id.as_deref(),
+                    composition.parent_env.get("HOME").map(String::as_str),
+                );
+                let (epoch_key, epoch_value) = selection::next_legacy_epoch(db, composition)?;
                 registry
-                    .select_primary(&id, runtime.generation_id(), db)
+                    .select_primary_with_reminder(
+                        &id,
+                        runtime.generation_id(),
+                        db,
+                        &[(epoch_key, epoch_value)],
+                        session.and_then(|session| {
+                            reminder.as_deref().map(|text| (session.as_str(), text))
+                        }),
+                    )
                     .map_err(|error| app_error(error.to_string()))?;
                 *effective = selected;
-                let (epoch_key, epoch_value) = selection::next_legacy_epoch(db, composition)?;
-                db.set_pref(&epoch_key, &epoch_value).map_err(app_error)?;
                 effective.legacy_epoch += 1;
                 publish_workspace(runtime, composition, effective).map_err(app_error)?;
                 Ok(effective.snapshot(composition, location_epoch.load(Ordering::SeqCst)))
@@ -4641,6 +4658,10 @@ fn resolve_submission(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "application/plan_tests.rs"]
+mod plan_tests;
 
 #[cfg(test)]
 #[path = "application/dcp_controls_tests.rs"]

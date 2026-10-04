@@ -39,6 +39,9 @@ pub enum Command {
         /// Session id; a fresh `s-<nanos>` id is minted when absent.
         #[arg(long)]
         session: Option<String>,
+        /// Select an admitted primary agent before submitting the prompt.
+        #[arg(long)]
+        agent: Option<String>,
         /// Emit NDJSON events on stdout (diagnostics stay on stderr).
         #[arg(long, default_value_t = false)]
         json: bool,
@@ -65,3 +68,6 @@ pub enum SessionsAction {
     /// List known session ids.
     List,
 }
+
+#[cfg(test)]
+mod tests;

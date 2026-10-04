@@ -109,8 +109,7 @@ fn prepare(
     let rel = input.path();
     policy.check(rel)?;
     let files = Files::new(project, data).map_err(|_| PatchError::Io { path: rel.into() })?;
-    let canonical =
-        std::fs::canonicalize(project).map_err(|_| PatchError::Io { path: rel.into() })?;
+    let canonical = project.to_path_buf();
     // Donor absolute/home spellings share the same lexical, no-follow project
     // admission. Strip only the admitted root; never canonicalize a target/link.
     let relative = if Path::new(rel).is_absolute() {

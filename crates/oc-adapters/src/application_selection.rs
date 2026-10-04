@@ -627,7 +627,12 @@ pub(super) fn apply(
             &serde_json::json!({"session":session,"commit":commit}).to_string(),
         )
     } else {
-        db.set_prefs(&records)
+        let reminder = crate::plan::switched(
+            previous.agent_id.as_deref(),
+            selected.agent_id.as_deref(),
+            c.parent_env.get("HOME").map(String::as_str),
+        );
+        db.commit_session_agent_choice(&records, session, reminder.as_deref())
     };
     persisted.map_err(|error| CoreError::Diagnostic(storage_diagnostic(db.root(), &error)))?;
     Ok(selected)

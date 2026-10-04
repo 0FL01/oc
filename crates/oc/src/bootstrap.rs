@@ -73,6 +73,7 @@ pub async fn run(args: Args) -> ExitCode {
         Some(Command::Run {
             prompt,
             session,
+            agent,
             json,
             image,
         }) => {
@@ -85,7 +86,7 @@ pub async fn run(args: Args) -> ExitCode {
             let mut out = stdout().lock();
             let mut err = stderr().lock();
             headless::run_once_to_writers(
-                prompt, session, json, args.auto, &data_dir, &mut out, &mut err,
+                prompt, session, agent, json, args.auto, &data_dir, &mut out, &mut err,
             )
             .await
         }

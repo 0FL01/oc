@@ -567,19 +567,29 @@ impl Db {
 
     /// Create a root session; duplicate ids fail.
     pub fn create_session(&self, id: &str) -> Result<(), StorageError> {
-        self.create_root_session(id, None)?;
+        self.create_root_session(id, None, None)?;
         Ok(())
     }
 
     /// Atomically create a root, its event, and its Location binding.
     /// Existing bindings are idempotent only for the same Location; a root
     /// without a binding remains a duplicate rather than being claimed.
+    #[cfg(test)]
     pub(crate) fn create_bound_session(
         &self,
         id: &str,
         location: &str,
     ) -> Result<BoundSessionCreation, StorageError> {
-        self.create_root_session(id, Some(location))
+        self.create_root_session(id, Some(location), None)
+    }
+
+    pub(crate) fn create_bound_session_with_reminder(
+        &self,
+        id: &str,
+        location: &str,
+        reminder: Option<&str>,
+    ) -> Result<BoundSessionCreation, StorageError> {
+        self.create_root_session(id, Some(location), reminder)
     }
 
     /// Fresh-session durable acceptance: root, creation event, Location
@@ -588,6 +598,7 @@ impl Db {
     /// Unlike `create_bound_session`, an existing root (even one bound to this
     /// Location) is always a duplicate; no existing history is modified.
     #[allow(clippy::too_many_arguments)]
+    #[cfg(test)]
     pub(crate) fn create_bound_session_and_accept_turn(
         &self,
         id: &str,
@@ -597,6 +608,30 @@ impl Db {
         user_text: &str,
         initial_selection: Option<(&str, &str)>,
         model: &oc_core::queries::ModelRef,
+    ) -> Result<AcceptedTurn, StorageError> {
+        self.create_bound_session_and_accept_turn_with_reminder(
+            id,
+            location,
+            turn,
+            prompt,
+            user_text,
+            initial_selection,
+            model,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn create_bound_session_and_accept_turn_with_reminder(
+        &self,
+        id: &str,
+        location: &str,
+        turn: &str,
+        prompt: &str,
+        user_text: &str,
+        initial_selection: Option<(&str, &str)>,
+        model: &oc_core::queries::ModelRef,
+        reminder: Option<&str>,
     ) -> Result<AcceptedTurn, StorageError> {
         if !valid_tab_id(id) || tab_adoption_scope(location).len() > MAX_TAB_ADOPTION_KEY_BYTES {
             return Err(invalid_tab_adoption());
@@ -637,7 +672,8 @@ impl Db {
         }
         Self::insert_root_session(&tx, id)?;
         Self::insert_location_binding(&tx, id, location)?;
-        let accepted = Self::insert_accepted_turn(&tx, turn, id, prompt, user_text, model)?;
+        let accepted =
+            Self::insert_accepted_turn(&tx, turn, id, prompt, user_text, model, reminder)?;
         if let Some((key, value)) = initial_selection {
             Self::upsert_pref(&tx, key, value)?;
         }
@@ -654,6 +690,7 @@ impl Db {
         &self,
         id: &str,
         location: Option<&str>,
+        reminder: Option<&str>,
     ) -> Result<BoundSessionCreation, StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
@@ -675,6 +712,9 @@ impl Db {
         Self::insert_root_session(&tx, id)?;
         if let Some(location) = location {
             Self::insert_location_binding(&tx, id, location)?;
+        }
+        if let Some(text) = reminder {
+            Self::insert_message(&tx, id, "system", text)?;
         }
         tx.commit()?;
         Ok(BoundSessionCreation::Created)
@@ -2006,6 +2046,24 @@ impl Db {
         Ok(())
     }
 
+    pub(crate) fn commit_session_agent_choice(
+        &self,
+        values: &[(String, String)],
+        session: &str,
+        reminder: Option<&str>,
+    ) -> Result<(), StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        for (key, value) in values {
+            Self::upsert_pref(&tx, key, value)?;
+        }
+        if let Some(text) = reminder {
+            Self::insert_message(&tx, session, "system", text)?;
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
     /// Read a UI preference, if set.
     pub fn get_pref(&self, key: &str) -> Result<Option<String>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
@@ -2059,6 +2117,7 @@ impl Db {
     }
 
     /// Input acceptance, state transition and both events form one durable ack.
+    #[cfg(test)]
     pub(crate) fn accept_turn(
         &self,
         turn: &str,
@@ -2067,13 +2126,27 @@ impl Db {
         user_text: &str,
         model: &oc_core::queries::ModelRef,
     ) -> Result<AcceptedTurn, StorageError> {
+        self.accept_turn_with_reminder(turn, session, prompt, user_text, model, None)
+    }
+
+    pub(crate) fn accept_turn_with_reminder(
+        &self,
+        turn: &str,
+        session: &str,
+        prompt: &str,
+        user_text: &str,
+        model: &oc_core::queries::ModelRef,
+        reminder: Option<&str>,
+    ) -> Result<AcceptedTurn, StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let accepted = Self::insert_accepted_turn(&tx, turn, session, prompt, user_text, model)?;
+        let accepted =
+            Self::insert_accepted_turn(&tx, turn, session, prompt, user_text, model, reminder)?;
         tx.commit()?;
         Ok(accepted)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn insert_accepted_turn(
         conn: &Connection,
         turn: &str,
@@ -2081,9 +2154,13 @@ impl Db {
         prompt: &str,
         user_text: &str,
         model: &oc_core::queries::ModelRef,
+        reminder: Option<&str>,
     ) -> Result<AcceptedTurn, StorageError> {
         use oc_core::queries::ModelRef;
         Self::conversation_admit(conn, turn, session)?;
+        if let Some(text) = reminder {
+            Self::insert_message(conn, session, "system", text)?;
+        }
         Self::insert_turn(conn, turn, session, prompt)?;
         // The event journal, unlike the picker preference or later turn
         // checkpoint, records the model of the last *accepted* prompt.

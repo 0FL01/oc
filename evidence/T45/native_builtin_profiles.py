@@ -263,9 +263,7 @@ class Fixture:
             assert all(name not in tools for name in ('question','subagent','opencode_session_rename','opencode_session_move'))
         if lane != 'main':
             assert 'Owned bounded builtin profile fixture' not in users and 'Owned headless Ask fixture' not in users
-        if self.primary == 'plan':
-            assert all(name not in tools for name in ('bash','write','edit','apply_patch'))
-        elif lane != 'explore':
+        if lane != 'explore':
             assert (('write' in tools and 'edit' in tools and 'apply_patch' not in tools) if self.lane_family(lane) == 'edit' else
                     ('apply_patch' in tools and 'write' not in tools and 'edit' not in tools))
         if lane == 'main':
@@ -276,7 +274,7 @@ class Fixture:
                 if not initial_headless:
                     assert ('http__rotate_widget' in section) == (not self.denied_mcp(agent) or self.constraint in ('ask','resource','profile-ask'))
                 names = section.split('Effective permission preview: ',1)[1].split('. Resource/',1)[0].split(', ')
-                if self.primary == 'plan' or agent == 'explore':
+                if agent == 'explore':
                     assert all(name not in names for name in ('write','edit','apply_patch','bash'))
                 elif self.lane_family(agent) == 'edit':
                     assert 'write' in names and 'edit' in names and 'apply_patch' not in names
@@ -373,7 +371,9 @@ class Fixture:
             methods = (self.root/'stdio-effects.methods').read_text().splitlines()
             assert methods.count('initialize')==1 and methods.count('tools/list')==1
             assert methods.count('tools/call')==sum(expected.values())
-            assert not (self.project/'shell-effects').exists()
+            shell_path = self.project/'shell-effects'
+            expected_shell = 2 if self.primary == 'plan' else 0
+            assert (shell_path.read_text() if shell_path.exists() else '') == 'effect'*expected_shell
             databases = list((self.home/'data').rglob('oc.sqlite'))
             assert len(databases)==1
             with sqlite3.connect(databases[0]) as db:
@@ -382,9 +382,13 @@ class Fixture:
                 turns = db.execute('SELECT count(*) FROM turns').fetchone()[0]
                 states = {name+':'+state:count for name,state,count in db.execute('SELECT name,state,count(*) FROM tool_operations GROUP BY name,state')}
                 assert db.execute("SELECT count(*) FROM sessions WHERE title='FORBIDDEN_CHILD_TITLE'").fetchone()[0]==0
+                plan_enters = db.execute("SELECT count(*) FROM messages WHERE role='system' AND instr(text,'You are in Plan mode.')>0").fetchone()[0]
+                assert plan_enters == (1 if self.primary == 'plan' else 0)
+                assert not (self.home/'.opencode/plan').exists(), 'entry created a plan directory'
             for tool in WIRE_NAMES:
                 assert states.get(tool+':completed',0)==sum(expected.values())//2, states
-            for tool in ('question','bash','opencode_session_rename','opencode_session_move'):
+            assert states.get('bash:completed',0)==expected_shell, states
+            for tool in ('question','opencode_session_rename','opencode_session_move'):
                 assert states.get(tool+':completed',0)==0, states
             counts = {lane:len(rows) for lane,rows in self.requests.items()}
             assert dispatched.get('main',0)==counts['main'] and dispatched.get('child',0)==counts['general']+counts['explore']
@@ -393,7 +397,9 @@ class Fixture:
                     'requests':counts,'dispatches':dispatched,'turns':turns,'tool_intents':intents,'tool_states':states,
                     'http_effects':actual_http,'stdio_effects':actual_stdio,
                     'native_file_effects':sum((self.project/('mutation-'+lane)).exists() for lane in expected),
-                    'denied_shell_effects':0,'captured_views_checked':sum(counts.values())-counts['title']}
+                    'independent_policy_shell_effects':expected_shell,'denied_shell_effects':0,
+                    'plan_enter_reminders':plan_enters,
+                    'captured_views_checked':sum(counts.values())-counts['title']}
         finally:
             if process.poll() is None:
                 os.killpg(process.pid,signal.SIGINT)

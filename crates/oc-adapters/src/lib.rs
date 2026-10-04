@@ -23,6 +23,7 @@ pub mod mcp_stdio;
 pub mod models;
 pub mod patch;
 pub mod permissions;
+mod plan;
 pub mod provider;
 pub mod runtime;
 pub mod shell;

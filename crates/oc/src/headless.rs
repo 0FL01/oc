@@ -26,9 +26,11 @@ pub fn default_data_dir() -> Result<PathBuf, String> {
 }
 
 /// Run one real configured turn; diagnostics never enter stdout.
+#[allow(clippy::too_many_arguments)]
 pub async fn run_once_to_writers(
     prompt: String,
     session_opt: Option<String>,
+    agent: Option<String>,
     json: bool,
     auto_once: bool,
     data_dir: &Path,
@@ -61,7 +63,11 @@ pub async fn run_once_to_writers(
             writeln!(err, "warning: {diagnostic}").map_err(|e| e.to_string())?;
         }
         let outcome = async {
-            let default = app.catalog().await.map_err(|error| error.to_string())?;
+            let default = if let Some(agent) = &agent {
+                // Validate explicit addressing before creating a session or an
+                // approval consumer. Hidden primary/all profiles remain valid.
+                app.home_selection(oc_core::queries::SessionSelectionAction::Agent(agent.clone())).await.map_err(|error| error.to_string())?
+            } else { app.catalog().await.map_err(|error| error.to_string())? };
             // An unavailable default must not block an admitted stored choice.
             // Ready defaults retain create_session's existing Location gate;
             // runtime admission still checks the exact scoped request choice.
@@ -108,6 +114,8 @@ pub async fn run_once_to_writers(
             app.create_session(session.clone())
                 .await
                 .map_err(|e| e.to_string())?;
+            let action = agent.map_or(oc_core::queries::SessionSelectionAction::Current, oc_core::queries::SessionSelectionAction::Agent);
+            app.session_selection(session.clone(), false, action).await.map_err(|error| error.to_string())?;
             let mut rx = app.subscribe();
             // Keep the listener registered across acknowledgement and event
             // delivery; recreating ctrl_c futures can lose SIGINT in that gap.

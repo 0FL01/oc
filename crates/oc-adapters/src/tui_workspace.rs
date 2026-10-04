@@ -135,14 +135,31 @@ impl WorkspaceRegistry {
         generation: u64,
         db: &Db,
     ) -> Result<(), WorkspaceError> {
+        self.select_primary_with_reminder(id, generation, db, &[], None)
+    }
+
+    pub(crate) fn select_primary_with_reminder(
+        &mut self,
+        id: &str,
+        generation: u64,
+        db: &Db,
+        additional: &[(String, String)],
+        reminder: Option<(&str, &str)>,
+    ) -> Result<(), WorkspaceError> {
         self.check_generation(generation)?;
         if !self.agents.contains_key(id) {
             return Err(self.unknown_agent(id));
         }
-        self.primary_agent = Some(id.to_string());
         let raw = serde_json::json!({"id": id, "generation": generation}).to_string();
-        db.set_pref(PREF_PRIMARY_AGENT, &raw)
-            .map_err(|_| WorkspaceError::NoPrimaryAgent)?;
+        let mut records = additional.to_vec();
+        records.push((PREF_PRIMARY_AGENT.into(), raw));
+        let result = if let Some((session, text)) = reminder {
+            db.commit_session_agent_choice(&records, session, Some(text))
+        } else {
+            db.set_prefs(&records)
+        };
+        result.map_err(|_| WorkspaceError::NoPrimaryAgent)?;
+        self.primary_agent = Some(id.to_string());
         Ok(())
     }
 

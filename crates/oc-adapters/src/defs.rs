@@ -155,7 +155,9 @@ pub(crate) fn builtin_agents() -> [AgentDef; 4] {
     let build = builtin_build();
     let mut plan = build.clone();
     plan.id = "plan".into();
-    plan.description = "Plans and analyzes without ordinary native mutation tools.".into();
+    plan.description =
+        "Read-only agent for exploring and planning; explicitly requested plan files only.".into();
+    plan.permission_rules = crate::permissions::PermissionRules::plan_defaults();
     let mut general = build.clone();
     general.id = "general".into();
     general.mode = Some("subagent".into());
@@ -174,9 +176,6 @@ pub(crate) fn builtin_agents() -> [AgentDef; 4] {
 
 fn profile_ceiling(id: &str) -> crate::permissions::PermissionRules {
     let tools = match id {
-        // No plan-directory/lifecycle exception is implemented yet. Shell is
-        // also denied because it could bypass file-family mutation ceilings.
-        "plan" => serde_json::json!({"apply_patch":false,"edit":false,"write":false,"bash":false}),
         "general" | "explore" => {
             serde_json::json!({"question":false,"subagent":false,"opencode_session_rename":false,"opencode_session_move":false})
         }

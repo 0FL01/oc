@@ -302,7 +302,13 @@ impl<'a> RuntimePolicy<'a> {
         }
         self.rules
             .unwrap_or(&crate::permissions::PermissionRules::default())
-            .evaluate_registered(self.permissions, &actions, resource, alias.is_some())
+            .evaluate_registered(
+                self.permissions,
+                &actions,
+                resource,
+                alias.is_some(),
+                self.root,
+            )
     }
 
     fn mcp_alias(&self, tool: &str) -> Option<String> {
@@ -1731,6 +1737,7 @@ impl<'a> Runtime<'a> {
         if let Some(home) = self.parent_env.get("HOME") {
             agent_permission_rules.expand_home(home);
         }
+        agent_permission_rules.bind_plan_project(&self.roots.project);
         let mut workspace = self.workspace.write().expect("workspace lock");
         workspace.fixed_input = fixed_input;
         workspace.skills = skills;
@@ -1799,7 +1806,18 @@ impl<'a> Runtime<'a> {
 
     /// Create a Location-scoped session (idempotent for the same Location).
     pub fn create_session(&self, id: &str) -> Result<(), RuntimeError> {
-        match self.db.create_bound_session(id, &self.location)? {
+        let reminder = (self
+            .workspace
+            .read()
+            .expect("workspace lock")
+            .agent_id
+            .as_deref()
+            == Some("plan"))
+        .then(|| crate::plan::enter(self.parent_env.get("HOME").map(String::as_str)));
+        match self
+            .db
+            .create_bound_session_with_reminder(id, &self.location, reminder.as_deref())?
+        {
             BoundSessionCreation::Created | BoundSessionCreation::AlreadyBound => Ok(()),
             BoundSessionCreation::BoundElsewhere(owner) => Err(RuntimeError::LocationMismatch {
                 session: id.to_string(),
@@ -2071,6 +2089,7 @@ impl<'a> Runtime<'a> {
             &workspace.agent_permissions,
             &workspace.agent_permission_rules,
         );
+        permission_rules.bind_plan_project(&self.roots.project);
         TurnLane {
             manual_compression: false,
             owning_operation: None,

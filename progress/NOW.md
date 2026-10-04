@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-04T04:44:56+00:00
+State updated: 2026-10-04T09:17:26+00:00
 Active: T45
 
 Сверить Git status/diff до выполнения команд.
@@ -13,13 +13,13 @@ Owner-approved R3/R6–R10; full contracts and ordered slices in spec/M8, histor
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-Builtin registration/merge, conservative Plan and registered-MCP default qualified.
+Plan lifecycle, narrow plan-file policy and pre-acceptance run --agent qualified.
 ## Checks
-1489/0/10 workspace; parent 7 owner + 12 normal-ELF cases; Python47/fmt/Clippy/docs PASS.
+1495/0/10 workspace; parent 6 owner + 34 normal-ELF cases; Python47/fmt/Clippy/docs PASS.
 ## Risks
-Full Plan, parallel children, packs/child DCP/donor upgrade remain; T44 PAUSED.
+Parallel children, child DCP, packs/host/donor upgrade remain; T44 PAUSED.
 ## Next
-Implement Plan lifecycle/CLI and narrow plan-file exception using existing owners.
+Close the next bounded profile/child contract through the existing runtime owners.
 
 
 Ready (до 5): T53, T56

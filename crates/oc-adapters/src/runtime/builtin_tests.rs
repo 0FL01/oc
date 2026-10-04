@@ -52,7 +52,7 @@ fn profiles_and_parent_ceiling_narrow_registered_default_before_preview_or_dispa
             agent.id
         );
         assert!(policy.tool_visible(&entries[0].namespaced));
-        if agent.id == "plan" || agent.id == "explore" {
+        if agent.id == "explore" {
             for tool in ["apply_patch", "edit", "write", "bash"] {
                 assert_eq!(
                     policy.effect(tool, "file"),
@@ -62,6 +62,13 @@ fn profiles_and_parent_ceiling_narrow_registered_default_before_preview_or_dispa
                 );
                 assert!(!policy.tool_visible(tool));
             }
+        }
+        if agent.id == "plan" {
+            for tool in ["apply_patch", "edit", "write"] {
+                assert_eq!(policy.effect(tool, "file"), Permission::Deny);
+                assert!(policy.tool_visible(tool), "narrow plan-file schema {tool}");
+            }
+            assert_eq!(policy.effect("bash", "file"), Permission::Allow);
         }
         if agent.id == "general" || agent.id == "explore" {
             for tool in [

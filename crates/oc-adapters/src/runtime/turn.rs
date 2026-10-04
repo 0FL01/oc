@@ -91,6 +91,9 @@ fn subagent_tool_def(
                 if let Some(home) = home {
                     agent_rules.expand_home(home);
                 }
+                if let Some(project) = policy.root {
+                    agent_rules.bind_plan_project(project);
+                }
                 rules.narrow(policy.permissions, &agent.permissions, &agent_rules);
                 let child_policy =
                     RuntimePolicy::with_rules(policy.permissions, &rules).with_mcp(policy.mcp);
@@ -1059,6 +1062,14 @@ impl<'a> Runtime<'a> {
             });
         }
         let prompt_input = [InputItem::message(InputRole::User, &params.prompt)];
+        let plan_reminder = crate::plan::missing(
+            &history,
+            lane.agent_id.as_deref(),
+            self.parent_env.get("HOME").map(String::as_str),
+        );
+        if let Some(text) = &plan_reminder {
+            history.push(InputItem::message(InputRole::System, text));
+        }
         let admitted_history = dcp_continuation(&history, &[], &tool_projection);
         let assembled_estimate = estimate_tokens(
             &serde_json::to_string(&(&fixed_input, &admitted_history, &prompt_input, &tool_defs))
@@ -1159,7 +1170,7 @@ impl<'a> Runtime<'a> {
                 .filter(|name| name != "default"),
         };
         let accepted_turn = if let Some(initial_selection) = fresh_selection {
-            self.db.create_bound_session_and_accept_turn(
+            self.db.create_bound_session_and_accept_turn_with_reminder(
                 &params.session,
                 &self.location,
                 &turn_id,
@@ -1167,14 +1178,16 @@ impl<'a> Runtime<'a> {
                 user_text,
                 initial_selection,
                 &model_ref,
+                plan_reminder.as_deref(),
             )?
         } else {
-            self.db.accept_turn(
+            self.db.accept_turn_with_reminder(
                 &turn_id,
                 &params.session,
                 &params.prompt,
                 user_text,
                 &model_ref,
+                plan_reminder.as_deref(),
             )?
         };
         accepted(&turn_id, accepted_turn.model_switch.as_ref());
@@ -1487,8 +1500,20 @@ impl<'a> Runtime<'a> {
                 &params.catalog.provider,
                 &instruction_facts,
             );
-            let projected_continuation =
+            let mut projected_continuation =
                 dcp_continuation(&history, &current_instruction_input, &tool_projection);
+            if let Some(text) = crate::plan::missing(
+                &projected_continuation,
+                lane.agent_id.as_deref(),
+                self.parent_env.get("HOME").map(String::as_str),
+            ) {
+                // Repair only the active projection; immutable earlier reminders
+                // remain in RAW. The closed boundary never reexecutes tools.
+                self.db.append_message(&params.session, "system", &text)?;
+                let item = InputItem::message(InputRole::System, text);
+                history.push(item.clone());
+                projected_continuation.push(item);
+            }
             crate::instructions::reconcile(
                 &mut fixed_input,
                 &projected_continuation,
@@ -2641,7 +2666,9 @@ impl<'a> Runtime<'a> {
         if let Some(home) = self.parent_env.get("HOME") {
             agent_rules.expand_home(home);
         }
+        agent_rules.bind_plan_project(&self.roots.project);
         permission_rules.narrow(&permissions, &agent.permissions, &agent_rules);
+        permission_rules.bind_plan_project(&self.roots.project);
         for (tool, level) in &agent.permissions {
             permissions
                 .entry(tool.clone())
@@ -2990,7 +3017,76 @@ impl<'a> Runtime<'a> {
                 }
             }
             let mut invocation_files = ctx.files.clone();
+            let mut invocation_roots = ctx.roots.clone();
             let mut external_admission = None;
+            if structural.is_ok()
+                && !permission_rejected
+                && !cancel.load(Ordering::Acquire)
+                && policy
+                    .rules
+                    .is_some_and(crate::permissions::PermissionRules::has_plan_ceiling)
+                && let Assembled::Call(call) = &guarded
+                && matches!(call.name.as_str(), "apply_patch" | "edit" | "write")
+                && self.validate_tool_call(call).is_ok()
+            {
+                let paths = crate::tools::permission_resources(call)
+                    .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+                let plan = self
+                    .parent_env
+                    .get("HOME")
+                    .map(|home| crate::plan::directory(home));
+                let target = paths
+                    .iter()
+                    .map(|path| self.roots.project.join(path))
+                    .collect::<Vec<_>>();
+                if let Some(plan) = plan
+                    && target.iter().all(|path| path.starts_with(&plan))
+                    && paths.iter().all(|path| {
+                        policy.effect(&call.name, &permission_path(policy.root, path))
+                            != Permission::Deny
+                    })
+                {
+                    // Pin ancestors using the same no-follow external-read seam.
+                    // This descriptor is never published as a read/config root.
+                    match ctx
+                        .files
+                        .concrete_scope(&plan.to_string_lossy())
+                        .and_then(|path| ctx.files.pin_external(&path, true))
+                    {
+                        Err(error) => structural = Err(error.to_string()),
+                        Ok(_) => {
+                            let boundary = crate::tools::ToolCall {
+                                id: call.id.clone(),
+                                name: "external_directory".into(),
+                                arguments: serde_json::json!({"directory":plan.join("*").to_string_lossy()}),
+                            };
+                            match self
+                                .admit_tool(
+                                    session,
+                                    turn_id,
+                                    &op,
+                                    &boundary,
+                                    ctx,
+                                    policy,
+                                    cancel,
+                                    turn_log.display["agent"].as_str().map(str::to_string),
+                                    turn_log.agent_digest.clone(),
+                                    false,
+                                )
+                                .await
+                            {
+                                Ok(_) => {
+                                    invocation_roots = Some(ToolRoots {
+                                        project: plan,
+                                        data: self.roots.data.clone(),
+                                    })
+                                }
+                                Err(error) => external_admission = Some(error),
+                            }
+                        }
+                    }
+                }
+            }
             if structural.is_ok()
                 && !permission_rejected
                 && !cancel.load(Ordering::Acquire)
@@ -3053,7 +3149,7 @@ impl<'a> Runtime<'a> {
                 subagent: ctx.subagent,
                 snapshot: ctx.snapshot,
                 cancel: ctx.cancel,
-                roots: ctx.roots.clone(),
+                roots: invocation_roots,
             };
             let ctx = &file_ctx;
             let mut admission = match &guarded {
@@ -3650,7 +3746,10 @@ impl<'a> Runtime<'a> {
                         }
                     }
                     Assembled::Call(call) if call.name == "apply_patch" => {
-                        let (output, effects) = crate::tools::tool_patch_typed(ctx, call);
+                        let Assembled::Call(prepared_call) = &guarded else {
+                            unreachable!("admitted patch")
+                        };
+                        let (output, effects) = crate::tools::tool_patch_typed(ctx, prepared_call);
                         patch_effects = effects;
                         (output_state(&output), output)
                     }

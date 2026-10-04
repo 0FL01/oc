@@ -481,6 +481,19 @@ impl Files {
         self.resolve(path)
     }
 
+    /// Mutation owner only: absolute spelling must remain beneath this exact
+    /// invocation root. External read/search admission is deliberately ignored.
+    pub(crate) fn resolve_mutation(&self, path: &str) -> Result<PathBuf, FileToolError> {
+        let path = Path::new(path);
+        let relative = if path.is_absolute() {
+            path.strip_prefix(&self.root)
+                .map_err(|_| FileToolError::OutsideRoot)?
+        } else {
+            path
+        };
+        self.resolve(relative.to_str().ok_or(FileToolError::OutsideRoot)?)
+    }
+
     /// Lexical read/search target; no data IO and no expansion of mutation authority.
     pub(crate) fn concrete_scope(&self, path: &str) -> Result<PathBuf, FileToolError> {
         if path.is_empty() {
