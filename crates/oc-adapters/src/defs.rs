@@ -578,7 +578,7 @@ fn optional_model(
         .transpose()
 }
 
-fn agent_model(
+pub(crate) fn agent_model(
     value: Option<&serde_json::Value>,
 ) -> Result<(Option<String>, Option<String>), String> {
     let Some(value) = value else {

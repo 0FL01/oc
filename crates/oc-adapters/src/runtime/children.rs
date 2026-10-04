@@ -746,6 +746,7 @@ impl Runtime<'_> {
             &workspace.subagents,
             &workspace.instructions,
             &workspace.skills_projection,
+            &workspace.command_digest,
             format!("{:?}", *self.dcp_config.read().expect("dcp")),
         ))
     }
@@ -794,11 +795,12 @@ impl Runtime<'_> {
                 let parent_lane: TurnLane = serde_json::from_value(fence["lane"].clone())
                     .map_err(|_| RuntimeError::Storage)?;
                 let workspace = self.workspace.read().expect("workspace").clone();
+                let command_primary = self.command_child_receipt(&fence, &identity)?;
                 let agent = workspace
                     .subagents
                     .as_ref()
                     .and_then(|c| c.agents.get(&identity.agent))
-                    .filter(|a| !a.primary)
+                    .filter(|a| !a.primary || command_primary)
                     .cloned()
                     .ok_or(RuntimeError::Storage)?;
                 let (provider_id, reference) = identity

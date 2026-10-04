@@ -32,6 +32,8 @@ use crate::storage::{Db, StorageError};
 use crate::trace;
 use crate::tui_workspace::{AgentEntry as WorkspaceAgent, WorkspaceError, WorkspaceRegistry};
 
+#[path = "application/commands.rs"]
+mod commands;
 #[cfg(test)]
 #[path = "application_conversation_tests.rs"]
 mod conversation_tests;
@@ -701,6 +703,8 @@ struct Effective {
     agent_digest: Option<String>,
     profile_issue: Option<oc_core::queries::ServiceDiagnostic>,
     legacy_epoch: u64,
+    inline_command: Option<String>,
+    command_parents: Vec<String>,
 }
 
 impl Effective {
@@ -713,6 +717,8 @@ impl Effective {
             agent_digest: composition.agent_digest.clone(),
             profile_issue: None,
             legacy_epoch: 0,
+            inline_command: None,
+            command_parents: Vec::new(),
         }
     }
 
@@ -884,7 +890,21 @@ impl Effective {
 
     fn selection_issue(&self, composition: &Composition) -> Option<SelectionReadiness> {
         use oc_core::queries::{ServiceAction as Action, ServiceCode as Code};
-        let (identity, diagnostic) = if let Some(error) = &self.profile_issue {
+        let (identity, diagnostic) = if let Some(id) = self
+            .command_parents
+            .iter()
+            .find(|id| !composition.agents.contains_key(*id))
+        {
+            (
+                id.as_str(),
+                selection_diagnostic(
+                    composition,
+                    &["selection", "agent"],
+                    Code::AgentUnavailable,
+                    Action::SelectAgent,
+                ),
+            )
+        } else if let Some(error) = &self.profile_issue {
             let identity = if error.code == Code::ModelUnavailable {
                 self.model_id.as_str()
             } else {
@@ -892,10 +912,10 @@ impl Effective {
             };
             (identity, error.clone())
         } else if let Some(id) = self.agent_id.as_deref().filter(|id| {
-            !composition
-                .agents
-                .get(*id)
-                .is_some_and(|agent| agent.primary_capable())
+            !composition.agents.get(*id).is_some_and(|agent| {
+                agent.primary_capable()
+                    || commands::inline_eligible(composition, self.inline_command.as_deref(), id)
+            })
         }) {
             (
                 id,
@@ -957,6 +977,15 @@ impl Effective {
 
     /// Switch the effective agent; a pinned model must resolve exactly.
     fn set_agent(&mut self, composition: &Composition, id: &str) -> Result<(), CoreError> {
+        self.set_agent_inner(composition, id, false)
+    }
+
+    fn set_agent_inner(
+        &mut self,
+        composition: &Composition,
+        id: &str,
+        command_inline: bool,
+    ) -> Result<(), CoreError> {
         let failed = || {
             CoreError::Diagnostic(crate::config::diagnostic::failure(
                 &composition.project.to_string_lossy(),
@@ -967,7 +996,7 @@ impl Effective {
             ))
         };
         let agent = composition.agents.get(id).ok_or_else(failed)?;
-        if !agent.primary_capable() {
+        if !agent.primary_capable() && !command_inline {
             return Err(failed());
         }
         if let Some(model) = agent.model.as_deref() {
@@ -1002,6 +1031,10 @@ impl Effective {
         self.agent_prompt = Some(agent.body.clone());
         self.agent_digest = Some(crate::defs::agent_digest(agent));
         self.profile_issue = None;
+        if !command_inline {
+            self.inline_command = None;
+            self.command_parents.clear();
+        }
         Ok(())
     }
 
@@ -1246,6 +1279,25 @@ fn build_runtime<'a>(db: &'a Db, composition: &Composition) -> Result<Runtime<'a
     runtime
         .publish_subagents(subagent_catalog(composition))
         .map_err(|error| runtime_issue(&source, &["agent"], &error))?;
+    runtime
+        .publish_command_digest(crate::compaction::fingerprint(
+            &composition
+                .command_defs
+                .values()
+                .map(|def| {
+                    (
+                        &def.id,
+                        &def.body,
+                        &def.description,
+                        &def.agent,
+                        &def.model,
+                        def.subagent,
+                        def.subtask,
+                    )
+                })
+                .collect::<Vec<_>>(),
+        ))
+        .map_err(|error| runtime_issue(&source, &["command"], &error))?;
     Ok(runtime)
 }
 
@@ -2241,9 +2293,7 @@ fn publish_workspace(
         agent
             .map(|agent| agent.permissions.clone())
             .unwrap_or_default(),
-        agent
-            .map(|agent| agent.permission_rules.clone())
-            .unwrap_or_default(),
+        commands::permission_rules(composition, effective, agent),
     )
 }
 
@@ -4213,123 +4263,174 @@ async fn worker(
                         continue;
                     }
                 };
+                let command_def = commands::definition(composition, invocation.as_deref());
                 let cancel = AtomicBool::new(false);
                 let is_fresh = fresh.is_some();
                 // Resolve from the owning session, never whichever TUI tab was
                 // most recently viewed. Title and inherited child requests use
                 // this same selection and agent workspace.
-                let (turn_selection, initial_selection) = match (|| -> Result<_, CoreError> {
-                    if is_fresh {
-                        match db.session_meta(&session.0) {
-                            Ok(_) => return Err(CoreError::SessionAlreadyExists),
-                            Err(StorageError::SessionNotFound) => {}
-                            Err(error) => return Err(app_error(error)),
+                let (turn_selection, initial_selection, command_route) =
+                    match (|| -> Result<_, CoreError> {
+                        if is_fresh {
+                            match db.session_meta(&session.0) {
+                                Ok(_) => return Err(CoreError::SessionAlreadyExists),
+                                Err(StorageError::SessionNotFound) => {}
+                                Err(error) => return Err(app_error(error)),
+                            }
                         }
-                    }
-                    let (selected, initial_selection) = match fresh {
-                        Some(Some(mut choice)) => {
-                            if let Some(binding) = &choice.binding {
+                        let (selected, initial_selection) = match fresh {
+                            Some(Some(mut choice)) => {
+                                if let Some(binding) = &choice.binding {
+                                    let home = match home_choices.get(runtime.location()) {
+                                        Some(selected) => selected.clone(),
+                                        None => {
+                                            selection::home_current(db, composition, effective)?
+                                        }
+                                    };
+                                    if binding.location.as_deref()
+                                        != Some(composition.project.to_string_lossy().as_ref())
+                                        || binding.generation
+                                            != location_epoch.load(Ordering::SeqCst)
+                                        || binding.provider != composition.catalog.provider
+                                        || binding.agent_id
+                                            != home
+                                                .snapshot(
+                                                    composition,
+                                                    location_epoch.load(Ordering::SeqCst),
+                                                )
+                                                .agent_id
+                                    {
+                                        return Err(app_error("stale fresh model commit scope"));
+                                    }
+                                    let visible = home.snapshot(
+                                        composition,
+                                        location_epoch.load(Ordering::SeqCst),
+                                    );
+                                    choice.agent_id = home.agent_id.clone();
+                                    if choice.model_id == visible.model_id
+                                        && choice.variant == visible.variant
+                                    {
+                                        home.admit_selection(composition)?;
+                                        choice.model_id = home.model_id.clone();
+                                        choice.variant = home.variant.clone();
+                                    }
+                                }
+                                let (selected, record) =
+                                    selection::fresh(composition, effective, &session.0, choice)?;
+                                (selected, Some(record))
+                            }
+                            Some(None) => {
                                 let home = match home_choices.get(runtime.location()) {
                                     Some(selected) => selected.clone(),
                                     None => selection::home_current(db, composition, effective)?,
                                 };
-                                if binding.location.as_deref()
-                                    != Some(composition.project.to_string_lossy().as_ref())
-                                    || binding.generation != location_epoch.load(Ordering::SeqCst)
-                                    || binding.provider != composition.catalog.provider
-                                    || binding.agent_id
-                                        != home
-                                            .snapshot(
-                                                composition,
-                                                location_epoch.load(Ordering::SeqCst),
-                                            )
-                                            .agent_id
-                                {
-                                    return Err(app_error("stale fresh model commit scope"));
-                                }
-                                let visible = home
-                                    .snapshot(composition, location_epoch.load(Ordering::SeqCst));
-                                choice.agent_id = home.agent_id.clone();
-                                if choice.model_id == visible.model_id
-                                    && choice.variant == visible.variant
-                                {
-                                    home.admit_selection(composition)?;
-                                    choice.model_id = home.model_id.clone();
-                                    choice.variant = home.variant.clone();
-                                }
+                                let choice = oc_core::core_app::FreshSelection {
+                                    binding: None,
+                                    agent_id: home.agent_id.clone(),
+                                    model_id: home.model_id.clone(),
+                                    variant: home.variant.clone(),
+                                };
+                                let (selected, record) =
+                                    selection::fresh(composition, effective, &session.0, choice)?;
+                                (selected, Some(record))
                             }
-                            let (selected, record) =
-                                selection::fresh(composition, effective, &session.0, choice)?;
-                            (selected, Some(record))
-                        }
-                        Some(None) => {
-                            let home = match home_choices.get(runtime.location()) {
-                                Some(selected) => selected.clone(),
-                                None => selection::home_current(db, composition, effective)?,
-                            };
-                            let choice = oc_core::core_app::FreshSelection {
-                                binding: None,
-                                agent_id: home.agent_id.clone(),
-                                model_id: home.model_id.clone(),
-                                variant: home.variant.clone(),
-                            };
-                            let (selected, record) =
-                                selection::fresh(composition, effective, &session.0, choice)?;
-                            (selected, Some(record))
-                        }
-                        None => {
-                            let selected = if let Some(commit) = captured_selection {
-                                let previous =
-                                    selection::for_turn(db, composition, effective, &session.0)?;
-                                let action =
-                                    oc_core::queries::SessionSelectionAction::Commit(commit);
-                                let selected = selection::apply(
+                            None => {
+                                let selected = if let Some(commit) = captured_selection {
+                                    if command_def.is_some() {
+                                        let previous = selection::for_turn(
+                                            db,
+                                            composition,
+                                            effective,
+                                            &session.0,
+                                        )?;
+                                        selection::command_commit(
+                                            db,
+                                            composition,
+                                            &previous,
+                                            &session.0,
+                                            location_epoch.load(Ordering::SeqCst),
+                                            &commit,
+                                        )?
+                                    } else {
+                                        let previous = selection::for_turn(
+                                            db,
+                                            composition,
+                                            effective,
+                                            &session.0,
+                                        )?;
+                                        let action =
+                                            oc_core::queries::SessionSelectionAction::Commit(
+                                                commit,
+                                            );
+                                        let selected = selection::apply(
+                                            db,
+                                            composition,
+                                            effective,
+                                            &session.0,
+                                            false,
+                                            action.clone(),
+                                            location_epoch.load(Ordering::SeqCst),
+                                        )?;
+                                        if previous.model_id != selected.model_id
+                                            || previous
+                                                .variant
+                                                .as_deref()
+                                                .filter(|v| *v != "default")
+                                                != selected
+                                                    .variant
+                                                    .as_deref()
+                                                    .filter(|v| *v != "default")
+                                        {
+                                            runtime.publish_model_selection(
+                                                session.clone(),
+                                                selection::publication(
+                                                    composition,
+                                                    &selected,
+                                                    location_epoch.load(Ordering::SeqCst),
+                                                    &action,
+                                                ),
+                                            );
+                                        }
+                                        selected
+                                    }
+                                } else {
+                                    selection::for_turn(db, composition, effective, &session.0)?
+                                };
+                                (selected, None)
+                            }
+                        };
+                        let (selected, command_route) = if let Some(def) = command_def {
+                            let (selected, mut route) =
+                                commands::prepare(composition, &selected, def)?;
+                            if route.child.is_none() {
+                                route.selection = Some(selection::command_record(
                                     db,
                                     composition,
-                                    effective,
                                     &session.0,
-                                    false,
-                                    action.clone(),
-                                    location_epoch.load(Ordering::SeqCst),
-                                )?;
-                                if previous.model_id != selected.model_id
-                                    || previous.variant.as_deref().filter(|v| *v != "default")
-                                        != selected.variant.as_deref().filter(|v| *v != "default")
-                                {
-                                    runtime.publish_model_selection(
-                                        session.clone(),
-                                        selection::publication(
-                                            composition,
-                                            &selected,
-                                            location_epoch.load(Ordering::SeqCst),
-                                            &action,
-                                        ),
-                                    );
-                                }
-                                selected
-                            } else {
-                                selection::for_turn(db, composition, effective, &session.0)?
-                            };
+                                    &selected,
+                                )?);
+                            }
+                            (selected, Some(route))
+                        } else {
                             (selected, None)
+                        };
+                        selected.admit_selection(composition)?;
+                        runtime
+                            .admit_provider(
+                                &composition.catalog,
+                                &selected.model_id,
+                                &composition.provider,
+                            )
+                            .map_err(runtime_error)?;
+                        publish_workspace(runtime, composition, &selected).map_err(app_error)?;
+                        Ok((selected, initial_selection, command_route))
+                    })() {
+                        Ok(selected) => selected,
+                        Err(error) => {
+                            let _ = ack.send(Err(error));
+                            continue;
                         }
                     };
-                    selected.admit_selection(composition)?;
-                    runtime
-                        .admit_provider(
-                            &composition.catalog,
-                            &selected.model_id,
-                            &composition.provider,
-                        )
-                        .map_err(runtime_error)?;
-                    publish_workspace(runtime, composition, &selected).map_err(app_error)?;
-                    Ok((selected, initial_selection))
-                })() {
-                    Ok(selected) => selected,
-                    Err(error) => {
-                        let _ = ack.send(Err(error));
-                        continue;
-                    }
-                };
                 // Resolve before accepting a turn: an invalid configured title
                 // profile is a configuration error, never a silent fallback.
                 let title_agent = composition.agents.get("title");
@@ -4569,6 +4670,7 @@ async fn worker(
                                     initial_selection
                                         .as_ref()
                                         .map(|(key, value)| (key.as_str(), value.as_str())),
+                                    command_route.as_ref(),
                                     on_accept,
                                     on_text,
                                     on_reasoning,
@@ -4581,6 +4683,7 @@ async fn worker(
                                 .run_turn_with_reasoning_items_and_notice(
                                     params,
                                     manual_trigger,
+                                    command_route.as_ref(),
                                     on_accept,
                                     on_text,
                                     on_reasoning,
@@ -4831,6 +4934,10 @@ fn resolve_submission(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "application/command_tests.rs"]
+mod command_tests;
 
 #[cfg(test)]
 #[path = "application/plan_tests.rs"]

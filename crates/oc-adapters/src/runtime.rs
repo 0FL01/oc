@@ -870,6 +870,20 @@ pub struct TurnParams<'c> {
     pub cancel: &'c AtomicBool,
 }
 
+/// Captured application-owned command route; never supplied by a model response.
+pub(crate) struct NativeCommand {
+    pub id: String,
+    pub child: Option<CommandChild>,
+    pub selection: Option<(String, String)>,
+}
+
+pub(crate) struct CommandChild {
+    pub agent: String,
+    pub model_id: String,
+    pub variant: Option<String>,
+    pub description: String,
+}
+
 #[derive(Clone, Default)]
 struct RuntimeWorkspace {
     agent_id: Option<String>,
@@ -883,6 +897,7 @@ struct RuntimeWorkspace {
     instruction_roots: Vec<crate::instructions::Root>,
     skills_projection: Option<String>,
     subagents: Option<SubagentCatalog>,
+    command_digest: Option<String>,
 }
 
 /// Fixed developer input + central policy for one turn lane.
@@ -1778,6 +1793,18 @@ impl<'a> Runtime<'a> {
         Ok(())
     }
 
+    /// Pin command source metadata for child recovery between turns.
+    pub(crate) fn publish_command_digest(&self, digest: String) -> Result<(), RuntimeError> {
+        if self.active.load(Ordering::Relaxed) {
+            return Err(RuntimeError::TurnActive);
+        }
+        self.workspace
+            .write()
+            .expect("workspace lock")
+            .command_digest = Some(digest);
+        Ok(())
+    }
+
     /// Runtime DCP stats snapshot (counts only).
     pub fn dcp_stats(&self) -> DcpStats {
         self.stats.lock().expect("stats lock").clone()
@@ -1909,6 +1936,7 @@ impl<'a> Runtime<'a> {
         self.run_turn_with_reasoning_items_and_notice(
             params,
             None,
+            None,
             |id, _| accepted(id),
             text_delta,
             reasoning_delta,
@@ -1925,6 +1953,7 @@ impl<'a> Runtime<'a> {
         &self,
         params: TurnParams<'_>,
         manual: Option<ManualCompressionTrigger>,
+        command: Option<&NativeCommand>,
         mut accepted: impl FnMut(&str, Option<&oc_core::queries::ModelSwitchNotice>) + Send,
         mut text_delta: impl FnMut(&str, &str) + Send,
         mut reasoning_delta: impl FnMut(&str, &str) + Send,
@@ -1967,6 +1996,7 @@ impl<'a> Runtime<'a> {
                     &lane,
                     &attached,
                     None,
+                    command,
                     &mut accepted,
                     &mut text_delta,
                     &mut reasoning_delta,
@@ -2035,6 +2065,7 @@ impl<'a> Runtime<'a> {
         self.run_fresh_turn_with_reasoning_items_and_notice(
             params,
             initial_selection,
+            None,
             |id, _| accepted(id),
             text_delta,
             reasoning_delta,
@@ -2049,6 +2080,7 @@ impl<'a> Runtime<'a> {
         &self,
         params: TurnParams<'_>,
         initial_selection: Option<(&str, &str)>,
+        command: Option<&NativeCommand>,
         mut accepted: impl FnMut(&str, Option<&oc_core::queries::ModelSwitchNotice>) + Send,
         mut text_delta: impl FnMut(&str, &str) + Send,
         mut reasoning_delta: impl FnMut(&str, &str) + Send,
@@ -2075,6 +2107,7 @@ impl<'a> Runtime<'a> {
                     &lane,
                     &attached,
                     Some(initial_selection),
+                    command,
                     &mut accepted,
                     &mut text_delta,
                     &mut reasoning_delta,

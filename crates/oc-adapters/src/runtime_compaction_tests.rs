@@ -1034,6 +1034,7 @@ async fn compaction_schema_inclusive_irreducible_mcp_admission_spends_no_summary
             &lane,
             &attached,
             None,
+            None,
             &mut |_, _| {},
             &mut |_, _| {},
             &mut |_, _| {},

@@ -2145,10 +2145,36 @@ impl Db {
         model: &oc_core::queries::ModelRef,
         reminder: Option<&str>,
     ) -> Result<AcceptedTurn, StorageError> {
+        self.accept_turn_with_selection(turn, session, prompt, user_text, model, reminder, None)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn accept_turn_with_selection(
+        &self,
+        turn: &str,
+        session: &str,
+        prompt: &str,
+        user_text: &str,
+        model: &oc_core::queries::ModelRef,
+        reminder: Option<&str>,
+        selection: Option<(&str, &str)>,
+    ) -> Result<AcceptedTurn, StorageError> {
+        if let Some((key, _)) = selection {
+            let valid = key
+                .strip_prefix("tui.selection.session:")
+                .and_then(|parts| serde_json::from_str::<Vec<String>>(parts).ok())
+                .is_some_and(|parts| parts.len() == 3 && parts[2] == session);
+            if !valid {
+                return Err(invalid_tab_adoption());
+            }
+        }
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         let accepted =
             Self::insert_accepted_turn(&tx, turn, session, prompt, user_text, model, reminder)?;
+        if let Some((key, value)) = selection {
+            Self::upsert_pref(&tx, key, value)?;
+        }
         tx.commit()?;
         Ok(accepted)
     }

@@ -72,6 +72,8 @@ pub struct Composition {
     pub skill_errors: BTreeMap<String, String>,
     /// Literal admitted command templates, including the bundled review fallback.
     pub commands: BTreeMap<String, String>,
+    /// Full admitted routing metadata, pinned to this generation.
+    pub command_defs: BTreeMap<String, defs::CommandDef>,
     /// Current admitted command descriptions, including the bundled fallback.
     pub command_descriptions: BTreeMap<String, String>,
     /// The review entry is the bundled fallback, not an admitted workspace definition.
@@ -1416,6 +1418,7 @@ async fn load_stages(
         skills,
         skill_errors,
         commands,
+        command_defs: loaded_defs.commands,
         command_descriptions,
         builtin_review,
         native_modules,

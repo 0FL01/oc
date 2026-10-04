@@ -2,7 +2,23 @@
 
 use super::*;
 
+mod commands;
 mod foreground;
+
+/// Internal request-admission proof is distinct from an executed durable turn.
+enum TurnExecution {
+    Admitted,
+    Report(Box<TurnReport>),
+}
+
+impl TurnExecution {
+    fn report(self) -> Result<TurnReport, RuntimeError> {
+        match self {
+            Self::Report(report) => Ok(*report),
+            Self::Admitted => Err(RuntimeError::Storage),
+        }
+    }
+}
 
 #[cfg(test)]
 #[path = "builtin_tests.rs"]
@@ -259,6 +275,7 @@ struct TurnSubagent<'r, 'a> {
     attached: &'r McpGeneration,
     subagents: SubagentCatalog,
     parent_lane: &'r TurnLane,
+    fresh_parent: bool,
 }
 
 impl SubagentRunner for TurnSubagent<'_, '_> {
@@ -287,13 +304,15 @@ impl TurnSubagent<'_, '_> {
             reason,
         };
         let limit = self.subagents.depth_limit;
-        let depth = self
-            .runtime
-            .session_depth(&self.parent_session)
-            .map_err(|error| ToolError::Failed {
-                tool: SUBAGENT_TOOL.to_string(),
-                reason: error.to_string(),
-            })?;
+        let depth = (if self.fresh_parent {
+            Ok(0)
+        } else {
+            self.runtime.session_depth(&self.parent_session)
+        })
+        .map_err(|error| ToolError::Failed {
+            tool: SUBAGENT_TOOL.to_string(),
+            reason: error.to_string(),
+        })?;
         if depth >= limit {
             return Err(failed(format!(
                 "Subagent depth limit reached ({limit}). Increase \"experimental.subagent_depth\" to allow nested subagents."
@@ -353,7 +372,7 @@ impl TurnSubagent<'_, '_> {
     }
 
     async fn spawn_inner(&self, request: SubagentRequest) -> Result<SubagentOutcome, ToolError> {
-        let (agent, model) = self.resolve_request(&request)?;
+        self.resolve_request(&request)?;
         let child_id = request
             .session_id
             .clone()
@@ -362,6 +381,16 @@ impl TurnSubagent<'_, '_> {
             .runtime
             .child_jobs
             .reserve(&self.parent_session, &child_id)?;
+        self.spawn_reserved(request, child_id, reservation).await
+    }
+
+    async fn spawn_reserved(
+        &self,
+        request: SubagentRequest,
+        child_id: String,
+        reservation: children::Reservation,
+    ) -> Result<SubagentOutcome, ToolError> {
+        let (agent, model) = self.resolve_request(&request)?;
         let (child_session, fresh) = match &request.session_id {
             Some(id) => (id.clone(), false),
             None => (child_id, true),
@@ -841,6 +870,7 @@ impl<'a> Runtime<'a> {
         lane: &TurnLane,
         attached: &McpGeneration,
         fresh_selection: Option<Option<(&str, &str)>>,
+        command: Option<&NativeCommand>,
         accepted: &mut (dyn FnMut(&str, Option<&oc_core::queries::ModelSwitchNotice>) + Send),
         text_delta: &mut (dyn FnMut(&str, &str) + Send),
         reasoning_delta: &mut (dyn FnMut(&str, &str) + Send),
@@ -871,8 +901,11 @@ impl<'a> Runtime<'a> {
                 tool_event,
                 &budget,
                 None,
+                command,
+                false,
             )
-            .await?;
+            .await?
+            .report()?;
         if let Some(warning) = budget.warning {
             report.warnings.push(warning);
         }
@@ -893,7 +926,9 @@ impl<'a> Runtime<'a> {
         tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
         budget: &models::AdmissionBudget,
         resume: Option<TurnLog>,
-    ) -> Result<TurnReport, RuntimeError> {
+        command: Option<&NativeCommand>,
+        probe: bool,
+    ) -> Result<TurnExecution, RuntimeError> {
         let published = self.current.read().expect("generation lock").clone();
         if fresh_selection.is_some() {
             if params.session.trim().is_empty() {
@@ -986,7 +1021,7 @@ impl<'a> Runtime<'a> {
             "dcp.nudge.{}\0{}\0{}",
             params.session, params.catalog.provider, selection.id
         );
-        {
+        if !probe {
             let mut states = self.nudge_state.lock().expect("nudge lock");
             if !states.contains_key(&state_key) {
                 let state = match fresh_selection {
@@ -1167,6 +1202,15 @@ impl<'a> Runtime<'a> {
                 })
             })?;
         }
+        if probe {
+            return Ok(TurnExecution::Admitted);
+        }
+        let command_admission = if let Some(command) = command {
+            self.admit_command(&params, lane, attached, fresh_selection.is_some(), command)
+                .await?
+        } else {
+            None
+        };
         // Durable intent before any side effect.
         let turn_id = resume.as_ref().map_or_else(
             || next_turn_id(&params.session, millis()),
@@ -1194,11 +1238,21 @@ impl<'a> Runtime<'a> {
                 &turn_id,
                 &params.prompt,
                 user_text,
-                initial_selection,
+                command
+                    .and_then(|command| {
+                        command
+                            .selection
+                            .as_ref()
+                            .map(|(key, value)| (key.as_str(), value.as_str()))
+                    })
+                    .or(initial_selection),
                 &model_ref,
                 plan_reminder.as_deref(),
             )?
-        } else {
+        } else if command
+            .and_then(|command| command.selection.as_ref())
+            .is_none()
+        {
             self.db.accept_turn_with_reminder(
                 &turn_id,
                 &params.session,
@@ -1206,6 +1260,21 @@ impl<'a> Runtime<'a> {
                 user_text,
                 &model_ref,
                 plan_reminder.as_deref(),
+            )?
+        } else {
+            self.db.accept_turn_with_selection(
+                &turn_id,
+                &params.session,
+                &params.prompt,
+                user_text,
+                &model_ref,
+                plan_reminder.as_deref(),
+                command.and_then(|command| {
+                    command
+                        .selection
+                        .as_ref()
+                        .map(|(key, value)| (key.as_str(), value.as_str()))
+                }),
             )?
         };
         accepted(&turn_id, accepted_turn.model_switch.as_ref());
@@ -1255,6 +1324,23 @@ impl<'a> Runtime<'a> {
                 usize::from(instruction_revision != 0),
                 None,
             )?;
+        }
+        if let Some(command) = command {
+            turn_log.display["command"] = serde_json::json!({"id":command.id,"background":command.child.is_some(),"source":"native_command","child_agent":command.child.as_ref().map(|child|&child.agent)});
+        }
+        if let Some(admission) = command_admission {
+            return self
+                .launch_command(
+                    &params,
+                    lane,
+                    attached,
+                    &mut turn_log,
+                    admission,
+                    tool_event,
+                    &published,
+                )
+                .await
+                .map(|report| TurnExecution::Report(Box::new(report)));
         }
         if let Some((after_seq, blocks)) = history_scope {
             history = self.wire_history(
@@ -1330,20 +1416,22 @@ impl<'a> Runtime<'a> {
                     .push(InputItem::message(InputRole::User, notice));
             }
             if params.cancel.load(Ordering::Relaxed) {
-                return self.commit_turn(
-                    &turn_log,
-                    turn_id,
-                    &params.session,
-                    TurnStatus::Cancelled,
-                    text,
-                    rounds,
-                    streamed_ms(streamed),
-                    usage,
-                    context_usage,
-                    calls,
-                    nudge_hint,
-                    &published,
-                );
+                return self
+                    .commit_turn(
+                        &turn_log,
+                        turn_id,
+                        &params.session,
+                        TurnStatus::Cancelled,
+                        text,
+                        rounds,
+                        streamed_ms(streamed),
+                        usage,
+                        context_usage,
+                        calls,
+                        nudge_hint,
+                        &published,
+                    )
+                    .map(|report| TurnExecution::Report(Box::new(report)));
             }
             // The owner record is re-read exactly once for this prepared attempt.
             // Configuration, agent lane, route and issued batch remain captured.
@@ -1503,6 +1591,7 @@ impl<'a> Runtime<'a> {
                 attached,
                 subagents: catalog.clone(),
                 parent_lane: lane,
+                fresh_parent: false,
             });
             let ctx = ToolContext {
                 files: &self.files,
@@ -1638,7 +1727,7 @@ impl<'a> Runtime<'a> {
                     }
                     .into(),
                 );
-                return Ok(report);
+                return Ok(TurnExecution::Report(Box::new(report)));
             }
             overflow_pending = false;
             if compacted {
@@ -1809,7 +1898,7 @@ impl<'a> Runtime<'a> {
                     &published,
                 )?;
                 report.diagnostic = Some(error.to_string());
-                return Ok(report);
+                return Ok(TurnExecution::Report(Box::new(report)));
             }
             let stream_started = std::time::Instant::now();
             let mut reasoning_started: Option<std::time::Instant> = None;
@@ -2286,7 +2375,7 @@ impl<'a> Runtime<'a> {
                             &published,
                         )?;
                         report.diagnostic = Some(error.to_string());
-                        return Ok(report);
+                        return Ok(TurnExecution::Report(Box::new(report)));
                     }
                 }
             };
@@ -2371,20 +2460,22 @@ impl<'a> Runtime<'a> {
                             REPORT_OUTPUT_CAP,
                         ),
                     });
-                    return self.commit_turn(
-                        &turn_log,
-                        turn_id,
-                        &params.session,
-                        TurnStatus::Failed,
-                        text,
-                        rounds,
-                        streamed_ms(streamed),
-                        usage,
-                        context_usage,
-                        calls,
-                        nudge_hint,
-                        &published,
-                    );
+                    return self
+                        .commit_turn(
+                            &turn_log,
+                            turn_id,
+                            &params.session,
+                            TurnStatus::Failed,
+                            text,
+                            rounds,
+                            streamed_ms(streamed),
+                            usage,
+                            context_usage,
+                            calls,
+                            nudge_hint,
+                            &published,
+                        )
+                        .map(|report| TurnExecution::Report(Box::new(report)));
                 }
             };
             let has_message = generation
@@ -2591,20 +2682,22 @@ impl<'a> Runtime<'a> {
             let (round_calls, projection_changed, permission_rejected) = executed?;
             calls.extend(round_calls);
             if permission_rejected {
-                return self.commit_turn(
-                    &turn_log,
-                    turn_id,
-                    &params.session,
-                    TurnStatus::Cancelled,
-                    text,
-                    rounds,
-                    streamed_ms(streamed),
-                    usage,
-                    context_usage,
-                    calls,
-                    nudge_hint,
-                    &published,
-                );
+                return self
+                    .commit_turn(
+                        &turn_log,
+                        turn_id,
+                        &params.session,
+                        TurnStatus::Cancelled,
+                        text,
+                        rounds,
+                        streamed_ms(streamed),
+                        usage,
+                        context_usage,
+                        calls,
+                        nudge_hint,
+                        &published,
+                    )
+                    .map(|report| TurnExecution::Report(Box::new(report)));
             }
             if calls.iter().any(|call| call.state == "unknown") {
                 let mut report = self.commit_turn(
@@ -2623,7 +2716,7 @@ impl<'a> Runtime<'a> {
                 )?;
                 report.diagnostic =
                     Some("MCP outcome unknown; retry may duplicate side effects".into());
-                return Ok(report);
+                return Ok(TurnExecution::Report(Box::new(report)));
             }
             if projection_changed {
                 let refreshed = self.active_projection(&params.session)?;
@@ -2672,7 +2765,7 @@ impl<'a> Runtime<'a> {
         if turn_log.display["finish_reason"] == "length" {
             report.diagnostic = Some("provider finish=length (max_output_tokens)".into());
         }
-        Ok(report)
+        Ok(TurnExecution::Report(Box::new(report)))
     }
 
     /// Run one child turn through the inner path, without the single-flight
@@ -2695,6 +2788,37 @@ impl<'a> Runtime<'a> {
         launch_started: Option<tokio::sync::oneshot::Sender<()>>,
         resume: Option<TurnLog>,
     ) -> Result<TurnReport, RuntimeError> {
+        let lane = self.child_lane(agent, parent_lane, owning_operation);
+        let params = TurnParams {
+            session: session.to_string(),
+            prompt,
+            invocation: None,
+            catalog,
+            model_id: model.id.clone(),
+            variant: model.variant.clone(),
+            max_output,
+            provider: provider.clone(),
+            cancel,
+        };
+        self.run_child_lane(
+            agent,
+            owning_operation,
+            &lane,
+            params,
+            model,
+            attached,
+            launch_started,
+            resume,
+        )
+        .await
+    }
+
+    fn child_lane(
+        &self,
+        agent: &SubagentAgent,
+        parent_lane: &TurnLane,
+        owning_operation: &str,
+    ) -> TurnLane {
         let workspace = self.workspace.read().expect("workspace lock").clone();
         // Parent generation ∩ child agent rules: an agent rule can only make
         // the child lane stricter, never widen the caller's authority.
@@ -2717,7 +2841,7 @@ impl<'a> Runtime<'a> {
                 })
                 .or_insert(*level);
         }
-        let lane = TurnLane {
+        TurnLane {
             manual_compression: false,
             owning_operation: Some(owning_operation.into()),
             agent_id: Some(agent.id.clone()),
@@ -2741,18 +2865,27 @@ impl<'a> Runtime<'a> {
             agent_digest: agent.digest.clone(),
             permissions,
             permission_rules,
-        };
-        let params = TurnParams {
-            session: session.to_string(),
-            prompt,
-            invocation: None,
-            catalog,
-            model_id: model.id.clone(),
-            variant: model.variant.clone(),
-            max_output,
-            provider: provider.clone(),
-            cancel,
-        };
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn run_child_lane(
+        &self,
+        _agent: &SubagentAgent,
+        owning_operation: &str,
+        lane: &TurnLane,
+        params: TurnParams<'_>,
+        model: &ResolvedModel,
+        attached: &McpGeneration,
+        launch_started: Option<tokio::sync::oneshot::Sender<()>>,
+        resume: Option<TurnLog>,
+    ) -> Result<TurnReport, RuntimeError> {
+        let session = params.session.clone();
+        let session = session.as_str();
+        let catalog = params.catalog;
+        let provider = params.provider.clone();
+        let max_output = params.max_output;
+        let cancel = params.cancel;
         // A child's local dismissal/failure must not cancel siblings. The
         // parent token is propagated while the scoped future is joined.
         let child_cancel = AtomicBool::new(cancel.load(Ordering::Acquire));
@@ -2824,7 +2957,7 @@ impl<'a> Runtime<'a> {
             }
         };
         let published = self.current.read().expect("generation").clone();
-        self.admit_provider(catalog, &model.id, provider)?;
+        self.admit_provider(catalog, &model.id, &provider)?;
         let base = models::select_model(catalog, &model.id).map_err(|_| RuntimeError::Storage)?;
         let fallback = published
             .config
@@ -2835,7 +2968,7 @@ impl<'a> Runtime<'a> {
         let budget = models::budget(&base, max_output, fallback);
         let child = self.run_turn_admitted(
             params,
-            &lane,
+            lane,
             attached,
             None,
             &mut accepted,
@@ -2845,11 +2978,14 @@ impl<'a> Runtime<'a> {
             &mut tools,
             &budget,
             resume,
+            None,
+            false,
         );
         tokio::pin!(child);
         loop {
             tokio::select! {
-                mut result = &mut child => {
+                result = &mut child => {
+                    let mut result = result.and_then(TurnExecution::report);
                     if let Ok(report) = &mut result {
                         if let Some(warning) = &budget.warning {
                             report.warnings.push(warning.clone());

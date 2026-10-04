@@ -1528,5 +1528,7 @@ async fn cancel_mid_child_stream_cancels_child_and_parent() {
 }
 #[path = "fixtures/background_children.rs"]
 mod background_children;
+#[path = "fixtures/command_routing.rs"]
+mod command_routing;
 #[path = "fixtures/foreground_children.rs"]
 mod foreground_children;

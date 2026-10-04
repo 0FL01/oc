@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-04T22:29:57+00:00
+State updated: 2026-10-04T23:52:38+00:00
 Active: T45
 
 Сверить Git status/diff до выполнения команд.
@@ -13,13 +13,13 @@ Owner-approved R3/R6–R10; full contracts and ordered slices in spec/M8, histor
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-Safe unfinished children resume the same admitted job/turn; unsafe effects quarantine.
+Command routing precedence, inline selection and background Jobs are qualified.
 ## Checks
-1523/0/10 workspace; parent17 owner tests and40 normal ELF cases; Python47 PASS.
+1527/0/10 workspace; parent 4 owner/integration, 38 normal ELF cases, Python47, fmt/Clippy/docs/progress/diff PASS.
 ## Risks
-Pending MCP view may narrow recovery capabilities; sequencing exception recorded.
+Whole T45 remains open; T44 PAUSED and T27 exhausted allowance unchanged.
 ## Next
-Continue command routing, child DCP and remaining T45; T44 PAUSED, T27 exhausted.
+Continue eligible-child DCP and remaining prompt/context/capability contracts.
 
 
 Ready (до 5): T53, T56

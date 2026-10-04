@@ -22,6 +22,10 @@ struct SessionChoice {
     models: BTreeMap<String, ModelChoice>,
     #[serde(default)]
     epoch: u64,
+    #[serde(default)]
+    inline_command: Option<String>,
+    #[serde(default)]
+    command_parents: Vec<String>,
 }
 
 fn epoch_key(c: &Composition) -> String {
@@ -198,7 +202,17 @@ fn resolve(
     fallback: &Effective,
     choice: &SessionChoice,
 ) -> Result<Effective, CoreError> {
-    let mut selected = base_for_agent(c, fallback, choice.agent.as_deref())?;
+    let mut selected = if let Some(command) = choice.inline_command.as_deref() {
+        commands::restore_inline(
+            c,
+            fallback,
+            choice.agent.as_deref(),
+            command,
+            &choice.command_parents,
+        )?
+    } else {
+        base_for_agent(c, fallback, choice.agent.as_deref())?
+    };
     let agent = choice.agent.as_deref().unwrap_or("");
     let model = match choice.models.get(agent) {
         Some(model) => model.clone(),
@@ -347,6 +361,8 @@ pub(super) fn fresh(
         agent: selected.agent_id.clone(),
         models: BTreeMap::from([(agent, model(&selected))]),
         epoch: fallback.legacy_epoch,
+        inline_command: None,
+        command_parents: Vec::new(),
     };
     Ok((selected, record(session_key(c, session), &session_choice)?))
 }
@@ -510,6 +526,8 @@ pub(super) fn apply(
         agent: fallback.agent_id.clone(),
         models: BTreeMap::new(),
         epoch: fallback.legacy_epoch,
+        inline_command: None,
+        command_parents: Vec::new(),
     });
     if choice.epoch < fallback.legacy_epoch {
         if action == Action::Current {
@@ -523,8 +541,12 @@ pub(super) fn apply(
     }
     if let Action::Agent(agent) = &action {
         choice.agent = Some(agent.clone());
+        choice.inline_command = None;
+        choice.command_parents.clear();
     } else if let Action::New(agent) = &action {
         choice.agent = agent.clone();
+        choice.inline_command = None;
+        choice.command_parents.clear();
     }
     let mut selected = if matches!(action, Action::Model(_) | Action::Commit(_))
         || (choice.models.is_empty()
@@ -532,7 +554,11 @@ pub(super) fn apply(
             && !matches!(action, Action::Agent(_)))
     {
         // Replacing a retired model must never require resolving the old id.
-        base_for_agent(c, fallback, choice.agent.as_deref())?
+        if choice.inline_command.is_some() {
+            resolve(db, c, fallback, &choice)?
+        } else {
+            base_for_agent(c, fallback, choice.agent.as_deref())?
+        }
     } else {
         resolve(db, c, fallback, &choice)?
     };
@@ -635,6 +661,49 @@ pub(super) fn apply(
         db.commit_session_agent_choice(&records, session, reminder.as_deref())
     };
     persisted.map_err(|error| CoreError::Diagnostic(storage_diagnostic(db.root(), &error)))?;
+    Ok(selected)
+}
+
+/// Read-only command selection; the acceptance owner commits the encoded pair.
+pub(super) fn command_record(
+    db: &Db,
+    c: &Composition,
+    session: &str,
+    selected: &Effective,
+) -> Result<(String, String), CoreError> {
+    let key = session_key(c, session);
+    let mut choice = load::<SessionChoice>(db, &key)?.unwrap_or_default();
+    if choice.epoch < selected.legacy_epoch {
+        choice.models.clear();
+    }
+    choice.agent = selected.agent_id.clone();
+    choice.inline_command = selected.inline_command.clone();
+    choice.command_parents = selected.command_parents.clone();
+    choice.epoch = selected.legacy_epoch;
+    choice
+        .models
+        .insert(choice.agent.clone().unwrap_or_default(), model(selected));
+    record(key, &choice)
+}
+
+pub(super) fn command_commit(
+    db: &Db,
+    c: &Composition,
+    current: &Effective,
+    session: &str,
+    generation: u64,
+    commit: &oc_core::queries::ModelCommit,
+) -> Result<Effective, CoreError> {
+    validate_commit(db, c, current, session, generation, commit)?;
+    let mut selected = current.clone();
+    set_model(
+        &mut selected,
+        c,
+        ModelChoice {
+            id: commit.model_id.clone(),
+            variant: commit.variant.clone(),
+        },
+    )?;
     Ok(selected)
 }
 
