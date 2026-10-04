@@ -59,6 +59,69 @@ pub(crate) mod session_move;
 #[path = "application_tab_deck.rs"]
 mod tab_deck;
 
+/// One event projection for root and child runtime callbacks.
+pub(crate) fn publish_tool_event(
+    db: &Db,
+    events: &broadcast::Sender<CoreEvent>,
+    session: &SessionId,
+    id: &str,
+    event: &ToolCallEvent,
+) {
+    let turn = WorkerTurnId(id.into());
+    let _ = events.send(match event {
+        ToolCallEvent::ArgumentStream(event) => CoreEvent::ToolArgumentStream {
+            session: session.clone(),
+            turn,
+            event: event.clone(),
+        },
+        ToolCallEvent::Started {
+            dcp_topic,
+            op,
+            name,
+            input,
+        } => CoreEvent::ToolCallStarted {
+            dcp_topic: dcp_topic.clone(),
+            session: session.clone(),
+            turn,
+            op: op.clone(),
+            name: name.clone(),
+            input: input.clone(),
+        },
+        ToolCallEvent::Finished {
+            question,
+            dcp,
+            patch_effects,
+            op,
+            name,
+            state,
+            output,
+            output_bytes,
+            output_truncated,
+        } => CoreEvent::ToolCallFinished {
+            question: question.clone(),
+            dcp: dcp.clone(),
+            patch_effects: patch_effects.clone(),
+            session: session.clone(),
+            turn,
+            op: op.clone(),
+            name: name.clone(),
+            state: state.clone(),
+            output: output.clone(),
+            output_bytes: *output_bytes,
+            output_truncated: *output_truncated,
+        },
+    });
+    if !matches!(event, ToolCallEvent::ArgumentStream(_))
+        && let Ok(Some(projection)) = db.turn_presentation(&session.0, id)
+    {
+        let _ = events.send(CoreEvent::TurnPresentation {
+            session: session.clone(),
+            turn: WorkerTurnId(id.into()),
+            projection,
+        });
+    }
+}
+
 /// Bounded focus bytes accepted for a manual compress request.
 pub const COMPRESS_FOCUS_MAX: usize = 256;
 /// Bounded rows served per history page.
@@ -4338,61 +4401,7 @@ async fn worker(
                             });
                         };
                         let on_tool = |id: &str, event: &ToolCallEvent| {
-                            let turn = WorkerTurnId(id.to_string());
-                            let _ = events.send(match event {
-                                ToolCallEvent::ArgumentStream(event) => {
-                                    CoreEvent::ToolArgumentStream {
-                                        session: session.clone(),
-                                        turn,
-                                        event: event.clone(),
-                                    }
-                                }
-                                ToolCallEvent::Started {
-                                    dcp_topic,
-                                    op,
-                                    name,
-                                    input,
-                                } => CoreEvent::ToolCallStarted {
-                                    dcp_topic: dcp_topic.clone(),
-                                    session: session.clone(),
-                                    turn,
-                                    op: op.clone(),
-                                    name: name.clone(),
-                                    input: input.clone(),
-                                },
-                                ToolCallEvent::Finished {
-                                    question,
-                                    dcp,
-                                    patch_effects,
-                                    op,
-                                    name,
-                                    state,
-                                    output,
-                                    output_bytes,
-                                    output_truncated,
-                                } => CoreEvent::ToolCallFinished {
-                                    question: question.clone(),
-                                    dcp: dcp.clone(),
-                                    patch_effects: patch_effects.clone(),
-                                    session: session.clone(),
-                                    turn,
-                                    op: op.clone(),
-                                    name: name.clone(),
-                                    state: state.clone(),
-                                    output: output.clone(),
-                                    output_bytes: *output_bytes,
-                                    output_truncated: *output_truncated,
-                                },
-                            });
-                            if !matches!(event, ToolCallEvent::ArgumentStream(_))
-                                && let Ok(Some(projection)) = db.turn_presentation(&session.0, id)
-                            {
-                                let _ = events.send(CoreEvent::TurnPresentation {
-                                    session: session.clone(),
-                                    turn: WorkerTurnId(id.to_string()),
-                                    projection,
-                                });
-                            }
+                            publish_tool_event(db, events, &session, id, event);
                         };
                         let mut report = if is_fresh {
                             runtime

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-04T09:17:26+00:00
+State updated: 2026-10-04T11:00:30+00:00
 Active: T45
 
 Сверить Git status/diff до выполнения команд.
@@ -13,13 +13,13 @@ Owner-approved R3/R6–R10; full contracts and ordered slices in spec/M8, histor
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-Plan lifecycle, narrow plan-file policy and pre-acceptance run --agent qualified.
+Concurrent foreground children, ordered join and scoped cancellation qualified.
 ## Checks
-1495/0/10 workspace; parent 6 owner + 34 normal-ELF cases; Python47/fmt/Clippy/docs PASS.
+1500/0/10 workspace; parent subagent19/native4/Python47/fmt/Clippy/docs PASS.
 ## Risks
-Parallel children, child DCP, packs/host/donor upgrade remain; T44 PAUSED.
+Background child jobs and family controls remain; T44 PAUSED, paid ledger exhausted.
 ## Next
-Close the next bounded profile/child contract through the existing runtime owners.
+Implement application-owned background child lifecycle without replay or duplicate authority.
 
 
 Ready (до 5): T53, T56

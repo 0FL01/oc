@@ -1549,3 +1549,5 @@ async fn cancel_mid_child_stream_cancels_child_and_parent() {
     assert_eq!(messages(&harness.db, "parent").len(), 1);
     assert!(!runtime.turn_active(), "lease released after cancellation");
 }
+#[path = "fixtures/foreground_children.rs"]
+mod foreground_children;

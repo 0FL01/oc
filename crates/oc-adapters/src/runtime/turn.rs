@@ -2,6 +2,8 @@
 
 use super::*;
 
+mod foreground;
+
 #[cfg(test)]
 #[path = "builtin_tests.rs"]
 mod builtin_tests;
@@ -2640,8 +2642,8 @@ impl<'a> Runtime<'a> {
     }
 
     /// Run one child turn through the inner path, without the single-flight
-    /// lease (the parent turn already holds it) and sharing the parent cancel
-    /// flag so one Cancel stops both.
+    /// lease (the parent turn already holds it). Parent cancellation propagates
+    /// into a child-local token while every admitted future is joined.
     #[allow(clippy::too_many_arguments)]
     async fn run_child_turn(
         &self,
@@ -2715,18 +2717,103 @@ impl<'a> Runtime<'a> {
             provider: provider.clone(),
             cancel,
         };
-        self.run_turn_inner(
+        // A child's local dismissal/failure must not cancel siblings. The
+        // parent token is propagated while the scoped future is joined.
+        let child_cancel = AtomicBool::new(cancel.load(Ordering::Acquire));
+        let params = TurnParams {
+            cancel: &child_cancel,
+            ..params
+        };
+        let started = std::time::Instant::now();
+        let accepted_id = Mutex::new(None::<String>);
+        use oc_core::core_app::{CoreEvent, WorkerTurnId};
+        use oc_core::domain::SessionId;
+        let events = self.compaction_events.lock().expect("events lock").clone();
+        let send = |event| {
+            if let Some(events) = &events {
+                let _ = events.send(event);
+            }
+        };
+        let mut accepted = |id: &str, notice: Option<&oc_core::queries::ModelSwitchNotice>| {
+            *accepted_id.lock().expect("child acceptance lock") = Some(id.into());
+            send(CoreEvent::TurnStarted {
+                session: SessionId(session.into()),
+                turn: WorkerTurnId(id.into()),
+                model_switch: notice.cloned(),
+            });
+        };
+        let mut text = |id: &str, delta: &str| {
+            send(CoreEvent::TextDelta {
+                session: SessionId(session.into()),
+                turn: WorkerTurnId(id.into()),
+                delta: delta.into(),
+            })
+        };
+        let mut reasoning = |id: &str, delta: &str| {
+            send(CoreEvent::ReasoningDelta {
+                session: SessionId(session.into()),
+                turn: WorkerTurnId(id.into()),
+                delta: delta.into(),
+            })
+        };
+        let mut reasoning_end = |id: &str| {
+            send(CoreEvent::ReasoningItemEnded {
+                session: SessionId(session.into()),
+                turn: WorkerTurnId(id.into()),
+            })
+        };
+        let mut tools = |id: &str, event: &ToolCallEvent| {
+            if let Some(events) = &events {
+                crate::application::publish_tool_event(
+                    self.db,
+                    events,
+                    &SessionId(session.into()),
+                    id,
+                    event,
+                );
+            }
+        };
+        let child = self.run_turn_inner(
             params,
             &lane,
             attached,
             None,
-            &mut |_: &str, _| {},
-            &mut |_: &str, _: &str| {},
-            &mut |_: &str, _: &str| {},
-            &mut |_: &str| {},
-            &mut |_: &str, _: &ToolCallEvent| {},
-        )
-        .await
+            &mut accepted,
+            &mut text,
+            &mut reasoning,
+            &mut reasoning_end,
+            &mut tools,
+        );
+        tokio::pin!(child);
+        loop {
+            tokio::select! {
+                mut result = &mut child => {
+                    if let Ok(report) = &mut result {
+                        report.duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
+                        self.db.update_turn_display(&report.turn_id, &serde_json::json!({"duration_ms":report.duration_ms,"streamed_ms":report.streamed_ms,"usage":report.usage,"context_usage":report.context_usage}))?;
+                        let session = SessionId(session.into());
+                        let turn = WorkerTurnId(report.turn_id.clone());
+                        send(match report.status {
+                            TurnStatus::Completed => CoreEvent::TurnFinished { session, turn, text: report.text.clone(), duration_ms: report.duration_ms, warnings: report.warnings.clone() },
+                            TurnStatus::Cancelled | TurnStatus::Interrupted => CoreEvent::TurnInterrupted { session, turn, partial: report.text.clone(), duration_ms: report.duration_ms },
+                            _ => CoreEvent::TurnFailed { session, turn, error: oc_core::session::CoreError::Application("child turn failed".into()), warnings: report.warnings.clone() },
+                        });
+                    } else if let Some(id) = accepted_id.lock().expect("child acceptance lock").as_ref() {
+                        // Preserve the last durable checkpoint and settle the
+                        // child's own accepted turn; no effect is replayed.
+                        let (_, checkpoint) = self.db.turn_result(id)?;
+                        self.db.finish_turn(id, "failed", checkpoint.as_deref())?;
+                        send(CoreEvent::TurnFailed { session: SessionId(session.into()), turn: WorkerTurnId(id.into()), error: oc_core::session::CoreError::Application("child turn failed".into()), warnings: Vec::new() });
+                    }
+                    return result;
+                },
+                () = tokio::time::sleep(Duration::from_millis(5)) => {
+                    if cancel.load(Ordering::Acquire) {
+                        child_cancel.store(true, Ordering::Release);
+                    }
+                }
+            }
+        }
     }
 
     /// Ancestor depth of a session (root = 0, direct child = 1).
@@ -2850,7 +2937,44 @@ impl<'a> Runtime<'a> {
         let mut permission_rejected = false;
         let mut read_extra_bytes = 0usize;
         let mut read_visual_tokens = 0u64;
+        let mut child_end = 0;
         for (i, unit) in units.iter().enumerate() {
+            if i < child_end {
+                continue;
+            }
+            // Preserve ordinary tool ordering. Adjacent foreground delegations
+            // form a scoped concurrent group; the existing response call cap
+            // bounds admission, futures and same-child queues.
+            child_end = i + units[i..]
+                .iter()
+                .take_while(
+                    |unit| matches!(unit, Assembled::Call(call) if call.name == SUBAGENT_TOOL),
+                )
+                .count();
+            if child_end > i + 1 {
+                let (child_records, rejected) = self
+                    .execute_foreground_children(
+                        turn_id,
+                        session,
+                        &units[i..child_end],
+                        i,
+                        ctx,
+                        policy,
+                        cancel,
+                        round,
+                        turn_log,
+                        positioned,
+                        &call_positions[i..child_end],
+                        &stream_identities[i..child_end],
+                        tool_event,
+                        request_tools,
+                        permission_rejected,
+                    )
+                    .await?;
+                records.extend(child_records);
+                permission_rejected |= rejected;
+                continue;
+            }
             let (id, name, input) = match unit {
                 Assembled::Call(call) => (&call.id, call.name.as_str(), call.arguments.to_string()),
                 Assembled::Failed(failure) => (&failure.id, "unknown", "{}".to_string()),
