@@ -1,6 +1,8 @@
 //! AUD09/10/12/13: strict offline Responses qualification through actual oc processes.
 
 use std::io::{Read, Write};
+#[path = "support/context_ids.rs"]
+mod context_ids;
 use std::net::{TcpListener, TcpStream};
 use std::path::PathBuf;
 use std::process::{Child, Command, ExitStatus, Stdio};
@@ -172,7 +174,8 @@ impl Fixture {
             assert_ne!(n, 0);
             bytes.extend_from_slice(&chunk[..n]);
         }
-        let body: Value = serde_json::from_slice(&bytes[end..end + length]).expect("JSON");
+        let mut body: Value = serde_json::from_slice(&bytes[end..end + length]).expect("JSON");
+        context_ids::check_context_ids(&mut body);
         assert_eq!(body["model"], MODEL);
         assert_eq!(body["stream"], true);
         assert_eq!(body["store"], false);

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-03T22:19:07+00:00
+State updated: 2026-10-04T02:24:00+00:00
 Active: T45
 
 Сверить Git status/diff до выполнения команд.
@@ -13,13 +13,13 @@ Owner-approved R3/R6–R10; full contracts and ordered slices in spec/M8, histor
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-DCP percentage defaults and effective runtime/panel agreement verified.
+Frozen DCP controls/manual/commands/debug/source-cadence atomic verified.
 ## Checks
-1471/0/10 workspace; parent four owner checks, sixteen native cases, Python47, fmt/clippy/docs/progress/diff PASS.
+1483/0/10 full gate; parent 16 owner +20 normal-ELF cases, Python47, fmt/clippy/docs/progress/diff PASS; hashes unchanged.
 ## Risks
-Controls/child/donor3.2/task packs and whole T45 remain; T44 PAUSED, T27 allowance exhausted.
+Child/profile, donor3.2, selected packs and whole T45 remain. T44 PAUSED; T27 allowance exhausted.
 ## Next
-Qualify the next scoped DCP effective controls/manual/availability consumer.
+Continue the next approved isolated DCP/child or donor qualification slice.
 
 
 Ready (до 5): T53, T56

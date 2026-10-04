@@ -3349,6 +3349,16 @@ fn query(
                     .reminder_facts(&composition.catalog.provider, &selection, &budget)
                     .map_err(app_error)?;
                 Ok(DcpSnapshot {
+                    availability: runtime
+                        .compression_availability_for_profile(
+                            &session.0,
+                            selected
+                                .agent_id
+                                .as_ref()
+                                .and_then(|id| composition.agents.get(id))
+                                .map(|agent| (&agent.permissions, &agent.permission_rules)),
+                        )
+                        .map_err(runtime_error)?,
                     estimated_tokens_available: estimated_tokens.is_some(),
                     estimate_method: Default::default(),
                     accounting: accounting.clone(),
@@ -3614,19 +3624,37 @@ async fn worker(
                 },
             }
         };
-        // A manual compress request is a real turn: the model drives the
-        // compress tool exactly like an automatic nudge.
+        // Only this typed command creates an explicit bounded manual trigger.
+        // Refusal precedes Submit, turn acceptance and provider dispatch.
+        let mut manual_trigger = None;
         let message = match message {
             InboxMsg::Compress {
                 session,
                 focus,
                 ack,
-            } => InboxMsg::Submit {
-                session,
-                text: compress_prompt(&focus),
-                selection: None,
-                ack,
-            },
+            } => {
+                let admitted = (|| -> Result<_, CoreError> {
+                    let selected = selection::for_turn(db, composition, effective, &session.0)?;
+                    selected.admit_selection(composition)?;
+                    publish_workspace(runtime, composition, &selected).map_err(app_error)?;
+                    runtime
+                        .admit_manual_compression(&session.0)
+                        .map_err(app_error)
+                })();
+                match admitted {
+                    Ok(trigger) => manual_trigger = Some(trigger),
+                    Err(error) => {
+                        let _ = ack.send(Err(error));
+                        continue;
+                    }
+                }
+                InboxMsg::Submit {
+                    session,
+                    text: compress_prompt(&focus),
+                    selection: None,
+                    ack,
+                }
+            }
             other => other,
         };
         if let InboxMsg::ChangeConversation { session, .. } = &message {
@@ -4367,6 +4395,7 @@ async fn worker(
                             runtime
                                 .run_turn_with_reasoning_items_and_notice(
                                     params,
+                                    manual_trigger,
                                     on_accept,
                                     on_text,
                                     on_reasoning,
@@ -4591,6 +4620,9 @@ fn resolve_submission(
     };
     let split = command.find(char::is_whitespace).unwrap_or(command.len());
     let id = &command[..split];
+    if !composition.dcp_config.commands_enabled && matches!(id, "dcp" | "dcp-compress") {
+        return Err(RuntimeError::Compress("DCP commands disabled".into()));
+    }
     let Some(template) = composition.commands.get(id) else {
         return Ok((text, None));
     };
@@ -4609,6 +4641,10 @@ fn resolve_submission(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "application/dcp_controls_tests.rs"]
+mod dcp_controls_tests;
 
 #[cfg(test)]
 #[path = "application/mcp_tests.rs"]

@@ -6,6 +6,8 @@
 //! slave termios state — not render snapshots.
 
 use std::io::{Read, Write};
+#[path = "support/context_ids.rs"]
+mod context_ids;
 #[path = "support/terminal.rs"]
 mod terminal;
 #[path = "support/title.rs"]
@@ -227,7 +229,10 @@ fn read_request(socket: &mut TcpStream) -> serde_json::Value {
         assert_ne!(n, 0, "early body EOF");
         bytes.extend_from_slice(&chunk[..n]);
     }
-    serde_json::from_slice(&bytes[header_end..header_end + length]).expect("request JSON")
+    let mut body =
+        serde_json::from_slice(&bytes[header_end..header_end + length]).expect("request JSON");
+    context_ids::check_context_ids(&mut body);
+    body
 }
 
 fn respond(

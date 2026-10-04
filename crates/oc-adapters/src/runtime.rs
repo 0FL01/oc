@@ -21,7 +21,7 @@ use oc_core::context_plan::ProtectedSpec;
 use oc_core::session::{Message, MessageId, Role};
 
 use crate::config::{Generation, Permission};
-use crate::dcp_auto::{DcpConfig, DcpStats, NudgeState, evaluate};
+use crate::dcp_auto::{DcpConfig, DcpStats, NudgeState, evaluate_request};
 use crate::mcp_remote::{self, CodexWebClient, McpError};
 use crate::mcp_stdio::{StdioClient, StdioConfig, StdioError};
 use crate::models::{self, ModelCatalog};
@@ -881,6 +881,7 @@ struct RuntimeWorkspace {
 /// The primary lane mirrors the published workspace. A child lane replaces
 /// the agent prompt and narrows permissions with the child agent's rules.
 struct TurnLane {
+    manual_compression: bool,
     owning_operation: Option<String>,
     agent_id: Option<String>,
     agent_color_index: Option<usize>,
@@ -888,6 +889,12 @@ struct TurnLane {
     agent_digest: Option<String>,
     permissions: BTreeMap<String, Permission>,
     permission_rules: crate::permissions::PermissionRules,
+}
+
+/// Created only by the explicit application command owner, never prompt text.
+pub(crate) struct ManualCompressionTrigger {
+    session: String,
+    generation: u64,
 }
 
 /// One spawnable agent profile snapshotted for the `subagent` tool.
@@ -1308,10 +1315,11 @@ impl<'a> Runtime<'a> {
         &self,
         session: &str,
         call: &crate::tools::ToolCall,
+        request_available: bool,
     ) -> Result<crate::dcp::CompressionPlan, String> {
         let config = self.dcp_config.read().expect("dcp lock").clone();
-        if !config.enabled || config.manual_mode {
-            return Err("compress unavailable in disabled/manual DCP mode".into());
+        if !request_available {
+            return Err("compress excluded by issuing request".into());
         }
         let (_, ranges) =
             crate::dcp::validate_range_args(&call.arguments).map_err(|e| e.to_string())?;
@@ -1322,6 +1330,98 @@ impl<'a> Runtime<'a> {
             .clone();
         self.prepare_dcp_plan(session, &ranges, &spec, Some(&config))
             .map_err(|e| e.to_string())
+    }
+
+    pub(crate) fn compression_availability(
+        &self,
+        session: &str,
+    ) -> Result<oc_core::dcp_view::DcpAvailability, RuntimeError> {
+        let published = self.current.read().expect("generation lock").clone();
+        let lane = self.primary_lane(&published);
+        let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules);
+        self.compression_availability_with_policy(session, &policy)
+    }
+
+    /// Current query resolves the requested session's profile without rebinding
+    /// a prepared request or mutating the published execution workspace.
+    pub(crate) fn compression_availability_for_profile(
+        &self,
+        session: &str,
+        profile: Option<(
+            &BTreeMap<String, Permission>,
+            &crate::permissions::PermissionRules,
+        )>,
+    ) -> Result<oc_core::dcp_view::DcpAvailability, RuntimeError> {
+        let published = self.current.read().expect("generation lock").clone();
+        let mut rules = published.config.permission_rules.clone();
+        if let Some((permissions, profile_rules)) = profile {
+            rules.narrow(&published.config.permissions, permissions, profile_rules);
+        }
+        self.compression_availability_with_policy(
+            session,
+            &RuntimePolicy::with_rules(&published.config.permissions, &rules),
+        )
+    }
+
+    fn compression_availability_with_policy(
+        &self,
+        session: &str,
+        policy: &RuntimePolicy<'_>,
+    ) -> Result<oc_core::dcp_view::DcpAvailability, RuntimeError> {
+        let config = self.dcp_config.read().expect("dcp lock");
+        let permission = effective_compress_permission(&config, policy);
+        let child = self.db.session_meta(session)?.parent_id.is_some();
+        let ordinary_refusal = self.compression_refusal(&config, permission, child, false);
+        let manual_refusal = self.compression_refusal(&config, permission, child, true);
+        Ok(oc_core::dcp_view::DcpAvailability {
+            ordinary_refusal,
+            manual_refusal,
+        })
+    }
+
+    fn compression_refusal(
+        &self,
+        config: &DcpConfig,
+        permission: Permission,
+        child: bool,
+        explicit: bool,
+    ) -> Option<oc_core::dcp_view::DcpUnavailable> {
+        config
+            .compression_refusal(permission, child, explicit)
+            .or_else(|| {
+                (permission == Permission::Ask && !self.approvals.has_consumer())
+                    .then_some(oc_core::dcp_view::DcpUnavailable::ApprovalConsumerRequired)
+            })
+    }
+
+    pub(crate) fn admit_manual_compression(
+        &self,
+        session: &str,
+    ) -> Result<ManualCompressionTrigger, RuntimeError> {
+        self.open_session(session)?;
+        if !self.dcp_config.read().expect("dcp lock").commands_enabled {
+            return Err(RuntimeError::Compress(
+                oc_core::dcp_view::DcpUnavailable::CommandsOff
+                    .reason()
+                    .into(),
+            ));
+        }
+        if let Some(reason) = self.compression_availability(session)?.manual_refusal {
+            return Err(RuntimeError::Compress(reason.reason().into()));
+        }
+        Ok(ManualCompressionTrigger {
+            session: session.into(),
+            generation: self.generation_id(),
+        })
+    }
+
+    fn dcp_debug(&self, event: &'static str) {
+        if self.dcp_config.read().expect("dcp lock").debug {
+            crate::trace::log(
+                "dcp.debug",
+                &crate::dcp_auto::debug_line(event, &self.stats.lock().expect("stats lock")),
+            );
+        }
     }
 
     /// Owning Location.
@@ -1777,6 +1877,7 @@ impl<'a> Runtime<'a> {
     ) -> Result<TurnReport, RuntimeError> {
         self.run_turn_with_reasoning_items_and_notice(
             params,
+            None,
             |id, _| accepted(id),
             text_delta,
             reasoning_delta,
@@ -1792,6 +1893,7 @@ impl<'a> Runtime<'a> {
     pub(crate) async fn run_turn_with_reasoning_items_and_notice(
         &self,
         params: TurnParams<'_>,
+        manual: Option<ManualCompressionTrigger>,
         mut accepted: impl FnMut(&str, Option<&oc_core::queries::ModelSwitchNotice>) + Send,
         mut text_delta: impl FnMut(&str, &str) + Send,
         mut reasoning_delta: impl FnMut(&str, &str) + Send,
@@ -1802,7 +1904,21 @@ impl<'a> Runtime<'a> {
         let _lease = self.begin_active()?;
         self.admit_provider(params.catalog, &params.model_id, &params.provider)?;
         let published = self.current.read().expect("generation lock").clone();
-        let lane = self.primary_lane(&published);
+        let mut lane = self.primary_lane(&published);
+        if let Some(trigger) = manual {
+            if trigger.session != params.session || trigger.generation != published.id {
+                return Err(RuntimeError::Compress(
+                    "stale manual compression scope".into(),
+                ));
+            }
+            if let Some(reason) = self
+                .compression_availability(&params.session)?
+                .manual_refusal
+            {
+                return Err(RuntimeError::Compress(reason.reason().into()));
+            }
+            lane.manual_compression = true;
+        }
         let attached = self.request_mcp(params.cancel).await?;
         // request_mcp may replace a poisoned owner. Bind diagnostics only after
         // it has returned the exact immutable lease for this turn.
@@ -1954,6 +2070,7 @@ impl<'a> Runtime<'a> {
             &workspace.agent_permission_rules,
         );
         TurnLane {
+            manual_compression: false,
             owning_operation: None,
             agent_id: workspace.agent_id.clone(),
             agent_color_index: workspace.agent_color_index,
@@ -1975,6 +2092,14 @@ impl<'a> Runtime<'a> {
                 states.insert(key, state);
             }
         }
+    }
+}
+
+fn effective_compress_permission(config: &DcpConfig, policy: &RuntimePolicy<'_>) -> Permission {
+    let effective = policy.effect(COMPRESS_TOOL, "*");
+    match config.compress_permission {
+        Some(level) if turn::permission_rank(level) > turn::permission_rank(effective) => level,
+        _ => effective,
     }
 }
 

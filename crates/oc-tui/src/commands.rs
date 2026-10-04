@@ -116,6 +116,13 @@ pub struct CommandSpec {
 }
 
 impl CommandSpec {
+    pub fn registered(&self, dcp_commands: bool) -> bool {
+        dcp_commands
+            || !matches!(
+                self.action,
+                CommandAction::OpenDcp | CommandAction::DcpCompress { .. }
+            )
+    }
     /// Availability is shared by palette, slash and bindings, checked again on activation.
     pub fn unavailable(&self, busy: bool, has_variants: bool) -> Option<&'static str> {
         if busy

@@ -43,9 +43,11 @@ pub(crate) fn options(
     workspace: &[String],
     descriptions: &BTreeMap<String, String>,
     home: bool,
+    dcp_commands: bool,
 ) -> Vec<SlashOption> {
     let mut options: Vec<_> = commands::REGISTRY
         .iter()
+        .filter(|command| command.registered(dcp_commands))
         .flat_map(|command| {
             command.aliases.iter().map(move |name| SlashOption {
                 name: (*name).into(),
@@ -67,6 +69,9 @@ pub(crate) fn options(
     }
     let mut names: BTreeSet<String> = options.iter().map(|option| option.name.clone()).collect();
     for name in workspace {
+        if !dcp_commands && matches!(name.as_str(), "dcp" | "dcp-compress") {
+            continue;
+        }
         // A colliding alias dispatches to the built-in in the existing composer.
         // Never advertise the same spelling as a separately executable action.
         if names.insert(name.clone()) {

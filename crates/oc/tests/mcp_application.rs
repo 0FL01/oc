@@ -2550,7 +2550,11 @@ fn pending_initialize_raw_pty(manual_compress: bool, unicode_edit: bool) {
         json!({"stall": {
             "type":"local", "command":[server], "enabled":true, "timeout":10000
         }}),
-        json!({}),
+        if manual_compress {
+            json!({"compress":"allow"})
+        } else {
+            json!({})
+        },
     );
     let mut tui = PtyProcess::spawn(&fixture, "v01-pending");
     wait_dirty_catalog(&mut tui, &log);

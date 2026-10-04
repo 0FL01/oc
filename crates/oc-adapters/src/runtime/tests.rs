@@ -15,6 +15,9 @@ mod identity_tests {
     }
 }
 
+#[path = "controls_tests.rs"]
+mod controls_tests;
+
 #[cfg(test)]
 mod vis38_review_tests {
     use super::*;

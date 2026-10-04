@@ -6,7 +6,7 @@ use super::*;
 const SUBAGENT_DEPTH_WALK_CAP: u32 = 64;
 
 /// Permission strictness rank (`Deny > Ask > Allow`).
-fn permission_rank(level: Permission) -> u8 {
+pub(super) fn permission_rank(level: Permission) -> u8 {
     match level {
         Permission::Allow => 0,
         Permission::Ask => 1,
@@ -579,6 +579,7 @@ impl<'a> Runtime<'a> {
         cancel: &AtomicBool,
         agent: Option<String>,
         agent_digest: Option<String>,
+        compress_available: bool,
     ) -> Result<RuntimePolicy<'p>, AdmissionFailure> {
         use oc_core::approval::*;
         let raw = crate::tools::permission_resources(call).map_err(|e| e.to_string())?;
@@ -595,10 +596,13 @@ impl<'a> Runtime<'a> {
                 }
             })
             .collect();
-        if resources
-            .iter()
-            .any(|r| policy.effect(&call.name, r) == Permission::Deny)
-        {
+        let compression_permission = (call.name == COMPRESS_TOOL).then(|| {
+            effective_compress_permission(&self.dcp_config.read().expect("dcp lock"), policy)
+        });
+        let effect = |resource: &str| {
+            compression_permission.unwrap_or_else(|| policy.effect(&call.name, resource))
+        };
+        if resources.iter().any(|r| effect(r) == Permission::Deny) {
             return Err(format!("denied {}", call.name).into());
         }
         let mut permitted = policy.clone();
@@ -624,14 +628,11 @@ impl<'a> Runtime<'a> {
             })?;
         }
         let compression_plan = if call.name == COMPRESS_TOOL {
-            Some(self.preflight_compression(session, call)?)
+            Some(self.preflight_compression(session, call, compress_available)?)
         } else {
             None
         };
-        if resources
-            .iter()
-            .all(|r| policy.effect(&call.name, r) == Permission::Allow)
-        {
+        if resources.iter().all(|r| effect(r) == Permission::Allow) {
             if matches!(call.name.as_str(), "shell" | "bash" | "edit" | "write")
                 || compression_plan.is_some()
             {
@@ -657,7 +658,7 @@ impl<'a> Runtime<'a> {
             crate::approval::grant_resources(&self.roots.project, &call.name, &resources);
         let mut saved = true;
         for (resource, granted) in resources.iter().zip(&grant_resources) {
-            if policy.effect(&call.name, resource) != Permission::Allow
+            if effect(resource) != Permission::Allow
                 && !self
                     .db
                     .permission_grant_matches(
@@ -747,7 +748,8 @@ impl<'a> Runtime<'a> {
             return Err("approval prerequisites changed".into());
         }
         if compression_plan.is_some()
-            && compression_plan.as_ref() != Some(&self.preflight_compression(session, call)?)
+            && compression_plan.as_ref()
+                != Some(&self.preflight_compression(session, call, compress_available)?)
         {
             return Err("approval compression plan changed".into());
         }
@@ -903,11 +905,24 @@ impl<'a> Runtime<'a> {
             (projected, history, Some((after_seq, blocks)))
         };
         let dcp_config = self.dcp_config.read().expect("dcp lock").clone();
-        let compress_available = dcp_config.enabled
-            && !dcp_config.manual_mode
-            && RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules)
-                .effect(COMPRESS_TOOL, "*")
-                != Permission::Deny;
+        let compression_policy =
+            RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules);
+        // Fresh acceptance has not created the root yet. A missing row here
+        // is handled by the existing atomic acceptance owner below.
+        let child_session = match self.db.session_meta(&params.session) {
+            Ok(meta) => meta.parent_id.is_some(),
+            Err(StorageError::SessionNotFound) => false,
+            Err(error) => return Err(error.into()),
+        };
+        let compress_available = self
+            .compression_refusal(
+                &dcp_config,
+                effective_compress_permission(&dcp_config, &compression_policy),
+                lane.owning_operation.is_some() || child_session,
+                lane.manual_compression,
+            )
+            .is_none();
+        self.dcp_debug("request.prepare");
         dcp_config
             .reminder_facts(&params.catalog.provider, &selection, budget)
             .map_err(|error| RuntimeError::InvalidArgs(error.to_string()))?;
@@ -973,6 +988,9 @@ impl<'a> Runtime<'a> {
             tool_defs.retain(|tool| tool.name != COMPRESS_TOOL);
         }
         fixed_input.extend(file_tool_guidance(&tool_defs));
+        if compress_available && lane.manual_compression {
+            fixed_input.push(InputItem::message(InputRole::Developer, "Explicit manual DCP compression admitted for this turn only. Use the compress tool on eligible closed anchors, then finish this bounded compression request."));
+        }
         let subagents = workspace.subagents.clone();
         if let Some(catalog) = &subagents
             && policy.tool_visible(SUBAGENT_TOOL)
@@ -1110,13 +1128,11 @@ impl<'a> Runtime<'a> {
         };
         accepted(&turn_id, accepted_turn.model_switch.as_ref());
         let user_message = accepted_turn.user_message;
-        let mut anchors = compress_available
-            .then(|| {
-                let mut rows = projected.clone();
-                rows.push((user_message.clone(), "user".into(), String::new()));
-                dcp_config_input(&rows, &dcp_config)
-            })
-            .flatten();
+        let mut anchors = {
+            let mut rows = projected.clone();
+            rows.push((user_message.clone(), "user".into(), String::new()));
+            dcp_config_input(&rows, &dcp_config, compress_available)
+        };
         let snapshot = workspace.skills;
         // Children retain the parent's exact admitted MCP capability view.
         let primary_request = self.db.session_meta(&params.session)?.parent_id.is_none();
@@ -1333,6 +1349,9 @@ impl<'a> Runtime<'a> {
                 tool_defs.retain(|tool| tool.name != COMPRESS_TOOL);
             }
             fixed_input.extend(file_tool_guidance(&tool_defs));
+            if compress_available && lane.manual_compression {
+                fixed_input.push(InputItem::message(InputRole::Developer, "Explicit manual DCP compression admitted for this turn only. Use the compress tool on eligible closed anchors, then finish this bounded compression request."));
+            }
             if let Some(catalog) = &subagents
                 && policy.tool_visible(SUBAGENT_TOOL)
             {
@@ -1548,15 +1567,18 @@ impl<'a> Runtime<'a> {
                 tool_projection = self
                     .db
                     .dcp_tool_projection_for_input(&params.session, &raw_context)?;
-                anchors = compress_available
-                    .then(|| dcp_config_input(&projected, &dcp_config))
-                    .flatten();
+                anchors = dcp_config_input(&projected, &dcp_config, compress_available);
                 // Summary work may have waited while a busy selection committed.
                 // Rebuild the next primary through the same admission boundary.
                 continue 'step;
             }
             // Compaction re-evaluation is the same logical primary iteration,
             // not another nudge tick. Finite pre-output retries share it too.
+            let cadence_messages = if compress_available && !lane.manual_compression {
+                self.dcp_cadence_messages(&params.session, &projected, &turn_log)?
+            } else {
+                Vec::new()
+            };
             let (nudge, persisted_nudge) = {
                 let estimate = estimate_tokens(
                     &serde_json::to_string(&(
@@ -1567,19 +1589,20 @@ impl<'a> Runtime<'a> {
                 );
                 let mut states = self.nudge_state.lock().expect("nudge lock");
                 let state = states.entry(state_key.clone()).or_default();
-                let nudge = if compress_available {
+                let nudge = if compress_available && !lane.manual_compression {
                     let iteration = (rounds, state_key.clone());
                     if last_nudged_iteration.as_ref() != Some(&iteration) {
                         state.on_turn();
                         last_nudged_iteration = Some(iteration);
                     }
-                    evaluate(
+                    evaluate_request(
                         &dcp_config,
                         state,
                         dcp_model_key,
                         model_context,
                         estimate,
                         active_summary_tokens(&projected),
+                        &cadence_messages,
                     )
                 } else {
                     None
@@ -2093,9 +2116,11 @@ impl<'a> Runtime<'a> {
                                         &params.session,
                                         &raw_context,
                                     )?;
-                                    anchors = compress_available
-                                        .then(|| dcp_config_input(&projected, &dcp_config))
-                                        .flatten();
+                                    anchors = dcp_config_input(
+                                        &projected,
+                                        &dcp_config,
+                                        compress_available,
+                                    );
                                     turn_log.input.push(InputItem::message(InputRole::Developer,
                                     "The previous response was interrupted. Continue from where you left off without repeating completed content."));
                                     // Preserve the pending continuation span even
@@ -2501,9 +2526,7 @@ impl<'a> Runtime<'a> {
                     lane.agent_digest.as_deref(),
                     refreshed.after_seq,
                 )?;
-                anchors = compress_available
-                    .then(|| dcp_config_input(&projected, &dcp_config))
-                    .flatten();
+                anchors = dcp_config_input(&projected, &dcp_config, compress_available);
             }
             closed_boundary = Some((turn_log.closed_counts(), shell_notice_seq));
             if !units_have_calls(&units) {
@@ -2569,6 +2592,7 @@ impl<'a> Runtime<'a> {
                 .or_insert(*level);
         }
         let lane = TurnLane {
+            manual_compression: false,
             owning_operation: Some(owning_operation.into()),
             agent_id: Some(agent.id.clone()),
             agent_color_index: workspace
@@ -2942,6 +2966,7 @@ impl<'a> Runtime<'a> {
                                         cancel,
                                         turn_log.display["agent"].as_str().map(str::to_string),
                                         turn_log.agent_digest.clone(),
+                                        request_tools.iter().any(|tool| tool.name == COMPRESS_TOOL),
                                     )
                                     .await
                                 {
@@ -2984,6 +3009,7 @@ impl<'a> Runtime<'a> {
                         cancel,
                         turn_log.display["agent"].as_str().map(str::to_string),
                         turn_log.agent_digest.clone(),
+                        request_tools.iter().any(|tool| tool.name == COMPRESS_TOOL),
                     )
                     .await
                 }
@@ -3060,14 +3086,12 @@ impl<'a> Runtime<'a> {
                     ))
                 }
                 Assembled::Call(call)
-                    if call.name == COMPRESS_TOOL && {
-                        let config = self.dcp_config.read().expect("dcp lock");
-                        !config.enabled || config.manual_mode
-                    } =>
+                    if call.name == COMPRESS_TOOL
+                        && !request_tools.iter().any(|tool| tool.name == COMPRESS_TOOL) =>
                 {
                     Some((
                         "failed",
-                        "error: compress unavailable in disabled/manual DCP mode".to_string(),
+                        "error: compress excluded by issuing request".to_string(),
                     ))
                 }
                 Assembled::Call(_) if matches!(&admission, Err(AdmissionFailure::Rejected(_))) => {
@@ -3356,6 +3380,7 @@ impl<'a> Runtime<'a> {
                             .expect("nudge lock")
                             .insert(nudge_key.to_string(), next_nudge);
                         self.stats.lock().expect("stats lock").compressions += 1;
+                        self.dcp_debug("compress.committed");
                         records.push(CallRecord {
                             name: name.to_string(),
                             state: "completed".to_string(),

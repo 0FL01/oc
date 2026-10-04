@@ -7,6 +7,8 @@
 //! the opt-in view-metrics probe — never render snapshots alone.
 
 use std::io::{Read, Write};
+#[path = "support/context_ids.rs"]
+mod context_ids;
 #[path = "support/screen.rs"]
 mod tui_screen;
 use tui_screen::render_screen;
@@ -438,7 +440,10 @@ fn read_request(
         }
         bytes.extend_from_slice(&chunk[..n]);
     }
-    Some(serde_json::from_slice(&bytes[header_end..header_end + length]).expect("request JSON"))
+    let mut body =
+        serde_json::from_slice(&bytes[header_end..header_end + length]).expect("request JSON");
+    context_ids::check_context_ids(&mut body);
+    Some(body)
 }
 
 fn respond(

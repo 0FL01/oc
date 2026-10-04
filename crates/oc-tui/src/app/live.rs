@@ -453,6 +453,11 @@ impl TuiState {
     /// Apply a catalog snapshot: picker, agents and the effective selection.
     pub fn apply_catalog(&mut self, snapshot: CatalogSnapshot) {
         self.invalidate_transcript();
+        if self.active_agent.as_deref() != snapshot.agent_id.as_deref() {
+            // A cached refusal belongs to its queried profile. Defer admission
+            // to the owner until the replacement profile's current query arrives.
+            self.dcp.invalidate_availability();
+        }
         if self.chrome.conversation_shortcuts.leader
             != snapshot.chrome.conversation_shortcuts.leader
             || self.chrome.leader_timeout_ms() != snapshot.chrome.leader_timeout_ms()
@@ -832,6 +837,16 @@ impl TuiState {
     pub fn request_compress(&mut self, focus: String) -> Result<(), CoreError> {
         if self.is_busy() {
             return Err(CoreError::TurnBusy);
+        }
+        if !self.chrome.dcp.commands_enabled {
+            return Err(CoreError::Application(
+                oc_core::dcp_view::DcpUnavailable::CommandsOff
+                    .reason()
+                    .into(),
+            ));
+        }
+        if let Some(reason) = self.dcp.manual_refusal() {
+            return Err(CoreError::Application(reason.reason().into()));
         }
         let session = self.session.clone().ok_or(CoreError::SessionNotFound)?;
         let receipt = self.app.request_compress(session.clone(), focus)?;

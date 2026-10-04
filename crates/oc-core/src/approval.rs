@@ -83,6 +83,9 @@ struct State {
 pub struct ApprovalQueue(Mutex<State>);
 
 impl ApprovalQueue {
+    pub fn has_consumer(&self) -> bool {
+        self.0.lock().expect("approval lock").consumer
+    }
     pub fn register_consumer(&self, auto_once: bool) {
         let mut state = self.0.lock().expect("approval lock");
         state.consumer = true;

@@ -18,6 +18,9 @@ use oc_core::queries::{
     ServiceDiagnostic, ServiceKind, ServiceStage, StartupNotice,
 };
 mod catalog;
+
+#[cfg(test)]
+mod controls_tests;
 mod provider_readiness;
 pub use catalog::{CatalogListing, load_catalog};
 pub(crate) use provider_readiness::ProviderState;
@@ -455,7 +458,11 @@ fn admit_dcp(
                 ServiceAction::ReviewConfiguration,
             );
             match error {
-                dcp_auto::DcpAutoError::InvalidConfig { .. } => {}
+                dcp_auto::DcpAutoError::InvalidConfig { reason } => {
+                    if reason == "compress.enabled must be boolean" {
+                        diagnostic.field = vec!["dcp".into(), "compress".into(), "enabled".into()];
+                    }
+                }
                 dcp_auto::DcpAutoError::UnsupportedOption { .. } => {
                     diagnostic.stage = ServiceStage::Capability;
                     diagnostic.code = ServiceCode::UnsupportedCapability;
@@ -1072,10 +1079,14 @@ async fn load_stages(
     let dcp_notes: Vec<_> = dcp_warnings
         .iter()
         .take(64)
-        .map(|_| {
+        .map(|warning| {
             config::diagnostic::failure(
                 &dcp_source,
-                &["dcp"],
+                if warning == "unknown dcp key: compress.entry" {
+                    &["dcp", "compress", "entry"]
+                } else {
+                    &["dcp"]
+                },
                 ServiceStage::Config,
                 ServiceCode::IgnoredSetting,
                 ServiceAction::ReviewConfiguration,
@@ -1195,6 +1206,7 @@ async fn load_stages(
                 oc_core::dcp_view::DcpNotificationChannel::Chat
             },
             show_compression: dcp_config.show_compression,
+            commands_enabled: dcp_config.commands_enabled,
         },
         config_diagnostics: generation
             .config_diagnostics

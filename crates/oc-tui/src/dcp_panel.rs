@@ -51,6 +51,12 @@ pub struct DcpPanelState {
 }
 
 impl DcpPanelState {
+    pub(crate) fn invalidate_availability(&mut self) {
+        self.snapshot.availability = Default::default();
+    }
+    pub(crate) fn manual_refusal(&self) -> Option<oc_core::dcp_view::DcpUnavailable> {
+        self.snapshot.availability.manual_refusal
+    }
     /// Refresh the snapshot from runtime counters.
     pub fn set_snapshot(&mut self, snapshot: DcpContextSnapshot) {
         self.snapshot = snapshot;
@@ -59,6 +65,9 @@ impl DcpPanelState {
     /// Record a manual compress request; the focus becomes a bounded
     /// instruction, never executed here.
     pub fn request_compress(&mut self, focus: &str) -> Result<(), String> {
+        if let Some(reason) = self.manual_refusal() {
+            return Err(reason.reason().into());
+        }
         let focus = focus.trim();
         if focus.len() > FOCUS_MAX {
             return Err(format!("focus too long (max {FOCUS_MAX} bytes)"));
@@ -130,6 +139,17 @@ impl DcpPanelState {
                 snapshot.blocks, snapshot.compressions, snapshot.nudges, snapshot.prunes
             ),
         ];
+        rows.push(format!(
+            "compression: {} | manual: {}",
+            snapshot
+                .availability
+                .ordinary_refusal
+                .map_or("available", |reason| reason.reason()),
+            snapshot
+                .availability
+                .manual_refusal
+                .map_or("available", |reason| reason.reason())
+        ));
         if let Some(facts) = &snapshot.reminders {
             rows.push(format!(
                 "reminders min {} | max {} tokens | summary buffer {}",
@@ -223,6 +243,7 @@ mod tests {
     fn state() -> DcpPanelState {
         let mut panel = DcpPanelState::default();
         panel.set_snapshot(DcpContextSnapshot {
+            availability: Default::default(),
             estimated_tokens_available: true,
             estimate_method: Default::default(),
             accounting: None,

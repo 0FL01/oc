@@ -1280,6 +1280,7 @@ pub struct DcpReminderFacts {
 /// DCP context/stats snapshot (counts only, no transcript).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DcpSnapshot {
+    pub availability: crate::dcp_view::DcpAvailability,
     /// False if the bounded active projection cannot be hydrated. Numeric zero
     /// then denotes unavailable, never a fabricated UTF-8/serialized estimate.
     pub estimated_tokens_available: bool,

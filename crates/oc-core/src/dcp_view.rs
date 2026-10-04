@@ -36,11 +36,60 @@ pub enum DcpNotificationChannel {
 }
 
 /// Independent presentation controls, projected by the composition owner.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DcpDisplayConfig {
     pub notification: DcpNotificationMode,
     pub channel: DcpNotificationChannel,
     pub show_compression: bool,
+    #[serde(default = "commands_default")]
+    pub commands_enabled: bool,
+}
+
+fn commands_default() -> bool {
+    true
+}
+
+impl Default for DcpDisplayConfig {
+    fn default() -> Self {
+        Self {
+            notification: Default::default(),
+            channel: Default::default(),
+            show_compression: false,
+            commands_enabled: true,
+        }
+    }
+}
+
+/// Safe availability facts shared by runtime admission and current queries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DcpUnavailable {
+    GlobalOff,
+    CompressOff,
+    Denied,
+    ChildOptOut,
+    ManualOnly,
+    ApprovalConsumerRequired,
+    CommandsOff,
+}
+
+impl DcpUnavailable {
+    pub fn reason(self) -> &'static str {
+        match self {
+            Self::GlobalOff => "DCP disabled",
+            Self::CompressOff => "compression disabled",
+            Self::Denied => "compression denied by effective permission",
+            Self::ChildOptOut => "child compression unavailable",
+            Self::ManualOnly => "explicit manual compression required",
+            Self::ApprovalConsumerRequired => "compression approval requires a consumer",
+            Self::CommandsOff => "DCP commands disabled",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct DcpAvailability {
+    pub ordinary_refusal: Option<DcpUnavailable>,
+    pub manual_refusal: Option<DcpUnavailable>,
 }
 
 /// Measured accounting in this session's current conversation revision.

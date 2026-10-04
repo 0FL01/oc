@@ -1842,7 +1842,9 @@ async fn handle_event(
     loop_state: &mut LoopState,
     cev: CEvent,
 ) -> Result<(), String> {
-    handle_event_ticks(app, state, loop_state, cev, 1).await
+    // Repeated event awaits must not embed a full controller future per event
+    // in the test caller's stack frame as captured query metadata grows.
+    Box::pin(handle_event_ticks(app, state, loop_state, cev, 1)).await
 }
 
 async fn handle_event_ticks(

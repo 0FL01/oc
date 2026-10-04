@@ -1,6 +1,8 @@
 //! Actual-binary configuration and application wiring regression (AUD01).
 
 use std::io::{Read, Write};
+#[path = "support/context_ids.rs"]
+mod context_ids;
 use std::net::TcpListener;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
@@ -163,8 +165,9 @@ fn configured_responses_request(unknown_limits: bool, title: Option<TitleFixture
                 assert_ne!(n, 0);
                 bytes.extend_from_slice(&chunk[..n]);
             }
-            let body: serde_json::Value =
+            let mut body: serde_json::Value =
                 serde_json::from_slice(&bytes[header_end..]).expect("json");
+            context_ids::check_context_ids(&mut body);
             assert!(headers.starts_with("POST /proxy/v1/responses HTTP/1.1\r\n"));
             assert!(
                 headers

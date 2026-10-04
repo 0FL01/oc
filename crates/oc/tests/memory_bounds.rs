@@ -16,6 +16,8 @@
 //! was chosen before the first measurement and is not adjusted afterwards.
 
 use std::io::{BufRead, BufReader, Read, Write};
+#[path = "support/context_ids.rs"]
+mod context_ids;
 use std::net::TcpListener;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -96,7 +98,8 @@ impl Peer {
                         if content_length > 0 && reader.read_exact(&mut body).is_err() {
                             continue;
                         }
-                        if let Ok(value) = serde_json::from_slice::<serde_json::Value>(&body) {
+                        if let Ok(mut value) = serde_json::from_slice::<serde_json::Value>(&body) {
+                            context_ids::check_context_ids(&mut value);
                             captured.lock().expect("requests").push(value);
                         }
                         let payload = sse_delta("done") + &sse_completed();

@@ -17,6 +17,14 @@ use crate::config::Permission;
 #[path = "dcp_auto/defaults_tests.rs"]
 mod defaults_tests;
 
+#[cfg(test)]
+#[path = "dcp_auto/controls_tests.rs"]
+mod controls_tests;
+
+#[cfg(test)]
+#[path = "dcp_auto/cadence_tests.rs"]
+mod cadence_tests;
+
 /// Owner-approved native minimum percentage, in basis points (not donor parity).
 pub const DEFAULT_MIN_CONTEXT_PERCENT: u32 = 4_000;
 /// Owner-approved native upper reminder percentage, in basis points.
@@ -84,6 +92,8 @@ pub struct ModelOverride {
 pub struct DcpConfig {
     /// Master switch.
     pub enabled: bool,
+    /// Native hard switch for all new compression operations.
+    pub compress_enabled: bool,
     /// Compression-specific central permission override.
     pub compress_permission: Option<Permission>,
     /// Soft min-context threshold.
@@ -146,6 +156,7 @@ impl Default for DcpConfig {
     fn default() -> Self {
         Self {
             enabled: true,
+            compress_enabled: true,
             compress_permission: None,
             min_context: 1,
             min_context_percent: Some(DEFAULT_MIN_CONTEXT_PERCENT),
@@ -421,6 +432,35 @@ pub fn load_config(fragment: &serde_json::Value) -> Result<(DcpConfig, Vec<Strin
         let compress = compress
             .as_object()
             .ok_or_else(|| invalid("compress must be an object"))?;
+        const COMPRESS_KEYS: &[&str] = &[
+            "enabled",
+            "mode",
+            "permission",
+            "summaryBuffer",
+            "showCompression",
+            "minContextLimit",
+            "maxContextLimit",
+            "nudgeFrequency",
+            "iterationNudgeThreshold",
+            "nudgeForce",
+            "protectTags",
+            "protectUserMessages",
+            "protectedTools",
+            "modelOverrides",
+            "modelMinLimits",
+            "modelMaxLimits",
+        ];
+        for key in compress.keys() {
+            if !COMPRESS_KEYS.contains(&key.as_str()) {
+                // Unknown names themselves can contain secrets or paths.
+                warnings.push("unknown dcp key: compress.entry".into());
+            }
+        }
+        if let Some(value) = compress.get("enabled") {
+            config.compress_enabled = value
+                .as_bool()
+                .ok_or_else(|| invalid("compress.enabled must be boolean"))?;
+        }
         if compress
             .get("mode")
             .and_then(|v| v.as_str())
@@ -654,6 +694,28 @@ pub struct EffectiveThresholds {
 }
 
 impl DcpConfig {
+    /// One compression gate. Explicit admission only relaxes ordinary manual mode.
+    pub fn compression_refusal(
+        &self,
+        permission: Permission,
+        child: bool,
+        explicit: bool,
+    ) -> Option<oc_core::dcp_view::DcpUnavailable> {
+        use oc_core::dcp_view::DcpUnavailable::*;
+        if !self.enabled {
+            Some(GlobalOff)
+        } else if !self.compress_enabled {
+            Some(CompressOff)
+        } else if permission == Permission::Deny {
+            Some(Denied)
+        } else if child {
+            Some(ChildOptOut)
+        } else if self.manual_mode && !explicit {
+            Some(ManualOnly)
+        } else {
+            None
+        }
+    }
     /// Shared runtime/query resolution using the existing selected model budget.
     /// Invalid effective combinations fail before request/tool effects.
     pub fn reminder_facts(
@@ -732,6 +794,17 @@ pub struct NudgeState {
     pub last_reminder: Option<u64>,
     /// Emitted reminders (for the no-accumulation test hook).
     pub emitted: u64,
+    /// Latest still-visible anchor in each lane, never an archive-sized set.
+    #[serde(default)]
+    pub(crate) cadence: CadenceState,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct CadenceState {
+    context: Option<String>,
+    turn: Option<String>,
+    iteration: Option<String>,
+    cooldown: bool,
 }
 
 impl NudgeState {
@@ -748,6 +821,10 @@ impl NudgeState {
         // Start a real cadence cooldown at the compression iteration instead
         // of immediately emitting another reminder on the next request.
         self.last_reminder = Some(0);
+        self.cadence = CadenceState {
+            cooldown: true,
+            ..Default::default()
+        };
     }
 }
 
@@ -760,9 +837,9 @@ pub struct Nudge {
     pub text: String,
 }
 
-/// Evaluate the reminder: fires while the estimate exceeds the max threshold
-/// and the cadence elapsed; manual mode and disabled configs stay silent.
-/// Each emission is transient — projections never accumulate copies.
+/// Counter-only compatibility hook. Request execution uses `evaluate_request`
+/// with captured visible-message identities; this hook retains its existing
+/// caller contract and shares the numerical threshold/reminder formatter.
 pub fn evaluate(
     config: &DcpConfig,
     state: &mut NudgeState,
@@ -771,7 +848,14 @@ pub fn evaluate(
     estimated_tokens: u64,
     active_summary_tokens: u64,
 ) -> Option<Nudge> {
-    if !config.enabled || config.manual_mode {
+    if config
+        .compression_refusal(
+            config.compress_permission.unwrap_or(Permission::Allow),
+            false,
+            false,
+        )
+        .is_some()
+    {
         return None;
     }
     let thresholds = config.effective_for_context(model, model_context);
@@ -795,9 +879,25 @@ pub fn evaluate(
     } else {
         config.nudge_force
     };
+    Some(reminder(
+        state,
+        thresholds,
+        estimated_tokens,
+        over_max,
+        force,
+    ))
+}
+
+fn reminder(
+    state: &mut NudgeState,
+    thresholds: EffectiveThresholds,
+    estimated_tokens: u64,
+    over_max: bool,
+    force: NudgeForce,
+) -> Nudge {
     state.last_reminder = Some(state.iteration);
     state.emitted += 1;
-    Some(Nudge {
+    Nudge {
         force,
         text: if over_max {
             format!(
@@ -810,7 +910,113 @@ pub fn evaluate(
                 thresholds.min_context
             )
         },
-    })
+    }
+}
+
+/// Request cadence derived from Opencode-DCP's inject/{inject,utils}.ts,
+/// revision 11f6517780a502512a3467645074be447cb0369e, AGPL-3.0-or-later.
+/// Complete license: evidence/tui/recovery-v00/dcp-oracle20260928-native01/sources/LICENSE.
+/// Native reminders remain transient developer inputs, with successful-only
+/// request cooldown. `messages` is retained visible user/assistant order, not
+/// tool-call/result count, physical retries, session totals or archived spans.
+pub(crate) fn evaluate_request(
+    config: &DcpConfig,
+    state: &mut NudgeState,
+    model: &str,
+    model_context: u64,
+    estimated_tokens: u64,
+    active_summary_tokens: u64,
+    messages: &[(String, bool)],
+) -> Option<Nudge> {
+    if config
+        .compression_refusal(
+            config.compress_permission.unwrap_or(Permission::Allow),
+            false,
+            false,
+        )
+        .is_some()
+    {
+        return None;
+    }
+    for anchor in [
+        &mut state.cadence.context,
+        &mut state.cadence.turn,
+        &mut state.cadence.iteration,
+    ] {
+        if anchor
+            .as_ref()
+            .is_some_and(|id| !messages.iter().any(|m| &m.0 == id))
+        {
+            *anchor = None;
+        }
+    }
+    let thresholds = config.effective_for_context(model, model_context);
+    if estimated_tokens < thresholds.min_context {
+        state.cadence.turn = None;
+        state.cadence.iteration = None;
+        return None;
+    }
+    // Pre-controls durable records express successful cooldown as last=0;
+    // preserve that boundary when the new optional cadence field is absent.
+    if state.cadence.cooldown || state.last_reminder == Some(0) {
+        if state.iteration < thresholds.nudge_frequency {
+            return None;
+        }
+        state.cadence.cooldown = false;
+    }
+    let (last_id, last_user) = messages.last()?;
+    let last_index = messages.len() - 1;
+    let add_anchor = |anchor: &mut Option<String>| {
+        let latest = anchor
+            .as_ref()
+            .and_then(|id| messages.iter().rposition(|m| &m.0 == id));
+        if latest.is_none_or(|index| {
+            last_index.saturating_sub(index) as u64 >= thresholds.nudge_frequency
+        }) {
+            *anchor = Some(last_id.clone());
+            true
+        } else {
+            false
+        }
+    };
+    let over_max = estimated_tokens.saturating_sub(if config.summary_buffer {
+        active_summary_tokens
+    } else {
+        0
+    }) > thresholds.max_context;
+    let (force, lane) = if over_max {
+        if !add_anchor(&mut state.cadence.context) {
+            return None;
+        }
+        (NudgeForce::Hard, "context-limit")
+    } else if *last_user && messages.iter().any(|m| !m.1) {
+        if state.cadence.turn.as_ref() == Some(last_id) {
+            return None;
+        }
+        state.cadence.turn = Some(last_id.clone());
+        // Donor adds both user and previous assistant anchors; soft selects the
+        // assistant and strong selects the user. Native developer placement does
+        // not alter either original body or accumulate repeated copies.
+        (
+            config.nudge_force,
+            if config.nudge_force == NudgeForce::Soft {
+                "last-user/assistant"
+            } else {
+                "last-user/user"
+            },
+        )
+    } else {
+        let last_user_index = messages.iter().rposition(|m| m.1)?;
+        if (last_index.saturating_sub(last_user_index) as u64) < config.iteration_threshold
+            || !add_anchor(&mut state.cadence.iteration)
+        {
+            return None;
+        }
+        (NudgeForce::Hard, "last-user/iteration")
+    };
+    let mut nudge = reminder(state, thresholds, estimated_tokens, over_max, force);
+    nudge.text = format!("{lane} reminder: {}", nudge.text);
+    Some(nudge)
 }
 
 /// Tool-call record for compress-time strategies.

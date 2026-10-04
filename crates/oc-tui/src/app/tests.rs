@@ -246,6 +246,7 @@ fn paint_selection_fixture(state: &mut TuiState, frame: Rect, needle: &str) -> (
     (rect.x + column as u16, rect.y + row as u16)
 }
 
+mod dcp_controls;
 mod input;
 mod lifecycle;
 mod model_selection;

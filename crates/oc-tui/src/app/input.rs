@@ -91,7 +91,10 @@ impl TuiState {
                     crate::commands::REGISTRY
                         .iter()
                         .filter(|c| {
-                            c.in_palette(self.picker.as_ref().is_some_and(|p| p.has_variants()))
+                            c.registered(self.chrome.dcp.commands_enabled)
+                                && c.in_palette(
+                                    self.picker.as_ref().is_some_and(|p| p.has_variants()),
+                                )
                                 && (c.action != CommandAction::CloseTab || !self.tabs.is_empty())
                                 && (!matches!(c.action, CommandAction::RenameSession { .. })
                                     || self.command_unavailable(&c.action).is_none())
@@ -303,6 +306,14 @@ impl TuiState {
     }
 
     pub fn command_unavailable(&self, action: &CommandAction) -> Option<&'static str> {
+        if !crate::commands::spec(action).registered(self.chrome.dcp.commands_enabled) {
+            return Some("DCP commands disabled");
+        }
+        if matches!(action, CommandAction::DcpCompress { .. })
+            && let Some(reason) = self.dcp.manual_refusal()
+        {
+            return Some(reason.reason());
+        }
         if matches!(
             action,
             CommandAction::UndoConversation | CommandAction::RedoConversation
@@ -819,6 +830,7 @@ impl TuiState {
             &self.commands,
             &self.command_descriptions,
             self.home,
+            self.chrome.dcp.commands_enabled,
         ))
     }
 
@@ -3153,6 +3165,13 @@ impl TuiState {
                 }
             }
             TuiPanel::Dcp => {
+                if !self.chrome.dcp.commands_enabled {
+                    return self.run_command(CommandAction::OpenDcp);
+                }
+                if let Some(reason) = self.dcp.manual_refusal() {
+                    outcome.note = Some(reason.reason().into());
+                    return outcome;
+                }
                 if self.session.is_some() {
                     outcome.intent = Some(PanelIntent::Compress {
                         focus: String::new(),

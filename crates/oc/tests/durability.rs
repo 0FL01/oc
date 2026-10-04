@@ -5,6 +5,8 @@
 #![cfg(target_os = "linux")]
 
 use std::io::{Read, Write};
+#[path = "support/context_ids.rs"]
+mod context_ids;
 use std::net::{TcpListener, TcpStream};
 use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
@@ -599,8 +601,9 @@ fn read_request(mut socket: TcpStream) -> Option<(TcpStream, Value)> {
         assert_ne!(n, 0, "early body EOF");
         bytes.extend_from_slice(&chunk[..n]);
     }
-    let body: Value =
+    let mut body: Value =
         serde_json::from_slice(&bytes[header_end..header_end + length]).expect("request JSON");
+    context_ids::check_context_ids(&mut body);
     assert_eq!(body["model"], MODEL);
     assert_eq!(body["stream"], true);
     Some((socket, body))

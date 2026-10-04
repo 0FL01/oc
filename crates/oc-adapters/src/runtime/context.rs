@@ -40,28 +40,38 @@ fn map_messages(history: &[(String, String, String)]) -> Result<Vec<Message>, Ru
 pub(super) fn dcp_config_input(
     projected: &[(String, String, String)],
     config: &DcpConfig,
+    available: bool,
 ) -> Option<InputItem> {
-    if !config.enabled || config.manual_mode {
-        return None;
-    }
+    let available = available && config.enabled && config.compress_enabled;
     let anchors = projected
         .iter()
         .enumerate()
         .filter(|(_, (id, _, _))| !id.starts_with("session-checkpoint"))
         .map(|(index, (id, role, _))| {
-            serde_json::json!({
-                "id": id,
-                "role": role,
-                "closed": index + 1 < projected.len(),
-            })
+            if available {
+                serde_json::json!({
+                    "id": id,
+                    "role": role,
+                    "closed": index + 1 < projected.len(),
+                })
+            } else {
+                serde_json::json!({"id": id, "role": role})
+            }
         })
         .collect::<Vec<_>>();
     Some(InputItem::message(
         InputRole::Developer,
-        format!(
-            "DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: {}",
-            serde_json::Value::Array(anchors)
-        ),
+        if available {
+            format!(
+                "DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: {}",
+                serde_json::Value::Array(anchors)
+            )
+        } else {
+            format!(
+                "Stable text-message IDs in order (context selection only): {}",
+                serde_json::Value::Array(anchors)
+            )
+        },
     ))
 }
 
@@ -520,7 +530,104 @@ pub(super) fn active_summary_tokens(projected: &[(String, String, String)]) -> u
         .sum()
 }
 
+fn cadence_spans(log: &TurnLog) -> Vec<(String, bool)> {
+    let mut seen = std::collections::BTreeSet::new();
+    log.input
+        .iter()
+        .enumerate()
+        .filter_map(|(index, item)| {
+            if !matches!(
+                item,
+                InputItem::ProviderOutput(_)
+                    | InputItem::Message {
+                        role: InputRole::Assistant,
+                        ..
+                    }
+            ) {
+                return None;
+            }
+            let origin = log.original_input_index(index);
+            let id = log
+                .requests
+                .iter()
+                .rev()
+                .find(|r| r.input_start <= origin)
+                .map(|r| r.span.clone())
+                .unwrap_or_else(|| format!("{}:assistant:{origin}", log.turn_id));
+            seen.insert(id.clone()).then_some((id, false))
+        })
+        .collect()
+}
+
 impl<'a> Runtime<'a> {
+    /// Existing bounded active journal query supplies retained assistant span
+    /// identities. One Responses round is one assistant message, regardless of
+    /// tool-call/result count; empty retries and archived spans do not count.
+    pub(super) fn dcp_cadence_messages(
+        &self,
+        session: &str,
+        projected: &[(String, String, String)],
+        current: &TurnLog,
+    ) -> Result<Vec<(String, bool)>, RuntimeError> {
+        let active = self.active_projection(session)?;
+        let logs =
+            self.projected_wire_logs(session, active.after_seq, projected, &active.blocks)?;
+        let mut spans_by_user = BTreeMap::new();
+        let mut represented = std::collections::BTreeSet::new();
+        let mut ignored_users = std::collections::BTreeSet::new();
+        for raw in logs {
+            let value: serde_json::Value =
+                serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?;
+            // Protected HOT facts in compression/checkpoint summaries must not
+            // revive original compacted message identities or old anchors.
+            if value
+                .get("_dcp_block")
+                .and_then(serde_json::Value::as_str)
+                .is_some()
+            {
+                continue;
+            }
+            let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
+            if log.user_message == current.user_message {
+                continue;
+            }
+            ignored_users.extend(log.shell_notice_messages.iter().cloned());
+            if let Some(assistant) = value["assistant_message"].as_str() {
+                represented.insert(assistant.to_owned());
+            }
+            if let Some(user) = &log.user_message {
+                spans_by_user.insert(user.clone(), cadence_spans(&log));
+            }
+        }
+        let mut messages = Vec::new();
+        for (id, role, _) in projected {
+            if current.user_message.as_ref() == Some(id) || current.represents_notice(id) {
+                continue;
+            }
+            if ignored_users.contains(id) {
+                continue;
+            }
+            if role == "user" {
+                messages.push((id.clone(), true));
+                if let Some(spans) = spans_by_user.remove(id) {
+                    messages.extend(spans);
+                }
+            } else if (role == "assistant" && !represented.contains(id))
+                || (role == "system" && id.starts_with('b'))
+            {
+                // An active compressed block is one visible closed-context
+                // message, with its NEW block identity. It can supply the
+                // preceding context for a user turn; original member/span
+                // identities stay forgotten rather than returning as anchors.
+                messages.push((id.clone(), false));
+            }
+        }
+        if let Some(user) = &current.user_message {
+            messages.push((user.clone(), true));
+        }
+        messages.extend(cadence_spans(current));
+        Ok(messages)
+    }
     pub(super) fn renew_compaction_selection(
         &self,
         session: &str,
@@ -840,8 +947,27 @@ impl<'a> Runtime<'a> {
     ) -> Result<CompressReport, RuntimeError> {
         let published = self.current.read().expect("generation lock").clone();
         let lane = self.primary_lane(&published);
+        let config = self.dcp_config.read().expect("dcp lock").clone();
         {
             let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules);
+            let permission = effective_compress_permission(&config, &policy);
+            let child = self.db.session_meta(session)?.parent_id.is_some();
+            if let Some(reason) = self.compression_refusal(&config, permission, child, false) {
+                if reason == oc_core::dcp_view::DcpUnavailable::Denied {
+                    return Err(denied(COMPRESS_TOOL));
+                }
+                if reason == oc_core::dcp_view::DcpUnavailable::ApprovalConsumerRequired {
+                    return Err(RuntimeError::ApprovalRequired {
+                        tool: COMPRESS_TOOL.into(),
+                    });
+                }
+                return Err(RuntimeError::Compress(reason.reason().into()));
+            }
+            if permission == Permission::Ask {
+                return Err(RuntimeError::ApprovalRequired {
+                    tool: COMPRESS_TOOL.into(),
+                });
+            }
             if policy.check(COMPRESS_TOOL).is_err() {
                 return Err(denied(COMPRESS_TOOL));
             }
@@ -858,7 +984,6 @@ impl<'a> Runtime<'a> {
         );
         self.db
             .record_tool_intent(&op, session, None, COMPRESS_TOOL, &args.to_string())?;
-        let config = self.dcp_config.read().expect("dcp lock").clone();
         let prepared = (|| {
             let mut plan = self.prepare_dcp_plan(session, &ranges, spec, None)?;
             let (delta, projection) =
@@ -931,6 +1056,7 @@ impl<'a> Runtime<'a> {
         .map_err(|error| RuntimeError::Compress(error.to_string()))?;
         *self.nudge_state.lock().expect("nudge lock") = next_states;
         self.stats.lock().expect("stats lock").compressions += 1;
+        self.dcp_debug("compress.committed");
         Ok(CompressReport {
             blocks: report.blocks.iter().map(|block| block.id.clone()).collect(),
             saved_tokens: report.saved_tokens,
@@ -1313,8 +1439,18 @@ impl<'a> Runtime<'a> {
         };
         with_reconciled(&mut before_wire);
         with_reconciled(&mut after_wire);
+        let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules);
+        let available = self
+            .compression_refusal(
+                config,
+                effective_compress_permission(config, &policy),
+                lane.owning_operation.is_some()
+                    || self.db.session_meta(session)?.parent_id.is_some(),
+                lane.manual_compression,
+            )
+            .is_none();
         let bytes = |rows: &[(String, String, String)], wire: &[InputItem]| {
-            serde_json::to_vec(&(dcp_config_input(rows, config), wire))
+            serde_json::to_vec(&(dcp_config_input(rows, config, available), wire))
                 .map(|raw| raw.len())
                 .map_err(|_| RuntimeError::Storage)
         };

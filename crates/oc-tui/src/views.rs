@@ -252,6 +252,7 @@ pub fn panel_lines(state: &TuiState) -> Vec<String> {
                 "help | commands".to_string(),
                 crate::commands::REGISTRY
                     .iter()
+                    .filter(|c| c.registered(state.chrome.dcp.commands_enabled))
                     .map(|c| format!("/{}", c.aliases[0]))
                     .collect::<Vec<_>>()
                     .join(" "),
@@ -492,6 +493,7 @@ mod tests {
     async fn dcp_panel_renders_snapshot_and_notice() {
         let mut state = view_state("s-d").await;
         state.apply_dcp_snapshot(DcpSnapshot {
+            availability: Default::default(),
             estimated_tokens_available: true,
             estimate_method: Default::default(),
             accounting: None,
