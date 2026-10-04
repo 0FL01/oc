@@ -26,10 +26,23 @@ const SESSION_CAP: usize = 4;
 
 struct Work {
     identity: ChildJob,
+    parent_turn: String,
     runtime: std::sync::Weak<Runtime<'static>>,
     mcp: Arc<mcp::McpOwner>,
     cancel: Arc<AtomicBool>,
     completion: Shared<BoxFuture<'static, bool>>,
+    background: Arc<AtomicBool>,
+    mode_changed: Arc<tokio::sync::Notify>,
+    foreground_wait: Arc<AtomicBool>,
+    parent_rejected: AtomicBool,
+    foreground_result: Arc<Mutex<Option<SubagentOutcome>>>,
+}
+
+struct WaitRelease(Arc<AtomicBool>);
+impl Drop for WaitRelease {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Release);
+    }
 }
 
 pub(crate) struct Jobs {
@@ -59,6 +72,66 @@ impl Drop for Reservation {
 }
 
 impl Jobs {
+    pub(super) fn permission_rejected(&self, operation: &str) {
+        if let Some(work) = self.work.lock().expect("child work").get(operation) {
+            work.parent_rejected.store(true, Ordering::Release);
+            self.wake.notify_one();
+        }
+    }
+
+    pub(super) fn permission_rejected_session(&self, session: &str) {
+        let operation = self
+            .work
+            .lock()
+            .expect("child work")
+            .values()
+            .find(|w| {
+                w.identity.child.0 == session && w.completion.clone().now_or_never().is_none()
+            })
+            .map(|w| w.identity.operation.clone());
+        if let Some(operation) = operation {
+            self.permission_rejected(&operation);
+        }
+    }
+
+    pub(super) fn take_parent_rejection(&self, session: &str) -> bool {
+        self.work
+            .lock()
+            .expect("child work")
+            .values()
+            .filter(|w| w.identity.parent.0 == session)
+            .fold(false, |rejected, w| {
+                let pending = w.parent_rejected.swap(false, Ordering::AcqRel);
+                (pending
+                    && self
+                        .db
+                        .turn_result(&w.parent_turn)
+                        .is_ok_and(|(state, _)| state == "started"))
+                    || rejected
+            })
+    }
+
+    /// Scoped observer of the real parent's borrowed cancellation token. Child
+    /// execution remains owned; only plain permission rejection reaches here.
+    pub(super) async fn observe_parent<F: std::future::Future>(
+        &self,
+        parent: &str,
+        cancel: &AtomicBool,
+        future: F,
+    ) -> F::Output {
+        tokio::pin!(future);
+        loop {
+            if self.take_parent_rejection(parent) {
+                cancel.store(true, Ordering::Release);
+            }
+            tokio::select! {
+                output = &mut future => return output,
+                () = tokio::time::sleep(Duration::from_millis(5)) => {
+                    if self.take_parent_rejection(parent) { cancel.store(true,Ordering::Release); }
+                }
+            }
+        }
+    }
     pub(crate) fn new(db: &Db) -> Arc<Self> {
         Arc::new(Self {
             db: db.shared_handle(),
@@ -139,6 +212,10 @@ impl Jobs {
             || work.identity.generation != selected.generation
             || work.identity.location != selected.location
             || work.identity.delivery_id != selected.delivery_id
+            || !self
+                .db
+                .child_job_active(&selected.operation)
+                .unwrap_or(false)
         {
             return false;
         }
@@ -148,6 +225,127 @@ impl Jobs {
         work.cancel.store(true, Ordering::Release);
         self.wake.notify_one();
         true
+    }
+
+    pub(crate) fn background(&self, caller: &str, selected: &ChildJob) -> bool {
+        let work = self.work.lock().expect("child work");
+        let Some(work) = work.get(&selected.operation) else {
+            return false;
+        };
+        if work.identity.parent.0 != caller
+            || work.identity.parent != selected.parent
+            || work.identity.child != selected.child
+            || work.identity.generation != selected.generation
+            || work.identity.location != selected.location
+            || work.identity.delivery_id != selected.delivery_id
+        {
+            return false;
+        }
+        if !self
+            .db
+            .background_child_job(&selected.operation)
+            .unwrap_or(false)
+        {
+            return false;
+        }
+        work.background.store(true, Ordering::Release);
+        work.mode_changed.notify_waiters();
+        self.wake.notify_one();
+        true
+    }
+
+    /// Release only this foreground barrier, retaining the actual shared join.
+    pub(super) async fn wait_foreground(
+        &self,
+        identity: &ChildJob,
+        parent_cancel: &AtomicBool,
+    ) -> Result<SubagentOutcome, ToolError> {
+        let (completion, background, changed, cancel, foreground_wait, foreground_result) = {
+            let work = self.work.lock().expect("child work");
+            let work = work
+                .get(&identity.operation)
+                .ok_or_else(|| ToolError::Failed {
+                    tool: SUBAGENT_TOOL.into(),
+                    reason: "child join unavailable".into(),
+                })?;
+            (
+                work.completion.clone(),
+                work.background.clone(),
+                work.mode_changed.clone(),
+                work.cancel.clone(),
+                work.foreground_wait.clone(),
+                work.foreground_result.clone(),
+            )
+        };
+        let _release = WaitRelease(foreground_wait);
+        let mut completion = Box::pin(completion);
+        loop {
+            let notified = changed.notified();
+            tokio::pin!(notified);
+            notified.as_mut().enable();
+            if self.take_parent_rejection(&identity.parent.0) {
+                parent_cancel.store(true, Ordering::Release);
+            }
+            if parent_cancel.load(Ordering::Acquire) {
+                cancel.store(true, Ordering::Release);
+                // Cancellation drains actual work even if conversion raced it.
+            } else if background.load(Ordering::Acquire) {
+                return Ok(SubagentOutcome::Running {
+                    session_id: identity.child.0.clone(),
+                    operation: identity.operation.clone(),
+                    generation: identity.generation,
+                    delivery_id: identity.delivery_id.clone(),
+                });
+            }
+            tokio::select! {
+                ok = &mut completion => {
+                    if self.take_parent_rejection(&identity.parent.0) { parent_cancel.store(true,Ordering::Release); }
+                    if !ok { return Err(ToolError::Failed { tool: SUBAGENT_TOOL.into(), reason: "child settlement failed".into() }); }
+                    let job = self.db.child_jobs(&identity.parent.0).map_err(|_| ToolError::Failed { tool: SUBAGENT_TOOL.into(), reason: "child state unavailable".into() })?
+                        .into_iter().find(|j| j.operation == identity.operation).ok_or_else(|| ToolError::Failed { tool: SUBAGENT_TOOL.into(), reason: "child state unavailable".into() })?;
+                    // Conversion won the journal race: return the same running
+                    // launch and leave terminal delivery to the notice owner.
+                    if job.background && !parent_cancel.load(Ordering::Acquire) {
+                        return Ok(SubagentOutcome::Running { session_id: job.child.0, operation: job.operation, generation: job.generation, delivery_id: job.delivery_id });
+                    }
+                    if let Some(outcome) = foreground_result.lock().expect("child foreground result").take() {
+                        return Ok(outcome);
+                    }
+                    return Ok(match job.state {
+                        ChildState::Completed => SubagentOutcome::Completed { session_id: job.child.0, text: job.result.unwrap_or_else(|| SUBAGENT_NO_TEXT.into()) },
+                        ChildState::Cancelled => SubagentOutcome::Cancelled { session_id: job.child.0 },
+                        _ => SubagentOutcome::Failed { session_id: Some(job.child.0), reason: job.result.unwrap_or_else(|| "child execution failed".into()) },
+                    });
+                },
+                () = &mut notified => {},
+                () = tokio::time::sleep(Duration::from_millis(5)) => {},
+            }
+        }
+    }
+
+    /// A same-batch explicit continuation joins execution, not a released UI
+    /// barrier. The existing per-child admission lock remains authoritative.
+    pub(super) async fn join_child(&self, child: &str, parent_cancel: &AtomicBool) -> bool {
+        let work = self
+            .work
+            .lock()
+            .expect("child work")
+            .values()
+            .find(|w| w.identity.child.0 == child)
+            .map(|w| (w.completion.clone(), w.cancel.clone()));
+        let Some((completion, cancel)) = work else {
+            return true;
+        };
+        tokio::pin!(completion);
+        loop {
+            if parent_cancel.load(Ordering::Acquire) {
+                cancel.store(true, Ordering::Release);
+            }
+            tokio::select! {
+                ok = &mut completion => return ok,
+                () = tokio::time::sleep(Duration::from_millis(5)) => {},
+            }
+        }
     }
 
     pub(crate) fn cancel_session(&self, parent: &str) -> bool {
@@ -186,7 +384,11 @@ impl Jobs {
         let finished = {
             let work = self.work.lock().expect("child work");
             work.iter()
-                .filter(|(_, job)| job.completion.clone().now_or_never().is_some())
+                .filter(|(_, job)| {
+                    !job.foreground_wait.load(Ordering::Acquire)
+                        && !job.parent_rejected.load(Ordering::Acquire)
+                        && job.completion.clone().now_or_never().is_some()
+                })
                 .map(|(id, job)| (id.clone(), job.completion.clone(), job.mcp.clone()))
                 .collect::<Vec<_>>()
         };
@@ -270,6 +472,7 @@ impl Jobs {
     pub(super) async fn launch(
         self: &Arc<Self>,
         runtime: Runtime<'static>,
+        parent_turn: String,
         agent: SubagentAgent,
         parent_lane: TurnLane,
         identity: ChildJob,
@@ -306,6 +509,12 @@ impl Jobs {
             })?;
             let cancel = Arc::new(AtomicBool::new(false));
             let token = cancel.clone();
+            let background = Arc::new(AtomicBool::new(identity.background));
+            let mode_changed = Arc::new(tokio::sync::Notify::new());
+            let foreground_wait = Arc::new(AtomicBool::new(!identity.background));
+            let waiting = foreground_wait.clone();
+            let foreground_result = Arc::new(Mutex::new(None));
+            let actual_result = foreground_result.clone();
             let db = self.db.shared_handle();
             let id = identity.clone();
             let wake = self.wake.clone();
@@ -336,26 +545,54 @@ impl Jobs {
                     )
                     .await;
                 let (state, result) = match result {
-                    Ok(report) if report.status == TurnStatus::Completed => (
-                        ChildState::Completed,
-                        if report.text.is_empty() {
+                    Ok(report) if report.status == TurnStatus::Completed => {
+                        let text = if report.text.is_empty() {
                             SUBAGENT_NO_TEXT.into()
                         } else {
                             report.text
-                        },
-                    ),
+                        };
+                        let text = if report.warnings.is_empty() {
+                            text
+                        } else {
+                            format!("Warning: {}\n\n{text}", report.warnings.join("\nWarning: "))
+                        };
+                        (ChildState::Completed, text)
+                    }
                     Ok(report) if report.status == TurnStatus::Cancelled => {
                         (ChildState::Cancelled, "Subagent cancelled".into())
                     }
-                    Ok(report) => (
-                        ChildState::Error,
-                        report
+                    Ok(report) => {
+                        let reason = report
                             .diagnostic
-                            .unwrap_or_else(|| "child execution did not complete".into()),
-                    ),
+                            .unwrap_or_else(|| "child execution did not complete".into());
+                        let reason = if report.warnings.is_empty() {
+                            reason
+                        } else {
+                            format!(
+                                "Warning: {}\n\n{reason}",
+                                report.warnings.join("\nWarning: ")
+                            )
+                        };
+                        (ChildState::Error, reason)
+                    }
                     Err(_) => (ChildState::Error, "child execution failed".into()),
                 };
                 let ok = db.finish_child_job(&id.operation, state, &result).is_ok();
+                if waiting.load(Ordering::Acquire) {
+                    *actual_result.lock().expect("child foreground result") = Some(match state {
+                        ChildState::Completed => SubagentOutcome::Completed {
+                            session_id: id.child.0.clone(),
+                            text: result,
+                        },
+                        ChildState::Cancelled => SubagentOutcome::Cancelled {
+                            session_id: id.child.0.clone(),
+                        },
+                        _ => SubagentOutcome::Failed {
+                            session_id: Some(id.child.0.clone()),
+                            reason: result,
+                        },
+                    });
+                }
                 if !ok {
                     failed.store(true, Ordering::Release);
                 }
@@ -367,18 +604,34 @@ impl Jobs {
                 identity.operation.clone(),
                 Work {
                     identity: identity.clone(),
+                    parent_turn,
                     runtime: Arc::downgrade(&runtime),
                     mcp,
                     cancel,
                     completion,
+                    background,
+                    mode_changed,
+                    foreground_wait,
+                    parent_rejected: AtomicBool::new(false),
+                    foreground_result,
                 },
             );
             launched
         };
-        launched.await.map_err(|_| ToolError::Failed {
-            tool: SUBAGENT_TOOL.into(),
-            reason: "child launch failed; inspect child state".into(),
-        })?;
+        if launched.await.is_err() {
+            if let Some(work) = self
+                .work
+                .lock()
+                .expect("child work")
+                .get(&identity.operation)
+            {
+                work.foreground_wait.store(false, Ordering::Release);
+            }
+            return Err(ToolError::Failed {
+                tool: SUBAGENT_TOOL.into(),
+                reason: "child launch failed; inspect child state".into(),
+            });
+        }
         Ok(SubagentOutcome::Running {
             session_id: identity.child.0,
             operation: identity.operation,

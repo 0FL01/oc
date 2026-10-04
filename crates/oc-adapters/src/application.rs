@@ -3564,6 +3564,81 @@ fn query(
             };
             let _ = ack.send(result);
         }
+        InboxMsg::BackgroundChild {
+            session,
+            selected,
+            ack,
+        } => {
+            let result = if runtime.child_jobs.background(&session.0, &selected) {
+                Ok(())
+            } else {
+                Err(CoreError::TurnNotActive)
+            };
+            let _ = ack.send(result);
+        }
+        InboxMsg::ReadChild {
+            session,
+            selected,
+            ack,
+        } => {
+            let result = (|| {
+                let valid = db
+                    .child_jobs(&session.0)
+                    .map_err(|e| query_storage_error(db, e))?
+                    .into_iter()
+                    .any(|job| {
+                        job.parent == session
+                            && job.parent == selected.parent
+                            && job.child == selected.child
+                            && job.operation == selected.operation
+                            && job.generation == selected.generation
+                            && job.location == selected.location
+                            && job.delivery_id == selected.delivery_id
+                    });
+                if !valid {
+                    return Err(CoreError::SessionNotFound);
+                }
+                let child = &selected.child.0;
+                let total = db
+                    .history_len(child)
+                    .map_err(|e| query_storage_error(db, e))?;
+                let mut rows = db
+                    .read_history_page_typed(child, HISTORY_PAGE_LIMIT, None)
+                    .map_err(|e| query_storage_error(db, e))?;
+                rows.reverse();
+                let rows = rows
+                    .into_iter()
+                    .map(|row| {
+                        Ok(HistoryMessage {
+                            id: row.id,
+                            seq: row.seq,
+                            role: if row.role == "user" {
+                                Role::User
+                            } else {
+                                Role::Assistant
+                            },
+                            text: row.text,
+                            model_switch: None,
+                            turn: db
+                                .history_turn(child, row.seq)
+                                .map_err(|e| query_storage_error(db, e))?,
+                        })
+                    })
+                    .collect::<Result<Vec<_>, CoreError>>()?;
+                Ok(HistoryPage {
+                    parent_id: Some(selected.parent.0),
+                    title: Some(selected.description),
+                    has_older: total > rows.len(),
+                    has_newer: false,
+                    total,
+                    rows,
+                    reverted: db
+                        .reverted_conversation(child)
+                        .map_err(|e| query_storage_error(db, e))?,
+                })
+            })();
+            let _ = ack.send(result);
+        }
         InboxMsg::ShellSnapshot {
             session,
             shell_id,

@@ -97,6 +97,39 @@ fn tool19_terminal_proof_atomic_rollback_and_same_id_reopen_dedup() {
 }
 
 #[test]
+fn owned_child_terminal_boundary_defers_pending_parent_move_without_relaxing_family_guard() {
+    let root = tempfile::tempdir().unwrap();
+    let db = Db::open(root.path()).unwrap();
+    let record = admitted(&db);
+    db.begin_turn("child-turn", "child", "owned child").unwrap();
+    db.finish_turn("source-turn", "completed", Some("source terminal"))
+        .unwrap();
+    assert!(db.ready_session_moves("/source").unwrap().is_empty());
+    assert!(db.apply_session_move(&record).is_err());
+    assert_eq!(
+        db.get_pref("tui.session_location.root").unwrap().as_deref(),
+        Some("/source")
+    );
+    db.finish_turn("child-turn", "completed", Some("captured source terminal"))
+        .unwrap();
+    assert_eq!(
+        db.ready_session_moves("/source").unwrap(),
+        std::slice::from_ref(&record)
+    );
+    assert!(db.apply_session_move(&record).unwrap());
+    assert_eq!(
+        db.get_pref("tui.session_location.child")
+            .unwrap()
+            .as_deref(),
+        Some("/source")
+    );
+    assert_eq!(
+        db.turn_result("child-turn").unwrap(),
+        ("completed".into(), Some("captured source terminal".into()))
+    );
+}
+
+#[test]
 fn tool19_unknown_recovery_never_applies_or_replays_and_duplicate_pending_refused() {
     let root = tempfile::tempdir().unwrap();
     let db = Db::open(root.path()).unwrap();

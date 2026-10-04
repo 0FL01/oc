@@ -1014,6 +1014,49 @@ impl TuiState {
 
     // ---- worker events --------------------------------------------------
 
+    /// Observe an owner-accepted child without admitting synthetic user input.
+    pub fn begin_linked_turn(&mut self, turn: WorkerTurnId) {
+        if self.active_turn.as_ref() == Some(&turn) {
+            return;
+        }
+        self.active_turn = Some(turn);
+        self.status = TuiStatus::Streaming;
+        self.invalidate_transcript();
+    }
+
+    pub fn reconcile_linked_terminal(
+        &mut self,
+        job: &oc_core::queries::ChildJob,
+        page: &oc_core::queries::HistoryPage,
+    ) {
+        if let Some(turn) = job.turn.as_ref().map(|id| WorkerTurnId(id.clone()))
+            && self.active_turn() == Some(&turn)
+        {
+            let row = page
+                .rows
+                .iter()
+                .find(|r| r.turn.as_ref().is_some_and(|t| t.id == turn.0));
+            let text = row.map_or("", |r| r.text.as_str());
+            let duration = row.and_then(|r| r.turn.as_ref()?.duration_ms).unwrap_or(0);
+            match job.state {
+                oc_core::queries::ChildState::Completed => {
+                    self.apply_finished(&turn, text, duration);
+                }
+                oc_core::queries::ChildState::Cancelled => {
+                    self.apply_interrupted(&turn, text, duration);
+                }
+                oc_core::queries::ChildState::Error | oc_core::queries::ChildState::Unknown => {
+                    self.apply_failed(
+                        &turn,
+                        &oc_core::session::CoreError::Application("child execution failed".into()),
+                    );
+                }
+                _ => return,
+            }
+        }
+        self.refresh_completed_page(page);
+    }
+
     pub fn apply_model_switch(
         &mut self,
         turn: &WorkerTurnId,

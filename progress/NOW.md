@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-04T16:51:23+00:00
+State updated: 2026-10-04T21:12:55+00:00
 Active: T45
 
 Сверить Git status/diff до выполнения команд.
@@ -13,13 +13,13 @@ Owner-approved R3/R6–R10; full contracts and ordered slices in spec/M8, histor
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-Owned background children and atomic admission/cancellation-safe joins qualified.
+Owned child conversion and linked live controls qualified without restarting work.
 ## Checks
-1513/0/10 workspace; parent32 owner/integration +18 normal ELF cases; Python47 PASS.
+1519/0/10 workspace; parent14 owner cases +8 normal ELF proofs; Python47 PASS.
 ## Risks
-Safe unfinished recovery, same-job conversion and linked controls remain; T44 PAUSED.
+Unfinished resumption and remaining T45 contracts open; T44 PAUSED, T27 exhausted.
 ## Next
-Complete child recovery/foreground conversion/navigation using these existing owners.
+Qualify safe unfinished-child recovery and command routing through these owners.
 
 
 Ready (до 5): T53, T56

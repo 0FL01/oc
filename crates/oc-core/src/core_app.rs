@@ -615,6 +615,16 @@ pub enum InboxMsg {
         selected: crate::queries::ChildJob,
         ack: oneshot::Sender<Result<(), CoreError>>,
     },
+    BackgroundChild {
+        session: SessionId,
+        selected: crate::queries::ChildJob,
+        ack: oneshot::Sender<Result<(), CoreError>>,
+    },
+    ReadChild {
+        session: SessionId,
+        selected: crate::queries::ChildJob,
+        ack: oneshot::Sender<Result<HistoryPage, CoreError>>,
+    },
     /// Current/final recent output with the original source identity and cursors.
     ShellSnapshot {
         session: SessionId,
@@ -1336,6 +1346,41 @@ impl CoreApp {
         let (ack, receipt) = oneshot::channel();
         self.inbox
             .send(InboxMsg::InterruptChild {
+                session,
+                selected,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        receipt.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    pub async fn background_child(
+        &self,
+        session: SessionId,
+        selected: crate::queries::ChildJob,
+    ) -> Result<(), CoreError> {
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::BackgroundChild {
+                session,
+                selected,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        receipt.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Read-only linked navigation; does not select a Location or grant a turn.
+    pub async fn read_child(
+        &self,
+        session: SessionId,
+        selected: crate::queries::ChildJob,
+    ) -> Result<HistoryPage, CoreError> {
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ReadChild {
                 session,
                 selected,
                 ack,
@@ -2119,7 +2164,10 @@ fn scripted_unsupported(message: InboxMsg) {
         InboxMsg::ChildJobs { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
-        InboxMsg::InterruptChild { ack, .. } => {
+        InboxMsg::InterruptChild { ack, .. } | InboxMsg::BackgroundChild { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::ReadChild { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::ShellSnapshot { ack, .. } => {

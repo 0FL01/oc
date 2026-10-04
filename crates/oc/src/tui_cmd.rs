@@ -37,6 +37,8 @@ use oc_tui::shell::{StartupFailure, render_background, render_startup_failure};
 use oc_tui::terminal::{enter, install_panic_hook, set_cursor_color};
 use oc_tui::views::{cursor_color, render_frame};
 
+mod child_controls;
+
 /// Qualification probe (T26): when set, panic right after entering the
 /// terminal so PTY tests can verify panic-path restoration. Never set in
 /// normal use.
@@ -343,6 +345,9 @@ struct LoopState {
     /// A child requested by --session is a standalone history view. Never
     /// submit a turn or promote it into the Location's root-tab preference.
     read_only: bool,
+    /// Linked child views are disposable; the real root deck is retained here.
+    child_parent: Option<Box<TuiState>>,
+    child_views: std::collections::HashMap<SessionId, TuiState>,
 }
 
 enum ConversationResult {
@@ -464,6 +469,7 @@ impl LoopState {
     }
 
     fn snapshot(&self, state: &TuiState) -> TabDeckSnapshot {
+        let state = self.child_parent.as_deref().unwrap_or(state);
         let sessions = self
             .tabs
             .iter()
@@ -543,6 +549,9 @@ impl LoopState {
     }
 
     fn sync_tabs(&mut self, state: &mut TuiState) {
+        if self.child_parent.is_some() {
+            return;
+        }
         if let Some(auto) = self.permission_auto {
             state.auto_accept = if auto {
                 oc_core::queries::AutoAcceptState::Enabled
@@ -1033,6 +1042,12 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                     || at.elapsed() >= Duration::from_millis(500)
             })
         {
+            if state.children_open() || state.linked_child().is_some() {
+                if let Err(error) = child_controls::refresh(app, &mut state).await {
+                    state.push_note(&error);
+                }
+                dirty = true;
+            }
             let before = state.approvals.active().cloned();
             let question_before = state.questions.active().cloned();
             let roots_before = state.approval_roots.clone();
@@ -1892,8 +1907,11 @@ async fn handle_event_ticks(
             }
             if loop_state.read_only
                 && state.approvals.active().is_none()
+                && state.questions.active().is_none()
                 && *state.panel() == TuiPanel::None
                 && submits
+                && !state.children_open()
+                && !state.shells_open()
                 && dispatch(state.input().trim()) != Some(CommandAction::Quit)
             {
                 state.push_note("child session: read-only history; saved tabs are unchanged");
@@ -2070,6 +2088,8 @@ async fn apply_intent_with_origin(
         && matches!(
             intent,
             PanelIntent::NewSession
+                | PanelIntent::SwitchLocation { .. }
+                | PanelIntent::SetPermissionMode { .. }
                 | PanelIntent::SwitchSession { .. }
                 | PanelIntent::CloseTab { .. }
                 | PanelIntent::ActivateTab { .. }
@@ -2087,6 +2107,26 @@ async fn apply_intent_with_origin(
         return Err("child session: read-only history; saved tabs are unchanged".into());
     }
     match intent {
+        PanelIntent::LoadChildren => child_controls::refresh(app, state).await?,
+        PanelIntent::OpenChild { selected } => {
+            child_controls::open(app, state, loop_state, selected).await?
+        }
+        PanelIntent::ReturnParent => child_controls::return_parent(state, loop_state),
+        PanelIntent::BackgroundChild { selected } => {
+            if let Err(error) = app
+                .background_child(selected.parent.clone(), selected)
+                .await
+            {
+                state.push_note(&error.to_string());
+            }
+            child_controls::refresh(app, state).await?;
+        }
+        PanelIntent::InterruptChild { selected } => {
+            if let Err(error) = app.interrupt_child(selected.parent.clone(), selected).await {
+                state.push_note(&error.to_string());
+            }
+            child_controls::refresh(app, state).await?;
+        }
         PanelIntent::SetPermissionMode { auto_once } => {
             app.set_permission_mode(auto_once)
                 .await
@@ -3137,6 +3177,9 @@ async fn handle_worker_event(
     session: &SessionId,
     event: CoreEvent,
 ) -> Result<(), String> {
+    if child_controls::route_event(app, state, _loop_state, &event).await? {
+        return Ok(());
+    }
     if matches!(&event, CoreEvent::ShellChanged { .. }) {
         if state.shells_open() {
             refresh_shells(app, state).await?;
@@ -3257,10 +3300,13 @@ async fn handle_worker_event(
     match event {
         CoreEvent::ChildNotice(notice) => {
             if !state.is_busy() {
-                let page = app
-                    .history_page(notice.job.parent, None, None, HISTORY_PAGE_LIMIT)
-                    .await
-                    .map_err(|error| error.to_string())?;
+                let page = if let Some(selected) = state.linked_child().cloned() {
+                    app.read_child(selected.parent.clone(), selected).await
+                } else {
+                    app.history_page(notice.job.parent, None, None, HISTORY_PAGE_LIMIT)
+                        .await
+                }
+                .map_err(|error| error.to_string())?;
                 state.refresh_completed_page(&page);
             }
         }
@@ -3272,10 +3318,13 @@ async fn handle_worker_event(
             if state.is_busy() {
                 state.push_note(&notice.text);
             } else {
-                let page = app
-                    .history_page(notice.session, None, None, HISTORY_PAGE_LIMIT)
-                    .await
-                    .map_err(|error| error.to_string())?;
+                let page = if let Some(selected) = state.linked_child().cloned() {
+                    app.read_child(selected.parent.clone(), selected).await
+                } else {
+                    app.history_page(notice.session, None, None, HISTORY_PAGE_LIMIT)
+                        .await
+                }
+                .map_err(|error| error.to_string())?;
                 state.refresh_completed_page(&page);
             }
         }
@@ -3293,6 +3342,9 @@ async fn handle_worker_event(
         CoreEvent::TurnStarted {
             turn, model_switch, ..
         } => {
+            if state.linked_child().is_some() {
+                state.begin_linked_turn(turn.clone());
+            }
             if let Some(notice) = model_switch {
                 state.apply_model_switch(&turn, &notice);
             }
@@ -3369,10 +3421,13 @@ async fn handle_worker_event(
             let compress = state.is_compress_turn(&turn);
             state.apply_finished(&turn, &text, duration_ms);
             if current {
-                let page = app
-                    .history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
-                    .await
-                    .map_err(|e| e.to_string())?;
+                let page = if let Some(selected) = state.linked_child().cloned() {
+                    app.read_child(selected.parent.clone(), selected).await
+                } else {
+                    app.history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
+                        .await
+                }
+                .map_err(|e| e.to_string())?;
                 state.refresh_completed_page(&page);
                 refresh_dcp_summaries(app, state).await;
                 if compress {

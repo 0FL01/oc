@@ -80,6 +80,7 @@ pub enum KeyAction {
     Quit,
     /// Open/close the native running-shell composer.
     Shells,
+    Children,
     /// Convert the selected admitted foreground shell.
     ShellBackground,
 }

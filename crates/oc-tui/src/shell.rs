@@ -242,6 +242,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     crate::approval_view::render(frame, state, main);
     crate::question_view::render(frame, state, main);
     crate::shell_jobs_view::render(frame, state, main);
+    crate::child_view::render(frame, state, main);
     render_devtools(frame, theme, regions.devtools);
     render_toast(frame, state, theme, area);
     crate::dialog::render(frame, state);
@@ -348,12 +349,10 @@ fn session_regions(state: &TuiState, area: Rect, terminal_height: u16) -> layout
         return regions;
     }
     let input = prompt_lines(state, area.width);
-    if crate::shell_jobs_view::height(state) > 0 {
+    let jobs_height = crate::shell_jobs_view::height(state).max(crate::child_view::height(state));
+    if jobs_height > 0 {
         let mut regions = layout::dynamic_session_regions(area, 0, 0);
-        regions.transcript.height = regions
-            .content
-            .height
-            .saturating_sub(crate::shell_jobs_view::height(state));
+        regions.transcript.height = regions.content.height.saturating_sub(jobs_height);
         return regions;
     }
     if state.questions.active().is_some() {

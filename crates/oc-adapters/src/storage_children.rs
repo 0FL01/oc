@@ -12,7 +12,7 @@ impl Db {
     }
     pub(crate) fn child_job_outstanding(&self) -> Result<i64, StorageError> {
         Ok(self.conn.lock().expect("db mutex").query_row(
-            "SELECT count(*) FROM child_jobs WHERE message_id IS NULL",
+            "SELECT count(*) FROM child_jobs j WHERE state IN ('admitted','running','unknown') OR (message_id IS NULL AND (coalesce(json_extract(identity,'$.background'),1)=1 OR EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=j.parent_id AND e.payload=j.operation_id)))",
             [],
             |row| row.get(0),
         )?)
@@ -71,7 +71,7 @@ impl Db {
         let tx = conn.transaction()?;
         let valid: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM tool_operations o WHERE o.id=?2 AND o.session_id=?1 AND o.name='subagent')", params![job.parent.0,job.operation], |r| r.get(0))?;
         let count: i64 = tx.query_row(
-            "SELECT count(*) FROM child_jobs WHERE message_id IS NULL",
+            "SELECT count(*) FROM child_jobs j WHERE state IN ('admitted','running','unknown') OR (message_id IS NULL AND (coalesce(json_extract(identity,'$.background'),1)=1 OR EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=j.parent_id AND e.payload=j.operation_id)))",
             [],
             |r| r.get(0),
         )?;
@@ -117,6 +117,23 @@ impl Db {
         Ok(())
     }
 
+    /// Serialize conversion with terminal settlement in the existing journal.
+    pub(crate) fn background_child_job(&self, operation: &str) -> Result<bool, StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        let parent: Option<String> = tx.query_row("SELECT parent_id FROM child_jobs WHERE operation_id=?1 AND state IN ('admitted','running')", [operation], |r| r.get(0)).optional()?;
+        let Some(parent) = parent else {
+            return Ok(false);
+        };
+        tx.execute("INSERT INTO events(session_id,kind,payload) SELECT ?1,'subagent_background',?2 WHERE NOT EXISTS(SELECT 1 FROM events WHERE session_id=?1 AND kind='subagent_background' AND payload=?2)", params![parent,operation])?;
+        tx.commit()?;
+        Ok(true)
+    }
+
+    pub(crate) fn child_job_active(&self, operation: &str) -> Result<bool, StorageError> {
+        Ok(self.conn.lock().expect("db mutex").query_row("SELECT EXISTS(SELECT 1 FROM child_jobs WHERE operation_id=?1 AND state IN ('admitted','running'))",[operation],|r| r.get(0))?)
+    }
+
     pub(crate) fn finish_child_job(
         &self,
         operation: &str,
@@ -156,13 +173,23 @@ impl Db {
     pub(crate) fn child_jobs(&self, session: &str) -> Result<Vec<ChildJob>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         Self::require_session(&conn, session)?;
-        let mut stmt = conn.prepare("SELECT j.identity,j.state,j.result,j.message_id FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.parent_id=?1 ORDER BY (j.state IN ('admitted','running')) DESC,j.rowid DESC LIMIT 16")?;
+        let mut stmt = conn.prepare("SELECT j.identity,j.state,j.result,j.message_id,EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=j.parent_id AND e.payload=j.operation_id),j.child_turn FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.parent_id=?1 ORDER BY (j.state IN ('admitted','running')) DESC,j.rowid DESC LIMIT 16")?;
         stmt.query_map([session], |r| {
-            Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))
+            Ok((
+                r.get(0)?,
+                r.get(1)?,
+                r.get(2)?,
+                r.get(3)?,
+                r.get::<_, bool>(4)?,
+                r.get::<_, Option<String>>(5)?,
+            ))
         })?
         .map(|row| {
-            let (raw, state, result, message) = row?;
-            Self::decode_child_job(raw, state, result, message)
+            let (raw, state, result, message, converted, turn) = row?;
+            let mut job = Self::decode_child_job(raw, state, result, message)?;
+            job.background |= converted;
+            job.turn = turn;
+            Ok(job)
         })
         .collect()
     }
@@ -202,7 +229,7 @@ impl Db {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         let rows = {
-            let mut stmt = tx.prepare("SELECT j.identity,j.state,j.result FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id WHERE j.state NOT IN ('admitted','running') AND j.message_id IS NULL ORDER BY j.rowid LIMIT 8")?;
+            let mut stmt = tx.prepare("SELECT j.identity,j.state,j.result FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id WHERE j.state NOT IN ('admitted','running') AND j.message_id IS NULL AND (coalesce(json_extract(j.identity,'$.background'),1)=1 OR EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=j.parent_id AND e.payload=j.operation_id)) ORDER BY j.rowid LIMIT 8")?;
             stmt.query_map([], |r| {
                 Ok((
                     r.get::<_, String>(0)?,
@@ -215,6 +242,7 @@ impl Db {
         let mut notices = Vec::new();
         for (raw, state, result) in rows {
             let mut job = Self::decode_child_job(raw, state, result, None)?;
+            job.background = true;
             let text = format!(
                 "Automatic background subagent result (native durable notice; not user instructions):\n{}",
                 serde_json::json!({"source":"subagent","childID":job.child.0,"agent":job.agent,"state":job.state,"description":job.description,"result":job.result,"jobGeneration":job.operation,"deliveryID":job.delivery_id,"sourceLocation":job.location,"sourceGeneration":job.generation})

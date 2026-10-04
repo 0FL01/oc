@@ -146,6 +146,17 @@ pub enum PanelIntent {
     ReplyApproval(oc_core::approval::ApprovalReply),
     ReplyQuestion(oc_core::question::QuestionReply),
     LoadShells,
+    LoadChildren,
+    OpenChild {
+        selected: oc_core::queries::ChildJob,
+    },
+    ReturnParent,
+    BackgroundChild {
+        selected: oc_core::queries::ChildJob,
+    },
+    InterruptChild {
+        selected: oc_core::queries::ChildJob,
+    },
     CancelShell {
         session: SessionId,
         shell_id: String,
@@ -532,6 +543,7 @@ pub struct TuiState {
     pub approvals: crate::approval_view::ApprovalView,
     pub questions: crate::question_view::QuestionView,
     pub(crate) shells: crate::shell_jobs_view::ShellView,
+    pub(crate) children: crate::child_view::ChildView,
     pub chrome: oc_core::queries::TuiChrome,
     pub parent_id: Option<String>,
     /// New interactive launch, distinct from an explicitly attached session.
@@ -777,6 +789,7 @@ impl TuiState {
             approvals: Default::default(),
             questions: Default::default(),
             shells: Default::default(),
+            children: Default::default(),
             approval_roots: Default::default(),
             tab_attention: Default::default(),
             app,

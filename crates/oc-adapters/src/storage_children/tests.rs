@@ -2,6 +2,146 @@ use super::*;
 
 const LAUNCH_OUTPUT: &str = "{\"status\":\"running\",\"sessionID\":\"child\",\"jobGeneration\":\"launch\",\"deliveryID\":\"child-delivery:launch\"}";
 
+#[test]
+fn conversion_terminal_race_has_one_mode_event_one_notice_and_immutable_launch() {
+    for convert_first in [false, true] {
+        let dir = tempfile::tempdir().unwrap();
+        let db = Db::open(dir.path()).unwrap();
+        let mut job = admitted(&db);
+        job.background = false;
+        db.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE child_jobs SET identity=?1 WHERE operation_id='launch'",
+                [serde_json::to_string(&job).unwrap()],
+            )
+            .unwrap();
+        let before = db.list_tool_ops("parent").unwrap();
+        let launch = db
+            .conn
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT identity FROM child_jobs WHERE operation_id='launch'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .unwrap();
+        if convert_first {
+            assert!(db.background_child_job("launch").unwrap());
+            assert!(db.background_child_job("launch").unwrap());
+        }
+        db.finish_child_job(
+            "launch",
+            ChildState::Completed,
+            "error: typed successful prose",
+        )
+        .unwrap();
+        assert!(!db.background_child_job("launch").unwrap());
+        db.finish_child_job(
+            "launch",
+            ChildState::Cancelled,
+            "duplicate must not replace completion",
+        )
+        .unwrap();
+        let current = db.child_jobs("parent").unwrap().remove(0);
+        assert_eq!(current.state, ChildState::Completed);
+        assert_eq!(current.background, convert_first);
+        assert_eq!(
+            current.result.as_deref(),
+            Some("error: typed successful prose")
+        );
+        assert_eq!(
+            db.child_job_outstanding().unwrap(),
+            i64::from(convert_first)
+        );
+        assert_eq!(
+            db.deliver_child_notices().unwrap().len(),
+            usize::from(convert_first)
+        );
+        assert!(db.deliver_child_notices().unwrap().is_empty());
+        assert_eq!(db.list_tool_ops("parent").unwrap(), before);
+        let conn = db.conn.lock().unwrap();
+        assert_eq!(
+            conn.query_row(
+                "SELECT identity FROM child_jobs WHERE operation_id='launch'",
+                [],
+                |r| r.get::<_, String>(0)
+            )
+            .unwrap(),
+            launch
+        );
+        assert_eq!(
+            conn.query_row(
+                "SELECT count(*) FROM events WHERE kind='subagent_background'",
+                [],
+                |r| r.get::<_, i64>(0)
+            )
+            .unwrap(),
+            i64::from(convert_first)
+        );
+    }
+}
+
+#[test]
+fn actual_concurrent_conversion_and_terminal_share_the_existing_transaction_owner() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    let mut job = admitted(&db);
+    job.background = false;
+    db.conn
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE child_jobs SET identity=?1 WHERE operation_id='launch'",
+            [serde_json::to_string(&job).unwrap()],
+        )
+        .unwrap();
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+    let accepted = std::thread::scope(|scope| {
+        let owner = db.shared_handle();
+        let start = barrier.clone();
+        let control = scope.spawn(move || {
+            start.wait();
+            owner.background_child_job("launch").unwrap()
+        });
+        let owner = db.shared_handle();
+        let start = barrier.clone();
+        let terminal = scope.spawn(move || {
+            start.wait();
+            owner
+                .finish_child_job("launch", ChildState::Completed, "once")
+                .unwrap();
+        });
+        terminal.join().unwrap();
+        control.join().unwrap()
+    });
+    assert!(!db.background_child_job("launch").unwrap());
+    assert_eq!(db.child_jobs("parent").unwrap()[0].background, accepted);
+    assert_eq!(
+        db.child_jobs("parent").unwrap()[0].state,
+        ChildState::Completed
+    );
+    assert_eq!(
+        db.deliver_child_notices().unwrap().len(),
+        usize::from(accepted)
+    );
+    assert!(db.deliver_child_notices().unwrap().is_empty());
+    assert_eq!(
+        db.conn
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT count(*) FROM events WHERE kind='subagent_background'",
+                [],
+                |r| r.get::<_, i64>(0)
+            )
+            .unwrap(),
+        i64::from(accepted)
+    );
+}
+
 fn admitted(db: &Db) -> ChildJob {
     db.create_session("parent").unwrap();
     db.create_child_session(
@@ -33,6 +173,8 @@ fn admitted(db: &Db) -> ChildJob {
         description: "work".into(),
         delivery_id: "child-delivery:launch".into(),
         state: ChildState::Admitted,
+        background: true,
+        turn: None,
         result: None,
         message_id: None,
     };

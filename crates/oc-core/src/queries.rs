@@ -1387,8 +1387,17 @@ pub struct ChildJob {
     pub description: String,
     pub delivery_id: String,
     pub state: ChildState,
+    /// Current mode, projected separately from immutable launch metadata.
+    #[serde(default = "child_background_default")]
+    pub background: bool,
+    #[serde(default)]
+    pub turn: Option<String>,
     pub result: Option<String>,
     pub message_id: Option<String>,
+}
+
+fn child_background_default() -> bool {
+    true
 }
 
 /// Durable owner-authored completion, never user-authored instructions.

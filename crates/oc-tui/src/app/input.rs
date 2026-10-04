@@ -306,6 +306,27 @@ impl TuiState {
     }
 
     pub fn command_unavailable(&self, action: &CommandAction) -> Option<&'static str> {
+        if self.linked_child().is_some()
+            && matches!(
+                action,
+                CommandAction::NewSession
+                    | CommandAction::CloseTab
+                    | CommandAction::OpenSessions
+                    | CommandAction::OpenAgents
+                    | CommandAction::OpenModelPicker
+                    | CommandAction::OpenVariants
+                    | CommandAction::UndoConversation
+                    | CommandAction::RedoConversation
+                    | CommandAction::RenameSession { .. }
+                    | CommandAction::SwitchLocation { .. }
+                    | CommandAction::ReloadConfiguration
+                    | CommandAction::CompactSession
+                    | CommandAction::DcpCompress { .. }
+                    | CommandAction::OpenPermissions
+            )
+        {
+            return Some("linked child is read-only");
+        }
         if !crate::commands::spec(action).registered(self.chrome.dcp.commands_enabled) {
             return Some("DCP commands disabled");
         }
@@ -579,6 +600,9 @@ impl TuiState {
         if self.questions.active().is_some() {
             return self.questions.terminal_key(event);
         }
+        if let Some(action) = self.conversation_key(event) {
+            return Some(action);
+        }
         if self.panel == TuiPanel::None
             && event.kind == KeyEventKind::Press
             && event.modifiers == KeyModifiers::CONTROL
@@ -586,7 +610,12 @@ impl TuiState {
             if event.code == KeyCode::Char('s') {
                 return Some(KeyAction::Shells);
             }
-            if self.shells.open && event.code == KeyCode::Char('b') {
+            if event.code == KeyCode::Char('g') {
+                return Some(KeyAction::Children);
+            }
+            if (self.shells.open || self.children.open || self.linked_child().is_some())
+                && event.code == KeyCode::Char('b')
+            {
                 return Some(KeyAction::ShellBackground);
             }
         }
@@ -606,13 +635,11 @@ impl TuiState {
             }
             return None;
         }
-        self.conversation_key(event).or_else(|| {
-            crate::events::map_key(event).filter(|action| {
-                *action != KeyAction::Leader
-                    && !(*action == KeyAction::Commands
-                        && self.panel == TuiPanel::None
-                        && self.chrome.command_palette_shortcut.is_some())
-            })
+        crate::events::map_key(event).filter(|action| {
+            *action != KeyAction::Leader
+                && !(*action == KeyAction::Commands
+                    && self.panel == TuiPanel::None
+                    && self.chrome.command_palette_shortcut.is_some())
         })
     }
 
@@ -1121,6 +1148,9 @@ impl TuiState {
             && !crate::shell::tab_region(self, area).contains((event.column, event.row).into())
         {
             return KeyOutcome::default();
+        }
+        if self.panel == TuiPanel::None && self.children.open {
+            return self.children.mouse(event);
         }
         use crate::dialog::DialogHit;
         if matches!(
@@ -1960,8 +1990,25 @@ impl TuiState {
                 _ => return KeyOutcome::default(),
             };
         }
+        if self.panel == TuiPanel::None && action == KeyAction::Shells {
+            self.children.open = false;
+        }
+        if self.panel == TuiPanel::None && action == KeyAction::Children {
+            self.shells.open = false;
+        }
         if self.panel == TuiPanel::None && (self.shells.open || action == KeyAction::Shells) {
             return self.shells.key(action);
+        }
+        if self.panel == TuiPanel::None
+            && (self.children.open
+                || action == KeyAction::Children
+                || (self.linked_child().is_some()
+                    && matches!(
+                        action,
+                        KeyAction::Cancel | KeyAction::Interrupt | KeyAction::ShellBackground
+                    )))
+        {
+            return self.children.key(action);
         }
         if self.panel != TuiPanel::None {
             if action == KeyAction::Leader {
@@ -2308,7 +2355,9 @@ impl TuiState {
             }
             KeyAction::Enter => self.handle_enter().await,
             KeyAction::Tab => KeyOutcome::default(),
-            KeyAction::Shells | KeyAction::ShellBackground => KeyOutcome::default(),
+            KeyAction::Shells | KeyAction::ShellBackground | KeyAction::Children => {
+                KeyOutcome::default()
+            }
         }
     }
 

@@ -61,6 +61,9 @@ impl Runtime<'_> {
                 });
             }
             rejected |= matches!(admission, Err(AdmissionFailure::Rejected(None)));
+            if matches!(admission, Err(AdmissionFailure::Rejected(None))) {
+                self.child_jobs.permission_rejected_session(session);
+            }
             admissions.push((call, op, input, admission));
         }
         for (i, (call, op, input, admission)) in admissions.into_iter().enumerate() {
@@ -136,16 +139,23 @@ impl Runtime<'_> {
             }
             admitted.push((call, op, admission.ok(), refusal));
         }
-        // Futures borrow this batch and cannot outlive its owner. Shared
-        // predecessor joins serialize ONLY the explicitly named same child.
+        // Batch waiters borrow this owner. Execution lives in owned Jobs; an
+        // explicit same-child successor joins execution even after conversion.
         let mut previous: BTreeMap<String, Shared<BoxFuture<'_, String>>> = BTreeMap::new();
         let mut work = Vec::new();
         for (call, _, permitted, refusal) in &admitted {
             let key = call.arguments["sessionID"].as_str().map(str::to_owned);
             let predecessor = key.as_ref().and_then(|key| previous.get(key)).cloned();
+            let continuation = key.clone();
             let future = async move {
                 if let Some(predecessor) = predecessor {
                     predecessor.await;
+                    if let Some(child) = continuation
+                        && !self.child_jobs.join_child(&child, cancel).await
+                    {
+                        return serde_json::json!({"status":"failed","reason":"child_join_failed"})
+                            .to_string();
+                    }
                 }
                 if let Some((_, output)) = refusal {
                     return output.clone();
@@ -184,11 +194,14 @@ impl Runtime<'_> {
                 .as_ref()
                 .map_or_else(|| output_state(&output), |(state, _)| *state);
             if refusal.is_none()
-                && call.arguments["background"] == true
-                && serde_json::from_str::<serde_json::Value>(&output)
-                    .is_ok_and(|value| value["status"] == "running")
+                && let Ok(value) = serde_json::from_str::<serde_json::Value>(&output)
             {
-                state = "running";
+                state = match value["status"].as_str() {
+                    Some("running") => "running",
+                    Some("failed") => "failed",
+                    Some("cancelled") => "cancelled",
+                    _ => state,
+                };
             }
             let source = crate::config::mcp::safe_source_id(
                 published

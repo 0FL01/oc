@@ -1954,17 +1954,24 @@ impl<'a> Runtime<'a> {
         // it has returned the exact immutable lease for this turn.
         let mcp_owner = self.mcp_owner();
         let mcp_binding = mcp_owner.snapshot().binding;
+        let parent = params.session.clone();
+        let cancel = params.cancel;
         let result = self
-            .run_turn_inner(
-                params,
-                &lane,
-                &attached,
-                None,
-                &mut accepted,
-                &mut text_delta,
-                &mut reasoning_delta,
-                &mut reasoning_item_ended,
-                &mut tool_event,
+            .child_jobs
+            .observe_parent(
+                &parent,
+                cancel,
+                self.run_turn_inner(
+                    params,
+                    &lane,
+                    &attached,
+                    None,
+                    &mut accepted,
+                    &mut text_delta,
+                    &mut reasoning_delta,
+                    &mut reasoning_item_ended,
+                    &mut tool_event,
+                ),
             )
             .await;
         let mcp_warnings = mcp_owner.completion_warnings(&mcp_binding, &attached);
@@ -2055,17 +2062,24 @@ impl<'a> Runtime<'a> {
         let attached = self.request_mcp(params.cancel).await?;
         let mcp_owner = self.mcp_owner();
         let mcp_binding = mcp_owner.snapshot().binding;
+        let parent = params.session.clone();
+        let cancel = params.cancel;
         let result = self
-            .run_turn_inner(
-                params,
-                &lane,
-                &attached,
-                Some(initial_selection),
-                &mut accepted,
-                &mut text_delta,
-                &mut reasoning_delta,
-                &mut reasoning_item_ended,
-                &mut tool_event,
+            .child_jobs
+            .observe_parent(
+                &parent,
+                cancel,
+                self.run_turn_inner(
+                    params,
+                    &lane,
+                    &attached,
+                    Some(initial_selection),
+                    &mut accepted,
+                    &mut text_delta,
+                    &mut reasoning_delta,
+                    &mut reasoning_item_ended,
+                    &mut tool_event,
+                ),
             )
             .await;
         let mcp_warnings = mcp_owner.completion_warnings(&mcp_binding, &attached);

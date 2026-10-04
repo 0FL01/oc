@@ -184,6 +184,12 @@ async fn core_jobs_busy_continuation_selected_fences_and_source_survive_location
             3 => stale.location.push_str("foreign"),
             _ => stale.delivery_id.push_str("stale"),
         }
+        assert!(app.read_child(parent.clone(), stale.clone()).await.is_err());
+        assert!(
+            app.background_child(parent.clone(), stale.clone())
+                .await
+                .is_err()
+        );
         assert!(app.interrupt_child(parent.clone(), stale).await.is_err());
     }
     assert!(
@@ -202,6 +208,23 @@ async fn core_jobs_busy_continuation_selected_fences_and_source_survive_location
         .await
         .unwrap();
     assert_eq!(app.child_jobs(parent.clone()).await.unwrap().len(), 2);
+    let page = app
+        .read_child(parent.clone(), active.clone())
+        .await
+        .unwrap();
+    assert_eq!(page.parent_id.as_deref(), Some(parent.0.as_str()));
+    assert_eq!(
+        page.rows
+            .iter()
+            .filter(|r| r.role == oc_core::session::Role::User)
+            .count(),
+        1
+    );
+    assert!(
+        app.background_child(parent.clone(), active.clone())
+            .await
+            .is_ok()
+    );
     app.interrupt_child(parent.clone(), active).await.unwrap();
     child_one.release();
     child_two.release();

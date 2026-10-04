@@ -126,7 +126,7 @@ impl Db {
         let conn = self.conn.lock().expect("db mutex");
         // Apply idle/child targets before the calling root retires this source
         // runtime; the authoritative DB records, not cache insertion order, own it.
-        let mut stmt = conn.prepare("SELECT m.operation_id,m.session_id,m.source_turn,m.source,m.directory,m.fingerprint FROM session_moves m JOIN turns t ON t.id=m.source_turn JOIN sessions s ON s.id=m.session_id WHERE m.phase='pending' AND m.source=?1 AND t.status IN ('completed','failed','cancelled','incomplete') ORDER BY (m.session_id=t.session_id AND s.parent_id IS NULL),m.rowid LIMIT 9")?;
+        let mut stmt = conn.prepare("SELECT m.operation_id,m.session_id,m.source_turn,m.source,m.directory,m.fingerprint FROM session_moves m JOIN turns t ON t.id=m.source_turn JOIN sessions s ON s.id=m.session_id WHERE m.phase='pending' AND m.source=?1 AND t.status IN ('completed','failed','cancelled','incomplete') AND NOT EXISTS(WITH RECURSIVE family(id) AS (SELECT m.session_id UNION SELECT s.id FROM sessions s JOIN family f ON s.parent_id=f.id) SELECT 1 FROM turns t JOIN family f ON f.id=t.session_id WHERE t.status='started') ORDER BY (m.session_id=t.session_id AND s.parent_id IS NULL),m.rowid LIMIT 9")?;
         let rows = stmt
             .query_map([source], |r| {
                 Ok(MoveRecord {

@@ -143,7 +143,7 @@ fn subagent_tool_def(
                 },
                 "background": {
                     "type": "boolean",
-                    "description": "Not supported yet: calls with true fail without creating a child session.",
+                    "description": "Start independently and deliver a durable terminal notice. Foreground is the default.",
                 },
             },
             "required": ["agent", "description", "prompt"],
@@ -248,7 +248,6 @@ fn resolve_child_model(
 
 /// Foreground child runner for one calling turn.
 struct TurnSubagent<'r, 'a> {
-    owning_operation: String,
     turn_id: String,
     runtime: &'r Runtime<'a>,
     parent_session: String,
@@ -365,31 +364,7 @@ impl TurnSubagent<'_, '_> {
             .reserve(&self.parent_session, &child_id)?;
         let (child_session, fresh) = match &request.session_id {
             Some(id) => (id.clone(), false),
-            None if request.background => (child_id, true),
-            None => {
-                let id = child_id;
-                self.runtime
-                    .db
-                    .create_child_session(
-                        &self.parent_session,
-                        &id,
-                        Some(&agent.id),
-                        Some(&model.stored(&self.catalog.provider)),
-                        Some(&request.description),
-                    )
-                    .map_err(|error| ToolError::Failed {
-                        tool: SUBAGENT_TOOL.to_string(),
-                        reason: error.to_string(),
-                    })?;
-                self.runtime
-                    .db
-                    .set_pref(&session_location_key(&id), self.runtime.location())
-                    .map_err(|error| ToolError::Failed {
-                        tool: SUBAGENT_TOOL.to_string(),
-                        reason: error.to_string(),
-                    })?;
-                (id, true)
-            }
+            None => (child_id, true),
         };
         let prompt = if fresh {
             format!(
@@ -399,7 +374,7 @@ impl TurnSubagent<'_, '_> {
         } else {
             request.prompt.clone()
         };
-        if request.background {
+        {
             let operation = self
                 .runtime
                 .db
@@ -419,17 +394,20 @@ impl TurnSubagent<'_, '_> {
                 model: model.stored(&self.catalog.provider),
                 description: request.description.clone(),
                 state: oc_core::queries::ChildState::Admitted,
+                background: request.background,
+                turn: None,
                 result: None,
                 message_id: None,
             };
-            return self
+            let launched = self
                 .runtime
                 .child_jobs
                 .launch(
                     self.runtime.owned_child_snapshot(),
+                    self.turn_id.clone(),
                     agent.clone(),
                     self.parent_lane.clone(),
-                    identity,
+                    identity.clone(),
                     prompt,
                     model,
                     self.catalog.clone(),
@@ -438,58 +416,16 @@ impl TurnSubagent<'_, '_> {
                     reservation,
                     fresh,
                 )
-                .await;
-        }
-        let report = self
-            .runtime
-            .run_child_turn(
-                agent,
-                self.parent_lane,
-                &self.owning_operation,
-                &child_session,
-                prompt,
-                &model,
-                0, // Resolve the same native output default as the primary turn.
-                self.catalog,
-                self.provider,
-                self.attached,
-                self.cancel,
-                None,
-            )
-            .await
-            .map_err(|error| ToolError::Failed {
-                tool: SUBAGENT_TOOL.to_string(),
-                reason: error.to_string(),
-            })?;
-        // Child warnings must survive the existing text-only tool result DTO.
-        let with_warnings = |text: String| {
-            if report.warnings.is_empty() {
-                text
+                .await?;
+            if request.background {
+                Ok(launched)
             } else {
-                format!("Warning: {}\n\n{text}", report.warnings.join("\nWarning: "))
+                self.runtime
+                    .child_jobs
+                    .wait_foreground(&identity, self.cancel)
+                    .await
             }
-        };
-        Ok(match report.status {
-            TurnStatus::Completed => SubagentOutcome::Completed {
-                session_id: child_session,
-                text: with_warnings(if report.text.is_empty() {
-                    SUBAGENT_NO_TEXT.to_string()
-                } else {
-                    report.text
-                }),
-            },
-            TurnStatus::Cancelled => SubagentOutcome::Cancelled {
-                session_id: child_session,
-            },
-            _ => SubagentOutcome::Failed {
-                session_id: Some(child_session),
-                reason: with_warnings(
-                    report
-                        .diagnostic
-                        .unwrap_or_else(|| "subagent turn did not complete".to_string()),
-                ),
-            },
-        })
+        }
     }
 }
 
@@ -1514,10 +1450,6 @@ impl<'a> Runtime<'a> {
             ));
             let runner = subagents.as_ref().map(|catalog| TurnSubagent {
                 turn_id: turn_id.clone(),
-                owning_operation: lane
-                    .owning_operation
-                    .clone()
-                    .unwrap_or_else(|| turn_id.clone()),
                 runtime: self,
                 parent_session: params.session.clone(),
                 parent_model_id: selection.id.clone(),
@@ -2881,6 +2813,9 @@ impl<'a> Runtime<'a> {
                     return result;
                 },
                 () = tokio::time::sleep(Duration::from_millis(5)) => {
+                    if self.child_jobs.take_parent_rejection(session) {
+                        child_token.store(true, Ordering::Release);
+                    }
                     if cancel.load(Ordering::Acquire) {
                         child_cancel.store(true, Ordering::Release);
                     }
@@ -3507,6 +3442,9 @@ impl<'a> Runtime<'a> {
                 }
             }
             permission_rejected |= matches!(&admission, Err(AdmissionFailure::Rejected(None)));
+            if matches!(&admission, Err(AdmissionFailure::Rejected(None))) {
+                self.child_jobs.permission_rejected_session(session);
+            }
             // Fail closed. No built-in or MCP dispatch can precede this commit.
             let position = call_positions[i]
                 .and_then(|index| {

@@ -14,9 +14,106 @@ fn identity(parent: &str, child: &str) -> ChildJob {
         description: "owned child".into(),
         delivery_id: format!("notice:{child}"),
         state: ChildState::Admitted,
+        background: true,
+        turn: None,
         result: None,
         message_id: None,
     }
+}
+
+#[tokio::test]
+async fn foreground_conversion_releases_only_waiter_and_retains_actual_join_and_fences() {
+    let data = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_session("parent").unwrap();
+    db.begin_turn("parent-turn", "parent", "parent").unwrap();
+    let jobs = Jobs::new(&db);
+    let mut selected = identity("parent", "held");
+    selected.background = false;
+    db.record_tool_intent(&selected.operation, "parent", None, "subagent", "{}")
+        .unwrap();
+    db.admit_fresh_child_job(&selected).unwrap();
+    let (release, held) = tokio::sync::oneshot::channel::<()>();
+    let task = tokio::spawn(async move {
+        held.await.unwrap();
+        true
+    });
+    let completion = async move { task.await.unwrap() }.boxed().shared();
+    let cancel = Arc::new(AtomicBool::new(false));
+    jobs.work.lock().unwrap().insert(
+        selected.operation.clone(),
+        Work {
+            identity: selected.clone(),
+            parent_turn: "parent-turn".into(),
+            runtime: std::sync::Weak::new(),
+            mcp: Arc::new(mcp::McpOwner::new("/owned-source", 7)),
+            cancel: cancel.clone(),
+            completion: completion.clone(),
+            background: Arc::new(AtomicBool::new(false)),
+            mode_changed: Arc::new(tokio::sync::Notify::new()),
+            foreground_wait: Arc::new(AtomicBool::new(true)),
+            parent_rejected: AtomicBool::new(false),
+            foreground_result: Arc::new(Mutex::new(None)),
+        },
+    );
+    let parent_cancel = AtomicBool::new(false);
+    let mut waiter = Box::pin(jobs.wait_foreground(&selected, &parent_cancel));
+    assert!(futures_util::poll!(&mut waiter).is_pending());
+    for field in 0..6 {
+        let mut stale = selected.clone();
+        match field {
+            0 => stale.parent.0.push('x'),
+            1 => stale.child.0.push('x'),
+            2 => stale.operation.push('x'),
+            3 => stale.generation += 1,
+            4 => stale.location.push('x'),
+            _ => stale.delivery_id.push('x'),
+        }
+        assert!(!jobs.background("parent", &stale));
+        assert!(!jobs.interrupt("parent", &stale));
+    }
+    assert!(!jobs.background("foreign", &selected));
+    assert!(jobs.background("parent", &selected));
+    assert!(jobs.background("parent", &selected));
+    assert!(
+        matches!(waiter.await.unwrap(),SubagentOutcome::Running {session_id,operation,..} if session_id==selected.child.0 && operation==selected.operation)
+    );
+    assert!(!cancel.load(Ordering::Acquire));
+    assert!(completion.clone().now_or_never().is_none());
+    let mut successor = Box::pin(jobs.join_child(&selected.child.0, &parent_cancel));
+    assert!(
+        futures_util::poll!(&mut successor).is_pending(),
+        "explicit continuation crossed released waiter instead of actual join"
+    );
+    assert_eq!(jobs.work.lock().unwrap().len(), 1);
+    assert!(jobs.interrupt("parent", &selected));
+    assert!(cancel.load(Ordering::Acquire));
+    assert!(
+        !jobs.take_parent_rejection("parent"),
+        "selected cancellation became permission rejection"
+    );
+    jobs.permission_rejected(&selected.operation);
+    assert!(!jobs.take_parent_rejection("foreign"));
+    assert!(jobs.take_parent_rejection("parent"));
+    assert!(!jobs.take_parent_rejection("parent"));
+    db.finish_turn("parent-turn", "completed", Some("parent done"))
+        .unwrap();
+    db.begin_turn("new-parent-turn", "parent", "unrelated turn")
+        .unwrap();
+    jobs.permission_rejected(&selected.operation);
+    assert!(
+        !jobs.take_parent_rejection("parent"),
+        "late old-child rejection cancelled a new parent turn"
+    );
+    db.finish_child_job(&selected.operation, ChildState::Cancelled, "cancelled")
+        .unwrap();
+    assert!(!jobs.background("parent", &selected));
+    assert!(!jobs.interrupt("parent", &selected));
+    release.send(()).unwrap();
+    assert!(completion.await);
+    assert!(successor.await);
+    jobs.shutdown().await.unwrap();
+    assert!(jobs.work.lock().unwrap().is_empty());
 }
 
 #[test]
@@ -128,10 +225,16 @@ async fn dropped_shutdown_keeps_shared_join_waits_and_reaps_leaf_with_sticky_fai
             "launch:held".into(),
             Work {
                 identity: identity("parent", "held"),
+                parent_turn: "closed-parent-turn".into(),
                 runtime: std::sync::Weak::new(),
                 mcp: Arc::new(mcp::McpOwner::new("/owned-source", 7)),
                 cancel: cancel.clone(),
                 completion: completion.clone(),
+                background: Arc::new(AtomicBool::new(true)),
+                mode_changed: Arc::new(tokio::sync::Notify::new()),
+                foreground_wait: Arc::new(AtomicBool::new(false)),
+                parent_rejected: AtomicBool::new(false),
+                foreground_result: Arc::new(Mutex::new(None)),
             },
         );
         let mut first = Box::pin(jobs.shutdown());
