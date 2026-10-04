@@ -183,6 +183,33 @@ impl Jobs {
         })
     }
 
+    fn reserve_resume(&self, identity: &ChildJob) -> Result<Reservation, RuntimeError> {
+        if self.closing.load(Ordering::Acquire) {
+            return Err(RuntimeError::Storage);
+        }
+        let slot = self
+            .slots
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| RuntimeError::Storage)?;
+        let mut sessions = self.sessions.lock().expect("child sessions");
+        if sessions.contains_key(&identity.child.0)
+            || sessions
+                .values()
+                .filter(|p| *p == &identity.parent.0)
+                .count()
+                >= SESSION_CAP
+        {
+            return Err(RuntimeError::Storage);
+        }
+        sessions.insert(identity.child.0.clone(), identity.parent.0.clone());
+        Ok(Reservation {
+            _slot: slot,
+            sessions: self.sessions.clone(),
+            child: identity.child.0.clone(),
+        })
+    }
+
     pub(crate) async fn changed(&self) {
         let completions = self
             .work
@@ -483,6 +510,7 @@ impl Jobs {
         attached: mcp::McpGeneration,
         reservation: Reservation,
         fresh: bool,
+        resume: Option<TurnLog>,
     ) -> Result<SubagentOutcome, ToolError> {
         self.reap().await.map_err(|_| ToolError::Failed {
             tool: SUBAGENT_TOOL.into(),
@@ -498,15 +526,21 @@ impl Jobs {
                     reason: "child owner closing; no prompt admitted".into(),
                 });
             }
-            (if fresh {
-                self.db.admit_fresh_child_job(&identity)
-            } else {
-                self.db.admit_child_job(&identity)
-            })
-            .map_err(|_| ToolError::Failed {
-                tool: SUBAGENT_TOOL.into(),
-                reason: "child admission failed".into(),
-            })?;
+            if resume.is_none() {
+                let mut fence = serde_json::json!({
+                    "version":1,"identity":identity,"parent_turn":parent_turn,"lane":parent_lane,
+                    "generation_fingerprint":runtime.child_recovery_fingerprint(),
+                    "launch_source":self.db.child_launch_fingerprint(&identity.operation).map_err(|_|ToolError::Failed {tool:SUBAGENT_TOOL.into(),reason:"child admission source missing".into()})?,
+                    "route":crate::compaction::route_identity(&catalog.provider,&model.id,&provider).map_err(|_|ToolError::Failed {tool:SUBAGENT_TOOL.into(),reason:"child route invalid".into()})?,
+                });
+                fence["fingerprint"] = crate::compaction::fingerprint(&fence).into();
+                self.db
+                    .admit_recoverable_child_job(&identity, fresh, &fence)
+                    .map_err(|_| ToolError::Failed {
+                        tool: SUBAGENT_TOOL.into(),
+                        reason: "child admission failed".into(),
+                    })?;
+            }
             let cancel = Arc::new(AtomicBool::new(false));
             let token = cancel.clone();
             let background = Arc::new(AtomicBool::new(identity.background));
@@ -542,6 +576,7 @@ impl Jobs {
                         &attached,
                         &token,
                         Some(started),
+                        resume,
                     )
                     .await;
                 let (state, result) = match result {
@@ -696,6 +731,161 @@ impl Drop for Jobs {
 }
 
 impl Runtime<'_> {
+    /// Only digests leave the product configuration owner; no credentials are
+    /// copied into the journal. Captured parent authority is checked separately.
+    fn child_recovery_fingerprint(&self) -> String {
+        let current = self.current.read().expect("generation");
+        let workspace = self.workspace.read().expect("workspace");
+        crate::compaction::fingerprint(&(
+            &self.location,
+            &current.config.providers,
+            &current.config.mcp,
+            &current.config.permissions,
+            &current.config.permission_rules,
+            &current.config.provenance,
+            &workspace.subagents,
+            &workspace.instructions,
+            &workspace.skills_projection,
+            format!("{:?}", *self.dcp_config.read().expect("dcp")),
+        ))
+    }
+
+    /// Startup-only, bounded inspection through the same application lineage.
+    /// Viewing history, changing tabs and cached request retries never call this.
+    pub(crate) async fn recover_background_children(
+        &self,
+        catalog: &ModelCatalog,
+        provider: &ResponsesConfig,
+    ) -> Result<(), RuntimeError> {
+        for identity in self.db.child_recovery_candidates()? {
+            let recovered = async {
+                if !identity.background
+                    || identity.location != self.location
+                    || identity.generation != self.generation_id()
+                {
+                    return Err(RuntimeError::Storage);
+                }
+                let mut fence = self.db.child_recovery_fence(&identity)?;
+                let fingerprint = fence
+                    .as_object_mut()
+                    .ok_or(RuntimeError::Storage)?
+                    .remove("fingerprint")
+                    .ok_or(RuntimeError::Storage)?;
+                if fingerprint != crate::compaction::fingerprint(&fence) {
+                    return Err(RuntimeError::Storage);
+                }
+                if fence["launch_source"]
+                    != self.db.child_launch_fingerprint(&identity.operation)?
+                {
+                    return Err(RuntimeError::Storage);
+                }
+                let saved: ChildJob = serde_json::from_value(fence["identity"].clone())
+                    .map_err(|_| RuntimeError::Storage)?;
+                let mut expected = identity.clone();
+                expected.state = ChildState::Admitted;
+                expected.turn = None;
+                expected.background = saved.background;
+                if saved != expected
+                    || fence["version"] != 1
+                    || fence["generation_fingerprint"] != self.child_recovery_fingerprint()
+                {
+                    return Err(RuntimeError::Storage);
+                }
+                let parent_lane: TurnLane = serde_json::from_value(fence["lane"].clone())
+                    .map_err(|_| RuntimeError::Storage)?;
+                let workspace = self.workspace.read().expect("workspace").clone();
+                let agent = workspace
+                    .subagents
+                    .as_ref()
+                    .and_then(|c| c.agents.get(&identity.agent))
+                    .filter(|a| !a.primary)
+                    .cloned()
+                    .ok_or(RuntimeError::Storage)?;
+                let (provider_id, reference) = identity
+                    .model
+                    .split_once('/')
+                    .ok_or(RuntimeError::Storage)?;
+                if provider_id != catalog.provider {
+                    return Err(RuntimeError::Storage);
+                }
+                let (id, variant) = reference
+                    .split_once('#')
+                    .map_or((reference, None), |(id, v)| (id, Some(v.to_owned())));
+                let model = ResolvedModel {
+                    id: id.into(),
+                    variant,
+                };
+                self.admit_provider(catalog, &model.id, provider)?;
+                let base =
+                    models::select_model(catalog, &model.id).map_err(|_| RuntimeError::Storage)?;
+                models::select_variant(&base, model.variant.as_deref())
+                    .map_err(|_| RuntimeError::Storage)?;
+                if fence["route"]
+                    != crate::compaction::route_identity(provider_id, &model.id, provider)
+                        .map_err(|_| RuntimeError::Provider)?
+                {
+                    return Err(RuntimeError::Storage);
+                }
+                let turn = identity.turn.as_deref().ok_or(RuntimeError::Storage)?;
+                let (state, checkpoint) = self.db.turn_result(turn)?;
+                let checkpoint = checkpoint.ok_or(RuntimeError::Storage)?;
+                let log = TurnLog::from_json(
+                    &serde_json::from_str(&checkpoint).map_err(|_| RuntimeError::Storage)?,
+                )
+                .map_err(|_| RuntimeError::Storage)?;
+                if state != "started"
+                    || log.turn_id != turn
+                    || log.model != model.id
+                    || log.provider != provider_id
+                    || log.agent_digest != agent.digest
+                    || log.display["location"] != identity.location
+                    || log.display["config_generation"] != identity.generation
+                    || log.display["owning_operation"] != identity.operation
+                    || log.display["agent"] != identity.agent
+                    || log.user_message.is_none()
+                {
+                    return Err(RuntimeError::Storage);
+                }
+                let parent_turn = fence["parent_turn"]
+                    .as_str()
+                    .ok_or(RuntimeError::Storage)?
+                    .to_owned();
+                let reservation = self.child_jobs.reserve_resume(&identity)?;
+                self.db.claim_child_resume(&identity, &checkpoint)?;
+                let attached = self.mcp_owner().request_view()?.as_ref().clone();
+                self.child_jobs
+                    .launch(
+                        self.owned_child_snapshot(),
+                        parent_turn,
+                        agent,
+                        parent_lane,
+                        identity.clone(),
+                        String::new(),
+                        model,
+                        catalog.clone(),
+                        provider.clone(),
+                        attached,
+                        reservation,
+                        false,
+                        Some(log),
+                    )
+                    .await
+                    .map_err(|_| RuntimeError::Storage)?;
+                Ok::<_, RuntimeError>(())
+            }
+            .await;
+            if recovered.is_err() {
+                self.db.finish_child_job(&identity.operation,ChildState::Unknown,"Child recovery refused: identity/configuration or committed safety unavailable; explicit recovery required; not replayed")?;
+                if let Some(turn) = &identity.turn {
+                    let (_, checkpoint) = self.db.turn_result(turn)?;
+                    self.db
+                        .finish_turn(turn, "unknown", checkpoint.as_deref())?;
+                }
+            }
+        }
+        Ok(())
+    }
+
     pub(crate) fn inherit_application_owners(&mut self, source: &Runtime<'_>) {
         self.shell_jobs = source.shell_jobs.clone();
         self.child_jobs = source.child_jobs.clone();

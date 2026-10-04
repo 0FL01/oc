@@ -182,6 +182,194 @@ fn admitted(db: &Db) -> ChildJob {
     job
 }
 
+#[test]
+fn provider_only_interruption_is_left_for_owned_resume_without_new_input() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    admitted(&db);
+    db.begin_turn("child-turn", "child", "own task").unwrap();
+    db.start_child_job("launch", "child-turn").unwrap();
+    let log = crate::tools::TurnLog::new("child-turn", "child", "fixture");
+    db.checkpoint_turn("child-turn", &log.to_json().to_string())
+        .unwrap();
+    db.recover_child_jobs().unwrap();
+    assert_eq!(
+        db.child_jobs("parent").unwrap()[0].state,
+        ChildState::Running
+    );
+    assert!(db.deliver_child_notices().unwrap().is_empty());
+}
+
+fn resumable(db: &Db) -> (ChildJob, String) {
+    let mut job = admitted(db);
+    db.set_pref("tui.session_location.child", "/original")
+        .unwrap();
+    let accepted = db
+        .accept_turn(
+            "child-turn",
+            "child",
+            "own task",
+            "own task",
+            &oc_core::queries::ModelRef {
+                provider: "fixture".into(),
+                id: "child".into(),
+                variant: None,
+            },
+        )
+        .unwrap();
+    db.start_child_job("launch", "child-turn").unwrap();
+    let mut log = crate::tools::TurnLog::new("child-turn", "child", "fixture");
+    log.user_message = Some(accepted.user_message);
+    log.input.push(crate::provider::InputItem::message(
+        crate::provider::InputRole::User,
+        "own task",
+    ));
+    let raw = log.to_json().to_string();
+    db.checkpoint_turn("child-turn", &raw).unwrap();
+    job.turn = Some("child-turn".into());
+    job.state = ChildState::Running;
+    (job, raw)
+}
+
+#[test]
+fn recovery_claim_crash_boundaries_are_atomic_bounded_and_not_task_admission() {
+    for after_dispatch in [false, true] {
+        let dir = tempfile::tempdir().unwrap();
+        let db = Db::open(dir.path()).unwrap();
+        let (job, raw) = resumable(&db);
+        if after_dispatch {
+            db.generation_dispatch("child", "child-turn", "main")
+                .unwrap();
+        }
+        let count = db.read_history_page("child", 100, None).unwrap().len();
+        // Failed COMMIT cannot spend an attempt or alter task/turn state.
+        db.conn.lock().unwrap().execute_batch("CREATE TABLE claim_fault(value TEXT REFERENCES sessions(id) DEFERRABLE INITIALLY DEFERRED); CREATE TRIGGER reject_claim AFTER INSERT ON events WHEN NEW.kind='subagent_resume_claim' BEGIN INSERT INTO claim_fault VALUES('missing'); END").unwrap();
+        assert!(db.claim_child_resume(&job, &raw).is_err());
+        assert_eq!(
+            db.conn
+                .lock()
+                .unwrap()
+                .query_row(
+                    "SELECT count(*) FROM events WHERE kind='subagent_resume_claim'",
+                    [],
+                    |r| r.get::<_, i64>(0)
+                )
+                .unwrap(),
+            0
+        );
+        db.conn
+            .lock()
+            .unwrap()
+            .execute_batch("DROP TRIGGER reject_claim; DROP TABLE claim_fault")
+            .unwrap();
+        db.claim_child_resume(&job, &raw).unwrap();
+        // Death after claim/before provider: next boot counts a second attempt,
+        // retaining the exact same task. A successful step is never this budget.
+        drop(db);
+        let db = Db::open(dir.path()).unwrap();
+        db.recover_child_jobs().unwrap();
+        db.recover_interrupted_tools().unwrap();
+        assert_eq!(db.turn_result("child-turn").unwrap().0, "started");
+        for _ in 1..10 {
+            db.claim_child_resume(&job, &raw).unwrap();
+        }
+        assert!(db.claim_child_resume(&job, &raw).is_err());
+        assert_eq!(
+            db.read_history_page("child", 100, None).unwrap().len(),
+            count
+        );
+        assert_eq!(
+            db.turn_result("child-turn").unwrap().1.as_deref(),
+            Some(raw.as_str())
+        );
+        db.finish_child_job("launch", ChildState::Unknown, "explicit recovery required")
+            .unwrap();
+        db.recover_child_jobs().unwrap();
+        assert!(db.claim_child_resume(&job, &raw).is_err());
+        assert_eq!(db.deliver_child_notices().unwrap().len(), 1);
+        assert!(db.deliver_child_notices().unwrap().is_empty());
+    }
+}
+
+#[test]
+fn typed_effect_uncertainty_and_unanswered_calls_never_claim() {
+    for name in [
+        "apply_patch",
+        "write",
+        "edit",
+        "shell",
+        "bash",
+        "mcp_fixture_effect",
+    ] {
+        for state in ["started", "unknown", "completed"] {
+            let dir = tempfile::tempdir().unwrap();
+            let db = Db::open(dir.path()).unwrap();
+            let (job, raw) = resumable(&db);
+            db.record_tool_intent("effect", "child", Some("child-turn"), name, "{}")
+                .unwrap();
+            if state != "started" {
+                db.record_tool_outcome("effect", state, Some("exact captured effect output"))
+                    .unwrap();
+            }
+            db.recover_child_jobs().unwrap();
+            assert_eq!(
+                db.child_jobs("parent").unwrap()[0].state,
+                ChildState::Unknown
+            );
+            assert!(db.claim_child_resume(&job, &raw).is_err());
+            assert_eq!(db.list_tool_ops("child").unwrap().len(), 1);
+        }
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    let (job, raw) = resumable(&db);
+    let mut log = crate::tools::TurnLog::from_json(&serde_json::from_str(&raw).unwrap()).unwrap();
+    log.input.push(crate::provider::InputItem::ProviderOutput(serde_json::json!({"type":"function_call","name":"read","call_id":"unanswered","arguments":"{}"})));
+    let raw = log.to_json().to_string();
+    db.checkpoint_turn("child-turn", &raw).unwrap();
+    db.recover_child_jobs().unwrap();
+    assert!(db.claim_child_resume(&job, &raw).is_err());
+    assert_eq!(
+        db.child_jobs("parent").unwrap()[0].state,
+        ChildState::Unknown
+    );
+}
+
+#[test]
+fn claim_refuses_stale_source_and_preserves_latest_hot_not_raw() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    let (job, raw) = resumable(&db);
+    let mut log = crate::tools::TurnLog::from_json(&serde_json::from_str(&raw).unwrap()).unwrap();
+    log.input[0] = crate::provider::InputItem::message(
+        crate::provider::InputRole::User,
+        "latest selected HOT",
+    );
+    let hot = log.to_json().to_string();
+    db.checkpoint_turn("child-turn", &hot).unwrap();
+    assert!(db.claim_child_resume(&job, &raw).is_err());
+    for field in 0..5 {
+        let mut stale = job.clone();
+        match field {
+            0 => stale.parent.0.push('x'),
+            1 => stale.child.0.push('x'),
+            2 => stale.delivery_id.push('x'),
+            3 => stale.model.push('x'),
+            _ => stale.location.push('x'),
+        }
+        assert!(db.claim_child_resume(&stale, &hot).is_err());
+    }
+    db.claim_child_resume(&job, &hot).unwrap();
+    assert_eq!(
+        db.turn_result("child-turn").unwrap().1.as_deref(),
+        Some(hot.as_str())
+    );
+    assert_eq!(
+        db.read_history_page("child", 100, None).unwrap()[0].2,
+        "own task"
+    );
+}
+
 fn fault(db: &Db, boundary: &str, commit: bool) {
     let conn = db.conn.lock().unwrap();
     if commit {

@@ -1410,6 +1410,12 @@ async fn start_worker_inner(
         return Ok(());
     }
     runtime.set_approval_events(&events);
+    runtime
+        .recover_background_children(&composition.catalog, &composition.provider)
+        .await
+        .map_err(|error| {
+            runtime_issue(runtime.location(), &["child_recovery"], &error).diagnostic
+        })?;
     if let Err(error) = runtime.start_mcp() {
         let mut issue = runtime_issue(runtime.location(), &["mcp"], &error);
         if composition

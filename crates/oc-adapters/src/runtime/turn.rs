@@ -415,6 +415,7 @@ impl TurnSubagent<'_, '_> {
                     self.attached.clone(),
                     reservation,
                     fresh,
+                    None,
                 )
                 .await?;
             if request.background {
@@ -869,6 +870,7 @@ impl<'a> Runtime<'a> {
                 reasoning_item_ended,
                 tool_event,
                 &budget,
+                None,
             )
             .await?;
         if let Some(warning) = budget.warning {
@@ -890,6 +892,7 @@ impl<'a> Runtime<'a> {
         reasoning_item_ended: &mut (dyn FnMut(&str) + Send),
         tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
         budget: &models::AdmissionBudget,
+        resume: Option<TurnLog>,
     ) -> Result<TurnReport, RuntimeError> {
         let published = self.current.read().expect("generation lock").clone();
         if fresh_selection.is_some() {
@@ -930,9 +933,19 @@ impl<'a> Runtime<'a> {
                 projected,
                 blocks,
             } = self.active_projection(&params.session)?;
+            let prior = projected
+                .iter()
+                .filter(|row| {
+                    resume.as_ref().is_none_or(|log| {
+                        log.user_message.as_deref() != Some(row.0.as_str())
+                            && !log.represents_notice(&row.0)
+                    })
+                })
+                .cloned()
+                .collect::<Vec<_>>();
             let history = self.wire_history(
                 &params.session,
-                &projected,
+                &prior,
                 &blocks,
                 &selection.id,
                 &params.catalog.provider,
@@ -1054,7 +1067,11 @@ impl<'a> Runtime<'a> {
                 parameters: entry.input_schema.clone(),
             });
         }
-        let prompt_input = [InputItem::message(InputRole::User, &params.prompt)];
+        let prompt_input = if let Some(log) = &resume {
+            log.input_for(&selection.id, &params.catalog.provider)
+        } else {
+            vec![InputItem::message(InputRole::User, &params.prompt)]
+        };
         let plan_reminder = crate::plan::missing(
             &history,
             lane.agent_id.as_deref(),
@@ -1151,7 +1168,10 @@ impl<'a> Runtime<'a> {
             })?;
         }
         // Durable intent before any side effect.
-        let turn_id = next_turn_id(&params.session, millis());
+        let turn_id = resume.as_ref().map_or_else(
+            || next_turn_id(&params.session, millis()),
+            |log| log.turn_id.clone(),
+        );
         let user_text = params.invocation.as_deref().unwrap_or(&params.prompt);
         let model_ref = oc_core::queries::ModelRef {
             provider: params.catalog.provider.clone(),
@@ -1162,7 +1182,12 @@ impl<'a> Runtime<'a> {
                 .map(|variant| variant.name.clone())
                 .filter(|name| name != "default"),
         };
-        let accepted_turn = if let Some(initial_selection) = fresh_selection {
+        let accepted_turn = if let Some(log) = &resume {
+            crate::storage::AcceptedTurn {
+                user_message: log.user_message.clone().ok_or(RuntimeError::Storage)?,
+                model_switch: None,
+            }
+        } else if let Some(initial_selection) = fresh_selection {
             self.db.create_bound_session_and_accept_turn_with_reminder(
                 &params.session,
                 &self.location,
@@ -1199,38 +1224,49 @@ impl<'a> Runtime<'a> {
         let mut usage_complete = true;
         let mut streamed = Duration::ZERO;
         let mut calls = Vec::new();
-        let mut turn_log = TurnLog::new(&turn_id, &selection.id, &params.catalog.provider);
-        turn_log.display = serde_json::json!({
-            "location":self.location,
-            "move_epoch":self.db.session_move_epoch(&params.session)?,
-            "config_generation":published.id,
-            "owning_operation":lane.owning_operation.as_deref().unwrap_or(&turn_id),
-            "model_label":selection.entry.get("name").and_then(|v|v.as_str()).unwrap_or(&selection.id),
-            "agent":lane.agent_id,
-            "agent_color_index":lane.agent_color_index,
-        });
-        turn_log.agent_digest = lane.agent_digest.clone();
+        let resuming = resume.is_some();
+        let mut turn_log = resume
+            .unwrap_or_else(|| TurnLog::new(&turn_id, &selection.id, &params.catalog.provider));
         let mut shell_notice_seq = projected
             .iter()
             .filter_map(|(id, _, _)| id.strip_prefix('m')?.parse::<i64>().ok())
             .max()
             .unwrap_or(0);
-        turn_log.user_message = Some(user_message);
-        turn_log
-            .input
-            .push(InputItem::message(InputRole::User, &params.prompt));
-        self.db.checkpoint_instructions(
-            &turn_id,
-            &mut turn_log,
-            instruction_revision,
-            &instruction_sources,
-            usize::from(instruction_revision != 0),
-            None,
-        )?;
+        if !resuming {
+            turn_log.display = serde_json::json!({
+                "location":self.location,
+                "move_epoch":self.db.session_move_epoch(&params.session)?,
+                "config_generation":published.id,
+                "owning_operation":lane.owning_operation.as_deref().unwrap_or(&turn_id),
+                "model_label":selection.entry.get("name").and_then(|v|v.as_str()).unwrap_or(&selection.id),
+                "agent":lane.agent_id,
+                "agent_color_index":lane.agent_color_index,
+            });
+            turn_log.agent_digest = lane.agent_digest.clone();
+            turn_log.user_message = Some(user_message);
+            turn_log
+                .input
+                .push(InputItem::message(InputRole::User, &params.prompt));
+            self.db.checkpoint_instructions(
+                &turn_id,
+                &mut turn_log,
+                instruction_revision,
+                &instruction_sources,
+                usize::from(instruction_revision != 0),
+                None,
+            )?;
+        }
         if let Some((after_seq, blocks)) = history_scope {
             history = self.wire_history(
                 &params.session,
-                &projected,
+                &projected
+                    .iter()
+                    .filter(|row| {
+                        turn_log.user_message.as_deref() != Some(row.0.as_str())
+                            && !turn_log.represents_notice(&row.0)
+                    })
+                    .cloned()
+                    .collect::<Vec<_>>(),
                 &blocks,
                 &selection.id,
                 &params.catalog.provider,
@@ -1246,7 +1282,14 @@ impl<'a> Runtime<'a> {
             .map(crate::instructions::Fact::input)
             .collect::<Vec<_>>();
         // Successful steps are accounting, never continuation admission.
-        let mut rounds = 0u32;
+        let mut rounds = turn_log.spans.iter().map(|s| s.step).max().unwrap_or(0);
+        if resuming
+            && let Some(span) = turn_log.spans.last_mut()
+            && span.completed.is_none()
+        {
+            span.status = "unknown".into();
+            span.completed = Some(millis());
+        }
         let mut overflow_recovered = false;
         let mut overflow_pending = false;
         let mut last_compacted_round = None;
@@ -2650,6 +2693,7 @@ impl<'a> Runtime<'a> {
         attached: &McpGeneration,
         cancel: &AtomicBool,
         launch_started: Option<tokio::sync::oneshot::Sender<()>>,
+        resume: Option<TurnLog>,
     ) -> Result<TurnReport, RuntimeError> {
         let workspace = self.workspace.read().expect("workspace lock").clone();
         // Parent generation ∩ child agent rules: an agent rule can only make
@@ -2732,9 +2776,10 @@ impl<'a> Runtime<'a> {
                 let _ = events.send(event);
             }
         };
+        let resuming = resume.is_some();
         let mut accepted = |id: &str, notice: Option<&oc_core::queries::ModelSwitchNotice>| {
             if let Some(started) = launch_started.take() {
-                if self.db.start_child_job(owning_operation, id).is_ok() {
+                if resuming || self.db.start_child_job(owning_operation, id).is_ok() {
                     let _ = started.send(());
                 } else {
                     child_token.store(true, Ordering::Release);
@@ -2778,7 +2823,17 @@ impl<'a> Runtime<'a> {
                 );
             }
         };
-        let child = self.run_turn_inner(
+        let published = self.current.read().expect("generation").clone();
+        self.admit_provider(catalog, &model.id, provider)?;
+        let base = models::select_model(catalog, &model.id).map_err(|_| RuntimeError::Storage)?;
+        let fallback = published
+            .config
+            .providers
+            .get(&catalog.provider)
+            .map(|p| p.options.native_fallback_limits)
+            .unwrap_or_default();
+        let budget = models::budget(&base, max_output, fallback);
+        let child = self.run_turn_admitted(
             params,
             &lane,
             attached,
@@ -2788,12 +2843,17 @@ impl<'a> Runtime<'a> {
             &mut reasoning,
             &mut reasoning_end,
             &mut tools,
+            &budget,
+            resume,
         );
         tokio::pin!(child);
         loop {
             tokio::select! {
                 mut result = &mut child => {
                     if let Ok(report) = &mut result {
+                        if let Some(warning) = &budget.warning {
+                            report.warnings.push(warning.clone());
+                        }
                         report.duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
                         self.db.update_turn_display(&report.turn_id, &serde_json::json!({"duration_ms":report.duration_ms,"streamed_ms":report.streamed_ms,"usage":report.usage,"context_usage":report.context_usage}))?;
                         let session = SessionId(session.into());

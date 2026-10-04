@@ -889,7 +889,8 @@ struct RuntimeWorkspace {
 ///
 /// The primary lane mirrors the published workspace. A child lane replaces
 /// the agent prompt and narrows permissions with the child agent's rules.
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 struct TurnLane {
     manual_compression: bool,
     owning_operation: Option<String>,
@@ -908,7 +909,7 @@ pub(crate) struct ManualCompressionTrigger {
 }
 
 /// One spawnable agent profile snapshotted for the `subagent` tool.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct SubagentAgent {
     /// Agent id (exact match for the tool's `agent` parameter).
     pub id: String,
@@ -933,7 +934,7 @@ pub struct SubagentAgent {
 }
 
 /// Published subagent catalog + depth budget for this Location generation.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct SubagentCatalog {
     /// Profiles by id (both primary-only and subagent-capable).
     pub agents: BTreeMap<String, SubagentAgent>,

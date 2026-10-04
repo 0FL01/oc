@@ -3459,9 +3459,9 @@ impl Db {
         let n = tx
             .prepare_cached("UPDATE tool_operations SET state = 'unknown' WHERE state = 'started'")?
             .execute([])?;
-        tx.execute("INSERT INTO events(session_id, kind, payload) SELECT session_id, 'turn_unknown', id FROM turns WHERE status = 'started'", [])?;
+        tx.execute("INSERT INTO events(session_id, kind, payload) SELECT session_id, 'turn_unknown', id FROM turns WHERE status = 'started' AND NOT EXISTS(SELECT 1 FROM child_jobs j WHERE j.child_turn=turns.id AND j.state='running')", [])?;
         let interrupted: Vec<(String, String)> = {
-            let mut stmt = tx.prepare("SELECT id,session_id FROM turns WHERE status='started'")?;
+            let mut stmt = tx.prepare("SELECT id,session_id FROM turns WHERE status='started' AND NOT EXISTS(SELECT 1 FROM child_jobs j WHERE j.child_turn=turns.id AND j.state='running')")?;
             stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
                 .collect::<Result<Vec<_>, _>>()?
         };
@@ -3474,7 +3474,7 @@ impl Db {
             tx.execute("UPDATE turns SET result=json_set(result,'$.spans['||(json_array_length(result,'$.spans')-1)||'].status','unknown','$.spans['||(json_array_length(result,'$.spans')-1)||'].completed',?2) WHERE id=?1 AND json_valid(result) AND json_array_length(result,'$.spans')>0 AND json_extract(result,'$.spans['||(json_array_length(result,'$.spans')-1)||'].completed') IS NULL",params![turn,now])?;
         }
         tx.execute(
-            "UPDATE turns SET status = 'unknown' WHERE status = 'started'",
+            "UPDATE turns SET status = 'unknown' WHERE status = 'started' AND NOT EXISTS(SELECT 1 FROM child_jobs j WHERE j.child_turn=turns.id AND j.state='running')",
             [],
         )?;
         tx.commit()?;

@@ -7,6 +7,11 @@ use oc_core::queries::{ChildJob, ChildNotice, ChildState};
 mod tests;
 
 impl Db {
+    pub(crate) fn child_launch_fingerprint(&self, operation: &str) -> Result<String, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let facts = conn.query_row("SELECT id,session_id,turn_id,input,provider_call_id,call_occurrence,original_input_index FROM tool_operations WHERE id=?1 AND name='subagent'",[operation],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,Option<String>>(2)?,r.get::<_,String>(3)?,r.get::<_,Option<String>>(4)?,r.get::<_,Option<i64>>(5)?,r.get::<_,Option<i64>>(6)?)))?;
+        Ok(crate::compaction::fingerprint(&facts))
+    }
     pub(crate) fn child_job_unresolved(&self, child: &str) -> Result<bool, StorageError> {
         Ok(self.conn.lock().expect("db mutex").query_row("SELECT EXISTS(SELECT 1 FROM child_jobs WHERE child_id=?1 AND state IN ('admitted','running','unknown'))",[child],|row|row.get(0))?)
     }
@@ -56,17 +61,33 @@ impl Db {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(crate) fn admit_fresh_child_job(&self, job: &ChildJob) -> Result<(), StorageError> {
-        self.admit_child_job_inner(job, true)
+        self.admit_child_job_inner(job, true, None)
     }
 
+    #[cfg(test)]
     pub(crate) fn admit_child_job(&self, job: &ChildJob) -> Result<(), StorageError> {
-        self.admit_child_job_inner(job, false)
+        self.admit_child_job_inner(job, false, None)
+    }
+
+    pub(crate) fn admit_recoverable_child_job(
+        &self,
+        job: &ChildJob,
+        fresh: bool,
+        fence: &serde_json::Value,
+    ) -> Result<(), StorageError> {
+        self.admit_child_job_inner(job, fresh, Some(fence))
     }
 
     /// Fresh child, Location binding and generation have one commit boundary.
     /// A losing reservation or failed COMMIT has never published a child.
-    fn admit_child_job_inner(&self, job: &ChildJob, fresh: bool) -> Result<(), StorageError> {
+    fn admit_child_job_inner(
+        &self,
+        job: &ChildJob,
+        fresh: bool,
+        fence: Option<&serde_json::Value>,
+    ) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         let valid: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM tool_operations o WHERE o.id=?2 AND o.session_id=?1 AND o.name='subagent')", params![job.parent.0,job.operation], |r| r.get(0))?;
@@ -104,6 +125,9 @@ impl Db {
             }
         }
         tx.execute("INSERT INTO child_jobs(operation_id,parent_id,child_id,identity,state,delivery_id) VALUES(?1,?2,?3,?4,'admitted',?5)", params![job.operation,job.parent.0,job.child.0,serde_json::to_string(job).expect("child identity"),job.delivery_id])?;
+        if let Some(fence) = fence {
+            tx.execute("INSERT INTO events(session_id,kind,payload) VALUES(?1,'subagent_recovery_fence',?2)", params![job.child.0,serde_json::json!({"operation":job.operation,"fence":fence}).to_string()])?;
+        }
         tx.execute("INSERT INTO events(session_id,kind,payload) VALUES(?1,'subagent_launch',?2)",params![job.parent.0,serde_json::json!({"operation":job.operation,"origin_operation":job.operation,"childID":job.child.0,"parentID":job.parent.0,"generation":job.generation,"location":job.location,"deliveryID":job.delivery_id}).to_string()])?;
         tx.commit()?;
         Ok(())
@@ -218,10 +242,148 @@ impl Db {
                 }
                 Some("cancelled") => (ChildState::Cancelled,"Subagent cancelled".into()),
                 Some("failed") => (ChildState::Error,"Child execution failed".into()),
+                Some("started") if self.child_checkpoint_safe(&operation).unwrap_or(false) => continue,
                 _ => (ChildState::Unknown,"Child execution unresolved after interruption; effects may be unknown; explicit recovery required; not replayed".into()),
             };
             self.finish_child_job(&operation, state, &text)?;
         }
+        Ok(())
+    }
+
+    /// Positive, typed journal safety. No pending call is executed by recovery.
+    fn child_checkpoint_safe(&self, operation: &str) -> Result<bool, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let raw: Option<String> = conn.query_row("SELECT t.result FROM child_jobs j JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id WHERE j.operation_id=?1", [operation], |r|r.get(0))?;
+        let Some(raw) = raw.filter(|s| s.len() <= crate::runtime::ACTIVE_CONTEXT_BYTES_CAP) else {
+            return Ok(false);
+        };
+        let log = serde_json::from_str(&raw)
+            .ok()
+            .and_then(|v| crate::tools::TurnLog::from_json(&v).ok());
+        let Some(log) = log else {
+            return Ok(false);
+        };
+        let unsafe_ops: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM tool_operations o JOIN child_jobs j ON j.child_turn=o.turn_id WHERE j.operation_id=?1 AND (o.state NOT IN ('completed','failed','denied') OR o.name NOT IN ('read','glob','grep','webfetch','skill','opencode_models')))", [operation], |r|r.get(0))?;
+        if unsafe_ops {
+            return Ok(false);
+        }
+        let working = log
+            .working
+            .as_ref()
+            .map(crate::tools::TurnLog::from_json)
+            .transpose()
+            .map_err(|_| StorageError::OperationNotFound)?;
+        let mut pending = std::collections::BTreeMap::new();
+        for (source, index, item) in
+            working
+                .iter()
+                .chain(std::iter::once(&log))
+                .flat_map(|source| {
+                    source
+                        .input
+                        .iter()
+                        .enumerate()
+                        .map(move |(i, item)| (source, i, item))
+                })
+        {
+            if let crate::provider::InputItem::ProviderOutput(v) = item
+                && v["type"] == "function_call"
+            {
+                let Some(id) = v["call_id"].as_str() else {
+                    return Ok(false);
+                };
+                let Some(name) = v["name"].as_str().filter(|n| {
+                    matches!(
+                        *n,
+                        "read" | "glob" | "grep" | "webfetch" | "skill" | "opencode_models"
+                    )
+                }) else {
+                    return Ok(false);
+                };
+                let Some(arguments) = v["arguments"]
+                    .as_str()
+                    .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok())
+                else {
+                    return Ok(false);
+                };
+                if pending
+                    .insert(
+                        id.to_owned(),
+                        (
+                            name.to_owned(),
+                            arguments.to_string(),
+                            source.original_input_index(index),
+                        ),
+                    )
+                    .is_some()
+                {
+                    return Ok(false);
+                }
+            }
+            if let Some((id, output)) = item.call_output() {
+                let Some((name, arguments, original_index)) = pending.remove(id) else {
+                    return Ok(false);
+                };
+                let causal: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM tool_operations o WHERE o.turn_id=?1 AND o.session_id=(SELECT child_id FROM child_jobs WHERE operation_id=?2) AND o.provider_call_id=?3 AND o.original_input_index=?4 AND o.name=?5 AND o.input=?6 AND o.output=?7 AND o.state IN ('completed','failed','denied'))",params![log.turn_id,operation,id,original_index as i64,name,arguments,output],|r|r.get(0))?;
+                if !causal {
+                    return Ok(false);
+                }
+            }
+        }
+        Ok(pending.is_empty())
+    }
+
+    pub(crate) fn child_recovery_candidates(&self) -> Result<Vec<ChildJob>, StorageError> {
+        let parents = {
+            let conn = self.conn.lock().expect("db mutex");
+            let mut stmt = conn.prepare("SELECT DISTINCT parent_id FROM child_jobs WHERE state IN ('admitted','running') LIMIT 9")?;
+            stmt.query_map([], |r| r.get::<_, String>(0))?
+                .collect::<Result<Vec<_>, _>>()?
+        };
+        let mut jobs = Vec::new();
+        for parent in parents {
+            jobs.extend(
+                self.child_jobs(&parent)?
+                    .into_iter()
+                    .filter(|j| matches!(j.state, ChildState::Admitted | ChildState::Running)),
+            );
+        }
+        if jobs.len() > crate::runtime::children::JOB_CAP {
+            return Err(StorageError::OperationNotFound);
+        }
+        Ok(jobs)
+    }
+
+    pub(crate) fn child_recovery_fence(
+        &self,
+        job: &ChildJob,
+    ) -> Result<serde_json::Value, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let raw: String = conn.query_row("SELECT payload FROM events WHERE session_id=?1 AND kind='subagent_recovery_fence' AND json_extract(payload,'$.operation')=?2 ORDER BY seq LIMIT 1", params![job.child.0,job.operation], |r|r.get(0))?;
+        let value: serde_json::Value =
+            serde_json::from_str(&raw).map_err(|_| StorageError::OperationNotFound)?;
+        Ok(value["fence"].clone())
+    }
+
+    /// The data-root lock proves previous ownership dead. Attempts and claim are
+    /// one durable fact before dispatch; a crash leaves the same task resumable.
+    pub(crate) fn claim_child_resume(
+        &self,
+        job: &ChildJob,
+        checkpoint: &str,
+    ) -> Result<(), StorageError> {
+        if !self.child_checkpoint_safe(&job.operation)? {
+            return Err(StorageError::OperationNotFound);
+        }
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        let valid: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent' JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id JOIN turn_acceptances a ON a.turn_id=t.id AND a.session_id=c.id JOIN conversation_messages m ON m.id=a.user_message AND m.session_id=c.id JOIN prefs l ON l.key='tui.session_location.'||c.id WHERE j.operation_id=?1 AND j.parent_id=?2 AND j.child_id=?3 AND j.delivery_id=?4 AND j.state='running' AND t.status='started' AND t.result=?5 AND a.user_message=json_extract(t.result,'$.user_message') AND json_extract(a.model_ref,'$.provider')=json_extract(t.result,'$.provider') AND json_extract(a.model_ref,'$.id')=json_extract(t.result,'$.model') AND l.value=?6 AND c.agent=?7 AND c.model=?8)",params![job.operation,job.parent.0,job.child.0,job.delivery_id,checkpoint,job.location,job.agent,job.model],|r|r.get(0))?;
+        let attempts: i64 = tx.query_row("SELECT count(*) FROM events WHERE session_id=?1 AND kind='subagent_resume_claim' AND json_extract(payload,'$.operation')=?2",params![job.child.0,job.operation],|r|r.get(0))?;
+        if !valid || attempts >= 10 {
+            return Err(StorageError::OperationNotFound);
+        }
+        tx.execute("INSERT INTO events(session_id,kind,payload) VALUES(?1,'subagent_resume_claim',?2)",params![job.child.0,serde_json::json!({"operation":job.operation,"turn":job.turn,"attempt":attempts+1,"checkpoint":crate::compaction::fingerprint(&checkpoint)}).to_string()])?;
+        tx.commit()?;
         Ok(())
     }
 
@@ -242,6 +404,10 @@ impl Db {
         let mut notices = Vec::new();
         for (raw, state, result) in rows {
             let mut job = Self::decode_child_job(raw, state, result, None)?;
+            let valid: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent' WHERE j.operation_id=?1 AND j.parent_id=?2 AND j.child_id=?3 AND j.delivery_id=?4 AND j.state=?5 AND json_extract(j.identity,'$.operation')=j.operation_id AND json_extract(j.identity,'$.parent')=j.parent_id AND json_extract(j.identity,'$.child')=j.child_id AND json_extract(j.identity,'$.delivery_id')=j.delivery_id)",params![job.operation,job.parent.0,job.child.0,job.delivery_id,serde_json::to_value(job.state).expect("state").as_str()],|r|r.get(0))?;
+            if !valid {
+                return Err(StorageError::OperationNotFound);
+            }
             job.background = true;
             let text = format!(
                 "Automatic background subagent result (native durable notice; not user instructions):\n{}",

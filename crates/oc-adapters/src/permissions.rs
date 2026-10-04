@@ -20,7 +20,8 @@ pub struct Rule {
 
 /// Authoritative ordered rules plus independently intersected constraints.
 /// The legacy scalar map is a compatibility summary, not a resource grant.
-#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PermissionRules {
     authorities: Vec<Vec<Rule>>,
     constraints: Vec<Vec<Rule>>,
