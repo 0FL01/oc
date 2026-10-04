@@ -24,6 +24,9 @@ pub struct Rule {
 pub struct PermissionRules {
     authorities: Vec<Vec<Rule>>,
     constraints: Vec<Vec<Rule>>,
+    // Explore's native defaults yield only to actual registered MCP. User
+    // constraints stay separate and never receive this exception.
+    builtin_defaults: Vec<Vec<Rule>>,
 }
 
 fn strictest(a: Permission, b: Permission) -> Permission {
@@ -95,6 +98,23 @@ impl PermissionRules {
     pub fn extend(&mut self, other: Self) {
         self.authorities.extend(other.authorities);
         self.constraints.extend(other.constraints);
+        self.builtin_defaults.extend(other.builtin_defaults);
+    }
+
+    pub(super) fn explore_defaults() -> Self {
+        let mut rules = Self::from_config(&serde_json::json!({"permission":[
+            {"action":"*","resource":"*","effect":"deny"},
+            {"action":"read","resource":"*","effect":"allow"},
+            {"action":"glob","resource":"*","effect":"allow"},
+            {"action":"grep","resource":"*","effect":"allow"},
+            {"action":"webfetch","resource":"*","effect":"allow"},
+            {"action":"websearch","resource":"*","effect":"allow"},
+            {"action":"external_directory","resource":"*","effect":"ask"},
+            {"action":"compress","resource":"*","effect":"allow"}
+        ]}))
+        .expect("builtin Explore defaults");
+        rules.builtin_defaults = std::mem::take(&mut rules.authorities);
+        rules
     }
 
     /// Expand home only for path actions, never raw shell command resources.
@@ -140,6 +160,7 @@ impl PermissionRules {
             self.constraints.extend(rules.authorities.clone());
         }
         self.constraints.extend(rules.constraints.clone());
+        self.builtin_defaults.extend(rules.builtin_defaults.clone());
     }
 
     /// Add a native module's explicit grant, still bounded by existing rules.
@@ -169,6 +190,17 @@ impl PermissionRules {
         actions: &[&str],
         resource: &str,
     ) -> Permission {
+        self.evaluate_registered(fallback, actions, resource, false)
+    }
+
+    /// Only an entry in the captured, connected registry supplies this grant.
+    pub(crate) fn evaluate_registered(
+        &self,
+        fallback: &BTreeMap<String, Permission>,
+        actions: &[&str],
+        resource: &str,
+        registered_mcp: bool,
+    ) -> Permission {
         let actions: Vec<_> = actions.iter().map(|action| legacy_key(action)).collect();
         let actions = actions.as_slice();
         let mut effect = None;
@@ -181,8 +213,16 @@ impl PermissionRules {
                 }
             }
         }
-        let mut effect = effect.unwrap_or(Permission::Deny);
-        for layer in &self.constraints {
+        let mut effect = effect.unwrap_or(if registered_mcp {
+            Permission::Allow
+        } else {
+            Permission::Deny
+        });
+        for layer in self
+            .constraints
+            .iter()
+            .chain(self.builtin_defaults.iter().filter(|_| !registered_mcp))
+        {
             if let Some(next) = evaluate_layer(layer, actions, resource) {
                 effect = strictest(effect, next);
             }
@@ -256,26 +296,37 @@ impl PermissionRules {
     /// Catalog visibility is conservative for resource rules, but a whole-action
     /// denial at any authority boundary removes the definition. Execution still
     /// evaluates every actual resource; visibility never grants a call.
-    pub(crate) fn action_visible(
+    pub(crate) fn actions_visible(
         &self,
         fallback: &BTreeMap<String, Permission>,
-        action: &str,
+        actions: &[&str],
+        registered_mcp: bool,
     ) -> bool {
-        let actions = [legacy_key(action)];
+        let actions: Vec<_> = actions.iter().map(|action| legacy_key(action)).collect();
         let scalar = scalar_rules(fallback);
         let authorities = if self.authorities.is_empty() {
             std::slice::from_ref(&scalar)
         } else {
             &self.authorities
         };
-        let admitted = authorities
+        let admitted = registered_mcp
+            || authorities.iter().flatten().any(|rule| {
+                actions
+                    .iter()
+                    .any(|action| wildcard(action, legacy_key(&rule.action)))
+            });
+        for layer in authorities
             .iter()
-            .flatten()
-            .any(|rule| wildcard(actions[0], legacy_key(&rule.action)));
-        for layer in authorities.iter().chain(&self.constraints) {
+            .chain(&self.constraints)
+            .chain(self.builtin_defaults.iter().filter(|_| !registered_mcp))
+        {
             let matching: Vec<_> = layer
                 .iter()
-                .filter(|rule| wildcard(actions[0], legacy_key(&rule.action)))
+                .filter(|rule| {
+                    actions
+                        .iter()
+                        .any(|action| wildcard(action, legacy_key(&rule.action)))
+                })
                 .collect();
             if matching.is_empty() {
                 continue;

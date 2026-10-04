@@ -2,6 +2,10 @@
 
 use super::*;
 
+#[cfg(test)]
+#[path = "builtin_tests.rs"]
+mod builtin_tests;
+
 /// Bound for walking a session's parent chain (cycle guard).
 const SUBAGENT_DEPTH_WALK_CAP: u32 = 64;
 
@@ -39,7 +43,13 @@ pub(super) fn lane_fixed_input(
 }
 
 /// `subagent` tool definition with the upstream `Available subagents` list.
-fn subagent_tool_def(catalog: &SubagentCatalog, policy: &RuntimePolicy<'_>) -> ToolDef {
+fn subagent_tool_def(
+    catalog: &SubagentCatalog,
+    policy: &RuntimePolicy<'_>,
+    model: &str,
+    model_catalog: &ModelCatalog,
+    home: Option<&str>,
+) -> ToolDef {
     let mut description = String::from(
         "Spawns an agent in a child session to work on the specified task.\n\
          The output includes a sessionID you can pass back later to continue that specific conversation with the subagent.\n\
@@ -66,6 +76,37 @@ fn subagent_tool_def(catalog: &SubagentCatalog, policy: &RuntimePolicy<'_>) -> T
                     agent.description.trim()
                 };
                 description.push_str(&format!("\n- {}: {summary}", agent.id));
+                let child_model = match agent.model.as_deref() {
+                    Some(raw) => match resolve_subagent_model(model_catalog, raw) {
+                        Ok(resolved) => resolved.id,
+                        Err(_) => {
+                            description.push_str("\n  Effective permission preview unavailable: configured model is unavailable.");
+                            continue;
+                        }
+                    },
+                    None => model.to_owned(),
+                };
+                let mut rules = policy.rules.cloned().unwrap_or_default();
+                let mut agent_rules = agent.permission_rules.clone();
+                if let Some(home) = home {
+                    agent_rules.expand_home(home);
+                }
+                rules.narrow(policy.permissions, &agent.permissions, &agent_rules);
+                let child_policy =
+                    RuntimePolicy::with_rules(policy.permissions, &rules).with_mcp(policy.mcp);
+                let mut permitted = selected_tool_defs(&child_model)
+                    .into_iter()
+                    .map(|tool| tool.name)
+                    .filter(|name| child_policy.tool_visible(name) && name != COMPRESS_TOOL)
+                    .collect::<Vec<_>>();
+                permitted.extend(
+                    policy
+                        .mcp
+                        .iter()
+                        .filter(|entry| child_policy.tool_visible(&entry.namespaced))
+                        .map(|entry| entry.namespaced.clone()),
+                );
+                description.push_str(&format!("\n  Effective permission preview: {}. Resource/Ask admission and child-context checks still apply.", permitted.join(", ")));
             }
         }
     }
@@ -995,9 +1036,19 @@ impl<'a> Runtime<'a> {
         if let Some(catalog) = &subagents
             && policy.tool_visible(SUBAGENT_TOOL)
         {
-            tool_defs.push(subagent_tool_def(catalog, &policy));
+            tool_defs.push(subagent_tool_def(
+                catalog,
+                &policy,
+                &selection.id,
+                params.catalog,
+                self.parent_env.get("HOME").map(String::as_str),
+            ));
         }
-        for entry in &attached.entries {
+        for entry in attached
+            .entries
+            .iter()
+            .filter(|entry| policy.tool_visible(&entry.namespaced))
+        {
             tool_defs.push(ToolDef {
                 name: entry.namespaced.clone(),
                 description: entry
@@ -1355,9 +1406,19 @@ impl<'a> Runtime<'a> {
             if let Some(catalog) = &subagents
                 && policy.tool_visible(SUBAGENT_TOOL)
             {
-                tool_defs.push(subagent_tool_def(catalog, &policy));
+                tool_defs.push(subagent_tool_def(
+                    catalog,
+                    &policy,
+                    &selection.id,
+                    params.catalog,
+                    self.parent_env.get("HOME").map(String::as_str),
+                ));
             }
-            for entry in &attached.entries {
+            for entry in attached
+                .entries
+                .iter()
+                .filter(|entry| policy.tool_visible(&entry.namespaced))
+            {
                 tool_defs.push(ToolDef {
                     name: entry.namespaced.clone(),
                     description: entry
@@ -2600,7 +2661,11 @@ impl<'a> Runtime<'a> {
                 .as_ref()
                 .and_then(|catalog| catalog.agents.keys().position(|id| id == &agent.id)),
             fixed_input: lane_fixed_input(
-                Some(&agent.prompt),
+                Some(if agent.prompt.trim().is_empty() {
+                    "You are OpenCode, a coding assistant. Help the user with their task using the available tools and respect the effective permissions."
+                } else {
+                    &agent.prompt
+                }),
                 if workspace.instruction_roots.is_empty() {
                     &workspace.instructions
                 } else {

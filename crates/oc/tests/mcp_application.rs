@@ -649,6 +649,8 @@ enum ResponsesScript {
     },
     ToolEveryTurn,
     ToolNamed(String),
+    /// Emit one policy-forbidden call without waiting for its excluded schema.
+    ToolNamedForbidden(String),
     ToolNamedOnce(String),
     ToolBatch {
         calls: Vec<(String, String, Value)>,
@@ -712,7 +714,9 @@ impl FakeResponses {
                 // startup complete without inserting a product launch barrier.
                 let requested_mcp: Vec<&str> = match &script {
                     ResponsesScript::ToolEveryTurn => vec!["stall__ping"],
-                    ResponsesScript::ToolNamed(name) | ResponsesScript::ToolNamedOnce(name) => {
+                    ResponsesScript::ToolNamed(name)
+                    | ResponsesScript::ToolNamedOnce(name)
+                    | ResponsesScript::ToolNamedForbidden(name) => {
                         vec![name]
                     }
                     ResponsesScript::ToolBatch { calls, .. }
@@ -738,6 +742,7 @@ impl FakeResponses {
                 });
                 let names = function_tool_names(&request.body);
                 let await_catalog = !title::is_title(&request.body)
+                    && !matches!(&script, ResponsesScript::ToolNamedForbidden(_))
                     && !actual_mcp_followup
                     && requested_mcp
                         .iter()
@@ -780,6 +785,7 @@ impl FakeResponses {
                     }
                     ResponsesScript::ToolEveryTurn
                     | ResponsesScript::ToolNamed(_)
+                    | ResponsesScript::ToolNamedForbidden(_)
                     | ResponsesScript::ToolNamedOnce(_) => {
                         if actual_mcp_followup {
                             respond_text(&mut socket, "retry complete");
@@ -790,7 +796,7 @@ impl FakeResponses {
                                     "item-stall".into(),
                                     format!("call-{main_index}"),
                                     json!({"__wireName": match &script {
-                                        ResponsesScript::ToolNamed(name) | ResponsesScript::ToolNamedOnce(name) => name.as_str(),
+                                        ResponsesScript::ToolNamed(name) | ResponsesScript::ToolNamedOnce(name) | ResponsesScript::ToolNamedForbidden(name) => name.as_str(),
                                         _ => "stall__ping",
                                     },"arguments":{}}),
                                 )],

@@ -28,6 +28,9 @@ use crate::config::{
 use sha2::Digest as _;
 use thiserror::Error;
 
+#[cfg(test)]
+mod builtin_tests;
+
 /// Max admitted definition roots per load.
 pub const MAX_DEF_ROOTS: usize = 8;
 /// Max definition id length.
@@ -117,16 +120,14 @@ pub struct AgentDef {
 impl AgentDef {
     /// Whether this profile may be selected as a primary agent.
     ///
-    /// An absent mode is `all` (upstream default); only `subagent` is
-    /// primary-ineligible.
+    /// Registered/configured profiles materialize the pinned primary default.
     pub fn primary_capable(&self) -> bool {
         self.mode.as_deref() != Some("subagent")
     }
 
     /// Whether this profile may be spawned as a subagent.
     ///
-    /// An absent mode is `all` (upstream default); only `primary` is
-    /// subagent-ineligible.
+    /// Only explicitly subagent/all profiles are eligible after registration.
     pub fn subagent_capable(&self) -> bool {
         self.mode.as_deref() != Some("primary")
     }
@@ -147,6 +148,42 @@ pub(crate) fn builtin_build() -> AgentDef {
         mode: Some("primary".into()),
         origin: "builtin".into(),
     }
+}
+
+/// One registration path; the ordinary supplied-field merge applies afterward.
+pub(crate) fn builtin_agents() -> [AgentDef; 4] {
+    let build = builtin_build();
+    let mut plan = build.clone();
+    plan.id = "plan".into();
+    plan.description = "Plans and analyzes without ordinary native mutation tools.".into();
+    let mut general = build.clone();
+    general.id = "general".into();
+    general.mode = Some("subagent".into());
+    general.description = "General-purpose agent for complex tasks and research.".into();
+    let mut explore = general.clone();
+    explore.id = "explore".into();
+    explore.description = "Search specialist for exploring codebases.".into();
+    explore.body = "You are Explore, a search specialist for exploring codebases. Find files, search their contents and explain relevant code. Use the available search/read tools and permitted MCP tools; do not modify files. Adapt to the requested quick, medium, or very thorough level of exploration. Include useful file paths and concise findings.".into();
+    explore.permission_rules = crate::permissions::PermissionRules::explore_defaults();
+    let mut agents = [build, plan, general, explore];
+    for agent in &mut agents {
+        agent.permission_rules.extend(profile_ceiling(&agent.id));
+    }
+    agents
+}
+
+fn profile_ceiling(id: &str) -> crate::permissions::PermissionRules {
+    let tools = match id {
+        // No plan-directory/lifecycle exception is implemented yet. Shell is
+        // also denied because it could bypass file-family mutation ceilings.
+        "plan" => serde_json::json!({"apply_patch":false,"edit":false,"write":false,"bash":false}),
+        "general" | "explore" => {
+            serde_json::json!({"question":false,"subagent":false,"opencode_session_rename":false,"opencode_session_move":false})
+        }
+        _ => return Default::default(),
+    };
+    crate::permissions::PermissionRules::from_config(&serde_json::json!({"tools": tools}))
+        .expect("builtin native profile ceiling")
 }
 
 /// Non-executable command (literal expansion only, via `expand_command`).
@@ -542,6 +579,32 @@ fn optional_model(
         .transpose()
 }
 
+fn agent_model(
+    value: Option<&serde_json::Value>,
+) -> Result<(Option<String>, Option<String>), String> {
+    let Some(value) = value else {
+        return Ok((None, None));
+    };
+    if let Some(id) = value.as_str() {
+        return Ok((Some(id.into()), None));
+    }
+    let object = value
+        .as_object()
+        .ok_or("model must be a string or object")?;
+    if object
+        .keys()
+        .any(|key| !matches!(key.as_str(), "providerID" | "modelID" | "variant"))
+    {
+        return Err("unsupported model field".into());
+    }
+    let provider = optional_string(object, "providerID")?.ok_or("model.providerID is required")?;
+    let model = optional_string(object, "modelID")?.ok_or("model.modelID is required")?;
+    Ok((
+        Some(format!("{provider}/{model}")),
+        optional_string(object, "variant")?,
+    ))
+}
+
 fn inline_body(
     object: &serde_json::Map<String, serde_json::Value>,
     first: &str,
@@ -649,97 +712,80 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
         }
     }
 
-    if let Some(raw_agents) = config.get("agent") {
-        if let Some(agents) = raw_agents.as_object() {
-            for (id, raw) in agents {
-                if !valid_id(id) {
-                    out.defs.diagnostics.push(diag(
-                        source_path,
-                        &format!("agent.{id}"),
-                        "invalid id",
-                    ));
-                    continue;
-                }
-                let Some(object) = raw.as_object() else {
-                    out.defs.diagnostics.push(diag(
-                        source_path,
-                        &format!("agent.{id}"),
-                        "must be an object",
-                    ));
-                    continue;
-                };
-                if object.contains_key("steps") || object.contains_key("maxSteps") {
-                    continue;
-                }
-                let allowed = [
-                    "prompt",
-                    "body",
-                    "description",
-                    "model",
-                    "variant",
-                    "permission",
-                    "permissions",
-                    "tools",
-                    "hidden",
-                    "disable",
-                    "disabled",
-                    "mode",
-                ];
-                if let Some(field) = object.keys().find(|key| !allowed.contains(&key.as_str())) {
-                    out.defs.diagnostics.push(diag(
-                        source_path,
-                        &format!("agent.{id}.{field}"),
-                        "unsupported field",
-                    ));
-                    continue;
-                }
-                let parsed = (|| {
-                    let body = inline_body(object, "prompt", "body")?;
-                    let description = optional_string(object, "description")?
-                        .or_else(|| {
-                            body.lines()
-                                .map(str::trim)
-                                .find(|line| !line.is_empty())
-                                .map(str::to_string)
-                        })
-                        .unwrap_or_default();
-                    let model = optional_string(object, "model")?;
-                    let variant = optional_string(object, "variant")?;
-                    let mode = agent_mode(optional_string(object, "mode")?)?;
-                    let permissions = permission_map(object.get("permission"))?;
-                    let permission_rules = crate::permissions::PermissionRules::from_config(raw)
-                        .map_err(|error| error.to_string())?;
-                    let hidden = metadata_bool(raw.get("hidden"))?;
-                    let disabled =
-                        metadata_bool(raw.get("disable"))? | metadata_bool(raw.get("disabled"))?;
-                    Ok::<_, String>((
-                        description,
-                        model,
-                        variant,
-                        body,
-                        permissions,
-                        mode,
-                        permission_rules,
-                        hidden,
-                        disabled,
-                    ))
-                })();
-                match parsed {
-                    Ok((
-                        description,
-                        model,
-                        variant,
-                        body,
-                        permissions,
-                        mode,
-                        permission_rules,
-                        hidden,
-                        disabled,
-                    )) => insert_agent(
-                        &mut out,
-                        &root,
-                        AgentInput {
-                            id: id.clone(),
+    for domain in ["agent", "agents"] {
+        if let Some(raw_agents) = config.get(domain) {
+            if let Some(agents) = raw_agents.as_object() {
+                for (id, raw) in agents {
+                    if !valid_id(id) {
+                        out.defs.diagnostics.push(diag(
+                            source_path,
+                            &format!("agent.{id}"),
+                            "invalid id",
+                        ));
+                        continue;
+                    }
+                    let Some(object) = raw.as_object() else {
+                        out.defs.diagnostics.push(diag(
+                            source_path,
+                            &format!("agent.{id}"),
+                            "must be an object",
+                        ));
+                        continue;
+                    };
+                    if object.contains_key("steps") || object.contains_key("maxSteps") {
+                        continue;
+                    }
+                    let allowed = [
+                        "prompt",
+                        "body",
+                        "system",
+                        "description",
+                        "model",
+                        "variant",
+                        "permission",
+                        "permissions",
+                        "tools",
+                        "hidden",
+                        "disable",
+                        "disabled",
+                        "mode",
+                    ];
+                    if let Some(field) = object.keys().find(|key| !allowed.contains(&key.as_str()))
+                    {
+                        out.defs.diagnostics.push(diag(
+                            source_path,
+                            &format!("agent.{id}.{field}"),
+                            "unsupported field",
+                        ));
+                        continue;
+                    }
+                    let parsed = (|| {
+                        let mut body = inline_body(object, "prompt", "body")?;
+                        if let Some(system) = optional_string(object, "system")? {
+                            if object.contains_key("prompt") || object.contains_key("body") {
+                                return Err("system and prompt/body are mutually exclusive".into());
+                            }
+                            body = system;
+                        }
+                        let description = optional_string(object, "description")?
+                            .or_else(|| {
+                                body.lines()
+                                    .map(str::trim)
+                                    .find(|line| !line.is_empty())
+                                    .map(str::to_string)
+                            })
+                            .unwrap_or_default();
+                        let (model, model_variant) = agent_model(object.get("model"))?;
+                        let variant = optional_string(object, "variant")?.or(model_variant);
+                        let mode = agent_mode(optional_string(object, "mode")?)?;
+                        let permissions = permission_map(object.get("permission"))?;
+                        let permission_rules =
+                            crate::permissions::PermissionRules::from_config(raw)
+                                .map_err(|error| error.to_string())?;
+                        let hidden = metadata_bool(raw.get("hidden"))?;
+                        let disabled = metadata_bool(raw.get("disable"))?
+                            | metadata_bool(raw.get("disabled"))?;
+                        Ok::<_, String>((
                             description,
                             model,
                             variant,
@@ -749,20 +795,49 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                             permission_rules,
                             hidden,
                             disabled,
-                        },
-                        source_path,
-                    ),
-                    Err(reason) => out.defs.diagnostics.push(diag(
-                        source_path,
-                        &format!("agent.{id}"),
-                        &reason,
-                    )),
+                        ))
+                    })();
+                    match parsed {
+                        Ok((
+                            description,
+                            model,
+                            variant,
+                            body,
+                            permissions,
+                            mode,
+                            permission_rules,
+                            hidden,
+                            disabled,
+                        )) => insert_agent(
+                            &mut out,
+                            &root,
+                            AgentInput {
+                                id: id.clone(),
+                                description,
+                                model,
+                                variant,
+                                body,
+                                permissions,
+                                mode,
+                                permission_rules,
+                                hidden,
+                                disabled,
+                                supplied: object.keys().cloned().collect(),
+                            },
+                            source_path,
+                        ),
+                        Err(reason) => out.defs.diagnostics.push(diag(
+                            source_path,
+                            &format!("agent.{id}"),
+                            &reason,
+                        )),
+                    }
                 }
+            } else {
+                out.defs
+                    .diagnostics
+                    .push(diag(source_path, "agent", "must be an object"));
             }
-        } else {
-            out.defs
-                .diagnostics
-                .push(diag(source_path, "agent", "must be an object"));
         }
     }
 
@@ -994,6 +1069,7 @@ struct AgentInput {
     hidden: bool,
     disabled: bool,
     mode: Option<String>,
+    supplied: std::collections::BTreeSet<String>,
 }
 
 fn insert_agent(out: &mut Collector, root: &DefRoot, mut input: AgentInput, path: &Path) {
@@ -1003,6 +1079,43 @@ fn insert_agent(out: &mut Collector, root: &DefRoot, mut input: AgentInput, path
         }
         return;
     }
+    let previous_profile = out.defs.agents.get(&input.id).cloned().or_else(|| {
+        builtin_agents()
+            .into_iter()
+            .find(|agent| agent.id == input.id)
+    });
+    if let Some(previous) = previous_profile {
+        if !input.supplied.contains("description") {
+            input.description = previous.description.clone();
+        }
+        if !input.supplied.contains("model") {
+            input.model = previous.model.clone();
+        }
+        if !(input.supplied.contains("variant")
+            || input.supplied.contains("model") && input.variant.is_some())
+        {
+            input.variant = previous.variant.clone();
+        }
+        if !["prompt", "body", "system"]
+            .iter()
+            .any(|key| input.supplied.contains(*key))
+        {
+            input.body = previous.body.clone();
+        }
+        if !input.supplied.contains("hidden") {
+            input.hidden = previous.hidden;
+        }
+        if !input.supplied.contains("mode") {
+            input.mode = previous.mode.clone();
+        }
+        let mut permissions = previous.permissions.clone();
+        permissions.extend(input.permissions);
+        input.permissions = permissions;
+        let mut rules = previous.permission_rules.clone();
+        rules.extend(input.permission_rules);
+        input.permission_rules = rules;
+    }
+    input.mode.get_or_insert_with(|| "primary".into());
     if out.defs.agents.len() >= MAX_DEFS_PER_KIND && !out.defs.agents.contains_key(&input.id) {
         out.defs
             .diagnostics
@@ -1033,12 +1146,6 @@ fn insert_agent(out: &mut Collector, root: &DefRoot, mut input: AgentInput, path
         input
             .permissions
             .insert("question".into(), crate::config::Permission::Deny);
-        input.permission_rules.extend(
-            crate::permissions::PermissionRules::from_config(
-                &serde_json::json!({"tools":{"question":false,"opencode_session_rename":false,"opencode_session_move":false}}),
-            )
-            .expect("builtin question constraint"),
-        );
     }
     out.put_agent(
         AgentDef {
@@ -1331,6 +1438,12 @@ fn load_entry(
                         disabled: metadata_bool(frontmatter.fields.get("disable"))?
                             | metadata_bool(frontmatter.fields.get("disabled"))?,
                         mode: agent_mode(field_string(&frontmatter.fields, "mode")?)?,
+                        supplied: frontmatter
+                            .fields
+                            .keys()
+                            .cloned()
+                            .chain(std::iter::once("body".into()))
+                            .collect(),
                     })
                 })();
                 match parsed {
@@ -1929,7 +2042,11 @@ mod tests {
         let agent = &loaded.agents["review"];
         assert_eq!(agent.origin, "P/opencode.jsonc");
         assert_eq!(agent.body, "local prompt");
-        assert_eq!(agent.model, None, "later definitions replace whole");
+        assert_eq!(
+            agent.model.as_deref(),
+            Some("old"),
+            "omitted supplied fields retain prior values"
+        );
         assert_eq!(agent.variant.as_deref(), Some("high"));
         assert_eq!(agent.permissions["apply_patch"], Permission::Deny);
         assert_eq!(loaded.commands["run"].origin, "P/opencode.jsonc");

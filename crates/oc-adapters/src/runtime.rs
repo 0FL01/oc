@@ -24,6 +24,7 @@ use crate::config::{Generation, Permission};
 use crate::dcp_auto::{DcpConfig, DcpStats, NudgeState, evaluate_request};
 use crate::mcp_remote::{self, CodexWebClient, McpError};
 use crate::mcp_stdio::{StdioClient, StdioConfig, StdioError};
+
 use crate::models::{self, ModelCatalog};
 use crate::patch::ProtectedGlobs;
 use crate::provider::{InputItem, InputRole, ResponsesConfig, ToolDef};
@@ -246,9 +247,14 @@ impl std::fmt::Display for AdmissionFailure {
 
 impl<'a> RuntimePolicy<'a> {
     fn tool_visible(&self, tool: &str) -> bool {
+        let alias = self.mcp_alias(tool);
+        let mut actions = vec![tool];
+        if let Some(alias) = &alias {
+            actions.push(alias);
+        }
         self.rules
             .unwrap_or(&crate::permissions::PermissionRules::default())
-            .action_visible(self.permissions, tool)
+            .actions_visible(self.permissions, &actions, alias.is_some())
     }
     /// Bridge one permission map.
     pub fn new(permissions: &'a BTreeMap<String, Permission>) -> Self {
@@ -289,8 +295,18 @@ impl<'a> RuntimePolicy<'a> {
 
     /// Resolve the permission effect without turning ask into allow.
     pub fn effect(&self, tool: &str, resource: &str) -> Permission {
-        let alias = self
-            .mcp
+        let alias = self.mcp_alias(tool);
+        let mut actions = vec![crate::config::legacy_key(tool)];
+        if let Some(alias) = &alias {
+            actions.push(alias);
+        }
+        self.rules
+            .unwrap_or(&crate::permissions::PermissionRules::default())
+            .evaluate_registered(self.permissions, &actions, resource, alias.is_some())
+    }
+
+    fn mcp_alias(&self, tool: &str) -> Option<String> {
+        self.mcp
             .iter()
             .find(|entry| entry.namespaced == tool)
             .map(|entry| {
@@ -307,21 +323,7 @@ impl<'a> RuntimePolicy<'a> {
                         .collect::<String>()
                 };
                 format!("{}_{}", sanitize(&entry.server), sanitize(&entry.tool))
-            });
-        let mut actions = vec![crate::config::legacy_key(tool)];
-        if let Some(alias) = &alias {
-            actions.push(alias);
-        }
-        self.rules.map_or_else(
-            || {
-                crate::permissions::PermissionRules::default().evaluate_actions(
-                    self.permissions,
-                    &actions,
-                    resource,
-                )
-            },
-            |rules| rules.evaluate_actions(self.permissions, &actions, resource),
-        )
+            })
     }
 
     /// Live instruction fetches obey effective read authority and explicit

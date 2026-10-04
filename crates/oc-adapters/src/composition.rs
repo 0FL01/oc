@@ -702,12 +702,12 @@ async fn load_stages(
     // Definitions are merged at their exact source precedence points: config
     // inline domains first, then Markdown from the same admitted root.
     let mut loaded_defs = defs::LoadedDefs::default();
-    // Pinned core/plugin/agent.ts registers Build before configured transforms.
+    // Pinned builtin profiles are registered before configured transforms.
     // A real definition participates in selection, policy and durable turn
     // metadata; configured overrides/disable retain their normal precedence.
-    loaded_defs
-        .agents
-        .insert("build".into(), defs::builtin_build());
+    for agent in defs::builtin_agents() {
+        loaded_defs.agents.insert(agent.id.clone(), agent);
+    }
     if let Some(global) = global.as_ref() {
         let global = admitted_roots[0]
             .as_ref()
@@ -743,13 +743,6 @@ async fn load_stages(
         );
     }
 
-    // A configured Build body/model inherits the builtin primary mode unless
-    // the owner explicitly supplies a different mode (including `all`).
-    if let Some(build) = loaded_defs.agents.get_mut("build")
-        && build.mode.is_none()
-    {
-        build.mode = Some("primary".into());
-    }
     let mut instruction_roots = Vec::new();
     let mut instruction_files = Vec::new();
     for (index, origin) in [
@@ -2131,7 +2124,7 @@ mod tests {
         std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
         let disabled = load().await.unwrap();
         assert!(!disabled.agents.contains_key("build"));
-        assert_eq!(disabled.default_agent.as_deref(), Some("review"));
+        assert_eq!(disabled.default_agent.as_deref(), Some("plan"));
         config["default_agent"] = serde_json::Value::Null;
         std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
         assert!(
@@ -2700,11 +2693,14 @@ mod tests {
             .expect("composition");
         assert_eq!(loaded.subagent_depth, 1);
         let ids: Vec<&str> = loaded.agents.keys().map(String::as_str).collect();
-        assert_eq!(ids, ["boss", "build", "general", "helper"]);
+        assert_eq!(
+            ids,
+            ["boss", "build", "explore", "general", "helper", "plan"]
+        );
         assert_eq!(loaded.default_agent.as_deref(), Some("build"));
         assert!(!loaded.agents["build"].subagent_capable());
         assert!(!loaded.agents["boss"].subagent_capable());
-        assert!(loaded.agents["general"].primary_capable());
+        assert!(!loaded.agents["general"].primary_capable());
         assert!(loaded.agents["general"].subagent_capable());
         assert!(!loaded.agents["helper"].primary_capable());
 

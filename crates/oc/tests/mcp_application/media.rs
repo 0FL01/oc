@@ -213,7 +213,15 @@ fn mcp12_media_permissions_and_sensitive_binary_never_publish_partial_success() 
         ("mcp_media_sensitive", "allow", "unknown", 1),
     ] {
         let name = format!("media__{tool}");
-        let responses = FakeResponses::start(ResponsesScript::ToolNamed(name.clone()));
+        let script = if permission == "deny" {
+            // Whole-action Deny now correctly removes its schema. This is an
+            // adversarial forbidden call, not a model waiting forever for a
+            // catalog entry that policy will never advertise.
+            ResponsesScript::ToolNamedForbidden(name.clone())
+        } else {
+            ResponsesScript::ToolNamed(name.clone())
+        };
+        let responses = FakeResponses::start(script);
         let mcp = FakeMcp::start(
             "media-sensitive-fixture",
             "Bearer mcp-media-private-canary",

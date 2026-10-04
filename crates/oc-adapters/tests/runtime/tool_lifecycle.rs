@@ -907,7 +907,7 @@ for line in sys.stdin:
         ("empty", Permission::Allow),
         ("broken", Permission::Allow),
         ("disabled", Permission::Allow),
-        ("unlisted", Permission::Deny),
+        ("unlisted", Permission::Allow),
     ] {
         generation.mcp.insert(
             server.into(),
@@ -1013,13 +1013,20 @@ for line in sys.stdin:
     for request in &captured {
         let wire = request.to_string();
         assert_eq!(wire.matches("GUIDANCE_GOOD").count(), 1);
+        assert_eq!(
+            wire.matches("GUIDANCE_UNLISTED").count(),
+            1,
+            "actual registered MCP receives native default authority"
+        );
+        let schemas = request["tools"].as_array().unwrap();
+        assert!(schemas.iter().any(|tool| tool["name"] == "unlisted__query"));
+        assert!(!schemas.iter().any(|tool| tool["name"] == "denied__query"));
         for absent in [
             "GUIDANCE_DENIED",
             "GUIDANCE_ASK",
             "GUIDANCE_EMPTY",
             "GUIDANCE_BROKEN",
             "GUIDANCE_DISABLED",
-            "GUIDANCE_UNLISTED",
             "PROVIDER-CANARY",
             "HEADER-CANARY",
             "UNKNOWN-CANARY",
@@ -1061,7 +1068,7 @@ for line in sys.stdin:
     // Resource-specific authority cannot inherit the scalar compatibility allow
     // when projecting whole-server guidance into a turn.
     generation.permission_rules = oc_adapters::permissions::PermissionRules::from_config(
-        &serde_json::json!({"permission":{"good__query":{"*":"deny","special":"allow"}}}),
+        &serde_json::json!({"permission":{"*":"deny","good__query":{"*":"deny","special":"allow"}}}),
     )
     .unwrap();
     runtime.reload(generation).await.unwrap();
