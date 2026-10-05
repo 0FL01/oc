@@ -2877,6 +2877,7 @@ impl<'a> Runtime<'a> {
             agent_color_index: workspace
                 .subagents
                 .as_ref()
+                .filter(|_| agent.color.is_none())
                 .and_then(|catalog| catalog.agents.keys().position(|id| id == &agent.id)),
             fixed_input: lane_fixed_input(
                 Some(&agent.prompt),

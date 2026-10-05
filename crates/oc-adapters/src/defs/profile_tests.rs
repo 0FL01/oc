@@ -258,3 +258,73 @@ fn r6_request_overlays_merge_by_key_with_legacy_migration_and_explicit_refusals(
     );
     assert!(!defs.agents.contains_key("bad"));
 }
+
+#[test]
+fn r6_color_native_pattern_legacy_theme_migration_and_supplied_merge() {
+    let temp = tempfile::tempdir().unwrap();
+    for (file, text) in [
+        ("agents/native.md", "---\ncolor: \"#A1b2C3\"\n---\nn"),
+        (
+            "agents/legacy.md",
+            "---\ncolor: accent\ntemperature: 0.1\n---\nl",
+        ),
+        ("agents/theme.md", "---\ncolor: accent\n---\nt"),
+        ("agents/short.md", "---\ncolor: \"#abc\"\n---\ns"),
+    ] {
+        let path = temp.path().join(file);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, text).unwrap();
+    }
+    let mut defs = load_definitions(&[DefRoot {
+        dir: temp.path().into(),
+        origin: "global".into(),
+    }]);
+    assert_eq!(defs.agents["native"].color.as_deref(), Some("#A1b2C3"));
+    assert_eq!(defs.agents["legacy"].color.as_deref(), Some("#aaaaaa"));
+    assert_eq!(
+        defs.agents["legacy"].request.body["temperature"],
+        serde_json::json!(0.1),
+        "plain YAML numbers stay numbers"
+    );
+    for refused in ["theme", "short"] {
+        assert!(!defs.agents.contains_key(refused), "{refused}");
+    }
+    assert_eq!(
+        defs.diagnostics
+            .iter()
+            .filter(|d| d.reason.contains("color must be #RRGGBB"))
+            .count(),
+        2,
+        "{:?}",
+        defs.diagnostics
+    );
+    merge_config_definitions(
+        &mut defs,
+        &serde_json::json!({
+            "agent":{"v1":{"color":"primary"}},
+            "agents":{"native":{"description":"kept color"},"bad":{"color":"primary"}}
+        }),
+        "project",
+    );
+    assert_eq!(defs.agents["v1"].color.as_deref(), Some("#aaaaaa"));
+    assert_eq!(defs.agents["native"].color.as_deref(), Some("#A1b2C3"));
+    assert!(!defs.agents.contains_key("bad"));
+}
+
+#[test]
+fn r6_frontmatter_plain_scalars_follow_yaml_core_numbers() {
+    for (text, expected) in [
+        ("7", serde_json::json!(7)),
+        ("-0.5", serde_json::json!(-0.5)),
+        ("1e3", serde_json::json!(1000.0)),
+        ("\"7\"", serde_json::json!("7")),
+        ("4o", serde_json::json!("4o")),
+        ("1.2.3", serde_json::json!("1.2.3")),
+        (".", serde_json::json!(".")),
+        ("0x1f", serde_json::json!("0x1f")),
+    ] {
+        let (value, _) =
+            crate::config::split_frontmatter_value(&format!("---\nk: {text}\n---\n")).unwrap();
+        assert_eq!(value["k"], expected, "{text}");
+    }
+}

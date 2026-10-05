@@ -1498,8 +1498,38 @@ fn parse_frontmatter_scalar(text: &str) -> Result<serde_json::Value, String> {
         "true" => Ok(serde_json::Value::Bool(true)),
         "false" => Ok(serde_json::Value::Bool(false)),
         "null" | "~" => Ok(serde_json::Value::Null),
-        _ => Ok(serde_json::Value::String(trimmed.to_string())),
+        _ => Ok(frontmatter_number(trimmed)
+            .unwrap_or_else(|| serde_json::Value::String(trimmed.to_string()))),
     }
+}
+
+/// YAML 1.2 core-schema decimal int/float for an unquoted plain scalar.
+fn frontmatter_number(text: &str) -> Option<serde_json::Value> {
+    let digits = text.strip_prefix(['-', '+']).unwrap_or(text);
+    let (mantissa, exponent) = match digits.split_once(['e', 'E']) {
+        Some((mantissa, exponent)) => (mantissa, Some(exponent)),
+        None => (digits, None),
+    };
+    let (whole, fraction) = mantissa.split_once('.').unwrap_or((mantissa, ""));
+    let decimal = |part: &str| part.bytes().all(|byte| byte.is_ascii_digit());
+    if whole.is_empty() && fraction.is_empty()
+        || !decimal(whole)
+        || !decimal(fraction)
+        || exponent.is_some_and(|exponent| {
+            let exponent = exponent.strip_prefix(['-', '+']).unwrap_or(exponent);
+            exponent.is_empty() || !decimal(exponent)
+        })
+    {
+        return None;
+    }
+    if !mantissa.contains('.')
+        && exponent.is_none()
+        && let Ok(value) = text.parse::<i64>()
+    {
+        return Some(value.into());
+    }
+    let value = text.parse::<f64>().ok()?;
+    serde_json::Number::from_f64(value).map(serde_json::Value::Number)
 }
 
 /// Remove matching surrounding quotes (YAML single/double quote escapes).

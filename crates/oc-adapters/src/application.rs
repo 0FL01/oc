@@ -1143,6 +1143,11 @@ impl Effective {
             chrome: {
                 let mut chrome = composition.tui_chrome.clone();
                 chrome.selection_generation = generation;
+                chrome.agent_colors = composition
+                    .agents
+                    .values()
+                    .filter_map(|agent| Some((agent.id.clone(), agent.color.clone()?)))
+                    .collect();
                 chrome.permissions_auto = composition.permission_preference.load(Ordering::SeqCst);
                 chrome.provider = Some(composition.provider_state.for_model(
                     &self.model_id,
@@ -1332,6 +1337,7 @@ fn subagent_catalog(composition: &Composition) -> Option<SubagentCatalog> {
                     hidden: agent.hidden,
                     digest: Some(crate::defs::agent_digest(agent)),
                     request: agent.request.clone(),
+                    color: agent.color.clone(),
                 },
             )
         })
@@ -2290,9 +2296,11 @@ fn publish_workspace(
         composition.skill_errors.clone(),
         effective.agent_digest.clone(),
         effective.agent_id.clone(),
+        // An explicit profile color is resolved by id, not by a pinned slot.
         effective
             .agent_id
             .as_ref()
+            .filter(|_| agent.is_none_or(|agent| agent.color.is_none()))
             .and_then(|id| composition.agents.values().position(|a| &a.id == id)),
         agent
             .map(|agent| agent.permissions.clone())

@@ -954,6 +954,9 @@ pub struct SubagentAgent {
     /// Profile request overlay for the child's own generations.
     #[serde(skip)]
     pub request: crate::provider::RequestOverlay,
+    /// Explicit presentation color; such a lane pins no categorical slot.
+    #[serde(skip)]
+    pub color: Option<String>,
 }
 
 impl SubagentAgent {

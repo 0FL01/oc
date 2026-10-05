@@ -48,6 +48,7 @@ fn dcp10_direct_child_query_and_api_cannot_use_root_authority() {
                     hidden: false,
                     digest: None,
                     request: Default::default(),
+                    color: None,
                 },
             )]),
             depth_limit: 1,
@@ -95,6 +96,7 @@ fn dcp10_explore_preview_and_ceiling_follow_real_config_permission_and_consumer(
         hidden: false,
         digest: None,
         request: Default::default(),
+        color: None,
     };
     for (permission, config, consumer, available) in [
         (Permission::Allow, DcpConfig::default(), false, true),

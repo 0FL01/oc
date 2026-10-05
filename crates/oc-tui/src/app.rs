@@ -1255,6 +1255,12 @@ impl TuiState {
     /// and the first categorical color for an
     /// unknown/missing agent.
     pub fn agent_color(&self, agent: Option<&str>) -> ratatui::style::Color {
+        if let Some(color) = agent
+            .and_then(|id| self.chrome.agent_colors.get(id))
+            .and_then(|hex| crate::theme::Rgba::from_hex(hex))
+        {
+            return ratatui::style::Color::Rgb(color.r, color.g, color.b);
+        }
         let colors = Theme::dark().categorical_agents();
         let index = agent.and_then(|id| {
             self.agents

@@ -160,3 +160,26 @@ async fn r6_loaded_profile_request_overlay_reaches_child_catalog() {
     assert_eq!(worker.body["seed"], 3);
     assert!(catalog.agents["build"].request.is_empty());
 }
+
+#[tokio::test]
+async fn r6_explicit_profile_color_reaches_tui_chrome_and_skips_slot_pin() {
+    let temp = tempfile::tempdir().unwrap();
+    let mut config = config();
+    config["agents"]["z-first"]["color"] = serde_json::json!("#123456");
+    config["agents"]["worker"]["color"] = serde_json::json!("#654321");
+    std::fs::write(temp.path().join("opencode.json"), config.to_string()).unwrap();
+    let c = composition::load_with_env(temp.path(), BTreeMap::new())
+        .await
+        .unwrap();
+    let snapshot = Effective::from_composition(&c).snapshot(&c, 1);
+    assert_eq!(
+        snapshot.chrome.agent_colors,
+        BTreeMap::from([
+            ("worker".to_string(), "#654321".to_string()),
+            ("z-first".to_string(), "#123456".to_string()),
+        ])
+    );
+    let catalog = subagent_catalog(&c).unwrap();
+    assert_eq!(catalog.agents["worker"].color.as_deref(), Some("#654321"));
+    assert!(catalog.agents["general"].color.is_none());
+}

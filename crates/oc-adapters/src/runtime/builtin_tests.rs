@@ -188,6 +188,7 @@ fn preview_resolves_child_model_before_selecting_the_captured_file_family() {
         hidden: false,
         digest: None,
         request: Default::default(),
+        color: None,
     };
     let models = ModelCatalog {
         provider: "gpt-provider".into(),

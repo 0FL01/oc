@@ -677,6 +677,7 @@ fn agent(id: &str, primary: bool, model: Option<&str>) -> SubagentAgent {
         hidden: false,
         digest: Some(format!("{id}-digest")),
         request: Default::default(),
+        color: None,
     }
 }
 

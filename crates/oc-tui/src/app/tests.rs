@@ -252,3 +252,29 @@ mod lifecycle;
 mod model_selection;
 mod retry;
 mod transcript;
+
+#[tokio::test]
+async fn r6_explicit_profile_color_wins_over_categorical_slot() {
+    let mut state = fresh_state("profile-color").await;
+    let mut catalog = snapshot();
+    catalog
+        .chrome
+        .agent_colors
+        .insert("y".into(), "#12ab34".into());
+    catalog
+        .chrome
+        .agent_colors
+        .insert("child".into(), "#0000ff".into());
+    state.apply_catalog(catalog);
+    let colors = crate::theme::Theme::dark().categorical_agents();
+    assert_eq!(
+        state.agent_color(Some("y")),
+        ratatui::style::Color::Rgb(0x12, 0xab, 0x34)
+    );
+    assert_eq!(
+        state.agent_color(Some("child")),
+        ratatui::style::Color::Rgb(0, 0, 0xff),
+        "subagent-only profiles resolve by id as well"
+    );
+    assert_eq!(state.agent_color(Some("x")), colors[0]);
+}

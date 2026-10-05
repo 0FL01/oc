@@ -486,6 +486,8 @@ pub struct TuiChrome {
     pub dcp: crate::dcp_view::DcpDisplayConfig,
     /// Admitted CLI session permission preference. Consumer registration is explicit.
     pub permissions_auto: bool,
+    /// Explicit `#RRGGBB` profile colors by agent id; they win over categorical slots.
+    pub agent_colors: BTreeMap<String, String>,
     pub permission_shortcuts: PermissionShortcuts,
     /// Ordered, value-free diagnostics from admitted configuration sources.
     pub config_diagnostics: Vec<ConfigDiagnostic>,

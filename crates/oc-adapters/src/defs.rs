@@ -118,6 +118,8 @@ pub struct AgentDef {
     pub mode: Option<String>,
     /// Request headers/body overlay applied to this profile's own generations.
     pub request: crate::provider::RequestOverlay,
+    /// Explicit `#RRGGBB` presentation color; absent uses the categorical slot.
+    pub color: Option<String>,
     /// Winning source origin.
     pub origin: String,
 }
@@ -157,6 +159,7 @@ pub(crate) fn builtin_build() -> AgentDef {
         hidden: false,
         mode: Some("primary".into()),
         request: Default::default(),
+        color: None,
         origin: "builtin".into(),
     }
 }
@@ -818,6 +821,40 @@ fn agent_request<'a>(
 
 const MAX_REQUEST_OVERLAY_BYTES: usize = 64 * 1024;
 
+/// Donor `Config.Agent.Color` (`#RRGGBB`); the V1 migration maps a theme
+/// color name (no leading `#`) to `#aaaaaa` and re-validates the result.
+fn agent_color(value: Option<&serde_json::Value>, legacy: bool) -> Result<Option<String>, String> {
+    let Some(value) = value.filter(|value| !value.is_null()) else {
+        return Ok(None);
+    };
+    let color = value.as_str().ok_or("color must be a string")?;
+    let color = if legacy && !color.starts_with('#') {
+        "#aaaaaa"
+    } else {
+        color
+    };
+    let digits = color.strip_prefix('#').unwrap_or_default();
+    if digits.len() != 6 || !digits.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err("color must be #RRGGBB".into());
+    }
+    Ok(Some(color.to_string()))
+}
+
+/// Pinned Markdown importer: any key outside the native agent schema selects
+/// the V1 decode/migration path.
+const NATIVE_AGENT_KEYS: [&str; 10] = [
+    "model",
+    "request",
+    "system",
+    "description",
+    "mode",
+    "hidden",
+    "color",
+    "steps",
+    "disabled",
+    "permissions",
+];
+
 fn metadata_bool(value: Option<&serde_json::Value>) -> Result<bool, String> {
     match value {
         None => Ok(false),
@@ -906,6 +943,7 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                         "options",
                         "temperature",
                         "top_p",
+                        "color",
                     ];
                     if let Some(field) = object.keys().find(|key| !allowed.contains(&key.as_str()))
                     {
@@ -945,7 +983,9 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                         let disabled = metadata_bool(raw.get("disable"))?
                             | metadata_bool(raw.get("disabled"))?;
                         let request = agent_request(|key| object.get(key))?;
+                        let color = agent_color(object.get("color"), domain == "agent")?;
                         Ok::<_, String>((
+                            color,
                             request,
                             description,
                             model,
@@ -960,6 +1000,7 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                     })();
                     match parsed {
                         Ok((
+                            color,
                             request,
                             description,
                             model,
@@ -985,6 +1026,7 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                                 hidden,
                                 disabled,
                                 request,
+                                color,
                                 supplied: object.keys().cloned().collect(),
                             },
                             source_path,
@@ -1371,6 +1413,7 @@ struct AgentInput {
     disabled: bool,
     mode: Option<String>,
     request: crate::provider::RequestOverlay,
+    color: Option<String>,
     supplied: std::collections::BTreeSet<String>,
 }
 
@@ -1409,6 +1452,9 @@ fn insert_agent(out: &mut Collector, root: &DefRoot, mut input: AgentInput, path
         }
         if !input.supplied.contains("mode") {
             input.mode = previous.mode.clone();
+        }
+        if !input.supplied.contains("color") {
+            input.color = previous.color.clone();
         }
         let mut permissions = previous.permissions.clone();
         permissions.extend(input.permissions);
@@ -1464,6 +1510,7 @@ fn insert_agent(out: &mut Collector, root: &DefRoot, mut input: AgentInput, path
             hidden: input.hidden,
             mode: input.mode,
             request: input.request,
+            color: input.color,
             origin: root.origin.clone(),
         },
         &root.origin.clone(),
@@ -1723,6 +1770,7 @@ fn load_entry(
                         "options",
                         "temperature",
                         "top_p",
+                        "color",
                     ],
                 ) {
                     out.defs.diagnostics.push(diag(
@@ -1769,6 +1817,13 @@ fn load_entry(
                             agent_mode(field_string(&frontmatter.fields, "mode")?)?
                         },
                         request: agent_request(|key| frontmatter.fields.get(key))?,
+                        color: agent_color(
+                            frontmatter.fields.get("color"),
+                            frontmatter
+                                .fields
+                                .keys()
+                                .any(|key| !NATIVE_AGENT_KEYS.contains(&key.as_str())),
+                        )?,
                         supplied: frontmatter
                             .fields
                             .keys()
