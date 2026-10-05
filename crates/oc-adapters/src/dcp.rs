@@ -1656,6 +1656,138 @@ mod tests {
         ));
     }
 
+    /// DCP 3.2.0 `tests/v2-ids.test.ts` (d637981, AGPL-3.0-or-later) range/restart
+    /// cases beyond 9999, translated to native `m{seq}`/`b{id}` IDs without a
+    /// compact-ID migration.
+    #[test]
+    fn dcp320_ids_beyond_9999_keep_block_order_nesting_and_restart() {
+        let tmp = tempfile::tempdir().expect("temp");
+        let root = tmp.path().join("data");
+        let history = vec![
+            message("m9998", Role::User, "old question"),
+            message("m9999", Role::Assistant, "old answer"),
+            message("m10000", Role::User, "later question"),
+            message("m10001", Role::Assistant, "later answer"),
+            message("m10002", Role::User, "newest question"),
+            message("m10003", Role::Assistant, "newest answer"),
+            message("m10004", Role::User, "live tail"),
+        ];
+        let spec = ProtectedSpec::default();
+        let db = crate::storage::Db::open(&root).expect("open");
+        super::apply_dcp_schema(&db).expect("migrate");
+        db.create_session("s").expect("session");
+        rusqlite::Connection::open(root.join("oc.sqlite"))
+            .expect("sqlite")
+            .execute(
+                "INSERT OR REPLACE INTO compression_identity(singleton,high_water) VALUES(1,9998)",
+                [],
+            )
+            .expect("high water");
+        let first = super::compress_ranges(
+            &db,
+            "s",
+            &history,
+            &[validated("a", "m9998", "m9999", "OLD_SUMMARY")],
+            &spec,
+        )
+        .expect("first");
+        let second = super::compress_ranges(
+            &db,
+            "s",
+            &history,
+            &[validated("b", "m10000", "m10001", "LATER_SUMMARY")],
+            &spec,
+        )
+        .expect("second");
+        assert_eq!(
+            (first, second),
+            (vec!["b9999".to_string()], vec!["b10000".to_string()])
+        );
+        let rows = |db: &crate::storage::Db| {
+            let blocks = super::load_blocks(db, "s").expect("load");
+            let positions = blocks
+                .iter()
+                .filter(|block| block.hot.as_ref().is_none_or(|hot| hot["active"] != false))
+                .filter_map(|block| {
+                    block.members.first().map(|member| {
+                        (
+                            block.id.clone(),
+                            member[1..].parse::<i64>().expect("numeric seq"),
+                        )
+                    })
+                })
+                .collect::<Vec<_>>();
+            let active = history
+                .iter()
+                .map(|m| (m.id.0.clone(), format!("{:?}", m.role), m.text.clone()))
+                .collect::<Vec<_>>();
+            super::project_active_rows(&active, &blocks, &positions)
+                .expect("project")
+                .into_iter()
+                .map(|(id, _, text)| (id, text))
+                .collect::<Vec<_>>()
+        };
+        let projected = rows(&db);
+        let ids: Vec<_> = projected.iter().map(|(id, _)| id.as_str()).collect();
+        assert_eq!(ids, ["b9999", "b10000", "m10002", "m10003", "m10004"]);
+        assert!(projected[0].1.contains("OLD_SUMMARY") && projected[1].1.contains("LATER_SUMMARY"));
+        // Restart: reopened IDs resolve and project identically past the boundary.
+        drop(db);
+        let db = crate::storage::Db::open(&root).expect("reopen");
+        assert_eq!(rows(&db), projected);
+        let planned = oc_core::context_plan::plan_ranges(
+            &history,
+            &[("m10000".to_string(), "m10003".to_string())],
+        )
+        .expect("numeric ids beyond 9999 resolve by position");
+        assert_eq!((planned[0].start, planned[0].end), (2, 5));
+        // Nested compression across the b9999→b10000 boundary owns every member.
+        assert!(matches!(
+            super::compress_ranges(
+                &db,
+                "s",
+                &history,
+                &[validated("x", "m9998", "m10003", "raw overlap")],
+                &spec
+            ),
+            Err(super::DcpError::ExistingOverlap { .. })
+        ));
+        let existing = super::load_blocks(&db, "s").expect("load");
+        let range = validated("c", "b9999", "m10003", "NESTED (b9999) (b10000) SUMMARY");
+        let plan =
+            super::plan_active_compression("s", &history, &[range], &spec, &existing, None, 10001)
+                .expect("nested plan across the boundary");
+        assert_eq!(plan.blocks.len(), 1);
+        assert_eq!(plan.blocks[0].id, "b10001");
+        let mut consumed = plan.consumed_blocks.clone();
+        consumed.sort();
+        assert_eq!(consumed, ["b10000", "b9999"]);
+        assert!(
+            plan.blocks[0].summary.contains("OLD_SUMMARY")
+                && plan.blocks[0].summary.contains("LATER_SUMMARY")
+        );
+        // Text order puts b10000 and b10001 before b9999. As in the runtime
+        // candidate graph, consumed blocks keep no members, so ownership does
+        // not depend on the textual ID order across the boundary.
+        let mut graph = existing.clone();
+        for block in &mut graph {
+            assert!(plan.consumed_blocks.contains(&block.id));
+            block.members.clear();
+        }
+        graph.extend(plan.blocks.iter().cloned());
+        graph.sort_by(|a, b| a.id.cmp(&b.id));
+        let active = history
+            .iter()
+            .map(|m| (m.id.0.clone(), format!("{:?}", m.role), m.text.clone()))
+            .collect::<Vec<_>>();
+        let projected =
+            super::project_active_rows(&active, &graph, &[("b10001".to_string(), 9998)])
+                .expect("project nested");
+        let ids: Vec<_> = projected.iter().map(|(id, ..)| id.as_str()).collect();
+        assert_eq!(ids, ["b10001", "m10004"], "{projected:?}");
+        drop(db);
+    }
+
     #[test]
     fn projection_collapses_prunes_and_expands() {
         let block = |id: &str, summary: &str, members: &[&str]| super::CompressionBlock {
