@@ -1344,6 +1344,15 @@ pub(crate) fn provider_wire(
         _ => Default::default(),
     };
     wire.auth_policy = entry.options.auth_policy;
+    wire.settings = crate::provider::settings::WireSettings::admit(
+        protocol,
+        &entry.options.wire_settings,
+        &entry.options.body,
+    )
+    .map_err(|_| ConfigError::Invalid {
+        field: format!("provider.{id}.options"),
+        reason: "invalid or unsupported wire settings".into(),
+    })?;
     if let Some(source) = &entry.options.endpoint_source {
         wire.endpoint = Some(
             crate::endpoint::EndpointBinding::admit(

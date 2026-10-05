@@ -67,7 +67,11 @@ async fn go03_messages_package_runs_complete_tool_roundtrip_for_both_auth_scheme
         std::fs::write(project.join("note.txt"), "MESSAGES_NOTE").unwrap();
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let base = format!("http://{}/custom/prefix", listener.local_addr().unwrap());
-        let mut options = json!({"baseURL":base});
+        let mut options = json!({"baseURL":base,
+            "thinking":{"type":"enabled","budgetTokens":1024},
+            "outputConfig":{"effort":"high"},
+            "body":{"metadata":{"user_id":"native-wire-fixture"}}
+        });
         options[if bearer { "authToken" } else { "apiKey" }] = "synthetic-key".into();
         std::fs::write(project.join("opencode.json"),json!({
             "model":"local/messages-model","provider":{"local":{"npm":"@ai-sdk/anthropic","options":options,
@@ -136,6 +140,12 @@ async fn go03_messages_package_runs_complete_tool_roundtrip_for_both_auth_scheme
             assert!(headers.contains("anthropic-version: 2023-06-01"));
             assert!(headers.contains("interleaved-thinking-2025-05-14"));
             assert_eq!(body["model"], "messages-model");
+            assert_eq!(
+                body["thinking"],
+                json!({"type":"enabled","budget_tokens":1024})
+            );
+            assert_eq!(body["output_config"]["effort"], "high");
+            assert_eq!(body["metadata"]["user_id"], "native-wire-fixture");
             assert!(body.get("store").is_none() && body.get("input").is_none());
         }
         let main: Vec<_> = seen

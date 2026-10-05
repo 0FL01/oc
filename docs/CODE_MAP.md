@@ -62,7 +62,10 @@ Full effective request binding and public Go cache remain separate T53 slices.
 T53 native wires: `oc-adapters/src/provider/{chat,messages,protocol}.rs` owns
 finite lowering and independent decoders; `provider.rs` shares HTTP/SSE caps,
 cancel and one-attempt dispatch; `config.rs::provider_wire` admits explicit
-package/compatibility/static Messages auth. Nearest tests:
+package/compatibility/static Messages auth. `provider/settings.rs` admits typed
+wire options and consumes provider body overlays across the common dispatch;
+`settings_tests.rs` covers typed failures and all three real fake-server routes.
+Nearest tests:
 `provider/{chat,messages,protocol}_tests.rs`, `application/{chat,messages}_wire_tests.rs`;
 receipts `evidence/T53/{chat,messages}-wire.md`. Full Go/catalog/credentials/
 replay/metadata qualification remains T53.

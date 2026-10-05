@@ -415,6 +415,17 @@ all-target gates. This is partial R2/R3, not GO02/GO03 PASS: effective selected 
 binding/overlays and public Go cache remain next, followed by metadata/replay/connect
 and bounded GO06 qualification. T44 stays PAUSED.
 
+### Wire options consumer checkpoint (2026-10-05)
+
+Provider-level normalized wire options now reach common dispatch: Responses
+effort/summary/text verbosity, Chat effort, Messages thinking/output config, and
+recursive body overlays with selected effort/profile priority. Typed admission
+refuses malformed/alien options; all three fake-server routes and Messages app
+roundtrip are green. Adapter suite **579/0/0**, strict all-target clippy/fmt green;
+`evidence/T53/config-normalization.md` records scope and failed experiment.
+This is partial R3, not GO03/T53 PASS: effective model/variant binding/API ID,
+Go cache/metadata, durable provenance, connect and bounded GO06 remain pending.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

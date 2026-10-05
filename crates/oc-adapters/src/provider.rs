@@ -26,6 +26,7 @@ pub(crate) mod chat;
 mod failure;
 pub(crate) mod messages;
 pub(crate) mod protocol;
+pub(crate) mod settings;
 pub use failure::{Delivery, FailureKind, Operation, PhysicalFailure, RetryHeaders, TransportKind};
 
 /// Idle budget between SSE bytes (6 000 000 ms = 100 min, not 6 s).
@@ -396,6 +397,7 @@ pub struct ResponsesConfig {
 /// Immutable admitted wire binding: protocol plus explicit Chat facts by model.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct WireBinding {
+    pub(crate) settings: settings::WireSettings,
     pub(crate) endpoint: Option<crate::endpoint::EndpointBinding>,
     pub(crate) auth_policy: crate::auth::AuthPolicy,
     pub(crate) protocol: protocol::Protocol,
@@ -495,7 +497,7 @@ impl std::fmt::Debug for RequestOverlay {
 }
 
 /// Body fields the native Responses adapter owns; an overlay never replaces them.
-pub const RESERVED_BODY_FIELDS: [&str; 16] = [
+pub const RESERVED_BODY_FIELDS: [&str; 18] = [
     "model",
     "store",
     "stream",
@@ -512,6 +514,8 @@ pub const RESERVED_BODY_FIELDS: [&str; 16] = [
     "thinking",
     "output_config",
     "cache_control",
+    "stream_options",
+    "reasoning_effort",
 ];
 
 impl RequestOverlay {
@@ -1538,6 +1542,14 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
     overlay
         .validate()
         .map_err(|_| ProviderError::InvalidConfig)?;
+    let effort = variant
+        .and_then(|v| v.reasoning_effort.as_deref())
+        .or(config.wire.settings.effort.as_deref());
+    let effective_variant = effort.map(|effort| SelectedVariant {
+        name: variant.map(|v| v.name.clone()).unwrap_or_default(),
+        reasoning_effort: Some(effort.to_owned()),
+    });
+    let variant = effective_variant.as_ref();
     if config.wire.protocol == protocol::Protocol::Chat {
         let compat = config.wire.chat.get(model).cloned().unwrap_or_default();
         return stream_chat_overlaid(
@@ -1558,16 +1570,11 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
             max_output,
             variant.and_then(|v| v.reasoning_effort.as_deref()),
         )?;
-        let object = body.as_object_mut().expect("Messages request object");
-        for (key, value) in &overlay.body {
-            if matches!(
-                key.as_str(),
-                "messages" | "system" | "max_tokens" | "output_config"
-            ) {
-                return Err(ProviderError::InvalidConfig);
-            }
-            object.insert(key.clone(), value.clone());
-        }
+        config
+            .wire
+            .settings
+            .apply(protocol::Protocol::Messages, &mut body, effort);
+        settings::merge(&mut body, &serde_json::json!(overlay.body));
         return stream_body(
             config,
             None,
@@ -1606,10 +1613,11 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
     if let Some(effort) = variant.and_then(|v| v.reasoning_effort.as_deref()) {
         body["reasoning"] = serde_json::json!({"effort": effort});
     }
-    let object = body.as_object_mut().expect("request object");
-    for (key, value) in &overlay.body {
-        object.insert(key.clone(), value.clone());
-    }
+    config
+        .wire
+        .settings
+        .apply(protocol::Protocol::Responses, &mut body, effort);
+    settings::merge(&mut body, &serde_json::json!(overlay.body));
     if config.set_cache_key {
         body["prompt_cache_key"] = format!("{:x}", Sha256::digest(bounded_json(&body)?)).into();
     }
@@ -1677,19 +1685,12 @@ pub(crate) async fn stream_chat_overlaid<F: Future<Output = Result<(), ProviderE
         variant.and_then(|v| v.reasoning_effort.as_deref()),
         compat,
     )?;
-    let object = body.as_object_mut().expect("chat request object");
-    for (key, value) in &overlay.body {
-        if !matches!(
-            key.as_str(),
-            "messages"
-                | "max_tokens"
-                | "max_completion_tokens"
-                | "stream_options"
-                | "reasoning_effort"
-        ) {
-            object.insert(key.clone(), value.clone());
-        }
-    }
+    config.wire.settings.apply(
+        protocol::Protocol::Chat,
+        &mut body,
+        variant.and_then(|v| v.reasoning_effort.as_deref()),
+    );
+    settings::merge(&mut body, &serde_json::json!(overlay.body));
     stream_body(
         config,
         Some(compat),
