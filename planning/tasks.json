@@ -507,13 +507,14 @@
         "T52",
         "T53",
         "T54",
-        "T56"
+        "T56",
+        "T57"
       ],
       "tests": [
         "OPS02",
         "OPS03"
       ],
-      "work": "Заполнить FINAL по A01–A13 и связать authoritative executable evidence. RET01/T54 и VIS43/T44 обязательны для заявленного provider-retry parity; GO03/T53 — для допуска новых Chat/Messages wires, без зависимости T54 от завершения T44/T53. Owner-approved 2026-10-01 child-TUI/Subagents/Shell/Terminals scope requires SUB01/SUB02, extended TOOL13, TERM01/T56 and paired VIS14/VIS35/VIS39; initial-background or own-tab PASS is insufficient. Model-dependent file-tools amendment requires extended TOOL12 + TOOL20/T50, selected-family PRM01/T45 and separate Write/Edit/ApplyPatch VIS35/VIS36/T44; historical single-patch PASS or schemas alone is insufficient, A09/live flow retained. Owner-approved tool-output amendment requires TOOL21/T50 config -> bounded provider preview -> registered filesystem artifact -> authorized model read/grep distant fact -> continuation with current fault/resource receipts; old T40/UI2048/SQLite continuation PASS is insufficient. TOOL13/TOOL16/AUD34/LOAD02/STORE04 retain owners/regressions, no READY with R10 pending. После backend-изменений повторить AUD38/AUD39 qualification на итоговом code commit (ownership остаётся T42); старый PASS не заменяет проверки нового кода. При missing mandatory live evidence записать BUILD_READY_LIVE_BLOCKED и block T30. Выполнить final staged secret review, reviewed own-branch push и отдельный delivery status; не объявлять READY при открытом обязательном scope.",
+      "work": "Заполнить FINAL по A01–A13 и связать authoritative executable evidence. RET01/T54 и VIS43/T44 обязательны для заявленного provider-retry parity; GO03/T53 — для допуска новых Chat/Messages wires, без зависимости T54 от завершения T44/T53. Owner-approved 2026-10-01 child-TUI/Subagents/Shell/Terminals scope requires SUB01/SUB02, extended TOOL13, TERM01/T56 and paired VIS14/VIS35/VIS39; initial-background or own-tab PASS is insufficient. Model-dependent file-tools amendment requires extended TOOL12 + TOOL20/T50, selected-family PRM01/T45 and separate Write/Edit/ApplyPatch VIS35/VIS36/T44; historical single-patch PASS or schemas alone is insufficient, A09/live flow retained. Owner-approved tool-output amendment requires TOOL21/T50 config -> bounded provider preview -> registered filesystem artifact -> authorized model read/grep distant fact -> continuation with current fault/resource receipts; old T40/UI2048/SQLite continuation PASS is insufficient. TOOL13/TOOL16/AUD34/LOAD02/STORE04 retain owners/regressions, no READY with R10 pending. T57 AUTH01–AUTH06 and independent paired T44/VIS45 are mandatory for the approved full Codex/OpenAI auth segment; backend-only T57 done is insufficient, no whole-T44 dependency or duplicate auth gate ownership. После backend-изменений повторить AUD38/AUD39 qualification на итоговом code commit (ownership остаётся T42); старый PASS не заменяет проверки нового кода. При missing mandatory live evidence записать BUILD_READY_LIVE_BLOCKED и block T30. Выполнить final staged secret review, reviewed own-branch push и отдельный delivery status; не объявлять READY при открытом обязательном scope.",
       "evidence": "evidence/T30/report.md",
       "spec": "roadmap/M6.md"
     },
@@ -731,7 +732,7 @@
     {
       "id": "T44",
       "phase": "M9",
-      "title": "TUI pixel parity с opencode v2.0.12, включая Approve (VIS36), question (VIS37), DCP (VIS38), child/Subagents/Shell/Terminals (VIS39), MCP modal/startup (VIS19/VIS40), tab hover-marquee (VIS41), plugin/service errors и чистый диалог без diagnostic spam (VIS42), компактный live-preview indicator (VIS17), скрытые synthetic tool-preview markers и Generic/MCP expand (VIS16/VIS17), provider retry (VIS43), Middle Click tab close (VIS44), tool-output phantom caret / prompt blink (VIS16/VIS31), историю промптов Up/Down и установку каретки мышью (VIS12)",
+      "title": "TUI pixel parity с opencode v2.0.12, включая Approve (VIS36), question (VIS37), DCP (VIS38), child/Subagents/Shell/Terminals (VIS39), MCP modal/startup (VIS19/VIS40), tab hover-marquee (VIS41), plugin/service errors и чистый диалог без diagnostic spam (VIS42), компактный live-preview indicator (VIS17), скрытые synthetic tool-preview markers и Generic/MCP expand (VIS16/VIS17), provider retry (VIS43), Middle Click tab close (VIS44), tool-output phantom caret / prompt blink (VIS16/VIS31), историю промптов Up/Down и установку каретки мышью (VIS12), Codex/OpenAI connect/accounts/browser/device/key auth (VIS45)",
       "depends_on": [],
       "tests": [
         "A02",
@@ -875,6 +876,16 @@
       "work": "Owner-approved 2026-10-01 full child-TUI/Subagents/Shell/Terminals scope and explicit Terminals inclusion. R1-R4: real session-local PTY owner and bounded typed inventory/create/input/resize/snapshot/output/exit; actual frontend create/select/hide/show/focus with raw control-byte routing, VT cells/cursor/theme and gap-free replay; safe shutdown/reap/crash identity recovery without command restart. Preserve native trust, source Location/generation, sanitized shell env and no provider/runner credential inheritance. Separate from T50 shell jobs and T45 children; T44/VIS39 owns full paired list/picker/right-pane geometry/colors/keys. No daemon/serve/attach/HTTP parity, JS/WASM plugin host, new model terminal tool/store/framework or whole-task dependency. TERM01 only T56, behavior and visual results separate. Plan todo/NOT_RUN; current T50 and PAUSED T44 unchanged.",
       "evidence": "evidence/T56/report.md",
       "spec": "docs/goals/2026-10-01-native-session-terminals.md"
+    },
+    {
+      "id": "T57",
+      "phase": "M8",
+      "title": "Codex/ChatGPT browser и headless OAuth, ordinary OpenAI API key и auth consumers",
+      "depends_on": [],
+      "tests": ["A02", "A03", "A04", "A07", "A08", "A10", "A13", "AUTH01", "AUTH02", "AUTH03", "AUTH04", "AUTH05", "AUTH06"],
+      "work": "Owner-requested 2026-10-06 full donor auth segment. Frozen R1–R6/AUTH01–AUTH06: native browser PKCE/loopback and headless device authorization; shared existing SQLite accounts/method/account metadata and automatic refresh/rotation; built-in openai subscription binding/catalog/Responses WebSocket plus admitted same-route HTTP, ordinary API-key binding and full key/OAuth separation. Shared native /connect/accounts/provider-aware models and auth login/list/logout/switch consumers, no-TTY device flow still human-authorized. Reuse minimally qualified T53 auth/catalog/wire/connect seams, T50 captured same-task selection/history and T54 finite retry owner; no whole-task done cycle or second store/framework. T44 alone owns paired VIS45 after explicit resume; backend PASS does not prove visual parity. Narrowly supersede provider OAuth/Codex/auth-CLI/WS exclusions, retaining MCP/other OAuth, auth.json/import/dual-write, JS/SDK/daemon/hosted-tool exclusions and OpenProxy authority. Masked key input and no unrelated listener cancellation are disclosed security differences from donor. Offline fake issuer/WS/storage/actual binary gates precede dedicated owner-operated bounded live receipts, no runner/user credential extraction or paid calls during planning. T57 todo/NOT_RUN; active T53, PAUSED T44 and historical statuses/evidence unchanged.",
+      "evidence": "evidence/T57/report.md",
+      "spec": "docs/goals/2026-10-06-codex-oauth-and-openai-key.md"
     }
   ]
 }

@@ -6,7 +6,7 @@
 
 В `0FL01/oc` создан модульный монолит на Rust 2024 для Debian 13 GNU/Linux x86_64. `cargo build --locked` создаёт `target/debug/oc`; `cargo build` также работает. Бинарник запускает локальный TUI и headless coding session без исходного OpenCode, Node/Bun и JS-плагинов как runtime-зависимостей. SQLite может быть bundled. Динамическая системная линковка допустима. Существующие dev tools, shell/git и явные внешние MCP не являются частью этого запрета.
 
-Продукт работает с пользовательским OpenProxy через нативный OpenAI Responses wire adapter; принимает config alias `@ai-sdk/openai`, baseURL/apiKey и указанные options. `ludka` поддерживает static models, `ludka2` — динамическую metadata discovery по присланному plugin без списка моделей в Rust. API/OAuth реальных upstream providers остаются за OpenProxy.
+Продукт работает с пользовательским OpenProxy через нативный OpenAI Responses wire adapter; принимает config alias `@ai-sdk/openai`, baseURL/apiKey и указанные options. `ludka` поддерживает static models, `ludka2` — динамическую metadata discovery по присланному plugin без списка моделей в Rust. В этом lane API/OAuth реальных upstream providers остаются за OpenProxy. Direct Go/custom wires допущены только T53; built-in OpenAI Key и Codex OAuth — только T57 по amendment ниже, без изменения OpenProxy alias/authority/oracle.
 
 Целевой direct набор: `read`, `glob`, `grep`, файловое семейство `apply_patch` либо `edit`/`write` по текущей модели, `shell`, `webfetch`, `skill`, `question`, `subagent`, `compress`, `opencode_models`, `opencode_session_rename`, `opencode_session_move` и dynamically registered MCP tools. Точный OC2 selector и обязательное обновление каталога/guidance при смене модели — amendment T50 от 2026-10-01 ниже. Канонический command-shell дополняется совместимостью прежнего `bash(argv)` через одного владельца исполнения/permissions; не две взаимозаменяемые схемы в каталоге. Built-in `websearch` и Code Mode/`execute` не выставляются модели. Встроенный DCP переносит required range/compress, nudges, protections, deduplication, purgeErrors, сохранение projection и минимальную панель управления. Модель может провести цикл read → совместимая файловая правка → shell test → корректировка → ответ, выполнить webfetch и явно настроенный `codex_web` search, по запросу загрузить объявленный skill, сжать завершённый контекст и продолжить после restart. Это требуемый результат, не claim, что новые tools уже реализованы; контракт T50 ниже.
 
@@ -803,6 +803,41 @@ gates через existing T51 CFG09/CFG10 follow-up; bare/latest и legacy3.1.15
 не переписывается, OC/OpenProxy pins не меняются. Порядок/метод — M8 и TEST_PLAN;
 новых tasks/gates/store/paid campaign нет. Plan-only pending: T45 active, T44 PAUSED,
 execution statuses и чужая dirty реализация сохранены, runtime/Long Horizon PASS нет.
+
+## Owner amendment (2026-10-06 — Codex OAuth / headless / OpenAI API key)
+
+Владелец потребовал полноценный Codex/ChatGPT subscription OAuth, включая headless
+device authorization и обычный OpenAI API key, с донорской логикой, полным backend
+и визуальным паритетом этого auth-сегмента. [T57 contract](docs/goals/2026-10-06-codex-oauth-and-openai-key.md)
+владеет AUTH01–AUTH06; [T44/VIS45](tui-recovery/T44_CONTRACT_AMENDMENT.md#codex-openai-auth-parity--vis45-2026-10-06)
+— independent paired full styled-cell/PNG/cursor и interaction qualification после
+explicit resume. Порядок — M8/M9, метод — TEST_PLAN, oracle — прежний pinned OC2.
+
+- Built-in `openai`: ChatGPT Pro/Plus browser PKCE/loopback, headless device URL/code/
+  polling/exchange, Key. Headless не означает unattended вход: пользователь подтверждает
+  код в браузере другого устройства. Native CLI auth login/list/logout/switch и TUI
+  /connect/accounts → /models используют один existing SQLite credential/attempt owner.
+- OAuth method/account metadata, protected token persistence, automatic refresh/rotation,
+  safe concurrent resolution/restart/cancel/expiry и durable account acknowledgements
+  обязательны. Key идёт на обычный OpenAI API; OAuth — на ChatGPT/Codex с donor headers,
+  subscription catalog transform и настоящими Responses WS/HTTP requests/tool roundtrip
+  на всех lanes. Storage-only OAuth или ссылка без execution не закрывают результат.
+- Узко superseded прежние no-provider-OAuth/no-Codex/no-auth-CLI и no-WebSocket границы
+  только для T57. Donor subscription-only model filter — явное narrow model-name
+  exception; same-route transport fallback не является provider/model/auth fallback.
+  T53 сохраняет Go Console key/GO01–GO06 и shared owners, OpenProxy — свой oracle/
+  credential priority. MCP/other-provider OAuth, auth.json/import/dual-write, JS/SDK
+  host, daemon/serve/attach, hosted tools и image generation по-прежнему вне среза.
+- Сохранены masked ephemeral API-key input и запрет управления чужими local listeners:
+  donor plaintext secret glyphs и arbitrary /cancel probe — два явно объявленных
+  security differences, не повод заменить весь auth UI заглушкой или заявить
+  unconditional plaintext pixel parity. A01–A13, trust/endpoint scope, immutable
+  binding/raw history/bounded HOT, finite retries/cancel/cleanup и no-effect-replay intact.
+
+T57 todo/implementation NOT_STARTED; AUTH01–AUTH06/VIS45 pending/NOT_RUN. План не
+переключает active T53, не снимает PAUSED T44 и не переписывает historical PASS.
+Full auth parity требует backend evidence **и** VIS45; READY/final T30 учитывает оба
+в дополнение ко всем прежним mandatory gates. Plan delivery не выполняет live login.
 
 ## Исполнение
 

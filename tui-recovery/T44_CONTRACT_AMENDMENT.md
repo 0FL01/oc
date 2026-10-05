@@ -2345,9 +2345,73 @@ reference/provenance и сохранением первоначального be
 полного FINAL и актуальной security/resource qualification. Если новая работа идёт после
 исторического T42 — записать superseding qualification, не выдавать старый отчёт за новую проверку.
 
+## Codex OpenAI auth parity — VIS45 (2026-10-06)
+
+Owner-requested full backend and visual parity for the pinned Codex/OpenAI auth
+segment: browser OAuth, headless/device OAuth and ordinary API key. Backend owner
+is [T57](../docs/goals/2026-10-06-codex-oauth-and-openai-key.md), AUTH01–AUTH06; T44
+alone owns mandatory VIS45/V04 and paired presentation. T53 Go/connect shared seams
+are reused, not expanded to Codex or declared complete. T44 remains **PAUSED** until
+explicit resume; approval of this plan does not run OAuth or start backend/UI work.
+
+### Required visual and interaction result
+
+- `/connect` real provider list, search/categories/checkmark and existing-account path;
+  OpenAI method labels/order: ChatGPT Pro/Plus (browser), ChatGPT Pro/Plus (headless),
+  API key. No decorative login buttons, invented OAuth methods or selectable env method.
+- Accounts/Add first, source-active marker, label/ID ordering, activation, Rename account
+  prompt and two-trigger destructive Delete confirmation; final-account disconnect
+  closes the dialog. Effects require owner ack, not speculative optimistic success.
+- OAuth Starting authorization… → URL/instructions → Waiting for authorization…,
+  spinner and `o open`/`c copy` hints/actions, success/failure/expired/cancel. Device
+  shows its user_code and copies that code; browser flow copies/opens authorize URL.
+  Esc close cancels unsettled owned attempt, restores focus/draft, and late completion
+  cannot mutate another tab/Location or report false connected status.
+- API-key entry, required/error/pending/cancel/ack, then provider-filtered `/models`
+  and variants. Preserve explicit model choice, busy draft/commit, saved unavailable
+  identity and source-ready distinctions; login does not itself generate a response.
+- Match full dialog backdrop/placement/width/padding, categories/gutters/selection,
+  form/error/footer, exact semantic colors/attributes, URL wrapping, cursor/focus and
+  temporal waiting states, at shared existing representative narrow/wide profiles.
+
+### Security differences and boundaries
+
+Donor TUI key entry uses an unmasked DialogPrompt textarea. Existing native T53
+requires masked ephemeral secrets and this invariant stays: disclose only the secret
+glyph difference, compare all surrounding geometry/styles/interactions, never unmask
+real credentials or hide the entire form behind a comparison mask. Full auth-segment
+parity is qualified with this named security difference, not claimed as byte-identical
+plaintext input. Donor occupied-port /cancel probe cannot control foreign native local
+services; AUTH01 verifies the owned-attempt-only difference and remaining browser flow.
+
+Provider OAuth is now approved **only** for T57. MCP OAuth/sign-in exclusions in
+VIS19/VIS40 and question/other-service clauses remain; no auth.json/SDK/JS/daemon/
+cloud/hosted-tool expansion. No tokens/state/verifier in conversation/diagnostics,
+and active URL/code only in dedicated auth UI/copy/open. Visual fixtures use synthetic
+material, not real auth payloads or user/runner accounts.
+
+### Ordered execution and evidence
+
+1. Minimal qualified T57 issuer/attempt/credential/binding/consumer slices first;
+   no whole-T57 completion dependency and no reverse visual dependency for functionality.
+2. Extend nearest native dialog/input/action tests, then rebuilt debug/release PTY
+   actual transitions/accounts/picker/cancel/error/resize/reopen and effect assertions.
+3. Running pinned donor/native paired full styled-cell/PNG/cursor sequence across
+   provider→method/accounts→browser/device/key→ack→picker plus failure/expiry/cancel.
+   Use fake issuer/provider and deterministic phase barriers; no live account needed.
+4. Record VIS45 independently from AUTH01–AUTH06. Backend-only PASS/native-only golden/
+   cloud login screenshot cannot close visual parity. Full auth parity needs both;
+   global A01–A13/final evidence still required.
+
+Pinned sources U116–U128 plus shared U02/U49 Dialog/Select and existing model-picker
+sources; detailed profile/state/effect method — `docs/TEST_PLAN.md` AUTH/VIS45 section.
+VIS45 execution_status NOT_RUN, evidence empty. Historical VIS01–VIS44 and current
+active T53/PAUSED T44 statuses remain unchanged.
+
 ## Видимые upstream-функции вне native scope
 
-Полный визуальный контракт не даёт права тайком добавить OAuth, JS host или remote
+Полный визуальный контракт не даёт права тайком добавить OAuth вне явно approved
+T57/VIS45 provider-auth scope, JS host или remote
 sharing service. Для любой отсутствующей backend-функции из palette составить явный
 capability mapping и потребовать owner decision о backend scope. Не рисовать работающую
 кнопку без обработчика. В рабочем UI допускается только честное unavailable-состояние

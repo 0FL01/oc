@@ -568,7 +568,8 @@ canonical mutation permission identity, native authority narrowing, exact native
 read-only inputs, own storage/CLI and resource bounds remain explicit differences.
 Primary-only/no-child/executable-command exclusions are superseded only by approved
 T45/R3/R6–R10; pending subagent/context/prompt/DCP extensions are not supported claims.
-Unsupported audio/video/pdf, CodeMode/OAuth/arbitrary npm remain outside scope.
+Unsupported audio/video/pdf, CodeMode/arbitrary npm remain outside scope. Provider
+OAuth is extended only by approved T57 below; MCP/other-provider OAuth remains excluded.
 
 The historical universal apply_patch/no-write-edit difference is superseded only
 by the 2026-10-01 [T50/R1/R9 file-tools contract](goals/2026-09-27-native-tool-parity.md).
@@ -577,3 +578,27 @@ reasoning/discovery/provider routes. Existing write/edit/patch permission aliase
 normalize to apply_patch and preserve explicit Deny, grants and profile ceilings.
 No new file-tool override setting or executable sample is added in this plan delivery;
 supported implementation/compatibility claims require TOOL12/TOOL20 qualification.
+
+## OpenAI / Codex auth methods — T57 (approved 2026-10-06; pending)
+
+[Frozen auth contract](goals/2026-10-06-codex-oauth-and-openai-key.md): built-in `openai`
+offers `chatgpt-browser`, `chatgpt-headless` and `key` through native `/connect` and
+`oc auth login openai --method <method>`. Headless device login works without TTY/
+local callback but requires the user to confirm its URL/code elsewhere; it is not
+unattended sign-in. API-key CLI input is an interactive password form; headless
+generation uses admitted OPENAI_API_KEY/config/stored account, no key/token argv.
+
+Stored active OpenAI Key/OAuth → own OPENAI_API_KEY → own configured Key, after
+provider-owned endpoint admission. OAuth binds the Codex subscription endpoint;
+Key binds ordinary OpenAI. Token method/account/refresh metadata belongs in existing
+native SQLite, never opencode.json/jsonc, auth.json or a duplicated Go/OpenAI store.
+Config custom/OpenProxy credentials retain T53 configured-first/scoped precedence;
+baseURL override cannot acquire foreign stored/env material. No new auth-policy
+inference, default OAuth selection, user config rewrite or executable plugin alias.
+
+Shared list/login/logout/switch and TUI accounts show only safe kind/source/status.
+Pending/expired/revoked auth and unavailable selected model refuse before generation/
+tools, preserve local history/selectors, and never trigger hidden Key/account fallback.
+Default donor OpenAI Responses WS and admitted HTTP share captured auth; same-route
+transport fallback is narrowly authorized by T57, not provider/protocol fallback.
+This is plan-only pending AUTH01–AUTH06/VIS45, not supported runtime configuration.

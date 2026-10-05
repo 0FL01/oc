@@ -5,6 +5,16 @@ Source: владелец после RECON и параллельного ауди
 Last updated: 2026-10-05
 Task: T53 (active; partial backend slices не являются GO01–GO06 PASS).
 
+## Scope boundary clarification (2026-10-06)
+
+[T57](2026-10-06-codex-oauth-and-openai-key.md) now owns the explicitly requested
+Codex browser/device OAuth, refresh, ordinary OpenAI key, native auth CLI and shared
+functional consumers; T44/VIS45 owns paired auth visuals. The no-Codex/OAuth-execution/
+auth-CLI/WS exclusions below still describe **T53**, not a product-wide prohibition
+against T57. GO01–GO06 ownership/status and Go/custom credential priority are unchanged.
+T57 reuses qualified existing storage/catalog/wire/connect seams, not a second store
+or an all-T53/T44 done dependency. Active T53 and PAUSED T44 remain unchanged.
+
 ## Objective
 
 Native `oc` поддерживает `opencode-go`: public models.dev catalog, Console API key,

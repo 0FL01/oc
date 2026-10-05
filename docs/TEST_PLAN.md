@@ -1508,3 +1508,64 @@ only expected paths/API changes, same-session reopen and next command. Complete
 that workflow with current bounded evidence before product readiness. T44 stays
 PAUSED and owns visual qualification after explicit resume. Apply affected crate
 and final workspace gates from this document; document checks are planning only.
+
+## OpenAI/Codex full auth — T57/AUTH01–AUTH06 and T44/VIS45 (approved 2026-10-06; pending)
+
+[Frozen contract](goals/2026-10-06-codex-oauth-and-openai-key.md) and pinned sources
+U116–U128 in `tui-recovery/SOURCES.json`. Backend IDs only T57; task-local VIS45 only
+T44. T53 GO01–GO06 and T54 RET01 remain separate owners, reused regressions not new
+claims or duplicated matrices. Every new scenario is pending/NOT_RUN until executed;
+storage-only Key/OAuth PASS does not prove login, request or visual parity.
+
+| Gate | Minimum direct qualification |
+| --- | --- |
+| AUTH01 browser | Deterministic fake issuer/callback with real sockets: exact authorize parameters/PKCE/state and form exchange, loopback-only1455→1457 retries, valid callback page and wrong path/state/missing code/provider error. Occupied foreign ports must not receive /cancel. Close/cancel/expiry and callback race persist at most once and close owned sockets/tasks. Rebuilt debug/release native login flow, no real account. |
+| AUTH02 device/headless | Script usercode/token/exchange and fake clock: default/min interval+3s margin, 403/404 pending, other failures, malformed payload, expiry/cancel during sleep/fetch/exchange. Actual binary with pipes runs explicit target+method, prints dedicated URL/code, never opens browser/listener, waits for human-shaped fake approval and exits success only after durable account ack. Omitted no-TTY target/method refuses; restart does not resume an old live attempt. |
+| AUTH03 credentials/refresh | Synthetic legacy/new Key/OAuth rows and donor method/account/expiry fixtures. Add/activate/rename/remove/reopen, one active account, newest remaining selection, refresh before ≤5min expiry, rotated refresh persistence and metadata fallback. Concurrent requests produce one refresh; barrier-held rotation cannot restore removed/switched account. Failed/revoked/unknown method refuses without env/key fallback; redacted public DTO/errors and DB/WAL/root guarantees. |
+| AUTH04 binding/transport | Fake HTTP+WS captures for Codex versus normal OpenAI; donor subscription API-ID filter/limits/costs versus intact Key catalog. Actual binary complete text/tool/result/final roundtrip, all main/auxiliary lanes, WS handshake/send/reuse/affinity/rotation/checkpoint/close plus explicit HTTP/safe fallback. Not-sent/rejected and ambiguous/partial delivery fixtures verify physical attempts and no effect replay. Held account/model change preserves issued A tools and next-request B ordinary outcomes; DCP/compact/fork/reopen cannot send alien opaque/signatures/checkpoints or reload forgotten archive. Record queues/tasks/processes/sockets and apply affected A10 regressions. |
+| AUTH05 key/consumers | Actual PTY /connect provider→method/accounts→masked/cancelled key or browser/device flow→owner ack→provider-filtered models. Activate/rename/two-trigger delete, env/config/stored source and no automatic model repair. CLI password key requires TTY; list JSON is metadata-only, login/logout/switch use same account owner. Own OPENAI_API_KEY/config generation works headless; normal OpenAI Bearer/organization/project, no Codex headers/filter/account leak. Snapshot/restart and key/OAuth switching tested with fake requests and zero secret transcript/composer/log content. |
+| AUTH06 closure/live | Current owner/affected crate and final workspace fmt/clippy/tests/locked build/help. Bounded dedicated owner-operated browser login, device login, Key setup, native text/tool/reopen receipts; report exact method/provider/model/transport/build and counters without account/token bodies. Missing credentials/person/provider access is BLOCKED live, not fake PASS. Full auth-segment backend+visual claim additionally links VIS45 paired evidence. |
+
+### VIS45 paired auth qualification
+
+After explicit T44 resume, capture **running pinned donor and rebuilt native** using
+the same safe fake issuer/provider state, labels, synthetic URL/code/key, theme,
+terminal profiles and clock phases. OAuth cloud is not required for visual proof.
+Use full styled cells/PNG/cursor with backend effects independently observed; no
+cropped/masked-difference comparison, source screenshot or native golden as parity.
+
+Required finite sequence:
+
+1. `/connect` provider list/search/current checkmark → OpenAI method selection,
+   donor OAuth-first/Key-last order; Add account and existing active/inactive accounts.
+2. Empty/focused/entered/error/cancelled key form, then ack and provider model picker;
+   account activation, rename and first/second destructive delete, last-account removal.
+3. Browser starting → URL/instructions/wait → success/failure/cancel; device starting
+   → URL/code/wait/copy/open → pending/expired/success. Observe spinner/deadline phases,
+   modal close/focus restoration and no secret submitted to the underlying composer.
+4. Narrow/wide representative existing profiles, URL wrapping/resize and return/reopen;
+   shared dialog backdrop/width/padding/theme tokens/selection/gutter/footer/cursor.
+
+Preserve T53 masked API-key glyphs as a specifically disclosed difference from donor
+unmasked TUI, not a blank-region comparison mask or weakened secret handling. Bound
+owned-listener-only cancellation difference separately in AUTH01. Everything else in
+the auth segment retains full paired geometry/styles/interactions and truthful effects.
+Do not infer authorization from a green saved-credential marker or a public catalog.
+
+### Live envelope and authorization boundary
+
+Planning does **not** execute OAuth, open a browser, access accounts or request keys.
+Implementation qualification uses a dedicated product-test account/data root with
+explicit owner-operated browser/device confirmation, never donor/user/runner auth
+extraction. Key comes only from an explicitly supplied test source; don't invent a
+new credential search path or copy external auth into native storage.
+
+Reuse the runbook durable generation envelope: ≤24 physical model dispatches including
+WS response.create sends, HTTP fallback/retries/titles/summary/children; 2048-token
+smokes and bounded fixture input/watchdog. Token/control requests have separate durable
+counters and donor10min attempt deadline/polling interval; they are not free generation
+allowance. Preserve campaign counts across restart, spend uncertain reservations, never
+replay an uncertain code exchange/refresh or reset a campaign to replenish capacity.
+No paid user-workspace generation, real token/header/JWT/code/verifier dumps or live
+secret-bearing capture artifacts. Browser/device/key fake/live/NOT_RUN statuses remain
+separate in report; full product READY still requires all A01–A13 and T30 final evidence.

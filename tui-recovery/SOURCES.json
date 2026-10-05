@@ -1317,6 +1317,123 @@
       "locator": "1583–1607 inner text padding/width and first visible wrapped row passed to observe_prompt_paint; 1647–1680 same viewport paints input and hardware caret",
       "url": "https://github.com/0FL01/oc/blob/464a6c38ebd870d7fafb88e3dc722e7157ec3f40/crates/oc-tui/src/shell.rs#L1583-L1680",
       "purpose": "VIS12 painted text geometry/scroll and caret must agree; hardware MoveTo alone is not proof of the real insertion offset"
+    },
+    {
+      "id": "U116",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/plugin/provider/openai.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "13–228 browser PKCE/loopback/device methods; 230–317 subscription catalog/route/headers; 319–417 token exchange/refresh/account claims",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/plugin/provider/openai.ts",
+      "purpose": "T57 AUTH01–AUTH04 exact donor auth oracle; public protocol constants are not credentials"
+    },
+    {
+      "id": "U117",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/integration.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "230–252 attempt lifetime/status; 347–370 labels/connection precedence; 393–593 settlement/expiry/auto callback; 681–775 refresh/status/cancel",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/integration.ts",
+      "purpose": "AUTH02/AUTH03 one attempt/credential lifecycle; five-minute refresh and safe late settlement before VIS45 consumer"
+    },
+    {
+      "id": "U118",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/credential.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "78–306 list/create/activate/update/remove, transaction/order and credential events",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/credential.ts",
+      "purpose": "AUTH03/05 account acknowledgements and restart semantics, reuse native SQLite not donor import"
+    },
+    {
+      "id": "U119",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-integration.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "47–277 provider/method/accounts; 459–493 key; 516–763 OAuth starting/wait/open/copy/close; 995–1029 refresh/onConnected",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-integration.tsx",
+      "purpose": "VIS45 full TUI auth and account screens; do not substitute web-app connect dialog"
+    },
+    {
+      "id": "U120",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/ui/dialog-prompt.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "98–143 title/esc, textarea, error and submit footer",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/ui/dialog-prompt.tsx",
+      "purpose": "VIS45 key/rename geometry and explicit native masked-secret difference from donor unmasked textarea"
+    },
+    {
+      "id": "U121",
+      "repository": "anomalyco/opencode",
+      "path": "packages/cli/src/commands/commands.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "144–199 auth list/login/logout/switch specs, target/method/answer/format/credential arguments",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/cli/src/commands/commands.ts",
+      "purpose": "AUTH02/05 finite native CLI surface without donor daemon/server flags or arbitrary auth command execution"
+    },
+    {
+      "id": "U122",
+      "repository": "anomalyco/opencode",
+      "path": "packages/cli/src/commands/handlers/auth/login.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "43–60 target; 102–205 method/key/OAuth/no-TTY/open/cancel; 241–269 status polling",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/cli/src/commands/handlers/auth/login.ts",
+      "purpose": "AUTH02 no-TTY device flow is human-authorized; callback cancel and successful owner ack"
+    },
+    {
+      "id": "U123",
+      "repository": "anomalyco/opencode",
+      "path": "packages/cli/src/commands/handlers/auth/form.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "63–79 interactive secret password prompt and form-answer requirements",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/cli/src/commands/handlers/auth/form.ts",
+      "purpose": "AUTH05 password input; no invented plaintext key argv/noninteractive key login"
+    },
+    {
+      "id": "U124",
+      "repository": "anomalyco/opencode",
+      "path": "packages/ai/src/providers/openai.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "13–25 routes; 60–97 Bearer/OPENAI_API_KEY settings; 120–158 organization/project and Responses/Chat",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/ai/src/providers/openai.ts",
+      "purpose": "AUTH04/05 ordinary OpenAI key route remains separate from subscription-only auth transform"
+    },
+    {
+      "id": "U125",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/model-transport.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "session channel owner/affinity/rotation; 292–500 WS execute/send delivery/terminal/checkpoint and HTTP fallback",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/model-transport.ts",
+      "purpose": "AUTH04 native default WS parity requires real delivery/cleanup/checkpoint semantics, not HTTP smoke alone"
+    },
+    {
+      "id": "U126",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/oauth/page.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "OauthCallbackPage.success/error and HTML escaping",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/oauth/page.ts",
+      "purpose": "AUTH01 browser callback page and safe token-free status, no web/desktop application expansion"
+    },
+    {
+      "id": "U127",
+      "repository": "anomalyco/opencode",
+      "path": "packages/ai/src/protocols/open-responses-channel.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "Responses channel connect/message/checkpoint driver and HTTP fallback framing",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/ai/src/protocols/open-responses-channel.ts",
+      "purpose": "AUTH04 shared Responses route/WS wire; no second protocol/retry framework"
+    },
+    {
+      "id": "U128",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/test/plugin/provider-openai.test.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "63–79 methods; 83–179 OAuth catalog/headers; 181–217 ordinary key separation",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/test/plugin/provider-openai.test.ts",
+      "purpose": "AUTH source-derived exact subscription filter/limits/costs and normal API-key regression oracle"
     }
   ],
   "external_primary_sources": [

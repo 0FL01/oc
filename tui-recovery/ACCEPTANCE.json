@@ -729,6 +729,16 @@
       "mandatory": true,
       "execution_status": "NOT_RUN",
       "evidence": []
+    },
+    {
+      "id": "VIS45",
+      "step": "V04",
+      "title": "Codex/OpenAI browser device API-key connect and account parity",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md Codex OpenAI auth parity — VIS45 (2026-10-06). T57 AUTH01–AUTH05 minimal working owner/consumer slices precede visual work, no whole-task cycle. Full /connect provider/search/category/checkmark, OAuth-first/Key-last method list, existing/Add accounts/active marker/activate/Rename/two-trigger destructive delete and last-account disconnect; browser/device start/URL/code/wait/open/copy/success/failure/expired/cancel and key form/error/ack then provider-filtered models. Actual owner effects, pending versus saved versus server-auth truth, cancelled attempt cleanup, modal focus/draft restoration and explicit selection retained. Match shared dialog geometry/backdrop/padding/gutter/theme/attributes/keys/cursor/wrapping/resize and temporal waiting phases using rebuilt binary PTY plus running pinned-original/native full paired styled-cell/PNG/cursor frames with safe fake issuer/provider/synthetic inputs at representative narrow/wide existing profiles. Native API-key masking versus donor plaintext glyphs and no unrelated listener /cancel are disclosed security differences, not broad comparison masks or permission to omit functional/visual screens. No native-only golden/source screenshot/storage-only/backend PASS as visual proof; full auth-segment parity requires AUTH01–AUTH06 plus VIS45. No live secrets/codes/tokens in conversation/general diagnostics/capture artifacts. T44 PAUSED until explicit resume, active T53/historical VIS01–VIS44 statuses/pins untouched, new mandatory case pending/NOT_RUN.",
+      "sources": ["U02", "U49", "U116", "U117", "U118", "U119", "U120", "U121", "U122", "U123", "U124", "U125", "U126", "U127", "U128"],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
     }
   ]
 }

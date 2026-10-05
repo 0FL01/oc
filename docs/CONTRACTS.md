@@ -424,6 +424,39 @@ Owner-approved 2026-10-02 clarification (still pending):
   prevent unsupported fields. Preserve configured controls/OpenProxy oracle and exact
   selected wire reasoning/options; no model-name defaults or image-generation scope.
 
+## Native OpenAI/Codex authorization — T57 (approved 2026-10-06; pending)
+
+[Frozen contract](goals/2026-10-06-codex-oauth-and-openai-key.md) adds OpenAI browser
+PKCE/callback, headless device polling/exchange, API key, automatic refresh and shared
+CLI/TUI consumers. This supersedes provider-OAuth/auth-CLI/WS exclusions only for
+T57; T53 Go/custom and MCP/other-provider boundaries retain their owners.
+
+One existing credential/application owner owns typed method/account actions and
+bounded pending/complete/failed/expired attempts. Attempt IDs are scoped to provider/
+actor/generation; cancel/expiry/late completion and duplicate settle cannot persist
+twice. Pending listener/polling is process-owned, not restored live after restart;
+durable acknowledged credentials survive. Refresh resolves one exact account, coalesces
+concurrent work, persists rotated tokens only against unchanged account identity and
+never converts refresh failure into another credential source or paid generation retry.
+
+Safe snapshots/events carry labels/method/kind/source/status and authorized attempt
+URL/code only to the dedicated auth surface. Secret material/state/verifier/raw token
+errors never enter history/Debug/general diagnostics. TUI key input stays masked;
+foreign occupied listeners cannot be cancelled. These donor security differences
+are explicit in T57/VIS45, not grounds to waive the functional or styled UI result.
+
+Built-in openai OAuth and Key have distinct admitted endpoint/auth scopes and catalog
+views. Prepared request/WS channel/tools capture the issuing binding, including all
+auxiliary lanes; new account/token changes apply at the next preparation. Ordinary
+tool results survive switching; opaque/checkpoints/WS affinity cannot cross scopes.
+Native default Responses WS and source-qualified same-route HTTP fallback reuse
+T54 single-step retry and delivery knowledge; ambiguous send/partial output cannot
+authorize blind replay. No protocol/model/credential fallback or second retry engine.
+
+AUTH01–AUTH06 belong only to T57; VIS45 only to T44 after explicit resume. Functional
+connect/auth actions do not require T44 completion; full auth-segment parity does.
+No backend/visual/live PASS is created by this plan, storage roundtrip or doc validator.
+
 ## Limits и context admission
 
 Резидентная память ограничивается отдельными byte/item caps, а не одним параметром «context tokens». Проверять event size, tool argument bytes, active context serialization, attachment encoding, queued bytes и outputs независимо.
