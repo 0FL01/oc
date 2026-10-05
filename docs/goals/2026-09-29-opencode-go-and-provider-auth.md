@@ -366,7 +366,12 @@ commits/текущий diff, не переносить чужую незаком
   independent stream decoder и real application tool roundtrip обоих schemes;
   `evidence/T53/messages-wire.md`. Crate unit 564/0/0, strict crate Clippy/fmt PASS.
   Это partial R1/R3, не полный GO01/GO03. No live; T44 PAUSED.
-- Next: единый Db credential owner/scoped auth и оставшиеся per-wire options/
+- 2026-10-05 credentials slice: additive SQLite accounts + transactional lifecycle,
+  Key/OAuth roundtrip, redacted summaries/errors, DB/WAL/SHM 0600; narrow fixed-Go/
+  custom-prefix auth resolver и captured anonymous transport. Crate 568/0/0 и strict
+  Clippy/fmt PASS; `evidence/T53/credentials.md`. Пока resolver не подключён к config/
+  application, private endpoint admission и account UI: GO01 остаётся pending.
+- Next: интеграция scoped auth/endpoint admission и оставшиеся per-wire options/
   protocol-safe durable provenance; catalog/connect owners остаются незакрытыми.
 - Route qualification risk: public recon выявил `qwen3.8-max`/`qwen3.7-plus` как
   default Chat в models.dev, но official Go docs называют Messages. Это dated source

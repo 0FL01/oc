@@ -30,6 +30,9 @@ mod children;
 mod compaction;
 #[path = "storage_conversation.rs"]
 mod conversation;
+#[path = "storage_credentials.rs"]
+mod credentials;
+pub use credentials::{AccountSummary, CredentialKind, CredentialMaterial};
 #[path = "storage_dcp_view.rs"]
 mod dcp_view;
 #[path = "storage_fork.rs"]
@@ -216,6 +219,15 @@ pub enum StorageError {
     /// Compression state changed or conflicts with the candidate plan.
     #[error("compression state conflict")]
     CompressionConflict,
+    /// Invalid account metadata or material (never includes the rejected input).
+    #[error("invalid credential")]
+    InvalidCredential,
+    /// Account does not exist in the requested namespace.
+    #[error("credential account not found")]
+    CredentialNotFound,
+    /// Credential persistence failed; SQLite diagnostics may contain material.
+    #[error("credential storage failure")]
+    CredentialStorage,
     /// Underlying SQLite failure.
     #[error("sqlite: {0}")]
     Sqlite(#[from] rusqlite::Error),
@@ -494,6 +506,9 @@ impl Db {
         let lock = RootLock(lock);
 
         let db_path = root.join("oc.sqlite");
+        secure_sqlite_file(&db_path, true)?;
+        secure_sqlite_file(&root.join("oc.sqlite-wal"), false)?;
+        secure_sqlite_file(&root.join("oc.sqlite-shm"), false)?;
         let conn = Connection::open(&db_path)?;
         conn.create_scalar_function(
             "oc_session_lower",
@@ -515,6 +530,7 @@ impl Db {
         Self::session_move_schema(&conn)?;
         Self::tool_output_schema(&conn)?;
         Self::apply_turn_history_schema(&conn)?;
+        Self::credentials_schema(&conn)?;
         let output_path = root.join("tool-output");
         match fs::create_dir(&output_path) {
             Ok(()) => {}
@@ -3702,6 +3718,30 @@ fn now_rfc3339() -> String {
         .unwrap_or_default()
         .as_secs();
     format!("{now}")
+}
+
+fn secure_sqlite_file(path: &Path, create: bool) -> Result<(), StorageError> {
+    use std::os::unix::fs::OpenOptionsExt as _;
+    let file = match OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(create)
+        .mode(0o600)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(path)
+    {
+        Ok(file) => file,
+        Err(error) if !create && error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error.into()),
+    };
+    let metadata = file.metadata()?;
+    // SAFETY: geteuid takes no pointers and has no preconditions.
+    let owner = unsafe { libc::geteuid() };
+    if !metadata.is_file() || metadata.nlink() != 1 || metadata.uid() != owner {
+        return Err(StorageError::UnsafeRoot("sqlite file owner/type".into()));
+    }
+    file.set_permissions(fs::Permissions::from_mode(0o600))?;
+    Ok(())
 }
 
 fn validate_root(root: &Path) -> Result<PathBuf, StorageError> {

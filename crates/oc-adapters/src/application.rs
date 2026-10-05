@@ -512,6 +512,9 @@ fn storage_class(error: &StorageError) -> &'static str {
         StorageError::OperationNotFound => "OperationNotFound",
         StorageError::SessionAlreadyExists => "SessionAlreadyExists",
         StorageError::CompressionConflict => "CompressionConflict",
+        StorageError::InvalidCredential => "InvalidCredential",
+        StorageError::CredentialNotFound => "CredentialNotFound",
+        StorageError::CredentialStorage => "CredentialStorage",
         StorageError::Sqlite(_) => "Sqlite",
         StorageError::Io(_) => "Io",
     }

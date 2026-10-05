@@ -396,6 +396,7 @@ pub struct ResponsesConfig {
 /// Immutable admitted wire binding: protocol plus explicit Chat facts by model.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct WireBinding {
+    pub(crate) auth_policy: crate::auth::AuthPolicy,
     pub(crate) protocol: protocol::Protocol,
     pub(crate) chat: BTreeMap<String, chat::ChatCompat>,
     pub(crate) messages_bearer: bool,
@@ -432,6 +433,12 @@ impl std::fmt::Debug for ResponsesConfig {
 }
 
 impl ResponsesConfig {
+    /// Captured authentication readiness, distinct from an empty required key.
+    pub fn auth_ready(&self) -> bool {
+        self.wire.auth_policy == crate::auth::AuthPolicy::None
+            || (self.wire.auth_policy == crate::auth::AuthPolicy::Key
+                && !self.api_key.trim().is_empty())
+    }
     /// Exact generation URL: trimmed prefix + `/responses`.
     pub fn generation_url(&self) -> Result<String, ProviderError> {
         let base = self.base_url.trim();
@@ -1788,6 +1795,18 @@ pub(crate) fn request_headers(
     config: &ResponsesConfig,
 ) -> Result<reqwest::header::HeaderMap, ProviderError> {
     use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
+    let anonymous = config.wire.auth_policy == crate::auth::AuthPolicy::None;
+    if anonymous
+        && (!config.api_key.is_empty()
+            || config.headers.keys().any(|name| {
+                name.eq_ignore_ascii_case("authorization") || name.eq_ignore_ascii_case("x-api-key")
+            }))
+    {
+        return Err(ProviderError::InvalidConfig);
+    }
+    if config.wire.auth_policy == crate::auth::AuthPolicy::OAuth {
+        return Err(ProviderError::InvalidConfig);
+    }
     let mut headers = HeaderMap::new();
     for (name, value) in &config.headers {
         let name =
@@ -1817,15 +1836,17 @@ pub(crate) fn request_headers(
     {
         return Err(ProviderError::InvalidConfig);
     }
-    let bearer = !messages || config.wire.messages_bearer;
-    let mut auth = HeaderValue::from_str(&if bearer {
-        format!("Bearer {}", config.api_key)
-    } else {
-        config.api_key.clone()
-    })
-    .map_err(|_| ProviderError::InvalidConfig)?;
-    auth.set_sensitive(true);
-    headers.insert(if bearer { "authorization" } else { "x-api-key" }, auth);
+    if !anonymous {
+        let bearer = !messages || config.wire.messages_bearer;
+        let mut auth = HeaderValue::from_str(&if bearer {
+            format!("Bearer {}", config.api_key)
+        } else {
+            config.api_key.clone()
+        })
+        .map_err(|_| ProviderError::InvalidConfig)?;
+        auth.set_sensitive(true);
+        headers.insert(if bearer { "authorization" } else { "x-api-key" }, auth);
+    }
     if messages {
         messages_headers(&mut headers)?;
     }

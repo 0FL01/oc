@@ -62,6 +62,11 @@ package/compatibility/static Messages auth. Nearest tests:
 receipts `evidence/T53/{chat,messages}-wire.md`. Full Go/catalog/credentials/
 replay/metadata qualification remains T53.
 
+T53 accounts: `oc-adapters/src/storage_credentials.rs` owns the additive account
+schema/lifecycle in `Db`, with `storage_credentials/tests.rs`; `auth.rs` is the narrow
+admitted Go/custom credential resolver. Config/application integration and connect UI
+remain pending.
+
 ## Как обновлять
 
 Изменившийся owner указывает точку входа, свои части и один ближайший test target/filter. Карта — маршрутизатор, не полный symbol index и не копия архитектурного spec. No generic helpers/common-manager dumping ground. Для малого изменения внутри неизменного владельца новая строка не нужна.

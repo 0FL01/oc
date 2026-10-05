@@ -7,6 +7,7 @@
 mod admitted_fs;
 pub mod application;
 pub mod attachments;
+pub mod auth;
 mod cli_permissions;
 pub mod composition;
 pub mod config;
