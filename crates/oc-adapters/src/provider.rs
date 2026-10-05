@@ -23,6 +23,7 @@ use thiserror::Error;
 use crate::models::SelectedVariant;
 
 mod failure;
+pub(crate) mod protocol;
 pub use failure::{Delivery, FailureKind, Operation, PhysicalFailure, RetryHeaders, TransportKind};
 
 /// Idle budget between SSE bytes (6 000 000 ms = 100 min, not 6 s).
@@ -1450,6 +1451,10 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
         tools,
         variant.and_then(|v| v.reasoning_effort.as_deref()),
     ))?;
+    // GO03: chronological system updates lower to Responses `developer` in
+    // place on every lane; the initial prompt is already a developer item.
+    let input = protocol::lower_chronological_system(protocol::Protocol::Responses, input, false);
+    let input = input.as_ref();
     let mut body = serde_json::json!({
         "model": model, "store": false, "stream": true, "input": input,
         "include": ["reasoning.encrypted_content"],
@@ -2276,6 +2281,11 @@ mod tests {
         let seen = server.seen.lock().expect("seen");
         let body: serde_json::Value = serde_json::from_slice(&seen[0].body).expect("body");
         assert_eq!(body["input"][3]["content"][0]["type"], "input_image");
+        // GO03: the chronological system update is lowered to developer in place.
+        assert_eq!(body["input"][0]["role"], "developer");
+        assert_eq!(body["input"][0]["content"][0]["text"], "system");
+        assert_eq!(body["input"][1]["role"], "developer");
+        assert!(!body["input"].to_string().contains("\"role\":\"system\""));
         assert_eq!(body["input"][4], output[0]);
         assert_eq!(body["input"][5], output[1]);
         assert_eq!(body["input"][6], output[2]);
