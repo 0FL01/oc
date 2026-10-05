@@ -998,6 +998,8 @@ async fn load_stages(
     let provider = provider::ResponsesConfig {
         headers: entry.options.headers.clone(),
         set_cache_key: entry.options.set_cache_key.unwrap_or(false),
+        wire: config::provider_wire(provider_id, entry)
+            .map_err(|_| invalid(&selected_source, &["model", "provider"]))?,
         base_url: entry.options.base_url.clone(),
         api_key: entry.options.api_key.clone(),
         timeout: entry.options.timeout,

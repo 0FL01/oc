@@ -1453,3 +1453,6 @@ mod reload_tests {
 }
 #[path = "live_switch_tests.rs"]
 mod live_switch_tests;
+
+#[path = "chat_wire_tests.rs"]
+mod chat_wire_tests;

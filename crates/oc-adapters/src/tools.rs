@@ -2403,6 +2403,7 @@ mod tests {
         ResponsesConfig {
             headers: BTreeMap::new(),
             set_cache_key: true,
+            wire: Default::default(),
             base_url: base.to_string(),
             api_key: "k".to_string(),
             timeout: Some(false),

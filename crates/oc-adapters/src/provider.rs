@@ -22,6 +22,7 @@ use thiserror::Error;
 
 use crate::models::SelectedVariant;
 
+pub(crate) mod chat;
 mod failure;
 pub(crate) mod protocol;
 pub use failure::{Delivery, FailureKind, Operation, PhysicalFailure, RetryHeaders, TransportKind};
@@ -121,6 +122,9 @@ pub enum ProviderError {
     /// An explicit provider context-window error, eligible for one checkpoint rebuild.
     #[error("context window exceeded")]
     ContextOverflow,
+    /// Admitted content this wire cannot carry; refused before dispatch.
+    #[error("unsupported content modality for this wire")]
+    UnsupportedModality,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -384,6 +388,25 @@ pub struct ResponsesConfig {
     pub headers: BTreeMap<String, String>,
     /// Whether to send a deterministic prompt_cache_key.
     pub set_cache_key: bool,
+    /// Admitted wire protocol and per-model compatibility facts.
+    pub wire: WireBinding,
+}
+
+/// Immutable admitted wire binding: protocol plus explicit Chat facts by model.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct WireBinding {
+    pub(crate) protocol: protocol::Protocol,
+    pub(crate) chat: BTreeMap<String, chat::ChatCompat>,
+}
+
+impl WireBinding {
+    /// Chat Completions binding with explicit per-model compatibility facts.
+    pub(crate) fn chat(chat: BTreeMap<String, chat::ChatCompat>) -> Self {
+        Self {
+            protocol: protocol::Protocol::Chat,
+            chat,
+        }
+    }
 }
 
 impl std::fmt::Debug for ResponsesConfig {
@@ -407,6 +430,17 @@ impl ResponsesConfig {
         Ok(format!("{}/responses", base.trim_end_matches('/')))
     }
 
+    /// Exact Chat Completions URL: trimmed prefix + `/chat/completions`.
+    pub(crate) fn chat_url(&self) -> Result<String, ProviderError> {
+        let responses = self.generation_url()?;
+        Ok(format!(
+            "{}/chat/completions",
+            responses
+                .strip_suffix("/responses")
+                .expect("responses suffix")
+        ))
+    }
+
     /// Compare actual canonical routing/auth headers, never config spelling or
     /// Debug output. Reserved header overrides share request_headers' authority.
     pub(crate) fn same_request_binding(&self, other: &Self) -> Result<bool, ProviderError> {
@@ -414,7 +448,9 @@ impl ResponsesConfig {
             .map_err(|_| ProviderError::InvalidConfig)?;
         let next = reqwest::Url::parse(&other.generation_url()?)
             .map_err(|_| ProviderError::InvalidConfig)?;
-        Ok(current == next && request_headers(self)? == request_headers(other)?)
+        Ok(current == next
+            && self.wire.protocol == other.wire.protocol
+            && request_headers(self)? == request_headers(other)?)
     }
 }
 
@@ -577,9 +613,19 @@ pub struct SseParser {
     announced_calls: BTreeMap<String, (Option<u64>, String, String)>,
     output_done: BTreeMap<u64, CompletedItem>,
     output: Option<Vec<serde_json::Value>>,
+    /// Chat decoding state; `None` decodes Responses events.
+    chat: Option<chat::ChatState>,
 }
 
 impl SseParser {
+    /// Parser for the Chat wire; framing and caps are shared.
+    pub(crate) fn chat(compat: &chat::ChatCompat) -> Self {
+        Self {
+            chat: Some(chat::ChatState::new(compat)),
+            ..Self::default()
+        }
+    }
+
     /// Feed bytes; returns decoded stream items (may be empty mid-line).
     pub fn push(&mut self, bytes: &[u8]) -> Result<Vec<StreamItem>, ProviderError> {
         self.push_observed(bytes, &mut |_| {})
@@ -612,7 +658,7 @@ impl SseParser {
             let line = line.strip_suffix('\n').unwrap_or(line);
             let line = line.strip_suffix('\r').unwrap_or(line);
             if line.is_empty() {
-                if let Some(item) = self.dispatch()? {
+                for item in self.dispatch()? {
                     // Split at UTF-8 boundaries before observing or retaining text.
                     if let StreamItem::TextDelta(text) = item {
                         let mut rest = text.as_str();
@@ -651,6 +697,10 @@ impl SseParser {
     /// an incomplete stream, not a silent drop.
     pub fn finish(&mut self) -> Result<Vec<StreamItem>, ProviderError> {
         if self.pending.is_empty() && self.data.is_empty() {
+            // Chat may end at EOF after its finish reason without `[DONE]`.
+            if self.chat.is_some() && !self.completed {
+                chat::finalize(self)?;
+            }
             return Ok(Vec::new());
         }
         if !self.pending.is_empty() && std::str::from_utf8(&self.pending).is_err() {
@@ -665,9 +715,9 @@ impl SseParser {
         Ok(Vec::new())
     }
 
-    fn dispatch(&mut self) -> Result<Option<StreamItem>, ProviderError> {
+    fn dispatch(&mut self) -> Result<Vec<StreamItem>, ProviderError> {
         if self.data.is_empty() && self.event_name.is_none() {
-            return Ok(None);
+            return Ok(Vec::new());
         }
         self.events += 1;
         if self.events > EVENT_CAP {
@@ -675,6 +725,13 @@ impl SseParser {
         }
         let payload = std::mem::take(&mut self.data);
         self.event_name = None;
+        if self.chat.is_some() {
+            return chat::dispatch(self, &payload);
+        }
+        Ok(self.dispatch_responses(payload)?.into_iter().collect())
+    }
+
+    fn dispatch_responses(&mut self, payload: String) -> Result<Option<StreamItem>, ProviderError> {
         if payload == "[DONE]" || payload.is_empty() {
             return Ok(None);
         }
@@ -1360,6 +1417,7 @@ pub async fn stream_generation_observed(
     }
     stream_body(
         config,
+        None,
         &BTreeMap::new(),
         bounded_json(&body)?,
         cancel,
@@ -1441,6 +1499,14 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
     overlay
         .validate()
         .map_err(|_| ProviderError::InvalidConfig)?;
+    if config.wire.protocol == protocol::Protocol::Chat {
+        let compat = config.wire.chat.get(model).cloned().unwrap_or_default();
+        return stream_chat_overlaid(
+            config, &compat, overlay, model, variant, input, tools, max_output, cancel, observe,
+            dispatch,
+        )
+        .await;
+    }
     if max_output == 0 {
         return Err(ProviderError::InvalidConfig);
     }
@@ -1476,6 +1542,7 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
     }
     stream_body(
         config,
+        None,
         &overlay.headers,
         bounded_json(&body)?,
         cancel,
@@ -1506,6 +1573,63 @@ fn bounded_json(value: &impl Serialize) -> Result<Vec<u8>, ProviderError> {
     Ok(writer.0)
 }
 
+/// Chat Completions dispatch with the selected profile's request overlay; the
+/// same transport, cancel, caps, typed failures and one-attempt contract apply.
+#[allow(clippy::too_many_arguments)]
+pub(crate) async fn stream_chat_overlaid<F: Future<Output = Result<(), ProviderError>> + Send>(
+    config: &ResponsesConfig,
+    compat: &chat::ChatCompat,
+    overlay: &RequestOverlay,
+    model: &str,
+    variant: Option<&SelectedVariant>,
+    input: &[InputItem],
+    tools: &[ToolDef],
+    max_output: u64,
+    cancel: &AtomicBool,
+    observe: &mut (dyn FnMut(&StreamItem) + Send),
+    dispatch: &mut (impl FnMut() -> F + Send),
+) -> Result<Generation, ProviderError> {
+    overlay
+        .validate()
+        .map_err(|_| ProviderError::InvalidConfig)?;
+    if max_output == 0 {
+        return Err(ProviderError::InvalidConfig);
+    }
+    bounded_json(&(model, input, tools))?;
+    let mut body = chat::request_body(
+        model,
+        input,
+        tools,
+        max_output,
+        variant.and_then(|v| v.reasoning_effort.as_deref()),
+        compat,
+    )?;
+    let object = body.as_object_mut().expect("chat request object");
+    for (key, value) in &overlay.body {
+        if !matches!(
+            key.as_str(),
+            "messages"
+                | "max_tokens"
+                | "max_completion_tokens"
+                | "stream_options"
+                | "reasoning_effort"
+        ) {
+            object.insert(key.clone(), value.clone());
+        }
+    }
+    stream_body(
+        config,
+        Some(compat),
+        &overlay.headers,
+        bounded_json(&body)?,
+        cancel,
+        Duration::from_millis(config.chunk_timeout_ms),
+        observe,
+        dispatch,
+    )
+    .await
+}
+
 /// Cancellation waiter shared with native protocol adapters. No wakeup depends
 /// on network activity; callers select this against DNS/header/body futures.
 pub(crate) async fn wait_cancel(cancel: &AtomicBool) {
@@ -1514,8 +1638,10 @@ pub(crate) async fn wait_cancel(cancel: &AtomicBool) {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
     config: &ResponsesConfig,
+    chat: Option<&chat::ChatCompat>,
     extra_headers: &BTreeMap<String, String>,
     body: Vec<u8>,
     cancel: &AtomicBool,
@@ -1535,7 +1661,10 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
         value.set_sensitive(true);
         headers.insert(name, value);
     }
-    let url = config.generation_url()?;
+    let url = match chat {
+        Some(_) => config.chat_url()?,
+        None => config.generation_url()?,
+    };
     tokio::select! {
         biased;
         () = wait_cancel(cancel) => return Err(ProviderError::Cancelled),
@@ -1555,6 +1684,7 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
 
     stream_attempt(
         &client,
+        chat,
         &url,
         &headers,
         &body,
@@ -1643,6 +1773,7 @@ async fn guard_private_url(url: &str, allow_private: bool) -> Result<(), Provide
 #[allow(clippy::too_many_arguments)]
 async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
     client: &reqwest::Client,
+    chat: Option<&chat::ChatCompat>,
     url: &str,
     headers: &reqwest::header::HeaderMap,
     body: &[u8],
@@ -1730,7 +1861,7 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
         return Err((ProviderError::Request(Box::new(failure)), false));
     }
 
-    let mut parser = SseParser::default();
+    let mut parser = chat.map_or_else(SseParser::default, SseParser::chat);
     let mut items: Vec<StreamItem> = Vec::new();
     let mut committed = false;
     let read_failure = |error, committed| {
@@ -2105,6 +2236,7 @@ mod tests {
             allow_private: true,
             headers: BTreeMap::new(),
             set_cache_key: true,
+            wire: Default::default(),
         }
     }
 
@@ -2214,6 +2346,69 @@ mod tests {
         )
         .await;
         assert!(result.expect("terminal must return before EOF").is_ok());
+        server.shutdown();
+    }
+
+    #[tokio::test]
+    async fn go03_chat_wire_one_attempt_url_auth_body_and_common_output() {
+        use super::{InputItem, InputRole, chat::ChatCompat, stream_chat_overlaid};
+        let frames = [
+            serde_json::json!({"choices":[{"delta":{"content":"hi"}}]}),
+            serde_json::json!({"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","function":{"name":"read","arguments":"{}"}}]},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":3,"completion_tokens":2}}),
+        ];
+        let mut body = frames
+            .iter()
+            .map(|frame| format!("data: {frame}\n\n"))
+            .collect::<String>();
+        body.push_str("data: [DONE]\n\n");
+        let server = TestServer::spawn(Arc::new(move |_| Action {
+            status: "200 OK",
+            headers: vec![("Content-Type", "text/event-stream".to_string())],
+            chunks: vec![(body.clone().into_bytes(), 0)],
+            abort_after: None,
+        }))
+        .await;
+        let config = test_config(&server.base);
+        let input = vec![
+            InputItem::message(InputRole::Developer, "BASE"),
+            InputItem::message(InputRole::User, "hello"),
+        ];
+        let mut observed = Vec::new();
+        let generation = stream_chat_overlaid(
+            &config,
+            &ChatCompat::default(),
+            &Default::default(),
+            "chat-model",
+            None,
+            &input,
+            &tools(),
+            64,
+            &NO_CANCEL,
+            &mut |item| observed.push(item.clone()),
+            &mut || async { Ok(()) },
+        )
+        .await
+        .expect("chat generation");
+        assert_eq!(generation.text, "hi");
+        assert_eq!(generation.usage, Some((3, 2)));
+        assert_eq!(generation.output[1]["type"], "function_call");
+        assert_eq!(generation.output[1]["call_id"], "call_1");
+        assert!(observed.iter().any(
+            |i| matches!(i, StreamItem::ToolCallStarted { call_id, .. } if call_id == "call_1")
+        ));
+        let seen = server.seen.lock().expect("seen");
+        assert_eq!(seen.len(), 1, "one physical attempt");
+        assert_eq!(seen[0].path, "/chat/completions");
+        assert_eq!(seen[0].headers["authorization"], "Bearer test-key");
+        let sent: serde_json::Value = serde_json::from_slice(&seen[0].body).expect("body");
+        assert_eq!(sent["model"], "chat-model");
+        assert_eq!(
+            sent["messages"][0],
+            serde_json::json!({"role":"system","content":"BASE"})
+        );
+        assert_eq!(sent["max_tokens"], 64);
+        assert!(sent.get("input").is_none() && sent.get("store").is_none());
+        drop(seen);
         server.shutdown();
     }
 

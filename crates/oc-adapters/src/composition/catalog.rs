@@ -112,6 +112,7 @@ async fn load_catalog_with_env(
                 connect_timeout: Duration::from_secs(10),
                 allow_private: env.get("OC_TEST_ALLOW_LOOPBACK").map(String::as_str) == Some("1"),
                 set_cache_key: entry.options.set_cache_key.unwrap_or(false),
+                wire: Default::default(),
             };
             let outcome = Composition::discover_provider(provider, entry.models.clone()).await?;
             state.finish(&outcome);

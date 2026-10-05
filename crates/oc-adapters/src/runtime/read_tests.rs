@@ -287,6 +287,7 @@ async fn tool16_compaction_carries_original_local_image_array_and_recent_tail() 
         api_key: "synthetic".into(),
         headers: BTreeMap::new(),
         set_cache_key: true,
+        wire: Default::default(),
         timeout: Some(false),
         chunk_timeout_ms: 5000,
         connect_timeout: Duration::from_secs(5),

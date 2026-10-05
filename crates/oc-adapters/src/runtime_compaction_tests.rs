@@ -109,6 +109,7 @@ fn config(listener: &tokio::net::TcpListener) -> ResponsesConfig {
         allow_private: true,
         headers: BTreeMap::new(),
         set_cache_key: false,
+        wire: Default::default(),
     }
 }
 fn sse(text: &str) -> String {
@@ -840,6 +841,7 @@ fn compaction_route_hash_uses_effective_case_insensitive_tenant_auth_and_endpoin
         allow_private: false,
         headers: BTreeMap::from([("X-Tenant".into(), "private-tenant".into())]),
         set_cache_key: false,
+        wire: Default::default(),
     };
     let route = crate::compaction::route_identity("p", "m", &provider).unwrap();
     assert_eq!(route.len(), 64);

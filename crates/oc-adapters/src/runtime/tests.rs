@@ -296,6 +296,7 @@ mod vis38_review_tests {
                 provider: ResponsesConfig {
                     headers: BTreeMap::new(),
                     set_cache_key: true,
+                    wire: Default::default(),
                     base_url: base,
                     api_key: "fixture".into(),
                     timeout: Some(false),

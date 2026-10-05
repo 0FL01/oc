@@ -161,6 +161,7 @@ fn probe_route(model: &str, url: String, key: String) -> oc_adapters::provider::
         allow_private: false,
         headers: Default::default(),
         set_cache_key: false,
+        wire: Default::default(),
     };
     let cancel = std::sync::atomic::AtomicBool::new(false);
     let rt = tokio::runtime::Runtime::new().unwrap();

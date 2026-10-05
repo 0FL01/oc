@@ -931,11 +931,7 @@ fn assemble_with_admission(
     let mut provenance = BTreeMap::new();
     for (id, (entry, path)) in &providers {
         if catalog_only {
-            if entry
-                .npm
-                .as_deref()
-                .is_some_and(|npm| npm != "@ai-sdk/openai")
-            {
+            if package_protocol(id, entry.npm.as_deref()).is_err() {
                 // An inert foreign protocol never gains a catalog binding or
                 // permission to resolve its endpoint/credential templates.
                 continue;
@@ -1137,15 +1133,110 @@ fn validate_provider(id: &str, entry: &ProviderEntry) -> Result<(), ConfigError>
             reason: "context must exceed output plus the 1024-token safety margin".to_string(),
         });
     }
-    if let Some(npm) = &entry.npm
-        && npm != "@ai-sdk/openai"
-    {
-        return Err(ConfigError::UnsupportedCapability {
+    provider_wire(id, entry)?;
+    Ok(())
+}
+
+/// T53 finite package → wire mapping. Omitted package keeps the existing
+/// Responses default; an explicit unknown (or not yet admitted) package is
+/// unsupported before effects. Compatible aliases never imply a fallback.
+pub(crate) fn package_protocol(
+    id: &str,
+    npm: Option<&str>,
+) -> Result<crate::provider::protocol::Protocol, ConfigError> {
+    use crate::provider::protocol::Protocol;
+    match npm {
+        None | Some("@ai-sdk/openai" | "@opencode/ai/providers/openai") => Ok(Protocol::Responses),
+        Some("@ai-sdk/openai-compatible" | "@opencode/ai/providers/openai-compatible") => {
+            Ok(Protocol::Chat)
+        }
+        Some(npm) => Err(ConfigError::UnsupportedCapability {
             field: format!("provider.{id}.npm"),
             reason: format!("unknown package {npm}"),
-        });
+        }),
     }
-    Ok(())
+}
+
+/// Admitted wire binding with validated explicit per-model compatibility.
+pub(crate) fn provider_wire(
+    id: &str,
+    entry: &ProviderEntry,
+) -> Result<crate::provider::WireBinding, ConfigError> {
+    use crate::provider::protocol::Protocol;
+    let protocol = package_protocol(id, entry.npm.as_deref())?;
+    let mut chat = BTreeMap::new();
+    for (model, value) in &entry.models {
+        let compat = chat_compat(&format!("provider.{id}.models.{model}"), value)?;
+        if protocol == Protocol::Chat && compat != Default::default() {
+            chat.insert(model.clone(), compat);
+        }
+    }
+    Ok(match protocol {
+        Protocol::Chat => crate::provider::WireBinding::chat(chat),
+        _ => Default::default(),
+    })
+}
+
+/// OC2 `Model.Compatibility` subset with actual native semantics, plus the
+/// legacy `interleaved` string/`{field}` → `reasoningField` migration.
+fn chat_compat(
+    field: &str,
+    model: &serde_json::Value,
+) -> Result<crate::provider::chat::ChatCompat, ConfigError> {
+    let invalid = |name: &str, reason: &str| ConfigError::Invalid {
+        field: format!("{field}.{name}"),
+        reason: reason.to_string(),
+    };
+    let reasoning_field = |value: &serde_json::Value, name: &str| match value {
+        serde_json::Value::String(field) if !field.is_empty() => Ok(Some(field.clone())),
+        serde_json::Value::Object(object) => match object.get("field") {
+            Some(serde_json::Value::String(field)) if !field.is_empty() => Ok(Some(field.clone())),
+            _ => Err(invalid(name, "must name a field")),
+        },
+        serde_json::Value::Bool(_) => Ok(None),
+        _ => Err(invalid(name, "must be a field name or {field}")),
+    };
+    let mut compat = crate::provider::chat::ChatCompat::default();
+    if let Some(value) = model.get("interleaved") {
+        compat.reasoning_field = reasoning_field(value, "interleaved")?;
+    }
+    let Some(object) = model.get("compatibility") else {
+        return Ok(compat);
+    };
+    let object = object
+        .as_object()
+        .ok_or_else(|| invalid("compatibility", "must be an object"))?;
+    for (key, value) in object {
+        match key.as_str() {
+            "reasoningField" => {
+                compat.reasoning_field = reasoning_field(value, "compatibility.reasoningField")?
+            }
+            "maxTokensField" => {
+                compat.max_completion_tokens = match value.as_str() {
+                    Some("max_tokens") => false,
+                    Some("max_completion_tokens") => true,
+                    _ => {
+                        return Err(invalid(
+                            "compatibility.maxTokensField",
+                            "must be max_tokens or max_completion_tokens",
+                        ));
+                    }
+                }
+            }
+            "supportsPromptCacheKey" => {
+                compat.supports_prompt_cache_key = value.as_bool().ok_or_else(|| {
+                    invalid("compatibility.supportsPromptCacheKey", "must be boolean")
+                })?
+            }
+            other => {
+                return Err(ConfigError::UnsupportedCapability {
+                    field: format!("{field}.compatibility.{other}"),
+                    reason: "compatibility setting has no native semantics".to_string(),
+                });
+            }
+        }
+    }
+    Ok(compat)
 }
 
 fn validate_dcp(raw: &serde_json::Value) -> Result<(), ConfigError> {
@@ -2478,6 +2569,65 @@ mod tests {
         assert_eq!(value["model"], "vendor/model#variant");
         assert_eq!(value["mode"], "subagent");
         assert_eq!(body, "rest\n");
+    }
+
+    #[test]
+    fn go03_package_protocol_and_explicit_chat_compatibility() {
+        use crate::config::{ProviderEntry, ProviderOptions, package_protocol, provider_wire};
+        use crate::provider::protocol::Protocol;
+        for (npm, protocol) in [
+            (None, Some(Protocol::Responses)),
+            (Some("@ai-sdk/openai"), Some(Protocol::Responses)),
+            (
+                Some("@opencode/ai/providers/openai"),
+                Some(Protocol::Responses),
+            ),
+            (Some("@ai-sdk/openai-compatible"), Some(Protocol::Chat)),
+            (
+                Some("@opencode/ai/providers/openai-compatible"),
+                Some(Protocol::Chat),
+            ),
+            (Some("@ai-sdk/anthropic"), None),
+            (Some("evil-pkg"), None),
+        ] {
+            assert_eq!(package_protocol("p", npm).ok(), protocol, "{npm:?}");
+        }
+        let entry = |models: serde_json::Value| ProviderEntry {
+            npm: Some("@ai-sdk/openai-compatible".into()),
+            name: None,
+            options: ProviderOptions::default(),
+            models: serde_json::from_value(models).unwrap(),
+        };
+        let wire = provider_wire(
+            "p",
+            &entry(serde_json::json!({
+                "a": {"compatibility": {"reasoningField": "reasoning_content", "maxTokensField": "max_completion_tokens", "supportsPromptCacheKey": true}},
+                "b": {"interleaved": {"field": "reasoning_details"}},
+                "c": {"interleaved": true},
+                "d": {}
+            })),
+        )
+        .unwrap();
+        assert_eq!(wire.protocol, Protocol::Chat);
+        let a = &wire.chat["a"];
+        assert_eq!(a.reasoning_field.as_deref(), Some("reasoning_content"));
+        assert!(a.max_completion_tokens && a.supports_prompt_cache_key);
+        assert_eq!(
+            wire.chat["b"].reasoning_field.as_deref(),
+            Some("reasoning_details")
+        );
+        assert!(
+            !wire.chat.contains_key("c") && !wire.chat.contains_key("d"),
+            "boolean interleaved invents no field"
+        );
+        for bad in [
+            serde_json::json!({"m": {"compatibility": {"maxTokensField": "tokens"}}}),
+            serde_json::json!({"m": {"compatibility": {"requireReasoning": true}}}),
+            serde_json::json!({"m": {"compatibility": "yes"}}),
+            serde_json::json!({"m": {"interleaved": 3}}),
+        ] {
+            assert!(provider_wire("p", &entry(bad.clone())).is_err(), "{bad}");
+        }
     }
 
     #[test]

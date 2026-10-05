@@ -15,9 +15,10 @@ use std::borrow::Cow;
 use super::{InputContent, InputItem, InputRole};
 
 /// The three admitted native wires; dispatch is a plain enum, not a framework.
-#[allow(dead_code)] // Chat/Messages adapters land in later T53 slices.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)] // The Messages adapter lands in a later T53 slice.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) enum Protocol {
+    #[default]
     Responses,
     Chat,
     Messages,

@@ -185,6 +185,7 @@ async fn mcp12_compaction_receives_native_media_and_recent_checkpoint_tail_reope
         api_key: "fixture-key".into(),
         headers: BTreeMap::new(),
         set_cache_key: true,
+        wire: Default::default(),
         timeout: Some(false),
         chunk_timeout_ms: 5000,
         connect_timeout: Duration::from_secs(5),

@@ -39,7 +39,9 @@ pub const STANDARD_VARIANTS: [&str; 7] =
     ["none", "minimal", "low", "medium", "high", "xhigh", "max"];
 
 /// Known model-entry metadata keys; anything else is diagnosed, not dropped.
-const KNOWN_KEYS: [&str; 8] = [
+const KNOWN_KEYS: [&str; 10] = [
+    "compatibility",
+    "interleaved",
     "name",
     "description",
     "limit",
