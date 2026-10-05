@@ -25,3 +25,44 @@ fn dcp12_switch_off_has_no_reminder() {
     assert!(evaluate(&config, &mut state, "fixture/m", 100, 90, 0).is_none());
     assert_eq!(state.emitted, 0);
 }
+
+/// DCP 3.2.0 (d637981, AGPL-3.0-or-later) `lib/protected-patterns.ts` and
+/// `lib/compress/protected-content.ts`: host tool aliases task/subagent and
+/// apply_patch/patch, normalized to the native catalog (bash is the legacy
+/// spelling of native shell).
+#[test]
+fn dcp320_protected_tool_names_follow_native_aliases() {
+    let cases = [
+        ("bash", "shell"),
+        ("shell", "bash"),
+        ("task", "subagent"),
+        ("subagent", "task"),
+        ("patch", "apply_patch"),
+        ("apply_patch", "patch"),
+    ];
+    for (pattern, tool) in cases {
+        assert!(
+            crate::dcp_auto::tool_is_protected(&[pattern.to_string()], tool),
+            "{pattern} must protect {tool}"
+        );
+    }
+    for (pattern, tool) in [
+        ("bash", "subagent"),
+        ("task", "shell"),
+        ("read", "edit"),
+        ("sh*", "subagent"),
+    ] {
+        assert!(
+            !crate::dcp_auto::tool_is_protected(&[pattern.to_string()], tool),
+            "{pattern} vs {tool}"
+        );
+    }
+    assert!(crate::dcp_auto::tool_is_protected(
+        &["sub*".to_string()],
+        "subagent"
+    ));
+    assert!(crate::dcp_auto::tool_is_protected(
+        &["ba?h".to_string()],
+        "shell"
+    ));
+}

@@ -1071,8 +1071,21 @@ pub fn dedup_calls(records: Vec<ToolRecord>, protected_tools: &[String]) -> Vec<
 
 /// Match configured tool protections. `*` spans zero or more characters and
 /// `?` spans one character; patterns are bounded by config validation.
+/// DCP 3.2.0 host aliases map onto the native catalog: a pattern for either
+/// spelling protects the call (bash/shell, task/subagent, patch/apply_patch).
 pub fn tool_is_protected(patterns: &[String], tool: &str) -> bool {
-    patterns.iter().any(|pattern| wildcard_match(pattern, tool))
+    let alias = match tool {
+        "shell" => Some("bash"),
+        "bash" => Some("shell"),
+        "subagent" => Some("task"),
+        "task" => Some("subagent"),
+        "apply_patch" => Some("patch"),
+        "patch" => Some("apply_patch"),
+        _ => None,
+    };
+    patterns.iter().any(|pattern| {
+        wildcard_match(pattern, tool) || alias.is_some_and(|alias| wildcard_match(pattern, alias))
+    })
 }
 
 fn wildcard_match(pattern: &str, value: &str) -> bool {
