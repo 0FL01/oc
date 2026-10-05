@@ -251,6 +251,8 @@ impl Db {
     }
 
     /// Positive, typed journal safety. No pending call is executed by recovery.
+    /// A completed R9 task renewal is an atomic native HOT commit with no
+    /// external effect; other compress outcomes stay conservatively unsafe.
     fn child_checkpoint_safe(&self, operation: &str) -> Result<bool, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let raw: Option<String> = conn.query_row("SELECT t.result FROM child_jobs j JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id WHERE j.operation_id=?1", [operation], |r|r.get(0))?;
@@ -263,7 +265,7 @@ impl Db {
         let Some(log) = log else {
             return Ok(false);
         };
-        let unsafe_ops: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM tool_operations o JOIN child_jobs j ON j.child_turn=o.turn_id WHERE j.operation_id=?1 AND (o.state NOT IN ('completed','failed','denied') OR o.name NOT IN ('read','glob','grep','webfetch','skill','opencode_models')))", [operation], |r|r.get(0))?;
+        let unsafe_ops: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM tool_operations o JOIN child_jobs j ON j.child_turn=o.turn_id WHERE j.operation_id=?1 AND (o.state NOT IN ('completed','failed','denied') OR (o.name NOT IN ('read','glob','grep','webfetch','skill','opencode_models') AND NOT (o.name='compress' AND o.state='completed' AND json_extract(o.output,'$.status')='task_renewal_accepted'))))", [operation], |r|r.get(0))?;
         if unsafe_ops {
             return Ok(false);
         }

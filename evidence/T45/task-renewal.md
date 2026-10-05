@@ -51,3 +51,32 @@ a permanent protected task/pack lane.
   the same renewal for a root task; a range spanning past messages and the
   current task still fails with "unfinished tail" and leaves the task intact.
 - Full workspace **1567 / 0 / 10**; fmt and strict workspace Clippy PASS.
+
+## Native-binary DCP10/CTX01 renewal qualification
+
+- Recovery safety: `storage_children.rs::child_checkpoint_safe` treated every
+  compress operation as unsafe, so a background child that had renewed its
+  task was marked `unknown` after a crash (RED observed on the debug ELF:
+  "Child execution unresolved after interruption"). A completed compress whose
+  output is `task_renewal_accepted` is now resumable (atomic native HOT commit,
+  no external effect, never re-executed); whole-past and unfinished compress
+  outcomes stay conservatively unsafe.
+  `storage_children/tests.rs::completed_task_renewal_is_resumable_but_other_compress_outcomes_are_not`.
+- `evidence/T45/native_context_pack.py` gains case `renewal` (DCP enabled,
+  `compress` allowed): background child gets the exact task + pack, closes a
+  `read` group, renews via `compress` on its own task message, and its next
+  request (held at the provider) carries only the user-level summary plus the
+  retained read result. The process is killed; restart recovery resumes the
+  child with exactly one request carrying the latest HOT summary (no original
+  task/pack text); the job completes with one notice; the child message RAW
+  still holds the original task and pack; one `task_renewal_accepted` compress
+  operation; idle reopen replays nothing.
+- Runner: `python3 evidence/T45/run_background_check.py context-pack-2 python3
+  evidence/T45/native_context_pack.py target/debug/oc target/release/oc` at
+  HEAD `c63094d0c` + this diff, exit 0, 6 PASS (foreground/background/renewal
+  × debug/release); log `t45-background-context-pack-2.log.gz`
+  (raw sha256 `1ee09b8c…ccac0884`); source digest unchanged during the run.
+- Recovery regression: `python3 evidence/T45/native_child_recovery.py
+  target/debug/oc target/release/oc` exit 0, 40 PASS (all safe/unsafe effect,
+  corruption and configuration cases unchanged).
+- Full workspace after this atomic **1568 / 0 / 10**; fmt, strict Clippy PASS.

@@ -336,6 +336,49 @@ fn typed_effect_uncertainty_and_unanswered_calls_never_claim() {
 }
 
 #[test]
+fn completed_task_renewal_is_resumable_but_other_compress_outcomes_are_not() {
+    for (output, state, resumable_expected) in [
+        (
+            r#"{"status":"task_renewal_accepted","appliesFrom":"next request"}"#,
+            "completed",
+            true,
+        ),
+        (
+            r#"{"status":"compressed","blocks":["b0001"]}"#,
+            "completed",
+            false,
+        ),
+        (r#"{"status":"task_renewal_accepted"}"#, "started", false),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        let db = Db::open(dir.path()).unwrap();
+        let (job, raw) = resumable(&db);
+        db.record_tool_intent("renew", "child", Some("child-turn"), "compress", "{}")
+            .unwrap();
+        if state != "started" {
+            db.record_tool_outcome("renew", state, Some(output))
+                .unwrap();
+        }
+        db.recover_child_jobs().unwrap();
+        let expected = if resumable_expected {
+            ChildState::Running
+        } else {
+            ChildState::Unknown
+        };
+        assert_eq!(
+            db.child_jobs("parent").unwrap()[0].state,
+            expected,
+            "{output} {state}"
+        );
+        assert_eq!(
+            db.claim_child_resume(&job, &raw).is_ok(),
+            resumable_expected,
+            "{output}"
+        );
+    }
+}
+
+#[test]
 fn claim_refuses_stale_source_and_preserves_latest_hot_not_raw() {
     let dir = tempfile::tempdir().unwrap();
     let db = Db::open(dir.path()).unwrap();
