@@ -604,3 +604,93 @@ fn conversation_missing_tip_cannot_be_replaced_by_an_earlier_redo_point() {
     assert_eq!(db.history_len("s").unwrap(), 0);
     assert_eq!(db.read_history_full("s").unwrap().len(), 6);
 }
+
+#[test]
+fn r8_parent_context_selection_follows_active_branch_not_dcp_projection() {
+    let root = tempfile::tempdir().unwrap();
+    let db = Db::open(root.path()).unwrap();
+    db.create_session("s").unwrap();
+    db.create_session("other").unwrap();
+    db.apply_dcp_schema().unwrap();
+    let first = turn(&db, "one", "one", "m");
+    let ids = |session: &str| -> Vec<(String, String)> {
+        let conn = db.conn.lock().unwrap();
+        let mut statement = conn
+            .prepare("SELECT id,role FROM messages WHERE session_id=?1 ORDER BY seq")
+            .unwrap();
+        statement
+            .query_map([session], |row| Ok((row.get(0)?, row.get(1)?)))
+            .unwrap()
+            .map(Result::unwrap)
+            .collect()
+    };
+    let first_answer = ids("s")[1].0.clone();
+    // Projection-only compression is not Revert: covered raw text stays selectable.
+    db.save_compression_block(
+        "s",
+        "b",
+        "summary",
+        &first,
+        &first,
+        std::slice::from_ref(&first),
+    )
+    .unwrap();
+    let reverted = turn(&db, "two", "two", "m");
+    db.change_conversation("s", ConversationAction::Undo)
+        .unwrap();
+    let command = db
+        .accept_turn(
+            "three",
+            "s",
+            "expanded /review body",
+            "/review",
+            &model("m"),
+        )
+        .unwrap()
+        .user_message;
+    let notice = {
+        let conn = db.conn.lock().unwrap();
+        Db::insert_message(&conn, "s", "user", "native durable notice").unwrap()
+    };
+    let foreign = turn_in(&db, "other");
+    let select = |wanted: &[&str]| {
+        db.parent_context_messages(
+            "s",
+            "three",
+            &wanted.iter().map(|id| id.to_string()).collect::<Vec<_>>(),
+        )
+        .unwrap()
+    };
+    assert_eq!(
+        select(&[&command, &first_answer, &first, &first]).unwrap(),
+        vec![
+            (first.clone(), "user".into(), "one".into()),
+            (
+                first_answer.clone(),
+                "assistant".into(),
+                "answer one".into()
+            ),
+            (command.clone(), "user".into(), "/review".into()),
+        ],
+        "chronology, dedup, DCP-covered raw text and the invocation text"
+    );
+    for refused in [
+        reverted.as_str(),
+        notice.as_str(),
+        foreign.as_str(),
+        "m9999",
+    ] {
+        assert!(select(&[refused]).is_err(), "{refused}");
+    }
+    assert!(
+        db.parent_context_messages("s", "missing", std::slice::from_ref(&first))
+            .unwrap()
+            .is_err()
+    );
+}
+
+fn turn_in(db: &Db, session: &str) -> String {
+    db.accept_turn("foreign", session, "foreign", "foreign", &model("m"))
+        .unwrap()
+        .user_message
+}

@@ -33,13 +33,37 @@ closeout.
   `Jobs::launch` writes any child row/job/input. Refusal is an actionable tool
   error ("does not fit … Select fewer messages or summarize the findings").
 
-## Remaining R8 work (pending)
+## Third atomic: resolver branch semantics, ID index and guidance
 
-- Bounded visible ID index that omits notices/system rows (the existing
-  "Stable text-message IDs" rendering is reused unchanged).
-- Explicit selection of DCP/compaction-covered raw messages is admitted by the
-  resolver, but no dedicated test yet; guidance/preview wording for automatic
-  profile/AGENTS/tools assembly; attachment diagnostics.
+- Assistant candidates are `role='assistant'` rows of the active branch
+  (`conversation_messages`); such rows are written only by turn settlement or
+  fork copy, so a missing `turns.result.assistant_message` link no longer
+  hides a committed answer.
+- Unit qualification of the resolver: Revert/undo refuses the reverted turn's
+  message; DCP projection-only compression keeps covered raw text selectable;
+  a notice stored with `role='user'` and no acceptance is refused; a command
+  turn quotes its invocation (`/review`), not the expanded prompt; foreign and
+  unknown IDs and an invoking turn without an accepted message are refused.
+- Visible ID index: the existing developer item ("Stable text-message IDs" or,
+  with compress available, "DCP context anchors") already lists only the
+  active projection window, independent of DCP enablement; it is reused
+  unchanged. Notice/system entries in it are refused if selected, with an
+  explicit reason.
+- Guidance: the `subagent` description states what each child receives
+  automatically (own profile prompt, environment, applicable AGENTS, permitted
+  tool schemas, skill metadata with bodies via the skill tool, allowed MCP
+  guidance), that conversation/findings must be supplied via prompt or
+  `context_message_ids`, that restrictions must be explicit, and that the
+  workspace is shared, not a sandbox. The existing per-agent effective
+  permission/compression preview is unchanged.
+- Attachments: user messages are stored as text only; image/file attachments
+  exist only as `read` tool outputs, which are never candidates, so no selected
+  content can be silently dropped.
+
+## Still open under R8 (outside this step)
+
+- Native-ELF/CTX01/CTX02 qualification of captured parent/child requests with
+  DCP-off IDs, frozen background pack, restart and continuation.
 
 ## Checks
 
@@ -54,3 +78,6 @@ closeout.
   (tiny-context child model: quoted 36 KB message refused with no child;
   the same agent without a pack runs). RED confirmed by disabling the probe.
   Full workspace after this atomic: **1558 / 0 / 10**.
+- `storage_conversation_tests.rs::r8_parent_context_selection_follows_active_branch_not_dcp_projection`
+- `tests/subagent.rs::r8_subagent_guidance_separates_automatic_assembly_from_caller_context`
+  Full workspace after the third atomic: **1560 / 0 / 10**; fmt and strict Clippy PASS.

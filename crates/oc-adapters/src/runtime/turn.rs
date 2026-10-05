@@ -79,7 +79,10 @@ fn subagent_tool_def(
         "Spawns an agent in a child session to work on the specified task.\n\
          The output includes a sessionID you can pass back later to continue that specific conversation with the subagent.\n\
          New child sessions start with fresh context, so include all relevant context and instructions when you don't pass a sessionID.\n\
-         Foreground (default) runs the subagent to completion and returns its final response.",
+         Foreground (default) runs the subagent to completion and returns its final response.\n\
+         Each subagent automatically receives its own profile prompt, environment, applicable AGENTS instructions, permitted tool schemas, skill metadata (skill bodies load through the skill tool) and allowed MCP guidance. \
+         Your conversation and findings are not shared: put them in prompt, or quote exact messages with context_message_ids from your stable text-message IDs or DCP context anchors list. \
+         State task restrictions explicitly; the child's tools may permit broader work, and the workspace is shared rather than a separate sandbox.",
     );
     {
         let available = catalog
@@ -193,7 +196,7 @@ fn subagent_tool_def(
                     "type": "array",
                     "items": {"type": "string"},
                     "maxItems": crate::tools::MAX_CONTEXT_MESSAGE_IDS,
-                    "description": "Optional exact IDs from this session's stable text-message ID list. The selected user/assistant messages are quoted verbatim, in conversation order, as context for the subagent. Nothing else from this conversation is shared automatically; put findings and restrictions in the prompt.",
+                    "description": "Optional exact IDs from this session's stable text-message IDs or DCP context anchors list. The selected user/assistant messages are quoted verbatim, in conversation order, as context for the subagent. Nothing else from this conversation is shared automatically; put findings and restrictions in the prompt.",
                 },
             },
             "required": ["agent", "description", "prompt"],

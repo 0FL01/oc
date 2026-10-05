@@ -1823,3 +1823,43 @@ async fn r8_oversized_quoted_context_is_refused_before_child_creation() {
         "no oversized quoted request reached the tiny child model"
     );
 }
+
+#[tokio::test]
+async fn r8_subagent_guidance_separates_automatic_assembly_from_caller_context() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation);
+    runtime
+        .publish_subagents(Some(catalog(1, vec![agent("helper", false, None)])))
+        .expect("catalog");
+    runtime.create_session("parent").expect("session");
+    let (base, requests) = Fake::start(vec![sse_delta("ok") + &sse_completed()]);
+    runtime
+        .run_turn(params(
+            "parent",
+            "hi",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .expect("turn");
+    let seen = child_requests(&requests);
+    let tool = seen[0]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|tool| tool["name"] == "subagent")
+        .expect("subagent tool");
+    let description = tool["description"].as_str().unwrap();
+    for expected in [
+        "automatically receives its own profile prompt, environment, applicable AGENTS instructions",
+        "Your conversation and findings are not shared",
+        "context_message_ids",
+        "workspace is shared rather than a separate sandbox",
+    ] {
+        assert!(description.contains(expected), "{expected}: {description}");
+    }
+    let ids = &tool["parameters"]["properties"]["context_message_ids"];
+    assert_eq!(ids["type"], "array");
+    assert_eq!(ids["maxItems"], 64);
+}

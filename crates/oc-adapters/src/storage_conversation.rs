@@ -561,7 +561,8 @@ impl Db {
     /// R8: resolve caller-selected parent messages against one read snapshot.
     /// Candidates are active-branch canonical user messages (an admitted turn's
     /// accepted message) and committed assistant answers at or before the
-    /// invoking turn's accepted message; notices, reminders and reverted or
+    /// invoking turn's accepted message (assistant rows are only written by
+    /// turn settlement or fork copy); notices, reminders and reverted or
     /// foreign rows are refused. Output follows parent chronology, deduplicated.
     pub(crate) fn parent_context_messages(
         &self,
@@ -596,9 +597,7 @@ impl Db {
                      WHERE m.id=?1 AND m.session_id=?2 AND m.seq<=?3 AND (
                        (m.role='user' AND EXISTS(SELECT 1 FROM turn_acceptances a
                          JOIN conversation_turns t ON t.id=a.turn_id WHERE a.user_message=m.id))
-                       OR (m.role='assistant' AND EXISTS(SELECT 1 FROM conversation_turns t
-                         WHERE t.session_id=m.session_id
-                           AND json_extract(t.result,'$.assistant_message')=m.id)))",
+                       OR m.role='assistant')",
                     params![id, session, cutoff],
                     |row| {
                         Ok((
