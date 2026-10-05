@@ -24,6 +24,7 @@ use crate::models::SelectedVariant;
 
 pub(crate) mod chat;
 mod failure;
+pub(crate) mod messages;
 pub(crate) mod protocol;
 pub use failure::{Delivery, FailureKind, Operation, PhysicalFailure, RetryHeaders, TransportKind};
 
@@ -397,6 +398,7 @@ pub struct ResponsesConfig {
 pub struct WireBinding {
     pub(crate) protocol: protocol::Protocol,
     pub(crate) chat: BTreeMap<String, chat::ChatCompat>,
+    pub(crate) messages_bearer: bool,
 }
 
 impl WireBinding {
@@ -405,6 +407,15 @@ impl WireBinding {
         Self {
             protocol: protocol::Protocol::Chat,
             chat,
+            ..Self::default()
+        }
+    }
+
+    pub(crate) fn messages(bearer: bool) -> Self {
+        Self {
+            protocol: protocol::Protocol::Messages,
+            messages_bearer: bearer,
+            ..Self::default()
         }
     }
 }
@@ -522,8 +533,10 @@ impl RequestOverlay {
     }
 }
 
-const RESERVED_HEADERS: [&str; 12] = [
+const RESERVED_HEADERS: [&str; 14] = [
     "authorization",
+    "x-api-key",
+    "anthropic-version",
     "accept",
     "content-type",
     "host",
@@ -615,9 +628,16 @@ pub struct SseParser {
     output: Option<Vec<serde_json::Value>>,
     /// Chat decoding state; `None` decodes Responses events.
     chat: Option<chat::ChatState>,
+    messages: Option<messages::MessagesState>,
 }
 
 impl SseParser {
+    pub(crate) fn messages() -> Self {
+        Self {
+            messages: Some(Default::default()),
+            ..Self::default()
+        }
+    }
     /// Parser for the Chat wire; framing and caps are shared.
     pub(crate) fn chat(compat: &chat::ChatCompat) -> Self {
         Self {
@@ -727,6 +747,9 @@ impl SseParser {
         self.event_name = None;
         if self.chat.is_some() {
             return chat::dispatch(self, &payload);
+        }
+        if self.messages.is_some() {
+            return messages::dispatch(self, &payload);
         }
         Ok(self.dispatch_responses(payload)?.into_iter().collect())
     }
@@ -1507,6 +1530,40 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
         )
         .await;
     }
+    if config.wire.protocol == protocol::Protocol::Messages {
+        if max_output == 0 {
+            return Err(ProviderError::InvalidConfig);
+        }
+        bounded_json(&(model, input, tools))?;
+        let mut body = messages::request_body(
+            model,
+            input,
+            tools,
+            max_output,
+            variant.and_then(|v| v.reasoning_effort.as_deref()),
+        )?;
+        let object = body.as_object_mut().expect("Messages request object");
+        for (key, value) in &overlay.body {
+            if matches!(
+                key.as_str(),
+                "messages" | "system" | "max_tokens" | "output_config"
+            ) {
+                return Err(ProviderError::InvalidConfig);
+            }
+            object.insert(key.clone(), value.clone());
+        }
+        return stream_body(
+            config,
+            None,
+            &overlay.headers,
+            bounded_json(&body)?,
+            cancel,
+            Duration::from_millis(config.chunk_timeout_ms),
+            observe,
+            dispatch,
+        )
+        .await;
+    }
     if max_output == 0 {
         return Err(ProviderError::InvalidConfig);
     }
@@ -1656,14 +1713,42 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
     for (name, value) in extra_headers {
         let name = reqwest::header::HeaderName::from_bytes(name.as_bytes())
             .map_err(|_| ProviderError::InvalidConfig)?;
+        let merged;
+        let value =
+            if config.wire.protocol == protocol::Protocol::Messages && name == "anthropic-beta" {
+                merged = format!(
+                    "{},{}",
+                    headers
+                        .get(&name)
+                        .and_then(|v| v.to_str().ok())
+                        .unwrap_or_default(),
+                    value
+                );
+                &merged
+            } else {
+                value
+            };
         let mut value = reqwest::header::HeaderValue::from_str(value)
             .map_err(|_| ProviderError::InvalidConfig)?;
         value.set_sensitive(true);
         headers.insert(name, value);
     }
-    let url = match chat {
-        Some(_) => config.chat_url()?,
-        None => config.generation_url()?,
+    if config.wire.protocol == protocol::Protocol::Messages {
+        messages_headers(&mut headers)?;
+    }
+    let protocol = if chat.is_some() {
+        protocol::Protocol::Chat
+    } else {
+        config.wire.protocol
+    };
+    let url = match protocol {
+        protocol::Protocol::Chat => config.chat_url()?,
+        protocol::Protocol::Responses => config.generation_url()?,
+        protocol::Protocol::Messages => config
+            .generation_url()?
+            .strip_suffix("/responses")
+            .map(|base| format!("{base}/messages"))
+            .expect("Responses suffix"),
     };
     tokio::select! {
         biased;
@@ -1685,6 +1770,7 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
     stream_attempt(
         &client,
         chat,
+        protocol,
         &url,
         &headers,
         &body,
@@ -1723,13 +1809,53 @@ pub(crate) fn request_headers(
         value.set_sensitive(true);
         headers.insert(name, value);
     }
-    let mut auth = HeaderValue::from_str(&format!("Bearer {}", config.api_key))
-        .map_err(|_| ProviderError::InvalidConfig)?;
+    let messages = config.wire.protocol == protocol::Protocol::Messages;
+    if messages
+        && config.headers.keys().any(|name| {
+            name.eq_ignore_ascii_case("authorization") || name.eq_ignore_ascii_case("x-api-key")
+        })
+    {
+        return Err(ProviderError::InvalidConfig);
+    }
+    let bearer = !messages || config.wire.messages_bearer;
+    let mut auth = HeaderValue::from_str(&if bearer {
+        format!("Bearer {}", config.api_key)
+    } else {
+        config.api_key.clone()
+    })
+    .map_err(|_| ProviderError::InvalidConfig)?;
     auth.set_sensitive(true);
-    headers.insert("authorization", auth);
+    headers.insert(if bearer { "authorization" } else { "x-api-key" }, auth);
+    if messages {
+        messages_headers(&mut headers)?;
+    }
     headers.insert("accept", HeaderValue::from_static("text/event-stream"));
     headers.insert("content-type", HeaderValue::from_static("application/json"));
     Ok(headers)
+}
+
+fn messages_headers(headers: &mut reqwest::header::HeaderMap) -> Result<(), ProviderError> {
+    use reqwest::header::HeaderValue;
+    headers.insert("anthropic-version", HeaderValue::from_static("2023-06-01"));
+    let mut betas: Vec<String> = Vec::new();
+    for beta in headers
+        .get("anthropic-beta")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or_default()
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .chain(["interleaved-thinking-2025-05-14"])
+    {
+        if !betas.iter().any(|b| b == beta) {
+            betas.push(beta.to_owned());
+        }
+    }
+    headers.insert(
+        "anthropic-beta",
+        HeaderValue::from_str(&betas.join(",")).map_err(|_| ProviderError::InvalidConfig)?,
+    );
+    Ok(())
 }
 
 async fn guard_private_url(url: &str, allow_private: bool) -> Result<(), ProviderError> {
@@ -1774,6 +1900,7 @@ async fn guard_private_url(url: &str, allow_private: bool) -> Result<(), Provide
 async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
     client: &reqwest::Client,
     chat: Option<&chat::ChatCompat>,
+    protocol: protocol::Protocol,
     url: &str,
     headers: &reqwest::header::HeaderMap,
     body: &[u8],
@@ -1861,7 +1988,10 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
         return Err((ProviderError::Request(Box::new(failure)), false));
     }
 
-    let mut parser = chat.map_or_else(SseParser::default, SseParser::chat);
+    let mut parser = match protocol {
+        protocol::Protocol::Messages => SseParser::messages(),
+        _ => chat.map_or_else(SseParser::default, SseParser::chat),
+    };
     let mut items: Vec<StreamItem> = Vec::new();
     let mut committed = false;
     let read_failure = |error, committed| {

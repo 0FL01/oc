@@ -84,7 +84,7 @@ pub enum Permission {
 /// (`provider.<id>.options.<key>`) so a vendor-specific field written for
 /// another frontend cannot block the whole application. Known fields keep
 /// strict typing.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct ProviderOptions {
     /// Base URL template (may contain `{env:..}` before substitution).
     #[serde(rename = "baseURL", default)]
@@ -92,6 +92,12 @@ pub struct ProviderOptions {
     /// API key template (never logged).
     #[serde(rename = "apiKey", default)]
     pub api_key: String,
+    /// Static Messages Bearer credential, not OAuth execution.
+    #[serde(rename = "authToken", default, skip_serializing_if = "Option::is_none")]
+    pub auth_token: Option<String>,
+    /// Auth scheme captured after substitution into the common key slot.
+    #[serde(skip)]
+    pub messages_bearer: bool,
     /// `false` means no total generation deadline (never defaulted).
     #[serde(default)]
     pub timeout: Option<bool>,
@@ -107,6 +113,18 @@ pub struct ProviderOptions {
     /// Native admission caps for unknown model limits (never discovery metadata).
     #[serde(rename = "nativeFallbackLimits", default)]
     pub native_fallback_limits: crate::models::FallbackLimits,
+}
+
+impl std::fmt::Debug for ProviderOptions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ProviderOptions")
+            .field("base_url", &"[configured]")
+            .field("credentials", &"[redacted]")
+            .field("timeout", &self.timeout)
+            .field("chunk_timeout", &self.chunk_timeout)
+            .field("set_cache_key", &self.set_cache_key)
+            .finish_non_exhaustive()
+    }
 }
 
 /// Single provider entry.
@@ -965,6 +983,9 @@ fn assemble_with_admission(
                 substitute_with(&entry.options.base_url, path, trusted, env, reader)?;
             entry.options.api_key =
                 substitute_with(&entry.options.api_key, path, trusted, env, reader)?;
+            if let Some(token) = &mut entry.options.auth_token {
+                *token = substitute_with(token, path, trusted, env, reader)?;
+            }
             for value in entry.options.headers.values_mut() {
                 *value = substitute_with(value, path, trusted, env, reader)?;
             }
@@ -974,6 +995,10 @@ fn assemble_with_admission(
             // frontend's entry) must not block the application.
             if selected {
                 validate_provider(id, &entry)?;
+            }
+            if let Some(token) = entry.options.auth_token.take() {
+                entry.options.api_key = token;
+                entry.options.messages_bearer = true;
             }
             if require_credential && selected && entry.options.api_key.trim().is_empty() {
                 return Err(ConfigError::MissingCredential {
@@ -1103,6 +1128,7 @@ pub(crate) fn activate_mcp_entry(
 const PROVIDER_OPTION_KEYS: &[&str] = &[
     "baseURL",
     "apiKey",
+    "authToken",
     "timeout",
     "chunkTimeout",
     "setCacheKey",
@@ -1150,6 +1176,7 @@ pub(crate) fn package_protocol(
         Some("@ai-sdk/openai-compatible" | "@opencode/ai/providers/openai-compatible") => {
             Ok(Protocol::Chat)
         }
+        Some("@ai-sdk/anthropic" | "@opencode/ai/providers/anthropic") => Ok(Protocol::Messages),
         Some(npm) => Err(ConfigError::UnsupportedCapability {
             field: format!("provider.{id}.npm"),
             reason: format!("unknown package {npm}"),
@@ -1164,6 +1191,24 @@ pub(crate) fn provider_wire(
 ) -> Result<crate::provider::WireBinding, ConfigError> {
     use crate::provider::protocol::Protocol;
     let protocol = package_protocol(id, entry.npm.as_deref())?;
+    if entry.options.auth_token.is_some()
+        && (protocol != Protocol::Messages || !entry.options.api_key.is_empty())
+    {
+        return Err(ConfigError::Invalid {
+            field: format!("provider.{id}.options.authToken"),
+            reason: "requires Messages and cannot coexist with apiKey".into(),
+        });
+    }
+    if protocol == Protocol::Messages
+        && entry.options.headers.keys().any(|name| {
+            name.eq_ignore_ascii_case("authorization") || name.eq_ignore_ascii_case("x-api-key")
+        })
+    {
+        return Err(ConfigError::Invalid {
+            field: format!("provider.{id}.options.headers"),
+            reason: "competing auth header".into(),
+        });
+    }
     let mut chat = BTreeMap::new();
     for (model, value) in &entry.models {
         let compat = chat_compat(&format!("provider.{id}.models.{model}"), value)?;
@@ -1173,6 +1218,9 @@ pub(crate) fn provider_wire(
     }
     Ok(match protocol {
         Protocol::Chat => crate::provider::WireBinding::chat(chat),
+        Protocol::Messages => crate::provider::WireBinding::messages(
+            entry.options.messages_bearer || entry.options.auth_token.is_some(),
+        ),
         _ => Default::default(),
     })
 }
@@ -2183,7 +2231,7 @@ mod tests {
     /// visible warning, not a shape error that blocks the application.
     #[test]
     fn unknown_provider_option_is_a_warning() {
-        let config = r#"{"provider": {"p": {"options": {"authToken": "x", "apiKey": "k"},
+        let config = r#"{"provider": {"p": {"options": {"vendorExtension": "x", "apiKey": "k"},
             "models": {"m": {}}}}}"#;
         let generation = assemble(&[src("s", config, true)], &env(&[]), None).expect("assembled");
         assert_eq!(generation.providers["p"].options.api_key, "k");
@@ -2191,7 +2239,7 @@ mod tests {
             generation
                 .warnings
                 .iter()
-                .any(|warning| warning.contains("provider.p.options.authToken")),
+                .any(|warning| warning.contains("provider.p.options.vendorExtension")),
             "the ignored option is reported: {:?}",
             generation.warnings
         );
@@ -2587,7 +2635,11 @@ mod tests {
                 Some("@opencode/ai/providers/openai-compatible"),
                 Some(Protocol::Chat),
             ),
-            (Some("@ai-sdk/anthropic"), None),
+            (Some("@ai-sdk/anthropic"), Some(Protocol::Messages)),
+            (
+                Some("@opencode/ai/providers/anthropic"),
+                Some(Protocol::Messages),
+            ),
             (Some("evil-pkg"), None),
         ] {
             assert_eq!(package_protocol("p", npm).ok(), protocol, "{npm:?}");

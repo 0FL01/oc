@@ -29,6 +29,7 @@ pub(crate) fn schema_field(field: &str) -> Vec<String> {
         "npm",
         "baseURL",
         "apiKey",
+        "authToken",
         "headers",
         "url",
         "type",

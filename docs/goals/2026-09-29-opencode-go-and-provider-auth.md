@@ -362,8 +362,12 @@ commits/текущий diff, не переносить чужую незаком
   requests с двумя read results. Current evidence: `evidence/T53/protocol-seam.md`
   и `evidence/T53/chat-wire.md`; workspace 1579/0/10, strict Clippy/fmt/build/help
   PASS. R1–R6/GO01–GO06 remain pending; live не выполнялся, T44 PAUSED.
-- Next: thin Messages wire/auth binding и оставшиеся per-wire options/protocol-safe
-  durable provenance; credential/catalog/connect owners остаются незакрытыми.
+- 2026-10-05 follow-up: native Messages wire + static apiKey/authToken binding,
+  independent stream decoder и real application tool roundtrip обоих schemes;
+  `evidence/T53/messages-wire.md`. Crate unit 564/0/0, strict crate Clippy/fmt PASS.
+  Это partial R1/R3, не полный GO01/GO03. No live; T44 PAUSED.
+- Next: единый Db credential owner/scoped auth и оставшиеся per-wire options/
+  protocol-safe durable provenance; catalog/connect owners остаются незакрытыми.
 - Route qualification risk: public recon выявил `qwen3.8-max`/`qwen3.7-plus` как
   default Chat в models.dev, но official Go docs называют Messages. Это dated source
   conflict, не hardcoded ID exception. Follow models.dev aliases; bounded probes

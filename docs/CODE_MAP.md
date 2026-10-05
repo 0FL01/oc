@@ -54,6 +54,14 @@
 
 External read/search (TOOL14/TOOL16): `files.rs::{concrete_scope,pin_external,resolve_read,open_read_scope}` extends the same read/search descriptors with invocation-only authority; `runtime/turn.rs` home/Location normalization and `approval.rs` reuse shared boundary/action admission. Mutation resolution and instruction/config roots stay distinct. Nearest proofs: `files/external_tests.rs`, the existing active-scan cancellation test, runtime `approval_lifecycle::external_read_shared_boundary_and_action_admission_emit_only_genuine_asks`, and direct normal ELF `evidence/T50/native_external_read.py`; results in `evidence/T50/external-read.md`.
 
+T53 native wires: `oc-adapters/src/provider/{chat,messages,protocol}.rs` owns
+finite lowering and independent decoders; `provider.rs` shares HTTP/SSE caps,
+cancel and one-attempt dispatch; `config.rs::provider_wire` admits explicit
+package/compatibility/static Messages auth. Nearest tests:
+`provider/{chat,messages,protocol}_tests.rs`, `application/{chat,messages}_wire_tests.rs`;
+receipts `evidence/T53/{chat,messages}-wire.md`. Full Go/catalog/credentials/
+replay/metadata qualification remains T53.
+
 ## Как обновлять
 
 Изменившийся owner указывает точку входа, свои части и один ближайший test target/filter. Карта — маршрутизатор, не полный symbol index и не копия архитектурного spec. No generic helpers/common-manager dumping ground. Для малого изменения внутри неизменного владельца новая строка не нужна.
