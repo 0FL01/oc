@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-05T11:08:18+00:00
+State updated: 2026-10-05T11:18:12+00:00
 Active: T45
 
 Сверить Git status/diff до выполнения команд.
@@ -13,13 +13,13 @@ Owner-approved R3/R6–R10; full contracts and ordered slices in spec/M8, histor
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-R8 pre-admission step complete: quoted packs are probed against the resolved child's schema-inclusive request before any child row (09abb3277); resolver branch rules, guidance and attachment/ID-index decisions qualified (latest R8 commit).
+R8 CTX01/CTX02 native-binary qualification PASS on normal debug and release ELFs (649049718): DCP-off IDs, guidance, refusal without a child, exact escaped chronological pack, single-pack continuation, frozen background pack across crash/parent edit/restart, no reopen replay.
 ## Checks
-Workspace 1560/0/10; fmt and strict Clippy PASS; RED confirmed for the oversized-pack probe. Evidence: evidence/T45/context-pack.md.
+Bounded runner log t45-background-context-pack-1 exit0, ELF/source fingerprints unchanged; workspace 1560/0/10, fmt/Clippy, Python47 (bench TMPDIR), docs and diff checks PASS.
 ## Risks
-R8 native-ELF/CTX01/CTX02 captured-request qualification (DCP-off IDs, frozen background pack, restart, continuation) is still pending; whole T45 open. T44 PAUSED, T27 allowance unchanged.
+R8 status left pending for acceptance review; DCP10 HOT renewal of task/pack memory is R9-owned. Whole T45 open; T44 PAUSED, T27 allowance unchanged.
 ## Next
-Native-binary CTX01/CTX02 qualification for context packs, then DCP 3.2.0 donor qualification and amended-plan items.
+DCP 3.2.0 donor qualification and remaining amended-plan T45 items.
 
 
 Ready (до 5): T53, T56
