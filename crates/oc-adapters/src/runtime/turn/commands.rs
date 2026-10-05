@@ -69,6 +69,7 @@ impl Runtime<'_> {
             prompt: params.prompt.clone(),
             model: Some(model.stored(&params.catalog.provider)),
             session_id: None,
+            context_message_ids: Vec::new(),
         };
         let runner = TurnSubagent {
             turn_id: String::new(),
@@ -84,7 +85,7 @@ impl Runtime<'_> {
             parent_lane: lane,
             fresh_parent: fresh,
         };
-        let (agent, _) = runner.resolve_request(&request).map_err(failed)?;
+        let (agent, _, _) = runner.resolve_request(&request).map_err(failed)?;
         let child_id = self.new_child_id(&params.session);
         let child_lane = self.child_lane(agent, lane, &request.call_id);
         let child_params = TurnParams {

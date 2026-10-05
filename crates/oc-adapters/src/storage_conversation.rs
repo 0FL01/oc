@@ -64,6 +64,9 @@ fn key_count(kind: usize) -> usize {
     }
 }
 
+/// `(id, role, text)` of one selected parent message.
+pub(crate) type ContextMessage = (String, String, String);
+
 impl Db {
     pub(super) fn conversation_schema(conn: &Connection) -> Result<(), StorageError> {
         Self::dcp_view_schema(conn)?;
@@ -553,6 +556,71 @@ impl Db {
             message: oc_core::session::MessageId(message),
             user_messages: count as u64,
         }))
+    }
+
+    /// R8: resolve caller-selected parent messages against one read snapshot.
+    /// Candidates are active-branch canonical user messages (an admitted turn's
+    /// accepted message) and committed assistant answers at or before the
+    /// invoking turn's accepted message; notices, reminders and reverted or
+    /// foreign rows are refused. Output follows parent chronology, deduplicated.
+    pub(crate) fn parent_context_messages(
+        &self,
+        session: &str,
+        invoking_turn: &str,
+        ids: &[String],
+    ) -> Result<Result<Vec<ContextMessage>, String>, StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        let Some(cutoff) = tx
+            .query_row(
+                "SELECT m.seq FROM turn_acceptances a JOIN messages m ON m.id=a.user_message
+                 WHERE a.turn_id=?1 AND a.session_id=?2",
+                params![invoking_turn, session],
+                |row| row.get::<_, i64>(0),
+            )
+            .optional()?
+        else {
+            return Ok(Err("invoking turn has no admitted message".into()));
+        };
+        let mut selected = Vec::new();
+        for id in ids {
+            if selected
+                .iter()
+                .any(|(_, existing, ..): &(i64, String, String, String)| existing == id)
+            {
+                continue;
+            }
+            let row = tx
+                .query_row(
+                    "SELECT m.seq,m.role,m.text FROM conversation_messages m
+                     WHERE m.id=?1 AND m.session_id=?2 AND m.seq<=?3 AND (
+                       (m.role='user' AND EXISTS(SELECT 1 FROM turn_acceptances a
+                         JOIN conversation_turns t ON t.id=a.turn_id WHERE a.user_message=m.id))
+                       OR (m.role='assistant' AND EXISTS(SELECT 1 FROM conversation_turns t
+                         WHERE t.session_id=m.session_id
+                           AND json_extract(t.result,'$.assistant_message')=m.id)))",
+                    params![id, session, cutoff],
+                    |row| {
+                        Ok((
+                            row.get::<_, i64>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, String>(2)?,
+                        ))
+                    },
+                )
+                .optional()?;
+            let Some((seq, role, text)) = row else {
+                return Ok(Err(format!(
+                    "context message {id} is not a selectable user/assistant message of this session's active conversation"
+                )));
+            };
+            selected.push((seq, id.clone(), role, text));
+        }
+        selected.sort_by_key(|(seq, ..)| *seq);
+        Ok(Ok(selected
+            .into_iter()
+            .map(|(_, id, role, text)| (id, role, text))
+            .collect()))
     }
 
     pub(crate) fn reverted_conversation(

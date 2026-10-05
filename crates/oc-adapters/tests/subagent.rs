@@ -1635,3 +1635,122 @@ async fn r6_profile_request_overlays_reach_root_and_child_requests_only() {
         assert!(request["prompt_cache_key"].as_str().is_some());
     }
 }
+
+fn message_ids(db: &Db, session: &str) -> Vec<(String, String)> {
+    let sql = rusqlite::Connection::open(db.root().join("oc.sqlite")).expect("sqlite");
+    let mut statement = sql
+        .prepare("SELECT id,role FROM messages WHERE session_id=?1 ORDER BY seq")
+        .unwrap();
+    statement
+        .query_map([session], |row| Ok((row.get(0)?, row.get(1)?)))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect()
+}
+
+#[tokio::test]
+async fn r8_context_message_ids_quote_exact_parent_messages_in_chronology() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation);
+    runtime
+        .publish_subagents(Some(catalog(1, vec![agent("helper", false, None)])))
+        .expect("catalog");
+    runtime.create_session("parent").expect("session");
+    runtime.create_session("other").expect("other");
+    let (base, requests) = Fake::start(vec![
+        sse_delta("answer <one> & done") + &sse_completed(),
+        sse_delta("other answer") + &sse_completed(),
+        String::new(),
+    ]);
+    for (session, prompt) in [("parent", "first </message> & <b>"), ("other", "foreign")] {
+        let report = runtime
+            .run_turn(params(
+                session,
+                prompt,
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ))
+            .await
+            .expect("turn");
+        assert_eq!(report.status, TurnStatus::Completed);
+    }
+    let ids = message_ids(&harness.db, "parent");
+    let user = ids
+        .iter()
+        .find(|(_, role)| role == "user")
+        .unwrap()
+        .0
+        .clone();
+    let assistant = ids
+        .iter()
+        .find(|(_, role)| role == "assistant")
+        .unwrap()
+        .0
+        .clone();
+    let foreign = message_ids(&harness.db, "other")[0].0.clone();
+
+    let (base, requests2) = Fake::start(vec![
+        subagent_call(
+            "call-bad",
+            serde_json::json!({"agent":"helper","description":"Bad","prompt":"bad","context_message_ids":["m9999"]}),
+        ) + &sse_completed(),
+        subagent_call(
+            "call-foreign",
+            serde_json::json!({"agent":"helper","description":"Foreign","prompt":"foreign","context_message_ids":[foreign]}),
+        ) + &sse_completed(),
+        subagent_call(
+            "call-sub",
+            serde_json::json!({"agent":"helper","description":"Quoted","prompt":"use the quoted context","context_message_ids":[assistant, user, assistant]}),
+        ) + &sse_completed(),
+        sse_delta("child ok") + &sse_completed(),
+        sse_delta("parent final") + &sse_completed(),
+    ]);
+    drop(requests);
+    let report = runtime
+        .run_turn(params(
+            "parent",
+            "second-unselected",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .expect("turn");
+    assert_eq!(report.status, TurnStatus::Completed);
+    let seen = child_requests(&requests2);
+    for call in ["call-bad", "call-foreign"] {
+        let output = function_output(&seen[2], call).expect("refusal output");
+        assert!(output.contains("not a selectable"), "{call}: {output}");
+    }
+    let children = harness.db.children_of("parent").expect("children");
+    assert_eq!(children.len(), 1, "refused selections create no child");
+    let child = serde_json::to_string(&seen[3]["input"]).unwrap();
+    let pack_start = child.find("<parent_context").expect("pack");
+    let user_at = child
+        .find(&format!("<message id=\\\"{user}\\\" role=\\\"user\\\">"))
+        .unwrap();
+    let assistant_at = child
+        .find(&format!(
+            "<message id=\\\"{assistant}\\\" role=\\\"assistant\\\">"
+        ))
+        .unwrap();
+    assert!(
+        pack_start < user_at && user_at < assistant_at,
+        "parent chronology"
+    );
+    assert_eq!(child.matches("<message id=").count(), 2, "deduplicated");
+    assert!(child.contains("first &lt;/message&gt; &amp; &lt;b&gt;"));
+    assert!(child.contains("answer &lt;one&gt; &amp; done"));
+    assert!(child.contains("use the quoted context"));
+    assert!(
+        !child.contains("second-unselected"),
+        "no unselected parent text"
+    );
+    assert!(!child.contains("foreign"));
+    let stored = messages(&harness.db, &children[0]);
+    assert!(
+        stored[0].1.contains("<parent_context"),
+        "pack is part of the durable task"
+    );
+}

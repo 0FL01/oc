@@ -389,7 +389,12 @@ pub struct SubagentRequest {
     pub model: Option<String>,
     /// Existing child session to continue.
     pub session_id: Option<String>,
+    /// R8: exact parent-session message IDs quoted into the child task.
+    pub context_message_ids: Vec<String>,
 }
+
+/// Bound on caller-selected parent context messages per subagent call.
+pub const MAX_CONTEXT_MESSAGE_IDS: usize = 64;
 
 /// Terminal outcome of one foreground child turn.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -728,7 +733,13 @@ fn validate_subagent_args(args: &serde_json::Value) -> Result<(), String> {
     if object.keys().any(|key| {
         !matches!(
             key.as_str(),
-            "agent" | "description" | "prompt" | "model" | "sessionID" | "background"
+            "agent"
+                | "description"
+                | "prompt"
+                | "model"
+                | "sessionID"
+                | "background"
+                | "context_message_ids"
         )
     }) {
         return Err("unexpected property".to_string());
@@ -755,6 +766,22 @@ fn validate_subagent_args(args: &serde_json::Value) -> Result<(), String> {
         .is_some_and(|value| value.as_bool().is_none())
     {
         return Err("background must be a boolean".to_string());
+    }
+    if let Some(ids) = object.get("context_message_ids") {
+        let ids = ids
+            .as_array()
+            .ok_or_else(|| "context_message_ids must be an array".to_string())?;
+        if ids.len() > MAX_CONTEXT_MESSAGE_IDS {
+            return Err(format!(
+                "context_message_ids exceeds {MAX_CONTEXT_MESSAGE_IDS} entries"
+            ));
+        }
+        if ids
+            .iter()
+            .any(|id| id.as_str().is_none_or(|id| id.is_empty()))
+        {
+            return Err("context_message_ids must contain non-empty strings".to_string());
+        }
     }
     Ok(())
 }
@@ -1414,6 +1441,12 @@ fn subagent_request(call: &ToolCall) -> Result<SubagentRequest, ToolError> {
             .get("sessionID")
             .and_then(|value| value.as_str())
             .map(str::to_string),
+        context_message_ids: call.arguments["context_message_ids"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|id| id.as_str().map(str::to_string))
+            .collect(),
     })
 }
 
