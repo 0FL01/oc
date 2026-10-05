@@ -199,7 +199,10 @@ pub(in crate::config) fn request_bindings(
             let request = ResponsesConfig {
                 base_url: entry.options.base_url,
                 api_key: entry.options.api_key,
-                timeout: entry.options.timeout,
+                timeout: entry
+                    .options
+                    .timeout
+                    .and_then(crate::config::ProviderTimeout::legacy_flag),
                 chunk_timeout_ms: entry
                     .options
                     .chunk_timeout

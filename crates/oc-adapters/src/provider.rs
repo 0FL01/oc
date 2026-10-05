@@ -30,6 +30,10 @@ pub(crate) mod protocol;
 pub(crate) mod settings;
 pub use failure::{Delivery, FailureKind, Operation, PhysicalFailure, RetryHeaders, TransportKind};
 
+#[cfg(test)]
+#[path = "provider/timeout_tests.rs"]
+mod timeout_tests;
+
 /// Idle budget between SSE bytes (6 000 000 ms = 100 min, not 6 s).
 pub const CHUNK_TIMEOUT_MS: u64 = 6_000_000;
 /// Max SSE events decoded per response.
@@ -398,6 +402,7 @@ pub struct ResponsesConfig {
 /// Immutable admitted wire binding: protocol plus explicit Chat facts by model.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct WireBinding {
+    pub(crate) total_timeout_ms: Option<u64>,
     pub(crate) go: bool,
     pub(crate) context: Option<context::RequestContext>,
     pub(crate) unsupported: bool,
@@ -1778,6 +1783,17 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
     if config.timeout == Some(true) {
         return Err(ProviderError::InvalidConfig);
     }
+    // One numeric deadline covers DNS, connecting, headers and the entire body.
+    // The independent idle timeout still applies; no adapter retry is added.
+    let total_deadline = config
+        .wire
+        .total_timeout_ms
+        .map(|ms| {
+            tokio::time::Instant::now()
+                .checked_add(Duration::from_millis(ms))
+                .ok_or(ProviderError::InvalidConfig)
+        })
+        .transpose()?;
     let mut headers = request_headers(config)?;
     for (name, value) in extra_headers {
         let name = reqwest::header::HeaderName::from_bytes(name.as_bytes())
@@ -1832,10 +1848,12 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
             .map(|base| format!("{base}/messages"))
             .expect("Responses suffix"),
     };
+    let dns_deadline = tokio::time::Instant::now() + config.connect_timeout;
+    let dns_deadline = total_deadline.map_or(dns_deadline, |total| total.min(dns_deadline));
     let (host, addresses) = tokio::select! {
         biased;
         () = wait_cancel(cancel) => return Err(ProviderError::Cancelled),
-        result = tokio::time::timeout(config.connect_timeout, crate::endpoint::resolve(&url, config.wire.endpoint.as_ref(), config.allow_private)) => {
+        result = tokio::time::timeout_at(dns_deadline, crate::endpoint::resolve(&url, config.wire.endpoint.as_ref(), config.allow_private)) => {
             result.map_err(|_| ProviderError::Deadline)??
         }
     };
@@ -1847,7 +1865,16 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
         .user_agent(crate::USER_AGENT)
         .resolve_to_addrs(&host, &addresses)
         .connect_timeout(config.connect_timeout);
-    // timeout:false (or absent) means no total deadline: never set one.
+    let builder = if let Some(deadline) = total_deadline {
+        let remaining = deadline
+            .checked_duration_since(tokio::time::Instant::now())
+            .filter(|duration| !duration.is_zero())
+            .ok_or(ProviderError::Deadline)?;
+        builder.timeout(remaining)
+    } else {
+        // timeout:false (or absent) means no total deadline: never set one.
+        builder
+    };
     let client = builder.build().map_err(|_| ProviderError::InvalidConfig)?;
 
     stream_attempt(

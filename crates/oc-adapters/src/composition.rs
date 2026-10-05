@@ -1008,7 +1008,10 @@ async fn load_stages(
             .map_err(|_| invalid(&selected_source, &["model", "provider"]))?,
         base_url: entry.options.base_url.clone(),
         api_key: entry.options.api_key.clone(),
-        timeout: entry.options.timeout,
+        timeout: entry
+            .options
+            .timeout
+            .and_then(config::ProviderTimeout::legacy_flag),
         chunk_timeout_ms: entry
             .options
             .chunk_timeout

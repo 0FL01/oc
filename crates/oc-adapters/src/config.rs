@@ -114,9 +114,9 @@ pub struct ProviderOptions {
     /// Explicit anonymous/Key/OAuth policy; omitted preserves required Key.
     #[serde(rename = "authPolicy", default)]
     pub auth_policy: crate::auth::AuthPolicy,
-    /// `false` means no total generation deadline (never defaulted).
+    /// False/absent disables the total deadline; a positive integer is milliseconds.
     #[serde(default)]
-    pub timeout: Option<bool>,
+    pub timeout: Option<ProviderTimeout>,
     /// Idle ms between body chunks (6000000 = 100 min, not 60 s).
     #[serde(rename = "chunkTimeout", default)]
     pub chunk_timeout: Option<u64>,
@@ -146,6 +146,24 @@ impl std::fmt::Debug for ProviderOptions {
             .field("chunk_timeout", &self.chunk_timeout)
             .field("set_cache_key", &self.set_cache_key)
             .finish_non_exhaustive()
+    }
+}
+
+/// Native total generation deadline. False/absent retains the long-horizon
+/// no-total-deadline behavior; a positive integer is milliseconds, not seconds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ProviderTimeout {
+    Flag(bool),
+    Milliseconds(u64),
+}
+
+impl ProviderTimeout {
+    pub(crate) fn legacy_flag(self) -> Option<bool> {
+        match self {
+            Self::Flag(value) => Some(value),
+            Self::Milliseconds(_) => None,
+        }
     }
 }
 
@@ -1387,6 +1405,22 @@ pub(crate) fn provider_wire(
         ),
         _ => Default::default(),
     };
+    wire.total_timeout_ms = match entry.options.timeout {
+        Some(ProviderTimeout::Milliseconds(ms)) if ms > 0 => Some(ms),
+        Some(ProviderTimeout::Flag(false)) | None => None,
+        _ => {
+            return Err(ConfigError::Invalid {
+                field: format!("provider.{id}.options.timeout"),
+                reason: "must be false or a positive integer in milliseconds".into(),
+            });
+        }
+    };
+    if entry.options.chunk_timeout == Some(0) {
+        return Err(ConfigError::Invalid {
+            field: format!("provider.{id}.options.chunkTimeout"),
+            reason: "must be a positive integer in milliseconds".into(),
+        });
+    }
     wire.auth_policy = entry.options.auth_policy;
     wire.go = id == crate::models_dev::PROVIDER;
     wire.requests = entry.options.request_bindings.clone();
@@ -2374,7 +2408,10 @@ mod tests {
             generation.providers["ludka"].options.chunk_timeout,
             Some(6000000)
         );
-        assert_eq!(generation.providers["ludka"].options.timeout, Some(false));
+        assert_eq!(
+            generation.providers["ludka"].options.timeout,
+            Some(super::ProviderTimeout::Flag(false))
+        );
         let native =
             parse_native_profile("profile = \"daily-direct\"\ntool_exposure = \"direct\"\n")
                 .expect("toml");

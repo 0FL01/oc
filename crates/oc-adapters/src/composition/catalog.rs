@@ -134,7 +134,10 @@ async fn load_catalog_inner(
                 base_url: entry.options.base_url.clone(),
                 api_key: entry.options.api_key.clone(),
                 headers: entry.options.headers.clone(),
-                timeout: entry.options.timeout,
+                timeout: entry
+                    .options
+                    .timeout
+                    .and_then(config::ProviderTimeout::legacy_flag),
                 chunk_timeout_ms: entry
                     .options
                     .chunk_timeout

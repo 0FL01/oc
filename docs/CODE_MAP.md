@@ -84,6 +84,11 @@ cancel and one-attempt dispatch; `config.rs::provider_wire` admits explicit
 package/compatibility/static Messages auth. `provider/settings.rs` admits typed
 wire options and consumes provider body overlays across the common dispatch;
 `settings_tests.rs` covers typed failures and all three real fake-server routes.
+`provider/timeout_tests.rs` qualifies native positive-millisecond total deadlines
+and independent idle timeout without weakening one-attempt/delivery facts.
+`ProviderTimeout` admission is in `config.rs`; numeric budgets are captured in the
+wire binding and consumed by the common `provider.rs::stream_body` transport.
+
 `provider/context.rs` captures project/session/parent identity and supported lineage
 cache fields at the common send boundary; `context_tests.rs`, effective-wire title,
 compaction and recursive-fork tests cover it. `application.rs` currently exceeds
