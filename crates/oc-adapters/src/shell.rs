@@ -165,6 +165,10 @@ fn open_directory(path: &Path, mut directory: File) -> Result<File, ShellError> 
 }
 
 impl Shell {
+    pub(crate) fn root(&self) -> &Path {
+        &self.root
+    }
+
     /// Bind a trusted root (absolute). Data-root exclusion is enforced by
     /// the caller passing the project root, never the data root itself.
     pub fn new(project_root: &Path) -> Result<Self, ShellError> {

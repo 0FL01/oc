@@ -417,6 +417,32 @@ fn params<'c>(
 /// ids (they differ with the archive) and the cache key hashes the body.
 fn normalized(body: &str) -> String {
     let mut value: serde_json::Value = serde_json::from_str(body).expect("request json");
+    let environments = value["input"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .filter(|item| {
+            item.pointer("/content/0/text")
+                .and_then(|v| v.as_str())
+                .is_some_and(|t| t.contains("<oc-execution-environment>"))
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(environments.len(), 1);
+    for item in environments {
+        assert_eq!(item["role"], "developer");
+        let text = item["content"][0]["text"].as_str().unwrap();
+        let (prefix, json) = text.split_once("<oc-execution-environment>\n").unwrap();
+        let json = json.strip_suffix("\n</oc-execution-environment>").unwrap();
+        let mut facts: serde_json::Value = serde_json::from_str(json).unwrap();
+        for field in ["workingDirectory", "workspaceRoot"] {
+            assert!(std::path::Path::new(facts[field].as_str().unwrap()).is_absolute());
+            facts[field] = "<owned-fixture-root>".into();
+        }
+        facts["dateUtc"] = "<request-date>".into();
+        item["content"][0]["text"] =
+            format!("{prefix}<oc-execution-environment>\n{facts}\n</oc-execution-environment>")
+                .into();
+    }
     if let Some(object) = value.as_object_mut() {
         object.remove("prompt_cache_key");
         if let Some(items) = object.get_mut("input").and_then(|v| v.as_array_mut()) {

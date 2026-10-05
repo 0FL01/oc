@@ -11,6 +11,8 @@ use std::process::{Child, Command, ExitStatus, Stdio};
 use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
+#[path = "support/context_ids.rs"]
+mod context_ids;
 
 const TIMEOUT: Duration = Duration::from_secs(10);
 const POLL: Duration = Duration::from_millis(10);
@@ -1016,8 +1018,9 @@ fn read_request(mut socket: TcpStream) -> Option<(TcpStream, Value)> {
         assert_ne!(read, 0, "request ended before body");
         bytes.extend_from_slice(&chunk[..read]);
     }
-    let body = serde_json::from_slice(&bytes[header_end..header_end + length])
+    let mut body = serde_json::from_slice(&bytes[header_end..header_end + length])
         .expect("typed Responses request JSON");
+    context_ids::check_context_ids(&mut body);
     Some((socket, body))
 }
 

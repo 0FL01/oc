@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-05T01:41:49+00:00
+State updated: 2026-10-05T04:57:23+00:00
 Active: T45
 
 Сверить Git status/diff до выполнения команд.
@@ -13,13 +13,13 @@ Owner-approved R3/R6–R10; full contracts and ordered slices in spec/M8, histor
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-Eligible-child DCP defaults, policy gates and own-session compression are qualified.
+Frozen Linux host-context atomic qualified; shared root/child/auxiliary assembly is truthful and bounded.
 ## Checks
-1536/0/10 workspace; parent 9 owner/integration and 24 normal ELF cases; Python47, fmt/Clippy/docs/progress/diff PASS.
+1541/0/10 workspace; parent five owner tests and 40 normal-ELF requests; Python47, fmt/Clippy/docs/progress/diff PASS.
 ## Risks
-Whole T45 remains open; T44 PAUSED, T27 exhausted allowance unchanged.
+Whole T45 remains open; T44 PAUSED and exhausted T27 allowance unchanged.
 ## Next
-Continue donor3.2, selected context/task packs, host and remaining T45 contracts.
+Continue approved context/task packs, donor3.2 and remaining T45 contracts.
 
 
 Ready (до 5): T53, T56

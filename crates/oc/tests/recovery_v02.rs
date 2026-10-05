@@ -1,4 +1,6 @@
 //! V02: real binary/config/provider followed by a fresh application owner.
+#[path = "support/context_ids.rs"]
+mod context_ids;
 #[path = "support/screen.rs"]
 mod tui_screen;
 
@@ -139,8 +141,9 @@ async fn scenario(
                 assert!(n > 0);
                 bytes.extend_from_slice(&chunk[..n]);
             }
-            let request: serde_json::Value =
+            let mut request: serde_json::Value =
                 serde_json::from_slice(&bytes[end..end + length]).unwrap();
+            context_ids::check_context_ids(&mut request);
             assert_eq!(request["model"], "route/gpt-model/with/slashes");
             let title_request = request["tools"] == serde_json::json!([])
                 && request["max_output_tokens"] == 256

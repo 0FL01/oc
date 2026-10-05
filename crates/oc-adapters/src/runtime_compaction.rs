@@ -1030,6 +1030,7 @@ impl Runtime<'_> {
         let transcript = serde_json::to_string(&transcript).map_err(|_| RuntimeError::Storage)?;
         let mut input = vec![
             InputItem::message(InputRole::Developer, PROMPT),
+            self.environment_input(),
             InputItem::message(InputRole::User, transcript),
         ];
         input.extend(media_pairs);

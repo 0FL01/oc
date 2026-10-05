@@ -8,6 +8,8 @@
 //! the opt-in view-metrics probe — never render snapshots alone.
 
 use std::io::{Read, Write};
+#[path = "support/context_ids.rs"]
+mod context_ids;
 #[path = "support/title.rs"]
 mod title;
 use std::net::{TcpListener, TcpStream};
@@ -1266,7 +1268,9 @@ fn bare_rename_requests_real_title_without_creating_turn_and_restores_on_restart
     assert_eq!(recorded.len(), requests + 1, "one new real title request");
     let request = &recorded[requests];
     assert!(title::is_title(request));
-    let prompt = request["input"][1].to_string();
+    let mut checked = request.clone();
+    context_ids::check_context_ids(&mut checked);
+    let prompt = checked["input"][1].to_string();
     assert!(
         prompt.contains("first request for a title"),
         "bounded original request retained"

@@ -47,9 +47,10 @@ pub(super) fn lane_fixed_input(
     skills_projection: Option<&str>,
 ) -> Vec<InputItem> {
     let mut fixed_input = Vec::new();
-    if let Some(prompt) = agent_prompt.filter(|prompt| !prompt.trim().is_empty()) {
-        fixed_input.push(InputItem::message(InputRole::Developer, prompt));
-    }
+    let prompt = agent_prompt
+        .filter(|prompt| !prompt.trim().is_empty())
+        .unwrap_or(environment::BASE);
+    fixed_input.push(InputItem::message(InputRole::Developer, prompt));
     if !instructions.trim().is_empty() {
         fixed_input.push(InputItem::message(InputRole::Developer, instructions));
     }
@@ -1070,7 +1071,7 @@ impl<'a> Runtime<'a> {
         let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules)
             .with_root(&self.roots.project)
             .with_mcp(&attached.entries);
-        let mut fixed_input = lane.fixed_input.clone();
+        let mut fixed_input = self.request_fixed_input(lane);
         fixed_input.extend(mcp_instruction_input(attached, &policy));
         let (instruction_revision, instruction_sources) =
             self.instruction_sources(&params.session, &policy, params.cancel)?;
@@ -1562,7 +1563,7 @@ impl<'a> Runtime<'a> {
             let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules)
                 .with_root(&self.roots.project)
                 .with_mcp(&attached.entries);
-            let mut fixed_input = lane.fixed_input.clone();
+            let mut fixed_input = self.request_fixed_input(lane);
             fixed_input.extend(mcp_instruction_input(attached, &policy));
             let mut tool_defs = selected_tool_defs(&selection.id);
             tool_defs.retain(|tool| policy.tool_visible(&tool.name));
@@ -2883,11 +2884,7 @@ impl<'a> Runtime<'a> {
                 .as_ref()
                 .and_then(|catalog| catalog.agents.keys().position(|id| id == &agent.id)),
             fixed_input: lane_fixed_input(
-                Some(if agent.prompt.trim().is_empty() {
-                    "You are OpenCode, a coding assistant. Help the user with their task using the available tools and respect the effective permissions."
-                } else {
-                    &agent.prompt
-                }),
+                Some(&agent.prompt),
                 if workspace.instruction_roots.is_empty() {
                     &workspace.instructions
                 } else {

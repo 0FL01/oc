@@ -37,6 +37,7 @@ use crate::tools::{
 pub(crate) mod children;
 #[path = "runtime_compaction.rs"]
 mod compaction;
+mod environment;
 mod retry;
 
 /// Max tool-output bytes kept in the turn report.

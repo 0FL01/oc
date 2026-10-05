@@ -17,6 +17,8 @@
 //! exit codes and the request history.
 
 use std::collections::VecDeque;
+#[path = "support/context_ids.rs"]
+mod context_ids;
 #[path = "support/title.rs"]
 mod title;
 use std::io::{BufRead, BufReader, Read, Write};
@@ -200,7 +202,11 @@ fn read_request(socket: &mut TcpStream) -> Option<Value> {
     }
     let mut body = vec![0u8; content_length];
     reader.read_exact(&mut body).ok()?;
-    serde_json::from_slice(&body).ok()
+    let mut body: Value = serde_json::from_slice(&body).ok()?;
+    if body.get("input").is_some() {
+        context_ids::check_context_ids(&mut body);
+    }
+    Some(body)
 }
 
 fn summarize(body: &Value) -> String {

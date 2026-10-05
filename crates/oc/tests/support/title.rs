@@ -1,4 +1,5 @@
 //! Strict ancillary title requests never consume the main-turn script.
+use crate::context_ids;
 use std::{io::Write, net::TcpStream};
 
 pub fn is_title(body: &serde_json::Value) -> bool {
@@ -10,7 +11,9 @@ pub fn respond(socket: &mut TcpStream, body: &serde_json::Value) -> bool {
         return false;
     }
     assert!(body["model"].as_str().is_some_and(|id| !id.is_empty()));
-    let input = body["input"].as_array().expect("title input");
+    let mut checked = body.clone();
+    context_ids::check_context_ids(&mut checked);
+    let input = checked["input"].as_array().expect("title input");
     assert_eq!(input.len(), 2);
     assert_eq!(input[0]["role"], "developer");
     assert_eq!(input[1]["role"], "user");

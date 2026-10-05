@@ -4056,6 +4056,7 @@ async fn worker(
                     let input = vec![
                         crate::provider::InputItem::message(crate::provider::InputRole::Developer,
                             agent.map(|a| a.body.as_str()).unwrap_or("Generate a short session title from the user's request. Output only the title, in at most 100 characters.")),
+                        runtime.environment_input(),
                         crate::provider::InputItem::message(crate::provider::InputRole::User, &text),
                     ];
                     let tools: [crate::provider::ToolDef; 0] = [];
@@ -4535,6 +4536,7 @@ async fn worker(
                                             crate::provider::InputRole::Developer,
                                             &instructions,
                                         ),
+                                        runtime.environment_input(),
                                         crate::provider::InputItem::message(
                                             crate::provider::InputRole::User,
                                             &prompt[..prompt

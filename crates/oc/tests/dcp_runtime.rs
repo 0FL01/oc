@@ -16,6 +16,8 @@ use std::time::{Duration, Instant};
 
 use oc_adapters::storage::Db;
 use serde_json::{Value, json};
+#[path = "support/context_ids.rs"]
+mod context_ids;
 
 const TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -1817,8 +1819,9 @@ fn read_request(mut socket: TcpStream) -> Option<(TcpStream, Value)> {
         assert_ne!(read, 0, "request ended before body");
         bytes.extend_from_slice(&chunk[..read]);
     }
-    let body: Value = serde_json::from_slice(&bytes[header_end..header_end + length])
+    let mut body: Value = serde_json::from_slice(&bytes[header_end..header_end + length])
         .expect("typed Responses request JSON");
+    context_ids::check_context_ids(&mut body);
     assert_eq!(body["model"], MODEL);
     assert_eq!(body["stream"], true);
     Some((socket, body))

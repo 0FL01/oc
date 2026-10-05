@@ -9,6 +9,8 @@
 use std::collections::HashMap;
 use std::fs;
 use std::io::{Read, Write};
+#[path = "support/context_ids.rs"]
+mod context_ids;
 #[path = "support/terminal.rs"]
 mod terminal;
 #[path = "support/title.rs"]
