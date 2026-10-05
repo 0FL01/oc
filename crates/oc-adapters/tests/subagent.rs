@@ -261,6 +261,10 @@ fn make_harness(permissions: BTreeMap<String, Permission>) -> (Harness, Generati
             serde_json::json!({"limit": {"context": 6_000, "output": 200}}),
         ),
         (
+            "gpt-parent",
+            serde_json::json!({"limit": {"context": 1_000_000, "output": 100_000}}),
+        ),
+        (
             "small",
             serde_json::json!({
                 "limit": {"context": 1_000_000, "output": 100_000},
@@ -1954,4 +1958,115 @@ async fn r10_skill_preview_is_ordered_and_filtered_per_lane_policy() {
         !whole.contains("ALPHA_BODY"),
         "bodies only through the skill tool"
     );
+}
+
+#[tokio::test]
+async fn r10_file_tool_family_follows_each_lane_model_and_next_root_request() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation);
+    runtime
+        .publish_subagents(Some(catalog(
+            1,
+            vec![
+                agent("own", false, Some("test/m")),
+                agent("inherit", false, None),
+            ],
+        )))
+        .expect("catalog");
+    runtime.create_session("parent").expect("session");
+    let (base, requests) = Fake::start(vec![
+        subagent_call(
+            "call-own",
+            serde_json::json!({"agent": "own", "description": "Own", "prompt": "own model"}),
+        ) + &sse_completed(),
+        sse_delta("own ok") + &sse_completed(),
+        subagent_call(
+            "call-inherit",
+            serde_json::json!({"agent": "inherit", "description": "Inherit", "prompt": "parent model"}),
+        ) + &sse_completed(),
+        sse_delta("inherit ok") + &sse_completed(),
+        sse_delta("parent final") + &sse_completed(),
+        sse_delta("switched final") + &sse_completed(),
+    ]);
+    let mut first = params(
+        "parent",
+        "delegate",
+        &harness,
+        provider_of(&base),
+        &NO_CANCEL,
+    );
+    first.model_id = "gpt-parent".into();
+    let report = runtime.run_turn(first).await.expect("turn");
+    assert_eq!(report.status, TurnStatus::Completed);
+    // User switches the root model between turns (TOOL12 owns busy commits).
+    let report = runtime
+        .run_turn(params(
+            "parent",
+            "after switch",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .expect("switched turn");
+    assert_eq!(report.status, TurnStatus::Completed);
+    let seen = child_requests(&requests);
+    assert_eq!(seen.len(), 6);
+    let family = |request: &serde_json::Value| {
+        let mut names: Vec<String> = request["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|tool| tool["name"].as_str())
+            .filter(|name| matches!(*name, "apply_patch" | "edit" | "write"))
+            .map(str::to_string)
+            .collect();
+        names.sort();
+        let guidance: Vec<String> = request["input"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item.to_string())
+            .filter(|text| text.contains("Current request file-mutation tools"))
+            .collect();
+        assert_eq!(guidance.len(), 1, "one guidance item: {guidance:?}");
+        (
+            request["model"].as_str().unwrap().to_string(),
+            names,
+            guidance[0].clone(),
+        )
+    };
+    let (model, names, guidance) = family(&seen[0]);
+    assert_eq!(
+        (model.as_str(), names.as_slice()),
+        ("gpt-parent", ["apply_patch".to_string()].as_slice())
+    );
+    assert!(guidance.contains("tools: apply_patch."), "{guidance}");
+    let (model, names, guidance) = family(&seen[1]);
+    assert_eq!(model, "m", "own-model child");
+    assert_eq!(names, ["edit", "write"]);
+    assert!(
+        guidance.contains("tools: write, edit.") && !guidance.contains("apply_patch"),
+        "{guidance}"
+    );
+    let (model, names, guidance) = family(&seen[3]);
+    assert_eq!(model, "gpt-parent", "inheriting child");
+    assert_eq!(names, ["apply_patch"]);
+    assert!(guidance.contains("tools: apply_patch."), "{guidance}");
+    let (model, names, guidance) = family(&seen[5]);
+    assert_eq!(model, "m", "next root request after the switch");
+    assert_eq!(names, ["edit", "write"]);
+    assert!(!guidance.contains("apply_patch"), "{guidance}");
+    for request in &seen {
+        let fixed = request["input"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|item| {
+                item.to_string().contains("Available subagents")
+                    || item.to_string().contains("You are opencode")
+            })
+            .count();
+        assert!(fixed <= 1, "no duplicated fixed lane");
+    }
 }
