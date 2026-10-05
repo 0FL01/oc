@@ -1422,6 +1422,25 @@ pub(crate) fn provider_wire(
         });
     }
     wire.auth_policy = entry.options.auth_policy;
+    wire.chronology = entry
+        .models
+        .iter()
+        .map(|(model, value)| {
+            (
+                model.clone(),
+                crate::provider::protocol::Chronology {
+                    effort: value
+                        .pointer("/compatibility/supportsEffortUpdates")
+                        .and_then(serde_json::Value::as_bool)
+                        .unwrap_or(false),
+                    system: value
+                        .pointer("/compatibility/supportsNativeSystemUpdates")
+                        .and_then(serde_json::Value::as_bool)
+                        .unwrap_or(false),
+                },
+            )
+        })
+        .collect();
     wire.go = id == crate::models_dev::PROVIDER;
     wire.requests = entry.options.request_bindings.clone();
     wire.settings = crate::provider::settings::WireSettings::admit(
@@ -1480,6 +1499,11 @@ fn chat_compat(
         .ok_or_else(|| invalid("compatibility", "must be an object"))?;
     for (key, value) in object {
         match key.as_str() {
+            "supportsEffortUpdates" | "supportsNativeSystemUpdates" => {
+                value
+                    .as_bool()
+                    .ok_or_else(|| invalid(&format!("compatibility.{key}"), "must be boolean"))?;
+            }
             "reasoningField" => {
                 compat.reasoning_field = reasoning_field(value, "compatibility.reasoningField")?
             }

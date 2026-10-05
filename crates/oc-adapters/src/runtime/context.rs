@@ -343,6 +343,7 @@ pub(crate) fn dcp_contents(input: &[InputItem]) -> Vec<&str> {
     let mut content = Vec::new();
     for item in input {
         match item {
+            InputItem::EffortUpdate { .. } => {}
             InputItem::Message { content: parts, .. } => {
                 for part in parts {
                     match part {
@@ -1645,8 +1646,29 @@ impl<'a> Runtime<'a> {
                 .or_insert_with(Vec::new)
                 .extend(input);
         }
+        let effort_facts = self.db.effort_facts(session, 0)?;
+        let represented_efforts = turns
+            .values()
+            .flatten()
+            .filter_map(|item| {
+                if let InputItem::EffortUpdate { event_seq, .. } = item {
+                    Some(*event_seq)
+                } else {
+                    None
+                }
+            })
+            .collect::<std::collections::BTreeSet<_>>();
         let mut input = Vec::new();
         for (id, role, text) in projected {
+            input.extend(
+                effort_facts
+                    .iter()
+                    .filter(|fact| {
+                        fact.before_message.as_ref() == Some(id)
+                            && !represented_efforts.contains(&fact.event_seq)
+                    })
+                    .map(|fact| fact.item.clone()),
+            );
             if !moved
                 && id == "session-checkpoint"
                 && let Some((_, _, _, Some(raw))) = self.db.checkpoint_record(session)?
@@ -1690,6 +1712,14 @@ impl<'a> Runtime<'a> {
                 input.push(InputItem::message(role, text));
             }
         }
+        input.extend(
+            effort_facts
+                .into_iter()
+                .filter(|fact| {
+                    fact.before_message.is_none() && !represented_efforts.contains(&fact.event_seq)
+                })
+                .map(|fact| fact.item),
+        );
         Ok(input)
     }
 

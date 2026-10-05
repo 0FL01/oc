@@ -93,6 +93,75 @@ mod vis38_review_tests {
     }
 
     #[test]
+    fn go03_idle_effort_events_reopen_in_position_without_visible_messages() {
+        let project = tempfile::tempdir().unwrap();
+        let data = tempfile::tempdir().unwrap();
+        let db = Db::open(data.path()).unwrap();
+        let owner = runtime(&db, project.path(), data.path());
+        owner.create_session("s").unwrap();
+        db.commit_session_model_choice(
+            &[],
+            "s",
+            &serde_json::json!({"effort_update":{"effort":"low","previous":null}}).to_string(),
+        )
+        .unwrap();
+        let (first, _) = seed(&db, "first", "first user", "first answer");
+        db.commit_session_model_choice(
+            &[],
+            "s",
+            &serde_json::json!({"effort_update":{"effort":null,"previous":"low"}}).to_string(),
+        )
+        .unwrap();
+        let (second, _) = seed(&db, "second", "second user", "second answer");
+        let public = db.read_history_full("s").unwrap();
+        assert_eq!(public.len(), 4);
+        assert!(public.iter().all(|(_, role, _)| role != "system"));
+        let facts = db.effort_facts("s", 0).unwrap();
+        assert_eq!(facts[0].before_message.as_deref(), Some(first.as_str()));
+        assert_eq!(facts[1].before_message.as_deref(), Some(second.as_str()));
+        drop(owner);
+        drop(db);
+        let db = Db::open(data.path()).unwrap();
+        let owner = runtime(&db, project.path(), data.path());
+        let context = owner.active_projection("s").unwrap();
+        let wire = owner
+            .wire_history(
+                "s",
+                &context.projected,
+                &context.blocks,
+                "m",
+                "test",
+                None,
+                context.after_seq,
+            )
+            .unwrap();
+        for (effort, text) in [(Some("low"), "first user"), (None, "second user")] {
+            let index = wire.iter().position(|item| matches!(item,InputItem::Message{role:InputRole::User,content} if content.iter().any(|part| matches!(part,crate::provider::InputContent::InputText{text:actual} if actual == text)))).unwrap();
+            assert!(
+                matches!(&wire[index-1],InputItem::EffortUpdate{effort:actual,..} if actual.as_deref() == effort)
+            );
+        }
+        let (lowered, top) = crate::provider::protocol::lower_effort(
+            crate::provider::protocol::Protocol::Responses,
+            &wire,
+            None,
+            true,
+        );
+        assert_eq!(top, None);
+        let updates: Vec<_> = lowered
+            .iter()
+            .filter_map(|item| match item {
+                InputItem::ProviderOutput(v) if v["type"] == "configuration_update" => {
+                    v["reasoning"]["effort"].as_str()
+                }
+                _ => None,
+            })
+            .collect();
+        assert_eq!(updates, ["low", "medium"]);
+        assert_eq!(db.read_history_full("s").unwrap(), public);
+    }
+
+    #[test]
     fn manual_actual_wire_no_gain_and_zero_item_recompression() {
         let project = tempfile::tempdir().unwrap();
         let data = tempfile::tempdir().unwrap();

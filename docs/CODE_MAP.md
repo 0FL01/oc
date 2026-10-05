@@ -89,6 +89,12 @@ and independent idle timeout without weakening one-attempt/delivery facts.
 `ProviderTimeout` admission is in `config.rs`; numeric budgets are captured in the
 wire binding and consumed by the common `provider.rs::stream_body` transport.
 
+Chronology: `application_selection.rs` commits typed effort metadata through the
+existing event transaction; `storage_effort.rs` and `runtime/context.rs` project
+durable positions, `runtime/turn.rs` captures busy updates, `provider/protocol.rs`
+lowers declared capabilities. Tests: `provider/protocol_tests.rs`,
+`application/live_switch_tests.rs`, `runtime/tests.rs` (`go03_` filters).
+
 `provider/context.rs` captures project/session/parent identity and supported lineage
 cache fields at the common send boundary; `context_tests.rs`, effective-wire title,
 compaction and recursive-fork tests cover it. `application.rs` currently exceeds

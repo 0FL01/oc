@@ -23,8 +23,6 @@ pub(crate) enum Protocol {
     Messages,
 }
 
-// Declared-capability consumer arrives with T53 compatibility facts (slice 3a).
-#[cfg_attr(not(test), allow(dead_code))]
 /// Chronological "reasoning effort changed here" marker; `None` is the model
 /// default. `position` is the index in the lowered input before which it applies.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,8 +32,6 @@ pub(crate) struct EffortMarker {
     pub previous: Option<String>,
 }
 
-// Declared-capability consumer arrives with T53 compatibility facts (slice 3a).
-#[cfg_attr(not(test), allow(dead_code))]
 /// Responses `configuration_update` default when a marker returns to the model default.
 const DEFAULT_EFFORT: &str = "medium";
 
@@ -104,8 +100,6 @@ fn text_of(content: &[InputContent]) -> String {
         .join("\n")
 }
 
-// Declared-capability consumer arrives with T53 compatibility facts (slice 3a).
-#[cfg_attr(not(test), allow(dead_code))]
 /// Donor `resolveEffortUpdates`: with no markers, or when the last marker
 /// disagrees with the requested effort (reverted/forked history), markers are
 /// stripped and the current effort applies; otherwise the top-level effort is
@@ -122,8 +116,6 @@ pub(crate) fn resolve_effort_updates(
     }
 }
 
-// Declared-capability consumer arrives with T53 compatibility facts (slice 3a).
-#[cfg_attr(not(test), allow(dead_code))]
 /// Responses effort lowering. Without the declared capability (or with
 /// automatic context management) markers are stripped and the captured
 /// current effort applies. With it, consecutive markers coalesce (newest
@@ -156,6 +148,49 @@ pub(crate) fn lower_responses_effort(
         }
         if let Some(item) = input.get(index) {
             lowered.push(item.clone());
+        }
+    }
+    (lowered, top)
+}
+
+/// Explicit metadata only: no model-name inference for either native extension.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct Chronology {
+    pub effort: bool,
+    pub system: bool,
+}
+
+pub(crate) fn lower_effort(
+    protocol: Protocol,
+    input: &[InputItem],
+    current: Option<&str>,
+    supported: bool,
+) -> (Vec<InputItem>, Option<String>) {
+    let mut plain = Vec::with_capacity(input.len());
+    let mut markers = Vec::new();
+    for item in input {
+        if let InputItem::EffortUpdate {
+            effort, previous, ..
+        } = item
+        {
+            markers.push(EffortMarker {
+                position: plain.len(),
+                effort: effort.clone(),
+                previous: previous.clone(),
+            });
+        } else {
+            plain.push(item.clone());
+        }
+    }
+    let supported = supported && protocol != Protocol::Chat;
+    let (mut lowered, top) = lower_responses_effort(plain, &markers, current, supported);
+    if protocol == Protocol::Messages {
+        for item in &mut lowered {
+            if let InputItem::ProviderOutput(value) = item
+                && value["type"] == "configuration_update"
+            {
+                *value = serde_json::json!({"type":"messages_effort_update", "effort":value["reasoning"]["effort"]});
+            }
         }
     }
     (lowered, top)

@@ -2046,7 +2046,13 @@ async fn apply_outcome(
         .flatten();
     // Scrolling intents never consume typed input; commands do.
     let consumes = matches!(intent, PanelIntent::SwitchLocation { .. });
-    match apply_intent_with_origin(app, state, loop_state, intent, typed_new, false).await {
+    // Keep the controller's large intent future out of each nested input poll
+    // frame; do not depend on an enlarged executor/test thread stack.
+    match Box::pin(apply_intent_with_origin(
+        app, state, loop_state, intent, typed_new, false,
+    ))
+    .await
+    {
         Ok(()) => {
             if consumes {
                 state.accept_intent();

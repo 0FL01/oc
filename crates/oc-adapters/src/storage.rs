@@ -32,6 +32,8 @@ mod compaction;
 mod conversation;
 #[path = "storage_credentials.rs"]
 mod credentials;
+#[path = "storage_effort.rs"]
+mod effort;
 pub use credentials::{AccountSummary, CredentialKind, CredentialMaterial};
 #[path = "storage_dcp_view.rs"]
 mod dcp_view;

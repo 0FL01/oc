@@ -647,11 +647,35 @@ pub(super) fn apply(
     records.push(record(key, &choice)?);
     let persisted = if model_action {
         let commit = publication(c, &selected, generation, &action);
-        db.commit_session_model_choice(
-            &records,
-            session,
-            &serde_json::json!({"session":session,"commit":commit}).to_string(),
-        )
+        let effort = |choice: &Effective| {
+            choice
+                .variant
+                .as_ref()
+                .and_then(|variant| {
+                    crate::models::select_model(&c.catalog, &choice.model_id)
+                        .ok()
+                        .and_then(|model| crate::models::select_variant(&model, Some(variant)).ok())
+                        .and_then(|model| {
+                            model.variant.and_then(|variant| variant.reasoning_effort)
+                        })
+                })
+                .or_else(|| {
+                    c.provider
+                        .for_selection(&choice.model_id, choice.variant.as_deref())
+                        .wire
+                        .settings
+                        .current_effort()
+                        .map(str::to_owned)
+                })
+        };
+        let old_effort = effort(&previous);
+        let new_effort = effort(&selected);
+        let mut payload = serde_json::json!({"session":session,"commit":commit});
+        if old_effort != new_effort {
+            payload["effort_update"] =
+                serde_json::json!({"previous":old_effort,"effort":new_effort});
+        }
+        db.commit_session_model_choice(&records, session, &payload.to_string())
     } else {
         let reminder = crate::plan::switched(
             previous.agent_id.as_deref(),

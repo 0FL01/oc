@@ -84,6 +84,13 @@ enum JsonFormat {
 }
 
 impl WireSettings {
+    pub(crate) fn current_effort(&self) -> Option<&str> {
+        self.effort.as_deref().or_else(|| {
+            self.output
+                .as_ref()
+                .and_then(|output| output.effort.as_deref())
+        })
+    }
     pub(crate) fn overlay(
         &self,
         protocol: Protocol,

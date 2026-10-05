@@ -3,6 +3,72 @@ use oc_core::queries::SessionSelectionAction as Action;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[tokio::test]
+async fn go03_effort_selection_ack_is_atomic_noop_safe_and_not_history_text() {
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    let data = root.path().join("data");
+    std::fs::create_dir(&project).unwrap();
+    std::fs::write(project.join("opencode.json"),serde_json::json!({
+        "model":"fixture/m","provider":{"fixture":{"options":{"baseURL":"http://127.0.0.1:1/v1","apiKey":"synthetic","reasoningEffort":"high"},"models":{"m":{"variants":{"low":{"reasoningEffort":"low"}}}}}}
+    }).to_string()).unwrap();
+    let (app, guard, _) = spawn_with_env(
+        &project,
+        &data,
+        BTreeMap::from([(
+            "HOME".into(),
+            root.path().join("home").to_string_lossy().into_owned(),
+        )]),
+    )
+    .await
+    .unwrap();
+    let session = SessionId::new("effort-choice").unwrap();
+    app.create_session(session.clone()).await.unwrap();
+    for variant in [Some("low"), Some("low"), None] {
+        app.session_selection(
+            session.clone(),
+            false,
+            Action::Variant(variant.map(str::to_owned)),
+        )
+        .await
+        .unwrap();
+    }
+    let conn = rusqlite::Connection::open(data.join("oc.sqlite")).unwrap();
+    let snapshot: Vec<(String, String)> = conn
+        .prepare("SELECT key,value FROM prefs ORDER BY key")
+        .unwrap()
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    conn.execute_batch("CREATE TRIGGER refuse_effort BEFORE INSERT ON events WHEN NEW.kind='session_model_selected' BEGIN SELECT RAISE(ABORT,'synthetic'); END;").unwrap();
+    assert!(
+        app.session_selection(session.clone(), false, Action::Variant(Some("low".into())))
+            .await
+            .is_err()
+    );
+    let after: Vec<(String, String)> = conn
+        .prepare("SELECT key,value FROM prefs ORDER BY key")
+        .unwrap()
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    assert_eq!(snapshot, after);
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    let db = Db::open(&data).unwrap();
+    assert!(db.read_history_full("effort-choice").unwrap().is_empty());
+    let facts = db.effort_facts("effort-choice", 0).unwrap();
+    assert_eq!(facts.len(), 2);
+    assert!(
+        matches!(&facts[0].item,crate::provider::InputItem::EffortUpdate { effort:Some(effort),previous:Some(previous),.. } if effort=="low" && previous=="high")
+    );
+    assert!(
+        matches!(&facts[1].item,crate::provider::InputItem::EffortUpdate { effort:Some(effort),previous:Some(previous),.. } if effort=="high" && previous=="low")
+    );
+}
+
+#[tokio::test]
 async fn tool12_busy_owner_commit_reloads_next_request_without_another_prompt() {
     for ask in [false, true] {
         let root = tempfile::tempdir().unwrap();
@@ -13,7 +79,7 @@ async fn tool12_busy_owner_commit_reloads_next_request_without_another_prompt() 
         let base = format!("http://{}/v1", listener.local_addr().unwrap());
         std::fs::write(project.join("opencode.json"),serde_json::json!({
         "model":"fixture/gpt-fixture", "provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":base,"apiKey":"dummy"},
-        "models":{"gpt-fixture":{"limit":{"context":100000,"output":10000}},"text-fixture":{"limit":{"context":50000,"output":2000}}}}},
+        "models":{"gpt-fixture":{"compatibility":{"supportsEffortUpdates":true},"limit":{"context":100000,"output":10000}},"text-fixture":{"settings":{"reasoningEffort":"low"},"compatibility":{"supportsEffortUpdates":true},"limit":{"context":50000,"output":2000}}}}},
         "permission":{"*":"allow","apply_patch":if ask {"ask"} else {"allow"}}
     }).to_string()).unwrap();
         let (arrived, arrival) = tokio::sync::oneshot::channel();
@@ -173,6 +239,25 @@ async fn tool12_busy_owner_commit_reloads_next_request_without_another_prompt() 
         assert_eq!(requests[0]["model"], "gpt-fixture");
         assert_eq!(requests[1]["model"], "text-fixture");
         assert_eq!(requests[2]["model"], "gpt-fixture");
+        assert!(
+            requests[0]["input"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|item| item["type"] != "configuration_update")
+        );
+        assert!(requests[1]["reasoning"].get("effort").is_none());
+        let updates = |request: &serde_json::Value| {
+            request["input"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|item| item["type"] == "configuration_update")
+                .map(|item| item["reasoning"]["effort"].as_str().unwrap().to_owned())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(updates(&requests[1]), ["low"]);
+        assert_eq!(updates(&requests[2]), ["low", "medium"]);
         assert_eq!(std::fs::read(project.join("file")).unwrap(), b"twice\n");
         assert!(
             requests[1]["input"]
@@ -215,6 +300,13 @@ async fn tool12_busy_owner_commit_reloads_next_request_without_another_prompt() 
             )
             .unwrap();
         let log = crate::tools::TurnLog::from_json(&serde_json::from_str(&raw).unwrap()).unwrap();
+        assert_eq!(
+            log.input
+                .iter()
+                .filter(|item| matches!(item, crate::provider::InputItem::EffortUpdate { .. }))
+                .count(),
+            2
+        );
         assert_eq!(
             log.requests
                 .iter()

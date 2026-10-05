@@ -206,6 +206,12 @@ pub enum InputContent {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum InputItem {
+    /// Runtime-owned chronological selection fact, never a provider output or UI text.
+    EffortUpdate {
+        event_seq: i64,
+        effort: Option<String>,
+        previous: Option<String>,
+    },
     /// A typed message.
     Message {
         role: InputRole,
@@ -234,6 +240,32 @@ pub enum InputItem {
 impl<'de> Deserialize<'de> for InputItem {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = serde_json::Value::deserialize(deserializer)?;
+        if value["type"] == "effort_update" {
+            #[derive(Deserialize)]
+            #[serde(deny_unknown_fields)]
+            struct Marker {
+                #[serde(rename = "type")]
+                _kind: String,
+                event_seq: i64,
+                effort: Option<String>,
+                previous: Option<String>,
+            }
+            let marker: Marker = serde_json::from_value(value)
+                .map_err(|_| serde::de::Error::custom("invalid effort update"))?;
+            if marker.event_seq <= 0
+                || [&marker.effort, &marker.previous]
+                    .into_iter()
+                    .flatten()
+                    .any(|s| s.is_empty() || s.chars().any(char::is_control))
+            {
+                return Err(serde::de::Error::custom("invalid effort update"));
+            }
+            return Ok(Self::EffortUpdate {
+                event_seq: marker.event_seq,
+                effort: marker.effort,
+                previous: marker.previous,
+            });
+        }
         // Canonical messages carry ids/phase/status and must never be decoded
         // through the narrower user-authored message representation.
         if value["type"] == "message"
@@ -402,6 +434,7 @@ pub struct ResponsesConfig {
 /// Immutable admitted wire binding: protocol plus explicit Chat facts by model.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct WireBinding {
+    pub(crate) chronology: BTreeMap<String, protocol::Chronology>,
     pub(crate) total_timeout_ms: Option<u64>,
     pub(crate) go: bool,
     pub(crate) context: Option<context::RequestContext>,
@@ -1580,7 +1613,17 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
         .map_err(|_| ProviderError::InvalidConfig)?;
     let effort = variant
         .and_then(|v| v.reasoning_effort.as_deref())
-        .or(config.wire.settings.effort.as_deref());
+        .or(config.wire.settings.current_effort());
+    let chronology = config
+        .wire
+        .chronology
+        .get(catalog_model)
+        .copied()
+        .unwrap_or_default();
+    let (input, effort) =
+        protocol::lower_effort(config.wire.protocol, input, effort, chronology.effort);
+    let input = input.as_slice();
+    let effort = effort.as_deref();
     let effective_variant = effort.map(|effort| SelectedVariant {
         name: variant.map(|v| v.name.clone()).unwrap_or_default(),
         reasoning_effort: Some(effort.to_owned()),
@@ -1604,17 +1647,25 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
             return Err(ProviderError::InvalidConfig);
         }
         bounded_json(&(model, input, tools))?;
-        let mut body = messages::request_body(
+        let mut body = messages::request_body_chronological(
             model,
             input,
             tools,
             max_output,
             variant.and_then(|v| v.reasoning_effort.as_deref()),
+            chronology.system,
         )?;
         config
             .wire
             .settings
             .apply(protocol::Protocol::Messages, &mut body, effort);
+        // A kept marker may freeze the initial effort at Default. Do not let
+        // configured output_config restore the captured final effort there.
+        if input.iter().any(|item| matches!(item, InputItem::ProviderOutput(v) if v["type"] == "messages_effort_update"))
+            && let Some(output) = body.get_mut("output_config").and_then(serde_json::Value::as_object_mut) {
+            if let Some(effort) = effort { output.insert("effort".into(), effort.into()); }
+            else { output.remove("effort"); }
+        }
         settings::merge(&mut body, &serde_json::json!(overlay.body));
         if config.set_cache_key
             && let Some(context) = &config.wire.context
@@ -1820,6 +1871,26 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
     }
     if config.wire.protocol == protocol::Protocol::Messages {
         messages_headers(&mut headers)?;
+        let value: serde_json::Value =
+            serde_json::from_slice(&body).map_err(|_| ProviderError::InvalidConfig)?;
+        if value["messages"].as_array().is_some_and(|items| {
+            items
+                .iter()
+                .any(|m| m["role"] == "system" && m.get("output_config").is_some())
+        }) {
+            let beta = format!(
+                "{},mid-conversation-output-config-2026-07-01",
+                headers["anthropic-beta"]
+                    .to_str()
+                    .map_err(|_| ProviderError::InvalidConfig)?
+            );
+            headers.insert(
+                "anthropic-beta",
+                reqwest::header::HeaderValue::from_str(&beta)
+                    .map_err(|_| ProviderError::InvalidConfig)?,
+            );
+            messages_headers(&mut headers)?;
+        }
     }
     if config.wire.go {
         let context = config

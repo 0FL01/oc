@@ -506,6 +506,22 @@ suite **596/0/0**, strict all-target clippy/fmt green; factual receipt
 consumers, durable compatibility, configless provider-aware connect/selection and
 bounded GO06 qualification remain. Next slice: chronological capabilities/effort.
 
+### Chronology checkpoint (2026-10-06)
+
+Committed model/variant effort changes now have structured atomic event facts,
+strict durable input markers and idle/reopen/busy-next-request projection. Explicit
+effort capability consumes donor baseline/default/drift rules on Responses and
+Messages; Chat strips markers. Messages native text uses a declared fork capability
+and valid placement, otherwise escaped fallback; effort beta is conditional.
+The existing T50 busy tool/approval fixture qualifies unchanged captured execution
+and ordinary results with two effort transitions. Evidence: `evidence/T53/chronology.md`.
+Final workspace **1624 passed / 0 failed / 10 existing ignored**, strict workspace
+clippy/fmt/build/help/diff gates pass. A real controller stack overflow was diagnosed
+and fixed by boxing the existing intent future, without enlarging test limits.
+This is partial R3, not full GO03/T53 PASS. Full durable protocol/binding/checkpoint/
+SQL/DCP/fork qualification, configless/connect/provider-qualified selection and
+bounded GO06 live remain pending. Next slice: GO04 durable binding owner.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

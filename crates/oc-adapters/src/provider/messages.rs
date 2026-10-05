@@ -4,12 +4,13 @@
 //! and redacted thinking are marked Messages-origin, never Responses ciphertext.
 use std::collections::BTreeMap;
 
-use super::protocol::{Protocol, lower_chronological_system, wrap_system_update};
+use super::protocol::wrap_system_update;
 use super::{
     FinishReason, InputContent, InputItem, InputRole, OutputCode, OutputStage, ProviderError,
     SseParser, StreamItem, ToolDef, failure, structural,
 };
 
+#[cfg(test)]
 pub(crate) fn request_body(
     model: &str,
     input: &[InputItem],
@@ -17,11 +18,22 @@ pub(crate) fn request_body(
     max_output: u64,
     effort: Option<&str>,
 ) -> Result<serde_json::Value, ProviderError> {
-    let input = lower_chronological_system(Protocol::Messages, input, false);
+    request_body_chronological(model, input, tools, max_output, effort, false)
+}
+
+pub(crate) fn request_body_chronological(
+    model: &str,
+    input: &[InputItem],
+    tools: &[ToolDef],
+    max_output: u64,
+    effort: Option<&str>,
+    native_system: bool,
+) -> Result<serde_json::Value, ProviderError> {
     let mut system = Vec::new();
     let mut messages = Vec::new();
     let mut leading = true;
-    for item in input.iter() {
+    let mut pending_tools = std::collections::BTreeSet::new();
+    for (index, item) in input.iter().enumerate() {
         if leading
             && let InputItem::Message {
                 role: InputRole::Developer,
@@ -32,9 +44,34 @@ pub(crate) fn request_body(
             continue;
         }
         leading = false;
+        if let Some((call_id, _)) = item.call_output() {
+            pending_tools.remove(call_id);
+        }
+        if let InputItem::ProviderOutput(value) = item {
+            if value["type"] == "function_call" {
+                if let Some(id) = value["call_id"].as_str() {
+                    pending_tools.insert(id.to_owned());
+                }
+            } else if value["type"] == "function_call_output"
+                && let Some(id) = value["call_id"].as_str()
+            {
+                pending_tools.remove(id);
+            }
+        }
         match item {
             InputItem::Message { role, content } => match role {
                 InputRole::Developer | InputRole::System => {
+                    if !pending_tools.is_empty() {
+                        return Err(ProviderError::InvalidOutput);
+                    }
+                    if *role == InputRole::System
+                        && native_system
+                        && native_system_position(&messages, input.get(index + 1))
+                    {
+                        messages
+                            .push(serde_json::json!({"role":"system","content":parts(content)?}));
+                        continue;
+                    }
                     let text = content
                         .iter()
                         .filter_map(|p| match p {
@@ -54,6 +91,9 @@ pub(crate) fn request_body(
                 InputRole::Assistant => append(&mut messages, "assistant", parts(content)?),
             },
             InputItem::ProviderOutput(value) => match value["type"].as_str() {
+                Some("messages_effort_update") => messages.push(serde_json::json!({
+                    "role":"system", "content":[], "output_config":{"effort":value["effort"]}
+                })),
                 Some("message") if value["role"] == "assistant" => {
                     let blocks = value["content"]
                         .as_array()
@@ -98,6 +138,7 @@ pub(crate) fn request_body(
                 Some("function_call_output") => result(&mut messages, value)?,
                 _ => {}
             },
+            InputItem::EffortUpdate { .. } => {} // stripped by the shared projection
             other => result(
                 &mut messages,
                 &serde_json::to_value(other).map_err(|_| ProviderError::InvalidConfig)?,
@@ -115,6 +156,21 @@ pub(crate) fn request_body(
         body["output_config"] = serde_json::json!({"effort":effort});
     }
     Ok(body)
+}
+
+fn native_system_position(messages: &[serde_json::Value], next: Option<&InputItem>) -> bool {
+    messages.last().is_some_and(|m| m["role"] == "user")
+        && match next {
+            None
+            | Some(InputItem::Message {
+                role: InputRole::Assistant,
+                ..
+            }) => true,
+            Some(InputItem::ProviderOutput(v)) => {
+                v["role"] == "assistant" || v["type"] == "function_call" || v["type"] == "reasoning"
+            }
+            _ => false,
+        }
 }
 
 fn append(messages: &mut Vec<serde_json::Value>, role: &str, mut blocks: Vec<serde_json::Value>) {

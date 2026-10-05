@@ -61,6 +61,7 @@ fn estimate_tail(input: &[crate::provider::InputItem]) -> u64 {
     let text = |s: &str| (s.encode_utf16().count() as u64).saturating_add(2) / 4;
     input.iter().fold(0u64, |total, item| {
         let tokens = match item {
+            InputItem::EffortUpdate { .. } => 0,
             InputItem::Message { content, .. } => content
                 .iter()
                 .map(|part| match part {

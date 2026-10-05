@@ -1226,6 +1226,11 @@ impl<'a> Runtime<'a> {
             &params.provider,
         )?;
         let workspace = self.workspace.read().expect("workspace lock").clone();
+        let mut effort_event_seq = self
+            .db
+            .effort_facts(&params.session, 0)?
+            .last()
+            .map_or(0, |fact| fact.event_seq);
         // Outbound context honors compression blocks + prune mark: covered
         // members collapse to summaries, raw history is never rewritten.
         let (mut projected, mut history, history_scope) = if fresh_selection.is_some() {
@@ -1733,6 +1738,15 @@ impl<'a> Runtime<'a> {
             let selection = models::select_variant(&base, variant.as_deref())
                 .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
             let request_provider = params.provider.with_context(request_context.clone());
+            if primary_request {
+                for fact in self.db.effort_facts(&params.session, effort_event_seq)? {
+                    effort_event_seq = fact.event_seq;
+                    let represented = history.iter().chain(&turn_log.input).any(|item| matches!(item, InputItem::EffortUpdate { event_seq, .. } if *event_seq == fact.event_seq));
+                    if !represented {
+                        turn_log.input.push(fact.item);
+                    }
+                }
+            }
             self.validate_checkpoint_route(
                 &params.session,
                 &params.catalog.provider,
@@ -1762,6 +1776,11 @@ impl<'a> Runtime<'a> {
                 projected = refreshed.projected;
                 prepared_model = selection.id.clone();
             }
+            // A busy selection is both a durable event and a fact already
+            // captured by this turn. A model-switch history rebuild must not
+            // project that same event twice at two different positions.
+            history.retain(|item| !matches!(item, InputItem::EffortUpdate { event_seq, .. }
+                if turn_log.input.iter().any(|owned| matches!(owned, InputItem::EffortUpdate { event_seq: owned_seq, .. } if owned_seq == event_seq))));
             let prepared_budget = models::budget(&selection, params.max_output, fallback);
             let budget = &prepared_budget;
             let model_context = budget.context;

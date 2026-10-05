@@ -118,7 +118,7 @@ impl Composition {
                         request.wire.protocol = protocol;
                         // Go auth is always Bearer, including the Messages endpoint.
                         request.wire.messages_bearer = true;
-                        if protocol == provider::protocol::Protocol::Chat {
+                        {
                             let entry = config::ProviderEntry {
                                 npm: package.map(str::to_owned),
                                 name: None,
@@ -126,7 +126,9 @@ impl Composition {
                                 options: Default::default(),
                                 models: BTreeMap::from([(id.clone(), model.clone())]),
                             };
-                            request.wire.chat = config::provider_wire(PROVIDER, &entry)?.chat;
+                            let metadata = config::provider_wire(PROVIDER, &entry)?;
+                            request.wire.chat = metadata.chat;
+                            request.wire.chronology = metadata.chronology;
                         }
                         Ok(())
                     })
