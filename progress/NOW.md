@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-05T07:40:14+00:00
+State updated: 2026-10-05T10:09:48+00:00
 Active: T45
 
 Сверить Git status/diff до выполнения команд.
@@ -13,13 +13,13 @@ Owner-approved R3/R6–R10; full contracts and ordered slices in spec/M8, histor
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-Frozen profile discovery/model grammar/eligibility slice qualified. Execution PAUSED after commit/push by user request.
+Resumed after the requested pause. R6 request headers/body overlays (7d0d22ed1) and explicit profile colors with YAML-number frontmatter (52e3cef06) qualified; held-body webfetch counter race isolated (2da595623).
 ## Checks
-1549/0/10 workspace; parent eight owner tests and both normal ELF fixtures, Python47/fmt/Clippy/docs/progress/diff PASS.
+Workspace 1555/1/10 before the race fix (only the pre-existing webfetch race, reproduced on clean 7ba015dca); oc-adapters lib 542/0 after it; fmt and strict Clippy PASS. Evidence: profile-request.md, profile-color.md.
 ## Risks
-Whole T45/product readiness remain open; T44 PAUSED and exhausted T27 allowance unchanged.
+Whole T45 remains open; donor core stores agent.request without applying it, so applying it is a recorded native difference. T44 PAUSED and exhausted T27 allowance unchanged.
 ## Next
-No new work before explicit resume; remaining profile request/color, packs/donor and amended-plan contracts stay pending.
+Continue remaining T45 contracts: R8 context packs, DCP 3.2.0 donor qualification and amended-plan items.
 
 
 Ready (до 5): T53, T56
