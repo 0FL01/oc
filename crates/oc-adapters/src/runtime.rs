@@ -1189,16 +1189,9 @@ impl<'a> Runtime<'a> {
         let admitted = self.provider_state.read().expect("provider state").clone();
         let availability_known = admitted.is_some();
         let state = admitted.unwrap_or_else(|| {
-            let credential = published
-                .config
-                .providers
-                .get(&catalog.provider)
-                // Legacy public callers may supply only budget metadata in
-                // Generation and the complete transport in TurnParams.
-                .is_none_or(|entry| {
-                    entry.options.base_url.is_empty() || !entry.options.api_key.trim().is_empty()
-                })
-                && !provider.api_key.trim().is_empty();
+            // Credentials can come from SQLite rather than config. Admission
+            // uses the captured transport policy, never the unresolved template.
+            let credential = provider.auth_ready();
             crate::composition::ProviderState::new(
                 &catalog.provider,
                 published
@@ -1210,6 +1203,7 @@ impl<'a> Runtime<'a> {
                 credential,
                 false,
             )
+            .with_auth_policy(provider.wire.auth_policy)
         });
         state
             // With no native owner publication, preserve existing model/budget
@@ -1219,7 +1213,7 @@ impl<'a> Runtime<'a> {
                 !availability_known || catalog.models.contains_key(model),
             )
             .map_err(RuntimeError::ProviderUnavailable)?;
-        if provider.api_key.trim().is_empty() {
+        if !provider.auth_ready() {
             let missing = crate::composition::ProviderState::new(
                 &catalog.provider,
                 published
@@ -1230,7 +1224,8 @@ impl<'a> Runtime<'a> {
                     .unwrap_or("native config"),
                 false,
                 false,
-            );
+            )
+            .with_auth_policy(provider.wire.auth_policy);
             missing
                 .admit(model, true)
                 .map_err(RuntimeError::ProviderUnavailable)?;

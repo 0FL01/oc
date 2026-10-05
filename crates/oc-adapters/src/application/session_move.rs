@@ -77,9 +77,16 @@ pub(crate) async fn prepare(
     let metadata = directory
         .metadata()
         .map_err(|_| "move directory unavailable")?;
-    let composition = composition::load_with_env_diagnostic(Path::new(&record.directory), env)
+    let mut composition = composition::load_local_with_env(Path::new(&record.directory), env)
         .await
         .map_err(|_| "move destination admission failed")?;
+    composition
+        .resolve_credentials(db)
+        .map_err(|_| "move destination auth admission failed")?;
+    composition
+        .refresh_provider()
+        .await
+        .map_err(|_| "move destination catalog admission failed")?;
     let runtime =
         build_runtime(db, &composition).map_err(|_| "move destination runtime admission failed")?;
     let mut effective = Effective::from_composition(&composition);

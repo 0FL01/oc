@@ -613,12 +613,6 @@ async fn spawn_stages(
     let mut composition = composition::load_local_with_env(project, env)
         .await
         .map_err(SpawnIssue::configuration)?;
-    if !defer_provider {
-        composition
-            .refresh_provider()
-            .await
-            .map_err(SpawnIssue::configuration)?;
-    }
     let mut diagnostics = composition.diagnostics.clone();
     let mut notices = composition.startup_notices.clone();
     let db = match Db::open(data) {
@@ -649,6 +643,15 @@ async fn spawn_stages(
             ));
         }
     };
+    composition
+        .resolve_credentials(&db)
+        .map_err(SpawnIssue::configuration)?;
+    if !defer_provider {
+        composition
+            .refresh_provider()
+            .await
+            .map_err(SpawnIssue::configuration)?;
+    }
     db.recover_shell_jobs()
         .and_then(|_| db.recover_child_jobs())
         .and_then(|_| db.recover_interrupted_tools())
@@ -2223,7 +2226,14 @@ async fn switch_target<'a>(
     ),
     SpawnIssue,
 > {
-    let composition = composition::load_with_env_diagnostic(Path::new(path), env)
+    let mut composition = composition::load_local_with_env(Path::new(path), env)
+        .await
+        .map_err(SpawnIssue::configuration)?;
+    composition
+        .resolve_credentials(db)
+        .map_err(SpawnIssue::configuration)?;
+    composition
+        .refresh_provider()
         .await
         .map_err(SpawnIssue::configuration)?;
     let runtime = build_runtime(db, &composition)?;

@@ -40,3 +40,29 @@ trusted LAN admission and connect/account UI are subsequent required slices.
 
 Nearest tests: `storage_credentials/tests.rs` lifecycle/reopen, rollback/uniqueness/
 safe errors, auth priority/scope/None/OAuth, and DB/WAL/SHM mode/symlink refusal.
+
+## Application resolver integration follow-up
+
+Date: 2026-10-05. Base: `cfbc50a08`. Partial GO01, no live requests.
+
+- Local `options.authPolicy` accepts `none`, `key` (default), `oauth`. Anonymous
+  credential/header conflicts are rejected before substitution can erase an input.
+  Go authority is checked before API-key/header substitutions.
+- Application startup opens its single Db, resolves scoped credentials, then starts
+  discovery/runtime. Deferred discovery captures the same resolved binding. Location
+  switch/reload and session move resolve before refreshing/publishing the destination.
+- Runtime admission uses captured auth readiness, not unresolved config templates.
+  Explicit None completes a real fake-server Responses request without auth headers.
+  Unsupported stored/explicit OAuth stays local/unavailable with a safe capability
+  cause; submit is refused before any history/turn acceptance, without key fallback.
+- Regression tests verify stored account readiness across two restarts, endpoint-prefix
+  change loses stored auth, safe catalog projections, None/config conflicts and Go
+  foreign-authority rejection. Existing reload/discovery/tool-roundtrip suites stay green.
+- `cargo test --locked -p oc-adapters --lib`: **571 passed / 0 failed / 0 ignored**.
+- `cargo clippy --locked -p oc-adapters --all-targets -- -D warnings`: PASS.
+- `cargo fmt --all -- --check`, `git diff --check`: PASS. Same jobs/threads/TMPDIR.
+- One test compile correction: typed history role is `Role::Assistant`, not a string.
+
+Remaining: trusted localhost/LAN captured admission shared with discovery; canonical
+normalization and model/variant overlays; account owner actions/read DTOs and connect
+UI. No full GO01/GO05 PASS claim.

@@ -1029,7 +1029,11 @@ async fn load_stages(
         ));
     }
     // Mandatory transport shape/security remains admission, even with no key.
-    provider::request_headers(&provider).map_err(|_| {
+    let mut header_validation = provider.clone();
+    if header_validation.wire.auth_policy == crate::auth::AuthPolicy::OAuth {
+        header_validation.wire.auth_policy = crate::auth::AuthPolicy::Key;
+    }
+    provider::request_headers(&header_validation).map_err(|_| {
         failure(
             provider_source,
             &["provider", "entry", "options", "headers"],
@@ -1066,10 +1070,11 @@ async fn load_stages(
             .get(&format!("provider.{provider_id}"))
             .map(String::as_str)
             .unwrap_or("native config"),
-        !provider.api_key.trim().is_empty(),
+        provider.auth_ready(),
         provider_id == discovery::PROVIDER_ID
             && discovery::should_run(&disabled, enabled.as_deref()),
     );
+    let provider_state = provider_state.with_auth_policy(provider.wire.auth_policy);
     let skills = loaded_defs
         .skills
         .values()

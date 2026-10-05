@@ -5,6 +5,266 @@ use serde_json::json;
 use std::time::Duration;
 
 #[tokio::test]
+async fn go01_auth_policy_conflicts_and_go_override_fail_before_publication() {
+    let root = tempfile::tempdir().unwrap();
+    for options in [
+        json!({"baseURL":"https://example.com/v1", "authPolicy":"none", "apiKey":"{env:MISSING}"}),
+        json!({"baseURL":"https://example.com/v1", "authPolicy":"none", "headers":{"Authorization":"secret"}}),
+        json!({"baseURL":"https://foreign.invalid/v1", "apiKey":"{env:OPENCODE_API_KEY}"}),
+    ] {
+        let go = options["baseURL"] == "https://foreign.invalid/v1";
+        let id = if go { "opencode-go" } else { "fixture" };
+        std::fs::write(
+            root.path().join("opencode.json"),
+            json!({
+                "model":format!("{id}/m"), "provider":{id:{"options":options, "models":{"m":{}}}}
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let error = composition::load_local_with_env(
+            root.path(),
+            BTreeMap::from([(
+                "OPENCODE_API_KEY".into(),
+                "GO01_ENV_SECRET_DO_NOT_SHOW".into(),
+            )]),
+        )
+        .await
+        .err()
+        .expect("invalid binding refused locally");
+        assert!(!format!("{error:?}").contains("GO01_ENV_SECRET_DO_NOT_SHOW"));
+    }
+    std::fs::write(root.path().join("opencode.json"), json!({
+        "model":"fixture/m", "provider":{"fixture":{
+            "options":{"baseURL":"https://example.com/v1", "authPolicy":"oauth"},"models":{"m":{}}
+        }}
+    }).to_string()).unwrap();
+    let (app, guard, _) = spawn_with_env(root.path(), &root.path().join("data"), BTreeMap::new())
+        .await
+        .unwrap();
+    assert_eq!(
+        app.catalog()
+            .await
+            .unwrap()
+            .chrome
+            .provider
+            .unwrap()
+            .diagnostic
+            .unwrap()
+            .code,
+        ServiceCode::UnsupportedCapability
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn go01_application_resolves_scoped_accounts_on_restart_and_reload() {
+    use crate::{auth::AuthScope, storage::CredentialMaterial};
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    let data = root.path().join("data");
+    std::fs::create_dir(&project).unwrap();
+    let mut document = json!({"model":"fixture/m", "provider":{"fixture":{
+        "options":{"baseURL":"https://example.com/v1"},
+        "models":{"m":{"limit":{"context":32768,"output":4096}}}
+    }}});
+    let path = project.join("opencode.json");
+    std::fs::write(&path, document.to_string()).unwrap();
+    let namespace = AuthScope::admit("fixture", "https://example.com/v1/").unwrap();
+    {
+        let db = Db::open(&data).unwrap();
+        db.add_credential(
+            namespace.namespace(),
+            "stored",
+            CredentialMaterial::Key {
+                key: "GO01_STORED_SECRET_7b2".into(),
+            },
+        )
+        .unwrap();
+    }
+    for restart in 0..2 {
+        let (app, guard, _) = spawn_with_env(&project, &data, BTreeMap::new())
+            .await
+            .unwrap();
+        let catalog = app.catalog().await.unwrap();
+        assert_eq!(
+            catalog.chrome.provider.as_ref().unwrap().status,
+            ProviderStatus::Ready
+        );
+        assert!(!format!("{catalog:?}").contains("GO01_STORED_SECRET_7b2"));
+        if restart == 1 {
+            document["provider"]["fixture"]["options"]["baseURL"] =
+                "https://example.com/new-prefix".into();
+            std::fs::write(&path, document.to_string()).unwrap();
+            let changed = app.reload_location().await.unwrap();
+            assert_eq!(
+                changed
+                    .catalog
+                    .chrome
+                    .provider
+                    .as_ref()
+                    .unwrap()
+                    .diagnostic
+                    .as_ref()
+                    .unwrap()
+                    .code,
+                ServiceCode::MissingCredential
+            );
+        }
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+    document["provider"]["fixture"]["options"]["baseURL"] = "https://example.com/v1".into();
+    std::fs::write(&path, document.to_string()).unwrap();
+    {
+        let db = Db::open(&data).unwrap();
+        db.add_credential(
+            namespace.namespace(),
+            "OAuth stored",
+            CredentialMaterial::OAuth {
+                access: "GO01_OAUTH_SECRET_82c".into(),
+                refresh: None,
+                expires_at: None,
+            },
+        )
+        .unwrap();
+    }
+    let (app, guard, _) = spawn_with_env(&project, &data, BTreeMap::new())
+        .await
+        .unwrap();
+    let catalog = app.catalog().await.unwrap();
+    let readiness = catalog.chrome.provider.as_ref().unwrap();
+    assert_eq!(readiness.status, ProviderStatus::Unavailable);
+    assert_eq!(
+        readiness.diagnostic.as_ref().unwrap().code,
+        ServiceCode::UnsupportedCapability
+    );
+    let session = SessionId::new("unsupported-oauth").unwrap();
+    app.create_session(session.clone()).await.unwrap();
+    assert!(
+        matches!(app.submit(session.clone(), "do not accept".into()).await,
+        Err(CoreError::ProviderUnavailable(ref d)) if d.code == ServiceCode::UnsupportedCapability)
+    );
+    assert!(
+        app.history_page(session, None, None, 20)
+            .await
+            .unwrap()
+            .rows
+            .is_empty()
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn go01_explicit_anonymous_application_sends_no_auth_and_completes() {
+    use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    std::fs::create_dir(&project).unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    std::fs::write(
+        project.join("opencode.json"),
+        json!({
+            "model":"fixture/m", "provider":{"fixture":{
+                "options":{"baseURL":format!("http://{address}/v1"), "authPolicy":"none"},
+                "models":{"m":{"limit":{"context":32768,"output":4096}}}
+            }}
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let mut request = Vec::new();
+        let header_end = loop {
+            let mut chunk = [0; 4096];
+            let count = socket.read(&mut chunk).await.unwrap();
+            assert_ne!(count, 0);
+            request.extend_from_slice(&chunk[..count]);
+            if let Some(offset) = request.windows(4).position(|v| v == b"\r\n\r\n") {
+                break offset + 4;
+            }
+        };
+        let headers = String::from_utf8(request[..header_end].to_vec())
+            .unwrap()
+            .to_lowercase();
+        assert!(headers.starts_with("post /v1/responses "));
+        assert!(!headers.contains("authorization:"));
+        assert!(!headers.contains("x-api-key:"));
+        let length: usize = headers
+            .lines()
+            .find_map(|line| line.strip_prefix("content-length: "))
+            .unwrap()
+            .trim()
+            .parse()
+            .unwrap();
+        while request.len() < header_end + length {
+            let mut chunk = [0; 4096];
+            let count = socket.read(&mut chunk).await.unwrap();
+            assert_ne!(count, 0);
+            request.extend_from_slice(&chunk[..count]);
+        }
+        let event = json!({"type":"response.completed","response":{"id":"anon", "status":"completed", "output":[{
+            "type":"message","id":"anon-message","role":"assistant","content":[{"type":"output_text","text":"ANONYMOUS_OK"}]
+        }]}});
+        let body = format!("data: {event}\n\n");
+        socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+    });
+    let (app, guard, _) = spawn_with_env(
+        &project,
+        &root.path().join("data"),
+        BTreeMap::from([("OC_TEST_ALLOW_LOOPBACK".into(), "1".into())]),
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        app.catalog()
+            .await
+            .unwrap()
+            .chrome
+            .provider
+            .as_ref()
+            .unwrap()
+            .status,
+        ProviderStatus::Ready
+    );
+    let session = SessionId::new("anonymous-session").unwrap();
+    app.create_session(session.clone()).await.unwrap();
+    app.rename_session(session.clone(), "Explicit title".into())
+        .await
+        .unwrap();
+    app.submit(session.clone(), "test anonymous".into())
+        .await
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if app
+                .history_page(session.clone(), None, None, 20)
+                .await
+                .unwrap()
+                .rows
+                .iter()
+                .any(|row| {
+                    row.role == oc_core::session::Role::Assistant
+                        && row.text.contains("ANONYMOUS_OK")
+                })
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .unwrap();
+    peer.await.unwrap();
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
 async fn ui07_missing_selected_credential_keeps_local_owner_and_refuses_before_acceptance() {
     let root = tempfile::tempdir().unwrap();
     const CANARY: &str = "UI07_AUTH_CONFIG_PATH_SECRET_724f";

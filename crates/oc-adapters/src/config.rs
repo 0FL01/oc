@@ -98,6 +98,9 @@ pub struct ProviderOptions {
     /// Auth scheme captured after substitution into the common key slot.
     #[serde(skip)]
     pub messages_bearer: bool,
+    /// Explicit anonymous/Key/OAuth policy; omitted preserves required Key.
+    #[serde(rename = "authPolicy", default)]
+    pub auth_policy: crate::auth::AuthPolicy,
     /// `false` means no total generation deadline (never defaulted).
     #[serde(default)]
     pub timeout: Option<bool>,
@@ -979,8 +982,21 @@ fn assemble_with_admission(
         let trusted = sources.iter().any(|s| s.path == *path && s.trusted);
         let mut entry = entry.clone();
         (|| -> Result<(), ConfigError> {
+            if entry.options.auth_policy == crate::auth::AuthPolicy::None {
+                // A missing substitution cannot erase a competing input.
+                validate_provider(id, &entry)?;
+            }
             entry.options.base_url =
                 substitute_with(&entry.options.base_url, path, trusted, env, reader)?;
+            // Go's authority must be admitted before any credential substitution.
+            if id == "opencode-go" {
+                crate::auth::AuthScope::admit(id, &entry.options.base_url).map_err(|_| {
+                    ConfigError::Invalid {
+                        field: format!("provider.{id}.options.baseURL"),
+                        reason: "outside provider-owned authority".into(),
+                    }
+                })?;
+            }
             entry.options.api_key =
                 substitute_with(&entry.options.api_key, path, trusted, env, reader)?;
             if let Some(token) = &mut entry.options.auth_token {
@@ -1000,7 +1016,11 @@ fn assemble_with_admission(
                 entry.options.api_key = token;
                 entry.options.messages_bearer = true;
             }
-            if require_credential && selected && entry.options.api_key.trim().is_empty() {
+            if require_credential
+                && selected
+                && entry.options.auth_policy == crate::auth::AuthPolicy::Key
+                && entry.options.api_key.trim().is_empty()
+            {
                 return Err(ConfigError::MissingCredential {
                     field: format!("provider.{id}.options.apiKey"),
                 });
@@ -1129,6 +1149,7 @@ const PROVIDER_OPTION_KEYS: &[&str] = &[
     "baseURL",
     "apiKey",
     "authToken",
+    "authPolicy",
     "timeout",
     "chunkTimeout",
     "setCacheKey",
@@ -1191,6 +1212,18 @@ pub(crate) fn provider_wire(
 ) -> Result<crate::provider::WireBinding, ConfigError> {
     use crate::provider::protocol::Protocol;
     let protocol = package_protocol(id, entry.npm.as_deref())?;
+    if entry.options.auth_policy == crate::auth::AuthPolicy::None
+        && (!entry.options.api_key.is_empty()
+            || entry.options.auth_token.is_some()
+            || entry.options.headers.keys().any(|name| {
+                name.eq_ignore_ascii_case("authorization") || name.eq_ignore_ascii_case("x-api-key")
+            }))
+    {
+        return Err(ConfigError::Invalid {
+            field: format!("provider.{id}.options.authPolicy"),
+            reason: "anonymous policy conflicts with credential input".into(),
+        });
+    }
     if entry.options.auth_token.is_some()
         && (protocol != Protocol::Messages || !entry.options.api_key.is_empty())
     {
@@ -1216,13 +1249,15 @@ pub(crate) fn provider_wire(
             chat.insert(model.clone(), compat);
         }
     }
-    Ok(match protocol {
+    let mut wire = match protocol {
         Protocol::Chat => crate::provider::WireBinding::chat(chat),
         Protocol::Messages => crate::provider::WireBinding::messages(
             entry.options.messages_bearer || entry.options.auth_token.is_some(),
         ),
         _ => Default::default(),
-    })
+    };
+    wire.auth_policy = entry.options.auth_policy;
+    Ok(wire)
 }
 
 /// OC2 `Model.Compatibility` subset with actual native semantics, plus the

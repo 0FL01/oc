@@ -8,6 +8,7 @@ pub(crate) struct ProviderState {
     service: String,
     source: String,
     credential: bool,
+    unsupported_oauth: bool,
     pub(crate) catalog_status: ProviderStatus,
     diagnostic: Option<ServiceDiagnostic>,
     /// Auth rejection observed for the current admitted binding, not a new candidate key.
@@ -20,6 +21,7 @@ impl ProviderState {
             service: format!("provider-{:x}", Sha256::digest(provider.as_bytes())),
             source: config::mcp::safe_source_id(source),
             credential,
+            unsupported_oauth: false,
             catalog_status: if dynamic && credential {
                 ProviderStatus::Pending
             } else {
@@ -38,6 +40,11 @@ impl ProviderState {
             ));
         }
         state
+    }
+
+    pub(crate) fn with_auth_policy(mut self, policy: crate::auth::AuthPolicy) -> Self {
+        self.unsupported_oauth = policy == crate::auth::AuthPolicy::OAuth;
+        self
     }
 
     fn diagnostic(
@@ -124,9 +131,17 @@ impl ProviderState {
         };
         let diagnostic = if !self.credential {
             Some(self.diagnostic(
-                "apiKey",
+                if self.unsupported_oauth {
+                    "authPolicy"
+                } else {
+                    "apiKey"
+                },
                 ServiceStage::Config,
-                ServiceCode::MissingCredential,
+                if self.unsupported_oauth {
+                    ServiceCode::UnsupportedCapability
+                } else {
+                    ServiceCode::MissingCredential
+                },
                 ServiceAction::ReviewConfiguration,
             ))
         } else if self.auth_failure.is_some() {
@@ -180,6 +195,59 @@ impl ProviderState {
 }
 
 impl Composition {
+    /// Resolve once per admitted generation, before any discovery or runtime publication.
+    /// Prepared requests retain this immutable binding across later account mutations.
+    pub(crate) fn resolve_credentials(
+        &mut self,
+        db: &crate::storage::Db,
+    ) -> Result<(), LoadFailure> {
+        let id = &self.catalog.provider;
+        let source = self
+            .generation
+            .provenance
+            .get(&format!("provider.{id}"))
+            .map(String::as_str)
+            .unwrap_or("native config");
+        let scope = crate::auth::AuthScope::admit(id, &self.provider.base_url)
+            .map_err(|_| invalid(source, &["provider", "options", "baseURL"]))?;
+        let competing = self.provider.headers.keys().any(|name| {
+            name.eq_ignore_ascii_case("authorization") || name.eq_ignore_ascii_case("x-api-key")
+        });
+        let auth = scope
+            .resolve(
+                db,
+                self.provider.wire.auth_policy,
+                Some(&self.provider.api_key),
+                competing,
+                || self.parent_env.get("OPENCODE_API_KEY").cloned(),
+            )
+            .map_err(|error| {
+                failure(
+                    source,
+                    &["provider", "options", "authPolicy"],
+                    ServiceStage::Config,
+                    if matches!(error, crate::auth::AuthError::Storage(_)) {
+                        ServiceCode::StorageUnavailable
+                    } else {
+                        ServiceCode::InvalidConfig
+                    },
+                )
+            })?;
+        auth.apply_to(&mut self.provider);
+        self.provider_state = ProviderState::new(
+            id,
+            source,
+            self.provider.auth_ready(),
+            id == discovery::PROVIDER_ID,
+        )
+        .with_auth_policy(self.provider.wire.auth_policy);
+        self.tui_chrome.provider = Some(self.provider_state.for_model(
+            &self.model_id,
+            self.catalog.models.contains_key(&self.model_id),
+        ));
+        Ok(())
+    }
+
     /// Only the original bounded discovery loop performs retries/negotiation.
     pub(crate) async fn refresh_provider(&mut self) -> Result<(), LoadFailure> {
         if self.provider_state.catalog_status != ProviderStatus::Pending {

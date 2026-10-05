@@ -383,6 +383,13 @@ commits/текущий diff, не переносить чужую незаком
 
 ## Evidence / Completion
 
+Implementation checkpoint 2026-10-05: application startup/reload/Location/session move
+resolve existing Db scoped accounts before discovery/runtime publication; explicit
+local `options.authPolicy` None/Key/OAuth and safe unsupported OAuth admission tested.
+Restart, endpoint change and real anonymous fake transport regressions: adapter unit
+suite 571/0/0, strict crate clippy/fmt green; [credentials evidence](../../evidence/T53/credentials.md).
+GO01 remains pending trusted endpoint admission/canonical overlays/connect integration.
+
 GO01–GO06 принадлежат только T53; ownership остальных IDs не меняется. Method и
 final commands — [TEST_PLAN](../TEST_PLAN.md#t53--opencode-go-и-единые-provider-credentials-approved-2026-09-29-pending).
 Live campaign journal/envelope создаётся **до** requests: ≤24 physical generation
