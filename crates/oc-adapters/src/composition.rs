@@ -2635,8 +2635,7 @@ mod tests {
             "the diagnostic must name the source file: {error}"
         );
 
-        // Subagents are a future feature: `allowSubAgents` is tolerated with a
-        // visible warning instead of blocking the application.
+        // Supported child compression flag has no obsolete ignored warning.
         std::fs::write(
             project.join("dcp.jsonc"),
             r#"{"experimental": {"allowSubAgents": true}}"#,
@@ -2645,13 +2644,14 @@ mod tests {
         let loaded = load_with_env(&project, BTreeMap::new())
             .await
             .expect("allowSubAgents must not block");
+        assert!(loaded.dcp_config.allow_subagents);
         assert!(
-            loaded
+            !loaded
                 .diagnostics
                 .iter()
                 .any(|diagnostic| diagnostic.contains("ignored_setting")
                     && diagnostic.contains("dcp")),
-            "the ignored option is reported: {:?}",
+            "obsolete ignored option warning: {:?}",
             loaded.diagnostics
         );
     }

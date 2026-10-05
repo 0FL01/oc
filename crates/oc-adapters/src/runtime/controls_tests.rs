@@ -99,13 +99,19 @@ fn dcp12_direct_guards_have_zero_intents_and_reenable_keeps_projection_permissio
     assert_eq!(runtime.active_projection("s").unwrap().projected, hot);
     assert_eq!(db.tool_ops_len("s").unwrap(), 1);
     assert_eq!(db.read_history_full("s").unwrap(), raw);
-    runtime.reload_dcp(DcpConfig::default()).unwrap();
+    runtime
+        .reload_dcp(DcpConfig {
+            allow_subagents: false,
+            ..Default::default()
+        })
+        .unwrap();
     db.create_child_session("s", "child", None, None, None)
         .unwrap();
     let child = runtime.compression_availability("child").unwrap();
     assert_eq!(
         child.ordinary_refusal,
-        Some(oc_core::dcp_view::DcpUnavailable::ChildOptOut)
+        // An unprofiled legacy child has no authority; Deny also wins opt-out.
+        Some(oc_core::dcp_view::DcpUnavailable::Denied)
     );
     assert_eq!(child.manual_refusal, child.ordinary_refusal);
     assert!(runtime.admit_manual_compression("child").is_err());

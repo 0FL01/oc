@@ -23,6 +23,9 @@ use oc_adapters::runtime::{
 };
 use oc_adapters::storage::Db;
 
+#[path = "fixtures/child_dcp.rs"]
+mod child_dcp;
+
 fn sse_delta(text: &str) -> String {
     format!(
         "data: {{\"type\":\"response.output_text.delta\",\"delta\":{}}}\n\n",

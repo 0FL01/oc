@@ -219,6 +219,27 @@ pub struct CompressionPlan {
     first_block_number: u64,
 }
 
+impl CompressionPlan {
+    /// Approval binds the addressed session selection, not a reservation of the
+    /// shared durable ID allocator. Another session may allocate IDs while the
+    /// consumer waits; all coverage, revision, graph and protected payload facts
+    /// must still match. Gain is measured again against the adopted fresh plan.
+    pub(crate) fn same_approval_selection(&self, other: &Self) -> bool {
+        let normalize = |plan: &Self| {
+            let mut plan = plan.clone();
+            plan.first_block_number = 0;
+            plan.before_bytes = 0;
+            plan.after_bytes = 0;
+            plan.saved_tokens = 0;
+            for block in &mut plan.blocks {
+                block.id.clear();
+            }
+            plan
+        };
+        normalize(self) == normalize(other)
+    }
+}
+
 /// Successful durable compression result.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompressionReport {

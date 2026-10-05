@@ -996,6 +996,9 @@ pub struct Runtime<'a> {
     dcp_protected: RwLock<ProtectedSpec>,
     workspace: RwLock<RuntimeWorkspace>,
     nudge_state: Mutex<BTreeMap<String, NudgeState>>,
+    // Sibling runtimes share the durable block allocator. Hold only across the
+    // synchronous refresh/measure/commit section, never provider IO or approval.
+    compression_commit: Arc<Mutex<()>>,
     stats: Mutex<crate::dcp_auto::DcpStats>,
     mcp_generation: RwLock<Arc<mcp::McpOwner>>,
     mcp_activation: RwLock<Option<Arc<crate::composition::McpActivation>>>,
@@ -1122,6 +1125,7 @@ impl<'a> Runtime<'a> {
             dcp_protected: RwLock::new(ProtectedSpec::default()),
             workspace: RwLock::new(RuntimeWorkspace::default()),
             nudge_state: Mutex::new(BTreeMap::new()),
+            compression_commit: Arc::new(Mutex::new(())),
             stats: Mutex::new(DcpStats::default()),
             mcp_generation: RwLock::new(Arc::new(mcp::McpOwner::new(location, 1))),
             mcp_activation: RwLock::new(None),
@@ -1371,7 +1375,7 @@ impl<'a> Runtime<'a> {
         session: &str,
     ) -> Result<oc_core::dcp_view::DcpAvailability, RuntimeError> {
         let published = self.current.read().expect("generation lock").clone();
-        let lane = self.primary_lane(&published);
+        let lane = self.session_compression_lane(session, &published)?;
         let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules);
         self.compression_availability_with_policy(session, &policy)
     }
@@ -1387,13 +1391,14 @@ impl<'a> Runtime<'a> {
         )>,
     ) -> Result<oc_core::dcp_view::DcpAvailability, RuntimeError> {
         let published = self.current.read().expect("generation lock").clone();
-        let mut rules = published.config.permission_rules.clone();
+        let lane = self.session_compression_lane(session, &published)?;
+        let mut rules = lane.permission_rules;
         if let Some((permissions, profile_rules)) = profile {
-            rules.narrow(&published.config.permissions, permissions, profile_rules);
+            rules.narrow(&lane.permissions, permissions, profile_rules);
         }
         self.compression_availability_with_policy(
             session,
-            &RuntimePolicy::with_rules(&published.config.permissions, &rules),
+            &RuntimePolicy::with_rules(&lane.permissions, &rules),
         )
     }
 
@@ -2158,6 +2163,51 @@ impl<'a> Runtime<'a> {
             permissions,
             permission_rules,
         }
+    }
+
+    /// Query/direct API authority follows the requested child's lineage, never
+    /// a root-only lane. Actual turns keep their already captured ChildLane.
+    fn session_compression_lane(
+        &self,
+        session: &str,
+        published: &PublishedGeneration,
+    ) -> Result<TurnLane, RuntimeError> {
+        let mut lane = self.primary_lane(published);
+        let catalog = self
+            .workspace
+            .read()
+            .expect("workspace lock")
+            .subagents
+            .clone();
+        let mut current = self.db.session_meta(session)?;
+        let mut profiles = Vec::new();
+        let mut seen = std::collections::BTreeSet::new();
+        while let Some(parent) = current.parent_id.clone() {
+            if profiles.len() >= 64 || !seen.insert(parent.clone()) {
+                return Err(RuntimeError::InvalidArgs(
+                    "child authority lineage invalid".into(),
+                ));
+            }
+            profiles.push(current.agent.clone());
+            current = self.db.session_meta(&parent)?;
+        }
+        if profiles.is_empty() {
+            return Ok(lane);
+        }
+        // Include the stored parent's profile as well as the currently selected
+        // root ceiling. A switch in the parent's UI cannot widen an old child.
+        if current.agent.is_some() {
+            profiles.push(current.agent);
+        }
+        for id in profiles.into_iter().rev() {
+            if let Some(agent) = id.as_ref().and_then(|id| catalog.as_ref()?.agents.get(id)) {
+                lane = self.child_lane(agent, &lane, "compression-query");
+            } else {
+                lane.permission_rules
+                    .module_permission(COMPRESS_TOOL, Permission::Deny);
+            }
+        }
+        Ok(lane)
     }
 
     /// Saved DCP preferences were restored by the owner; refresh lazy caches.

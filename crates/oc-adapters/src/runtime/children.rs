@@ -932,6 +932,7 @@ impl Runtime<'_> {
             dcp_protected: RwLock::new(self.dcp_protected.read().expect("dcp protection").clone()),
             workspace: RwLock::new(self.workspace.read().expect("workspace").clone()),
             nudge_state: Mutex::default(),
+            compression_commit: self.compression_commit.clone(),
             stats: Mutex::new(DcpStats::default()),
             mcp_generation: RwLock::new(self.mcp_generation.read().expect("mcp").clone()),
             mcp_activation: RwLock::new(

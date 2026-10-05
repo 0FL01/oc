@@ -214,6 +214,13 @@ impl PermissionRules {
         ]}))
         .expect("builtin Explore defaults");
         rules.builtin_defaults = std::mem::take(&mut rules.authorities);
+        // Fill absent central authority for own-history compression only.
+        // Explicit central/profile/parent Ask/Deny still intersects this grant.
+        rules.builtin_grants.push(Rule {
+            action: "compress".into(),
+            resource: "*".into(),
+            effect: Permission::Allow,
+        });
         rules
     }
 

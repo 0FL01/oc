@@ -24,6 +24,10 @@ impl TurnExecution {
 #[path = "builtin_tests.rs"]
 mod builtin_tests;
 
+#[cfg(test)]
+#[path = "child_dcp_tests.rs"]
+mod child_dcp_tests;
+
 /// Bound for walking a session's parent chain (cycle guard).
 const SUBAGENT_DEPTH_WALK_CAP: u32 = 64;
 
@@ -67,6 +71,8 @@ fn subagent_tool_def(
     model: &str,
     model_catalog: &ModelCatalog,
     home: Option<&str>,
+    dcp: &DcpConfig,
+    approval_consumer: bool,
 ) -> ToolDef {
     let mut description = String::from(
         "Spawns an agent in a child session to work on the specified task.\n\
@@ -115,10 +121,20 @@ fn subagent_tool_def(
                 rules.narrow(policy.permissions, &agent.permissions, &agent_rules);
                 let child_policy =
                     RuntimePolicy::with_rules(policy.permissions, &rules).with_mcp(policy.mcp);
+                let compression_permission = effective_compress_permission(dcp, &child_policy);
+                let compression_refusal = dcp
+                    .compression_refusal(compression_permission, true, false)
+                    .or_else(|| {
+                        (compression_permission == Permission::Ask && !approval_consumer)
+                            .then_some(oc_core::dcp_view::DcpUnavailable::ApprovalConsumerRequired)
+                    });
                 let mut permitted = selected_tool_defs(&child_model)
                     .into_iter()
                     .map(|tool| tool.name)
-                    .filter(|name| child_policy.tool_visible(name) && name != COMPRESS_TOOL)
+                    .filter(|name| {
+                        child_policy.tool_visible(name)
+                            && (name != COMPRESS_TOOL || compression_refusal.is_none())
+                    })
                     .collect::<Vec<_>>();
                 permitted.extend(
                     policy
@@ -128,6 +144,17 @@ fn subagent_tool_def(
                         .map(|entry| entry.namespaced.clone()),
                 );
                 description.push_str(&format!("\n  Effective permission preview: {}. Resource/Ask admission and child-context checks still apply.", permitted.join(", ")));
+                description.push_str(&format!(
+                    "\n  Own-session compression: {}.",
+                    compression_refusal.map_or_else(
+                        || if compression_permission == Permission::Ask {
+                            "requires approval".to_owned()
+                        } else {
+                            "available".to_owned()
+                        },
+                        |reason| reason.reason().to_owned()
+                    )
+                ));
             }
         }
     }
@@ -694,7 +721,7 @@ impl<'a> Runtime<'a> {
                 other => other.to_string(),
             })?;
         }
-        let compression_plan = if call.name == COMPRESS_TOOL {
+        let mut compression_plan = if call.name == COMPRESS_TOOL {
             Some(self.preflight_compression(session, call, compress_available)?)
         } else {
             None
@@ -814,11 +841,12 @@ impl<'a> Runtime<'a> {
         if digest != rechecked {
             return Err("approval prerequisites changed".into());
         }
-        if compression_plan.is_some()
-            && compression_plan.as_ref()
-                != Some(&self.preflight_compression(session, call, compress_available)?)
-        {
-            return Err("approval compression plan changed".into());
+        if let Some(plan) = &compression_plan {
+            let rechecked = self.preflight_compression(session, call, compress_available)?;
+            if !plan.same_approval_selection(&rechecked) {
+                return Err("approval compression plan changed".into());
+            }
+            compression_plan = Some(rechecked);
         }
         if crate::approval::project_identity(&self.roots.project)? != project {
             return Err("approval project changed".into());
@@ -1086,6 +1114,8 @@ impl<'a> Runtime<'a> {
                 &selection.id,
                 params.catalog,
                 self.parent_env.get("HOME").map(String::as_str),
+                &dcp_config,
+                self.approvals.has_consumer(),
             ));
         }
         for entry in attached
@@ -1552,6 +1582,8 @@ impl<'a> Runtime<'a> {
                     &selection.id,
                     params.catalog,
                     self.parent_env.get("HOME").map(String::as_str),
+                    &dcp_config,
+                    self.approvals.has_consumer(),
                 ));
             }
             for entry in attached
@@ -2671,6 +2703,7 @@ impl<'a> Runtime<'a> {
                     read_log_base,
                     params.catalog,
                     &tool_defs,
+                    lane,
                 )
                 .await;
             tool_event(
@@ -2813,7 +2846,7 @@ impl<'a> Runtime<'a> {
         .await
     }
 
-    fn child_lane(
+    pub(super) fn child_lane(
         &self,
         agent: &SubagentAgent,
         parent_lane: &TurnLane,
@@ -3133,6 +3166,7 @@ impl<'a> Runtime<'a> {
         read_log_base: usize,
         catalog: &ModelCatalog,
         request_tools: &[ToolDef],
+        lane: &TurnLane,
     ) -> Result<(Vec<CallRecord>, bool, bool), RuntimeError> {
         let captured_output = self.current.read().expect("generation lock").clone();
         let output_secrets = super::mcp::mcp_redactions(&captured_output.config, &self.parent_env);
@@ -3744,15 +3778,27 @@ impl<'a> Runtime<'a> {
                     .as_ref()
                     .and_then(|p| p.compression_plan.clone())
                     .expect("compress admission prepared plan");
-                match Ok::<_, crate::dcp::DcpError>(prepared) {
+                let _commit = self
+                    .compression_commit
+                    .lock()
+                    .expect("compression commit lock");
+                let refreshed = self
+                    .preflight_compression(session, call, true)
+                    .map_err(|reason| crate::dcp::DcpError::InvalidArgs { reason })
+                    .and_then(|plan| {
+                        if prepared.same_approval_selection(&plan) {
+                            Ok(plan)
+                        } else {
+                            Err(crate::dcp::DcpError::Conflict)
+                        }
+                    });
+                match refreshed {
                     Ok(mut plan) => {
-                        let published = self.current.read().expect("generation lock").clone();
-                        let lane = self.primary_lane(&published);
                         let measured = self.measure_dcp_plan(
                             session,
                             &mut plan,
                             Some(turn_log),
-                            &lane,
+                            lane,
                             &config,
                         );
                         let (strategy_delta, candidate_tool_projection) = match measured {

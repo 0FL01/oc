@@ -202,6 +202,8 @@ fn preview_resolves_child_model_before_selecting_the_captured_file_family() {
         "gpt-future",
         &models,
         None,
+        &DcpConfig::default(),
+        false,
     );
     let preview = preview.description;
     let capabilities = preview
@@ -218,6 +220,14 @@ fn preview_resolves_child_model_before_selecting_the_captured_file_family() {
     assert!(!capabilities.contains(&"apply_patch"));
     assert!(capabilities.contains(&"arbitrary__rotate_widget"));
     agent.model = Some("gpt-provider/retired".into());
-    let preview = subagent_tool_def(&catalog(agent), &policy, "gpt-future", &models, None);
+    let preview = subagent_tool_def(
+        &catalog(agent),
+        &policy,
+        "gpt-future",
+        &models,
+        None,
+        &DcpConfig::default(),
+        false,
+    );
     assert!(preview.description.contains("preview unavailable"));
 }

@@ -25,6 +25,10 @@ mod controls_tests;
 #[path = "dcp_auto/cadence_tests.rs"]
 mod cadence_tests;
 
+#[cfg(test)]
+#[path = "dcp_auto/child_tests.rs"]
+mod child_tests;
+
 /// Owner-approved native minimum percentage, in basis points (not donor parity).
 pub const DEFAULT_MIN_CONTEXT_PERCENT: u32 = 4_000;
 /// Owner-approved native upper reminder percentage, in basis points.
@@ -94,6 +98,8 @@ pub struct DcpConfig {
     pub enabled: bool,
     /// Native hard switch for all new compression operations.
     pub compress_enabled: bool,
+    /// Permit compression of a child's own session (native default true).
+    pub allow_subagents: bool,
     /// Compression-specific central permission override.
     pub compress_permission: Option<Permission>,
     /// Soft min-context threshold.
@@ -157,6 +163,7 @@ impl Default for DcpConfig {
         Self {
             enabled: true,
             compress_enabled: true,
+            allow_subagents: true,
             compress_permission: None,
             min_context: 1,
             min_context_percent: Some(DEFAULT_MIN_CONTEXT_PERCENT),
@@ -232,9 +239,8 @@ fn parse_limit(
 /// Load layered config: defaults, then the `dcp.jsonc` fragment (already
 /// parsed to JSON by the caller; sources stay read-only here).
 ///
-/// Experimental `allowSubAgents` is accepted with a visible warning until
-/// subagent support lands (it only permits subagent summarisation, which this
-/// generation never performs); `customPrompts` is still rejected as deferred.
+/// Experimental `allowSubAgents` controls child-only availability;
+/// `customPrompts` is still rejected as deferred.
 /// Unknown top-level keys produce warnings, never silent behavior.
 pub fn load_config(fragment: &serde_json::Value) -> Result<(DcpConfig, Vec<String>), DcpAutoError> {
     let invalid = |reason: &str| DcpAutoError::InvalidConfig {
@@ -246,14 +252,10 @@ pub fn load_config(fragment: &serde_json::Value) -> Result<(DcpConfig, Vec<Strin
     let mut config = DcpConfig::default();
     let mut warnings = Vec::new();
     if let Some(exp) = obj.get("experimental") {
-        if exp.get("allowSubAgents") == Some(&serde_json::Value::Bool(true)) {
-            // Future subagent support will use this flag; today the option is
-            // tolerated visibly instead of blocking the whole application.
-            warnings.push(
-                "dcp experimental.allowSubAgents is enabled; subagents are not \
-                 implemented yet, so the option is ignored"
-                    .to_string(),
-            );
+        if let Some(value) = exp.get("allowSubAgents") {
+            config.allow_subagents = value
+                .as_bool()
+                .ok_or_else(|| invalid("experimental.allowSubAgents must be boolean"))?;
         }
         if exp.get("customPrompts") == Some(&serde_json::Value::Bool(true)) {
             return Err(DcpAutoError::UnsupportedOption {
@@ -708,7 +710,7 @@ impl DcpConfig {
             Some(CompressOff)
         } else if permission == Permission::Deny {
             Some(Denied)
-        } else if child {
+        } else if child && !self.allow_subagents {
             Some(ChildOptOut)
         } else if self.manual_mode && !explicit {
             Some(ManualOnly)
@@ -1308,15 +1310,12 @@ mod tests {
         assert!(
             load_config(&serde_json::json!({"minContextLimit": 9, "maxContextLimit": 8})).is_err()
         );
-        // Subagents are a future feature: the flag is accepted visibly.
+        // Native eligible-child default is implemented, not an ignored option.
         let (accepted, warnings) =
             load_config(&serde_json::json!({"experimental": {"allowSubAgents": true}}))
-                .expect("allowSubAgents is tolerated until subagents land");
+                .expect("allowSubAgents is supported");
         assert_eq!(accepted.enabled, DcpConfig::default().enabled);
-        assert!(
-            warnings.iter().any(|w| w.contains("allowSubAgents")),
-            "the ignored option is reported: {warnings:?}"
-        );
+        assert!(accepted.allow_subagents && warnings.is_empty());
         // Bare, pinned, and the user-required latest alias bind one compiled instance.
         let bare = resolve_dcp_module("@tarquinen/opencode-dcp").expect("bare");
         let pinned = resolve_dcp_module("@tarquinen/opencode-dcp@3.1.15").expect("pinned");

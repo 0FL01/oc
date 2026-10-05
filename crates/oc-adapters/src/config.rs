@@ -1150,9 +1150,7 @@ fn validate_provider(id: &str, entry: &ProviderEntry) -> Result<(), ConfigError>
 
 fn validate_dcp(raw: &serde_json::Value) -> Result<(), ConfigError> {
     if let Some(exp) = raw.get("experimental") {
-        // `allowSubAgents: true` is tolerated: it only permits subagent
-        // summarisation, which this generation does not perform yet. The
-        // native DCP loader reports it as a warning.
+        // Child compression availability is validated by the native DCP loader.
         if exp.get("customPrompts") == Some(&serde_json::Value::Bool(true)) {
             return Err(ConfigError::UnsupportedCapability {
                 field: "dcp.experimental.customPrompts".to_string(),

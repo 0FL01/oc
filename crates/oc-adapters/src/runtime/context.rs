@@ -945,8 +945,12 @@ impl<'a> Runtime<'a> {
         args: &serde_json::Value,
         spec: &ProtectedSpec,
     ) -> Result<CompressReport, RuntimeError> {
+        let _commit = self
+            .compression_commit
+            .lock()
+            .expect("compression commit lock");
         let published = self.current.read().expect("generation lock").clone();
-        let lane = self.primary_lane(&published);
+        let lane = self.session_compression_lane(session, &published)?;
         let config = self.dcp_config.read().expect("dcp lock").clone();
         {
             let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules);
