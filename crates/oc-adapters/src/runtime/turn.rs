@@ -1219,6 +1219,11 @@ impl<'a> Runtime<'a> {
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
         let selection = models::select_variant(&base, params.variant.as_deref())
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+        let binding = params
+            .provider
+            .for_selection(&selection.id, params.variant.as_deref())
+            .provenance(&params.catalog.provider, &selection.id)
+            .map_err(|_| RuntimeError::Provider)?;
         self.validate_checkpoint_route(
             &params.session,
             &params.catalog.provider,
@@ -1251,7 +1256,7 @@ impl<'a> Runtime<'a> {
                 })
                 .cloned()
                 .collect::<Vec<_>>();
-            let history = self.wire_history(
+            let history = self.wire_history_bound(
                 &params.session,
                 &prior,
                 &blocks,
@@ -1259,6 +1264,7 @@ impl<'a> Runtime<'a> {
                 &params.catalog.provider,
                 lane.agent_digest.as_deref(),
                 after_seq,
+                Some(&binding),
             )?;
             (projected, history, Some((after_seq, blocks)))
         };
@@ -1378,7 +1384,7 @@ impl<'a> Runtime<'a> {
             });
         }
         let prompt_input = if let Some(log) = &resume {
-            log.input_for(&selection.id, &params.catalog.provider)
+            log.input_for_bound(&selection.id, &params.catalog.provider, Some(&binding))
         } else {
             vec![InputItem::message(InputRole::User, &params.prompt)]
         };
@@ -1577,6 +1583,8 @@ impl<'a> Runtime<'a> {
             .max()
             .unwrap_or(0);
         if !resuming {
+            turn_log.binding = Some(binding.clone());
+            turn_log.protocol = binding.protocol;
             turn_log.display = serde_json::json!({
                 "location":self.location,
                 "move_epoch":self.db.session_move_epoch(&params.session)?,
@@ -1618,7 +1626,7 @@ impl<'a> Runtime<'a> {
                 .map(|report| TurnExecution::Report(Box::new(report)));
         }
         if let Some((after_seq, blocks)) = history_scope {
-            history = self.wire_history(
+            history = self.wire_history_bound(
                 &params.session,
                 &projected
                     .iter()
@@ -1633,6 +1641,7 @@ impl<'a> Runtime<'a> {
                 &params.catalog.provider,
                 lane.agent_digest.as_deref(),
                 after_seq,
+                Some(&binding),
             )?;
         }
         let mut previous_instruction_input = self
@@ -1738,6 +1747,10 @@ impl<'a> Runtime<'a> {
             let selection = models::select_variant(&base, variant.as_deref())
                 .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
             let request_provider = params.provider.with_context(request_context.clone());
+            let binding = request_provider
+                .for_selection(&selection.id, variant.as_deref())
+                .provenance(&params.catalog.provider, &selection.id)
+                .map_err(|_| RuntimeError::Provider)?;
             if primary_request {
                 for fact in self.db.effort_facts(&params.session, effort_event_seq)? {
                     effort_event_seq = fact.event_seq;
@@ -1764,7 +1777,7 @@ impl<'a> Runtime<'a> {
                     })
                     .cloned()
                     .collect::<Vec<_>>();
-                history = self.wire_history(
+                history = self.wire_history_bound(
                     &params.session,
                     &prior,
                     &refreshed.blocks,
@@ -1772,6 +1785,7 @@ impl<'a> Runtime<'a> {
                     &params.catalog.provider,
                     lane.agent_digest.as_deref(),
                     refreshed.after_seq,
+                    Some(&binding),
                 )?;
                 projected = refreshed.projected;
                 prepared_model = selection.id.clone();
@@ -1922,10 +1936,11 @@ impl<'a> Runtime<'a> {
                 });
                 previous_instruction_input = latest_instruction_input;
             }
-            let current_instruction_input = turn_log.instruction_input_for(
+            let current_instruction_input = turn_log.instruction_input_for_bound(
                 &selection.id,
                 &params.catalog.provider,
                 &instruction_facts,
+                Some(&binding),
             );
             let mut projected_continuation =
                 dcp_continuation(&history, &current_instruction_input, &tool_projection);
@@ -2042,7 +2057,7 @@ impl<'a> Runtime<'a> {
                 }
                 last_compacted_round = Some(rounds);
                 let refreshed = self.active_projection(&params.session)?;
-                history = self.wire_history(
+                history = self.wire_history_bound(
                     &params.session,
                     &refreshed.projected,
                     &refreshed.blocks,
@@ -2050,6 +2065,7 @@ impl<'a> Runtime<'a> {
                     &params.catalog.provider,
                     lane.agent_digest.as_deref(),
                     refreshed.after_seq,
+                    Some(&binding),
                 )?;
                 // The running turn's journal is supplied separately below.
                 // Its active user row must not appear twice after refresh.
@@ -2057,7 +2073,7 @@ impl<'a> Runtime<'a> {
                     && let Some(index) = refreshed.projected.iter().position(|row| row.0 == anchor)
                 {
                     let prior = &refreshed.projected[..index];
-                    history = self.wire_history(
+                    history = self.wire_history_bound(
                         &params.session,
                         prior,
                         &refreshed.blocks,
@@ -2065,6 +2081,7 @@ impl<'a> Runtime<'a> {
                         &params.catalog.provider,
                         lane.agent_digest.as_deref(),
                         refreshed.after_seq,
+                        Some(&binding),
                     )?;
                 }
                 projected = refreshed.projected;
@@ -2072,7 +2089,11 @@ impl<'a> Runtime<'a> {
                     .iter()
                     .chain(
                         turn_log
-                            .input_for(&selection.id, &params.catalog.provider)
+                            .input_for_bound(
+                                &selection.id,
+                                &params.catalog.provider,
+                                Some(&binding),
+                            )
                             .iter(),
                     )
                     .cloned()
@@ -2242,6 +2263,7 @@ impl<'a> Runtime<'a> {
             }
             retry_resuming = false;
             let receipt = oc_core::queries::RequestIdentity {
+                binding: Some(binding.clone()),
                 model: oc_core::queries::ModelRef {
                     provider: params.catalog.provider.clone(),
                     id: selection.id.clone(),
@@ -2607,7 +2629,7 @@ impl<'a> Runtime<'a> {
                                         .map_or(refreshed.projected.as_slice(), |index| {
                                             &refreshed.projected[..index]
                                         });
-                                    history = self.wire_history(
+                                    history = self.wire_history_bound(
                                         &params.session,
                                         prior,
                                         &refreshed.blocks,
@@ -2615,13 +2637,18 @@ impl<'a> Runtime<'a> {
                                         &params.catalog.provider,
                                         lane.agent_digest.as_deref(),
                                         refreshed.after_seq,
+                                        Some(&binding),
                                     )?;
                                     projected = refreshed.projected;
                                     let raw_context: Vec<_> = history
                                         .iter()
                                         .chain(
                                             turn_log
-                                                .input_for(&selection.id, &params.catalog.provider)
+                                                .input_for_bound(
+                                                    &selection.id,
+                                                    &params.catalog.provider,
+                                                    Some(&binding),
+                                                )
                                                 .iter(),
                                         )
                                         .cloned()
@@ -3036,7 +3063,7 @@ impl<'a> Runtime<'a> {
                     })
                     .cloned()
                     .collect::<Vec<_>>();
-                history = self.wire_history(
+                history = self.wire_history_bound(
                     &params.session,
                     &prior,
                     &refreshed.blocks,
@@ -3044,6 +3071,7 @@ impl<'a> Runtime<'a> {
                     &params.catalog.provider,
                     lane.agent_digest.as_deref(),
                     refreshed.after_seq,
+                    Some(&binding),
                 )?;
                 anchors = dcp_config_input(&projected, &dcp_config, compress_available);
             }

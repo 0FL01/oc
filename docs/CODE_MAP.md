@@ -95,6 +95,13 @@ durable positions, `runtime/turn.rs` captures busy updates, `provider/protocol.r
 lowers declared capabilities. Tests: `provider/protocol_tests.rs`,
 `application/live_switch_tests.rs`, `runtime/tests.rs` (`go03_` filters).
 
+Durable wire authority: core `queries::{NativeProtocol,WireProvenance}` and adapter
+`ResponsesConfig::provenance` feed prepared receipts/TurnLog. `tools/model_history.rs`
+withholds opaque state without an exact binding; SQL `storage_dcp_view.rs` and HOT
+`tools/turn_history.rs` preserve original provenance. Nearest tests:
+`tools/model_history_tests.rs`, `storage_turn_history/tests.rs` (`go04_`). Native
+checkpoint and independently selected auxiliary route qualification remains T53.
+
 `provider/context.rs` captures project/session/parent identity and supported lineage
 cache fields at the common send boundary; `context_tests.rs`, effective-wire title,
 compaction and recursive-fork tests cover it. `application.rs` currently exceeds

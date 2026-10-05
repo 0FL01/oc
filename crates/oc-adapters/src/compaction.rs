@@ -123,24 +123,13 @@ pub fn route_identity(
     model: &str,
     config: &crate::provider::ResponsesConfig,
 ) -> Result<String, crate::provider::ProviderError> {
-    use sha2::{Digest as _, Sha256};
-    // Use exactly the adapter's effective case-insensitive header semantics,
-    // including credential/tenant scope. Only the digest is ever persisted.
-    let headers = crate::provider::request_headers(config)?;
-    let headers = headers
-        .iter()
-        .map(|(name, value)| (name.as_str(), value.as_bytes()))
-        .collect::<std::collections::BTreeMap<_, _>>();
-    let value = serde_json::to_vec(&(
-        "responses-route-v2",
-        provider,
+    let config = config.for_selection(model, None);
+    Ok(fingerprint(&(
+        "native-route-v3",
         model,
-        config.base_url.trim_end_matches('/'),
-        headers,
+        config.provenance(provider, model)?,
         config.set_cache_key,
-    ))
-    .expect("route serialization");
-    Ok(format!("{:x}", Sha256::digest(value)))
+    )))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

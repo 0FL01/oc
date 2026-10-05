@@ -480,6 +480,40 @@ impl std::fmt::Debug for ResponsesConfig {
 }
 
 impl ResponsesConfig {
+    /// Capture replay authority from the same immutable binding that will send
+    /// this request. No session/cache/affinity metadata or plaintext secrets.
+    pub(crate) fn provenance(
+        &self,
+        provider: &str,
+        model: &str,
+    ) -> Result<oc_core::queries::WireProvenance, ProviderError> {
+        use oc_core::queries::{NativeProtocol, WireProvenance};
+        use protocol::Protocol;
+        let url = reqwest::Url::parse(self.base_url.trim_end_matches('/'))
+            .map_err(|_| ProviderError::InvalidConfig)?;
+        let headers = request_headers(self)?;
+        let headers = headers
+            .iter()
+            .map(|(name, value)| (name.as_str(), value.as_bytes()))
+            .collect::<BTreeMap<_, _>>();
+        Ok(WireProvenance {
+            provider: provider.into(),
+            api_model: self.wire.api_model.as_deref().unwrap_or(model).into(),
+            protocol: match self.wire.protocol {
+                Protocol::Responses => NativeProtocol::Responses,
+                Protocol::Chat => NativeProtocol::Chat,
+                Protocol::Messages => NativeProtocol::Messages,
+            },
+            deployment: crate::compaction::fingerprint(&(
+                url.as_str(),
+                self.wire.endpoint.as_ref().map(|e| e.provenance()),
+            )),
+            auth_scope: crate::compaction::fingerprint(&(
+                format!("{:?}", self.wire.auth_policy),
+                headers,
+            )),
+        })
+    }
     /// Capture once per operation; all selected bindings and retries share it.
     pub(crate) fn with_context(&self, context: context::RequestContext) -> Self {
         let mut captured = self.clone();

@@ -1288,6 +1288,12 @@ impl<'a> Runtime<'a> {
         let digest = current
             .map(|log| log.agent_digest.as_deref())
             .unwrap_or(lane.agent_digest.as_deref());
+        let binding = current.and_then(|log| {
+            log.requests
+                .last()
+                .and_then(|r| r.binding.as_ref())
+                .or(log.binding.as_ref())
+        });
         let prior = |rows: &[(String, String, String)]| {
             rows.iter()
                 .filter(|r| {
@@ -1297,7 +1303,7 @@ impl<'a> Runtime<'a> {
                 .collect::<Vec<_>>()
         };
         let before_rows = &context.projected;
-        let before_history = self.wire_history(
+        let before_history = self.wire_history_bound(
             session,
             &prior(before_rows),
             &context.blocks,
@@ -1305,10 +1311,13 @@ impl<'a> Runtime<'a> {
             &provider,
             digest,
             context.after_seq,
+            binding,
         )?;
         let instruction_facts = self.db.instruction_view(session)?.1;
         let current_instruction_input = current
-            .map(|log| log.instruction_input_for(&model, &provider, &instruction_facts))
+            .map(|log| {
+                log.instruction_input_for_bound(&model, &provider, &instruction_facts, binding)
+            })
             .unwrap_or_default();
         let current_input = current_instruction_input.as_slice();
         let raw_before = before_history
@@ -1389,7 +1398,7 @@ impl<'a> Runtime<'a> {
         let rows = self.active_rows(session)?.1;
         let after_rows = crate::dcp::project_active_rows(&rows, &candidate, &positions)
             .map_err(|e| RuntimeError::Compress(e.to_string()))?;
-        let after_history = self.wire_history(
+        let after_history = self.wire_history_bound(
             session,
             &prior(&after_rows),
             &candidate,
@@ -1397,6 +1406,7 @@ impl<'a> Runtime<'a> {
             &provider,
             digest,
             context.after_seq,
+            binding,
         )?;
         let raw_after = after_history
             .iter()
@@ -1514,6 +1524,30 @@ impl<'a> Runtime<'a> {
         agent_digest: Option<&str>,
         after_seq: i64,
     ) -> Result<Vec<InputItem>, RuntimeError> {
+        self.wire_history_bound(
+            session,
+            projected,
+            blocks,
+            model,
+            provider,
+            agent_digest,
+            after_seq,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn wire_history_bound(
+        &self,
+        session: &str,
+        projected: &[(String, String, String)],
+        blocks: &[crate::dcp::CompressionBlock],
+        model: &str,
+        provider: &str,
+        agent_digest: Option<&str>,
+        after_seq: i64,
+        binding: Option<&oc_core::queries::WireProvenance>,
+    ) -> Result<Vec<InputItem>, RuntimeError> {
         let mut turns = BTreeMap::new();
         let mut changed_lane_prompts = BTreeMap::new();
         let mut represented = std::collections::BTreeSet::new();
@@ -1572,14 +1606,6 @@ impl<'a> Runtime<'a> {
             let changed_location = moved
                 && (log.display["move_epoch"].as_i64().unwrap_or(0) != move_epoch
                     || log.display["location"].as_str() != Some(self.location.as_str()));
-            if log.provider != provider
-                && agent_digest != Some("__compaction__")
-                && !changed_location
-            {
-                return Err(RuntimeError::InvalidArgs(
-                    "session wire history belongs to a different provider/model".to_string(),
-                ));
-            }
             if changed_location
                 || (agent_digest != Some("__compaction__")
                     && (log.agent_digest.as_deref() != agent_digest
@@ -1609,9 +1635,9 @@ impl<'a> Runtime<'a> {
                 .filter_map(|item| item.call_output().map(|(id, _)| id.to_owned()))
                 .collect();
             let instruction_input = if agent_digest == Some("__compaction__") {
-                log.input_for(model, provider)
+                log.input_for_bound(model, provider, binding)
             } else {
-                log.instruction_input_for(model, provider, &instruction_facts)
+                log.instruction_input_for_bound(model, provider, &instruction_facts, binding)
             };
             let mut input = instruction_input
                 .into_iter()

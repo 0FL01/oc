@@ -292,6 +292,9 @@ pub struct AssistantSpan {
 /// input/schema provenance receipts, not promises of provider cache reuse.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RequestIdentity {
+    /// Immutable wire/deployment/auth scope, absent in legacy journals.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub binding: Option<WireProvenance>,
     pub model: ModelRef,
     pub model_label: String,
     pub span: String,
@@ -305,6 +308,41 @@ pub struct RequestIdentity {
     pub dcp_max_context: u64,
     pub tool_fingerprint: String,
     pub context_fingerprint: String,
+}
+
+/// Finite durable wire discriminator. Only an absent field means legacy Responses;
+/// an explicit unknown value is a decoding error, never a guessed wire.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NativeProtocol {
+    #[default]
+    Responses,
+    Chat,
+    Messages,
+}
+
+/// Replay authority, not connection material. Deployment and auth scope are
+/// digests of the admitted endpoint/provenance and effective credential/headers.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WireProvenance {
+    pub provider: String,
+    pub api_model: String,
+    #[serde(default)]
+    pub protocol: NativeProtocol,
+    pub deployment: String,
+    pub auth_scope: String,
+}
+
+impl WireProvenance {
+    pub fn valid(&self) -> bool {
+        let name = |s: &str| !s.trim().is_empty() && !s.chars().any(char::is_control);
+        let digest = |s: &str| s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit());
+        name(&self.provider)
+            && name(&self.api_model)
+            && digest(&self.deployment)
+            && digest(&self.auth_scope)
+    }
 }
 
 /// Metadata parallel to `HistoryTurn.parts`, shared by live checkpoint events

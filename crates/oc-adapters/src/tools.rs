@@ -1461,6 +1461,8 @@ fn subagent_request(call: &ToolCall) -> Result<SubagentRequest, ToolError> {
 /// leaking foreign opaque state or mutating this journal.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TurnLog {
+    pub protocol: oc_core::queries::NativeProtocol,
+    pub binding: Option<oc_core::queries::WireProvenance>,
     /// Fixed immutable original prefix; replay reads only the hot journal.
     pub(crate) raw_prefix: Option<turn_history::RawPrefix>,
     /// Selected task/checkpoint facts, never re-appended as original RAW.
@@ -1509,6 +1511,8 @@ impl TurnLog {
     /// Start an empty log for a turn.
     pub fn new(turn_id: &str, model: &str, provider: &str) -> Self {
         Self {
+            protocol: Default::default(),
+            binding: None,
             raw_prefix: None,
             working: None,
             task_renewal: None,
@@ -1551,6 +1555,8 @@ impl TurnLog {
     pub fn to_json(&self) -> serde_json::Value {
         let (input, native_mcp, native_read) = self.encode_mcp_input();
         let mut value = serde_json::json!({
+            "protocol": self.protocol,
+            "binding": self.binding,
             "requests": self.requests,
             "instruction_references": self.instruction_references,
             "display": self.display,
@@ -1610,6 +1616,18 @@ impl TurnLog {
             Some(_) => return Err("invalid task renewal".into()),
         };
         let log = Self {
+            protocol: value
+                .get("protocol")
+                .map(|v| serde_json::from_value(v.clone()))
+                .transpose()
+                .map_err(|_| "invalid wire protocol")?
+                .unwrap_or_default(),
+            binding: value
+                .get("binding")
+                .filter(|v| !v.is_null())
+                .map(|v| serde_json::from_value(v.clone()))
+                .transpose()
+                .map_err(|_| "invalid wire binding")?,
             raw_prefix,
             working,
             task_renewal,
@@ -1692,6 +1710,27 @@ impl TurnLog {
                 .and_then(|v| v.as_array())
                 .and_then(|a| Some((a.first()?.as_u64()?, a.get(1)?.as_u64()?))),
         };
+        if log
+            .binding
+            .as_ref()
+            .is_some_and(|b| !b.valid() || b.protocol != log.protocol || b.provider != log.provider)
+            || log.requests.iter().any(|r| {
+                r.binding
+                    .as_ref()
+                    .is_some_and(|b| !b.valid() || b.provider != r.model.provider)
+            })
+            || log
+                .spans
+                .iter()
+                .filter_map(|s| s.request.as_ref())
+                .any(|r| {
+                    r.binding
+                        .as_ref()
+                        .is_some_and(|b| !b.valid() || b.provider != r.model.provider)
+                })
+        {
+            return Err("invalid wire binding".into());
+        }
         log.validate_history_coordinates()?;
         Ok(log)
     }

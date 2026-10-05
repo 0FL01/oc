@@ -522,6 +522,21 @@ This is partial R3, not full GO03/T53 PASS. Full durable protocol/binding/checkp
 SQL/DCP/fork qualification, configless/connect/provider-qualified selection and
 bounded GO06 live remain pending. Next slice: GO04 durable binding owner.
 
+### Durable wire authority checkpoint (partial GO04)
+
+Prepared primary receipts and TurnLog now persist finite protocol, actual API model,
+provider, admitted deployment/provenance digest and effective auth/tenant digest.
+Legacy absent protocol is Responses; unknown protocol/malformed binding fails decode.
+Missing binding never authorizes opaque replay. Request-local projection preserves
+ordinary text and settled call/result pairs while dropping incompatible opaque IDs,
+encrypted reasoning and signatures. SQL presentation, selected HOT, raw segments,
+fork rebasing and reopen preserve the original binding rather than current selection.
+Workspace gates passed (1627/0/10; ignored opt-in tests unchanged); a final review
+also prevented resumed legacy journals from acquiring current binding retrospectively.
+This is partial R4, not GO04/T53 PASS. Native checkpoint replay, auxiliary/variant
+route consumers, configless/connect/provider-qualified selection and GO06 live remain
+pending. Next slice: native checkpoint and auxiliary captured-route qualification.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

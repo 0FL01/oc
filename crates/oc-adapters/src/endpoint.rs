@@ -18,6 +18,9 @@ impl std::fmt::Debug for EndpointBinding {
 }
 
 impl EndpointBinding {
+    pub(crate) fn provenance(&self) -> String {
+        crate::compaction::fingerprint(&(self.base.as_str(), self.trusted, &self.source))
+    }
     pub(crate) fn admit(base: &str, trusted: bool, source: &str) -> Result<Self, ProviderError> {
         let mut base = parse(base)?;
         let path = base.path().trim_end_matches('/').to_owned();

@@ -211,6 +211,7 @@ impl Db {
               AND NOT EXISTS(SELECT 1 FROM json_each(?4) b JOIN messages a ON a.id=b.value->>'$.start' JOIN messages z ON z.id=b.value->>'$.end' WHERE b.value->>'$.hot.standalone'=1 AND b.value->>'$.hot.active'=1 AND m.seq BETWEEN a.seq AND z.seq)
           ), visible AS (
             SELECT json_object('turn_id',result->>'$.turn_id','model',result->>'$.model','provider',result->>'$.provider',
+                'protocol',COALESCE(result->>'$.protocol','responses'),'binding',json(result->'$.binding'),
                'agent_digest',result->>'$.agent_digest','user_message',id,'assistant_message',result->>'$.assistant_message',
                'raw_prefix',json(result->'$.raw_prefix'),'working',json(result->'$.working'),
                 'requests',json(COALESCE(result->>'$.requests','[]')),

@@ -20,6 +20,7 @@ fn closed(db: &Db) -> TurnLog {
         )
         .unwrap();
     let receipt = RequestIdentity {
+        binding: None,
         model: ModelRef {
             provider: "p".into(),
             id: "A".into(),
@@ -86,6 +87,113 @@ fn working(log: &TurnLog) -> serde_json::Value {
         |_| false,
     )
     .unwrap()
+}
+
+#[test]
+fn go04_sql_hot_raw_fork_and_reopen_keep_original_wire_binding() {
+    use oc_core::queries::{NativeProtocol, WireProvenance};
+    for protocol in [
+        NativeProtocol::Responses,
+        NativeProtocol::Chat,
+        NativeProtocol::Messages,
+    ] {
+        let tmp = tempfile::tempdir().unwrap();
+        let db = Db::open(tmp.path()).unwrap();
+        let mut log = closed(&db);
+        let binding = WireProvenance {
+            provider: "p".into(),
+            api_model: "actual-api-id".into(),
+            protocol,
+            deployment: "a".repeat(64),
+            auth_scope: "b".repeat(64),
+        };
+        log.protocol = protocol;
+        log.binding = Some(binding.clone());
+        log.requests[0].binding = Some(binding.clone());
+        log.spans[0].request = Some(log.requests[0].clone());
+        log.shell_notice_messages.clear();
+        db.checkpoint_turn("t", &log.to_json().to_string()).unwrap();
+        let rows = vec![(
+            log.user_message.clone().unwrap(),
+            "user".into(),
+            "task".into(),
+        )];
+        let sql = db
+            .presentation_wire_logs("s", 0, &rows, &[])
+            .unwrap()
+            .unwrap();
+        let projected =
+            TurnLog::from_json(&serde_json::from_str::<serde_json::Value>(&sql[0]).unwrap())
+                .unwrap();
+        assert_eq!(projected.binding, Some(binding.clone()));
+        assert_eq!(projected.protocol, protocol);
+        assert_eq!(projected.requests, log.requests);
+        assert_eq!(projected.spans, log.spans);
+        assert_eq!(
+            projected.input_for_bound("A", "p", Some(&binding)),
+            log.input
+        );
+        let (segment, hot) = log
+            .prepare_closed_segment(log.closed_counts(), working(&log), 0)
+            .unwrap();
+        db.commit_closed_turn_segment(&log, &segment, &hot, None)
+            .unwrap();
+        let raw: serde_json::Value =
+            serde_json::from_str(&db.raw_turn_segment("t", 1, 100_000).unwrap().unwrap()).unwrap();
+        assert_eq!(
+            raw["journal"]["binding"],
+            serde_json::to_value(&binding).unwrap()
+        );
+        db.commit_turn(
+            "t",
+            "completed",
+            Some(&hot.to_json().to_string()),
+            Some("done"),
+        )
+        .unwrap();
+        let boundary = db
+            .accept_turn("later", "s", "later", "later", &log.requests[0].model)
+            .unwrap()
+            .user_message;
+        let fork = db
+            .fork_session("s", &boundary, "/project", "p", "{}")
+            .unwrap();
+        let copied_turn: String = db
+            .conn
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT id FROM turns WHERE session_id=?1",
+                [fork.session.0.as_str()],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let copied_raw: serde_json::Value = serde_json::from_str(
+            &db.raw_turn_segment(&copied_turn, 1, 100_000)
+                .unwrap()
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(copied_raw["journal"]["binding"], raw["journal"]["binding"]);
+        assert_eq!(
+            copied_raw["journal"]["requests"][0]["binding"],
+            raw["journal"]["requests"][0]["binding"]
+        );
+        drop(db);
+        let reopened = Db::open(tmp.path()).unwrap();
+        let raw_again: serde_json::Value = serde_json::from_str(
+            &reopened
+                .raw_turn_segment(&copied_turn, 1, 100_000)
+                .unwrap()
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(raw_again, copied_raw);
+        assert_eq!(
+            TurnLog::from_json(&raw_again["journal"]).unwrap().protocol,
+            protocol
+        );
+    }
 }
 
 #[test]

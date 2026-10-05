@@ -56,6 +56,8 @@ impl TurnLog {
         keep: impl Fn(&[crate::provider::InputItem]) -> bool,
     ) -> Result<Self, String> {
         let mut selected = TurnLog::new(&self.turn_id, &self.model, &self.provider);
+        selected.protocol = self.protocol;
+        selected.binding = self.binding.clone();
         selected.user_message = self.user_message.clone();
         selected.agent_digest = self.agent_digest.clone();
         selected.display = self.display.clone();
@@ -120,6 +122,8 @@ impl TurnLog {
         }
         .ok_or("missing current task")?;
         let mut working = TurnLog::new(&self.turn_id, &self.model, &self.provider);
+        working.protocol = self.protocol;
+        working.binding = self.binding.clone();
         working.input.push(task);
         working.input_origins.push(Some(0));
         if !summary.is_empty() {
@@ -161,6 +165,8 @@ impl TurnLog {
         counts: [usize; 7],
     ) -> Result<serde_json::Value, String> {
         let mut working = TurnLog::new(&self.turn_id, &self.model, &self.provider);
+        working.protocol = self.protocol;
+        working.binding = self.binding.clone();
         working.input.push(crate::provider::InputItem::message(
             crate::provider::InputRole::User,
             format!("{TASK_RENEWAL_HEADER}\n{summary}"),
