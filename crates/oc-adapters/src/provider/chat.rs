@@ -307,9 +307,28 @@ pub(super) fn dispatch(
     let mut out = Vec::new();
     let choice = event.pointer("/choices/0");
     let delta = choice.and_then(|choice| choice.get("delta"));
+    let fields = [
+        chat.reasoning_field.as_deref(),
+        Some("reasoning_content"),
+        Some("reasoning"),
+        Some("reasoning_text"),
+    ];
+    let reasoning = delta.and_then(|delta| {
+        fields.into_iter().flatten().find_map(|field| {
+            delta[field]
+                .as_str()
+                .filter(|s| !s.is_empty())
+                .map(|text| (field, text))
+        })
+    });
     let late = |delta: Option<&serde_json::Value>| {
         delta.is_some_and(|delta| {
             delta["content"].as_str().is_some_and(|s| !s.is_empty())
+                || delta["refusal"].as_str().is_some_and(|s| !s.is_empty())
+                || reasoning.is_some()
+                || delta["reasoning_details"]
+                    .as_array()
+                    .is_some_and(|a| !a.is_empty())
                 || delta["tool_calls"]
                     .as_array()
                     .is_some_and(|a| !a.is_empty())
@@ -319,22 +338,14 @@ pub(super) fn dispatch(
         return Err(structural(OutputStage::Decode, OutputCode::InvalidField));
     }
     if let Some(delta) = delta {
-        if let Some(text) = delta["content"].as_str().filter(|s| !s.is_empty()) {
+        for text in ["content", "refusal"]
+            .into_iter()
+            .filter_map(|field| delta[field].as_str().filter(|s| !s.is_empty()))
+        {
             chat.text.push_str(text);
             out.push(StreamItem::TextDelta(text.to_owned()));
         }
-        let fields = [
-            chat.reasoning_field.as_deref(),
-            Some("reasoning_content"),
-            Some("reasoning"),
-            Some("reasoning_text"),
-        ];
-        if let Some((field, text)) = fields.into_iter().flatten().find_map(|field| {
-            delta[field]
-                .as_str()
-                .filter(|s| !s.is_empty())
-                .map(|text| (field, text))
-        }) {
+        if let Some((field, text)) = reasoning {
             chat.observed_reasoning_field
                 .get_or_insert_with(|| field.to_owned());
             chat.reasoning.push_str(text);
@@ -379,7 +390,7 @@ pub(super) fn dispatch(
         .and_then(|choice| choice["finish_reason"].as_str())
         .filter(|s| !s.is_empty())
     {
-        chat.finish = Some(reason.to_owned());
+        chat.finish.get_or_insert_with(|| reason.to_owned());
     }
     let usage = event.get("usage").filter(|u| u.is_object()).or_else(|| {
         choice

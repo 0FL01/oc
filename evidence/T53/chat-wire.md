@@ -58,3 +58,34 @@ Not a GO03 PASS: Messages, Go metadata lanes, protocol journal provenance
   `read` tool executed, follow-up carries the assistant `tool_calls` with
   replayed `reasoning_content` and the `tool` result, final text persisted).
 - Full workspace **1576 / 0 / 10**; fmt and strict workspace Clippy PASS.
+
+## Follow-up slice — refusal and finish boundary (2026-10-05)
+
+Base: `d66db2eaa4161ceadf7cf60c37316537242526f5`. Read-only donor comparison
+(`openai-chat.ts:984–1021`) found two concrete decoder defects; this slice
+does not claim full GO03 or T53 completion.
+
+- RED: `go03_chat_refusal_is_visible` initially emitted only `Sorry: `,
+  losing the provider refusal `cannot help`.
+- RED: `go03_chat_reasoning_and_refusal_obey_finish_boundary` accepted the
+  configured `private_thought` delta after a tool-bearing finish reason.
+- GREEN: content and refusal now append in wire order to both streamed text
+  and the completed ordinary message. Refusal on the finishing frame is retained.
+- The same reasoning-field resolution serves decoding and the late-content
+  guard: configured fields and the three existing aliases, refusal and nonempty
+  reasoning-details arrays cannot follow finish or publish a completed tool batch.
+  Empty frames/usage remain allowed; a later empty frame cannot replace the
+  original finish reason (including explicit `length`). Reasoning-details replay
+  remains outside this slice; this guard does not claim its full implementation.
+
+Executed offline (no live generation):
+
+- `cargo test -p oc-adapters --lib --locked go03_`: **10 passed**.
+- `cargo test -p oc-adapters --lib --locked provider::`: **45 passed**,
+  including Responses reconciliation, errors, limits and cancellation regressions.
+- `cargo clippy -p oc-adapters --all-targets --locked -- -D warnings`: PASS.
+- `cargo fmt --all -- --check` and `git diff --check`: PASS.
+
+Cargo used `CARGO_BUILD_JOBS=3`, tests `RUST_TEST_THREADS=2`, and the pre-approved
+disk-backed `TMPDIR`. Next independent risk: scope Chat reasoning replay to its
+actual assistant group rather than carrying it into later unrelated responses.

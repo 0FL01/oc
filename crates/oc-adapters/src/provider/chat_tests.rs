@@ -181,6 +181,96 @@ fn go03_chat_stream_assembles_fragmented_parallel_tools_reasoning_and_usage() {
 }
 
 #[test]
+fn go03_chat_refusal_is_visible() {
+    let compat = ChatCompat::default();
+    let mut parser = SseParser::chat(&compat);
+    let items = feed(
+        &mut parser,
+        &[
+            serde_json::json!({"choices":[{"delta":{"content":"Sorry: ","refusal":"cannot "}}]}),
+            serde_json::json!({"choices":[{"delta":{"refusal":"help"},"finish_reason":"stop"}]}),
+            serde_json::json!({"choices":[],"usage":{"prompt_tokens":3,"completion_tokens":4}}),
+        ],
+    )
+    .unwrap();
+    parser.push(b"data: [DONE]\n\n").unwrap();
+    assert_eq!(
+        items
+            .iter()
+            .filter_map(|item| match item {
+                StreamItem::TextDelta(text) => Some(text.as_str()),
+                _ => None,
+            })
+            .collect::<String>(),
+        "Sorry: cannot help"
+    );
+    assert_eq!(
+        parser.output.as_ref().unwrap()[0]["content"][0]["text"],
+        "Sorry: cannot help"
+    );
+    assert!(items.contains(&StreamItem::Usage {
+        input_tokens: 3,
+        output_tokens: 4
+    }));
+}
+
+#[test]
+fn go03_chat_reasoning_and_refusal_obey_finish_boundary() {
+    let compat = ChatCompat {
+        reasoning_field: Some("private_thought".into()),
+        ..ChatCompat::default()
+    };
+    for field in [
+        "private_thought",
+        "reasoning_content",
+        "reasoning",
+        "reasoning_text",
+        "refusal",
+    ] {
+        let mut parser = SseParser::chat(&compat);
+        feed(&mut parser, &[
+            serde_json::json!({"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c","function":{"name":"read","arguments":"{}"}}]},"finish_reason":"tool_calls"}]}),
+        ]).unwrap();
+        let late = serde_json::json!({"choices":[{"delta":{field:"late"}}]});
+        assert!(
+            matches!(
+                feed(&mut parser, &[late]),
+                Err(ProviderError::OutputStructure {
+                    stage: OutputStage::Decode,
+                    code: OutputCode::InvalidField
+                })
+            ),
+            "late {field}"
+        );
+        assert!(
+            !parser.completed && parser.output.is_none(),
+            "late {field} must not publish tools"
+        );
+    }
+    let mut parser = SseParser::chat(&compat);
+    feed(
+        &mut parser,
+        &[serde_json::json!({"choices":[{"delta":{},"finish_reason":"length"}]})],
+    )
+    .unwrap();
+    let late = serde_json::json!({"choices":[{"delta":{"reasoning_details":[{"text":"late"}]}}]});
+    assert!(feed(&mut parser, &[late]).is_err());
+    assert!(!parser.completed && parser.output.is_none());
+
+    let mut parser = SseParser::chat(&compat);
+    feed(&mut parser, &[
+        serde_json::json!({"choices":[{"delta":{"content":"cut"},"finish_reason":"length"}]}),
+        serde_json::json!({"choices":[{"delta":{"content":"","refusal":"","private_thought":"","reasoning_details":[],"tool_calls":[]},"finish_reason":"stop"}],"usage":{"prompt_tokens":1,"completion_tokens":2}}),
+    ]).unwrap();
+    parser.finish().unwrap();
+    assert_eq!(
+        parser.finish,
+        FinishReason::Length,
+        "empty post-finish frame may carry usage, not rewrite the terminal"
+    );
+}
+
+#[test]
 fn go03_chat_stream_refuses_untrustworthy_terminals() {
     let compat = ChatCompat::default();
     // EOF without a finish reason is incomplete, never success.
