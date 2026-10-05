@@ -352,6 +352,7 @@ fn compaction_config_native_legacy_and_unsupported_prune() {
 
 #[tokio::test]
 async fn compaction_auto_threshold_and_known_overflow_keep_tool_effect_once() {
+    let mut plain_cadence = None;
     for (overflow, auto) in [(false, true), (true, true), (false, false), (true, false)] {
         let data = tempfile::tempdir().unwrap();
         let project = tempfile::tempdir().unwrap();
@@ -371,8 +372,26 @@ async fn compaction_auto_threshold_and_known_overflow_keep_tool_effect_once() {
             if !overflow && auto {
                 let (mut socket, body) = read_request(&listener).await;
                 assert_eq!(body["tools"], serde_json::json!([]));
+                // DCP 3.2.0 compaction-nudges (d637981): the native summary
+                // request has no shared prefix to replay, so it carries no
+                // nudge, anchors or stable-ID index of its own.
+                let summary = body["input"].to_string();
+                for absent in [
+                    "DCP reminder",
+                    "DCP context anchors",
+                    "Stable text-message IDs",
+                ] {
+                    assert!(!summary.contains(absent), "{absent}");
+                }
                 respond(&mut socket, &sse("## Objective\nResume coding.")).await;
                 let (mut socket, body) = read_request(&listener).await;
+                assert!(
+                    body["input"].to_string().contains("DCP context anchors")
+                        || body["input"]
+                            .to_string()
+                            .contains("Stable text-message IDs"),
+                    "the following main request keeps its own anchors"
+                );
                 assert!(body["input"].to_string().contains("Resume coding."));
                 assert!(!body["input"].to_string().contains("OLD CANARY"));
                 respond(&mut socket, &sse("done")).await;
@@ -437,6 +456,26 @@ async fn compaction_auto_threshold_and_known_overflow_keep_tool_effect_once() {
             .await
             .unwrap();
         task.await.unwrap();
+        if !overflow {
+            let state: serde_json::Value = serde_json::from_str(
+                &db.get_pref("dcp.nudge.s\0fixture\0m")
+                    .unwrap()
+                    .expect("nudge state"),
+            )
+            .unwrap();
+            let cadence = (
+                state["iteration"].clone(),
+                state["turns_since_compress"].clone(),
+                state["emitted"].clone(),
+            );
+            match &plain_cadence {
+                None => plain_cadence = Some(cadence),
+                Some(plain) => assert_eq!(
+                    &cadence, plain,
+                    "compaction must not advance DCP cadence a second time"
+                ),
+            }
+        }
         assert_eq!(
             report.status,
             if overflow && !auto {
