@@ -495,7 +495,7 @@ impl std::fmt::Debug for RequestOverlay {
 }
 
 /// Body fields the native Responses adapter owns; an overlay never replaces them.
-pub const RESERVED_BODY_FIELDS: [&str; 9] = [
+pub const RESERVED_BODY_FIELDS: [&str; 16] = [
     "model",
     "store",
     "stream",
@@ -505,6 +505,13 @@ pub const RESERVED_BODY_FIELDS: [&str; 9] = [
     "tools",
     "reasoning",
     "prompt_cache_key",
+    "messages",
+    "system",
+    "max_tokens",
+    "max_completion_tokens",
+    "thinking",
+    "output_config",
+    "cache_control",
 ];
 
 impl RequestOverlay {

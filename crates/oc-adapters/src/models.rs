@@ -168,8 +168,16 @@ pub fn ordered_variants(entry: &serde_json::Value) -> Vec<(&str, &serde_json::Va
         .flatten()
         .map(|(name, value)| (name.as_str(), value))
         .collect();
+    if let Some(array) = entry.get("variants").and_then(serde_json::Value::as_array) {
+        variants.extend(
+            array
+                .iter()
+                .filter_map(|value| Some((value.get("id")?.as_str()?, value))),
+        );
+    }
     variants.sort_by_key(|(name, value)| {
-        let effort = match value.get("reasoningEffort") {
+        let settings = value.get("settings").unwrap_or(value);
+        let effort = match settings.get("reasoningEffort") {
             None | Some(serde_json::Value::Null) => Some(*name),
             Some(explicit) => explicit.as_str(),
         };
@@ -209,6 +217,8 @@ pub fn select_variant(
                 variant: Some(SelectedVariant {
                     name: name.to_string(),
                     reasoning_effort: value
+                        .get("settings")
+                        .unwrap_or(value)
                         .get("reasoningEffort")
                         .and_then(serde_json::Value::as_str)
                         .map(str::to_string),

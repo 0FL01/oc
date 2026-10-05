@@ -406,6 +406,15 @@ key — secret input для authorized bounded tests, не repo artifact/runner 
 Pending: complete только после R1–R6 и impacted green gates с factual report;
 delivery approved plan и doc validator не означают provider/TUI readiness.
 
+### Local normalization checkpoint (2026-10-05)
+
+Legacy/canonical local provider documents now share one normalizer and supplied-field
+source merge, with endpoint/key/header provenance, model migration and array variants.
+`evidence/T53/config-normalization.md` records 576 adapter unit tests and strict
+all-target gates. This is partial R2/R3, not GO02/GO03 PASS: effective selected request
+binding/overlays and public Go cache remain next, followed by metadata/replay/connect
+and bounded GO06 qualification. T44 stays PAUSED.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

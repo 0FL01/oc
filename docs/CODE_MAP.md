@@ -54,6 +54,11 @@
 
 External read/search (TOOL14/TOOL16): `files.rs::{concrete_scope,pin_external,resolve_read,open_read_scope}` extends the same read/search descriptors with invocation-only authority; `runtime/turn.rs` home/Location normalization and `approval.rs` reuse shared boundary/action admission. Mutation resolution and instruction/config roots stay distinct. Nearest proofs: `files/external_tests.rs`, the existing active-scan cancellation test, runtime `approval_lifecycle::external_read_shared_boundary_and_action_admission_emit_only_genuine_asks`, and direct normal ELF `evidence/T50/native_external_read.py`; results in `evidence/T50/external-read.md`.
 
+T53 local config: `oc-adapters/src/config/providers.rs` normalizes both provider
+roots and recursively merges supplied overlays, with `providers_tests.rs`.
+`config.rs` retains field provenance; model/variant readers accept canonical arrays.
+Full effective request binding and public Go cache remain separate T53 slices.
+
 T53 native wires: `oc-adapters/src/provider/{chat,messages,protocol}.rs` owns
 finite lowering and independent decoders; `provider.rs` shares HTTP/SSE caps,
 cancel and one-attempt dispatch; `config.rs::provider_wire` admits explicit

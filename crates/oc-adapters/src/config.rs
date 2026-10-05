@@ -16,6 +16,7 @@ use thiserror::Error;
 
 pub(crate) mod diagnostic;
 pub(crate) mod mcp;
+mod providers;
 pub use crate::tools::output::Limits as ToolOutputLimits;
 pub use mcp::McpTimeouts;
 
@@ -119,6 +120,12 @@ pub struct ProviderOptions {
     /// Extra generation headers; native auth and transport headers take precedence.
     #[serde(default)]
     pub headers: BTreeMap<String, String>,
+    /// Explicit JSON request-body overlay, validated by the request owner.
+    #[serde(default)]
+    pub body: serde_json::Map<String, serde_json::Value>,
+    /// Per-wire settings retained by normalization for effective selection.
+    #[serde(flatten)]
+    pub wire_settings: BTreeMap<String, serde_json::Value>,
     /// Native admission caps for unknown model limits (never discovery metadata).
     #[serde(rename = "nativeFallbackLimits", default)]
     pub native_fallback_limits: crate::models::FallbackLimits,
@@ -137,7 +144,7 @@ impl std::fmt::Debug for ProviderOptions {
 }
 
 /// Single provider entry.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProviderEntry {
     /// Package alias; native family uses `@ai-sdk/openai`.
@@ -146,12 +153,24 @@ pub struct ProviderEntry {
     /// Display name.
     #[serde(default)]
     pub name: Option<String>,
+    /// Declarative environment metadata, never an implicit credential fallback.
+    #[serde(default)]
+    pub env: Vec<String>,
     /// Connection options.
     #[serde(default)]
     pub options: ProviderOptions,
     /// Static models (ludka style); absent for discovery providers.
     #[serde(default)]
     pub models: BTreeMap<String, serde_json::Value>,
+}
+
+impl std::fmt::Debug for ProviderEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ProviderEntry")
+            .field("options", &self.options)
+            .field("model_count", &self.models.len())
+            .finish_non_exhaustive()
+    }
 }
 
 /// Normalized MCP entry. Failed entries remain in the generation, but cannot launch.
@@ -809,7 +828,8 @@ fn assemble_with_admission(
     require_credential: bool,
     catalog_only: bool,
 ) -> Result<(Generation, Option<oc_core::queries::TerminalCopyMode>), diagnostic::LocatedError> {
-    let mut providers: BTreeMap<String, (ProviderEntry, String)> = BTreeMap::new();
+    let mut providers: BTreeMap<String, (serde_json::Value, String)> = BTreeMap::new();
+    let mut provider_origins: BTreeMap<String, String> = BTreeMap::new();
     // Unknown provider option keys: visible warnings, never a hard failure.
     let mut unknown_options: Vec<String> = Vec::new();
     let mut mcp: BTreeMap<String, (McpEntry, String)> = BTreeMap::new();
@@ -896,17 +916,7 @@ fn assemble_with_admission(
             }
         }
 
-        if let Some(prov) = obj.get("provider") {
-            let map = prov.as_object().ok_or_else(|| ConfigError::Invalid {
-                field: "provider".to_string(),
-                reason: "must be an object".to_string(),
-            })?;
-            for (id, raw) in map {
-                let entry: ProviderEntry =
-                    serde_json::from_value(raw.clone()).map_err(|e| ConfigError::Invalid {
-                        field: format!("provider.{id}"),
-                        reason: format!("shape: {e}"),
-                    })?;
+        for (id, raw) in providers::document(obj)? {
                 for key in unknown_option_keys(raw.get("options")) {
                     unknown_options.push(if require_credential { format!(
                         "provider.{id}.options.{key} is not supported by the native \
@@ -915,8 +925,25 @@ fn assemble_with_admission(
                         diagnostic::failure(&source.path, &["provider", "entry", "options", "entry"], oc_core::queries::ServiceStage::Config, oc_core::queries::ServiceCode::IgnoredSetting, oc_core::queries::ServiceAction::ReviewConfiguration).to_string()
                     });
                 }
-                providers.insert(id.clone(), (entry, source.path.clone()));
-            }
+                if let Some(options) = raw.get("options").and_then(serde_json::Value::as_object) {
+                    for (key, value) in options {
+                        if key == "headers" {
+                            if let Some(headers) = value.as_object() {
+                                for name in headers.keys() {
+                                    provider_origins.insert(format!("provider.{id}.options.headers.{}", name.to_ascii_lowercase()), source.path.clone());
+                                }
+                            }
+                        } else {
+                            provider_origins.insert(format!("provider.{id}.options.{key}"), source.path.clone());
+                        }
+                    }
+                }
+                if let Some((existing, path)) = providers.get_mut(&id) {
+                    providers::merge(existing, raw);
+                    *path = source.path.clone();
+                } else {
+                    providers.insert(id, (raw, source.path.clone()));
+                }
         }
 
         mcp::merge_document(source, obj, &mut mcp, &mut mcp_timeout, &mut mcp_provenance)?;
@@ -956,14 +983,23 @@ fn assemble_with_admission(
     // Substitute + selected-only credential check (no network/process here).
     let mut out_providers = BTreeMap::new();
     let mut provenance = BTreeMap::new();
-    for (id, (entry, path)) in &providers {
+    for (id, (raw, path)) in &providers {
+        let entry: ProviderEntry = serde_json::from_value(raw.clone()).map_err(|_| {
+            diagnostic::LocatedError::new(
+                path,
+                ConfigError::Invalid {
+                    field: format!("provider.{id}"),
+                    reason: "invalid provider shape".into(),
+                },
+            )
+        })?;
         if catalog_only {
             if package_protocol(id, entry.npm.as_deref()).is_err() {
                 // An inert foreign protocol never gains a catalog binding or
                 // permission to resolve its endpoint/credential templates.
                 continue;
             }
-            validate_provider(id, entry)
+            validate_provider(id, &entry)
                 .map_err(|error| diagnostic::LocatedError::new(path, error))?;
         }
         if let Some(only) = enabled_providers
@@ -977,6 +1013,7 @@ fn assemble_with_admission(
                     ProviderEntry {
                         npm: entry.npm.clone(),
                         name: entry.name.clone(),
+                        env: entry.env.clone(),
                         options: ProviderOptions::default(),
                         models: entry.models.clone(),
                     },
@@ -985,15 +1022,24 @@ fn assemble_with_admission(
             }
             continue;
         }
-        let trusted = sources.iter().any(|s| s.path == *path && s.trusted);
+        let origin = |field: &str| {
+            let key = format!("provider.{id}.options.{field}");
+            let path = provider_origins.get(&key).unwrap_or(path);
+            (path, sources.iter().any(|s| s.path == *path && s.trusted))
+        };
         let mut entry = entry.clone();
         (|| -> Result<(), ConfigError> {
             if entry.options.auth_policy == crate::auth::AuthPolicy::None {
                 // A missing substitution cannot erase a competing input.
                 validate_provider(id, &entry)?;
             }
-            entry.options.base_url =
-                substitute_with(&entry.options.base_url, path, trusted, env, reader)?;
+            entry.options.base_url = substitute_with(
+                &entry.options.base_url,
+                origin("baseURL").0,
+                origin("baseURL").1,
+                env,
+                reader,
+            )?;
             // Go's authority must be admitted before any credential substitution.
             if id == "opencode-go" {
                 crate::auth::AuthScope::admit(id, &entry.options.base_url).map_err(|_| {
@@ -1006,21 +1052,37 @@ fn assemble_with_admission(
             // Partial/static catalog documents need not define a connection.
             // Composition still requires an endpoint before resolving/executing.
             if !entry.options.base_url.is_empty() {
-                crate::endpoint::EndpointBinding::admit(&entry.options.base_url, trusted, path)
-                    .map_err(|_| ConfigError::Invalid {
-                        field: format!("provider.{id}.options.baseURL"),
-                        reason: "invalid endpoint authority".into(),
-                    })?;
-                entry.options.endpoint_source = Some(path.clone());
-                entry.options.endpoint_trusted = trusted;
+                crate::endpoint::EndpointBinding::admit(
+                    &entry.options.base_url,
+                    origin("baseURL").1,
+                    origin("baseURL").0,
+                )
+                .map_err(|_| ConfigError::Invalid {
+                    field: format!("provider.{id}.options.baseURL"),
+                    reason: "invalid endpoint authority".into(),
+                })?;
+                entry.options.endpoint_source = Some(origin("baseURL").0.clone());
+                entry.options.endpoint_trusted = origin("baseURL").1;
             }
-            entry.options.api_key =
-                substitute_with(&entry.options.api_key, path, trusted, env, reader)?;
+            entry.options.api_key = substitute_with(
+                &entry.options.api_key,
+                origin("apiKey").0,
+                origin("apiKey").1,
+                env,
+                reader,
+            )?;
             if let Some(token) = &mut entry.options.auth_token {
-                *token = substitute_with(token, path, trusted, env, reader)?;
+                *token = substitute_with(
+                    token,
+                    origin("authToken").0,
+                    origin("authToken").1,
+                    env,
+                    reader,
+                )?;
             }
-            for value in entry.options.headers.values_mut() {
-                *value = substitute_with(value, path, trusted, env, reader)?;
+            for (name, value) in &mut entry.options.headers {
+                let field = format!("headers.{}", name.to_ascii_lowercase());
+                *value = substitute_with(value, origin(&field).0, origin(&field).1, env, reader)?;
             }
             let selected = enabled_providers.is_none_or(|only| only.contains(id));
             // Only the provider that will actually be used must be on the native
@@ -1078,6 +1140,7 @@ fn assemble_with_admission(
         provenance.insert("compaction".into(), path);
     }
     provenance.extend(compaction_provenance);
+    provenance.extend(provider_origins);
     provenance.extend(mcp_provenance);
     if let Some(source) = tool_output_source {
         provenance.insert("tool_output".into(), source);
@@ -1171,6 +1234,13 @@ const PROVIDER_OPTION_KEYS: &[&str] = &[
     "chunkTimeout",
     "setCacheKey",
     "headers",
+    "body",
+    "reasoningEffort",
+    "reasoningSummary",
+    "textVerbosity",
+    "thinking",
+    "outputConfig",
+    "output_config",
     "nativeFallbackLimits",
 ];
 
@@ -2712,6 +2782,7 @@ mod tests {
         let entry = |models: serde_json::Value| ProviderEntry {
             npm: Some("@ai-sdk/openai-compatible".into()),
             name: None,
+            env: vec![],
             options: ProviderOptions::default(),
             models: serde_json::from_value(models).unwrap(),
         };

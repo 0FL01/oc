@@ -1080,6 +1080,8 @@ impl Effective {
                             .and_then(|flag| flag.as_bool())
                             .unwrap_or(false),
                         reasoning_effort: value
+                            .get("settings")
+                            .unwrap_or(value)
                             .get("reasoningEffort")
                             .and_then(|effort| effort.as_str())
                             .map(str::to_string),

@@ -957,6 +957,13 @@ fn merge_model(remote: &RemoteModel, local: &serde_json::Value) -> serde_json::V
                     variants.insert(key.clone(), value.clone());
                 }
             }
+            if let Some(array) = source.as_array() {
+                for value in array {
+                    if let Some(id) = value.get("id").and_then(serde_json::Value::as_str) {
+                        variants.insert(id.into(), value.clone());
+                    }
+                }
+            }
         }
         merged.insert("variants".to_string(), serde_json::Value::Object(variants));
     }

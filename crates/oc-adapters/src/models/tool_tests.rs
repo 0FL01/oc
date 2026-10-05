@@ -44,6 +44,7 @@ fn tool18_lookup_group_family_page_merge_and_redaction() {
     };
     let entry = |name: &str, models: serde_json::Value| crate::config::ProviderEntry {
         name: Some(name.into()),
+        env: vec![],
         npm: None,
         options: Default::default(),
         models: serde_json::from_value(models).unwrap(),

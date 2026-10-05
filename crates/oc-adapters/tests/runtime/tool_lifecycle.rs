@@ -934,6 +934,7 @@ for line in sys.stdin:
     generation.providers.insert(
         "test".into(),
         oc_adapters::config::ProviderEntry {
+            env: vec![],
             npm: None,
             name: None,
             models: BTreeMap::new(),
