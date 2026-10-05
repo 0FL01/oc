@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-05T12:05:19+00:00
+State updated: 2026-10-05T14:46:44+00:00
 Active: T45
 
 Сверить Git status/diff до выполнения команд.
@@ -13,13 +13,13 @@ Owner-approved R3/R6–R10; full contracts and ordered slices in spec/M8, histor
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-DCP 3.2.0 donor delta qualified and pinned: protected tool aliases fixed (c368b0e46), IDs beyond 9999 (f6ac67178) and compaction nudge replay (579e81b64) qualified without product change, revision/lock/both exact gates moved to d637981 with bare/latest/3.1.15 aliases (1a927a5ff).
+Audited open T45 clauses and closed four: R10 skill preview per-lane permission/autoinvoke (c31b01d26), file-tool family per lane model and next root request (3978918e0), busy-commit model-relative DCP budget/guidance consumer (1cb4dfa26), R9 task/pack HOT renewal before completion (c63094d0c) with renewed-background recovery and native DCP10/CTX01 receipts (2bea4a560).
 ## Checks
-Workspace 1562/0/10, pty_t39 48/0 with actual @3.2.0 admission, rebuilt debug/release DCP native regressions PASS (historical native_dcp_defaults [0,1,0] expectation fails identically pre-change; its replacements pass), fmt/Clippy/Python47/docs/diff PASS. Evidence: evidence/T45/dcp320.md.
+Workspace 1568/0/10; pty_t39 48/0; native context-pack runner 6 PASS (debug/release); native_child_recovery 40 PASS; fmt/strict Clippy/docs/diff PASS. Evidence: skill-preview.md, file-family.md, task-renewal.md.
 ## Risks
-Revision names the adopted subset, not full 3.2.0 parity; CodeMode/compact IDs/TS host out of scope; T44 VIS38 display attribution stays 3.1.15 until explicit resume. Whole T45 open; T44 PAUSED, T27 allowance unchanged.
+R10 chronological system/effort seam waits on T53/GO03 (todo); renewal with an Ask compress permission is explicitly refused, not offered; whole T45 acceptance status not changed. T44 PAUSED, T27 allowance unchanged.
 ## Next
-Remaining amended-plan T45 items (R6 headless/run --agent and Plan lifecycle regressions, R10 shared prompt/instructions lifecycle, PRM01 17-step root/child qualification) per spec order.
+Resume R10 system/effort consumer after T53/GO03 lands; otherwise T45 acceptance review of R3–R10 evidence.
 
 
 Ready (до 5): T53, T56

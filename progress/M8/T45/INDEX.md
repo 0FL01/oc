@@ -5,7 +5,6 @@ Spec: ../../../docs/goals/2026-09-21-config-compat-and-subagents.md
 
 Последние 12 записей; остальные доступны по номеру/targeted search.
 
-- [0012](0012.md)
 - [0013](0013.md)
 - [0014](0014.md)
 - [0015](0015.md)
@@ -17,3 +16,4 @@ Spec: ../../../docs/goals/2026-09-21-config-compat-and-subagents.md
 - [0021](0021.md)
 - [0022](0022.md)
 - [0023](0023.md)
+- [0024](0024.md)
