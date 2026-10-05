@@ -440,6 +440,19 @@ This is partial R1/R3, not full GO01/GO03: public Go cache/catalog, all-lane met
 chronological effort/cache, durable protocol/binding replay, accounts/connect and
 bounded GO06 remain pending. Next slice: public models.dev/cache source owner.
 
+### Public catalog owner checkpoint (2026-10-05)
+
+`models_dev::GoCatalog` now normalizes only public Go metadata, strips remote
+connection/auth inputs before persistence, and owns source-qualified last-good
+cache with timestamp, TTL and cancellable single-flight refresh. Valid empty
+records retire IDs; malformed/missing records retain last-good. Current local
+overrides apply only to surviving IDs and same-ID variants replace overlays.
+Declared controls use finite implemented generic lowerings, without model-name
+defaults. Adapter suite **588/0/0**, strict all-target clippy/fmt green;
+receipt `evidence/T53/public-catalog.md`. This is partial R2, not GO02/T53 PASS:
+application startup/picker/manual refresh and shared model read-view integration
+are next, followed by metadata/replay/connect and bounded GO06 qualification.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

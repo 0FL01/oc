@@ -61,7 +61,13 @@ roots and recursively merges supplied overlays, with `providers_tests.rs`.
 source provenance; application resolves each admitted auth scope before publication.
 `provider.rs::for_selection` is the common immutable dispatch/admission consumer;
 catalog IDs stay distinct from wire modelID. Nearest tests: `request_bindings_tests.rs`
-and `application/effective_wire_tests.rs`. Public Go cache remains a separate slice.
+and `application/effective_wire_tests.rs`.
+
+T53 public Go source: `oc-adapters/src/models_dev.rs::GoCatalog` owns bounded,
+credential-free `https://models.dev/api.json` refresh, sanitized source-qualified
+SQLite preference cache and single-flight/TTL/last-good state. Only Go metadata
+survives normalization; tests `models_dev/tests.rs`. Application/read-view wiring
+is the next slice; authenticated OpenProxy discovery remains independent.
 
 T53 native wires: `oc-adapters/src/provider/{chat,messages,protocol}.rs` owns
 finite lowering and independent decoders; `provider.rs` shares HTTP/SSE caps,

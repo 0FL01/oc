@@ -23,6 +23,7 @@ pub mod mcp_remote;
 pub mod mcp_result;
 pub mod mcp_stdio;
 pub mod models;
+pub mod models_dev;
 pub mod patch;
 pub mod permissions;
 mod plan;
